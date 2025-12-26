@@ -98,6 +98,33 @@ tiab-review-plugin/
 └── webpack.config.js
 ```
 
+## 開発時の注意点
+
+> **⚠️ Chrome拡張機能はブラウザにインストールしないとテストできません**
+>
+> Chrome拡張機能のAPIは通常のウェブページからは利用できないため、ヘッドレスブラウザやリモート環境のブラウザではテストできません。
+
+### リモート開発環境（Codespaces, devcontainer等）を使う場合
+
+リモート環境では`dist`フォルダを都度ダウンロードする必要があり、開発効率が低下します。
+
+**推奨: ローカルでの開発**
+
+```bash
+# リモートでコミット＆プッシュ
+git add .
+git commit -m "Update"
+git push
+
+# ローカルPCでクローン
+git clone <repo-url>
+cd tiab-review-plugin
+npm install
+npm run watch  # 変更を監視して自動ビルド
+```
+
+ローカルの`dist`フォルダをChromeに読み込めば、コード変更後は拡張機能の**リロードボタン（🔄）**を押すだけで反映されます。
+
 ## ライセンス
 
 MIT
