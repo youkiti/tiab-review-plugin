@@ -1,0 +1,103 @@
+# TiAb Review Plugin
+
+Chrome拡張機能 - Systematic Reviewのタイトル・抄録スクリーニングを効率化するツール
+
+## 必要条件
+
+- **Node.js** >= 18.0.0
+- **npm** >= 9.0.0
+- **Google Cloud CLI** (`gcloud`) - OAuth設定に使用
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 2. Google Cloud CLI のインストール
+
+```bash
+# Ubuntu/Debian
+sudo snap install google-cloud-cli --classic
+
+# macOS
+brew install google-cloud-sdk
+
+# Windows (PowerShell)
+(New-Object Net.WebClient).DownloadFile("https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe", "$env:Temp\GoogleCloudSDKInstaller.exe")
+& $env:Temp\GoogleCloudSDKInstaller.exe
+```
+
+### 3. Google Cloud プロジェクトのセットアップ
+
+```bash
+# ログイン
+gcloud auth login
+
+# 新しいプロジェクトを作成（または既存のプロジェクトを使用）
+gcloud projects create tiab-review-plugin --name="TiAb Review Plugin"
+gcloud config set project tiab-review-plugin
+
+# 必要なAPIを有効化
+gcloud services enable sheets.googleapis.com
+gcloud services enable drive.googleapis.com
+```
+
+### 4. OAuth 2.0 クライアントIDの作成
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) を開く
+2. 「認証情報を作成」→「OAuthクライアントID」
+3. アプリケーションの種類: **Chrome拡張機能**
+4. 拡張機能ID: (後で`chrome://extensions`から取得)
+5. 作成されたクライアントIDを `src/manifest.json` の `oauth2.client_id` に設定
+
+### 5. ビルド
+
+```bash
+# 開発ビルド
+npm run dev
+
+# 本番ビルド
+npm run build
+
+# ウォッチモード（開発中）
+npm run watch
+```
+
+### 6. Chrome への読み込み
+
+1. `chrome://extensions` を開く
+2. 「デベロッパーモード」をON
+3. 「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダを選択
+
+## 開発コマンド
+
+| コマンド | 説明 |
+|----------|------|
+| `npm run build` | 本番用ビルド |
+| `npm run dev` | 開発用ビルド |
+| `npm run watch` | ホットリロード開発 |
+| `npm run lint` | ESLint実行 |
+| `npm run typecheck` | 型チェック |
+
+## ディレクトリ構造
+
+```
+tiab-review-plugin/
+├── src/
+│   ├── manifest.json          # Chrome Extension Manifest V3
+│   ├── background/            # Service Worker
+│   ├── popup/                 # ポップアップUI
+│   ├── sidepanel/             # サイドパネルUI
+│   └── lib/                   # 共通ライブラリ
+├── dist/                      # ビルド出力
+├── package.json
+├── tsconfig.json
+└── webpack.config.js
+```
+
+## ライセンス
+
+MIT

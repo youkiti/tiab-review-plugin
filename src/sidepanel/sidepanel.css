@@ -1,0 +1,243 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    background: #f5f5f5;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 100%;
+    padding: 16px;
+}
+
+/* ヘッダー */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1a73e8;
+}
+
+.header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a73e8;
+}
+
+.progress {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* セクション */
+.section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* フォーム */
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+/* ボタン */
+.btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    color: #fff;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #1557b0;
+}
+
+/* フィルター */
+.filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.filters select,
+.filters input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+/* 文献カード */
+.reference-card {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.ref-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.ref-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.ref-meta span:not(:last-child)::after {
+    content: ' • ';
+}
+
+.ref-abstract {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.ref-links {
+    display: flex;
+    gap: 12px;
+}
+
+.ref-links a {
+    font-size: 13px;
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+.ref-links a:hover {
+    text-decoration: underline;
+}
+
+/* 判定ボタン */
+.decision-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.decision-buttons .btn {
+    flex: 1;
+    padding: 12px 8px;
+    font-size: 13px;
+}
+
+.btn-include {
+    background-color: #34a853;
+    color: #fff;
+}
+
+.btn-include:hover {
+    background-color: #2d9249;
+}
+
+.btn-maybe {
+    background-color: #fbbc04;
+    color: #333;
+}
+
+.btn-maybe:hover {
+    background-color: #e5ab00;
+}
+
+.btn-exclude {
+    background-color: #ea4335;
+    color: #fff;
+}
+
+.btn-exclude:hover {
+    background-color: #d33426;
+}
+
+/* ナビゲーション */
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-nav {
+    background-color: #f1f3f4;
+    color: #333;
+    padding: 8px 16px;
+}
+
+.btn-nav:hover {
+    background-color: #e8eaed;
+}
+
+#nav-position {
+    font-size: 13px;
+    color: #666;
+}

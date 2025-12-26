@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TiAb Review</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>TiAb Review</h1>
+    </header>
+    
+    <main>
+      <div id="login-section" class="section">
+        <p>スクリーニングを開始するにはログインしてください</p>
+        <button id="login-btn" class="btn btn-primary">Googleでログイン</button>
+      </div>
+      
+      <div id="user-section" class="section hidden">
+        <p>ログイン中: <span id="user-email"></span></p>
+        <button id="open-sidepanel-btn" class="btn btn-secondary">
+          サイドパネルを開く
+        </button>
+      </div>
+    </main>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
