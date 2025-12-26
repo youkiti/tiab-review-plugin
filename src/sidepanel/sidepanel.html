@@ -21,15 +21,42 @@
         <!-- 設定セクション -->
         <section id="config-section" class="section">
             <h2>プロジェクト設定</h2>
-            <div class="form-group">
-                <label for="spreadsheet-id">スプレッドシートID</label>
-                <input type="text" id="spreadsheet-id" placeholder="1abc...xyz">
+            <div id="user-info" class="user-info"></div>
+
+            <!-- 新規プロジェクト作成（メイン） -->
+            <div class="setup-option primary">
+                <button id="create-btn" class="btn btn-primary btn-large">
+                    ＋ 新規レビュープロジェクトを作成
+                </button>
+                <p class="help-text">Google Driveに新しいスプレッドシートを作成します</p>
             </div>
-            <button id="connect-btn" class="btn btn-primary">接続</button>
+
+            <!-- 既存プロジェクトに接続 -->
+            <div class="setup-option secondary">
+                <div class="divider"><span>または</span></div>
+                <label>最近のスプレッドシートから選択</label>
+                <select id="recent-sheets" class="recent-sheets-select">
+                    <option value="">読み込み中...</option>
+                </select>
+                <button id="connect-btn" class="btn btn-secondary"
+                    style="margin-top: 8px; width: 100%;">選択したシートに接続</button>
+            </div>
+
+            <div id="status-message" class="status-message hidden"></div>
+            <div id="loading" class="loading hidden">読み込み中...</div>
         </section>
 
         <!-- スクリーニングセクション -->
         <section id="screening-section" class="section hidden">
+            <!-- RIS インポート -->
+            <div id="import-section" class="import-section">
+                <input type="file" id="ris-file" accept=".ris,.txt" class="hidden">
+                <button id="import-btn" class="btn btn-secondary btn-small">
+                    📁 RISファイルをインポート
+                </button>
+                <span id="import-status" class="import-status"></span>
+            </div>
+
             <!-- フィルター -->
             <div class="filters">
                 <select id="status-filter">
