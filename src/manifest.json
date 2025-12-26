@@ -5,13 +5,14 @@
     "description": "Systematic Review のタイトル・抄録スクリーニングを効率化するChrome拡張機能",
     "permissions": [
         "identity",
-        "storage"
+        "storage",
+        "sidePanel"
     ],
     "host_permissions": [
         "https://sheets.googleapis.com/*"
     ],
     "oauth2": {
-        "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+        "client_id": "451307229828-kf21vg8iof38ck0f0pu5m1ms7hqslib0.apps.googleusercontent.com",
         "scopes": [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/userinfo.email",
