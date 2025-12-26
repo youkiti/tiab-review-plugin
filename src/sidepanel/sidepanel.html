@@ -21,25 +21,36 @@
         <!-- 設定セクション -->
         <section id="config-section" class="section">
             <h2>プロジェクト設定</h2>
-            <div id="user-info" class="user-info"></div>
 
-            <!-- 新規プロジェクト作成（メイン） -->
-            <div class="setup-option primary">
-                <button id="create-btn" class="btn btn-primary btn-large">
-                    ＋ 新規レビュープロジェクトを作成
+            <!-- ログインセクション（未ログイン時のみ表示） -->
+            <div id="login-section" class="login-section">
+                <button id="login-btn" class="btn btn-primary btn-large">
+                    Googleアカウントでログイン
                 </button>
-                <p class="help-text">Google Driveに新しいスプレッドシートを作成します</p>
             </div>
 
-            <!-- 既存プロジェクトに接続 -->
-            <div class="setup-option secondary">
-                <div class="divider"><span>または</span></div>
-                <label>最近のスプレッドシートから選択</label>
-                <select id="recent-sheets" class="recent-sheets-select">
-                    <option value="">読み込み中...</option>
-                </select>
-                <button id="connect-btn" class="btn btn-secondary"
-                    style="margin-top: 8px; width: 100%;">選択したシートに接続</button>
+            <!-- プロジェクト選択セクション（ログイン後に表示） -->
+            <div id="project-section" class="project-section hidden">
+                <div id="user-info" class="user-info"></div>
+
+                <!-- 新規プロジェクト作成 -->
+                <div class="setup-option primary">
+                    <button id="create-btn" class="btn btn-primary btn-large">
+                        ＋ 新規レビュープロジェクトを作成
+                    </button>
+                    <p class="help-text">Google Driveに新しいスプレッドシートを作成します</p>
+                </div>
+
+                <!-- 既存プロジェクトに接続 -->
+                <div class="setup-option secondary">
+                    <div class="divider"><span>または</span></div>
+                    <label>最近のスプレッドシートから選択</label>
+                    <select id="recent-sheets" class="recent-sheets-select">
+                        <option value="">読み込み中...</option>
+                    </select>
+                    <button id="connect-btn" class="btn btn-secondary"
+                        style="margin-top: 8px; width: 100%;">選択したシートに接続</button>
+                </div>
             </div>
 
             <div id="status-message" class="status-message hidden"></div>
@@ -48,11 +59,14 @@
 
         <!-- スクリーニングセクション -->
         <section id="screening-section" class="section hidden">
-            <!-- RIS インポート -->
+            <!-- ツールバー -->
             <div id="import-section" class="import-section">
+                <button id="back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
+                    ← 戻る
+                </button>
                 <input type="file" id="ris-file" accept=".ris,.txt" class="hidden">
                 <button id="import-btn" class="btn btn-secondary btn-small">
-                    📁 RISファイルをインポート
+                    📁 RISインポート
                 </button>
                 <span id="import-status" class="import-status"></span>
             </div>
@@ -95,19 +109,6 @@
                 <button id="btn-exclude" class="btn btn-exclude" title="Exclude (e)">
                     ✕ Exclude
                 </button>
-            </div>
-
-            <!-- 除外理由 -->
-            <div id="exclude-reason-group" class="form-group hidden">
-                <label for="exclude-reason">除外理由</label>
-                <select id="exclude-reason">
-                    <option value="">選択してください</option>
-                    <option value="not_relevant">関連性なし</option>
-                    <option value="wrong_population">対象外の集団</option>
-                    <option value="wrong_study_design">対象外の研究デザイン</option>
-                    <option value="duplicate">重複</option>
-                    <option value="other">その他</option>
-                </select>
             </div>
 
             <!-- メモ -->

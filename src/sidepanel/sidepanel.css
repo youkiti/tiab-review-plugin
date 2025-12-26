@@ -414,3 +414,19 @@ body {
 .import-status.error {
     color: #c62828;
 }
+
+/* Recent sheets select */
+.recent-sheets-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.recent-sheets-select:focus {
+    outline: none;
+    border-color: #1a73e8;
+}

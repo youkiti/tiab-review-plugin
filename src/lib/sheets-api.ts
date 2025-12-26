@@ -39,17 +39,39 @@ export async function getAuthToken(): Promise<string> {
 }
 
 /**
- * ユーザーのメールアドレスを取得
+ * ユーザーのメールアドレスを取得（OAuth userinfo APIを使用）
  */
 export async function getUserEmail(): Promise<string> {
+    const token = await getAuthToken();
+
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to get user info');
+    }
+
+    const userInfo = await response.json();
+    if (!userInfo.email) {
+        throw new Error('No email found');
+    }
+
+    return userInfo.email;
+}
+
+/**
+ * トークンをクリアして再認証（スコープ変更時に使用）
+ */
+export async function forceReauth(): Promise<string> {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'GET_USER_INFO' }, (response) => {
+        chrome.runtime.sendMessage({ type: 'FORCE_REAUTH' }, (response) => {
             if (response?.error) {
                 reject(new Error(response.error));
-            } else if (response?.email) {
-                resolve(response.email);
+            } else if (response?.token) {
+                resolve(response.token);
             } else {
-                reject(new Error('Failed to get user email'));
+                reject(new Error('Failed to reauth'));
             }
         });
     });
@@ -65,26 +87,34 @@ export interface RecentSpreadsheet {
 }
 
 export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpreadsheet[]> {
+    console.log('[getRecentSpreadsheets] Starting...');
+
     const token = await getAuthToken();
+    console.log('[getRecentSpreadsheets] Got token:', token ? 'yes' : 'no');
 
     const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet'");
     const fields = encodeURIComponent('files(id,name,modifiedTime)');
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`;
 
-    const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`,
-        {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        }
-    );
+    console.log('[getRecentSpreadsheets] Fetching:', url);
+
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    console.log('[getRecentSpreadsheets] Response status:', response.status);
 
     if (!response.ok) {
         const error = await response.json();
+        console.error('[getRecentSpreadsheets] Error:', error);
         throw new Error(`Failed to get recent spreadsheets: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('[getRecentSpreadsheets] Got files:', data.files?.length || 0);
+
     return (data.files || []).map((file: { id: string; name: string; modifiedTime: string }) => ({
         id: file.id,
         name: file.name,
@@ -297,18 +327,25 @@ export async function getReferencesWithStatus(
     spreadsheetId: string,
     reviewerEmail: string
 ): Promise<ReferenceWithStatus[]> {
+    console.log('[getReferencesWithStatus] Loading with reviewerEmail:', reviewerEmail);
+
     const [references, decisionsData] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
     ]);
 
+    console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
+
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
     decisionsData.forEach(({ decision }) => {
+        console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
         if (decision.reviewer_id === reviewerEmail) {
             myDecisions.set(decision.ref_id, decision);
         }
     });
+
+    console.log('[getReferencesWithStatus] My decisions count:', myDecisions.size);
 
     return references.map(ref => {
         const myDecision = myDecisions.get(ref.ref_id);

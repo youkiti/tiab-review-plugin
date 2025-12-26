@@ -9,6 +9,8 @@ import {
     getReferencesWithStatus,
     saveDecision as apiSaveDecision,
     addReferences,
+    getRecentSpreadsheets,
+    forceReauth,
 } from '../lib/sheets-api';
 import { parseRISFile } from '../lib/ris-parser';
 
@@ -22,7 +24,7 @@ let userEmail = '';
 // DOM要素
 const configSection = document.getElementById('config-section') as HTMLElement;
 const screeningSection = document.getElementById('screening-section') as HTMLElement;
-const spreadsheetIdInput = document.getElementById('spreadsheet-id') as HTMLInputElement;
+const recentSheetsSelect = document.getElementById('recent-sheets') as HTMLSelectElement;
 const connectBtn = document.getElementById('connect-btn') as HTMLButtonElement;
 const createBtn = document.getElementById('create-btn') as HTMLButtonElement;
 const userInfoDiv = document.getElementById('user-info') as HTMLElement;
@@ -43,8 +45,6 @@ const refPmid = document.getElementById('ref-pmid') as HTMLAnchorElement;
 const btnInclude = document.getElementById('btn-include') as HTMLButtonElement;
 const btnMaybe = document.getElementById('btn-maybe') as HTMLButtonElement;
 const btnExclude = document.getElementById('btn-exclude') as HTMLButtonElement;
-const excludeReasonGroup = document.getElementById('exclude-reason-group') as HTMLElement;
-const excludeReason = document.getElementById('exclude-reason') as HTMLSelectElement;
 const noteInput = document.getElementById('note') as HTMLTextAreaElement;
 
 const btnPrev = document.getElementById('btn-prev') as HTMLButtonElement;
@@ -56,6 +56,7 @@ const progressText = document.getElementById('progress-text') as HTMLElement;
 const risFileInput = document.getElementById('ris-file') as HTMLInputElement;
 const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
 const importStatus = document.getElementById('import-status') as HTMLElement;
+const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,25 +64,77 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
+// ログイン/プロジェクトセクション
+const loginSection = document.getElementById('login-section') as HTMLElement;
+const projectSection = document.getElementById('project-section') as HTMLElement;
+const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
+
 async function initApp() {
     try {
         showLoading(true);
-        // ユーザー情報を取得
-        userEmail = await getUserEmail();
-        userInfoDiv.textContent = `ログイン中: ${userEmail}`;
-        userInfoDiv.classList.remove('hidden');
 
-        // 保存済み設定を読み込み
-        await loadConfig();
+        // サイレント認証を試行
+        try {
+            await getAuthToken();
+            // 成功したらプロジェクト選択画面へ
+            await showProjectSection();
+        } catch {
+            // 失敗したらログインボタン表示のまま
+            showLoading(false);
+        }
     } catch (error) {
-        showStatus('Googleアカウントにログインしてください', 'error');
         console.error('Init error:', error);
+        showLoading(false);
+    }
+}
+
+async function handleLogin() {
+    try {
+        showLoading(true);
+        await getAuthToken();
+        await showProjectSection();
+    } catch (error) {
+        console.error('Login error:', error);
+        showStatus('ログインに失敗しました。もう一度お試しください。', 'error');
     } finally {
         showLoading(false);
     }
 }
 
+async function showProjectSection() {
+    console.log('[showProjectSection] Starting...');
+
+    // ログインセクションを隠してプロジェクトセクションを表示
+    loginSection.classList.add('hidden');
+    projectSection.classList.remove('hidden');
+    console.log('[showProjectSection] Sections toggled');
+
+    // ユーザー情報を取得
+    try {
+        userEmail = await getUserEmail();
+        console.log('[showProjectSection] Got user email:', userEmail);
+    } catch (e) {
+        console.error('[showProjectSection] Failed to get user email:', e);
+        userEmail = 'unknown';
+    }
+    userInfoDiv.textContent = `ログイン中: ${userEmail}`;
+
+    // 最近使用したスプレッドシートを読み込み
+    console.log('[showProjectSection] Loading recent sheets...');
+    await loadRecentSheets();
+    console.log('[showProjectSection] Recent sheets loaded');
+
+    // 保存済み設定を読み込み
+    await loadConfig();
+    console.log('[showProjectSection] Config loaded');
+
+    showLoading(false);
+}
+
 function setupEventListeners() {
+    // ログイン
+    loginBtn.addEventListener('click', handleLogin);
+
     // 接続
     connectBtn.addEventListener('click', handleConnect);
     createBtn.addEventListener('click', handleCreateNew);
@@ -102,18 +155,13 @@ function setupEventListeners() {
     importBtn.addEventListener('click', () => risFileInput.click());
     risFileInput.addEventListener('change', handleRISImport);
 
+    // 戻るボタン
+    backBtn.addEventListener('click', handleBack);
+
     // 判定ボタン
     btnInclude.addEventListener('click', () => handleDecision('include'));
     btnMaybe.addEventListener('click', () => handleDecision('maybe'));
-    btnExclude.addEventListener('click', () => {
-        excludeReasonGroup.classList.remove('hidden');
-    });
-
-    excludeReason.addEventListener('change', () => {
-        if (excludeReason.value) {
-            handleDecision('exclude');
-        }
-    });
+    btnExclude.addEventListener('click', () => handleDecision('exclude'));
 
     // ナビゲーション
     btnPrev.addEventListener('click', () => navigate(-1));
@@ -137,8 +185,7 @@ function handleKeydown(e: KeyboardEvent) {
             handleDecision('maybe');
             break;
         case 'e':
-            excludeReasonGroup.classList.remove('hidden');
-            excludeReason.focus();
+            handleDecision('exclude');
             break;
         case 'n':
         case 'arrowright':
@@ -193,17 +240,20 @@ function extractSpreadsheetId(input: string): string | null {
     return null;
 }
 
-async function handleConnect() {
-    const input = spreadsheetIdInput.value.trim();
-    if (!input) {
-        showStatus('スプレッドシートIDまたはURLを入力してください', 'error');
-        return;
-    }
+function handleBack() {
+    // スクリーニング画面を隠してプロジェクト選択画面を表示
+    screeningSection.classList.add('hidden');
+    configSection.classList.remove('hidden');
 
-    // URLからIDを抽出、またはそのままIDとして使用
-    const extractedId = extractSpreadsheetId(input);
-    if (!extractedId) {
-        showStatus('無効なスプレッドシートIDまたはURLです', 'error');
+    // スプレッドシートIDをクリア
+    spreadsheetId = '';
+    references = [];
+}
+
+async function handleConnect() {
+    const selectedId = recentSheetsSelect.value;
+    if (!selectedId) {
+        showStatus('スプレッドシートを選択してください', 'error');
         return;
     }
 
@@ -212,10 +262,10 @@ async function handleConnect() {
         hideStatus();
 
         // スプレッドシートの存在確認
-        const info = await getSpreadsheetInfo(extractedId);
+        const info = await getSpreadsheetInfo(selectedId);
         showStatus(`接続成功: ${info.title}`, 'success');
 
-        spreadsheetId = extractedId;
+        spreadsheetId = selectedId;
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId });
@@ -227,6 +277,72 @@ async function handleConnect() {
         showStatus(`接続エラー: ${(error as Error).message}`, 'error');
     } finally {
         showLoading(false);
+    }
+}
+
+/**
+ * 最近使用したスプレッドシートをドロップダウンに読み込み
+ */
+async function loadRecentSheets() {
+    try {
+        recentSheetsSelect.innerHTML = '<option value="">読み込み中...</option>';
+
+        const sheets = await getRecentSpreadsheets(15);
+
+        recentSheetsSelect.innerHTML = '';
+
+        if (sheets.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'スプレッドシートが見つかりません';
+            recentSheetsSelect.appendChild(opt);
+            return;
+        }
+
+        // 空の選択肢
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = '— スプレッドシートを選択 —';
+        recentSheetsSelect.appendChild(emptyOpt);
+
+        for (const sheet of sheets) {
+            const opt = document.createElement('option');
+            opt.value = sheet.id;
+            opt.textContent = sheet.name;
+            recentSheetsSelect.appendChild(opt);
+        }
+    } catch (error) {
+        console.error('Failed to load recent sheets:', error);
+        const errorMessage = (error as Error).message || 'Unknown error';
+
+        recentSheetsSelect.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '読み込み失敗';
+        recentSheetsSelect.appendChild(opt);
+
+        // 再認証ボタンを表示
+        showStatus(`シート一覧取得失敗 - 権限を再設定してください`, 'error');
+
+        // 再認証リンクを追加
+        const reauthBtn = document.createElement('button');
+        reauthBtn.textContent = '🔄 権限を再設定';
+        reauthBtn.className = 'btn btn-primary';
+        reauthBtn.style.marginTop = '12px';
+        reauthBtn.style.width = '100%';
+        reauthBtn.onclick = async () => {
+            try {
+                showLoading(true);
+                await forceReauth();
+                await loadRecentSheets();
+                hideStatus();
+            } catch (e) {
+                showStatus('再認証に失敗しました', 'error');
+            } finally {
+                showLoading(false);
+            }
+        };
+        statusMessage.appendChild(reauthBtn);
     }
 }
 
@@ -242,7 +358,6 @@ async function handleCreateNew() {
         showStatus(`作成成功: ${title}`, 'success');
 
         spreadsheetId = newId;
-        spreadsheetIdInput.value = newId;
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId });
@@ -285,7 +400,8 @@ async function loadDataAndShowScreening() {
 async function loadConfig() {
     const result = await chrome.storage.local.get(['spreadsheetId']);
     if (result.spreadsheetId) {
-        spreadsheetIdInput.value = result.spreadsheetId;
+        // ドロップダウンで選択
+        recentSheetsSelect.value = result.spreadsheetId;
     }
 }
 
@@ -352,15 +468,33 @@ function renderCurrentReference() {
     navPosition.textContent = `${currentIndex + 1} / ${filtered.length}`;
     progressText.textContent = `${references.filter((r) => r.status !== 'pending').length} / ${references.length}`;
 
-    // 除外理由をリセット
-    excludeReasonGroup.classList.add('hidden');
-    excludeReason.value = '';
+    // フィルターの件数を更新
+    updateFilterCounts();
+
+    // メモをリセット
     noteInput.value = ref.myDecision?.note || '';
 
     // ボタンの状態を更新（現在の判定をハイライト）
     btnInclude.classList.toggle('active', ref.status === 'include');
     btnMaybe.classList.toggle('active', ref.status === 'maybe');
     btnExclude.classList.toggle('active', ref.status === 'exclude');
+}
+
+function updateFilterCounts() {
+    const counts = {
+        pending: references.filter(r => r.status === 'pending').length,
+        all: references.length,
+        include: references.filter(r => r.status === 'include').length,
+        exclude: references.filter(r => r.status === 'exclude').length,
+        maybe: references.filter(r => r.status === 'maybe').length,
+    };
+
+    const options = statusFilter.options;
+    options[0].textContent = `未判定 (${counts.pending})`;
+    options[1].textContent = `すべて (${counts.all})`;
+    options[2].textContent = `Include (${counts.include})`;
+    options[3].textContent = `Exclude (${counts.exclude})`;
+    options[4].textContent = `Maybe (${counts.maybe})`;
 }
 
 function navigate(direction: number) {
@@ -379,20 +513,12 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
 
     if (!ref) return;
 
-    // exclude時は理由が必要
-    if (decision === 'exclude' && !excludeReason.value) {
-        excludeReasonGroup.classList.remove('hidden');
-        excludeReason.focus();
-        return;
-    }
-
     // 判定オブジェクトを作成
     const decisionObj: Decision = {
         decision_id: ref.myDecision?.decision_id || crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: userEmail,
         decision,
-        reason: decision === 'exclude' ? excludeReason.value : undefined,
         note: noteInput.value || undefined,
         decided_at: new Date().toISOString(),
         client_version: '0.1.0',

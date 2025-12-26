@@ -9,14 +9,15 @@
         "sidePanel"
     ],
     "host_permissions": [
-        "https://sheets.googleapis.com/*"
+        "https://sheets.googleapis.com/*",
+        "https://www.googleapis.com/drive/*"
     ],
     "oauth2": {
         "client_id": "451307229828-kf21vg8iof38ck0f0pu5m1ms7hqslib0.apps.googleusercontent.com",
         "scopes": [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/drive.file"
+            "https://www.googleapis.com/auth/drive.readonly"
         ]
     },
     "background": {

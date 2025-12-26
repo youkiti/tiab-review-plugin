@@ -23,11 +23,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === 'GET_USER_INFO') {
-        chrome.identity.getProfileUserInfo((userInfo) => {
-            if (chrome.runtime.lastError) {
-                sendResponse({ error: chrome.runtime.lastError.message });
+        // accountStatus: 'ANY' は Chrome 84+ で必要
+        chrome.identity.getProfileUserInfo(
+            { accountStatus: chrome.identity.AccountStatus.ANY },
+            (userInfo) => {
+                if (chrome.runtime.lastError) {
+                    sendResponse({ error: chrome.runtime.lastError.message });
+                } else if (userInfo.email) {
+                    sendResponse({ email: userInfo.email });
+                } else {
+                    sendResponse({ error: 'No email found' });
+                }
+            }
+        );
+        return true;
+    }
+
+    // トークンをクリアして再認証
+    if (message.type === 'FORCE_REAUTH') {
+        chrome.identity.getAuthToken({ interactive: false }, (token) => {
+            if (token) {
+                // 既存トークンを削除
+                chrome.identity.removeCachedAuthToken({ token }, () => {
+                    // 新しいトークンを取得
+                    chrome.identity.getAuthToken({ interactive: true }, (newToken) => {
+                        if (chrome.runtime.lastError) {
+                            sendResponse({ error: chrome.runtime.lastError.message });
+                        } else {
+                            sendResponse({ token: newToken });
+                        }
+                    });
+                });
             } else {
-                sendResponse({ email: userInfo.email });
+                // トークンがなければ普通に取得
+                chrome.identity.getAuthToken({ interactive: true }, (newToken) => {
+                    if (chrome.runtime.lastError) {
+                        sendResponse({ error: chrome.runtime.lastError.message });
+                    } else {
+                        sendResponse({ token: newToken });
+                    }
+                });
             }
         });
         return true;
