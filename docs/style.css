@@ -1,0 +1,171 @@
+/* Common Styles for TiAb Review Plugin Website */
+
+:root {
+    --primary: #4285f4;
+    --primary-dark: #1a73e8;
+    --secondary: #34a853;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --bg: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --border: #dadce0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.8;
+    color: var(--text);
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 16px 0;
+}
+
+.logo {
+    color: white;
+    text-decoration: none;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.logo:hover {
+    opacity: 0.9;
+}
+
+/* Document Page */
+.document-page {
+    padding: 48px 0;
+    flex: 1;
+}
+
+.document-page h1 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.last-updated {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.document-page section {
+    margin-bottom: 40px;
+}
+
+.document-page h2 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+    color: var(--text);
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary);
+    display: inline-block;
+}
+
+.document-page p {
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.document-page ul,
+.document-page ol {
+    margin-left: 24px;
+    margin-bottom: 16px;
+}
+
+.document-page li {
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.document-page a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.document-page a:hover {
+    text-decoration: underline;
+}
+
+.document-page strong {
+    color: var(--text);
+}
+
+/* Footer */
+.footer {
+    background: var(--text);
+    color: white;
+    padding: 32px 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: white;
+}
+
+.copyright {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .document-page h1 {
+        font-size: 1.5rem;
+    }
+
+    .document-page h2 {
+        font-size: 1.125rem;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}

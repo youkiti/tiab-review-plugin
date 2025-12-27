@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiAb Review Plugin - Systematic Review スクリーニングツール</title>
+    <meta name="description" content="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4285f4;
+            --primary-dark: #1a73e8;
+            --secondary: #34a853;
+            --text: #202124;
+            --text-secondary: #5f6368;
+            --bg: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --border: #dadce0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin-bottom: 32px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #764ba2;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Features */
+        .features {
+            padding: 80px 0;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 48px;
+            color: var(--text);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 32px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+        }
+
+        /* How it works */
+        .how-it-works {
+            padding: 80px 0;
+            background: var(--bg-secondary);
+        }
+
+        .how-it-works h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 48px;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.125rem;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text);
+            color: white;
+            padding: 48px 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .copyright {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .step {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <section class="hero">
+        <div class="container">
+            <h1>🔬 TiAb Review Plugin</h1>
+            <p>Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能</p>
+            <div class="hero-buttons">
+                <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub で見る</a>
+                <a href="#features" class="btn btn-secondary">機能を見る</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2>主な機能</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Google Sheets 連携</h3>
+                    <p>スクリーニング結果を Google Sheets に自動保存。チームでのリアルタイム共有が可能です。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📁</div>
+                    <h3>RIS/NBIB インポート</h3>
+                    <p>PubMed、CENTRAL などから出力した文献リストを簡単にインポートできます。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏷️</div>
+                    <h3>効率的なスクリーニング</h3>
+                    <p>Include/Exclude をワンクリックで判定。キーボードショートカットにも対応。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>チーム共有</h3>
+                    <p>共同研究者とスプレッドシートを共有して、複数人でのスクリーニングが可能。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📤</div>
+                    <h3>CSV エクスポート</h3>
+                    <p>スクリーニング結果を CSV 形式でエクスポート。他のツールとの連携も簡単。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>セキュア</h3>
+                    <p>データはすべてあなたの Google Drive に保存。第三者サーバーへの送信はありません。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <div class="container">
+            <h2>使い方</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>拡張機能をインストール</h3>
+                        <p>Chrome ウェブストアから TiAb Review Plugin をインストールします。</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Google アカウントでログイン</h3>
+                        <p>Google Sheets / Drive へのアクセスを許可します。</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>文献リストをインポート</h3>
+                        <p>RIS または NBIB 形式のファイルをアップロードします。</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>スクリーニング開始</h3>
+                        <p>タイトルと抄録を確認し、Include/Exclude を判定していきます。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="privacy-policy.html">プライバシーポリシー</a>
+                    <a href="terms-of-service.html">利用規約</a>
+                    <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
+                </div>
+                <div class="copyright">
+                    © 2025 TiAb Review Plugin. MIT License.
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
