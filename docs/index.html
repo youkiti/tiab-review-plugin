@@ -5,10 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TiAb Review Plugin - Systematic Review スクリーニングツール</title>
-    <meta name="description" content="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能">
+    <meta name="description"
+        content="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能 / A Chrome extension to streamline title and abstract screening for Systematic Reviews">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #4285f4;
@@ -28,7 +31,7 @@
         }
 
         body {
-            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Noto Sans JP', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.7;
             color: var(--text);
             background: var(--bg);
@@ -38,6 +41,22 @@
             max-width: 960px;
             margin: 0 auto;
             padding: 0 24px;
+        }
+
+        .bilingual {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ja {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+
+        .en {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9em;
+            opacity: 0.85;
         }
 
         /* Hero Section */
@@ -54,10 +73,14 @@
             margin-bottom: 16px;
         }
 
-        .hero p {
+        .hero .subtitle {
             font-size: 1.2rem;
             opacity: 0.95;
             margin-bottom: 32px;
+        }
+
+        .hero .subtitle .en {
+            opacity: 0.85;
         }
 
         .hero-buttons {
@@ -136,6 +159,11 @@
             color: var(--text-secondary);
         }
 
+        .feature-card .en {
+            display: block;
+            margin-top: 8px;
+        }
+
         /* How it works */
         .how-it-works {
             padding: 80px 0;
@@ -204,6 +232,7 @@
         .footer-links {
             display: flex;
             gap: 24px;
+            flex-wrap: wrap;
         }
 
         .footer-links a {
@@ -226,7 +255,7 @@
                 font-size: 1.75rem;
             }
 
-            .hero p {
+            .hero .subtitle {
                 font-size: 1rem;
             }
 
@@ -243,47 +272,94 @@
     <section class="hero">
         <div class="container">
             <h1>🔬 TiAb Review Plugin</h1>
-            <p>Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能</p>
+            <div class="subtitle bilingual">
+                <span class="ja">Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能</span>
+                <span class="en">A Chrome extension to streamline title and abstract screening for Systematic
+                    Reviews</span>
+            </div>
             <div class="hero-buttons">
-                <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub で見る</a>
-                <a href="#features" class="btn btn-secondary">機能を見る</a>
+                <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub</a>
+                <a href="#features" class="btn btn-secondary">
+                    <span class="ja">機能を見る</span> / <span class="en">Features</span>
+                </a>
             </div>
         </div>
     </section>
 
     <section class="features" id="features">
         <div class="container">
-            <h2>主な機能</h2>
+            <h2 class="bilingual">
+                <span class="ja">主な機能</span>
+                <span class="en">Key Features</span>
+            </h2>
             <div class="feature-grid">
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
-                    <h3>Google Sheets 連携</h3>
-                    <p>スクリーニング結果を Google Sheets に自動保存。チームでのリアルタイム共有が可能です。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">Google Sheets 連携</span>
+                        <span class="en">Google Sheets Integration</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">スクリーニング結果を Google Sheets に自動保存。チームでのリアルタイム共有が可能です。</span>
+                        <span class="en">Auto-save screening results to Google Sheets. Real-time sharing with your
+                            team.</span>
+                    </p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📁</div>
-                    <h3>RIS/NBIB インポート</h3>
-                    <p>PubMed、CENTRAL などから出力した文献リストを簡単にインポートできます。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">RIS/NBIB インポート</span>
+                        <span class="en">RIS/NBIB Import</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">PubMed、CENTRAL などから出力した文献リストを簡単にインポートできます。</span>
+                        <span class="en">Easily import reference lists exported from PubMed, CENTRAL, and more.</span>
+                    </p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🏷️</div>
-                    <h3>効率的なスクリーニング</h3>
-                    <p>Include/Exclude をワンクリックで判定。キーボードショートカットにも対応。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">効率的なスクリーニング</span>
+                        <span class="en">Efficient Screening</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">Include/Exclude をワンクリックで判定。キーボードショートカットにも対応。</span>
+                        <span class="en">One-click Include/Exclude decisions. Keyboard shortcuts supported.</span>
+                    </p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">👥</div>
-                    <h3>チーム共有</h3>
-                    <p>共同研究者とスプレッドシートを共有して、複数人でのスクリーニングが可能。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">チーム共有</span>
+                        <span class="en">Team Collaboration</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">共同研究者とスプレッドシートを共有して、複数人でのスクリーニングが可能。</span>
+                        <span class="en">Share spreadsheets with collaborators for multi-reviewer screening.</span>
+                    </p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📤</div>
-                    <h3>CSV エクスポート</h3>
-                    <p>スクリーニング結果を CSV 形式でエクスポート。他のツールとの連携も簡単。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">CSV エクスポート</span>
+                        <span class="en">CSV Export</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">スクリーニング結果を CSV 形式でエクスポート。他のツールとの連携も簡単。</span>
+                        <span class="en">Export screening results as CSV. Easy integration with other tools.</span>
+                    </p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🔒</div>
-                    <h3>セキュア</h3>
-                    <p>データはすべてあなたの Google Drive に保存。第三者サーバーへの送信はありません。</p>
+                    <h3 class="bilingual">
+                        <span class="ja">セキュア</span>
+                        <span class="en">Secure</span>
+                    </h3>
+                    <p class="bilingual">
+                        <span class="ja">データはすべてあなたの Google Drive に保存。第三者サーバーへの送信はありません。</span>
+                        <span class="en">All data stored in your Google Drive. No third-party server
+                            transmission.</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -291,34 +367,61 @@
 
     <section class="how-it-works">
         <div class="container">
-            <h2>使い方</h2>
+            <h2 class="bilingual">
+                <span class="ja">使い方</span>
+                <span class="en">How to Use</span>
+            </h2>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h3>拡張機能をインストール</h3>
-                        <p>Chrome ウェブストアから TiAb Review Plugin をインストールします。</p>
+                        <h3 class="bilingual">
+                            <span class="ja">拡張機能をインストール</span>
+                            <span class="en">Install the Extension</span>
+                        </h3>
+                        <p class="bilingual">
+                            <span class="ja">Chrome ウェブストアから TiAb Review Plugin をインストールします。</span>
+                            <span class="en">Install TiAb Review Plugin from the Chrome Web Store.</span>
+                        </p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h3>Google アカウントでログイン</h3>
-                        <p>Google Sheets / Drive へのアクセスを許可します。</p>
+                        <h3 class="bilingual">
+                            <span class="ja">Google アカウントでログイン</span>
+                            <span class="en">Sign in with Google</span>
+                        </h3>
+                        <p class="bilingual">
+                            <span class="ja">Google Sheets / Drive へのアクセスを許可します。</span>
+                            <span class="en">Grant access to Google Sheets / Drive.</span>
+                        </p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h3>文献リストをインポート</h3>
-                        <p>RIS または NBIB 形式のファイルをアップロードします。</p>
+                        <h3 class="bilingual">
+                            <span class="ja">文献リストをインポート</span>
+                            <span class="en">Import References</span>
+                        </h3>
+                        <p class="bilingual">
+                            <span class="ja">RIS または NBIB 形式のファイルをアップロードします。</span>
+                            <span class="en">Upload files in RIS or NBIB format.</span>
+                        </p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">4</div>
                     <div class="step-content">
-                        <h3>スクリーニング開始</h3>
-                        <p>タイトルと抄録を確認し、Include/Exclude を判定していきます。</p>
+                        <h3 class="bilingual">
+                            <span class="ja">スクリーニング開始</span>
+                            <span class="en">Start Screening</span>
+                        </h3>
+                        <p class="bilingual">
+                            <span class="ja">タイトルと抄録を確認し、Include/Exclude を判定していきます。</span>
+                            <span class="en">Review titles and abstracts, then decide Include/Exclude.</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -329,12 +432,16 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-links">
-                    <a href="privacy-policy.html">プライバシーポリシー</a>
-                    <a href="terms-of-service.html">利用規約</a>
+                    <a href="privacy-policy.html">
+                        <span class="ja">プライバシーポリシー</span> / <span class="en">Privacy Policy</span>
+                    </a>
+                    <a href="terms-of-service.html">
+                        <span class="ja">利用規約</span> / <span class="en">Terms of Service</span>
+                    </a>
                     <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
                 </div>
                 <div class="copyright">
-                    © 2025 TiAb Review Plugin. MIT License.
+                    © 2025 SRWS-PSG. MIT License.
                 </div>
             </div>
         </div>

@@ -1,5 +1,36 @@
 /* Common Styles for TiAb Review Plugin Website */
 
+/* Bilingual support */
+.ja {
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+.en {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.document-page .ja,
+.document-page .en {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.document-page .en {
+    font-size: 0.95em;
+    color: var(--text-secondary);
+}
+
+.document-page li .ja,
+.document-page li .en {
+    display: inline;
+}
+
+.document-page li .en {
+    margin-left: 4px;
+}
+
 :root {
     --primary: #4285f4;
     --primary-dark: #1a73e8;
