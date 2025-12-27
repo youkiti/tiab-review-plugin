@@ -43,8 +43,9 @@ const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
 const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'doi', 'pmid', 'url', 'source',
-    'imported_at', 'imported_by', 'dedupe_key'
+    'imported_at', 'imported_by', 'dedupe_key', 'source_file'
 ];
+
 
 // Decisions タブのヘッダー
 // 互換性のため labels 列は残すが、機能としては使用しない
@@ -302,7 +303,7 @@ async function updateRange(spreadsheetId: string, range: string, values: (string
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:M`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:N`);
 
     if (values.length <= 1) {
         return []; // ヘッダーのみ or 空
@@ -323,6 +324,34 @@ export async function getReferences(spreadsheetId: string): Promise<Reference[]>
         });
         return ref as unknown as Reference;
     });
+}
+
+// ...
+
+/**
+ * 文献を追加（RISインポート用）
+ */
+export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
+    if (references.length === 0) return;
+
+    const rows = references.map(ref => [
+        ref.ref_id,
+        ref.title,
+        ref.abstract || '',
+        ref.year?.toString() || '',
+        ref.authors || '',
+        ref.journal || '',
+        ref.doi || '',
+        ref.pmid || '',
+        ref.url || '',
+        ref.source || '',
+        ref.imported_at || '',
+        ref.imported_by || '',
+        ref.dedupe_key || '',
+        ref.source_file || '',
+    ]);
+
+    await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
 }
 
 /**
@@ -500,27 +529,6 @@ export async function saveDecision(spreadsheetId: string, decision: Decision): P
 /**
  * 文献を追加（RISインポート用）
  */
-export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
-    if (references.length === 0) return;
-
-    const rows = references.map(ref => [
-        ref.ref_id,
-        ref.title,
-        ref.abstract || '',
-        ref.year?.toString() || '',
-        ref.authors || '',
-        ref.journal || '',
-        ref.doi || '',
-        ref.pmid || '',
-        ref.url || '',
-        ref.source || '',
-        ref.imported_at || '',
-        ref.imported_by || '',
-        ref.dedupe_key || '',
-    ]);
-
-    await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
-}
 
 /**
  * ハイライトキーワードの型

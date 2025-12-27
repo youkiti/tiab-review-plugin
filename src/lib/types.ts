@@ -11,6 +11,7 @@ export interface Reference {
     pmid?: string;
     url?: string;
     source?: string;
+    source_file?: string;     // Import source filename
     imported_at?: string;     // ISO 8601
     imported_by?: string;     // email
     dedupe_key?: string;

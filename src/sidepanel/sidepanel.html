@@ -67,9 +67,9 @@
                 <button id="back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
                     ← 戻る
                 </button>
-                <input type="file" id="ris-file" accept=".ris,.txt" class="hidden">
+                <input type="file" id="ris-file" accept=".ris,.nbib,.txt" class="hidden">
                 <button id="import-btn" class="btn btn-secondary btn-small">
-                    📁 RISインポート
+                    📁 RIS/nbibインポート
                 </button>
                 <div class="share-container">
                     <button id="share-btn" class="btn btn-secondary btn-small" title="共同編集者を追加">
@@ -80,10 +80,14 @@
                             class="share-email-input">
                         <button id="share-submit-btn" class="btn btn-primary btn-xsmall">追加</button>
                         <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
+                        <div class="shared-users-section">
+                            <h5>共有済みユーザー</h5>
+                            <div id="shared-users-list" class="shared-users-list"></div>
+                        </div>
                     </div>
                 </div>
-                <button id="key-open-btn" class="btn btn-secondary btn-small hidden">
-                    🔓 キーオープン
+                <button id="key-toggle-btn" class="btn btn-secondary btn-small hidden">
+                    🔓 キー状態切替
                 </button>
                 <span id="import-status" class="import-status"></span>
             </div>
@@ -186,6 +190,12 @@
                 <button id="btn-prev" class="btn btn-nav" title="前へ (←)">← 前へ</button>
                 <span id="nav-position">1 / 100</span>
                 <button id="btn-next" class="btn btn-nav" title="次へ (→)">次へ →</button>
+            </div>
+
+            <!-- インポート元フィルター (最下部) -->
+            <div id="source-filters-section" class="source-filters-section">
+                <h4>インポート元ファイル</h4>
+                <div id="source-file-list" class="source-file-list"></div>
             </div>
         </section>
     </div>

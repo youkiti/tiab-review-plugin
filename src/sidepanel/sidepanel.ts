@@ -21,6 +21,7 @@ import {
     PRESET_RCT,
     PRESET_SR,
     addPermission,
+    getSpreadsheetPermissions,
 } from '../lib/sheets-api';
 import { parseRISFile } from '../lib/ris-parser';
 
@@ -34,6 +35,51 @@ let userEmail = '';
 let highlightKeywords: HighlightKeywords = { include: [], exclude: [] };  // ハイライトキーワード
 let isKeyOpened = false;  // キーオープン状態
 let isAdmin = false;      // 管理者権限
+let sourceFiles: Set<string> = new Set();
+let selectedSourceFiles: Set<string> = new Set();
+
+// DOM要素
+const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
+const sourceFiltersSection = document.getElementById('source-filters-section') as HTMLElement;
+
+function renderSourceFilters() {
+    sourceFileListDiv.innerHTML = '';
+
+    if (sourceFiles.size === 0) {
+        sourceFiltersSection.classList.add('hidden');
+        return;
+    }
+    sourceFiltersSection.classList.remove('hidden');
+
+    sourceFiles.forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'source-file-item';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `source-${file}`;
+        checkbox.checked = selectedSourceFiles.has(file);
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                selectedSourceFiles.add(file);
+            } else {
+                selectedSourceFiles.delete(file);
+            }
+            // フィルター適用
+            currentIndex = 0;
+            renderCurrentReference();
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = `source-${file}`;
+        label.textContent = file;
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        sourceFileListDiv.appendChild(div);
+    });
+}
+
 
 // DOM要素
 const configSection = document.getElementById('config-section') as HTMLElement;
@@ -73,7 +119,7 @@ const importStatus = document.getElementById('import-status') as HTMLElement;
 const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
 // キーオープン関連
-const keyOpenBtn = document.getElementById('key-open-btn') as HTMLButtonElement;
+const keyToggleBtn = document.getElementById('key-toggle-btn') as HTMLButtonElement;
 const conflictBanner = document.getElementById('conflict-banner') as HTMLElement;
 const allDecisionsDiv = document.getElementById('all-decisions') as HTMLElement;
 
@@ -98,6 +144,7 @@ const shareInputArea = document.getElementById('share-input-area') as HTMLElemen
 const shareEmailInput = document.getElementById('share-email-input') as HTMLInputElement;
 const shareSubmitBtn = document.getElementById('share-submit-btn') as HTMLButtonElement;
 const shareCancelBtn = document.getElementById('share-cancel-btn') as HTMLButtonElement;
+const sharedUsersList = document.getElementById('shared-users-list') as HTMLElement;
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
@@ -270,14 +317,15 @@ function setupEventListeners() {
     presetRctBtn.addEventListener('click', () => applyPreset('RCT'));
     presetSrBtn.addEventListener('click', () => applyPreset('SR'));
 
-    // キーオープンボタン
-    keyOpenBtn.addEventListener('click', handleKeyOpen);
+    // キー状態切替ボタン
+    keyToggleBtn.addEventListener('click', handleKeyToggle);
 
     // 共有ボタン
     shareBtn.addEventListener('click', () => {
         shareInputArea.classList.toggle('hidden');
         if (!shareInputArea.classList.contains('hidden')) {
             shareEmailInput.focus();
+            loadSharedUsers();
         }
     });
 
@@ -515,11 +563,21 @@ async function loadDataAndShowScreening() {
             references = await getReferencesWithStatus(spreadsheetId, userEmail);
         }
 
+        // ソースファイルを抽出
+        sourceFiles.clear();
+        references.forEach(ref => {
+            if (ref.source_file) sourceFiles.add(ref.source_file);
+        });
+        selectedSourceFiles = new Set(sourceFiles); // デフォルトですべて選択
+
         // 管理者の場合、キーオープンボタンを表示
-        if (isAdmin && !isKeyOpened) {
-            keyOpenBtn.classList.remove('hidden');
+        if (isAdmin) {
+            keyToggleBtn.classList.remove('hidden');
+            renderKeyStatus();
+            console.log('User is admin, showing toggle button');
         } else {
-            keyOpenBtn.classList.add('hidden');
+            keyToggleBtn.classList.add('hidden');
+            console.log('User is NOT admin, hiding toggle button');
         }
 
         // 画面を切り替え
@@ -528,8 +586,9 @@ async function loadDataAndShowScreening() {
 
         // 表示
         currentIndex = 0;
-        renderCurrentReference();
         renderKeywords(); // キーワード設定を表示
+        renderSourceFilters(); // ソースフィルターを表示
+        renderCurrentReference();
     } catch (error) {
         console.error('Load data error:', error);
         showStatus(`データ読み込みエラー: ${(error as Error).message}`, 'error');
@@ -555,6 +614,11 @@ function getFilteredReferences(): ReferenceWithStatus[] {
     // ステータスフィルター
     if (currentFilter !== 'all') {
         filtered = filtered.filter((r) => r.status === currentFilter);
+    }
+
+    // ソースファイルフィルター
+    if (selectedSourceFiles.size > 0 && selectedSourceFiles.size < sourceFiles.size) {
+        filtered = filtered.filter(r => r.source_file && selectedSourceFiles.has(r.source_file));
     }
 
     // 検索フィルター
@@ -825,6 +889,45 @@ async function handleShare() {
 }
 
 /**
+ * 共有ユーザーリストを読み込み
+ */
+async function loadSharedUsers() {
+    try {
+        sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">読み込み中...</div>';
+
+        const permissions = await getSpreadsheetPermissions(spreadsheetId);
+
+        if (permissions.length === 0) {
+            sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">ユーザーが見つかりません</div>';
+            return;
+        }
+
+        sharedUsersList.innerHTML = '';
+        permissions.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'shared-user-item';
+
+            const emailSpan = document.createElement('span');
+            emailSpan.className = 'shared-user-email';
+            emailSpan.textContent = p.emailAddress;
+            emailSpan.title = p.emailAddress; // tooltip
+
+            const roleSpan = document.createElement('span');
+            roleSpan.className = 'shared-user-role';
+            roleSpan.textContent = p.role === 'owner' ? 'オーナー' : (p.role === 'writer' ? '編集者' : '閲覧者');
+
+            div.appendChild(emailSpan);
+            div.appendChild(roleSpan);
+            sharedUsersList.appendChild(div);
+        });
+
+    } catch (error) {
+        console.error('Failed to load shared users:', error);
+        sharedUsersList.innerHTML = '<div style="font-size:11px;color:#c62828;">読み込み失敗</div>';
+    }
+}
+
+/**
  * トースト通知を表示
  */
 function showToast(message: string, duration = 2000) {
@@ -852,18 +955,38 @@ function highlightText(text: string): string {
     // 除外キーワード（赤）
     for (const kw of highlightKeywords.exclude) {
         if (!kw) continue;
-        const regex = new RegExp(`(${escapeRegex(kw)})`, 'gi');
+        const regex = createSmartRegex(kw);
         result = result.replace(regex, '<mark class="highlight-exclude">$1</mark>');
     }
 
     // 組み入れキーワード（緑）
     for (const kw of highlightKeywords.include) {
         if (!kw) continue;
-        const regex = new RegExp(`(${escapeRegex(kw)})`, 'gi');
+        const regex = createSmartRegex(kw);
         result = result.replace(regex, '<mark class="highlight-include">$1</mark>');
     }
 
     return result;
+}
+
+/**
+ * スマートな正規表現作成（英単語は完全一致、それ以外は部分一致）
+ */
+function createSmartRegex(keyword: string): RegExp {
+    const escaped = escapeRegex(keyword);
+    let pattern = escaped;
+
+    // 先頭が単語構成文字(a-z, 0-9, _)の場合は単語境界を要求
+    if (/^\w/.test(keyword)) {
+        pattern = `\\b${pattern}`;
+    }
+
+    // 末尾が単語構成文字の場合は単語境界を要求
+    if (/\w$/.test(keyword)) {
+        pattern = `${pattern}\\b`;
+    }
+
+    return new RegExp(`(${pattern})`, 'gi');
 }
 
 /**
@@ -1016,38 +1139,81 @@ function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error') {
 }
 
 /**
- * キーオープン処理
+ * キー状態ボタンの表示更新
  */
-async function handleKeyOpen() {
-    if (!confirm('キーオープンを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
-        return;
+function renderKeyStatus() {
+    if (isKeyOpened) {
+        keyToggleBtn.textContent = '🔒 キークローズ';
+        keyToggleBtn.classList.remove('btn-secondary');
+        keyToggleBtn.classList.add('btn-outline');
+    } else {
+        keyToggleBtn.textContent = '🔓 キーオープン';
+        keyToggleBtn.classList.add('btn-secondary');
+        keyToggleBtn.classList.remove('btn-outline');
     }
+}
 
-    try {
-        showLoading(true);
+/**
+ * キー状態切替処理
+ */
+async function handleKeyToggle() {
+    if (isKeyOpened) {
+        // CLOSE処理
+        if (!confirm('キークローズを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。')) {
+            return;
+        }
 
-        // キーオープン状態を保存
-        await setKeyOpenedStatus(spreadsheetId, true);
-        isKeyOpened = true;
+        try {
+            showLoading(true);
+            await setKeyOpenedStatus(spreadsheetId, false);
+            isKeyOpened = false;
 
-        // データを再読み込み
-        references = await getReferencesWithAllDecisions(spreadsheetId, userEmail);
+            // データを再読み込み（自分の判定のみ取得になる）
+            references = await getReferencesWithStatus(spreadsheetId, userEmail);
 
-        // キーオープンボタンを非表示
-        keyOpenBtn.classList.add('hidden');
+            // 表示を更新
+            renderKeyStatus();
+            currentIndex = 0;
+            currentFilter = 'pending';
+            statusFilter.value = 'pending';
+            renderCurrentReference();
 
-        // 表示を更新
-        currentIndex = 0;
-        currentFilter = 'conflict'; // 不一致フィルターに切り替え
-        statusFilter.value = 'conflict';
-        renderCurrentReference();
+            showToast('キークローズを実行しました');
+        } catch (error) {
+            console.error('Key close error:', error);
+            alert(`キークローズエラー: ${(error as Error).message}`);
+        } finally {
+            showLoading(false);
+        }
 
-        showToast('キーオープンを実行しました');
-    } catch (error) {
-        console.error('Key open error:', error);
-        alert(`キーオープンエラー: ${(error as Error).message}`);
-    } finally {
-        showLoading(false);
+    } else {
+        // OPEN処理
+        if (!confirm('キーオープンを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
+            return;
+        }
+
+        try {
+            showLoading(true);
+            await setKeyOpenedStatus(spreadsheetId, true);
+            isKeyOpened = true;
+
+            // データを再読み込み
+            references = await getReferencesWithAllDecisions(spreadsheetId, userEmail);
+
+            // 表示を更新
+            renderKeyStatus();
+            currentIndex = 0;
+            currentFilter = 'conflict';
+            statusFilter.value = 'conflict';
+            renderCurrentReference();
+
+            showToast('キーオープンを実行しました');
+        } catch (error) {
+            console.error('Key open error:', error);
+            alert(`キーオープンエラー: ${(error as Error).message}`);
+        } finally {
+            showLoading(false);
+        }
     }
 }
 
@@ -1103,5 +1269,6 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         allDecisionsDiv.appendChild(item);
     });
 }
+
 
 export { };
