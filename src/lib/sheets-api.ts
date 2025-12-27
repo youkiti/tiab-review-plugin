@@ -715,20 +715,60 @@ export async function addPermission(fileId: string, emailAddress: string, role: 
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(`Failed to add permission: ${error.error?.message || response.statusText}`);
     }
 }
 
 /**
- * ユーザーが管理者権限を持っているかチェック
+ * ユーザーが管理者権限（編集権限）を持っているかチェック
+ * - Permissions APIがつかえない場合（drive.fileスコープの制限など）は
+ *   ファイルのcapabilitiesをチェックする
  */
 export async function isUserAdmin(spreadsheetId: string, userEmail: string): Promise<boolean> {
+    console.log('[isUserAdmin] Starting check for:', userEmail);
     try {
-        const permissions = await getSpreadsheetPermissions(spreadsheetId);
-        const userPermission = permissions.find(p => p.emailAddress === userEmail);
-        return userPermission?.role === 'owner' || userPermission?.role === 'writer';
+        // 方法1: Permissions API (既存)
+        try {
+            console.log('[isUserAdmin] Trying permissions API...');
+            const permissions = await getSpreadsheetPermissions(spreadsheetId);
+            console.log('[isUserAdmin] Got permissions:', permissions.length);
+
+            const userPermission = permissions.find(p => p.emailAddress === userEmail);
+            console.log('[isUserAdmin] User permission:', userPermission);
+
+            if (userPermission) {
+                const isAdmin = userPermission.role === 'owner' || userPermission.role === 'writer';
+                console.log('[isUserAdmin] Result from permissions:', isAdmin);
+                return isAdmin;
+            }
+        } catch (permError) {
+            console.warn('[isUserAdmin] Permissions check failed:', permError);
+        }
+
+        // 方法2: Capabilities API (Fallback)
+        console.log('[isUserAdmin] Trying capabilities fallback...');
+        const token = await getAuthToken();
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=capabilities(canEdit,canShare)`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            }
+        );
+
+        console.log('[isUserAdmin] Capabilities response status:', response.status);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('[isUserAdmin] Capabilities data:', data);
+            const canEdit = data.capabilities?.canEdit === true;
+            console.log('[isUserAdmin] Result from capabilities:', canEdit);
+            return canEdit;
+        }
+
+        console.log('[isUserAdmin] All checks failed, returning false');
+        return false;
     } catch (error) {
-        console.error('Failed to check admin status:', error);
+        console.error('[isUserAdmin] Error:', error);
         return false;
     }
 }

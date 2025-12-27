@@ -119,7 +119,8 @@ const importStatus = document.getElementById('import-status') as HTMLElement;
 const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
 // キーオープン関連
-const keyToggleBtn = document.getElementById('key-toggle-btn') as HTMLButtonElement;
+const keySection = document.getElementById('key-section') as HTMLElement;
+const keyToggleInput = document.getElementById('key-toggle-input') as HTMLInputElement;
 const conflictBanner = document.getElementById('conflict-banner') as HTMLElement;
 const allDecisionsDiv = document.getElementById('all-decisions') as HTMLElement;
 
@@ -318,7 +319,7 @@ function setupEventListeners() {
     presetSrBtn.addEventListener('click', () => applyPreset('SR'));
 
     // キー状態切替ボタン
-    keyToggleBtn.addEventListener('click', handleKeyToggle);
+    keyToggleInput.addEventListener('change', handleKeyToggle);
 
     // 共有ボタン
     shareBtn.addEventListener('click', () => {
@@ -571,13 +572,18 @@ async function loadDataAndShowScreening() {
         selectedSourceFiles = new Set(sourceFiles); // デフォルトですべて選択
 
         // 管理者の場合、キーオープンボタンを表示
+        console.log('[loadDataAndShowScreening] isAdmin =', isAdmin, ', keySection =', keySection);
+
+        // ユーザー情報に権限を表示
+        userInfoDiv.textContent = `ログイン中: ${userEmail} (${isAdmin ? '管理者' : '一般'})`;
+
         if (isAdmin) {
-            keyToggleBtn.classList.remove('hidden');
+            console.log('[loadDataAndShowScreening] Showing keySection');
+            keySection.classList.remove('hidden');
             renderKeyStatus();
-            console.log('User is admin, showing toggle button');
         } else {
-            keyToggleBtn.classList.add('hidden');
-            console.log('User is NOT admin, hiding toggle button');
+            console.log('[loadDataAndShowScreening] Hiding keySection');
+            keySection.classList.add('hidden');
         }
 
         // 画面を切り替え
@@ -888,6 +894,7 @@ async function handleShare() {
     }
 }
 
+
 /**
  * 共有ユーザーリストを読み込み
  */
@@ -895,10 +902,38 @@ async function loadSharedUsers() {
     try {
         sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">読み込み中...</div>';
 
-        const permissions = await getSpreadsheetPermissions(spreadsheetId);
+        // 管理者権限チェック（fallback含む）
+        const isAdmin = await isUserAdmin(spreadsheetId, userEmail);
+
+        let permissions: any[] = [];
+        try {
+            permissions = await getSpreadsheetPermissions(spreadsheetId);
+        } catch (e) {
+            console.warn('Failed to load permissions list (likely due to scope):', e);
+        }
 
         if (permissions.length === 0) {
-            sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">ユーザーが見つかりません</div>';
+            if (isAdmin) {
+                // Adminだがリストが見れない場合（drive.fileスコープで自分がオーナーでない場合など）
+                // 自分の情報を表示しておく
+                sharedUsersList.innerHTML = '';
+                const div = document.createElement('div');
+                div.className = 'shared-user-item';
+                div.innerHTML = `
+                    <span class="shared-user-email" title="${userEmail}">${userEmail} (自分)</span>
+                    <span class="shared-user-role">編集者(詳細不明)</span>
+                `;
+                sharedUsersList.appendChild(div);
+
+                const note = document.createElement('div');
+                note.style.fontSize = '10px';
+                note.style.color = '#999';
+                note.style.marginTop = '4px';
+                note.textContent = '※権限リストの取得には追加の認証が必要な場合があります';
+                sharedUsersList.appendChild(note);
+            } else {
+                sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">ユーザーが見つかりません</div>';
+            }
             return;
         }
 
@@ -1142,24 +1177,23 @@ function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error') {
  * キー状態ボタンの表示更新
  */
 function renderKeyStatus() {
-    if (isKeyOpened) {
-        keyToggleBtn.textContent = '🔒 キークローズ';
-        keyToggleBtn.classList.remove('btn-secondary');
-        keyToggleBtn.classList.add('btn-outline');
-    } else {
-        keyToggleBtn.textContent = '🔓 キーオープン';
-        keyToggleBtn.classList.add('btn-secondary');
-        keyToggleBtn.classList.remove('btn-outline');
-    }
+    keyToggleInput.checked = isKeyOpened;
+    // チェックボックスの状態だけで表現するのでテキスト変更などは不要
+    // 必要ならラベルを変更してもよいが、今回はスライダーで表現
 }
 
 /**
  * キー状態切替処理
  */
 async function handleKeyToggle() {
-    if (isKeyOpened) {
-        // CLOSE処理
+    // チェックボックスは既に切り替わっているので、その状態を取得
+    const newState = keyToggleInput.checked;
+
+    if (!newState) {
+        // CLOSE処理 (ON -> OFF)
         if (!confirm('キークローズを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。')) {
+            // キャンセルされたら元の状態に戻す
+            keyToggleInput.checked = true;
             return;
         }
 
@@ -1182,13 +1216,17 @@ async function handleKeyToggle() {
         } catch (error) {
             console.error('Key close error:', error);
             alert(`キークローズエラー: ${(error as Error).message}`);
+            // エラー時は元の状態に戻す
+            keyToggleInput.checked = true;
         } finally {
             showLoading(false);
         }
 
     } else {
-        // OPEN処理
+        // OPEN処理 (OFF -> ON)
         if (!confirm('キーオープンを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
+            // キャンセルされたら元の状態に戻す
+            keyToggleInput.checked = false;
             return;
         }
 
@@ -1211,6 +1249,8 @@ async function handleKeyToggle() {
         } catch (error) {
             console.error('Key open error:', error);
             alert(`キーオープンエラー: ${(error as Error).message}`);
+            // エラー時は元の状態に戻す
+            keyToggleInput.checked = false;
         } finally {
             showLoading(false);
         }

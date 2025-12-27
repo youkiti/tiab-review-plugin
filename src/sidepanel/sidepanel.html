@@ -86,9 +86,13 @@
                         </div>
                     </div>
                 </div>
-                <button id="key-toggle-btn" class="btn btn-secondary btn-small hidden">
-                    🔓 キー状態切替
-                </button>
+                <div id="key-section" class="toggle-container hidden">
+                    <label class="switch">
+                        <input type="checkbox" id="key-toggle-input">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Key Status (Open/Close)</span>
+                </div>
                 <span id="import-status" class="import-status"></span>
             </div>
 
