@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "webpack --mode production",
+    "build:zip": "webpack --mode production && powershell -Command \"Compress-Archive -Path ./dist/* -DestinationPath ./dist.zip -Force; Copy-Item ./dist.zip 'G:/マイドライブ/00SRWS-PSG/app/tiab review plugin/dist.zip' -Force\"",
     "watch": "webpack --mode development --watch",
     "dev": "webpack --mode development",
     "lint": "eslint src/**/*.ts",

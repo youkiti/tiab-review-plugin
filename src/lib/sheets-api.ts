@@ -719,7 +719,8 @@ export async function addPermission(fileId: string, emailAddress: string, role: 
     );
 
     if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error?.message || response.statusText);
     }
 }
 

@@ -248,7 +248,12 @@ async function showProjectSection() {
         console.log('[showProjectSection] Got user email:', userEmail);
     } catch (e) {
         console.error('[showProjectSection] Failed to get user email:', e);
-        userEmail = 'unknown';
+        userEmail = '';
+        projectSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+        showStatus('Googleアカウントにログインしてください', 'error');
+        showLoading(false);
+        return;
     }
     userInfoDiv.textContent = `ログイン中: ${userEmail}`;
 
