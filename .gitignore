@@ -17,6 +17,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+development_log/
 
 # Environment
 .env
@@ -26,8 +27,11 @@ npm-debug.log*
 # TypeScript
 *.tsbuildinfo
 
-# Chrome extension keys (sensitive)
+# Chrome extension keys and packages (sensitive)
 *.pem
+*.crx
+public_key.txt
+temp_key.txt
 
 # Test coverage
 coverage/
