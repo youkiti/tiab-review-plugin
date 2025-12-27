@@ -7,6 +7,10 @@ export interface Reference {
     year?: number;
     authors?: string;
     journal?: string;
+    volume?: string;          // 巻
+    issue?: string;           // 号
+    pages?: string;           // ページ
+    issn?: string;            // ISSN
     doi?: string;
     pmid?: string;
     url?: string;

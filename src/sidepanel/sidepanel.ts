@@ -115,6 +115,7 @@ const progressText = document.getElementById('progress-text') as HTMLElement;
 // RIS インポート
 const risFileInput = document.getElementById('ris-file') as HTMLInputElement;
 const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
+const exportCsvBtn = document.getElementById('export-csv-btn') as HTMLButtonElement;
 const importStatus = document.getElementById('import-status') as HTMLElement;
 const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
@@ -287,6 +288,9 @@ function setupEventListeners() {
     // RIS インポート
     importBtn.addEventListener('click', () => risFileInput.click());
     risFileInput.addEventListener('change', handleRISImport);
+
+    // CSV エクスポート
+    exportCsvBtn.addEventListener('click', handleExportCSV);
 
     // 戻るボタン
     backBtn.addEventListener('click', handleBack);
@@ -1308,6 +1312,107 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         item.appendChild(valueSpan);
         allDecisionsDiv.appendChild(item);
     });
+}
+
+
+/**
+ * フィルター結果をCSVとしてエクスポート
+ */
+async function handleExportCSV() {
+    const filtered = getFilteredReferences();
+
+    if (filtered.length === 0) {
+        showToast('エクスポートする文献がありません');
+        return;
+    }
+
+    try {
+        // プロジェクトタイトルを取得
+        let projectTitle = 'TiAb_Review';
+        try {
+            const info = await getSpreadsheetInfo(spreadsheetId);
+            projectTitle = info.title.replace(/[\\/:*?"<>|]/g, '_'); // ファイル名に使えない文字を置換
+        } catch {
+            console.log('[handleExportCSV] Could not get spreadsheet title');
+        }
+
+        // フィルター条件を取得
+        const filterLabels: Record<string, string> = {
+            'pending': '未判定',
+            'all': 'すべて',
+            'include': 'Include',
+            'exclude': 'Exclude',
+            'maybe': 'Maybe',
+            'conflict': '不一致',
+        };
+        const filterLabel = filterLabels[currentFilter] || currentFilter;
+
+        // 日付
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // ファイル名
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.csv`;
+
+        // CSVヘッダー
+        const headers = [
+            'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'issn',
+            'doi', 'pmid', 'status', 'note'
+        ];
+
+        // CSVデータを構築
+        const csvRows: string[] = [];
+        csvRows.push(headers.map(escapeCSVField).join(','));
+
+        for (const ref of filtered) {
+            const row = [
+                ref.title || '',
+                ref.authors || '',
+                ref.year?.toString() || '',
+                ref.journal || '',
+                ref.volume || '',
+                ref.issue || '',
+                ref.pages || '',
+                ref.issn || '',
+                ref.doi || '',
+                ref.pmid || '',
+                ref.status || '',
+                ref.myDecision?.note || '',
+            ];
+            csvRows.push(row.map(escapeCSVField).join(','));
+        }
+
+        const csvContent = csvRows.join('\r\n');
+
+        // BOM付きUTF-8でBlob作成
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8' });
+
+        // ダウンロード
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`${filtered.length}件をCSVとして出力しました`);
+    } catch (error) {
+        console.error('[handleExportCSV] Error:', error);
+        showToast('CSVエクスポートに失敗しました');
+    }
+}
+
+/**
+ * CSVフィールドをエスケープ
+ */
+function escapeCSVField(value: string): string {
+    if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+        return '"' + value.replace(/"/g, '""') + '"';
+    }
+    return value;
 }
 
 

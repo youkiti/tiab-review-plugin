@@ -8,7 +8,7 @@ import type { Reference } from './types';
 /**
  * RIS タグと Reference フィールドのマッピング
  */
-const RIS_TAG_MAP: Record<string, keyof Reference | 'firstAuthor'> = {
+const RIS_TAG_MAP: Record<string, keyof Reference | 'firstAuthor' | 'startPage' | 'endPage'> = {
     'TI': 'title',
     'T1': 'title',
     'AB': 'abstract',
@@ -24,6 +24,14 @@ const RIS_TAG_MAP: Record<string, keyof Reference | 'firstAuthor'> = {
     'T2': 'journal',
     'TA': 'journal', // PubMed Journal Title Abbreviation
     'JT': 'journal', // PubMed Journal Title
+    'VL': 'volume',  // Volume
+    'VI': 'volume',  // PubMed Volume
+    'IS': 'issue',   // Issue (RIS) - Note: In PubMed NBIB, IS is ISSN
+    'IP': 'issue',   // PubMed Issue
+    'SP': 'startPage', // Start Page (RIS)
+    'EP': 'endPage',   // End Page (RIS)
+    'PG': 'pages',     // Pages (PubMed format: "123-456")
+    'SN': 'issn',      // ISSN (RIS)
     'DO': 'doi',
     'LID': 'doi', // PubMed Location Identifier (often DOI)
     'AN': 'pmid',
@@ -40,7 +48,7 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
     const references: Reference[] = [];
     const lines = content.split(/\r?\n/);
 
-    let currentRecord: Partial<Reference> & { _authors: string[] } = { _authors: [] };
+    let currentRecord: Partial<Reference> & { _authors: string[], _startPage?: string, _endPage?: string } = { _authors: [] };
     let currentTag = '';
     let currentValue = '';
 
@@ -71,6 +79,18 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
                     doi = doiMatch[1];
                 }
                 currentRecord.doi = doi;
+            } else if (field === 'startPage') {
+                currentRecord._startPage = currentValue.trim();
+            } else if (field === 'endPage') {
+                currentRecord._endPage = currentValue.trim();
+            } else if (field === 'issn') {
+                // NBIB の IS タグは ISSN (例: "1234-5678")
+                // RIS の SN タグも ISSN
+                const val = currentValue.trim();
+                // ISSN形式かどうかをチェック (XXXX-XXXX または XXXXXXXX)
+                if (/^\d{4}-?\d{3}[\dXx]$/.test(val) || /^\d{7}[\dXx]$/.test(val)) {
+                    currentRecord.issn = val;
+                }
             } else if (field && field !== 'firstAuthor') {
                 // 既存値がなければセット
                 if (!(field in currentRecord) || !currentRecord[field]) {
@@ -86,6 +106,14 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
         saveCurrentTag();
 
         if (currentRecord.title) {
+            // ページの組み立て (SP/EP がある場合は結合)
+            let pages = currentRecord.pages;
+            if (!pages && currentRecord._startPage) {
+                pages = currentRecord._endPage
+                    ? `${currentRecord._startPage}-${currentRecord._endPage}`
+                    : currentRecord._startPage;
+            }
+
             const ref: Reference = {
                 ref_id: crypto.randomUUID(),
                 title: currentRecord.title,
@@ -93,6 +121,10 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
                 year: currentRecord.year,
                 authors: currentRecord._authors.join('; '),
                 journal: currentRecord.journal,
+                volume: currentRecord.volume,
+                issue: currentRecord.issue,
+                pages: pages,
+                issn: currentRecord.issn,
                 doi: currentRecord.doi,
                 pmid: currentRecord.pmid,
                 url: currentRecord.url,
@@ -109,7 +141,7 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
             references.push(ref);
         }
 
-        currentRecord = { _authors: [] };
+        currentRecord = { _authors: [], _startPage: undefined, _endPage: undefined };
     };
 
     for (const line of lines) {

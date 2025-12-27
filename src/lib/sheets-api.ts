@@ -42,7 +42,8 @@ const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
 // References タブのヘッダー
 const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
-    'journal', 'doi', 'pmid', 'url', 'source',
+    'journal', 'volume', 'issue', 'pages', 'issn',
+    'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file'
 ];
 
@@ -303,7 +304,7 @@ async function updateRange(spreadsheetId: string, range: string, values: (string
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:N`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:R`);
 
     if (values.length <= 1) {
         return []; // ヘッダーのみ or 空
@@ -341,6 +342,10 @@ export async function addReferences(spreadsheetId: string, references: Reference
         ref.year?.toString() || '',
         ref.authors || '',
         ref.journal || '',
+        ref.volume || '',
+        ref.issue || '',
+        ref.pages || '',
+        ref.issn || '',
         ref.doi || '',
         ref.pmid || '',
         ref.url || '',
