@@ -7,10 +7,20 @@ import {
     createSpreadsheet,
     getSpreadsheetInfo,
     getReferencesWithStatus,
+    getReferencesWithAllDecisions,
     saveDecision as apiSaveDecision,
     addReferences,
     getRecentSpreadsheets,
     forceReauth,
+    getHighlightKeywords,
+    updateConfigKeywords,
+    isUserAdmin,
+    getKeyOpenedStatus,
+    setKeyOpenedStatus,
+    type HighlightKeywords,
+    PRESET_RCT,
+    PRESET_SR,
+    addPermission,
 } from '../lib/sheets-api';
 import { parseRISFile } from '../lib/ris-parser';
 
@@ -20,6 +30,10 @@ let currentIndex = 0;
 let currentFilter: DecisionStatus | 'all' = 'pending';
 let spreadsheetId = '';
 let userEmail = '';
+// ラベル関連の状態変数は削除
+let highlightKeywords: HighlightKeywords = { include: [], exclude: [] };  // ハイライトキーワード
+let isKeyOpened = false;  // キーオープン状態
+let isAdmin = false;      // 管理者権限
 
 // DOM要素
 const configSection = document.getElementById('config-section') as HTMLElement;
@@ -58,6 +72,33 @@ const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
 const importStatus = document.getElementById('import-status') as HTMLElement;
 const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
+// キーオープン関連
+const keyOpenBtn = document.getElementById('key-open-btn') as HTMLButtonElement;
+const conflictBanner = document.getElementById('conflict-banner') as HTMLElement;
+const allDecisionsDiv = document.getElementById('all-decisions') as HTMLElement;
+
+// ハイライト設定関連
+const presetRctBtn = document.getElementById('preset-rct-btn') as HTMLButtonElement;
+const presetSrBtn = document.getElementById('preset-sr-btn') as HTMLButtonElement;
+
+const includeKeywordsListDiv = document.getElementById('include-keywords-list') as HTMLElement;
+const newIncludeInput = document.getElementById('new-include-input') as HTMLInputElement;
+const addIncludeBtn = document.getElementById('add-include-btn') as HTMLButtonElement;
+
+const excludeKeywordsListDiv = document.getElementById('exclude-keywords-list') as HTMLElement;
+const newExcludeInput = document.getElementById('new-exclude-input') as HTMLInputElement;
+const addExcludeBtn = document.getElementById('add-exclude-btn') as HTMLButtonElement;
+
+const saveStatus = document.getElementById('save-status') as HTMLElement;
+const toast = document.getElementById('toast') as HTMLElement;
+
+// 共有設定関連
+const shareBtn = document.getElementById('share-btn') as HTMLButtonElement;
+const shareInputArea = document.getElementById('share-input-area') as HTMLElement;
+const shareEmailInput = document.getElementById('share-email-input') as HTMLInputElement;
+const shareSubmitBtn = document.getElementById('share-submit-btn') as HTMLButtonElement;
+const shareCancelBtn = document.getElementById('share-cancel-btn') as HTMLButtonElement;
+
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
@@ -68,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const loginSection = document.getElementById('login-section') as HTMLElement;
 const projectSection = document.getElementById('project-section') as HTMLElement;
 const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
+const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
 async function initApp() {
     try {
@@ -96,6 +138,48 @@ async function handleLogin() {
     } catch (error) {
         console.error('Login error:', error);
         showStatus('ログインに失敗しました。もう一度お試しください。', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleLogout() {
+    if (!confirm('ログアウトしますか？')) {
+        return;
+    }
+
+    try {
+        showLoading(true);
+
+        // Chrome storage をクリア
+        await chrome.storage.local.clear();
+
+        // 認証トークンをクリア
+        const token = await getAuthToken();
+        await new Promise<void>((resolve) => {
+            chrome.identity.removeCachedAuthToken({ token }, () => {
+                chrome.identity.clearAllCachedAuthTokens(() => {
+                    resolve();
+                });
+            });
+        });
+
+        // 状態をリセット
+        spreadsheetId = '';
+        userEmail = '';
+        references = [];
+        isKeyOpened = false;
+        isAdmin = false;
+
+        // ログイン画面に戻る
+        projectSection.classList.add('hidden');
+        screeningSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+
+        showToast('ログアウトしました');
+    } catch (error) {
+        console.error('Logout error:', error);
+        alert(`ログアウトエラー: ${(error as Error).message}`);
     } finally {
         showLoading(false);
     }
@@ -134,6 +218,7 @@ async function showProjectSection() {
 function setupEventListeners() {
     // ログイン
     loginBtn.addEventListener('click', handleLogin);
+    logoutBtn.addEventListener('click', handleLogout);
 
     // 接続
     connectBtn.addEventListener('click', handleConnect);
@@ -169,6 +254,42 @@ function setupEventListeners() {
 
     // キーボードショートカット
     document.addEventListener('keydown', handleKeydown);
+
+    // ハイライトキーワード関連
+    addIncludeBtn.addEventListener('click', () => addKeyword('include'));
+    newIncludeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword('include');
+    });
+
+    addExcludeBtn.addEventListener('click', () => addKeyword('exclude'));
+    newExcludeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addKeyword('exclude');
+    });
+
+    // プリセットボタン
+    presetRctBtn.addEventListener('click', () => applyPreset('RCT'));
+    presetSrBtn.addEventListener('click', () => applyPreset('SR'));
+
+    // キーオープンボタン
+    keyOpenBtn.addEventListener('click', handleKeyOpen);
+
+    // 共有ボタン
+    shareBtn.addEventListener('click', () => {
+        shareInputArea.classList.toggle('hidden');
+        if (!shareInputArea.classList.contains('hidden')) {
+            shareEmailInput.focus();
+        }
+    });
+
+    shareCancelBtn.addEventListener('click', () => {
+        shareInputArea.classList.add('hidden');
+        shareEmailInput.value = '';
+    });
+
+    shareSubmitBtn.addEventListener('click', handleShare);
+    shareEmailInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleShare();
+    });
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -376,8 +497,30 @@ async function loadDataAndShowScreening() {
     try {
         showLoading(true);
 
-        // データを読み込み
-        references = await getReferencesWithStatus(spreadsheetId, userEmail);
+        // 管理者権限とキーオープン状態を確認
+        const [adminStatus, keyOpenedStatus, keywords] = await Promise.all([
+            isUserAdmin(spreadsheetId, userEmail),
+            getKeyOpenedStatus(spreadsheetId),
+            getHighlightKeywords(spreadsheetId),
+        ]);
+
+        isAdmin = adminStatus;
+        isKeyOpened = keyOpenedStatus;
+        highlightKeywords = keywords;
+
+        // キーオープン状態に応じてデータを読み込み
+        if (isKeyOpened) {
+            references = await getReferencesWithAllDecisions(spreadsheetId, userEmail);
+        } else {
+            references = await getReferencesWithStatus(spreadsheetId, userEmail);
+        }
+
+        // 管理者の場合、キーオープンボタンを表示
+        if (isAdmin && !isKeyOpened) {
+            keyOpenBtn.classList.remove('hidden');
+        } else {
+            keyOpenBtn.classList.add('hidden');
+        }
 
         // 画面を切り替え
         configSection.classList.add('hidden');
@@ -386,6 +529,7 @@ async function loadDataAndShowScreening() {
         // 表示
         currentIndex = 0;
         renderCurrentReference();
+        renderKeywords(); // キーワード設定を表示
     } catch (error) {
         console.error('Load data error:', error);
         showStatus(`データ読み込みエラー: ${(error as Error).message}`, 'error');
@@ -441,14 +585,35 @@ function renderCurrentReference() {
         refDoi.classList.add('hidden');
         refPmid.classList.add('hidden');
         navPosition.textContent = '0 / 0';
+
+        // 不一致UI非表示
+        conflictBanner.classList.add('hidden');
+        allDecisionsDiv.classList.add('hidden');
         return;
     }
 
-    refTitle.textContent = ref.title;
+    // キーオープン後の不一致表示
+    if (isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
+        // 全レビュアーの判定を表示
+        renderAllDecisions(ref);
+        allDecisionsDiv.classList.remove('hidden');
+
+        // 不一致バナーの表示
+        if (ref.hasConflict) {
+            conflictBanner.classList.remove('hidden');
+        } else {
+            conflictBanner.classList.add('hidden');
+        }
+    } else {
+        conflictBanner.classList.add('hidden');
+        allDecisionsDiv.classList.add('hidden');
+    }
+
+    refTitle.innerHTML = highlightText(ref.title);
     refAuthors.textContent = ref.authors || '';
     refYear.textContent = ref.year?.toString() || '';
     refJournal.textContent = ref.journal || '';
-    refAbstract.textContent = ref.abstract || '(抄録なし)';
+    refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)');
 
     if (ref.doi) {
         refDoi.href = `https://doi.org/${ref.doi}`;
@@ -466,7 +631,7 @@ function renderCurrentReference() {
 
     // ナビゲーション更新
     navPosition.textContent = `${currentIndex + 1} / ${filtered.length}`;
-    progressText.textContent = `${references.filter((r) => r.status !== 'pending').length} / ${references.length}`;
+    progressText.textContent = `${references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length} / ${references.length}`;
 
     // フィルターの件数を更新
     updateFilterCounts();
@@ -475,9 +640,10 @@ function renderCurrentReference() {
     noteInput.value = ref.myDecision?.note || '';
 
     // ボタンの状態を更新（現在の判定をハイライト）
-    btnInclude.classList.toggle('active', ref.status === 'include');
-    btnMaybe.classList.toggle('active', ref.status === 'maybe');
-    btnExclude.classList.toggle('active', ref.status === 'exclude');
+    const myStatus = ref.myDecision?.decision || 'pending';
+    btnInclude.classList.toggle('active', myStatus === 'include');
+    btnMaybe.classList.toggle('active', myStatus === 'maybe');
+    btnExclude.classList.toggle('active', myStatus === 'exclude');
 }
 
 function updateFilterCounts() {
@@ -487,6 +653,7 @@ function updateFilterCounts() {
         include: references.filter(r => r.status === 'include').length,
         exclude: references.filter(r => r.status === 'exclude').length,
         maybe: references.filter(r => r.status === 'maybe').length,
+        conflict: references.filter(r => r.status === 'conflict').length,
     };
 
     const options = statusFilter.options;
@@ -495,6 +662,7 @@ function updateFilterCounts() {
     options[2].textContent = `Include (${counts.include})`;
     options[3].textContent = `Exclude (${counts.exclude})`;
     options[4].textContent = `Maybe (${counts.maybe})`;
+    options[5].textContent = `不一致 (${counts.conflict})`;
 }
 
 function navigate(direction: number) {
@@ -513,7 +681,7 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
 
     if (!ref) return;
 
-    // 判定オブジェクトを作成
+    // 判定オブジェクトを作成（ラベルは廃止により削除）
     const decisionObj: Decision = {
         decision_id: ref.myDecision?.decision_id || crypto.randomUUID(),
         ref_id: ref.ref_id,
@@ -525,8 +693,33 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
     };
 
     // ローカル状態を更新
-    ref.status = decision;
     ref.myDecision = decisionObj;
+
+    // キーオープン後の場合、allDecisionsも更新
+    if (isKeyOpened && ref.allDecisions) {
+        const existingIndex = ref.allDecisions.findIndex(d => d.reviewer_id === userEmail);
+        if (existingIndex !== -1) {
+            ref.allDecisions[existingIndex] = decisionObj;
+        } else {
+            ref.allDecisions.push(decisionObj);
+        }
+
+        // 不一致状態を再計算
+        const decisions = ref.allDecisions;
+        if (decisions.length === 0) {
+            ref.hasConflict = false;
+            ref.status = 'pending';
+        } else if (decisions.length === 1) {
+            ref.hasConflict = true;
+            ref.status = 'conflict';
+        } else {
+            const uniqueDecisions = new Set(decisions.map(d => d.decision));
+            ref.hasConflict = uniqueDecisions.size > 1;
+            ref.status = ref.hasConflict ? 'conflict' : decision;
+        }
+    } else {
+        ref.status = decision;
+    }
 
     // UIを即座に更新
     renderCurrentReference();
@@ -596,6 +789,319 @@ async function handleRISImport() {
             importStatus.className = 'import-status';
         }, 5000);
     }
+}
+
+// ========== ハイライトキーワード関連関数 ==========
+
+/**
+ * 共有設定を追加
+ */
+async function handleShare() {
+    const email = shareEmailInput.value.trim();
+    if (!email) return;
+
+    // Email validation (simple check)
+    if (!email.includes('@')) {
+        showStatus('有効なメールアドレスを入力してください', 'error');
+        return;
+    }
+
+    try {
+        shareSubmitBtn.disabled = true;
+        shareSubmitBtn.textContent = '...';
+
+        await addPermission(spreadsheetId, email, 'writer');
+
+        showToast(`${email} を追加しました`);
+        shareEmailInput.value = '';
+        shareInputArea.classList.add('hidden');
+    } catch (error) {
+        console.error('Share error:', error);
+        showStatus(`追加エラー: ${(error as Error).message}`, 'error');
+    } finally {
+        shareSubmitBtn.disabled = false;
+        shareSubmitBtn.textContent = '追加';
+    }
+}
+
+/**
+ * トースト通知を表示
+ */
+function showToast(message: string, duration = 2000) {
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), duration);
+}
+
+/**
+ * HTML エスケープ
+ */
+function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * テキスト内のキーワードをハイライト
+ */
+function highlightText(text: string): string {
+    if (!text) return '';
+    let result = escapeHtml(text);
+
+    // 除外キーワード（赤）
+    for (const kw of highlightKeywords.exclude) {
+        if (!kw) continue;
+        const regex = new RegExp(`(${escapeRegex(kw)})`, 'gi');
+        result = result.replace(regex, '<mark class="highlight-exclude">$1</mark>');
+    }
+
+    // 組み入れキーワード（緑）
+    for (const kw of highlightKeywords.include) {
+        if (!kw) continue;
+        const regex = new RegExp(`(${escapeRegex(kw)})`, 'gi');
+        result = result.replace(regex, '<mark class="highlight-include">$1</mark>');
+    }
+
+    return result;
+}
+
+/**
+ * 正規表現のエスケープ
+ */
+function escapeRegex(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * キーワードを描画（編集用UI）
+ */
+function renderKeywords() {
+    renderKeywordList(highlightKeywords.include, includeKeywordsListDiv, 'include');
+    renderKeywordList(highlightKeywords.exclude, excludeKeywordsListDiv, 'exclude');
+}
+
+function renderKeywordList(keywords: string[], container: HTMLElement, type: 'include' | 'exclude') {
+    container.innerHTML = '';
+    for (const word of keywords) {
+        const span = document.createElement('span');
+        span.className = 'keyword-tag';
+        span.innerHTML = `${escapeHtml(word)}<span class="remove-keyword">✕</span>`;
+        span.querySelector('.remove-keyword')?.addEventListener('click', () => {
+            removeKeyword(type, word);
+        });
+        container.appendChild(span);
+    }
+}
+
+/**
+ * キーワードを追加
+ */
+async function addKeyword(type: 'include' | 'exclude') {
+    const input = type === 'include' ? newIncludeInput : newExcludeInput;
+    const word = input.value.trim();
+
+    if (!word) return;
+
+    // 重複チェック
+    const list = type === 'include' ? highlightKeywords.include : highlightKeywords.exclude;
+    if (list.includes(word)) {
+        input.value = '';
+        return;
+    }
+
+    // 追加
+    if (type === 'include') {
+        highlightKeywords.include.push(word);
+    } else {
+        highlightKeywords.exclude.push(word);
+    }
+
+    input.value = '';
+    renderKeywords();
+    renderCurrentReference(); // ハイライト即時反映
+
+    // 自動保存
+    await saveKeywordsAuto();
+}
+
+/**
+ * キーワードを削除
+ */
+async function removeKeyword(type: 'include' | 'exclude', word: string) {
+    if (type === 'include') {
+        highlightKeywords.include = highlightKeywords.include.filter(w => w !== word);
+    } else {
+        highlightKeywords.exclude = highlightKeywords.exclude.filter(w => w !== word);
+    }
+    renderKeywords();
+    renderCurrentReference(); // ハイライト即時反映
+
+    // 自動保存
+    await saveKeywordsAuto();
+}
+
+/**
+ * プリセットを適用
+ */
+async function applyPreset(type: 'RCT' | 'SR') {
+    if (!confirm(`${type}用プリセットを適用しますか？\n現在のキーワード設定は上書きされます。`)) {
+        return;
+    }
+
+    const preset = type === 'RCT' ? PRESET_RCT : PRESET_SR;
+
+    // 値渡しでコピー
+    highlightKeywords = {
+        include: [...preset.include],
+        exclude: [...preset.exclude]
+    };
+
+    renderKeywords();
+    renderCurrentReference();
+
+    // 自動保存
+    await saveKeywordsAuto();
+
+    showToast(`${type}用プリセットを適用しました`);
+}
+
+/**
+ * 設定をConfigシートに自動保存
+ */
+async function saveKeywordsAuto() {
+    try {
+        updateSaveStatus('saving');
+
+        await updateConfigKeywords(spreadsheetId, highlightKeywords);
+
+        updateSaveStatus('saved');
+
+        // 3秒後にステータスをデフォルトに戻す（アイコンのみなど）
+        setTimeout(() => {
+            if (saveStatus.classList.contains('saved')) {
+                updateSaveStatus('default');
+            }
+        }, 3000);
+
+    } catch (error) {
+        console.error('Failed to save keywords:', error);
+        updateSaveStatus('error');
+    }
+}
+
+/**
+ * 保存ステータス表示を更新
+ */
+function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error') {
+    saveStatus.classList.remove('saving', 'saved', 'error');
+
+    switch (state) {
+        case 'saving':
+            saveStatus.innerHTML = '<span class="save-icon">⏳</span> 保存中...';
+            saveStatus.classList.add('saving');
+            break;
+        case 'saved':
+            saveStatus.innerHTML = '<span class="save-icon">✓</span> 保存しました';
+            saveStatus.classList.add('saved');
+            break;
+        case 'error':
+            saveStatus.innerHTML = '<span class="save-icon">⚠️</span> 保存に失敗しました';
+            saveStatus.classList.add('error');
+            break;
+        default:
+            saveStatus.innerHTML = '<span class="save-icon">✓</span> 設定は自動的に保存されます';
+            break;
+    }
+}
+
+/**
+ * キーオープン処理
+ */
+async function handleKeyOpen() {
+    if (!confirm('キーオープンを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
+        return;
+    }
+
+    try {
+        showLoading(true);
+
+        // キーオープン状態を保存
+        await setKeyOpenedStatus(spreadsheetId, true);
+        isKeyOpened = true;
+
+        // データを再読み込み
+        references = await getReferencesWithAllDecisions(spreadsheetId, userEmail);
+
+        // キーオープンボタンを非表示
+        keyOpenBtn.classList.add('hidden');
+
+        // 表示を更新
+        currentIndex = 0;
+        currentFilter = 'conflict'; // 不一致フィルターに切り替え
+        statusFilter.value = 'conflict';
+        renderCurrentReference();
+
+        showToast('キーオープンを実行しました');
+    } catch (error) {
+        console.error('Key open error:', error);
+        alert(`キーオープンエラー: ${(error as Error).message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * 全レビュアーの判定を表示
+ */
+function renderAllDecisions(ref: ReferenceWithStatus) {
+    if (!ref.allDecisions || ref.allDecisions.length === 0) {
+        allDecisionsDiv.innerHTML = '<p style="color: #666; font-size: 12px;">判定データがありません</p>';
+        return;
+    }
+
+    allDecisionsDiv.innerHTML = '';
+
+    // レビュアーごとの判定を表示
+    const decisionsMap = new Map<string, Decision>();
+    ref.allDecisions.forEach(decision => {
+        decisionsMap.set(decision.reviewer_id, decision);
+    });
+
+    // 全レビュアー（判定済み＋未判定）を表示
+    const allReviewers = new Set([
+        ...ref.allDecisions.map(d => d.reviewer_id),
+        userEmail, // 自分を必ず含める
+    ]);
+
+    allReviewers.forEach(reviewerId => {
+        const decision = decisionsMap.get(reviewerId);
+        const isMe = reviewerId === userEmail;
+
+        const item = document.createElement('div');
+        item.className = 'decision-item';
+
+        const reviewerSpan = document.createElement('span');
+        reviewerSpan.className = isMe ? 'decision-reviewer is-me' : 'decision-reviewer';
+        reviewerSpan.textContent = isMe ? `${reviewerId} (あなた)` : reviewerId;
+
+        const valueSpan = document.createElement('span');
+        const decisionValue = decision?.decision || 'pending';
+        valueSpan.className = `decision-value ${decisionValue}`;
+
+        const valueText = {
+            'include': 'Include',
+            'exclude': 'Exclude',
+            'maybe': 'Maybe',
+            'pending': '未判定',
+        }[decisionValue] || decisionValue;
+
+        valueSpan.textContent = valueText;
+
+        item.appendChild(reviewerSpan);
+        item.appendChild(valueSpan);
+        allDecisionsDiv.appendChild(item);
+    });
 }
 
 export { };

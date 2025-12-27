@@ -22,7 +22,6 @@ export interface Decision {
     reviewer_id: string;      // email
     decision: 'include' | 'exclude' | 'maybe';
     reason?: string;          // exclude時必須
-    labels?: string[];        // 配列として管理、保存時はカンマ区切り
     note?: string;
     decided_at: string;       // ISO 8601
     client_version?: string;
@@ -36,11 +35,13 @@ export interface ReviewerState {
     offlineQueue: Decision[];
 }
 
-export type DecisionStatus = 'pending' | 'include' | 'exclude' | 'maybe';
+export type DecisionStatus = 'pending' | 'include' | 'exclude' | 'maybe' | 'conflict';
 
 export interface ReferenceWithStatus extends Reference {
     myDecision?: Decision;
     status: DecisionStatus;
+    allDecisions?: Decision[];  // キーオープン後に全レビュアーの判定を保持
+    hasConflict?: boolean;       // 不一致フラグ
 }
 
 export interface Config {

@@ -55,7 +55,7 @@ Google スプレッドシートを共有データベースとして使用し、�
 | reviewer_id | 判定者（email） | ✓ |
 | decision | include / exclude / maybe | ✓ |
 | reason | 除外理由（excludeの場合必須） | |
-| labels | ラベル（カンマ区切り） | |
+| labels | (廃止) | |
 | note | メモ | |
 | decided_at | 判定日時（ISO 8601） | ✓ |
 | client_version | 拡張機能バージョン | |
@@ -67,10 +67,10 @@ Google スプレッドシートを共有データベースとして使用し、�
 - 判定履歴は保持しない（最新判定のみを有効とする）
 - **衝突解決**: 同時編集が発生した場合は `decided_at` の新しい判定を優先
 
-#### Config タブ（任意）
-- 除外理由マスター
-- ラベル候補
-- 運用設定
+#### Config タブ（プロジェクト設定）
+- **include_keywords**: 組み入れハイライト用キーワード（緑）
+- **exclude_keywords**: 除外ハイライト用キーワード（赤）
+
 
 ## 機能要件
 
@@ -80,7 +80,7 @@ Google スプレッドシートを共有データベースとして使用し、�
    - スプレッドシートID入力
    - References/Decisionsシート名設定
    - プロジェクト指定（Google Drive上のスプレッドシートを選択、Drive Picker 使用）
-   - スプレッドシートが存在しない場合は新規作成
+   - スプレッドシートが存在しない場合は新規作成（References/Decisions/Configシート自動生成）
    - RISアップロード機能
 
 2. **文献読み込み**
@@ -89,10 +89,11 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 3. **スクリーニング画面**
    - 文献情報表示（title, abstract, year, authors, journal, doi/pmid, url）
+   - **キーワードハイライト機能**（include=緑, exclude=赤）
    - 判定ボタン（include / exclude / maybe）
    - 除外理由入力（exclude時必須）
-   - ラベル付与
    - メモ入力
+   - **キーワード編集**（サイドパネルで追加・削除→Configシートへ自動保存）
    - 次の文献へ遷移
 
 4. **判定の記録**
@@ -105,7 +106,6 @@ Google スプレッドシートを共有データベースとして使用し、�
    - 未判定（自分が未判定）フィルタ
    - decision別フィルタ
    - maybeは未判定とは別カテゴリとして集計
-   - ラベル/除外理由フィルタ
    - title/abstract検索
 
 6. **進捗表示**
@@ -134,7 +134,8 @@ Google スプレッドシートを共有データベースとして使用し、�
     - UIメッセージ: 「Googleアカウントにログインしてください」
 - **競合時の優先順位**: 同時編集が発生した場合は `decided_at` の新しい判定を優先（Last Write Wins）
 - **アクセス制御**: 編集権限が必要。対象スプレッドシートはGoogle Drive上で管理
-- **判定理由/ラベル**: 任意入力。バリデーションは行わない
+- **判定理由**: 任意入力。バリデーションは行わない
+
 
 ## インポート規約
 
@@ -253,7 +254,7 @@ export interface Decision {
   reviewer_id: string;      // email
   decision: 'include' | 'exclude' | 'maybe';
   reason?: string;          // exclude時必須
-  labels?: string[];        // 配列として管理、保存時はカンマ区切り
+  // labels?: string[];     // 廃止 (互換性のため残存するが使用しない)
   note?: string;
   decided_at: string;       // ISO 8601
   client_version?: string;
@@ -299,7 +300,7 @@ async function saveDecision(decision: Decision): Promise<void> {
       spreadsheetId,
       range: `Decisions!A${existingRow.rowIndex}:K${existingRow.rowIndex}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [decisionToRow(decision)] }
+      requestBody: { values: [decisionToRow(decision)] } // labelsは空文字で保存
     });
   } else {
     // 新規追加

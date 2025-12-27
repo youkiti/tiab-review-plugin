@@ -31,7 +31,10 @@
 
             <!-- プロジェクト選択セクション（ログイン後に表示） -->
             <div id="project-section" class="project-section hidden">
-                <div id="user-info" class="user-info"></div>
+                <div class="user-info-container">
+                    <div id="user-info" class="user-info"></div>
+                    <button id="logout-btn" class="btn btn-outline btn-xsmall">ログアウト</button>
+                </div>
 
                 <!-- 新規プロジェクト作成 -->
                 <div class="setup-option primary">
@@ -68,6 +71,20 @@
                 <button id="import-btn" class="btn btn-secondary btn-small">
                     📁 RISインポート
                 </button>
+                <div class="share-container">
+                    <button id="share-btn" class="btn btn-secondary btn-small" title="共同編集者を追加">
+                        👤 共有
+                    </button>
+                    <div id="share-input-area" class="share-input-area hidden">
+                        <input type="email" id="share-email-input" placeholder="Googleアカウント（メール）"
+                            class="share-email-input">
+                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall">追加</button>
+                        <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
+                    </div>
+                </div>
+                <button id="key-open-btn" class="btn btn-secondary btn-small hidden">
+                    🔓 キーオープン
+                </button>
                 <span id="import-status" class="import-status"></span>
             </div>
 
@@ -79,12 +96,21 @@
                     <option value="include">Include</option>
                     <option value="exclude">Exclude</option>
                     <option value="maybe">Maybe</option>
+                    <option value="conflict">不一致</option>
                 </select>
                 <input type="search" id="search-input" placeholder="検索...">
             </div>
 
             <!-- 文献詳細 -->
             <article id="reference-detail" class="reference-card">
+                <!-- 不一致警告バナー（キーオープン後のみ表示） -->
+                <div id="conflict-banner" class="conflict-banner hidden">
+                    ⚠️ 不一致あり - 下記の判定を確認してください
+                </div>
+
+                <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
+                <div id="all-decisions" class="all-decisions hidden"></div>
+
                 <h3 id="ref-title" class="ref-title">タイトル</h3>
                 <div class="ref-meta">
                     <span id="ref-authors"></span>
@@ -111,6 +137,44 @@
                 </button>
             </div>
 
+            <!-- ハイライト設定 -->
+            <div id="config-settings" class="config-settings">
+                <div class="config-header">
+                    <h4>ハイライト設定</h4>
+                    <div class="preset-buttons">
+                        <button id="preset-rct-btn" class="btn btn-xsmall btn-outline"
+                            title="RCT用プリセットを適用（上書き）">RCT</button>
+                        <button id="preset-sr-btn" class="btn btn-xsmall btn-outline"
+                            title="SR用プリセットを適用（上書き）">SR</button>
+                    </div>
+                </div>
+
+                <!-- 組み入れキーワード -->
+                <div class="keyword-group include-group">
+                    <h5>組み入れ (緑)</h5>
+                    <div id="include-keywords-list" class="keyword-list"></div>
+                    <div class="keyword-input-group">
+                        <input type="text" id="new-include-input" placeholder="組み入れワード追加...">
+                        <button id="add-include-btn" class="btn btn-small btn-secondary">＋</button>
+                    </div>
+                </div>
+
+                <!-- 除外キーワード -->
+                <div class="keyword-group exclude-group">
+                    <h5>除外 (赤)</h5>
+                    <div id="exclude-keywords-list" class="keyword-list"></div>
+                    <div class="keyword-input-group">
+                        <input type="text" id="new-exclude-input" placeholder="除外ワード追加...">
+                        <button id="add-exclude-btn" class="btn btn-small btn-secondary">＋</button>
+                    </div>
+                </div>
+
+                <!-- 自動保存ステータス -->
+                <div id="save-status" class="save-status">
+                    <span class="save-icon">✓</span> 設定は自動的に保存されます
+                </div>
+            </div>
+
             <!-- メモ -->
             <div class="form-group">
                 <label for="note">メモ</label>
@@ -125,6 +189,9 @@
             </div>
         </section>
     </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="toast hidden"></div>
 
     <script src="sidepanel.js"></script>
 </body>

@@ -7,6 +7,37 @@ const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 // シート名定数
 const REFERENCES_SHEET = 'References';
 const DECISIONS_SHEET = 'Decisions';
+const CONFIG_SHEET = 'Config';
+
+// デフォルトハイライトキーワード（RCT フィルタリング想定）
+export const PRESET_RCT = {
+    include: [
+        'randomized', 'randomised', 'RCT', 'controlled trial',
+        'random allocation', 'randomly assigned', 'randomly allocated', 'placebo'
+    ],
+    exclude: [
+        'animal', 'mice', 'rat', 'in vitro', 'cell line',
+        'protocol', 'review', 'meta-analysis', 'case report', 'case series',
+        'commentary', 'editorial', 'letter', 'conference'
+    ]
+};
+
+// システマティックレビュー（SR）用プリセット
+export const PRESET_SR = {
+    include: [
+        'systematic review', 'meta-analysis', 'network meta-analysis', 'pooled analysis',
+        'search strategy', 'database search', 'risk of bias', 'quality assessment',
+        'eligibility criteria', 'selection criteria'
+    ],
+    exclude: [
+        'case report', 'case series', 'editorial', 'commentary', 'letter',
+        'protocol', 'narrative review', 'overview', 'animal', 'mice', 'rat',
+        'in vitro', 'cell line'
+    ]
+};
+
+const DEFAULT_INCLUDE_KEYWORDS = PRESET_RCT.include;
+const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
 
 // References タブのヘッダー
 const REFERENCES_HEADERS = [
@@ -16,6 +47,7 @@ const REFERENCES_HEADERS = [
 ];
 
 // Decisions タブのヘッダー
+// 互換性のため labels 列は残すが、機能としては使用しない
 const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
     'labels', 'note', 'decided_at', 'client_version', 'source_url'
@@ -144,6 +176,9 @@ export async function createSpreadsheet(title: string): Promise<string> {
                 },
                 {
                     properties: { title: DECISIONS_SHEET }
+                },
+                {
+                    properties: { title: CONFIG_SHEET }
                 }
             ]
         }),
@@ -307,9 +342,8 @@ export async function getDecisions(spreadsheetId: string): Promise<{ decision: D
         const dec: Record<string, string | string[] | undefined> = {};
         headers.forEach((header, i) => {
             const value = row[i] || '';
-            if (header === 'labels') {
-                dec[header] = value ? value.split(',').map(s => s.trim()) : undefined;
-            } else {
+            // labelsフィールドはDecision型から削除されたため、読み込み時は無視する
+            if (header !== 'labels') {
                 dec[header] = value || undefined;
             }
         });
@@ -321,7 +355,7 @@ export async function getDecisions(spreadsheetId: string): Promise<{ decision: D
 }
 
 /**
- * 文献一覧に判定状態をマージ
+ * 文献一覧に判定状態をマージ（キーオープン前）
  */
 export async function getReferencesWithStatus(
     spreadsheetId: string,
@@ -339,7 +373,7 @@ export async function getReferencesWithStatus(
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
     decisionsData.forEach(({ decision }) => {
-        console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
+        // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
         if (decision.reviewer_id === reviewerEmail) {
             myDecisions.set(decision.ref_id, decision);
         }
@@ -359,6 +393,79 @@ export async function getReferencesWithStatus(
 }
 
 /**
+ * 文献一覧に全判定状態をマージ（キーオープン後）
+ */
+export async function getReferencesWithAllDecisions(
+    spreadsheetId: string,
+    reviewerEmail: string
+): Promise<ReferenceWithStatus[]> {
+    console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
+
+    const [references, decisionsData] = await Promise.all([
+        getReferences(spreadsheetId),
+        getDecisions(spreadsheetId),
+    ]);
+
+    console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
+
+    // 全判定をref_id別にグループ化
+    const allDecisionsMap = new Map<string, Decision[]>();
+    decisionsData.forEach(({ decision }) => {
+        if (!allDecisionsMap.has(decision.ref_id)) {
+            allDecisionsMap.set(decision.ref_id, []);
+        }
+        allDecisionsMap.get(decision.ref_id)!.push(decision);
+    });
+
+    return references.map(ref => {
+        const allDecisions = allDecisionsMap.get(ref.ref_id) || [];
+        const myDecision = allDecisions.find(d => d.reviewer_id === reviewerEmail);
+
+        // 不一致検出
+        const hasConflict = detectConflict(allDecisions);
+
+        // ステータス決定
+        let status: DecisionStatus;
+        if (hasConflict) {
+            status = 'conflict';
+        } else if (myDecision) {
+            status = myDecision.decision;
+        } else {
+            status = 'pending';
+        }
+
+        return {
+            ...ref,
+            myDecision,
+            status,
+            allDecisions,
+            hasConflict,
+        };
+    });
+}
+
+/**
+ * 不一致を検出
+ * - 2人以上の判定がある場合、判定内容が異なれば不一致
+ * - どちらか一方が未判定（pendingまたは判定なし）の場合も不一致
+ */
+function detectConflict(decisions: Decision[]): boolean {
+    // 判定がない、または1人のみの場合は不一致なし
+    if (decisions.length === 0) {
+        return false;
+    }
+
+    if (decisions.length === 1) {
+        // 1人だけ判定済み = もう1人が未判定 = 不一致
+        return true;
+    }
+
+    // 2人以上の判定がある場合、判定内容をチェック
+    const uniqueDecisions = new Set(decisions.map(d => d.decision));
+    return uniqueDecisions.size > 1;
+}
+
+/**
  * 判定を保存（新規追加 or 更新）
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
@@ -374,7 +481,7 @@ export async function saveDecision(spreadsheetId: string, decision: Decision): P
         decision.reviewer_id,
         decision.decision,
         decision.reason || '',
-        decision.labels?.join(', ') || '',
+        '', // labels: 機能廃止のため常に空文字を保存
         decision.note || '',
         decision.decided_at,
         decision.client_version || '',
@@ -413,4 +520,258 @@ export async function addReferences(spreadsheetId: string, references: Reference
     ]);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
+}
+
+/**
+ * ハイライトキーワードの型
+ */
+export interface HighlightKeywords {
+    include: string[];
+    exclude: string[];
+}
+
+/**
+ * Config タブからハイライトキーワードを取得
+ * Config タブは Key-Value 形式（A列=キー、B列=値）を想定
+ * 見つからない場合はデフォルト値を返す
+ */
+export async function getHighlightKeywords(spreadsheetId: string): Promise<HighlightKeywords> {
+    let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
+    let excludeKeywords = DEFAULT_EXCLUDE_KEYWORDS;
+
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+
+        for (const row of values) {
+            if (row[0] === 'include_keywords' && row[1]) {
+                const keywords = row[1]
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                if (keywords.length > 0) {
+                    includeKeywords = keywords;
+                }
+            }
+            if (row[0] === 'exclude_keywords' && row[1]) {
+                const keywords = row[1]
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+                if (keywords.length > 0) {
+                    excludeKeywords = keywords;
+                }
+            }
+        }
+    } catch (error) {
+        console.log('[getHighlightKeywords] Config not found, using defaults:', error);
+    }
+
+    return {
+        include: includeKeywords,
+        exclude: excludeKeywords,
+    };
+}
+
+/**
+ * Config タブのハイライトキーワードを更新
+ */
+async function addSheet(spreadsheetId: string, title: string): Promise<void> {
+    const token = await getAuthToken();
+    const response = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            requests: [
+                {
+                    addSheet: {
+                        properties: {
+                            title: title
+                        }
+                    }
+                }
+            ]
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to add sheet: ${error.error?.message || response.statusText}`);
+    }
+}
+
+/**
+ * Config タブのハイライトキーワードを更新
+ */
+export async function updateConfigKeywords(
+    spreadsheetId: string,
+    keywords: HighlightKeywords
+): Promise<void> {
+    try {
+        await tryUpdateConfig(spreadsheetId, keywords);
+    } catch (error) {
+        // シートがない場合のエラーハンドリング
+        // "Unable to parse range: Config!A:B" のようなエラーが返る
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[updateConfigKeywords] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            // 再試行
+            await tryUpdateConfig(spreadsheetId, keywords);
+        } else {
+            console.error('[updateConfigKeywords] Failed:', error);
+            throw error;
+        }
+    }
+}
+
+async function tryUpdateConfig(spreadsheetId: string, keywords: HighlightKeywords) {
+    // Config シートの全データを取得
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let includeRowIndex = -1;
+    let excludeRowIndex = -1;
+
+    // 既存の行を探す
+    values.forEach((row, index) => {
+        if (row[0] === 'include_keywords') includeRowIndex = index + 1; // 1-indexed
+        if (row[0] === 'exclude_keywords') excludeRowIndex = index + 1;
+    });
+
+    // include_keywords 更新
+    const includeValue = keywords.include.join(',');
+    if (includeRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${includeRowIndex}`, [[includeValue]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['include_keywords', includeValue]]);
+    }
+
+    // exclude_keywords 更新
+    const excludeValue = keywords.exclude.join(',');
+    if (excludeRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${excludeRowIndex}`, [[excludeValue]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['exclude_keywords', excludeValue]]);
+    }
+}
+
+/**
+ * スプレッドシートの権限情報を取得
+ */
+export interface SpreadsheetPermission {
+    role: 'owner' | 'writer' | 'reader';
+    emailAddress: string;
+}
+
+export async function getSpreadsheetPermissions(spreadsheetId: string): Promise<SpreadsheetPermission[]> {
+    const token = await getAuthToken();
+
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions?fields=permissions(role,emailAddress)`,
+        {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`Failed to get permissions: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.permissions || [];
+}
+
+/**
+ * 共有設定を追加（Google Drive API）
+ */
+export async function addPermission(fileId: string, emailAddress: string, role: 'writer' | 'reader' = 'writer'): Promise<void> {
+    const token = await getAuthToken();
+
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                role: role,
+                type: 'user',
+                emailAddress: emailAddress,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to add permission: ${error.error?.message || response.statusText}`);
+    }
+}
+
+/**
+ * ユーザーが管理者権限を持っているかチェック
+ */
+export async function isUserAdmin(spreadsheetId: string, userEmail: string): Promise<boolean> {
+    try {
+        const permissions = await getSpreadsheetPermissions(spreadsheetId);
+        const userPermission = permissions.find(p => p.emailAddress === userEmail);
+        return userPermission?.role === 'owner' || userPermission?.role === 'writer';
+    } catch (error) {
+        console.error('Failed to check admin status:', error);
+        return false;
+    }
+}
+
+/**
+ * キーオープン状態を取得
+ */
+export async function getKeyOpenedStatus(spreadsheetId: string): Promise<boolean> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'key_opened') {
+                return row[1]?.toLowerCase() === 'true';
+            }
+        }
+        return false;
+    } catch (error) {
+        console.log('[getKeyOpenedStatus] Config not found, returning false:', error);
+        return false;
+    }
+}
+
+/**
+ * キーオープン状態を設定
+ */
+export async function setKeyOpenedStatus(spreadsheetId: string, opened: boolean): Promise<void> {
+    try {
+        await trySetKeyOpened(spreadsheetId, opened);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[setKeyOpenedStatus] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySetKeyOpened(spreadsheetId, opened);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let keyOpenedRowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'key_opened') keyOpenedRowIndex = index + 1;
+    });
+
+    const value = opened ? 'true' : 'false';
+    if (keyOpenedRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${keyOpenedRowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
+    }
 }
