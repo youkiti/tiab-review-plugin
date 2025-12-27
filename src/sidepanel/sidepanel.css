@@ -140,6 +140,33 @@ body {
     font-size: 13px;
 }
 
+/* 検索コンテナ */
+.search-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.search-container input {
+    width: 100%;
+}
+
+.search-result-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1a73e8;
+    padding: 2px 8px;
+    background: #e8f0fe;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.search-result-count.no-results {
+    color: #ea4335;
+    background: #fce8e6;
+}
+
 /* 文献カード */
 .reference-card {
     background: #fafafa;

@@ -99,6 +99,7 @@ const loadingDiv = document.getElementById('loading') as HTMLElement;
 
 const statusFilter = document.getElementById('status-filter') as HTMLSelectElement;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
+const searchResultCount = document.getElementById('search-result-count') as HTMLElement;
 
 const refTitle = document.getElementById('ref-title') as HTMLElement;
 const refAuthors = document.getElementById('ref-authors') as HTMLElement;
@@ -659,6 +660,21 @@ function renderCurrentReference() {
     const filtered = getFilteredReferences();
     const ref = filtered[currentIndex];
 
+    // 検索結果件数の更新
+    const searchTerm = searchInput.value.trim();
+    if (searchTerm) {
+        searchResultCount.classList.remove('hidden');
+        if (filtered.length === 0) {
+            searchResultCount.textContent = `「${searchTerm}」: 0件ヒット`;
+            searchResultCount.classList.add('no-results');
+        } else {
+            searchResultCount.textContent = `「${searchTerm}」: ${filtered.length}件ヒット（↓ 詳細を確認）`;
+            searchResultCount.classList.remove('no-results');
+        }
+    } else {
+        searchResultCount.classList.add('hidden');
+    }
+
     if (!ref) {
         refTitle.textContent = '文献がありません';
         refAuthors.textContent = '';
@@ -762,11 +778,39 @@ function updateFilterCounts() {
 }
 
 
-function navigate(direction: number) {
+async function navigate(direction: number) {
     const filtered = getFilteredReferences();
-    const newIndex = currentIndex + direction;
+    const currentRef = filtered[currentIndex];
 
-    if (newIndex >= 0 && newIndex < filtered.length) {
+    // 遷移前に現在のメモを保存（変更されている場合のみ）
+    if (currentRef && currentRef.myDecision) {
+        const currentNote = noteInput.value || undefined;
+        const savedNote = currentRef.myDecision.note;
+
+        if (currentNote !== savedNote) {
+            // メモを更新
+            currentRef.myDecision.note = currentNote;
+            currentRef.myDecision.decided_at = new Date().toISOString();
+
+            // バックグラウンドで保存
+            apiSaveDecision(spreadsheetId, currentRef.myDecision)
+                .then(() => console.log('Note saved on navigate:', currentRef.myDecision))
+                .catch((error) => {
+                    console.error('Failed to save note on navigate:', error);
+                });
+        }
+    }
+
+    let newIndex = currentIndex + direction;
+
+    // ループナビゲーション
+    if (newIndex < 0) {
+        newIndex = filtered.length - 1;  // 最初から最後へ
+    } else if (newIndex >= filtered.length) {
+        newIndex = 0;  // 最後から最初へ
+    }
+
+    if (filtered.length > 0) {
         currentIndex = newIndex;
         renderCurrentReference();
     }
