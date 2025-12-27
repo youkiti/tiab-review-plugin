@@ -4,10 +4,10 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log('TiAb Review Plugin installed');
 });
 
-// サイドパネルを有効化
-chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((error) => console.error(error));
+// アイコンクリックで新しいタブを開く
+chrome.action.onClicked.addListener(() => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel/sidepanel.html') });
+});
 
 // メッセージハンドラー
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

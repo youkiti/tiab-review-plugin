@@ -6,8 +6,7 @@
     "description": "Systematic Review のタイトル・抄録スクリーニングを効率化するChrome拡張機能",
     "permissions": [
         "identity",
-        "storage",
-        "sidePanel"
+        "storage"
     ],
     "host_permissions": [
         "https://sheets.googleapis.com/*",
@@ -26,11 +25,7 @@
         "type": "module"
     },
     "action": {
-        "default_popup": "popup/popup.html",
         "default_title": "TiAb Review"
-    },
-    "side_panel": {
-        "default_path": "sidepanel/sidepanel.html"
     },
     "commands": {
         "_execute_action": {

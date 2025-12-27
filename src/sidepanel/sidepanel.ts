@@ -821,17 +821,16 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
     // UIを即座に更新
     renderCurrentReference();
 
-    // APIに保存（非同期）
-    try {
-        await apiSaveDecision(spreadsheetId, decisionObj);
-        console.log('Decision saved:', decisionObj);
-    } catch (error) {
-        console.error('Failed to save decision:', error);
-        // TODO: オフラインキューに追加
-    }
-
-    // 次の文献へ
+    // 次の文献へ（保存を待たずに移動）
     navigate(1);
+
+    // APIに保存（バックグラウンド、UIブロックしない）
+    apiSaveDecision(spreadsheetId, decisionObj)
+        .then(() => console.log('Decision saved:', decisionObj))
+        .catch((error) => {
+            console.error('Failed to save decision:', error);
+            // TODO: オフラインキューに追加
+        });
 }
 
 /**
