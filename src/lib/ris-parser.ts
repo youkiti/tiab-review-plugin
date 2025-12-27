@@ -131,12 +131,7 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
                 source: currentRecord.source,
                 source_file: sourceFile,
                 imported_at: new Date().toISOString(),
-                dedupe_key: generateDedupeKey(
-                    currentRecord.title,
-                    currentRecord.year,
-                    currentRecord._authors[0],
-                    currentRecord.doi
-                ),
+                dedupe_key: generateDedupeKey(currentRecord.title),
             };
             references.push(ref);
         }
@@ -222,45 +217,27 @@ function truncateAbstract(abstract?: string): string | undefined {
 }
 
 /**
- * 重複検出キーを生成
+ * 重複検出用にタイトルを正規化
+ * - 小文字化
+ * - 前後の [] を削除
+ * - すべての記号（.,;:!?()[]"'）を削除
+ * - 空白を正規化
  */
-function generateDedupeKey(
-    title?: string,
-    year?: number,
-    firstAuthor?: string,
-    doi?: string
-): string {
-    // DOI があれば DOI を優先
-    if (doi) {
-        return `doi:${doi.toLowerCase()}`;
-    }
-
-    const normalizedTitle = normalizeText(title || '').substring(0, 100);
-    const normalizedAuthor = normalizeText(extractLastName(firstAuthor || ''));
-    const yearStr = year?.toString() || '';
-
-    return `${normalizedTitle}|${yearStr}|${normalizedAuthor}`;
-}
-
-/**
- * テキストを正規化（小文字化、記号除去、空白正規化）
- */
-function normalizeText(text: string): string {
-    return text
+function normalizeTitle(title: string): string {
+    return title
         .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, ' ')
+        .replace(/^\s*\[.*?\]\s*/g, '')  // 先頭の [xxx] を削除
+        .replace(/\s*\[.*?\]\s*$/g, '')  // 末尾の [xxx] を削除
+        .replace(/[.,;:!?()\[\]"'\-–—]/g, '') // 記号を削除
+        .replace(/\s+/g, ' ')            // 複数空白を単一に
         .trim();
 }
 
 /**
- * 著者名から姓を抽出
+ * 重複検出キーを生成（正規化タイトルのみ）
  */
-function extractLastName(author: string): string {
-    // "Smith, John" → "Smith"
-    // "John Smith" → "Smith"
-    const parts = author.split(/[,\s]+/);
-    return parts[0] || '';
+function generateDedupeKey(title?: string): string {
+    return normalizeTitle(title || '');
 }
 
 /**

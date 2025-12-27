@@ -31,6 +31,18 @@ body {
     font-size: 18px;
     font-weight: 600;
     color: #1a73e8;
+    margin: 0;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.build-version {
+    font-size: 10px;
+    color: #999;
+    font-weight: normal;
 }
 
 .progress {
@@ -38,6 +50,7 @@ body {
     color: #666;
     font-weight: 500;
 }
+
 
 /* セクション */
 .section {

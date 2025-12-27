@@ -6,6 +6,7 @@ import {
     getUserEmail,
     createSpreadsheet,
     getSpreadsheetInfo,
+    getReferences,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
     saveDecision as apiSaveDecision,
@@ -23,6 +24,7 @@ import {
     addPermission,
     getSpreadsheetPermissions,
 } from '../lib/sheets-api';
+
 import { parseRISFile } from '../lib/ris-parser';
 
 // 状態管理
@@ -52,6 +54,9 @@ function renderSourceFilters() {
     sourceFiltersSection.classList.remove('hidden');
 
     sourceFiles.forEach(file => {
+        // このファイルのレコード数をカウント
+        const count = references.filter(r => r.source_file === file).length;
+
         const div = document.createElement('div');
         div.className = 'source-file-item';
 
@@ -72,13 +77,14 @@ function renderSourceFilters() {
 
         const label = document.createElement('label');
         label.htmlFor = `source-${file}`;
-        label.textContent = file;
+        label.textContent = `${file} (${count})`;
 
         div.appendChild(checkbox);
         div.appendChild(label);
         sourceFileListDiv.appendChild(div);
     });
 }
+
 
 
 // DOM要素
@@ -664,12 +670,17 @@ function renderCurrentReference() {
         refDoi.classList.add('hidden');
         refPmid.classList.add('hidden');
         navPosition.textContent = '0 / 0';
+        progressText.textContent = `0 / ${references.length}`;
+
+        // フィルターの件数を更新
+        updateFilterCounts();
 
         // 不一致UI非表示
         conflictBanner.classList.add('hidden');
         allDecisionsDiv.classList.add('hidden');
         return;
     }
+
 
     // キーオープン後の不一致表示
     if (isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
@@ -726,13 +737,19 @@ function renderCurrentReference() {
 }
 
 function updateFilterCounts() {
+    // ソースファイルフィルターを適用したものでカウント
+    let filtered = references;
+    if (selectedSourceFiles.size > 0 && selectedSourceFiles.size < sourceFiles.size) {
+        filtered = references.filter(r => r.source_file && selectedSourceFiles.has(r.source_file));
+    }
+
     const counts = {
-        pending: references.filter(r => r.status === 'pending').length,
-        all: references.length,
-        include: references.filter(r => r.status === 'include').length,
-        exclude: references.filter(r => r.status === 'exclude').length,
-        maybe: references.filter(r => r.status === 'maybe').length,
-        conflict: references.filter(r => r.status === 'conflict').length,
+        pending: filtered.filter(r => r.status === 'pending').length,
+        all: filtered.length,
+        include: filtered.filter(r => r.status === 'include').length,
+        exclude: filtered.filter(r => r.status === 'exclude').length,
+        maybe: filtered.filter(r => r.status === 'maybe').length,
+        conflict: filtered.filter(r => r.status === 'conflict').length,
     };
 
     const options = statusFilter.options;
@@ -743,6 +760,7 @@ function updateFilterCounts() {
     options[4].textContent = `Maybe (${counts.maybe})`;
     options[5].textContent = `不一致 (${counts.conflict})`;
 }
+
 
 function navigate(direction: number) {
     const filtered = getFilteredReferences();
@@ -837,22 +855,51 @@ async function handleRISImport() {
             return;
         }
 
+        // 既存データから重複キーを取得
+        importStatus.textContent = '重複チェック中...';
+        const existingRefs = await getReferences(spreadsheetId);
+        const existingKeys = new Set(existingRefs.map(r => r.dedupe_key).filter(Boolean));
+
+        // 重複を除外
+        const uniqueRefs = newRefs.filter(ref => !existingKeys.has(ref.dedupe_key));
+        const skippedCount = newRefs.length - uniqueRefs.length;
+
+        if (uniqueRefs.length === 0) {
+            importStatus.textContent = `${newRefs.length}件すべて重複のためスキップしました`;
+            importStatus.className = 'import-status info';
+            return;
+        }
+
         // imported_by を設定
-        newRefs.forEach(ref => {
+        uniqueRefs.forEach(ref => {
             ref.imported_by = userEmail;
         });
 
         // スプレッドシートに追加
-        await addReferences(spreadsheetId, newRefs);
+        await addReferences(spreadsheetId, uniqueRefs);
 
         // データを再読み込み
         references = await getReferencesWithStatus(spreadsheetId, userEmail);
+
+        // ソースファイルフィルターを更新
+        sourceFiles.clear();
+        references.forEach(ref => {
+            if (ref.source_file) sourceFiles.add(ref.source_file);
+        });
+        selectedSourceFiles = new Set(sourceFiles);
+        renderSourceFilters();
+
         currentIndex = 0;
         currentFilter = 'pending';
         statusFilter.value = 'pending';
         renderCurrentReference();
 
-        importStatus.textContent = `${newRefs.length}件の文献をインポートしました`;
+
+        // 結果メッセージ
+        const message = skippedCount > 0
+            ? `${uniqueRefs.length}件インポート（${skippedCount}件は重複のためスキップ）`
+            : `${uniqueRefs.length}件の文献をインポートしました`;
+        importStatus.textContent = message;
         importStatus.className = 'import-status success';
     } catch (error) {
         console.error('Import error:', error);
@@ -869,6 +916,7 @@ async function handleRISImport() {
         }, 5000);
     }
 }
+
 
 // ========== ハイライトキーワード関連関数 ==========
 

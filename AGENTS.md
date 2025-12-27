@@ -345,6 +345,19 @@ https://www.googleapis.com/auth/drive.file
 3. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 4. 開発中は `npm run watch` でホットリロード
 
+### テスター向け配布
+
+```bash
+npm run build:zip
+```
+
+このコマンドは以下を実行:
+1. プロダクションビルド
+2. `dist.zip` を作成
+3. Google Drive（`G:\マイドライブ\00SRWS-PSG\app\tiab review plugin\dist.zip`）へ自動コピー
+
+テスターはGoogle Driveの共有リンクから常に最新版をダウンロード可能。
+
 ## 注意事項
 
 - **フルテキスト対応は対象外**（PDFアップロード、PDFビューア等は実装しない）
