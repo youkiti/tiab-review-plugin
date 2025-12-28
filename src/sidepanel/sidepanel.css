@@ -737,6 +737,12 @@ body {
     border-radius: 2px;
 }
 
+.highlight-search {
+    background-color: #ffe0b2;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
 /* 不一致バナー */
 .conflict-banner {
     background-color: #fff3cd;
