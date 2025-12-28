@@ -116,20 +116,20 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
 
             const ref: Reference = {
                 ref_id: crypto.randomUUID(),
-                title: currentRecord.title,
+                title: truncateField(currentRecord.title)!,
                 abstract: truncateAbstract(currentRecord.abstract),
                 year: currentRecord.year,
-                authors: currentRecord._authors.join('; '),
-                journal: currentRecord.journal,
-                volume: currentRecord.volume,
-                issue: currentRecord.issue,
-                pages: pages,
-                issn: currentRecord.issn,
-                doi: currentRecord.doi,
-                pmid: currentRecord.pmid,
-                url: currentRecord.url,
-                source: currentRecord.source,
-                source_file: sourceFile,
+                authors: truncateAuthors(currentRecord._authors),
+                journal: truncateField(currentRecord.journal),
+                volume: truncateField(currentRecord.volume),
+                issue: truncateField(currentRecord.issue),
+                pages: truncateField(pages),
+                issn: truncateField(currentRecord.issn),
+                doi: truncateField(currentRecord.doi),
+                pmid: truncateField(currentRecord.pmid),
+                url: truncateField(currentRecord.url),
+                source: truncateField(currentRecord.source),
+                source_file: truncateField(sourceFile),
                 imported_at: new Date().toISOString(),
                 dedupe_key: generateDedupeKey(currentRecord.title),
             };
@@ -208,12 +208,31 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
 }
 
 /**
+ * 著者リストを最大10人に制限（11人以上の場合は "et al." を追加）
+ */
+function truncateAuthors(authors: string[]): string {
+    if (authors.length <= 10) {
+        return authors.join('; ');
+    }
+    return authors.slice(0, 10).join('; ') + '; et al.';
+}
+
+/**
  * Abstract を 15,000 文字に切り詰め
  */
 function truncateAbstract(abstract?: string): string | undefined {
     if (!abstract) return undefined;
     if (abstract.length <= 15000) return abstract;
     return abstract.substring(0, 15000) + '...';
+}
+
+/**
+ * 文字列を50,000文字に制限（Google Sheetsのセル制限対策）
+ */
+function truncateField(value: string | undefined, maxLength = 50000): string | undefined {
+    if (!value) return undefined;
+    if (value.length <= maxLength) return value;
+    return value.substring(0, maxLength - 3) + '...';
 }
 
 /**
