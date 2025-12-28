@@ -715,11 +715,12 @@ function renderCurrentReference() {
         allDecisionsDiv.classList.add('hidden');
     }
 
-    refTitle.innerHTML = highlightText(ref.title);
+    const searchKeyword = searchInput.value.trim();
+    refTitle.innerHTML = highlightText(ref.title, searchKeyword);
     refAuthors.textContent = ref.authors || '';
     refYear.textContent = ref.year?.toString() || '';
     refJournal.textContent = ref.journal || '';
-    refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)');
+    refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword);
 
     if (ref.doi) {
         refDoi.href = `https://doi.org/${ref.doi}`;
@@ -1104,9 +1105,15 @@ function escapeHtml(text: string): string {
 /**
  * テキスト内のキーワードをハイライト
  */
-function highlightText(text: string): string {
+function highlightText(text: string, searchKeyword?: string): string {
     if (!text) return '';
     let result = escapeHtml(text);
+
+    // 検索キーワード（橙）- 優先度最低
+    if (searchKeyword && searchKeyword.trim()) {
+        const regex = createSmartRegex(searchKeyword.trim());
+        result = result.replace(regex, '<mark class="highlight-search">$1</mark>');
+    }
 
     // 除外キーワード（赤）
     for (const kw of highlightKeywords.exclude) {
