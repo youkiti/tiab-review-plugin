@@ -518,6 +518,46 @@ body {
     gap: 4px;
 }
 
+/* エクスポート機能のスタイル */
+.export-container {
+    display: inline-flex;
+    position: relative;
+}
+
+.export-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 100%;
+    overflow: hidden;
+}
+
+.export-menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: white;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.export-menu-item:hover {
+    background-color: #f1f3f4;
+}
+
+.export-menu-item:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
 /* 共有機能のスタイル */
 .share-container {
     display: inline-flex;

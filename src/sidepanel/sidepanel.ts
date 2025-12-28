@@ -124,7 +124,10 @@ const progressText = document.getElementById('progress-text') as HTMLElement;
 // RIS インポート
 const risFileInput = document.getElementById('ris-file') as HTMLInputElement;
 const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
+const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
+const exportMenu = document.getElementById('export-menu') as HTMLElement;
 const exportCsvBtn = document.getElementById('export-csv-btn') as HTMLButtonElement;
+const exportRisBtn = document.getElementById('export-ris-btn') as HTMLButtonElement;
 const importStatus = document.getElementById('import-status') as HTMLElement;
 const backBtn = document.getElementById('back-btn') as HTMLButtonElement;
 
@@ -323,8 +326,30 @@ function setupEventListeners() {
     importBtn.addEventListener('click', () => risFileInput.click());
     risFileInput.addEventListener('change', handleRISImport);
 
+    // エクスポートメニュー
+    exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportMenu.classList.toggle('hidden');
+    });
+
     // CSV エクスポート
-    exportCsvBtn.addEventListener('click', handleExportCSV);
+    exportCsvBtn.addEventListener('click', () => {
+        exportMenu.classList.add('hidden');
+        handleExportCSV();
+    });
+
+    // RIS エクスポート
+    exportRisBtn.addEventListener('click', () => {
+        exportMenu.classList.add('hidden');
+        handleExportRIS();
+    });
+
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+        if (!exportMenu.contains(e.target as Node) && e.target !== exportBtn) {
+            exportMenu.classList.add('hidden');
+        }
+    });
 
     // 戻るボタン
     backBtn.addEventListener('click', handleBack);
@@ -1691,6 +1716,165 @@ function escapeCSVField(value: string): string {
         return '"' + value.replace(/"/g, '""') + '"';
     }
     return value;
+}
+
+
+/**
+ * フィルター結果をRIS形式でエクスポート
+ */
+async function handleExportRIS() {
+    const filtered = getFilteredReferences();
+
+    if (filtered.length === 0) {
+        showToast('エクスポートする文献がありません');
+        return;
+    }
+
+    try {
+        // プロジェクトタイトルを取得
+        let projectTitle = 'TiAb_Review';
+        try {
+            const info = await getSpreadsheetInfo(spreadsheetId);
+            projectTitle = info.title.replace(/[\\/:*?"<>|]/g, '_'); // ファイル名に使えない文字を置換
+        } catch {
+            console.log('[handleExportRIS] Could not get spreadsheet title');
+        }
+
+        // フィルター条件を取得
+        const filterLabels: Record<string, string> = {
+            'pending': '未判定',
+            'all': 'すべて',
+            'include': 'Include',
+            'exclude': 'Exclude',
+            'maybe': 'Maybe',
+            'conflict': '不一致',
+        };
+        const filterLabel = filterLabels[currentFilter] || currentFilter;
+
+        // 日付
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // ファイル名
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.ris`;
+
+        // RISデータを構築
+        const risLines: string[] = [];
+
+        for (const ref of filtered) {
+            // レコード開始 (TY - JOUR: Journal Article として固定)
+            risLines.push('TY  - JOUR');
+
+            // タイトル
+            if (ref.title) {
+                risLines.push(`TI  - ${ref.title}`);
+            }
+
+            // 著者 (複数の場合セミコロン区切りで分割)
+            if (ref.authors) {
+                const authors = ref.authors.split(/;\s*/);
+                for (const author of authors) {
+                    if (author && author !== 'et al.') {
+                        risLines.push(`AU  - ${author.trim()}`);
+                    }
+                }
+            }
+
+            // 年
+            if (ref.year) {
+                risLines.push(`PY  - ${ref.year}`);
+            }
+
+            // ジャーナル
+            if (ref.journal) {
+                risLines.push(`JO  - ${ref.journal}`);
+            }
+
+            // 巻
+            if (ref.volume) {
+                risLines.push(`VL  - ${ref.volume}`);
+            }
+
+            // 号
+            if (ref.issue) {
+                risLines.push(`IS  - ${ref.issue}`);
+            }
+
+            // ページ
+            if (ref.pages) {
+                // pages が "123-456" 形式なら SP/EP に分割
+                const pageMatch = ref.pages.match(/^(\d+)\s*-\s*(\d+)$/);
+                if (pageMatch) {
+                    risLines.push(`SP  - ${pageMatch[1]}`);
+                    risLines.push(`EP  - ${pageMatch[2]}`);
+                } else {
+                    risLines.push(`SP  - ${ref.pages}`);
+                }
+            }
+
+            // ISSN
+            if (ref.issn) {
+                risLines.push(`SN  - ${ref.issn}`);
+            }
+
+            // DOI
+            if (ref.doi) {
+                risLines.push(`DO  - ${ref.doi}`);
+            }
+
+            // PMID
+            if (ref.pmid) {
+                risLines.push(`AN  - ${ref.pmid}`);
+            }
+
+            // 抄録
+            if (ref.abstract) {
+                risLines.push(`AB  - ${ref.abstract}`);
+            }
+
+            // URL (PubMed論文の場合)
+            if (ref.pmid) {
+                risLines.push(`UR  - https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`);
+            } else if (ref.doi) {
+                risLines.push(`UR  - https://doi.org/${ref.doi}`);
+            }
+
+            // メモ (note) をノートフィールドに
+            if (ref.myDecision?.note) {
+                risLines.push(`N1  - ${ref.myDecision.note}`);
+            }
+
+            // 判定ステータスをカスタムフィールドに
+            if (ref.status) {
+                risLines.push(`C1  - Status: ${ref.status}`);
+            }
+
+            // レコード終了
+            risLines.push('ER  - ');
+            risLines.push(''); // 空行でレコード区切り
+        }
+
+        const risContent = risLines.join('\r\n');
+
+        // BOM付きUTF-8でBlob作成
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + risContent], { type: 'application/x-research-info-systems;charset=utf-8' });
+
+        // ダウンロード
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`${filtered.length}件をRIS形式で出力しました`);
+    } catch (error) {
+        console.error('[handleExportRIS] Error:', error);
+        showToast('RISエクスポートに失敗しました');
+    }
 }
 
 

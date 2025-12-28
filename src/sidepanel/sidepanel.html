@@ -43,6 +43,8 @@
                 <div class="user-info-container">
                     <div id="user-info" class="user-info"></div>
                     <div class="user-info-buttons">
+                        <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
+                            class="btn btn-icon" title="ヘルプ">❓</a>
                         <button id="settings-btn-project" class="btn btn-icon" title="設定">⚙️</button>
                         <button id="logout-btn" class="btn btn-outline btn-xsmall">ログアウト</button>
                     </div>
@@ -83,9 +85,15 @@
                 <button id="import-btn" class="btn btn-secondary btn-small">
                     📁 RIS/nbibインポート
                 </button>
-                <button id="export-csv-btn" class="btn btn-secondary btn-small" title="フィルター結果をCSVとしてエクスポート">
-                    📥 CSV出力
-                </button>
+                <div class="export-container">
+                    <button id="export-btn" class="btn btn-secondary btn-small" title="フィルター結果をエクスポート">
+                        📥 エクスポート
+                    </button>
+                    <div id="export-menu" class="export-menu hidden">
+                        <button id="export-csv-btn" class="export-menu-item">CSV形式</button>
+                        <button id="export-ris-btn" class="export-menu-item">RIS形式</button>
+                    </div>
+                </div>
                 <div class="share-container">
                     <button id="share-btn" class="btn btn-secondary btn-small" title="共同編集者を追加">
                         👤 共有
