@@ -45,16 +45,37 @@
 2) ユーザーが **Gemini APIキー** を入力（任意で「端末に保存」）
    入力は設定リンクから、設定のリンクは全部の画面の右上に入れるようにする
 3) Config シートにプロトコルの組み入れ、除外基準をコピペして保存
-4) LLMにより、コピペした組み入れ、除外基準から、LLM用の適切な組み入れ、除外基準に変換 、保存（共有）
+4) **「基準を最適化」ボタン** を押すと、LLMがコピペした基準からLLM用の適切な組み入れ・除外基準に変換し、保存（共有）
 
 ### 3.2 スクリーニング中
 
 - 一括実行ボタンをLLM処理の画面で押すことで一括処理（バッチサイズはいくつかの条件で確認し、デフォルトで決めるが調整可能にする）
-- LLMは以下を返す（表示＋保存）
-  - `probability`（確率）
-  - `should_include`（true/false）
-  - （内部的には既存UIのため）`decision`（include/exclude/maybe）
+- LLMは `probability`（組み入れ確率: 0.0〜1.0）を出力
+- `decision`（include/exclude）は **閾値設定に基づき判定**（5.5参照）
+  - probability ≥ `llm_include_threshold` → include
+  - probability < `llm_include_threshold` → exclude
 - 生成された結果は **Decisions シートへ自動で記録**
+
+### 3.3 基準変換処理（最適化機能）
+
+「基準を最適化」ボタン押下時の処理:
+
+```
+入力: プロトコルの組み入れ・除外基準（コピペテキスト）
+  ↓
+処理: LLMが以下を抽出・変換
+  - PICO要素の抽出（P/I/C/O）
+  - 研究デザイン要件の特定（RCT only, 観察研究含む, etc.）
+  - T&Aスクリーニング向けの判定基準文に変換
+  ↓
+出力:
+  - `llm_criteria`（構造化JSON）
+  - `llm_screening_prompt`（スクリーニング用プロンプトテンプレート）
+```
+
+**保存先:**
+- Configシート: `llm_criteria`, `llm_screening_prompt`
+- LLM_Executionsシート: `execution_type=prompt_generation` として履歴保存
 
 ---
 
@@ -71,10 +92,9 @@
 - `llm_model` = `gemini-flash-latest`
 - llm_temperature = 0 (デフォルト、調整可)
 - llm_thinking = `"low"` または `"high"`
-- `llm_criteria` = （PICO/PECO等の基準文。改行含むテキスト可）
+- `llm_criteria` = （PICO/PECO等の基準文。**JSON形式**で保存、詳細は5.3参照）
 - `llm_prompt_template` = （テンプレを置く場合）
-- `llm_include_threshold` = `0.70`（probability >= なら include）
-- `llm_exclude_threshold` = `0.30`（probability <= なら exclude）
+- `llm_include_threshold` = `0.30`（probability がこの値以上なら include、未満なら exclude）
 - `llm_max_output_tokens`
 - `llm_output_language` = `ja`（理由生成の言語）
 
@@ -85,7 +105,33 @@
 
 ### 4.2 Decisions シート（LLM結果の保存）
 
-既存のDecisionsシートをそのまま活用。`reviewer_id` に `gemini-flash-latest@2025-12-28` のようなモデル+日付を記録。
+既存のDecisionsシートをそのまま活用。`reviewer_id` に `gemini-flash-latest@2025-12-28T14:30:00` のようなモデル+タイムスタンプ（ISO 8601形式）を記録。
+
+### 4.3 LLM_Executions シート（実行履歴）
+
+基準変換（prompt_generation）と一括実行（batch_screening）の両方の履歴を保存。
+
+| カラム | 型 | 例 | 説明 |
+|--------|-----|-----|------|
+| `execution_id` | string | `exec_2025-12-28T14:30:00` | 一意のID（Decisionsの`reviewer_id`と対応） |
+| `execution_type` | string | `prompt_generation` / `batch_screening` | **実行種別** |
+| `timestamp` | string | `2025-12-28T14:30:00` | 実行日時（ISO 8601） |
+| `model` | string | `gemini-flash-latest` | 使用モデル |
+| `criteria_snapshot` | JSON | `{"template":"pico",...}` | 実行時の基準（完全なJSON） |
+| `screening_prompt` | string | （生成されたプロンプト） | **スクリーニング用プロンプト** |
+| `include_threshold` | number | `0.30` | 実行時のinclude閾値 |
+| `target_count` | number | `150` | 対象件数（batch_screening時） |
+| `include_count` | number | `80` | include判定数 |
+| `exclude_count` | number | `70` | exclude判定数 |
+
+**execution_type:**
+- `prompt_generation`: 基準変換処理（3.3）
+- `batch_screening`: 一括スクリーニング実行（3.2）
+
+**用途:**
+- 異なる基準での再実行を区別
+- 実験結果の比較・監査
+- 「実験結果は全部残す」の合意を実現
 
 ---
 
@@ -97,43 +143,79 @@
 
 ```
 ┌─────────────────────────────────────┐
-│  TiAb Review        [📄][⚙️]  0/0  │  ← ヘッダー + タブ切替
+│  TiAb Review        [📄][🤖]  0/0  │  ← ヘッダー + タブ切替
 ├─────────────────────────────────────┤
 │  [📄 スクリーニング]                │  ← 現行のscreening-section
-│  [⚙️ LLM設定]                       │  ← 新規追加
+│  [🤖 LLM処理]                      │  ← 新規追加
 └─────────────────────────────────────┘
 ```
 
 - `📄` = スクリーニングタブ（デフォルト表示）
-- `⚙️` = LLM設定タブ
+- `🤖` = LLM処理タブ
 
-### 5.2 LLM設定タブ構成
+### 5.2 LLM処理タブ構成
+
+**処理フロー順に配置**: APIキー → 詳細設定 → レビュー基準（入力→変換→出力） → 一括実行
 
 ```
 ┌─────────────────────────────────────┐
-│ LLM設定                             │
+│ LLM処理                             │
 ├─────────────────────────────────────┤
 │ 🔑 Gemini APIキー                   │
 │ [••••••••••••••••] [👁]             │
 │ ✓ 設定済み（端末に保存）            │
 ├─────────────────────────────────────┤
-│ 📋 レビュー基準                     │
-│ テンプレート: [PICO ▼]             │
-│                                     │
-│ P (対象):     [__________________] │
-│ I (介入):     [__________________] │
-│ C (比較対照): [__________________] │
-│ O (アウトカム):[__________________]│
-│                                     │
-│ ✓ Configシートへ自動保存           │
-├─────────────────────────────────────┤
-│ ▶ 詳細設定                          │
-│   Include閾値: [0.70]               │
-│   Exclude閾値: [0.30]               │
+│ ⚙️ 詳細設定                         │
+│   Include閾値: [0.30]               │
 │   モデル: [gemini-flash-latest ▼]   │
 │   出力言語: [日本語 ▼]              │
+├─────────────────────────────────────┤
+│ 📋 レビュー基準                     │
+│                                     │
+│ 【入力】プロトコルからコピペ:       │
+│ ┌─────────────────────────────────┐ │
+│ │ Inclusion criteria:             │ │
+│ │ - Adults aged 18+ with T2DM     │ │
+│ │ - Randomized controlled trials  │ │
+│ │ Exclusion criteria:             │ │
+│ │ - Pregnancy, ...                │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ [💡 基準を最適化]                   │
+│                                     │
+│ 【出力】最適化されたスクリーニング基準:│
+│ ┌─────────────────────────────────┐ │
+│ │ P: 18歳以上の2型糖尿病患者      │ │
+│ │ I: メトホルミン                 │ │
+│ │ C: プラセボまたは無治療         │ │
+│ │ O: HbA1c, 体重変化              │ │
+│ │ 研究デザイン: RCTのみ           │ │
+│ └─────────────────────────────────┘ │
+│ ※ 出力結果は編集可能               │
+│                                     │
+│ [💾 保存]                           │
+│ ✓ Configシートへ自動保存           │
+├─────────────────────────────────────┤
+│ 🚀 一括実行                         │
+│ バッチサイズ: [50 ▼]                  │
+│ 対象: 未判定のみ / 全件                │
+│                                     │
+│ [▶️ 一括実行開始]                    │
+│ 進捗: 0/150 (0%)                    │
+│ ██████████░░░░░░░░░░                 │
 └─────────────────────────────────────┘
 ```
+
+**ボタン動作:**
+- **基準を最適化**: プロトコルのコピペテキストをLLMがPICO形式+スクリーニング用プロンプトに変換（3.3参照）
+  - 入力欄の内容をLLMで解析し、出力欄に構造化された基準を表示
+  - 実行履歴: `LLM_Executions`に`execution_type=prompt_generation`として保存
+- **保存**: 出力欄の内容（編集後含む）をConfigシートに保存
+- **一括実行開始**: 保存済みの基準で対象レコードにLLM判定をバッチ実行（3.2参照）
+  - 実行履歴: `LLM_Executions`に`execution_type=batch_screening`として保存
+
+**バッチサイズ選択肢:**
+- 10, 25, 50（デフォルト）, 100, 全件
 
 ### 5.3 テンプレート設計（初期: PICO）
 
@@ -144,10 +226,11 @@
 | PICO          | P, I, C, O     |
 | PECO (将来)   | P, E, C, O     |
 | SPIDER (将来) | S, PI, D, E, R |
-| カスタム      | 自由テキスト   |
+| カスタム (将来) | 自由定義     |
 
-**データ保存形式** (`llm_criteria`):
+**データ保存形式** (`llm_criteria`) — 全てJSON形式:
 
+**PICO例:**
 ```json
 {
   "template": "pico",
@@ -156,6 +239,17 @@
     "I": "メトホルミン",
     "C": "プラセボまたは無治療",
     "O": "HbA1c, 体重変化"
+  }
+}
+```
+
+**カスタム例（将来）:**
+```json
+{
+  "template": "custom",
+  "fields": {
+    "inclusion": "組み入れ基準のテキスト",
+    "exclusion": "除外基準のテキスト"
   }
 }
 ```
@@ -169,22 +263,43 @@
 | 表示   | 入力済み時はマスク（••••）、トグルで表示切替 |
 | 共有   | **されない**（端末ローカルのみ）           |
 
-### 5.5 閾値設定（デフォルト）
+### 5.5 閾値設定
 
-| 設定                      | デフォルト値 | 説明                           |
-| ------------------------- | ------------ | ------------------------------ |
-| `llm_include_threshold` | `0.70`     | probability ≥ 0.70 → include |
-| `llm_exclude_threshold` | `0.30`     | probability ≤ 0.30 → exclude |
-| 中間 (0.30 < p < 0.70)    | → maybe     |                                |
+LLMが出力する `probability`（組み入れ確率）から `decision` への変換ロジックは **3.2** を参照。
+
+| 設定                      | デフォルト値 | 用途                                         |
+| ------------------------- | ------------ | -------------------------------------------- |
+| `llm_include_threshold` | `0.30`     | この値以上で include、未満で exclude 判定 |
 
 ---
 
 ## 6. 実装ファイル（変更対象）
 
-| ファイル                         | 変更内容                                       |
-| -------------------------------- | ---------------------------------------------- |
-| `src/sidepanel/sidepanel.html` | タブナビ追加、LLM設定セクション追加            |
-| `src/sidepanel/sidepanel.css`  | タブ・設定フォームのスタイル                   |
-| `src/sidepanel/sidepanel.ts`   | タブ切替、設定読み書きロジック                 |
-| `src/lib/sheets-api.ts`        | `getLlmConfig()`, `updateLlmConfig()` 追加 |
-| `src/lib/types.ts` (任意)      | LLM設定用の型定義                              |
+### 6.1 フロントエンド
+
+| ファイル | 変更内容 |
+|----------|----------|
+| `src/sidepanel/sidepanel.html` | タブナビ追加、LLM処理タブ（APIキー・詳細設定・レビュー基準・一括実行） |
+| `src/sidepanel/sidepanel.css` | タブ・設定フォーム・進捗バーのスタイル |
+| `src/sidepanel/sidepanel.ts` | タブ切替、設定読み書き、一括実行ロジック、進捗表示 |
+
+### 6.2 データ層（Sheets API）
+
+| ファイル | 変更内容 |
+|----------|----------|
+| `src/lib/sheets-api.ts` | `getLlmConfig()`, `updateLlmConfig()`, `saveLlmExecution()`, `getLlmExecutions()` 追加 |
+| `src/lib/types.ts` | `LlmConfig`, `LlmExecution`, `LlmCriteria` 型定義追加 |
+
+### 6.3 LLM連携（新規）
+
+| ファイル | 変更内容 |
+|----------|----------|
+| `src/lib/gemini-api.ts` [NEW] | Gemini API呼び出し（基準変換、スクリーニング判定） |
+| `src/lib/llm-processor.ts` [NEW] | バッチ処理ロジック、進捗管理、結果保存 |
+| `src/lib/prompt-templates.ts` [NEW] | プロンプトテンプレート（基準変換用、スクリーニング用） |
+
+### 6.4 ストレージ
+
+| ファイル | 変更内容 |
+|----------|----------|
+| `src/lib/storage.ts` (既存または新規) | `chrome.storage.local` でのAPIキー保存・取得 |
