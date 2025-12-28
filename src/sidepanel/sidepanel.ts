@@ -1473,7 +1473,7 @@ async function handleKeyToggle() {
 
     if (!newState) {
         // CLOSE処理 (ON -> OFF)
-        if (!confirm('キークローズを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。')) {
+        if (!confirm('Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。')) {
             // キャンセルされたら元の状態に戻す
             keyToggleInput.checked = true;
             return;
@@ -1494,10 +1494,10 @@ async function handleKeyToggle() {
             statusFilter.value = 'pending';
             renderCurrentReference();
 
-            showToast('キークローズを実行しました');
+            showToast('Blind onを実行しました');
         } catch (error) {
             console.error('Key close error:', error);
-            alert(`キークローズエラー: ${(error as Error).message}`);
+            alert(`Blind onエラー: ${(error as Error).message}`);
             // エラー時は元の状態に戻す
             keyToggleInput.checked = true;
         } finally {
@@ -1506,7 +1506,7 @@ async function handleKeyToggle() {
 
     } else {
         // OPEN処理 (OFF -> ON)
-        if (!confirm('キーオープンを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
+        if (!confirm('Blind offを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
             // キャンセルされたら元の状態に戻す
             keyToggleInput.checked = false;
             return;
@@ -1527,10 +1527,10 @@ async function handleKeyToggle() {
             statusFilter.value = 'conflict';
             renderCurrentReference();
 
-            showToast('キーオープンを実行しました');
+            showToast('Blind offを実行しました');
         } catch (error) {
             console.error('Key open error:', error);
-            alert(`キーオープンエラー: ${(error as Error).message}`);
+            alert(`Blind offエラー: ${(error as Error).message}`);
             // エラー時は元の状態に戻す
             keyToggleInput.checked = false;
         } finally {
