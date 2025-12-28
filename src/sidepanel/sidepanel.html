@@ -104,7 +104,7 @@
                         <input type="checkbox" id="key-toggle-input">
                         <span class="slider"></span>
                     </label>
-                    <span class="toggle-label">Key Status (Open/Close)</span>
+                    <span class="toggle-label">Blind on/off</span>
                 </div>
                 <span id="import-status" class="import-status"></span>
             </div>
@@ -135,12 +135,16 @@
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
                 <div id="all-decisions" class="all-decisions hidden"></div>
 
+                <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
+                <div id="record-count-above" class="record-count-display hidden"></div>
+
                 <h3 id="ref-title" class="ref-title">タイトル</h3>
                 <div class="ref-meta">
                     <span id="ref-authors"></span>
                     <span id="ref-year"></span>
                     <span id="ref-journal"></span>
                 </div>
+
                 <div id="ref-abstract" class="ref-abstract">抄録がここに表示されます</div>
                 <div class="ref-links">
                     <a id="ref-doi" href="#" target="_blank" class="hidden">DOI</a>
@@ -208,7 +212,10 @@
             <!-- ナビゲーション -->
             <div class="navigation">
                 <button id="btn-prev" class="btn btn-nav" title="前へ (←)">← 前へ</button>
-                <span id="nav-position">1 / 100</span>
+                <div class="nav-center">
+                    <span id="nav-position">1 / 100</span>
+                    <div id="nav-progress" class="nav-progress hidden"></div>
+                </div>
                 <button id="btn-next" class="btn btn-nav" title="次へ (→)">次へ →</button>
             </div>
 
@@ -235,6 +242,16 @@
                     <p class="setting-description">
                         オフにすると、Include/Exclude/Maybeボタンをクリックしても次の文献に自動的に遷移しません。
                         「次へ」ボタンで手動で遷移できます。
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="show-record-count-checkbox" checked>
+                        <span>進捗表示を下部に表示</span>
+                    </label>
+                    <p class="setting-description">
+                        オフにすると、タイトルの上に移動してより目立つ位置に表示されます。
                     </p>
                 </div>
             </div>

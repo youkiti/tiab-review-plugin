@@ -40,6 +40,7 @@ let isAdmin = false;      // 管理者権限
 let sourceFiles: Set<string> = new Set();
 let selectedSourceFiles: Set<string> = new Set();
 let autoNavigateAfterDecision = true;  // 判断後に自動的に次の文献に遷移するかどうか
+let showRecordCountBelow = true;  // レコード件数をタイトル下に表示するか（false=上に表示）
 
 // DOM要素
 const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
@@ -174,6 +175,9 @@ const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement
 const settingsBtnProject = document.getElementById('settings-btn-project') as HTMLButtonElement;
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement;
 const autoNavigateCheckbox = document.getElementById('auto-navigate-checkbox') as HTMLInputElement;
+const showRecordCountCheckbox = document.getElementById('show-record-count-checkbox') as HTMLInputElement;
+const recordCountAbove = document.getElementById('record-count-above') as HTMLElement;
+const navProgress = document.getElementById('nav-progress') as HTMLElement;
 
 async function initApp() {
     try {
@@ -297,6 +301,7 @@ function setupEventListeners() {
     settingsBtnProject.addEventListener('click', showSettings);
     closeSettingsBtn.addEventListener('click', hideSettings);
     autoNavigateCheckbox.addEventListener('change', handleAutoNavigateChange);
+    showRecordCountCheckbox.addEventListener('change', handleShowRecordCountChange);
 
     // 接続
     connectBtn.addEventListener('click', handleConnect);
@@ -755,6 +760,55 @@ function renderCurrentReference() {
 
     // ナビゲーション更新
     navPosition.textContent = `${currentIndex + 1} / ${filtered.length}`;
+
+    // レコード件数表示
+    // 全体に対する判定済み件数を計算（フィルターではなく全体）
+    const labeledCount = references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length;
+    const totalCount = references.length;
+    const remainingCount = totalCount - labeledCount;
+    const progressPercent = totalCount > 0 ? Math.round((labeledCount / totalCount) * 100) : 0;
+
+    // 進捗率に応じた励ましメッセージ
+    let encourageMessage = '';
+    if (totalCount === 0) {
+        encourageMessage = '文献をインポートしてください 📂';
+    } else if (progressPercent === 0) {
+        encourageMessage = 'さあ、始めましょう！💪';
+    } else if (progressPercent <= 25) {
+        encourageMessage = '順調なスタートです！🚀';
+    } else if (progressPercent <= 50) {
+        encourageMessage = 'いいペースです！半分まであと少し 📈';
+    } else if (progressPercent <= 75) {
+        encourageMessage = '折り返し地点を過ぎました！🎯';
+    } else if (progressPercent < 100) {
+        encourageMessage = 'ゴールが見えてきました！✨';
+    } else {
+        encourageMessage = '完了しました！お疲れ様でした 🎉';
+    }
+
+    const recordCountHtml = `
+        <div class="record-count-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+        <div class="record-count-encourage">${encourageMessage}</div>
+    `;
+
+    // 設定に応じて表示位置を切り替え
+    console.log('[renderCurrentReference] showRecordCountBelow =', showRecordCountBelow);
+    if (showRecordCountBelow) {
+        // チェックON: 下部ナビゲーションに表示（デフォルト）
+        console.log('[renderCurrentReference] → 下部ナビに表示');
+        navProgress.innerHTML = `
+            <div class="nav-progress-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+            <div class="nav-progress-encourage">${encourageMessage}</div>
+        `;
+        navProgress.classList.remove('hidden');
+        recordCountAbove.classList.add('hidden');
+    } else {
+        // チェックOFF: タイトル上に表示
+        console.log('[renderCurrentReference] → タイトル上に表示');
+        recordCountAbove.innerHTML = recordCountHtml;
+        recordCountAbove.classList.remove('hidden');
+        navProgress.classList.add('hidden');
+    }
     progressText.textContent = `${references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length} / ${references.length}`;
 
     // フィルターの件数を更新
@@ -1681,9 +1735,10 @@ async function handleAutoNavigateChange() {
  * ユーザー設定を保存
  */
 async function saveUserSettings() {
-    console.log('[saveUserSettings] 保存:', autoNavigateAfterDecision);
+    console.log('[saveUserSettings] 保存:', { autoNavigateAfterDecision, showRecordCountBelow });
     await chrome.storage.local.set({
-        autoNavigateAfterDecision
+        autoNavigateAfterDecision,
+        showRecordCountBelow
     });
 }
 
@@ -1691,7 +1746,7 @@ async function saveUserSettings() {
  * ユーザー設定を読み込み
  */
 async function loadUserSettings() {
-    const result = await chrome.storage.local.get(['autoNavigateAfterDecision']);
+    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow']);
     console.log('[loadUserSettings] 読み込み:', result);
 
     // デフォルトはtrue（自動遷移する）
@@ -1701,9 +1756,35 @@ async function loadUserSettings() {
         autoNavigateAfterDecision = true;
     }
 
+    // デフォルトはtrue（タイトル下に表示）
+    if (result.showRecordCountBelow !== undefined) {
+        showRecordCountBelow = result.showRecordCountBelow;
+    } else {
+        showRecordCountBelow = true;
+    }
+
     // チェックボックスの状態を更新
     autoNavigateCheckbox.checked = autoNavigateAfterDecision;
-    console.log('[loadUserSettings] 設定完了:', autoNavigateAfterDecision);
+    showRecordCountCheckbox.checked = showRecordCountBelow;
+    console.log('[loadUserSettings] 設定完了:', { autoNavigateAfterDecision, showRecordCountBelow });
+}
+
+/**
+ * レコード件数表示設定の変更を処理
+ */
+async function handleShowRecordCountChange() {
+    showRecordCountBelow = showRecordCountCheckbox.checked;
+    console.log('[handleShowRecordCountChange] 設定変更:', showRecordCountBelow);
+    await saveUserSettings();
+
+    // 表示を即時更新
+    if (spreadsheetId) {
+        renderCurrentReference();
+    }
+
+    showToast(showRecordCountBelow
+        ? 'レコード件数をタイトル下に表示します'
+        : 'レコード件数をタイトル上に移動しました');
 }
 
 export { };

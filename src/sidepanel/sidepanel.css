@@ -762,6 +762,51 @@ body {
     text-align: center;
 }
 
+/* レコード件数表示（タイトル上） */
+.record-count-display {
+    text-align: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #e8f0fe;
+    border-radius: 6px;
+}
+
+.record-count-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a73e8;
+}
+
+.record-count-encourage {
+    font-size: 12px;
+    color: #5f6368;
+    margin-top: 4px;
+}
+
+/* ナビゲーション中央部 */
+.nav-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 下部ナビゲーション内の進捗表示 */
+.nav-progress {
+    text-align: center;
+}
+
+.nav-progress-main {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1a73e8;
+}
+
+.nav-progress-encourage {
+    font-size: 11px;
+    color: #5f6368;
+}
+
 /* 全レビュアーの判定一覧 */
 .all-decisions {
     margin-bottom: 12px;
