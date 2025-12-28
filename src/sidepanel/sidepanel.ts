@@ -171,6 +171,7 @@ const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 // 設定セクション
 const settingsSection = document.getElementById('settings-section') as HTMLElement;
 const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
+const settingsBtnProject = document.getElementById('settings-btn-project') as HTMLButtonElement;
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement;
 const autoNavigateCheckbox = document.getElementById('auto-navigate-checkbox') as HTMLInputElement;
 
@@ -293,6 +294,7 @@ function setupEventListeners() {
 
     // 設定
     settingsBtn.addEventListener('click', showSettings);
+    settingsBtnProject.addEventListener('click', showSettings);
     closeSettingsBtn.addEventListener('click', hideSettings);
     autoNavigateCheckbox.addEventListener('change', handleAutoNavigateChange);
 
@@ -768,6 +770,80 @@ function renderCurrentReference() {
     btnExclude.classList.toggle('active', myStatus === 'exclude');
 }
 
+/**
+ * 特定の文献を直接表示する（フィルター無視）
+ * 自動遷移オフの場合に使用
+ */
+function renderSpecificReference(ref: ReferenceWithStatus) {
+    const filtered = getFilteredReferences();
+
+    // 検索結果件数の更新
+    const searchTerm = searchInput.value.trim();
+    if (searchTerm) {
+        searchResultCount.classList.remove('hidden');
+        if (filtered.length === 0) {
+            searchResultCount.textContent = `「${searchTerm}」: 0件ヒット`;
+            searchResultCount.classList.add('no-results');
+        } else {
+            searchResultCount.textContent = `「${searchTerm}」: ${filtered.length}件ヒット（↓ 詳細を確認）`;
+            searchResultCount.classList.remove('no-results');
+        }
+    } else {
+        searchResultCount.classList.add('hidden');
+    }
+
+    // キーオープン後の不一致表示
+    if (isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
+        renderAllDecisions(ref);
+        allDecisionsDiv.classList.remove('hidden');
+        if (ref.hasConflict) {
+            conflictBanner.classList.remove('hidden');
+        } else {
+            conflictBanner.classList.add('hidden');
+        }
+    } else {
+        conflictBanner.classList.add('hidden');
+        allDecisionsDiv.classList.add('hidden');
+    }
+
+    const searchKeyword = searchInput.value.trim();
+    refTitle.innerHTML = highlightText(ref.title, searchKeyword);
+    refAuthors.textContent = ref.authors || '';
+    refYear.textContent = ref.year?.toString() || '';
+    refJournal.textContent = ref.journal || '';
+    refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword);
+
+    if (ref.doi) {
+        refDoi.href = `https://doi.org/${ref.doi}`;
+        refDoi.classList.remove('hidden');
+    } else {
+        refDoi.classList.add('hidden');
+    }
+
+    if (ref.pmid) {
+        refPmid.href = `https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}`;
+        refPmid.classList.remove('hidden');
+    } else {
+        refPmid.classList.add('hidden');
+    }
+
+    // ナビゲーション表示（判定済みを示す特別表示）
+    navPosition.textContent = `(判定済み) ${currentIndex + 1} / ${filtered.length}`;
+    progressText.textContent = `${references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length} / ${references.length}`;
+
+    // フィルターの件数を更新
+    updateFilterCounts();
+
+    // メモをそのまま保持（リセットしない）
+    // noteInput.value = ref.myDecision?.note || '';
+
+    // ボタンの状態を更新（現在の判定をハイライト）
+    const myStatus = ref.myDecision?.decision || 'pending';
+    btnInclude.classList.toggle('active', myStatus === 'include');
+    btnMaybe.classList.toggle('active', myStatus === 'maybe');
+    btnExclude.classList.toggle('active', myStatus === 'exclude');
+}
+
 function updateFilterCounts() {
     // ソースファイルフィルターを適用したものでカウント
     let filtered = references;
@@ -859,6 +935,9 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
 
     if (!ref) return;
 
+    // 現在の参照IDを保持（自動遷移オフの場合に使用）
+    const currentRefId = ref.ref_id;
+
     // 判定オブジェクトを作成（ラベルは廃止により削除）
     const decisionObj: Decision = {
         decision_id: ref.myDecision?.decision_id || crypto.randomUUID(),
@@ -899,12 +978,16 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
         ref.status = decision;
     }
 
-    // UIを即座に更新
-    renderCurrentReference();
-
     // 次の文献へ（自動遷移設定が有効な場合のみ）
+    console.log('[handleDecision] autoNavigateAfterDecision:', autoNavigateAfterDecision);
     if (autoNavigateAfterDecision) {
+        // 自動遷移オン: UIを更新して次へ
+        renderCurrentReference();
         navigate(1);
+    } else {
+        // 自動遷移オフ: 同じ文献に留まる
+        // フィルター結果ではなく、判定した文献を直接表示
+        renderSpecificReference(ref);
     }
 
     // APIに保存（バックグラウンド、UIブロックしない）
@@ -1587,6 +1670,7 @@ function hideSettings() {
  */
 async function handleAutoNavigateChange() {
     autoNavigateAfterDecision = autoNavigateCheckbox.checked;
+    console.log('[handleAutoNavigateChange] 設定変更:', autoNavigateAfterDecision);
     await saveUserSettings();
     showToast(autoNavigateAfterDecision
         ? '判断後に自動的に次の文献に遷移します'
@@ -1597,6 +1681,7 @@ async function handleAutoNavigateChange() {
  * ユーザー設定を保存
  */
 async function saveUserSettings() {
+    console.log('[saveUserSettings] 保存:', autoNavigateAfterDecision);
     await chrome.storage.local.set({
         autoNavigateAfterDecision
     });
@@ -1607,6 +1692,7 @@ async function saveUserSettings() {
  */
 async function loadUserSettings() {
     const result = await chrome.storage.local.get(['autoNavigateAfterDecision']);
+    console.log('[loadUserSettings] 読み込み:', result);
 
     // デフォルトはtrue（自動遷移する）
     if (result.autoNavigateAfterDecision !== undefined) {
@@ -1617,6 +1703,7 @@ async function loadUserSettings() {
 
     // チェックボックスの状態を更新
     autoNavigateCheckbox.checked = autoNavigateAfterDecision;
+    console.log('[loadUserSettings] 設定完了:', autoNavigateAfterDecision);
 }
 
 export { };

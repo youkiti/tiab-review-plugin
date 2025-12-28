@@ -466,6 +466,12 @@ body {
     border-radius: 6px;
 }
 
+.user-info-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .user-info {
     font-size: 13px;
     color: #666;
