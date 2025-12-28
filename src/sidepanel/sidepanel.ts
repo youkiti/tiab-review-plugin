@@ -297,6 +297,18 @@ function setupEventListeners() {
         renderCurrentReference();
     });
 
+    // 検索結果カウントのクリックイベント
+    searchResultCount.addEventListener('click', () => {
+        const filtered = getFilteredReferences();
+        if (filtered.length > 0 && searchInput.value.trim()) {
+            // 参照カードまでスムーズにスクロール
+            const refCard = document.getElementById('reference-detail');
+            if (refCard) {
+                refCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
+
     // RIS インポート
     importBtn.addEventListener('click', () => risFileInput.click());
     risFileInput.addEventListener('change', handleRISImport);

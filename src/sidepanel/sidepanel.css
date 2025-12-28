@@ -160,11 +160,28 @@ body {
     background: #e8f0fe;
     border-radius: 4px;
     text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.search-result-count:hover {
+    background: #d2e3fc;
+    transform: translateY(-1px);
+}
+
+.search-result-count:active {
+    transform: translateY(0);
 }
 
 .search-result-count.no-results {
     color: #ea4335;
     background: #fce8e6;
+    cursor: default;
+}
+
+.search-result-count.no-results:hover {
+    background: #fce8e6;
+    transform: none;
 }
 
 /* 文献カード */
