@@ -25,7 +25,7 @@ export interface Decision {
     decision_id: string;      // UUID
     ref_id: string;
     reviewer_id: string;      // email
-    decision: 'include' | 'exclude' | 'maybe';
+    decision: 'include' | 'exclude' | 'maybe' | 'pending';
     reason?: string;          // exclude時必須
     note?: string;
     decided_at: string;       // ISO 8601

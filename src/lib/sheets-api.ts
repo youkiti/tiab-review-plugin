@@ -417,7 +417,8 @@ export async function getReferencesWithStatus(
 
     return references.map(ref => {
         const myDecision = myDecisions.get(ref.ref_id);
-        const status: DecisionStatus = myDecision ? myDecision.decision : 'pending';
+        // decision='pending' の場合も未判定として扱う
+        const status: DecisionStatus = (myDecision && myDecision.decision !== 'pending') ? myDecision.decision : 'pending';
         return {
             ...ref,
             myDecision,
@@ -462,7 +463,8 @@ export async function getReferencesWithAllDecisions(
         let status: DecisionStatus;
         if (hasConflict) {
             status = 'conflict';
-        } else if (myDecision) {
+        } else if (myDecision && myDecision.decision !== 'pending') {
+            // decision='pending' の場合も未判定として扱う
             status = myDecision.decision;
         } else {
             status = 'pending';

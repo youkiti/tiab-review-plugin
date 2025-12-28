@@ -783,21 +783,42 @@ async function navigate(direction: number) {
     const currentRef = filtered[currentIndex];
 
     // 遷移前に現在のメモを保存（変更されている場合のみ）
-    if (currentRef && currentRef.myDecision) {
+    if (currentRef) {
         const currentNote = noteInput.value || undefined;
-        const savedNote = currentRef.myDecision.note;
+        const savedNote = currentRef.myDecision?.note;
 
         if (currentNote !== savedNote) {
-            // メモを更新
-            currentRef.myDecision.note = currentNote;
-            currentRef.myDecision.decided_at = new Date().toISOString();
+            if (currentRef.myDecision) {
+                // 既存の判定がある場合はメモを更新
+                currentRef.myDecision.note = currentNote;
+                currentRef.myDecision.decided_at = new Date().toISOString();
 
-            // バックグラウンドで保存
-            apiSaveDecision(spreadsheetId, currentRef.myDecision)
-                .then(() => console.log('Note saved on navigate:', currentRef.myDecision))
-                .catch((error) => {
-                    console.error('Failed to save note on navigate:', error);
-                });
+                // バックグラウンドで保存
+                apiSaveDecision(spreadsheetId, currentRef.myDecision)
+                    .then(() => console.log('Note saved on navigate:', currentRef.myDecision))
+                    .catch((error) => {
+                        console.error('Failed to save note on navigate:', error);
+                    });
+            } else if (currentNote) {
+                // 未判定だがメモが入力されている場合は新しいDecisionを作成
+                const newDecision: Decision = {
+                    decision_id: crypto.randomUUID(),
+                    ref_id: currentRef.ref_id,
+                    reviewer_id: userEmail,
+                    decision: 'pending',  // 未判定時のメモはpendingとして保存
+                    note: currentNote,
+                    decided_at: new Date().toISOString(),
+                    client_version: '0.1.0',
+                };
+                currentRef.myDecision = newDecision;
+
+                // バックグラウンドで保存
+                apiSaveDecision(spreadsheetId, newDecision)
+                    .then(() => console.log('Note saved on navigate (new decision):', newDecision))
+                    .catch((error) => {
+                        console.error('Failed to save note on navigate:', error);
+                    });
+            }
         }
     }
 
