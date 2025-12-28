@@ -39,6 +39,7 @@ let isKeyOpened = false;  // キーオープン状態
 let isAdmin = false;      // 管理者権限
 let sourceFiles: Set<string> = new Set();
 let selectedSourceFiles: Set<string> = new Set();
+let autoNavigateAfterDecision = true;  // 判断後に自動的に次の文献に遷移するかどうか
 
 // DOM要素
 const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
@@ -167,9 +168,18 @@ const projectSection = document.getElementById('project-section') as HTMLElement
 const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
 const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
+// 設定セクション
+const settingsSection = document.getElementById('settings-section') as HTMLElement;
+const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
+const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement;
+const autoNavigateCheckbox = document.getElementById('auto-navigate-checkbox') as HTMLInputElement;
+
 async function initApp() {
     try {
         showLoading(true);
+
+        // 設定を読み込み
+        await loadUserSettings();
 
         // サイレント認証を試行
         try {
@@ -280,6 +290,11 @@ function setupEventListeners() {
     // ログイン
     loginBtn.addEventListener('click', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
+
+    // 設定
+    settingsBtn.addEventListener('click', showSettings);
+    closeSettingsBtn.addEventListener('click', hideSettings);
+    autoNavigateCheckbox.addEventListener('change', handleAutoNavigateChange);
 
     // 接続
     connectBtn.addEventListener('click', handleConnect);
@@ -887,8 +902,10 @@ async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
     // UIを即座に更新
     renderCurrentReference();
 
-    // 次の文献へ（保存を待たずに移動）
-    navigate(1);
+    // 次の文献へ（自動遷移設定が有効な場合のみ）
+    if (autoNavigateAfterDecision) {
+        navigate(1);
+    }
 
     // APIに保存（バックグラウンド、UIブロックしない）
     apiSaveDecision(spreadsheetId, decisionObj)
@@ -1539,5 +1556,67 @@ function escapeCSVField(value: string): string {
     return value;
 }
 
+
+// ========== 設定関連関数 ==========
+
+/**
+ * 設定画面を表示
+ */
+function showSettings() {
+    configSection.classList.add('hidden');
+    screeningSection.classList.add('hidden');
+    settingsSection.classList.remove('hidden');
+}
+
+/**
+ * 設定画面を閉じる
+ */
+function hideSettings() {
+    settingsSection.classList.add('hidden');
+
+    // 前に表示していた画面に戻る
+    if (spreadsheetId) {
+        screeningSection.classList.remove('hidden');
+    } else {
+        configSection.classList.remove('hidden');
+    }
+}
+
+/**
+ * 自動遷移設定の変更を処理
+ */
+async function handleAutoNavigateChange() {
+    autoNavigateAfterDecision = autoNavigateCheckbox.checked;
+    await saveUserSettings();
+    showToast(autoNavigateAfterDecision
+        ? '判断後に自動的に次の文献に遷移します'
+        : '判断後は手動で遷移してください');
+}
+
+/**
+ * ユーザー設定を保存
+ */
+async function saveUserSettings() {
+    await chrome.storage.local.set({
+        autoNavigateAfterDecision
+    });
+}
+
+/**
+ * ユーザー設定を読み込み
+ */
+async function loadUserSettings() {
+    const result = await chrome.storage.local.get(['autoNavigateAfterDecision']);
+
+    // デフォルトはtrue（自動遷移する）
+    if (result.autoNavigateAfterDecision !== undefined) {
+        autoNavigateAfterDecision = result.autoNavigateAfterDecision;
+    } else {
+        autoNavigateAfterDecision = true;
+    }
+
+    // チェックボックスの状態を更新
+    autoNavigateCheckbox.checked = autoNavigateAfterDecision;
+}
 
 export { };

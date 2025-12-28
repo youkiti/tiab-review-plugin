@@ -28,6 +28,9 @@
 
             <!-- ログインセクション（未ログイン時のみ表示） -->
             <div id="login-section" class="login-section">
+                <div class="login-header">
+                    <button id="settings-btn" class="btn btn-icon" title="設定">⚙️</button>
+                </div>
                 <button id="login-btn" class="btn btn-primary btn-large">
                     Googleアカウントでログイン
                 </button>
@@ -210,6 +213,27 @@
             <div id="source-filters-section" class="source-filters-section">
                 <h4>インポート元ファイル</h4>
                 <div id="source-file-list" class="source-file-list"></div>
+            </div>
+        </section>
+
+        <!-- 設定画面セクション -->
+        <section id="settings-section" class="section hidden">
+            <div class="settings-header">
+                <h2>設定</h2>
+                <button id="close-settings-btn" class="btn btn-outline btn-small">閉じる</button>
+            </div>
+
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="auto-navigate-checkbox" checked>
+                        <span>判断後に自動的に次の文献に遷移する</span>
+                    </label>
+                    <p class="setting-description">
+                        オフにすると、Include/Exclude/Maybeボタンをクリックしても次の文献に自動的に遷移しません。
+                        「次へ」ボタンで手動で遷移できます。
+                    </p>
+                </div>
             </div>
         </section>
     </div>
