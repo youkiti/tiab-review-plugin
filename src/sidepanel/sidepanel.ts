@@ -6,6 +6,7 @@ import {
     getUserEmail,
     createSpreadsheet,
     getSpreadsheetInfo,
+    validateSpreadsheetFormat,
     getReferences,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
@@ -174,8 +175,8 @@ const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
 
 // 設定セクション
 const settingsSection = document.getElementById('settings-section') as HTMLElement;
-const settingsBtn = document.getElementById('settings-btn') as HTMLButtonElement;
 const settingsBtnProject = document.getElementById('settings-btn-project') as HTMLButtonElement;
+const settingsBtnScreening = document.getElementById('settings-btn-screening') as HTMLButtonElement;
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement;
 const autoNavigateCheckbox = document.getElementById('auto-navigate-checkbox') as HTMLInputElement;
 const showRecordCountCheckbox = document.getElementById('show-record-count-checkbox') as HTMLInputElement;
@@ -300,8 +301,8 @@ function setupEventListeners() {
     logoutBtn.addEventListener('click', handleLogout);
 
     // 設定
-    settingsBtn.addEventListener('click', showSettings);
     settingsBtnProject.addEventListener('click', showSettings);
+    settingsBtnScreening.addEventListener('click', showSettings);
     closeSettingsBtn.addEventListener('click', hideSettings);
     autoNavigateCheckbox.addEventListener('change', handleAutoNavigateChange);
     showRecordCountCheckbox.addEventListener('change', handleShowRecordCountChange);
@@ -496,6 +497,14 @@ async function handleConnect() {
 
         // スプレッドシートの存在確認
         const info = await getSpreadsheetInfo(selectedId);
+
+        // スプレッドシート形式の検証
+        const validation = await validateSpreadsheetFormat(selectedId);
+        if (!validation.valid) {
+            showStatus(validation.error || '対応していない形式です', 'error');
+            return;
+        }
+
         showStatus(`接続成功: ${info.title}`, 'success');
 
         spreadsheetId = selectedId;

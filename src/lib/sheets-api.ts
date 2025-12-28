@@ -202,6 +202,45 @@ export async function createSpreadsheet(title: string): Promise<string> {
 }
 
 /**
+ * スプレッドシートの形式を検証
+ * - Referencesタブが存在するか
+ * - 最初の3列が ref_id, title, abstract か
+ */
+export async function validateSpreadsheetFormat(spreadsheetId: string): Promise<{ valid: boolean; error?: string }> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:C1`);
+
+        if (!values || values.length === 0) {
+            return {
+                valid: false,
+                error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+            };
+        }
+
+        const headers = values[0];
+        const expectedHeaders = ['ref_id', 'title', 'abstract'];
+
+        if (headers.length < 3 ||
+            headers[0] !== expectedHeaders[0] ||
+            headers[1] !== expectedHeaders[1] ||
+            headers[2] !== expectedHeaders[2]) {
+            return {
+                valid: false,
+                error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+            };
+        }
+
+        return { valid: true };
+    } catch (error) {
+        // Referencesタブが存在しない場合もエラーになる
+        return {
+            valid: false,
+            error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+        };
+    }
+}
+
+/**
  * スプレッドシートの存在確認とタイトル取得
  */
 export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title: string }> {
