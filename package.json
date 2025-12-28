@@ -1,6 +1,6 @@
 {
   "name": "tiab-review-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TiAb Review Plugin - Chrome拡張機能 for Systematic Review のスクリーニング",
   "private": true,
   "scripts": {
