@@ -1045,3 +1045,35 @@ input:checked+.slider:before {
     color: #666;
     line-height: 1.5;
 }
+
+/* ログインヘッダー */
+.login-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* アイコンボタン */
+.btn-icon {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: #f1f3f4;
+}
+
+/* ヘルプボタン（レビュー画面用） */
+.btn-help {
+    margin-left: auto;
+}

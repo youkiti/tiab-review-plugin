@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヘルプ / Help - TiAb Review Plugin</title>
+    <meta name="description" content="TiAb Review Plugin の使い方・ヘルプガイド / User guide and help for TiAb Review Plugin">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Help page specific styles */
+        .help-toc {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .help-toc h2 {
+            border: none;
+            margin-bottom: 16px;
+            padding-bottom: 0;
+        }
+
+        .help-toc ul {
+            list-style: none;
+            margin: 0;
+        }
+
+        .help-toc li {
+            margin-bottom: 8px;
+        }
+
+        .help-toc a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .help-toc a:hover {
+            text-decoration: underline;
+        }
+
+        .help-section {
+            margin-bottom: 48px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .help-section:last-child {
+            border-bottom: none;
+        }
+
+        .help-section h2 {
+            display: block;
+            margin-bottom: 24px;
+        }
+
+        .help-section h3 {
+            font-size: 1.125rem;
+            margin: 24px 0 12px;
+            color: var(--text);
+        }
+
+        .help-section h4 {
+            font-size: 1rem;
+            margin: 16px 0 8px;
+            color: var(--text-secondary);
+        }
+
+        .shortcut-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        .shortcut-table th,
+        .shortcut-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .shortcut-table th {
+            background: var(--bg-secondary);
+            font-weight: 500;
+        }
+
+        .shortcut-table code {
+            background: var(--bg-secondary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .faq-item {
+            margin-bottom: 24px;
+        }
+
+        .faq-item h4 {
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .faq-item p {
+            color: var(--text-secondary);
+        }
+
+        .version-info {
+            background: var(--bg-secondary);
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-top: 40px;
+            font-size: 0.875rem;
+        }
+
+        .version-info a {
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body class="document-page">
+    <header class="header">
+        <div class="container">
+            <a href="index.html" class="logo">🔬 TiAb Review Plugin</a>
+        </div>
+    </header>
+
+    <main class="document-page">
+        <div class="container">
+            <h1>
+                <span class="ja">ヘルプガイド</span>
+                <span class="en">Help Guide</span>
+            </h1>
+            <p class="last-updated">
+                <span class="ja">最終更新: 2024年12月29日</span>
+                <span class="en">Last updated: December 29, 2024</span>
+            </p>
+
+            <!-- 目次 -->
+            <nav class="help-toc">
+                <h2>
+                    <span class="ja">目次</span>
+                    <span class="en">Table of Contents</span>
+                </h2>
+                <ul>
+                    <li><a href="#login">
+                            <span class="ja">ログイン画面</span> /
+                            <span class="en">Login Screen</span>
+                        </a></li>
+                    <li><a href="#screening">
+                            <span class="ja">レビュー画面（スクリーニング）</span> /
+                            <span class="en">Review Screen (Screening)</span>
+                        </a></li>
+                    <li><a href="#shortcuts">
+                            <span class="ja">キーボードショートカット</span> /
+                            <span class="en">Keyboard Shortcuts</span>
+                        </a></li>
+                    <li><a href="#settings">
+                            <span class="ja">設定オプション</span> /
+                            <span class="en">Settings</span>
+                        </a></li>
+                    <li><a href="#faq">
+                            <span class="ja">よくある質問</span> /
+                            <span class="en">FAQ</span>
+                        </a></li>
+                </ul>
+            </nav>
+
+            <!-- ログイン画面 -->
+            <section id="login" class="help-section">
+                <h2>
+                    <span class="ja">ログイン画面</span>
+                    <span class="en">Login Screen</span>
+                </h2>
+                <p>
+                    <span class="ja">TiAb Review プラグインを開くと最初に表示される画面です。Googleアカウントでログインし、レビュープロジェクトを選択または作成します。</span>
+                    <span class="en">The first screen displayed when you open the TiAb Review plugin. Sign in with your
+                        Google account and select or create a review project.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">Googleアカウントでログイン</span>
+                    <span class="en">Sign in with Google</span>
+                </h3>
+                <p>
+                    <span class="ja">「Googleアカウントでログイン」ボタンをクリックして認証します。初回ログイン時は、Google APIへのアクセス許可を求められます。</span>
+                    <span class="en">Click the "Sign in with Google" button to authenticate. On first login, you'll be
+                        asked to grant access to Google APIs.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">新規プロジェクトの作成</span>
+                    <span class="en">Create New Project</span>
+                </h3>
+                <p>
+                    <span class="ja">「＋ 新規レビュープロジェクトを作成」ボタンをクリックすると、Google Driveに新しいスプレッドシートが自動作成されます。</span>
+                    <span class="en">Click "+ Create New Review Project" to automatically create a new spreadsheet in
+                        your Google Drive.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">既存プロジェクトへの接続</span>
+                    <span class="en">Connect to Existing Project</span>
+                </h3>
+                <p>
+                    <span class="ja">「最近のスプレッドシートから選択」ドロップダウンから既存のプロジェクトを選択し、「選択したシートに接続」ボタンをクリックします。</span>
+                    <span class="en">Select an existing project from the "Recent Spreadsheets" dropdown and click
+                        "Connect to Selected Sheet".</span>
+                </p>
+            </section>
+
+            <!-- レビュー画面 -->
+            <section id="screening" class="help-section">
+                <h2>
+                    <span class="ja">レビュー画面（スクリーニング）</span>
+                    <span class="en">Review Screen (Screening)</span>
+                </h2>
+                <p>
+                    <span class="ja">文献のタイトルと抄録を確認し、Include/Exclude/Maybeの判定を行うメイン画面です。</span>
+                    <span class="en">The main screen where you review titles and abstracts and make
+                        Include/Exclude/Maybe decisions.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">ツールバー機能</span>
+                    <span class="en">Toolbar Features</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>📁 RIS/nbibインポート</strong>: RIS形式またはPubMed NBIB形式のファイルをインポート（対応: .ris,
+                            .nbib, .txt）</span>
+                        <span class="en"><strong>📁 RIS/nbib Import</strong>: Import RIS or PubMed NBIB format files
+                            (.ris, .nbib, .txt)</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>📥 CSV出力</strong>: 現在のフィルター結果をCSVファイルとしてエクスポート</span>
+                        <span class="en"><strong>📥 CSV Export</strong>: Export current filter results as a CSV
+                            file</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>👤 共有</strong>: 共同編集者をGoogleアカウント（メールアドレス）で追加</span>
+                        <span class="en"><strong>👤 Share</strong>: Add collaborators by their Google account
+                            (email)</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>Blind on/off</strong>: ON で他のレビュアーの判定を非表示（ブラインドレビュー）</span>
+                        <span class="en"><strong>Blind on/off</strong>: When ON, hide other reviewers' decisions (blind
+                            review)</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">フィルター機能</span>
+                    <span class="en">Filter Features</span>
+                </h3>
+                <p>
+                    <span class="ja">ステータスフィルターで文献を絞り込めます：未判定、すべて、Include、Exclude、Maybe、不一致</span>
+                    <span class="en">Filter references by status: Pending, All, Include, Exclude, Maybe, Conflict</span>
+                </p>
+
+                <h3>
+                    <span class="ja">判定ボタン</span>
+                    <span class="en">Decision Buttons</span>
+                </h3>
+                <table class="shortcut-table">
+                    <tr>
+                        <th><span class="ja">ボタン</span> / <span class="en">Button</span></th>
+                        <th><span class="ja">ショートカット</span> / <span class="en">Shortcut</span></th>
+                        <th><span class="ja">説明</span> / <span class="en">Description</span></th>
+                    </tr>
+                    <tr>
+                        <td>✓ Include</td>
+                        <td><code>i</code></td>
+                        <td>
+                            <span class="ja">組み入れ候補として選択</span>
+                            <span class="en">Select as inclusion candidate</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>? Maybe</td>
+                        <td><code>m</code></td>
+                        <td>
+                            <span class="ja">判断保留（後で再検討）</span>
+                            <span class="en">Hold for later review</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>✕ Exclude</td>
+                        <td><code>e</code></td>
+                        <td>
+                            <span class="ja">除外</span>
+                            <span class="en">Exclude</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3>
+                    <span class="ja">ハイライト設定</span>
+                    <span class="en">Highlight Settings</span>
+                </h3>
+                <p>
+                    <span
+                        class="ja">キーワードに基づいてタイトルと抄録内の文字をハイライト表示できます。組み入れキーワードは緑色、除外キーワードは赤色で表示されます。RCT用・SR用のプリセットも利用可能です。</span>
+                    <span class="en">Highlight text in titles and abstracts based on keywords. Inclusion keywords are
+                        shown in green, exclusion in red. RCT and SR presets are available.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">メモ機能</span>
+                    <span class="en">Notes</span>
+                </h3>
+                <p>
+                    <span class="ja">各文献に対してメモを残せます。判定理由や気になる点などを記録でき、メモは自動的に保存されます。</span>
+                    <span class="en">Add notes for each reference. Record decision reasons or points of interest. Notes
+                        are saved automatically.</span>
+                </p>
+            </section>
+
+            <!-- キーボードショートカット -->
+            <section id="shortcuts" class="help-section">
+                <h2>
+                    <span class="ja">キーボードショートカット</span>
+                    <span class="en">Keyboard Shortcuts</span>
+                </h2>
+                <table class="shortcut-table">
+                    <tr>
+                        <th><span class="ja">キー</span> / <span class="en">Key</span></th>
+                        <th><span class="ja">機能</span> / <span class="en">Function</span></th>
+                    </tr>
+                    <tr>
+                        <td><code>i</code></td>
+                        <td>
+                            <span class="ja">Include（組み入れ）</span>
+                            <span class="en">Include</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>e</code></td>
+                        <td>
+                            <span class="ja">Exclude（除外）</span>
+                            <span class="en">Exclude</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>m</code></td>
+                        <td>
+                            <span class="ja">Maybe（保留）</span>
+                            <span class="en">Maybe</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>←</code></td>
+                        <td>
+                            <span class="ja">前の文献へ</span>
+                            <span class="en">Previous reference</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>→</code></td>
+                        <td>
+                            <span class="ja">次の文献へ</span>
+                            <span class="en">Next reference</span>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    <span class="ja">※ テキスト入力欄（メモ、検索など）にフォーカスがある場合は無効になります</span>
+                    <span class="en">* Shortcuts are disabled when a text input field has focus (notes, search,
+                        etc.)</span>
+                </p>
+            </section>
+
+            <!-- 設定 -->
+            <section id="settings" class="help-section">
+                <h2>
+                    <span class="ja">設定オプション</span>
+                    <span class="en">Settings</span>
+                </h2>
+                <p>
+                    <span class="ja">設定画面（⚙️ボタン）から以下のオプションを変更できます。</span>
+                    <span class="en">Access settings via the ⚙️ button to change the following options.</span>
+                </p>
+
+                <h4>
+                    <span class="ja">判断後に自動的に次の文献に遷移する</span>
+                    <span class="en">Auto-advance after decision</span>
+                </h4>
+                <p>
+                    <span class="ja">ON（デフォルト）: 判定後、自動的に次の文献へ移動<br>OFF: 判定後もその場にとどまり、手動で移動</span>
+                    <span class="en">ON (default): Auto-advance after making a decision<br>OFF: Stay on current
+                        reference, advance manually</span>
+                </p>
+
+                <h4>
+                    <span class="ja">進捗表示を下部に表示</span>
+                    <span class="en">Show progress at bottom</span>
+                </h4>
+                <p>
+                    <span class="ja">ON（デフォルト）: ナビゲーションエリアに進捗表示<br>OFF: タイトル上部の目立つ位置に進捗表示</span>
+                    <span class="en">ON (default): Show progress in navigation area<br>OFF: Show progress prominently
+                        above title</span>
+                </p>
+            </section>
+
+            <!-- FAQ -->
+            <section id="faq" class="help-section">
+                <h2>
+                    <span class="ja">よくある質問</span>
+                    <span class="en">FAQ</span>
+                </h2>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: ファイルをインポートしようとしたらエラーになりました</span>
+                        <span class="en">Q: I got an error when importing a file</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: ファイルサイズが50,000文字を超えている可能性があります。ファイルを分割してインポートしてください。</span>
+                        <span class="en">A: The file may exceed 50,000 characters. Try splitting the file and importing
+                            in parts.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: 他のレビュアーの判定が見えません</span>
+                        <span class="en">Q: I can't see other reviewers' decisions</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 「Blind on/off」スイッチがONになっています。OFFに切り替えると他のレビュアーの判定が表示されます。</span>
+                        <span class="en">A: The "Blind on/off" switch is ON. Turn it OFF to see other reviewers'
+                            decisions.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: 判定を変更したい</span>
+                        <span class="en">Q: I want to change a decision</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 同じ文献で別の判定ボタンをクリックすれば、判定が上書きされます。</span>
+                        <span class="en">A: Click a different decision button on the same reference to overwrite the
+                            previous decision.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: データはどこに保存されますか？</span>
+                        <span class="en">Q: Where is my data stored?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 全てのデータはあなたのGoogle Driveに保存されます。プラグインはデータを外部サーバーに送信しません。</span>
+                        <span class="en">A: All data is stored in your Google Drive. The plugin does not send data to
+                            external servers.</span>
+                    </p>
+                </div>
+            </section>
+
+            <!-- バージョン情報 -->
+            <div class="version-info">
+                <p>
+                    <span class="ja">📋 このヘルプは <a href="https://github.com/youkiti/tiab-review-plugin"
+                            target="_blank">GitHub リポジトリ</a> の開発履歴に基づいて更新されます。</span>
+                    <span class="en">📋 This help is updated based on the development history in the <a
+                            href="https://github.com/youkiti/tiab-review-plugin" target="_blank">GitHub
+                            repository</a>.</span>
+                </p>
+                <p>
+                    <span class="ja">最新の変更履歴は <a href="https://github.com/youkiti/tiab-review-plugin/commits/main"
+                            target="_blank">コミット履歴</a> をご確認ください。</span>
+                    <span class="en">See the <a href="https://github.com/youkiti/tiab-review-plugin/commits/main"
+                            target="_blank">commit history</a> for the latest changes.</span>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="privacy-policy.html">
+                        <span class="ja">プライバシーポリシー</span> / <span class="en">Privacy Policy</span>
+                    </a>
+                    <a href="terms-of-service.html">
+                        <span class="ja">利用規約</span> / <span class="en">Terms of Service</span>
+                    </a>
+                    <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
+                </div>
+                <div class="copyright">
+                    © 2025 SRWS-PSG. MIT License.
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
