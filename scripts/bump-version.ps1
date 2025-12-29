@@ -47,21 +47,22 @@ Write-Host "新しいバージョン: $newVersion ($BumpType)"
 # ビルド日時
 $buildDate = Get-Date -Format "yyyy-MM-dd"
 
-# 1. package.json を更新
-$packageJson.version = $newVersion
-$packageJson | ConvertTo-Json -Depth 10 | Set-Content $packageJsonPath -Encoding UTF8
+# 1. package.json を更新（正規表現で version を置換、BOMなしUTF-8で保存）
+$packageContent = Get-Content $packageJsonPath -Raw -Encoding UTF8
+$packageContent = $packageContent -replace '"version":\s*"[^"]*"', "`"version`": `"$newVersion`""
+[System.IO.File]::WriteAllText($packageJsonPath, $packageContent, [System.Text.UTF8Encoding]::new($false))
 Write-Host "✓ package.json を更新しました"
 
-# 2. manifest.json を更新
+# 2. manifest.json を更新（BOMなしUTF-8で保存）
 $manifestContent = Get-Content $manifestJsonPath -Raw -Encoding UTF8
 $manifestContent = $manifestContent -replace '"version": "[^"]*"', "`"version`": `"$newVersion`""
-Set-Content $manifestJsonPath -Value $manifestContent -Encoding UTF8 -NoNewline
+[System.IO.File]::WriteAllText($manifestJsonPath, $manifestContent, [System.Text.UTF8Encoding]::new($false))
 Write-Host "✓ manifest.json を更新しました"
 
-# 3. sidepanel.html のビルド日時を更新
+# 3. sidepanel.html のビルド日時を更新（BOMなしUTF-8で保存）
 $sidepanelContent = Get-Content $sidepanelHtmlPath -Raw -Encoding UTF8
 $sidepanelContent = $sidepanelContent -replace 'Build: [0-9-]+( [0-9:]+)?', "Build: $buildDate"
-Set-Content $sidepanelHtmlPath -Value $sidepanelContent -Encoding UTF8 -NoNewline
+[System.IO.File]::WriteAllText($sidepanelHtmlPath, $sidepanelContent, [System.Text.UTF8Encoding]::new($false))
 Write-Host "✓ sidepanel.html を更新しました (Build: $buildDate)"
 
 Write-Host ""

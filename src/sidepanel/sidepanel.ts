@@ -42,6 +42,7 @@ let sourceFiles: Set<string> = new Set();
 let selectedSourceFiles: Set<string> = new Set();
 let autoNavigateAfterDecision = true;  // 判断後に自動的に次の文献に遷移するかどうか
 let showRecordCountBelow = true;  // レコード件数をタイトル下に表示するか（false=上に表示）
+let termFilterUseAnd = true;  // 複数term選択時にAND検索を使用するか（false=OR検索）
 let activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];  // アクティブなタームフィルター
 
 // DOM要素
@@ -183,6 +184,7 @@ const settingsBtnScreening = document.getElementById('settings-btn-screening') a
 const closeSettingsBtn = document.getElementById('close-settings-btn') as HTMLButtonElement;
 const autoNavigateCheckbox = document.getElementById('auto-navigate-checkbox') as HTMLInputElement;
 const showRecordCountCheckbox = document.getElementById('show-record-count-checkbox') as HTMLInputElement;
+const termFilterAndCheckbox = document.getElementById('term-filter-and-checkbox') as HTMLInputElement;
 const recordCountAbove = document.getElementById('record-count-above') as HTMLElement;
 const navProgress = document.getElementById('nav-progress') as HTMLElement;
 
@@ -309,6 +311,7 @@ function setupEventListeners() {
     closeSettingsBtn.addEventListener('click', hideSettings);
     autoNavigateCheckbox.addEventListener('change', handleAutoNavigateChange);
     showRecordCountCheckbox.addEventListener('change', handleShowRecordCountChange);
+    termFilterAndCheckbox.addEventListener('change', handleTermFilterAndChange);
 
     // 接続
     connectBtn.addEventListener('click', handleConnect);
@@ -727,13 +730,27 @@ function getFilteredReferences(): ReferenceWithStatus[] {
         );
     }
 
-    // タームフィルター（AND条件）
-    for (const termFilter of activeTermFilters) {
-        const regex = createSmartRegex(termFilter.term);
-        filtered = filtered.filter(r => {
-            const text = `${r.title} ${r.abstract || ''}`;
-            return regex.test(text);
-        });
+    // タームフィルター（AND/OR条件）
+    if (activeTermFilters.length > 0) {
+        if (termFilterUseAnd) {
+            // AND条件: すべてのtermにマッチ
+            for (const termFilter of activeTermFilters) {
+                const regex = createSmartRegex(termFilter.term);
+                filtered = filtered.filter(r => {
+                    const text = `${r.title} ${r.abstract || ''}`;
+                    return regex.test(text);
+                });
+            }
+        } else {
+            // OR条件: いずれかのtermにマッチ
+            filtered = filtered.filter(r => {
+                const text = `${r.title} ${r.abstract || ''}`;
+                return activeTermFilters.some(termFilter => {
+                    const regex = createSmartRegex(termFilter.term);
+                    return regex.test(text);
+                });
+            });
+        }
     }
 
     return filtered;
@@ -2021,10 +2038,11 @@ async function handleAutoNavigateChange() {
  * ユーザー設定を保存
  */
 async function saveUserSettings() {
-    console.log('[saveUserSettings] 保存:', { autoNavigateAfterDecision, showRecordCountBelow });
+    console.log('[saveUserSettings] 保存:', { autoNavigateAfterDecision, showRecordCountBelow, termFilterUseAnd });
     await chrome.storage.local.set({
         autoNavigateAfterDecision,
-        showRecordCountBelow
+        showRecordCountBelow,
+        termFilterUseAnd
     });
 }
 
@@ -2032,7 +2050,7 @@ async function saveUserSettings() {
  * ユーザー設定を読み込み
  */
 async function loadUserSettings() {
-    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow']);
+    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd']);
     console.log('[loadUserSettings] 読み込み:', result);
 
     // デフォルトはtrue（自動遷移する）
@@ -2049,10 +2067,18 @@ async function loadUserSettings() {
         showRecordCountBelow = true;
     }
 
+    // デフォルトはtrue（AND検索）
+    if (result.termFilterUseAnd !== undefined) {
+        termFilterUseAnd = result.termFilterUseAnd;
+    } else {
+        termFilterUseAnd = true;
+    }
+
     // チェックボックスの状態を更新
     autoNavigateCheckbox.checked = autoNavigateAfterDecision;
     showRecordCountCheckbox.checked = showRecordCountBelow;
-    console.log('[loadUserSettings] 設定完了:', { autoNavigateAfterDecision, showRecordCountBelow });
+    termFilterAndCheckbox.checked = termFilterUseAnd;
+    console.log('[loadUserSettings] 設定完了:', { autoNavigateAfterDecision, showRecordCountBelow, termFilterUseAnd });
 }
 
 /**
@@ -2071,6 +2097,25 @@ async function handleShowRecordCountChange() {
     showToast(showRecordCountBelow
         ? 'レコード件数をタイトル下に表示します'
         : 'レコード件数をタイトル上に移動しました');
+}
+
+/**
+ * ターム検索AND/OR設定の変更を処理
+ */
+async function handleTermFilterAndChange() {
+    termFilterUseAnd = termFilterAndCheckbox.checked;
+    console.log('[handleTermFilterAndChange] 設定変更:', termFilterUseAnd);
+    await saveUserSettings();
+
+    // フィルターが適用中なら即時反映
+    if (spreadsheetId && activeTermFilters.length > 0) {
+        currentIndex = 0;
+        renderCurrentReference();
+    }
+
+    showToast(termFilterUseAnd
+        ? '複数キーワード選択時: AND検索'
+        : '複数キーワード選択時: OR検索');
 }
 
 export { };
