@@ -42,10 +42,12 @@ let sourceFiles: Set<string> = new Set();
 let selectedSourceFiles: Set<string> = new Set();
 let autoNavigateAfterDecision = true;  // 判断後に自動的に次の文献に遷移するかどうか
 let showRecordCountBelow = true;  // レコード件数をタイトル下に表示するか（false=上に表示）
+let activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];  // アクティブなタームフィルター
 
 // DOM要素
 const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
 const sourceFiltersSection = document.getElementById('source-filters-section') as HTMLElement;
+const activeTermFiltersDiv = document.getElementById('active-term-filters') as HTMLElement;
 
 function renderSourceFilters() {
     sourceFileListDiv.innerHTML = '';
@@ -103,6 +105,7 @@ const loadingDiv = document.getElementById('loading') as HTMLElement;
 const statusFilter = document.getElementById('status-filter') as HTMLSelectElement;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const searchResultCount = document.getElementById('search-result-count') as HTMLElement;
+const filterResultCount = document.getElementById('filter-result-count') as HTMLElement;
 
 const refTitle = document.getElementById('ref-title') as HTMLElement;
 const refAuthors = document.getElementById('ref-authors') as HTMLElement;
@@ -402,6 +405,21 @@ function setupEventListeners() {
     shareSubmitBtn.addEventListener('click', handleShare);
     shareEmailInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleShare();
+    });
+
+    // タームクリックフィルター（イベント委譲）
+    document.getElementById('reference-detail')?.addEventListener('click', handleTermClick);
+
+    // タームフィルター削除イベント
+    activeTermFiltersDiv?.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('remove-btn')) {
+            const term = target.dataset.term;
+            const type = target.dataset.type;
+            if (term && type) {
+                removeTermFilter(term, type);
+            }
+        }
     });
 }
 
@@ -709,6 +727,15 @@ function getFilteredReferences(): ReferenceWithStatus[] {
         );
     }
 
+    // タームフィルター（AND条件）
+    for (const termFilter of activeTermFilters) {
+        const regex = createSmartRegex(termFilter.term);
+        filtered = filtered.filter(r => {
+            const text = `${r.title} ${r.abstract || ''}`;
+            return regex.test(text);
+        });
+    }
+
     return filtered;
 }
 
@@ -743,6 +770,7 @@ function renderCurrentReference() {
         refPmid.classList.add('hidden');
         navPosition.textContent = '0 / 0';
         progressText.textContent = `0 / ${references.length}`;
+        filterResultCount.textContent = `0件中 0件目`;
 
         // フィルターの件数を更新
         updateFilterCounts();
@@ -794,6 +822,7 @@ function renderCurrentReference() {
 
     // ナビゲーション更新
     navPosition.textContent = `${currentIndex + 1} / ${filtered.length}`;
+    filterResultCount.textContent = `${filtered.length}件中 ${currentIndex + 1}件目`;
 
     // レコード件数表示
     // 全体に対する判定済み件数を計算（フィルターではなく全体）
@@ -1303,18 +1332,20 @@ function highlightText(text: string, searchKeyword?: string): string {
         result = result.replace(regex, '<mark class="highlight-search">$1</mark>');
     }
 
-    // 除外キーワード（赤）
+    // 除外キーワード（赤）- クリック可能に
     for (const kw of highlightKeywords.exclude) {
         if (!kw) continue;
         const regex = createSmartRegex(kw);
-        result = result.replace(regex, '<mark class="highlight-exclude">$1</mark>');
+        const escapedKw = escapeHtml(kw);
+        result = result.replace(regex, `<mark class="highlight-exclude" data-term="${escapedKw}" data-type="exclude">$1</mark>`);
     }
 
-    // 組み入れキーワード（緑）
+    // 組み入れキーワード（緑）- クリック可能に
     for (const kw of highlightKeywords.include) {
         if (!kw) continue;
         const regex = createSmartRegex(kw);
-        result = result.replace(regex, '<mark class="highlight-include">$1</mark>');
+        const escapedKw = escapeHtml(kw);
+        result = result.replace(regex, `<mark class="highlight-include" data-term="${escapedKw}" data-type="include">$1</mark>`);
     }
 
     return result;
@@ -1348,6 +1379,52 @@ function escapeRegex(string: string): string {
 }
 
 /**
+ * ハイライトされたタームのクリックハンドラ
+ */
+function handleTermClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (!target.matches('mark.highlight-include, mark.highlight-exclude')) return;
+
+    const term = target.dataset.term;
+    const type = target.dataset.type as 'include' | 'exclude';
+
+    if (!term) return;
+
+    // 既に追加されていなければ追加
+    if (!activeTermFilters.some(f => f.term === term && f.type === type)) {
+        activeTermFilters.push({ term, type });
+        renderActiveTermFilters();
+        currentIndex = 0;
+        renderCurrentReference();
+        showToast(`"${term}" でフィルター適用`);
+    }
+}
+
+/**
+ * アクティブなタームフィルターを描画
+ */
+function renderActiveTermFilters() {
+    if (!activeTermFiltersDiv) return;
+    activeTermFiltersDiv.innerHTML = '';
+    for (const filter of activeTermFilters) {
+        const tag = document.createElement('span');
+        tag.className = `term-filter-tag ${filter.type}`;
+        tag.innerHTML = `${escapeHtml(filter.term)}<span class="remove-btn" data-term="${escapeHtml(filter.term)}" data-type="${filter.type}">×</span>`;
+        activeTermFiltersDiv.appendChild(tag);
+    }
+}
+
+/**
+ * タームフィルターを削除
+ */
+function removeTermFilter(term: string, type: string) {
+    activeTermFilters = activeTermFilters.filter(f => !(f.term === term && f.type === type));
+    renderActiveTermFilters();
+    currentIndex = 0;
+    renderCurrentReference();
+}
+
+/**
  * キーワードを描画（編集用UI）
  */
 function renderKeywords() {
@@ -1360,8 +1437,24 @@ function renderKeywordList(keywords: string[], container: HTMLElement, type: 'in
     for (const word of keywords) {
         const span = document.createElement('span');
         span.className = 'keyword-tag';
-        span.innerHTML = `${escapeHtml(word)}<span class="remove-keyword">✕</span>`;
-        span.querySelector('.remove-keyword')?.addEventListener('click', () => {
+        span.style.cursor = 'pointer';
+        span.title = `クリックで「${word}」でフィルター`;
+        span.innerHTML = `<span class="keyword-text">${escapeHtml(word)}</span><span class="remove-keyword">✕</span>`;
+
+        // タグ本体クリックでフィルター適用
+        span.querySelector('.keyword-text')?.addEventListener('click', () => {
+            if (!activeTermFilters.some(f => f.term === word && f.type === type)) {
+                activeTermFilters.push({ term: word, type });
+                renderActiveTermFilters();
+                currentIndex = 0;
+                renderCurrentReference();
+                showToast(`"${word}" でフィルター適用`);
+            }
+        });
+
+        // ×ボタンクリックでキーワード削除
+        span.querySelector('.remove-keyword')?.addEventListener('click', (e) => {
+            e.stopPropagation();
             removeKeyword(type, word);
         });
         container.appendChild(span);

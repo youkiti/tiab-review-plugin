@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 
 <head>
@@ -14,7 +14,7 @@
         <header class="header">
             <div class="header-title">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2024-12-27 16:48</span>
+                <span class="build-version">Build: 2025-12-29</span>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -132,9 +132,11 @@
                     <option value="conflict">不一致</option>
                 </select>
                 <div class="search-container">
+                    <div id="active-term-filters" class="active-term-filters"></div>
                     <input type="search" id="search-input" placeholder="検索...">
                     <span id="search-result-count" class="search-result-count hidden"></span>
                 </div>
+                <span id="filter-result-count" class="filter-result-count">0件中 0件目</span>
             </div>
 
             <!-- 文献詳細 -->
