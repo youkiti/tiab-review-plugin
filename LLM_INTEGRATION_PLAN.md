@@ -316,7 +316,7 @@ LLMが出力する `probability`（組み入れ確率）から `decision` への
 
 | ファイル                  | 変更内容                                                                                                                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/sheets-api.ts` | `getLlmConfig()`, `updateLlmConfig()`, `saveLlmExecution()`, `getLlmExecutions()`, `appendDecisions()`（LLM用一括追記）追加。LLM判定（`reviewer_id`が `llm:`）を不一致判定/集計から除外 |
+| `src/lib/sheets-api.ts` | `getLlmConfig()`, `updateLlmConfig()`, `saveLlmExecution()`, `getLlmExecutions()`, `appendDecisions()`（LLM用一括追記）追加。 |
 | `src/lib/types.ts`      | `LlmConfig`, `LlmExecution`, `LlmCriteria` 型定義追加                                                                                                                                           |
 
 ### 6.3 LLM連携（新規）
