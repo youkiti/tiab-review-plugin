@@ -153,29 +153,31 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 「ASReview の実装（Python）と、拡張機能内の TS 実装が同じ入力に対して同じ予測確率を返す」ことを、機械的に再現・検証できる状態にする。
 
-### 5.2 検証データ ✅ 選定完了
+### 5.2 検証データ ⚠️ 要再検討
 
-**SYNERGY データセット**（ASReview 推奨ベンチマーク）から、組み入れ率の異なる3つを選定:
+#### SYNERGYデータセットの問題
 
-| データセット | 論文数 | Include | 組み入れ率 | トピック |
-|------------|-------|---------|----------|---------|
-| Cohen_2006_OralHypoglycemics | 503 | 136 | **27.04%** | 経口血糖降下薬（高率） |
-| Kwok_2020 | 2,481 | 120 | **4.84%** | ウイルスメタゲノミクス（中率） |
-| Wolters_2018 | 5,019 | 19 | **0.38%** | 認知症（低率） |
+ASReview 推奨の **SYNERGY データセット** を調査したが、**データ品質に重大な問題**が発見された：
 
-#### データ取得スクリプト
+| データセット | 重複IDの数 | ラベル競合 | 問題の深刻度 |
+|------------|----------|----------|-----------|
+| Cohen_2006_OralHypoglycemics | 0 | 0 | なし ✓ |
+| Kwok_2020 | 123 | **118** | 🔴 深刻 |
+| Wolters_2018 | 154 | 17 | 🟠 中程度 |
 
-```bash
-# 各データセットを OpenAlex API から取得
-python scripts/fetch_openalex_testdata.py Cohen_2006_OralHypoglycemics
-python scripts/fetch_openalex_testdata.py Kwok_2020
-python scripts/fetch_openalex_testdata.py Wolters_2018
+**問題の詳細：**
+- 同一の OpenAlex ID が複数行に存在し、異なる `label_included` 値（0 と 1）を持つ
+- Kwok_2020 では included 論文 120件のうち **118件** が conflicting labels を持つ
+- 元の `*_ids.csv` は ID 取得プロセスの中間ファイルであり、重複除去されていない
+- リポジトリの README やIssue に重複に関する説明なし
 
-# 途中から再開する場合
-python scripts/fetch_openalex_testdata.py {dataset} --resume
-```
+**結論：** SYNERGY データセットを TypeScript 実装の検証には**使用しない**。
 
-出力: `scripts/asreview-baseline/{dataset}.json`
+#### 代替案
+
+1. **PubMed から直接サンプリング**：任意のトピックで検索し、手動でサブセットにラベル付け
+2. **既存レビューデータの流用**：ユーザー所有のレビューデータを匿名化して使用
+3. **合成データ生成**：既知のパターンを持つ人工データでアルゴリズムの正確性を検証
 
 ### 5.3 Baseline（Python）生成スクリプト（案）
 

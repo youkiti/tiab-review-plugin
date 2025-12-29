@@ -1,0 +1,72 @@
+
+============================================================
+Dataset: Cohen_2006_OralHypoglycemics
+============================================================
+Total rows: 503
+Columns: ['pmid', 'doi', 'openalex_id', 'label_included']
+
+--- ID Coverage ---
+  doi: 397/503 (78.9%)
+  openalex_id: 499/503 (99.2%)
+  pmid: 503/503 (100.0%)
+
+--- Duplicate Analysis ---
+  doi: No duplicates
+  openalex_id: No duplicates
+  pmid: No duplicates
+
+--- Label Distribution ---
+  label_included='0': 367 (73.0%)
+  label_included='1': 136 (27.0%)
+
+============================================================
+Dataset: Kwok_2020
+============================================================
+Total rows: 2601
+Columns: ['doi', 'openalex_id', 'label_included', 'pmid', 'method']
+
+--- ID Coverage ---
+  doi: 2265/2601 (87.1%)
+  openalex_id: 2365/2601 (90.9%)
+  pmid: 1525/2601 (58.6%)
+
+--- Duplicate Analysis ---
+  doi: 121 duplicates (2144 unique / 2265 total)
+    WARNING: 116 duplicates have CONFLICTING labels!
+    Sample: ['07/s11262-017-1464-9(2x)', '390/pathogens7020046(2x)', '0.1128/mbio.00260-11(2x)']
+  openalex_id: 123 duplicates (2242 unique / 2365 total)
+    WARNING: 118 duplicates have CONFLICTING labels!
+    Sample: ['alex.org/W2614004910(2x)', 'alex.org/W2799741728(2x)', 'alex.org/W2098436674(2x)']
+  pmid: 93 duplicates (1432 unique / 1525 total)
+    WARNING: 93 duplicates have CONFLICTING labels!
+    Sample: ['nlm.nih.gov/28484931(2x)', 'nlm.nih.gov/29677111(2x)', 'nlm.nih.gov/22128350(2x)']
+
+--- Label Distribution ---
+  label_included='0': 2481 (95.4%)
+  label_included='1': 120 (4.6%)
+
+============================================================
+Dataset: Wolters_2018
+============================================================
+Total rows: 5038
+Columns: ['pmid', 'doi', 'openalex_id', 'label_included', 'method']
+
+--- ID Coverage ---
+  doi: 4240/5038 (84.2%)
+  openalex_id: 4434/5038 (88.0%)
+  pmid: 3549/5038 (70.4%)
+
+--- Duplicate Analysis ---
+  doi: 164 duplicates (4076 unique / 4240 total)
+    WARNING: 16 duplicates have CONFLICTING labels!
+    Sample: ['org/10.1002/ejhf.631(3x)', '1161/jaha.113.000369(2x)', '00-0404.2005.00389.x(2x)']
+  openalex_id: 154 duplicates (4280 unique / 4434 total)
+    WARNING: 17 duplicates have CONFLICTING labels!
+    Sample: ['alex.org/W2519571002(3x)', 'alex.org/W2101827455(2x)', 'alex.org/W2017257387(2x)']
+  pmid: 77 duplicates (3472 unique / 3549 total)
+    WARNING: 15 duplicates have CONFLICTING labels!
+    Sample: ['nlm.nih.gov/27612177(3x)', 'nlm.nih.gov/24351701(2x)', 'nlm.nih.gov/16281921(2x)']
+
+--- Label Distribution ---
+  label_included='0': 5019 (99.6%)
+  label_included='1': 19 (0.4%)
