@@ -1,8 +1,8 @@
 # ASReview（Active Learning）統合計画（TiAb Review Plugin）
 
-更新日: 2025-12-29
+更新日: 2025-12-29（調査完了版）
 
-このドキュメントは、TiAb Review Plugin（Google Sheets をDBにした TiAb スクリーニング拡張）へ **ASReview（asreview/asreview）相当の “Active Learning による動的スクリーニング”** を新規機能として追加するための実装計画です。  
+このドキュメントは、TiAb Review Plugin（Google Sheets をDBにした TiAb スクリーニング拡張）へ **ASReview（asreview/asreview）相当の "Active Learning による動的スクリーニング"** を新規機能として追加するための実装計画です。  
 最終的に、TypeScript 側で Python 版と同等の機械学習パイプライン（少なくとも1モデル）を実装し、**ASReview のサンプルデータに対して予測確率が一致すること**（検証スクリプトで再現可能）までを目標にします。
 
 ---
@@ -25,7 +25,7 @@
 - ASReview LAB の Web UI の移植
 - ASReview の **simulation / validation**（停止曲線、性能指標、シミュレーションCLI等）を拡張機能に実装
 - 多言語 embedding（`multilingual-e5-large` 等）や heavy model（外部モデルDLが必要になるもの）
-- “完全自動” で Sheets の人間判定を置き換える運用
+- "完全自動" で Sheets の人間判定を置き換える運用
 
 ---
 
@@ -38,26 +38,48 @@
 
 ---
 
-## 2. まず合わせる “ASReview 互換” の対象範囲（最小互換面）
+## 2. まず合わせる "ASReview 互換" の対象範囲（最小互換面）
 
 ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だけを TS で再現する。
 
 - 入力: 文献（title + abstract）とラベル（include=1 / exclude=0 / unlabeled=-1）
 - 出力:
-  - 各文献の関連度スコア（まずは `predict_proba(:,1)` を “予測確率” と呼ぶ）
+  - 各文献の関連度スコア（まずは `predict_proba(:,1)` を "予測確率" と呼ぶ）
   - 未判定文献の推奨順序（querier=`max` で降順）
 
-### MVP で固定する “基準モデル”（検証対象）
+### MVP で固定する "基準モデル"（検証対象）✅ 調査完了
 
 **確率一致の検証を最優先**し、まずは ASReview の既存設定に存在し、かつ `predict_proba` が素直に比較できる構成を選ぶ。
 
-- 参照: `asreview/models/models.py` の `elas_u3`
-  - querier: `max`
-  - classifier: `nb`（`MultinomialNB`）+ `alpha=3.822`
-  - balancer: `balanced` + `ratio=1.2`
-  - feature_extractor: `tfidf` + `stop_words="english"`
+- 参照: `vendor/asreview/asreview/models/models.py` の `elas_u3` (L45-57)
 
-この “elas_u3 相当” を TS で再現し、ASReview のデモデータで確率一致を最初の到達点にする。  
+| コンポーネント | 設定 | 確定パラメータ |
+|------------|------|---------------|
+| **Querier** | `max` | `np.argsort(-p)` で降順 |
+| **Classifier** | `nb` (MultinomialNB) | `alpha=3.822` |
+| **Balancer** | `balanced` | `ratio=1.2` |
+| **Feature Extractor** | `tfidf` | `stop_words="english"` のみ指定 |
+
+#### TF-IDF デフォルトパラメータ（確定）
+
+| パラメータ | 値 | 説明 |
+|-----------|-----|------|
+| `columns` | `["title", "abstract"]` | 結合するカラム |
+| `lowercase` | `True` | 小文字化 |
+| `token_pattern` | `r"(?u)\b\w\w+\b"` | scikit-learn 標準パターン |
+| `ngram_range` | `(1, 1)` | unigram のみ |
+| `max_df` / `min_df` | `1.0` / `1` | 上限なし / 1回以上出現 |
+| `norm` | `"l2"` | L2正規化 |
+| `smooth_idf` | `True` | `idf = log((1+n)/(1+df)) + 1` |
+| `sublinear_tf` | `False` | tf そのまま使用 |
+
+#### Balanced サンプル重み計算式（確定）
+
+- class 1 (include): 重み = `1.0`
+- class 0 (exclude): 重み = `n_include / (ratio * n_exclude)`
+- 正規化: `weights * (len(y) / sum(weights))`
+
+この "elas_u3 相当" を TS で再現し、検証データで確率一致を最初の到達点にする。  
 （将来 `elas_u4` 相当（SVM+TFIDF）へ拡張する場合は、SVM の確率化/スコア扱いを別途設計する）
 
 ---
@@ -66,7 +88,7 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 ### 3.1 モジュール構成（案）
 
-拡張機能本体に組み込める “小さな ASReview コア” を `src/lib/asreview/*` として作る。
+拡張機能本体に組み込める "小さな ASReview コア" を `src/lib/asreview/*` として作る。
 
 - `src/lib/asreview/types.ts`
   - `Label = 1 | 0 | -1`
@@ -103,7 +125,7 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
   - exclude → `0`
   - maybe → 原則 `-1`（未学習）として扱う（必要なら後で設定で変更可能）
 - 予測確率は Sheets に保存しない（まずはローカル表示のみ）。  
-  ※ “保存するなら note に JSON” などの方針は後段で検討。
+  ※ "保存するなら note に JSON" などの方針は後段で検討。
 
 ---
 
@@ -111,12 +133,12 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 ### 4.1 追加する UI（最小）
 
-- スクリーニング画面に “ML 推薦” トグル
+- スクリーニング画面に "ML 推薦" トグル
   - ON: 未判定リストを `p(relevant)` 降順で提示（次へも推薦順）
   - OFF: 現行どおり（固定順/検索/フィルタ）
 - 文献カードに `p(relevant)` を表示（例: `0.732`）
-- “学習状態” の表示（例: `Labeled: include=12 / exclude=30`）
-- “モデルをリセット” ボタン（ローカル状態を消して再学習）
+- "学習状態" の表示（例: `Labeled: include=12 / exclude=30`）
+- "モデルをリセット" ボタン（ローカル状態を消して再学習）
 
 ### 4.2 更新タイミング
 
@@ -131,12 +153,29 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 「ASReview の実装（Python）と、拡張機能内の TS 実装が同じ入力に対して同じ予測確率を返す」ことを、機械的に再現・検証できる状態にする。
 
-### 5.2 検証データ（ASReview 側のデモデータを流用）
+### 5.2 検証データ ✅ 選定完了
 
-ASReview リポジトリ内の以下を利用（ライセンス/同梱可否は要確認）:
+**SYNERGY データセット**（ASReview 推奨ベンチマーク）から、組み入れ率の異なる3つを選定:
 
-- `tests/demo_data/generic.csv`（title/abstract を含む）
-- `tests/demo_data/generic_labels.csv`（`label_included` を含む）
+| データセット | 論文数 | Include | 組み入れ率 | トピック |
+|------------|-------|---------|----------|---------|
+| Cohen_2006_OralHypoglycemics | 503 | 136 | **27.04%** | 経口血糖降下薬（高率） |
+| Kwok_2020 | 2,481 | 120 | **4.84%** | ウイルスメタゲノミクス（中率） |
+| Wolters_2018 | 5,019 | 19 | **0.38%** | 認知症（低率） |
+
+#### データ取得スクリプト
+
+```bash
+# 各データセットを OpenAlex API から取得
+python scripts/fetch_openalex_testdata.py Cohen_2006_OralHypoglycemics
+python scripts/fetch_openalex_testdata.py Kwok_2020
+python scripts/fetch_openalex_testdata.py Wolters_2018
+
+# 途中から再開する場合
+python scripts/fetch_openalex_testdata.py {dataset} --resume
+```
+
+出力: `scripts/asreview-baseline/{dataset}.json`
 
 ### 5.3 Baseline（Python）生成スクリプト（案）
 
@@ -153,7 +192,7 @@ ASReview リポジトリ内の以下を利用（ライセンス/同梱可否は�
 
 - `scripts/asreview-verify/` を作成し、TS 実装で同じ入力から `proba_included[]` を生成して比較する。
 - 期待値:
-  - 原則 “完全一致” を目標（少なくとも `Float64` で計算・同じ数式なら一致しやすい）
+  - 原則 "完全一致" を目標（少なくとも `Float64` で計算・同じ数式なら一致しやすい）
   - 実際に差が出る場合は、誤差許容を決める（例: `absDiff <= 1e-12`）  
     ※ ただし「許容誤差で逃げる」のではなく、まずは tokenization / idf / 正規化 / NB の式を Python に厳密に合わせる。
 
@@ -168,13 +207,13 @@ ASReview リポジトリ内の以下を利用（ライセンス/同梱可否は�
 
 ## 6. 実装ステップ（ロードマップ）
 
-### Phase 1: 参照実装の固定（再現性の確保）
+### Phase 1: 参照実装の固定（再現性の確保）✅ 完了
 
-1. ASReview を `vendor/asreview` として取り込む方針決め（submodule / subtree / “開発時のみ clone”）。
-2. 検証対象の ASReview バージョンを pin（commit hash）して、以後の比較基準を固定する。
-3. `generic.csv` / `generic_labels.csv` の同梱可否（ライセンス）を確認し、不可なら同等の公開データセットを用意する。
+1. ✅ ASReview を `vendor/asreview` として取り込み（clone --depth 1）
+2. ⬜ 検証対象の ASReview バージョンを pin（commit hash）して、以後の比較基準を固定する。
+3. ⚠️ `generic.csv` / `generic_labels.csv` は不十分。代替データセットを用意する。
 
-### Phase 2: TS で “elas_u3 相当” の ML コア実装
+### Phase 2: TS で "elas_u3 相当" の ML コア実装
 
 1. `token_pattern` / `stop_words="english"` / `ngram_range` 等、scikit-learn 互換の tokenization を TS で実装。
 2. TF-IDF（`TfidfVectorizer` 相当）を TS で実装（min_df/max_df/sublinear_tf/norm/smooth_idf を含む）。
@@ -184,7 +223,7 @@ ASReview リポジトリ内の以下を利用（ライセンス/同梱可否は�
 
 ### Phase 3: 拡張機能 UI に統合
 
-1. Side Panel に “ML 推薦” トグルと `p(relevant)` 表示を追加。
+1. Side Panel に "ML 推薦" トグルと `p(relevant)` 表示を追加。
 2. 判定（include/exclude）保存後に Worker へ通知→推薦更新。
 3. キャッシュ（ローカル）を導入して 3,000 件で快適に動くことを確認（最初は計測→必要なら最適化）。
 
@@ -201,7 +240,14 @@ ASReview リポジトリ内の以下を利用（ライセンス/同梱可否は�
 - **scikit-learn 互換 TF-IDF の厳密再現が難しい**  
   → まずは ASReview が実際に使っているパラメータ（`elas_u3`）だけに範囲を絞る。差分は baseline の `vocabulary/idf` を吐かせて追う。
 - **ブラウザ内での性能（TF-IDF の fit が重い）**  
-  → Web Worker、疎行列、キャッシュ（IndexedDB）で回避。学習は “ラベル更新時のみ” に限定。
+  → Web Worker、疎行列、キャッシュ（IndexedDB）で回避。学習は "ラベル更新時のみ" に限定。
 - **ライセンス**  
   → ASReview は Apache-2.0。コード/データ同梱時は NOTICE 等を含める。サンプルデータの再配布可否を個別確認する。
 
+---
+
+## Appendix: 調査結果の詳細
+
+詳細な調査結果は以下を参照:
+- 調査レポート: `.gemini/antigravity/brain/*/asreview_investigation_report.md`
+- 参照実装: `vendor/asreview/`
