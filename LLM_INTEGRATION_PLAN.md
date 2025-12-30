@@ -1,6 +1,6 @@
 # LLM（Gemini）統合計画（TiAb Review Plugin）
 
-更新日: 2025-12-28
+更新日: 2025-12-30
 
 このドキュメントは、既存の TiAb Review Plugin（Google Sheets をDBにした TiAb スクリーニング拡張）へ、Gemini（`gemini-flash-latest` / AI Studio APIキー）を統合するための実装計画です。
 
@@ -49,15 +49,27 @@
 3) Config シートにプロトコルの組み入れ、除外基準をコピペして保存
 4) **「基準を最適化」ボタン** を押すと、LLMがコピペした基準からLLM用の適切な組み入れ・除外基準に変換し、保存（共有）
 
-### 3.2 スクリーニング中
+### 3.2 LLM処理の実行タイミング
 
-- 一括実行ボタンをLLM処理の画面で押すことで一括処理（バッチサイズはいくつかの条件で確認し、デフォルトで決めるが調整可能にする）
-- LLMは `probability`（組み入れ確率: 0.0〜1.0）を出力
-- `decision`（include/exclude）は **閾値設定に基づき判定**（5.5参照）
-  - probability ≥ `llm_include_threshold` → include
-  - probability < `llm_include_threshold` → exclude
-- 生成された結果は **Decisions シートへ自動で記録**
-  - LLMは上書きしないため `append` のみ（バッチサイズごとにまとめて追記）
+> [!IMPORTANT]
+> **LLM処理はユーザーの手動スクリーニング完了後に実行する**
+> - LLM結果を事前に見せると automation bias が生じるため
+> - 目標: 「1人がASReview（機械学習）、もう1人がLLM」で1人省力化を実現
+> - 参考: https://arxiv.org/html/2510.06708v1
+
+**実行フロー（2段階方式）:**
+
+1. ユーザーが手動スクリーニングを完了
+2. LLM処理タブで一括実行ボタンを押す
+3. LLMは `probability`（組み入れ確率: 0.0〜1.0）+ `reasons` + `evidence` を出力
+4. **Phase 1: 生データ保存**
+   - 結果は **Decisions シートへ追記**
+   - `note` 列に probability/reasons/evidence をJSON形式で保存
+   - **`decision` 列は空のまま**（まだ確定していない状態）
+5. **実行完了後**に閾値調整UIが表示され、ユーザーが閾値を変えながら件数を**プレビュー**
+6. **Phase 2: 閾値確定**
+   - 「確定」ボタン押下で `decision`（include/exclude）を一括更新
+   - 後日、閾値を変更して「再確定」も可能（既存の `decision` を上書き）
 
 ### 3.3 基準変換処理（最適化機能）
 
@@ -117,13 +129,110 @@
   - 例: `llm:gemini-flash-latest@2025-12-28T14:30:00`
   - 合意「実験結果は全部残す」を守るため、**再実行は timestamp を変えて別IDとして保存（上書きしない）**
 
-#### LLMの追加情報（probability等）の保存先
+#### 2段階保存方式
 
-Decisionsの列追加はせず、以下を推奨:
+**Phase 1: 一括実行時（生データ保存）**
 
-- `note` に JSON で格納（UI側で整形表示）
-  - 例: `{"type":"llm","execution_id":"llm:...","model":"gemini-flash-latest","probability":0.72,"rationale":"...","prompt_version":"v1"}`
-- `reason` は `exclude` の短い理由に使用（`include` は空でもよい）
+| ref_id | reviewer_id | decision | reason | note |
+|--------|-------------|----------|--------|------|
+| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **(空)** | (空) | `{"probability":0.72,...}` |
+
+- `note` 列に probability/reasons/evidence をJSON形式で保存
+- `decision` 列は**空のまま**（まだ確定していない状態）
+
+**Phase 2: 閾値確定時**
+
+| ref_id | reviewer_id | decision | reason | note |
+|--------|-------------|----------|--------|------|
+| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **include** | RCTである | `{"probability":0.72,...}` |
+
+- `probability >= 閾値` → include, それ以外 → exclude
+- `decision` 列を**一括更新**（update）
+- `reason` 列には reasons の要約を設定
+
+**再確定時（閾値変更）:**
+
+- 同じ `reviewer_id` のレコードに対して `decision` 列を**上書き**
+- `note` の probability から再計算するので、再実行は不要
+
+**LLM出力スキーマ:**
+
+```json
+{
+  "name": "tiab_probability",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["include_probability", "reasons", "evidence"],
+    "properties": {
+      "include_probability": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "タイトル・抄録レベルで最終的に組み入れになり得る確率（0-1）。閾値判定はUI側で行う。"
+      },
+      "reasons": {
+        "type": "array",
+        "minItems": 1,
+        "description": "この確率になった理由（短文の配列）。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "evidence": {
+        "type": "array",
+        "minItems": 1,
+        "description": "ハイライト用の根拠。quoteは原文からの正確な部分文字列（title/abstract内で完全一致）。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["field", "quote", "start_char", "end_char"],
+          "properties": {
+            "field": {
+              "type": "string",
+              "enum": ["title", "abstract"],
+              "description": "抜粋元フィールド。"
+            },
+            "quote": {
+              "type": "string",
+              "minLength": 1,
+              "description": "原文からの正確な抜粋（そのまま一致する連続した部分文字列）。"
+            },
+            "start_char": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "field内テキスト（titleまたはabstract）の0始まり開始位置。"
+            },
+            "end_char": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "field内テキストの終了位置（排他的; ハイライト範囲は [start_char, end_char)）。"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**noteへの保存例:**
+
+```json
+{
+  "type": "llm",
+  "execution_id": "llm:gemini-flash-latest@2025-12-28T14:30:00",
+  "model": "gemini-flash-latest",
+  "probability": 0.72,
+  "reasons": ["RCTである", "T2DM患者を対象", "アウトカムにHbA1cを含む"],
+  "evidence": [
+    {"field": "title", "quote": "randomized controlled trial", "start_char": 45, "end_char": 71},
+    {"field": "abstract", "quote": "patients with type 2 diabetes", "start_char": 120, "end_char": 150}
+  ],
+  "prompt_version": "v1"
+}
+```
 
 ### 4.3 LLM_Executions シート（実行履歴）
 
@@ -175,7 +284,10 @@ Decisionsの列追加はせず、以下を推奨:
 
 ### 5.2 LLM処理タブ構成
 
-**処理フロー順に配置**: APIキー → 詳細設定 → レビュー基準（入力→変換→出力） → 一括実行
+**処理フロー順に配置**: APIキー → 詳細設定 → レビュー基準（入力→変換→出力） → 一括実行 → **閾値調整（実行後）**
+
+> [!NOTE]
+> Include閾値は**実行前には表示しない**。一括実行完了後に閾値調整UIを表示し、ユーザーが閾値を変えながら「この閾値だとこの件数」と直感的に試せるようにする。
 
 ```
 ┌─────────────────────────────────────┐
@@ -186,7 +298,6 @@ Decisionsの列追加はせず、以下を推奨:
 │ ✓ 設定済み（端末に保存）            │
 ├─────────────────────────────────────┤
 │ ⚙️ 詳細設定                         │
-│   Include閾値: [0.30]               │
 │   モデル: [gemini-flash-latest ▼]   │
 │   出力言語: [日本語 ▼]              │
 ├─────────────────────────────────────┤
@@ -217,14 +328,58 @@ Decisionsの列追加はせず、以下を推奨:
 │ ✓ Configシートへ自動保存           │
 ├─────────────────────────────────────┤
 │ 🚀 一括実行                         │
-│ バッチサイズ: [50 ▼]                  │
-│ 対象: 未判定のみ / 全件                │
+│ バッチサイズ: [50 ▼]               │
+│ 対象: 未判定のみ / 全件            │
 │                                     │
-│ [▶️ 一括実行開始]                    │
+│ [▶️ 一括実行開始]                   │
 │ 進捗: 0/150 (0%)                    │
-│ ██████████░░░░░░░░░░                 │
+│ ██████████░░░░░░░░░░                │
 └─────────────────────────────────────┘
 ```
+
+### 5.2.1 閾値調整UI（実行完了後に表示）
+
+一括実行が完了すると、以下のUIが表示される:
+
+```
+┌─────────────────────────────────────┐
+│ 📊 閾値調整                         │
+├─────────────────────────────────────┤
+│ ✓ 一括実行完了 (150件処理)          │
+│                                     │
+│ Include閾値: [0.30] ←───────────→   │
+│              0.0              1.0   │
+│                                     │
+│ ┌─────────────────────────────────┐ │
+│ │ 現在の閾値: 0.30                │ │
+│ │ Include: 80件 (53%)             │ │
+│ │ Exclude: 70件 (47%)             │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ [📈 分布を表示]                     │
+│ ┌─────────────────────────────────┐ │
+│ │ 0.0-0.2: ████████████ 40件      │ │
+│ │ 0.2-0.4: ██████ 25件            │ │
+│ │ 0.4-0.6: ████ 20件              │ │
+│ │ 0.6-0.8: ██████ 30件            │ │
+│ │ 0.8-1.0: ███████ 35件           │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ [💾 閾値を確定して保存]             │
+│ ※ 確定後、Decisionsに判定が記録    │
+└─────────────────────────────────────┘
+```
+
+**機能:**
+
+- **スライダー**: 閾値を0.0〜1.0で調整（リアルタイムで件数プレビュー、**Sheetsへの書き込みなし**）
+- **分布表示**: probability の分布をヒストグラムで可視化
+- **確定ボタン**: 選択した閾値でinclude/excludeを確定し、Decisionsの `decision` 列を一括更新
+- **再確定ボタン**: 確定後に閾値を変更して再度「確定」すると、既存の `decision` を上書き
+
+**理由の確認:**
+
+閾値付近の文献については、`reasons` と `evidence` を確認することで「なぜこのprobabilityなのか」を理解できる。これにより、閾値を変更するたびに再実行する必要がなくなる。
 
 **ボタン動作:**
 
@@ -294,11 +449,20 @@ Decisionsの列追加はせず、以下を推奨:
 
 ### 5.5 閾値設定
 
-LLMが出力する `probability`（組み入れ確率）から `decision` への変換ロジックは **3.2** を参照。
+LLMが出力する `probability`（組み入れ確率）から `decision` への変換ロジック:
+
+- probability ≥ `llm_include_threshold` → include
+- probability < `llm_include_threshold` → exclude
 
 | 設定                      | デフォルト値 | 用途                                      |
 | ------------------------- | ------------ | ----------------------------------------- |
 | `llm_include_threshold` | `0.30`     | この値以上で include、未満で exclude 判定 |
+
+> [!IMPORTANT]
+> **閾値は実行後に調整する**（5.2.1参照）
+> - 実行前には閾値を設定しない
+> - LLMはprobabilityのみを出力し、閾値判定はUI側で行う
+> - ユーザーは閾値を変えながら件数を確認し、最適な閾値を選択できる
 
 ---
 

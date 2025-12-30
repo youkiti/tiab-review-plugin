@@ -184,14 +184,14 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 
 | Dataset | URL | Description |
 |---------|-----|-------------|
-| **Depression (SLIM)** | [Zenodo 151190](https://zenodo.org/records/151190) | うつ病（動物モデル）SR。2名独立評価+reconcile。`Depression-Dataset-SLIM-DevelopmentTrainingSet.txt` を使用。 |
-| **Wilson's Disease** | [Zenodo 3625931](https://zenodo.org/records/3625931) | Wilson病治療SR。TiAb対象(3453件)を正解(FT進出=26件+excluded=148件?)としてラベル化。 |
-| **Mendeley Data** | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。負荷テスト用。 |
+| **Depression (SLIM)** | [Zenodo 151190](https://zenodo.org/records/151190) | うつ病（動物モデル）SR。2名独立評価+reconcile。`scripts/asreview-baseline/datasets/depression_slim_labeled.json` を作成済み（`label_included`）。元データは `scripts/asreview-baseline/datasets/zenodo_151190/`。 |
+| **Wilson's Disease** | [Zenodo 3625931](https://zenodo.org/records/3625931) | Wilson病治療SR。TiAb全件を基準に2種ラベル保持: `label_tiab`（FT対象=1）/ `label_final_included`（最終included=1）。`scripts/asreview-baseline/datasets/wilson_tiab_labeled.json` を作成済み。元データは `scripts/asreview-baseline/datasets/zenodo_3625931/`。 |
+| **Mendeley Data** | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。`scripts/asreview-baseline/datasets/mendeley_20240827_*_set.json` と `scripts/asreview-baseline/datasets/mendeley_CD*_data_cleaned.json` を作成済み。mainセットは `label_score` を保持し、`label_included` は `label_score >= 0.5` を許容。 |
 
 #### 拡張性（他のデータセット追加）
 
 
-PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデータセットを検証に追加したい場合は、上記 `cq*_labeled.json` と同じ JSON スキーマ（`id`, `title`, `abstract`, `label`）を持つファイルを作成し、`scripts/asreview-baseline/datasets/` に配置することで、検証パイプラインに追加可能とする。
+PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデータセットを検証に追加したい場合は、上記 `cq*_labeled.json` と同じ JSON スキーマ（`id`, `title`, `abstract`, `label_included`）を持つファイルを作成し、`scripts/asreview-baseline/datasets/` に配置することで、検証パイプラインに追加可能とする。必要に応じて `label_score`（連続値）や `label_tiab` / `label_final_included` のような追加ラベルも併存可。
 
 ### 5.3 Baseline（Python）生成スクリプト（案）
 
