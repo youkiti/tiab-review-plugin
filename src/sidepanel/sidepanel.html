@@ -14,7 +14,11 @@
         <header class="header">
             <div class="header-title">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2025-12-29</span>
+                <span class="build-version">Build: 2025-12-30</span>
+            </div>
+            <div class="header-tabs">
+                <button id="tab-screening" class="tab-btn active" title="スクリーニング">📄</button>
+                <button id="tab-llm" class="tab-btn" title="LLM処理">🤖</button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -278,6 +282,191 @@
                         オン: すべてのキーワードを含む文献のみ表示（AND検索）<br>
                         オフ: いずれかのキーワードを含む文献を表示（OR検索）
                     </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- LLM処理セクション -->
+        <section id="llm-section" class="section hidden">
+            <!-- ツールバー -->
+            <div class="llm-toolbar">
+                <button id="llm-back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
+                    ← 戻る
+                </button>
+                <span class="llm-title">LLM処理</span>
+                <button id="llm-settings-btn" class="btn btn-icon" title="設定">⚙️</button>
+            </div>
+
+            <!-- APIキー設定 -->
+            <div class="llm-card">
+                <h4>🔑 Gemini APIキー</h4>
+                <div class="api-key-input-group">
+                    <input type="password" id="gemini-api-key" placeholder="APIキーを入力..." class="api-key-input">
+                    <button id="toggle-api-key-visibility" class="btn btn-icon" title="表示/非表示">👁</button>
+                </div>
+                <div class="api-key-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="save-api-key-checkbox">
+                        <span>端末に保存する</span>
+                    </label>
+                    <button id="save-api-key-btn" class="btn btn-small btn-secondary">保存</button>
+                </div>
+                <div id="api-key-status" class="api-key-status"></div>
+            </div>
+
+            <!-- 詳細設定 -->
+            <div class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    ⚙️ 詳細設定
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="setting-row">
+                        <label>モデル:</label>
+                        <select id="llm-model-select">
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (推奨)</option>
+                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (高速)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (高精度)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>出力言語:</label>
+                        <select id="llm-language-select">
+                            <option value="ja">日本語</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- レビュー基準 -->
+            <div class="llm-card">
+                <h4>📋 レビュー基準</h4>
+
+                <div class="criteria-section">
+                    <label>【入力】プロトコルからコピペ:</label>
+                    <textarea id="protocol-text-input" rows="6" placeholder="プロトコルの組み入れ・除外基準をここにコピペしてください..."></textarea>
+                </div>
+
+                <button id="optimize-criteria-btn" class="btn btn-primary btn-full">
+                    💡 基準を最適化
+                </button>
+                <div id="optimize-status" class="optimize-status hidden"></div>
+
+                <div class="criteria-section">
+                    <label>【出力】最適化されたスクリーニング基準:</label>
+                    <div id="optimized-criteria-display" class="optimized-criteria-display">
+                        <p class="placeholder-text">「基準を最適化」ボタンを押すと、ここに結果が表示されます</p>
+                    </div>
+                    <textarea id="screening-prompt-input" rows="4" placeholder="スクリーニング用プロンプト（自動生成または編集）" class="hidden"></textarea>
+                </div>
+
+                <button id="save-criteria-btn" class="btn btn-secondary btn-full hidden">
+                    💾 基準を保存
+                </button>
+            </div>
+
+            <!-- 一括実行 -->
+            <div class="llm-card">
+                <h4>🚀 一括実行</h4>
+
+                <div class="setting-row">
+                    <label>バッチサイズ:</label>
+                    <select id="batch-size-select">
+                        <option value="10">10件</option>
+                        <option value="25">25件</option>
+                        <option value="50" selected>50件</option>
+                        <option value="100">100件</option>
+                        <option value="0">全件</option>
+                    </select>
+                </div>
+
+                <div class="setting-row">
+                    <label>対象:</label>
+                    <select id="batch-target-select">
+                        <option value="pending">未判定のみ</option>
+                        <option value="all">全件</option>
+                    </select>
+                </div>
+
+                <div id="batch-info" class="batch-info">
+                    対象文献: <span id="batch-target-count">0</span>件
+                </div>
+
+                <button id="start-batch-btn" class="btn btn-primary btn-full">
+                    ▶️ 一括実行開始
+                </button>
+                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden">
+                    ⏹️ 実行を中止
+                </button>
+
+                <div id="batch-progress" class="batch-progress hidden">
+                    <div class="progress-text">
+                        進捗: <span id="batch-progress-current">0</span>/<span id="batch-progress-total">0</span>
+                        (<span id="batch-progress-percent">0</span>%)
+                    </div>
+                    <div class="progress-bar">
+                        <div id="batch-progress-bar-fill" class="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-stats">
+                        成功: <span id="batch-success-count">0</span> /
+                        失敗: <span id="batch-fail-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 閾値調整（実行完了後に表示） -->
+            <div id="threshold-section" class="llm-card hidden">
+                <h4>📊 閾値調整</h4>
+
+                <div id="threshold-complete-message" class="complete-message">
+                    ✓ 一括実行完了 (<span id="threshold-processed-count">0</span>件処理)
+                </div>
+
+                <div class="threshold-control">
+                    <label>Include閾値: <span id="threshold-value-display">0.30</span></label>
+                    <input type="range" id="threshold-slider" min="0" max="1" step="0.01" value="0.30">
+                    <div class="threshold-range-labels">
+                        <span>0.0</span>
+                        <span>1.0</span>
+                    </div>
+                </div>
+
+                <div class="threshold-preview">
+                    <div class="preview-item include">
+                        Include: <span id="preview-include-count">0</span>件
+                        (<span id="preview-include-percent">0</span>%)
+                    </div>
+                    <div class="preview-item exclude">
+                        Exclude: <span id="preview-exclude-count">0</span>件
+                        (<span id="preview-exclude-percent">0</span>%)
+                    </div>
+                </div>
+
+                <button id="toggle-distribution-btn" class="btn btn-outline btn-small">
+                    📈 分布を表示
+                </button>
+                <div id="distribution-chart" class="distribution-chart hidden">
+                    <!-- ヒストグラムがここに動的に生成される -->
+                </div>
+
+                <button id="confirm-threshold-btn" class="btn btn-primary btn-full">
+                    💾 閾値を確定して保存
+                </button>
+                <p class="threshold-note">※ 確定後、Decisionsシートに判定が記録されます</p>
+            </div>
+
+            <!-- LLM実行履歴 -->
+            <div class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    📜 実行履歴
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div id="execution-history" class="execution-history">
+                        <p class="placeholder-text">実行履歴がありません</p>
+                    </div>
                 </div>
             </div>
         </section>

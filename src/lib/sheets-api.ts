@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution } from './types';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -8,6 +8,14 @@ const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const REFERENCES_SHEET = 'References';
 const DECISIONS_SHEET = 'Decisions';
 const CONFIG_SHEET = 'Config';
+const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
+
+// LLM_Executionsシートのヘッダー
+const LLM_EXECUTIONS_HEADERS = [
+    'execution_id', 'execution_type', 'timestamp', 'model',
+    'criteria_snapshot', 'screening_prompt', 'include_threshold',
+    'target_count', 'include_count', 'exclude_count'
+];
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
 export const PRESET_RCT = {
@@ -869,4 +877,330 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
     }
+}
+
+// ========== LLM関連の関数 ==========
+
+/**
+ * デフォルトのLLM設定
+ */
+export const DEFAULT_LLM_CONFIG: LlmConfig = {
+    llm_enabled: false,
+    llm_model: 'gemini-2.0-flash',
+    llm_temperature: 0,
+    llm_thinking: 'low',
+    llm_protocol_text: '',
+    llm_criteria: null,
+    llm_screening_prompt: '',
+    llm_include_threshold: 0.3,
+    llm_max_output_tokens: 2048,
+    llm_output_language: 'ja',
+};
+
+/**
+ * LLM設定キーのリスト
+ */
+const LLM_CONFIG_KEYS = [
+    'llm_enabled',
+    'llm_model',
+    'llm_temperature',
+    'llm_thinking',
+    'llm_protocol_text',
+    'llm_criteria',
+    'llm_screening_prompt',
+    'llm_include_threshold',
+    'llm_max_output_tokens',
+    'llm_output_language',
+];
+
+/**
+ * ConfigシートからLLM設定を取得
+ */
+export async function getLlmConfig(spreadsheetId: string): Promise<LlmConfig> {
+    const config = { ...DEFAULT_LLM_CONFIG };
+
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+
+        for (const row of values) {
+            const key = row[0];
+            const value = row[1];
+
+            if (!LLM_CONFIG_KEYS.includes(key) || !value) continue;
+
+            switch (key) {
+                case 'llm_enabled':
+                    config.llm_enabled = value.toLowerCase() === 'true';
+                    break;
+                case 'llm_model':
+                    config.llm_model = value;
+                    break;
+                case 'llm_temperature':
+                    config.llm_temperature = parseFloat(value) || 0;
+                    break;
+                case 'llm_thinking':
+                    config.llm_thinking = value === 'high' ? 'high' : 'low';
+                    break;
+                case 'llm_protocol_text':
+                    config.llm_protocol_text = value;
+                    break;
+                case 'llm_criteria':
+                    try {
+                        config.llm_criteria = JSON.parse(value);
+                    } catch {
+                        config.llm_criteria = null;
+                    }
+                    break;
+                case 'llm_screening_prompt':
+                    config.llm_screening_prompt = value;
+                    break;
+                case 'llm_include_threshold':
+                    config.llm_include_threshold = parseFloat(value) || 0.3;
+                    break;
+                case 'llm_max_output_tokens':
+                    config.llm_max_output_tokens = parseInt(value, 10) || 2048;
+                    break;
+                case 'llm_output_language':
+                    config.llm_output_language = value;
+                    break;
+            }
+        }
+    } catch (error) {
+        console.log('[getLlmConfig] Config not found, using defaults:', error);
+    }
+
+    return config;
+}
+
+/**
+ * LLM設定を更新
+ */
+export async function updateLlmConfig(
+    spreadsheetId: string,
+    updates: Partial<LlmConfig>
+): Promise<void> {
+    try {
+        await tryUpdateLlmConfig(spreadsheetId, updates);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[updateLlmConfig] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await tryUpdateLlmConfig(spreadsheetId, updates);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function tryUpdateLlmConfig(spreadsheetId: string, updates: Partial<LlmConfig>): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+
+    // 既存行のインデックスをマップ
+    const rowIndices: Record<string, number> = {};
+    values.forEach((row, index) => {
+        if (LLM_CONFIG_KEYS.includes(row[0])) {
+            rowIndices[row[0]] = index + 1; // 1-indexed
+        }
+    });
+
+    // 各キーを更新
+    for (const [key, value] of Object.entries(updates)) {
+        if (!LLM_CONFIG_KEYS.includes(key)) continue;
+
+        let stringValue: string;
+        if (typeof value === 'boolean') {
+            stringValue = value ? 'true' : 'false';
+        } else if (typeof value === 'object' && value !== null) {
+            stringValue = JSON.stringify(value);
+        } else if (value === null) {
+            stringValue = '';
+        } else {
+            stringValue = String(value);
+        }
+
+        if (rowIndices[key]) {
+            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[stringValue]]);
+        } else {
+            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, stringValue]]);
+        }
+    }
+}
+
+/**
+ * LLM_Executionsシートを初期化（存在しない場合）
+ */
+export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
+    try {
+        await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A1:A1`);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[ensureLlmExecutionsSheet] Creating LLM_Executions sheet...');
+            await addSheet(spreadsheetId, LLM_EXECUTIONS_SHEET);
+            await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [LLM_EXECUTIONS_HEADERS]);
+        } else {
+            throw error;
+        }
+    }
+}
+
+/**
+ * LLM実行履歴を保存
+ */
+export async function saveLlmExecution(spreadsheetId: string, execution: LlmExecution): Promise<void> {
+    await ensureLlmExecutionsSheet(spreadsheetId);
+
+    const row = [
+        execution.execution_id,
+        execution.execution_type,
+        execution.timestamp,
+        execution.model,
+        execution.criteria_snapshot ? JSON.stringify(execution.criteria_snapshot) : '',
+        execution.screening_prompt,
+        execution.include_threshold.toString(),
+        execution.target_count.toString(),
+        execution.include_count.toString(),
+        execution.exclude_count.toString(),
+    ];
+
+    await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
+}
+
+/**
+ * LLM実行履歴を取得
+ */
+export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
+    try {
+        await ensureLlmExecutionsSheet(spreadsheetId);
+        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:J`);
+
+        if (values.length <= 1) {
+            return [];
+        }
+
+        const headers = values[0];
+        const rows = values.slice(1);
+
+        return rows.map(row => {
+            const execution: Record<string, unknown> = {};
+            headers.forEach((header, i) => {
+                const value = row[i] || '';
+                switch (header) {
+                    case 'include_threshold':
+                        execution[header] = parseFloat(value) || 0;
+                        break;
+                    case 'target_count':
+                    case 'include_count':
+                    case 'exclude_count':
+                        execution[header] = parseInt(value, 10) || 0;
+                        break;
+                    case 'criteria_snapshot':
+                        try {
+                            execution[header] = value ? JSON.parse(value) : null;
+                        } catch {
+                            execution[header] = null;
+                        }
+                        break;
+                    default:
+                        execution[header] = value || '';
+                }
+            });
+            return execution as unknown as LlmExecution;
+        });
+    } catch (error) {
+        console.error('[getLlmExecutions] Error:', error);
+        return [];
+    }
+}
+
+/**
+ * 複数のDecisionを一括追加（LLMバッチ用）
+ */
+export async function appendDecisions(spreadsheetId: string, decisions: Decision[]): Promise<void> {
+    if (decisions.length === 0) return;
+
+    const rows = decisions.map(decision => [
+        decision.decision_id,
+        decision.ref_id,
+        decision.reviewer_id,
+        decision.decision,
+        decision.reason || '',
+        '', // labels: 機能廃止のため空
+        decision.note || '',
+        decision.decided_at,
+        decision.client_version || '',
+        decision.source_url || '',
+    ]);
+
+    await appendRows(spreadsheetId, DECISIONS_SHEET, rows);
+}
+
+/**
+ * 特定のreviewer_idの既存Decisionsを取得
+ */
+export async function getDecisionsByReviewerId(
+    spreadsheetId: string,
+    reviewerId: string
+): Promise<{ decision: Decision; rowIndex: number }[]> {
+    const allDecisions = await getDecisions(spreadsheetId);
+    return allDecisions.filter(({ decision }) => decision.reviewer_id === reviewerId);
+}
+
+/**
+ * 複数のDecisionを一括更新（閾値確定用）
+ */
+export async function updateDecisionsBatch(
+    spreadsheetId: string,
+    updates: { rowIndex: number; decision: Decision }[]
+): Promise<void> {
+    // 効率的なバッチ更新のためにbatchUpdateを使用
+    const token = await getAuthToken();
+
+    const requests = updates.map(({ rowIndex, decision }) => ({
+        range: `${DECISIONS_SHEET}!A${rowIndex}:J${rowIndex}`,
+        values: [[
+            decision.decision_id,
+            decision.ref_id,
+            decision.reviewer_id,
+            decision.decision,
+            decision.reason || '',
+            '', // labels
+            decision.note || '',
+            decision.decided_at,
+            decision.client_version || '',
+            decision.source_url || '',
+        ]],
+    }));
+
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                valueInputOption: 'USER_ENTERED',
+                data: requests,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to batch update decisions: ${error.error?.message || response.statusText}`);
+    }
+}
+
+/**
+ * LLM判定（pending状態）の文献を取得
+ */
+export async function getLlmPendingDecisions(
+    spreadsheetId: string,
+    executionId: string
+): Promise<{ decision: Decision; rowIndex: number }[]> {
+    const allDecisions = await getDecisions(spreadsheetId);
+    return allDecisions.filter(({ decision }) =>
+        decision.reviewer_id === executionId && decision.decision === 'pending'
+    );
 }

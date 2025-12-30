@@ -1,6 +1,6 @@
 // Sidepanel スクリプト
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus } from '../lib/types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmBatchProgress } from '../lib/types';
 import {
     getAuthToken,
     getUserEmail,
@@ -24,9 +24,37 @@ import {
     PRESET_SR,
     addPermission,
     getSpreadsheetPermissions,
+    getLlmConfig,
+    updateLlmConfig,
+    appendDecisions,
+    getDecisionsByReviewerId,
+    updateDecisionsBatch,
+    saveLlmExecution,
+    getLlmExecutions,
+    DEFAULT_LLM_CONFIG,
 } from '../lib/sheets-api';
 
 import { parseRISFile } from '../lib/ris-parser';
+import {
+    getGeminiApiKey,
+    saveGeminiApiKey,
+    removeGeminiApiKey,
+    hasGeminiApiKey,
+    setSessionApiKey,
+    getEffectiveApiKey,
+    getApiKeySavePreference,
+    setApiKeySavePreference,
+} from '../lib/storage';
+import { testApiKey, convertCriteria, GeminiModelConfig } from '../lib/gemini-api';
+import {
+    processBatch,
+    calculateProbabilityDistribution,
+    previewThresholdCounts,
+    applyThresholdToDecisions,
+    createLlmExecution,
+    parseLlmDecisionNote,
+} from '../lib/llm-processor';
+import { generateScreeningPromptFromCriteria, DEFAULT_SCREENING_PROMPT } from '../lib/prompt-templates';
 
 // 状態管理
 let references: ReferenceWithStatus[] = [];
@@ -44,6 +72,13 @@ let autoNavigateAfterDecision = true;  // 判断後に自動的に次の文献�
 let showRecordCountBelow = true;  // レコード件数をタイトル下に表示するか（false=上に表示）
 let termFilterUseAnd = true;  // 複数term選択時にAND検索を使用するか（false=OR検索）
 let activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];  // アクティブなタームフィルター
+
+// LLM関連の状態
+let currentTab: 'screening' | 'llm' = 'screening';
+let llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
+let batchAbortController: AbortController | null = null;
+let currentExecutionId: string = '';
+let currentBatchDecisions: Decision[] = [];
 
 // DOM要素
 const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
@@ -156,6 +191,49 @@ const addExcludeBtn = document.getElementById('add-exclude-btn') as HTMLButtonEl
 
 const saveStatus = document.getElementById('save-status') as HTMLElement;
 const toast = document.getElementById('toast') as HTMLElement;
+
+// LLM関連DOM要素
+const llmSection = document.getElementById('llm-section') as HTMLElement;
+const tabScreeningBtn = document.getElementById('tab-screening') as HTMLButtonElement;
+const tabLlmBtn = document.getElementById('tab-llm') as HTMLButtonElement;
+const llmBackBtn = document.getElementById('llm-back-btn') as HTMLButtonElement;
+const geminiApiKeyInput = document.getElementById('gemini-api-key') as HTMLInputElement;
+const toggleApiKeyVisibilityBtn = document.getElementById('toggle-api-key-visibility') as HTMLButtonElement;
+const saveApiKeyCheckbox = document.getElementById('save-api-key-checkbox') as HTMLInputElement;
+const saveApiKeyBtn = document.getElementById('save-api-key-btn') as HTMLButtonElement;
+const apiKeyStatus = document.getElementById('api-key-status') as HTMLElement;
+const llmModelSelect = document.getElementById('llm-model-select') as HTMLSelectElement;
+const llmLanguageSelect = document.getElementById('llm-language-select') as HTMLSelectElement;
+const protocolTextInput = document.getElementById('protocol-text-input') as HTMLTextAreaElement;
+const optimizeCriteriaBtn = document.getElementById('optimize-criteria-btn') as HTMLButtonElement;
+const optimizeStatusDiv = document.getElementById('optimize-status') as HTMLElement;
+const optimizedCriteriaDisplay = document.getElementById('optimized-criteria-display') as HTMLElement;
+const screeningPromptInput = document.getElementById('screening-prompt-input') as HTMLTextAreaElement;
+const saveCriteriaBtn = document.getElementById('save-criteria-btn') as HTMLButtonElement;
+const batchSizeSelect = document.getElementById('batch-size-select') as HTMLSelectElement;
+const batchTargetSelect = document.getElementById('batch-target-select') as HTMLSelectElement;
+const batchTargetCount = document.getElementById('batch-target-count') as HTMLElement;
+const startBatchBtn = document.getElementById('start-batch-btn') as HTMLButtonElement;
+const stopBatchBtn = document.getElementById('stop-batch-btn') as HTMLButtonElement;
+const batchProgressDiv = document.getElementById('batch-progress') as HTMLElement;
+const batchProgressCurrent = document.getElementById('batch-progress-current') as HTMLElement;
+const batchProgressTotal = document.getElementById('batch-progress-total') as HTMLElement;
+const batchProgressPercent = document.getElementById('batch-progress-percent') as HTMLElement;
+const batchProgressBarFill = document.getElementById('batch-progress-bar-fill') as HTMLElement;
+const batchSuccessCount = document.getElementById('batch-success-count') as HTMLElement;
+const batchFailCount = document.getElementById('batch-fail-count') as HTMLElement;
+const thresholdSection = document.getElementById('threshold-section') as HTMLElement;
+const thresholdProcessedCount = document.getElementById('threshold-processed-count') as HTMLElement;
+const thresholdSlider = document.getElementById('threshold-slider') as HTMLInputElement;
+const thresholdValueDisplay = document.getElementById('threshold-value-display') as HTMLElement;
+const previewIncludeCount = document.getElementById('preview-include-count') as HTMLElement;
+const previewIncludePercent = document.getElementById('preview-include-percent') as HTMLElement;
+const previewExcludeCount = document.getElementById('preview-exclude-count') as HTMLElement;
+const previewExcludePercent = document.getElementById('preview-exclude-percent') as HTMLElement;
+const toggleDistributionBtn = document.getElementById('toggle-distribution-btn') as HTMLButtonElement;
+const distributionChart = document.getElementById('distribution-chart') as HTMLElement;
+const confirmThresholdBtn = document.getElementById('confirm-threshold-btn') as HTMLButtonElement;
+const executionHistory = document.getElementById('execution-history') as HTMLElement;
 
 // 共有設定関連
 const shareBtn = document.getElementById('share-btn') as HTMLButtonElement;
@@ -424,6 +502,9 @@ function setupEventListeners() {
             }
         }
     });
+
+    // LLMタブ関連
+    setupLlmEventListeners();
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -2116,6 +2197,595 @@ async function handleTermFilterAndChange() {
     showToast(termFilterUseAnd
         ? '複数キーワード選択時: AND検索'
         : '複数キーワード選択時: OR検索');
+}
+
+// ========== LLM処理関連関数 ==========
+
+/**
+ * LLMイベントリスナーを設定
+ */
+function setupLlmEventListeners() {
+    // タブ切り替え
+    tabScreeningBtn?.addEventListener('click', () => switchToTab('screening'));
+    tabLlmBtn?.addEventListener('click', () => switchToTab('llm'));
+
+    // LLM戻るボタン
+    llmBackBtn?.addEventListener('click', handleLlmBack);
+
+    // APIキー関連
+    toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
+    saveApiKeyBtn?.addEventListener('click', handleSaveApiKey);
+
+    // 基準最適化
+    optimizeCriteriaBtn?.addEventListener('click', handleOptimizeCriteria);
+    saveCriteriaBtn?.addEventListener('click', handleSaveCriteria);
+
+    // バッチ処理
+    startBatchBtn?.addEventListener('click', handleStartBatch);
+    stopBatchBtn?.addEventListener('click', handleStopBatch);
+    batchTargetSelect?.addEventListener('change', updateBatchTargetCount);
+
+    // 閾値調整
+    thresholdSlider?.addEventListener('input', handleThresholdChange);
+    toggleDistributionBtn?.addEventListener('click', toggleDistributionChart);
+    confirmThresholdBtn?.addEventListener('click', handleConfirmThreshold);
+
+    // 折りたたみセクション
+    document.querySelectorAll('.llm-card.collapsible .collapsible-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const card = header.closest('.llm-card.collapsible');
+            card?.classList.toggle('collapsed');
+        });
+    });
+}
+
+/**
+ * タブを切り替え
+ */
+function switchToTab(tab: 'screening' | 'llm') {
+    currentTab = tab;
+
+    if (tab === 'screening') {
+        tabScreeningBtn?.classList.add('active');
+        tabLlmBtn?.classList.remove('active');
+        screeningSection.classList.remove('hidden');
+        llmSection?.classList.add('hidden');
+    } else {
+        tabScreeningBtn?.classList.remove('active');
+        tabLlmBtn?.classList.add('active');
+        screeningSection.classList.add('hidden');
+        llmSection?.classList.remove('hidden');
+
+        // LLMセクションを初期化
+        initializeLlmSection();
+    }
+}
+
+/**
+ * LLMセクションを初期化
+ */
+async function initializeLlmSection() {
+    try {
+        // APIキーの状態を確認
+        await loadApiKeyStatus();
+
+        // LLM設定を読み込み
+        if (spreadsheetId) {
+            llmConfig = await getLlmConfig(spreadsheetId);
+
+            // UI更新
+            llmModelSelect.value = llmConfig.llm_model;
+            llmLanguageSelect.value = llmConfig.llm_output_language;
+            protocolTextInput.value = llmConfig.llm_protocol_text;
+            thresholdSlider.value = llmConfig.llm_include_threshold.toString();
+            thresholdValueDisplay.textContent = llmConfig.llm_include_threshold.toFixed(2);
+
+            // 既存の基準があれば表示
+            if (llmConfig.llm_criteria) {
+                renderOptimizedCriteria(llmConfig.llm_criteria, llmConfig.llm_screening_prompt);
+            }
+
+            // バッチ対象件数を更新
+            updateBatchTargetCount();
+
+            // 実行履歴を読み込み
+            await loadExecutionHistory();
+        }
+    } catch (error) {
+        console.error('[initializeLlmSection] Error:', error);
+    }
+}
+
+/**
+ * APIキーの状態を読み込み
+ */
+async function loadApiKeyStatus() {
+    const hasKey = await hasGeminiApiKey();
+    const savePreference = await getApiKeySavePreference();
+
+    saveApiKeyCheckbox.checked = savePreference;
+
+    if (hasKey) {
+        const key = await getGeminiApiKey();
+        if (key) {
+            geminiApiKeyInput.value = key;
+            apiKeyStatus.textContent = '✓ APIキーが設定されています';
+            apiKeyStatus.className = 'api-key-status success';
+        }
+    } else {
+        apiKeyStatus.textContent = '';
+        apiKeyStatus.className = 'api-key-status';
+    }
+}
+
+/**
+ * APIキー表示/非表示切り替え
+ */
+function toggleApiKeyVisibility() {
+    if (geminiApiKeyInput.type === 'password') {
+        geminiApiKeyInput.type = 'text';
+        toggleApiKeyVisibilityBtn.textContent = '🙈';
+    } else {
+        geminiApiKeyInput.type = 'password';
+        toggleApiKeyVisibilityBtn.textContent = '👁';
+    }
+}
+
+/**
+ * APIキーを保存
+ */
+async function handleSaveApiKey() {
+    const apiKey = geminiApiKeyInput.value.trim();
+    if (!apiKey) {
+        apiKeyStatus.textContent = 'APIキーを入力してください';
+        apiKeyStatus.className = 'api-key-status error';
+        return;
+    }
+
+    apiKeyStatus.textContent = '検証中...';
+    apiKeyStatus.className = 'api-key-status';
+
+    // APIキーを検証
+    const isValid = await testApiKey(apiKey);
+    if (!isValid) {
+        apiKeyStatus.textContent = '✕ 無効なAPIキーです';
+        apiKeyStatus.className = 'api-key-status error';
+        return;
+    }
+
+    // 保存設定に応じて保存
+    const shouldSave = saveApiKeyCheckbox.checked;
+    await setApiKeySavePreference(shouldSave);
+
+    if (shouldSave) {
+        await saveGeminiApiKey(apiKey);
+        apiKeyStatus.textContent = '✓ APIキーを保存しました';
+    } else {
+        setSessionApiKey(apiKey);
+        await removeGeminiApiKey();
+        apiKeyStatus.textContent = '✓ APIキーを設定しました（セッション限り）';
+    }
+    apiKeyStatus.className = 'api-key-status success';
+}
+
+/**
+ * LLM戻るボタン
+ */
+function handleLlmBack() {
+    switchToTab('screening');
+    handleBack();
+}
+
+/**
+ * 基準を最適化
+ */
+async function handleOptimizeCriteria() {
+    const protocolText = protocolTextInput.value.trim();
+    if (!protocolText) {
+        showToast('プロトコルのテキストを入力してください');
+        return;
+    }
+
+    const apiKey = await getEffectiveApiKey();
+    if (!apiKey) {
+        showToast('APIキーを設定してください');
+        return;
+    }
+
+    try {
+        optimizeCriteriaBtn.disabled = true;
+        optimizeStatusDiv.textContent = '🔄 基準を最適化中...';
+        optimizeStatusDiv.className = 'optimize-status loading';
+        optimizeStatusDiv.classList.remove('hidden');
+
+        const modelConfig: GeminiModelConfig = {
+            model: llmModelSelect.value,
+            temperature: 0,
+            maxOutputTokens: 2048,
+        };
+
+        const result = await convertCriteria(
+            protocolText,
+            modelConfig,
+            llmLanguageSelect.value
+        );
+
+        // 結果を表示
+        renderOptimizedCriteria(result.criteria, result.screening_prompt);
+
+        // 設定を更新
+        llmConfig.llm_criteria = result.criteria;
+        llmConfig.llm_screening_prompt = result.screening_prompt;
+        llmConfig.llm_protocol_text = protocolText;
+
+        optimizeStatusDiv.textContent = '✓ 最適化完了';
+        optimizeStatusDiv.className = 'optimize-status success';
+
+        // 保存ボタンを表示
+        saveCriteriaBtn.classList.remove('hidden');
+    } catch (error) {
+        console.error('[handleOptimizeCriteria] Error:', error);
+        optimizeStatusDiv.textContent = `✕ エラー: ${(error as Error).message}`;
+        optimizeStatusDiv.className = 'optimize-status error';
+    } finally {
+        optimizeCriteriaBtn.disabled = false;
+    }
+}
+
+/**
+ * 最適化された基準を表示
+ */
+function renderOptimizedCriteria(criteria: LlmCriteria, screeningPrompt: string) {
+    optimizedCriteriaDisplay.innerHTML = '';
+
+    // PICO形式で表示
+    const templateLabel = {
+        'pico': 'PICO',
+        'peco': 'PECO',
+        'spider': 'SPIDER',
+        'custom': 'カスタム',
+    }[criteria.template] || criteria.template;
+
+    const templateDiv = document.createElement('div');
+    templateDiv.className = 'criteria-field';
+    templateDiv.innerHTML = `<strong>テンプレート:</strong> ${templateLabel}`;
+    optimizedCriteriaDisplay.appendChild(templateDiv);
+
+    for (const [key, value] of Object.entries(criteria.fields)) {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'criteria-field';
+        fieldDiv.innerHTML = `<strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}`;
+        optimizedCriteriaDisplay.appendChild(fieldDiv);
+    }
+
+    // スクリーニングプロンプトを設定
+    screeningPromptInput.value = screeningPrompt;
+    screeningPromptInput.classList.remove('hidden');
+}
+
+/**
+ * 基準を保存
+ */
+async function handleSaveCriteria() {
+    try {
+        saveCriteriaBtn.disabled = true;
+
+        await updateLlmConfig(spreadsheetId, {
+            llm_protocol_text: protocolTextInput.value,
+            llm_criteria: llmConfig.llm_criteria,
+            llm_screening_prompt: screeningPromptInput.value,
+            llm_model: llmModelSelect.value,
+            llm_output_language: llmLanguageSelect.value,
+        });
+
+        showToast('基準を保存しました');
+    } catch (error) {
+        console.error('[handleSaveCriteria] Error:', error);
+        showToast('保存に失敗しました');
+    } finally {
+        saveCriteriaBtn.disabled = false;
+    }
+}
+
+/**
+ * バッチ対象件数を更新
+ */
+function updateBatchTargetCount() {
+    const target = batchTargetSelect.value;
+    let count: number;
+
+    if (target === 'pending') {
+        count = references.filter(r => r.status === 'pending').length;
+    } else {
+        count = references.length;
+    }
+
+    batchTargetCount.textContent = count.toString();
+}
+
+/**
+ * バッチ処理を開始
+ */
+async function handleStartBatch() {
+    const apiKey = await getEffectiveApiKey();
+    if (!apiKey) {
+        showToast('APIキーを設定してください');
+        return;
+    }
+
+    const screeningPrompt = screeningPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
+    if (!screeningPrompt) {
+        showToast('スクリーニング基準を設定してください');
+        return;
+    }
+
+    // 対象文献を取得
+    const target = batchTargetSelect.value;
+    let targetRefs: ReferenceWithStatus[];
+
+    if (target === 'pending') {
+        targetRefs = references.filter(r => r.status === 'pending');
+    } else {
+        targetRefs = [...references];
+    }
+
+    // バッチサイズで制限
+    const batchSize = parseInt(batchSizeSelect.value, 10);
+    if (batchSize > 0) {
+        targetRefs = targetRefs.slice(0, batchSize);
+    }
+
+    if (targetRefs.length === 0) {
+        showToast('処理対象の文献がありません');
+        return;
+    }
+
+    // UI更新
+    startBatchBtn.classList.add('hidden');
+    stopBatchBtn.classList.remove('hidden');
+    batchProgressDiv.classList.remove('hidden');
+    thresholdSection.classList.add('hidden');
+
+    // AbortControllerを作成
+    batchAbortController = new AbortController();
+    currentBatchDecisions = [];
+
+    try {
+        const result = await processBatch(targetRefs, {
+            batchSize: 10, // 10件ごとに保存
+            screeningPrompt,
+            model: llmModelSelect.value,
+            temperature: 0,
+            maxOutputTokens: 2048,
+            outputLanguage: llmLanguageSelect.value,
+            abortSignal: batchAbortController.signal,
+            onProgress: updateBatchProgress,
+            onSaveBatch: async (decisions) => {
+                await appendDecisions(spreadsheetId, decisions);
+                currentBatchDecisions.push(...decisions);
+            },
+        });
+
+        currentExecutionId = result.executionId;
+
+        // 完了後のUI更新
+        if (!batchAbortController.signal.aborted) {
+            thresholdProcessedCount.textContent = result.successCount.toString();
+            thresholdSection.classList.remove('hidden');
+
+            // 閾値プレビューを更新
+            handleThresholdChange();
+        }
+    } catch (error) {
+        console.error('[handleStartBatch] Error:', error);
+        showToast(`バッチ処理エラー: ${(error as Error).message}`);
+    } finally {
+        startBatchBtn.classList.remove('hidden');
+        stopBatchBtn.classList.add('hidden');
+        batchAbortController = null;
+    }
+}
+
+/**
+ * バッチ処理を中止
+ */
+function handleStopBatch() {
+    if (batchAbortController) {
+        batchAbortController.abort();
+        showToast('バッチ処理を中止しました');
+    }
+}
+
+/**
+ * バッチ進捗を更新
+ */
+function updateBatchProgress(progress: LlmBatchProgress) {
+    batchProgressCurrent.textContent = progress.processed.toString();
+    batchProgressTotal.textContent = progress.total.toString();
+
+    const percent = progress.total > 0
+        ? Math.round((progress.processed / progress.total) * 100)
+        : 0;
+    batchProgressPercent.textContent = percent.toString();
+    batchProgressBarFill.style.width = `${percent}%`;
+
+    batchSuccessCount.textContent = progress.succeeded.toString();
+    batchFailCount.textContent = progress.failed.toString();
+}
+
+/**
+ * 閾値変更時の処理
+ */
+function handleThresholdChange() {
+    const threshold = parseFloat(thresholdSlider.value);
+    thresholdValueDisplay.textContent = threshold.toFixed(2);
+
+    // プレビューを更新
+    const counts = previewThresholdCounts(currentBatchDecisions, threshold);
+    const total = counts.includeCount + counts.excludeCount;
+
+    previewIncludeCount.textContent = counts.includeCount.toString();
+    previewExcludeCount.textContent = counts.excludeCount.toString();
+
+    if (total > 0) {
+        previewIncludePercent.textContent = Math.round((counts.includeCount / total) * 100).toString();
+        previewExcludePercent.textContent = Math.round((counts.excludeCount / total) * 100).toString();
+    }
+}
+
+/**
+ * 分布チャートの表示/非表示
+ */
+function toggleDistributionChart() {
+    distributionChart.classList.toggle('hidden');
+
+    if (!distributionChart.classList.contains('hidden')) {
+        renderDistributionChart();
+    }
+}
+
+/**
+ * 分布チャートを描画
+ */
+function renderDistributionChart() {
+    const distribution = calculateProbabilityDistribution(currentBatchDecisions, 5);
+    const maxCount = Math.max(...distribution.map(d => d.count), 1);
+
+    distributionChart.innerHTML = '';
+
+    for (const bin of distribution) {
+        const container = document.createElement('div');
+        container.className = 'distribution-bar-container';
+
+        const label = document.createElement('span');
+        label.className = 'distribution-label';
+        label.textContent = bin.range;
+
+        const barWrapper = document.createElement('div');
+        barWrapper.className = 'distribution-bar-wrapper';
+
+        const bar = document.createElement('div');
+        bar.className = 'distribution-bar';
+        bar.style.width = `${(bin.count / maxCount) * 100}%`;
+        barWrapper.appendChild(bar);
+
+        const count = document.createElement('span');
+        count.className = 'distribution-count';
+        count.textContent = `${bin.count}件`;
+
+        container.appendChild(label);
+        container.appendChild(barWrapper);
+        container.appendChild(count);
+        distributionChart.appendChild(container);
+    }
+}
+
+/**
+ * 閾値を確定して保存
+ */
+async function handleConfirmThreshold() {
+    const threshold = parseFloat(thresholdSlider.value);
+
+    try {
+        confirmThresholdBtn.disabled = true;
+        showToast('保存中...');
+
+        // 閾値を適用してdecisionを確定
+        const updatedDecisions = applyThresholdToDecisions(currentBatchDecisions, threshold);
+
+        // Decisionsシートの行を取得して更新
+        const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, currentExecutionId);
+
+        const updates: { rowIndex: number; decision: Decision }[] = [];
+        for (const updated of updatedDecisions) {
+            const existing = existingDecisions.find(e => e.decision.ref_id === updated.ref_id);
+            if (existing) {
+                updates.push({ rowIndex: existing.rowIndex, decision: updated });
+            }
+        }
+
+        if (updates.length > 0) {
+            await updateDecisionsBatch(spreadsheetId, updates);
+        }
+
+        // 実行履歴を保存
+        const counts = previewThresholdCounts(currentBatchDecisions, threshold);
+        const execution = createLlmExecution(
+            currentExecutionId,
+            'batch_screening',
+            llmModelSelect.value,
+            llmConfig.llm_criteria,
+            screeningPromptInput.value,
+            threshold,
+            currentBatchDecisions.length,
+            counts.includeCount,
+            counts.excludeCount
+        );
+        await saveLlmExecution(spreadsheetId, execution);
+
+        // LLM設定を更新
+        await updateLlmConfig(spreadsheetId, {
+            llm_include_threshold: threshold,
+        });
+
+        showToast('閾値を確定して保存しました');
+
+        // データを再読み込み
+        await loadDataAndShowScreening();
+
+        // 実行履歴を更新
+        await loadExecutionHistory();
+    } catch (error) {
+        console.error('[handleConfirmThreshold] Error:', error);
+        showToast(`保存エラー: ${(error as Error).message}`);
+    } finally {
+        confirmThresholdBtn.disabled = false;
+    }
+}
+
+/**
+ * 実行履歴を読み込み
+ */
+async function loadExecutionHistory() {
+    try {
+        const executions = await getLlmExecutions(spreadsheetId);
+
+        if (executions.length === 0) {
+            executionHistory.innerHTML = '<p class="placeholder-text">実行履歴がありません</p>';
+            return;
+        }
+
+        executionHistory.innerHTML = '';
+
+        // 新しい順にソート
+        const sorted = [...executions].sort((a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+
+        for (const exec of sorted.slice(0, 10)) {
+            const item = document.createElement('div');
+            item.className = 'execution-item';
+
+            const date = new Date(exec.timestamp);
+            const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+            const typeLabel = exec.execution_type === 'batch_screening' ? 'バッチ' : '基準生成';
+
+            item.innerHTML = `
+                <div class="execution-date">
+                    <span class="execution-type">${typeLabel}</span>
+                    ${dateStr}
+                </div>
+                <div class="execution-stats">
+                    ${exec.target_count}件処理 → Include: ${exec.include_count}件, Exclude: ${exec.exclude_count}件
+                    (閾値: ${exec.include_threshold.toFixed(2)})
+                </div>
+            `;
+            executionHistory.appendChild(item);
+        }
+    } catch (error) {
+        console.error('[loadExecutionHistory] Error:', error);
+    }
 }
 
 export { };

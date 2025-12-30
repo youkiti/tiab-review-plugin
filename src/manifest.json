@@ -10,7 +10,8 @@
     ],
     "host_permissions": [
         "https://sheets.googleapis.com/*",
-        "https://www.googleapis.com/drive/*"
+        "https://www.googleapis.com/drive/*",
+        "https://generativelanguage.googleapis.com/*"
     ],
     "oauth2": {
         "client_id": "451307229828-kf21vg8iof38ck0f0pu5m1ms7hqslib0.apps.googleusercontent.com",
