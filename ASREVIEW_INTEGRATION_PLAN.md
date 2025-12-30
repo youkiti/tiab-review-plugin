@@ -177,7 +177,19 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 3. タイトルの正規化・ファジーマッチングを行い、一致する文献を `label=1`、それ以外を `0` とする。
 4. `scripts/asreview-baseline/datasets/cq{n}_labeled.json` として保存。
 
+
+#### 追加採用データセット（ユーザー要望）
+
+以下のオープンデータセットも検証用として取得・整備する。
+
+| Dataset | URL | Description |
+|---------|-----|-------------|
+| **Depression (SLIM)** | [Zenodo 151190](https://zenodo.org/records/151190) | うつ病（動物モデル）SR。2名独立評価+reconcile。`Depression-Dataset-SLIM-DevelopmentTrainingSet.txt` を使用。 |
+| **Wilson's Disease** | [Zenodo 3625931](https://zenodo.org/records/3625931) | Wilson病治療SR。TiAb対象(3453件)を正解(FT進出=26件+excluded=148件?)としてラベル化。 |
+| **Mendeley Data** | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。負荷テスト用。 |
+
 #### 拡張性（他のデータセット追加）
+
 
 PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデータセットを検証に追加したい場合は、上記 `cq*_labeled.json` と同じ JSON スキーマ（`id`, `title`, `abstract`, `label`）を持つファイルを作成し、`scripts/asreview-baseline/datasets/` に配置することで、検証パイプラインに追加可能とする。
 

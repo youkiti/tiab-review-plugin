@@ -169,14 +169,24 @@
             <!-- 判定ボタン -->
             <div class="decision-buttons">
                 <button id="btn-include" class="btn btn-include" title="Include (i)">
-                    ✓ Include
+                    ✓ Include (i)
                 </button>
                 <button id="btn-maybe" class="btn btn-maybe" title="Maybe (m)">
-                    ? Maybe
+                    ? Maybe (m)
                 </button>
                 <button id="btn-exclude" class="btn btn-exclude" title="Exclude (e)">
-                    ✕ Exclude
+                    ✕ Exclude (e)
                 </button>
+            </div>
+
+            <!-- ナビゲーション -->
+            <div class="navigation">
+                <button id="btn-prev" class="btn btn-nav" title="前へ (←)">前へ (←)</button>
+                <div class="nav-center">
+                    <span id="nav-position">1 / 100</span>
+                    <div id="nav-progress" class="nav-progress hidden"></div>
+                </div>
+                <button id="btn-next" class="btn btn-nav" title="次へ (→)">次へ (→)</button>
             </div>
 
             <!-- ハイライト設定 -->
@@ -221,16 +231,6 @@
             <div class="form-group">
                 <label for="note">メモ</label>
                 <textarea id="note" rows="2" placeholder="メモを入力..."></textarea>
-            </div>
-
-            <!-- ナビゲーション -->
-            <div class="navigation">
-                <button id="btn-prev" class="btn btn-nav" title="前へ (←)">← 前へ</button>
-                <div class="nav-center">
-                    <span id="nav-position">1 / 100</span>
-                    <div id="nav-progress" class="nav-progress hidden"></div>
-                </div>
-                <button id="btn-next" class="btn btn-nav" title="次へ (→)">次へ →</button>
             </div>
 
             <!-- インポート元フィルター (最下部) -->
