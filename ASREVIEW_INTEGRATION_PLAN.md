@@ -177,6 +177,10 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 3. タイトルの正規化・ファジーマッチングを行い、一致する文献を `label=1`、それ以外を `0` とする。
 4. `scripts/asreview-baseline/datasets/cq{n}_labeled.json` として保存。
 
+#### 拡張性（他のデータセット追加）
+
+PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデータセットを検証に追加したい場合は、上記 `cq*_labeled.json` と同じ JSON スキーマ（`id`, `title`, `abstract`, `label`）を持つファイルを作成し、`scripts/asreview-baseline/datasets/` に配置することで、検証パイプラインに追加可能とする。
+
 ### 5.3 Baseline（Python）生成スクリプト（案）
 
 - `scripts/asreview-baseline/` を作成し、以下を出力する:
