@@ -1715,3 +1715,53 @@ input:checked+.slider:before {
     font-size: 10px;
     margin-right: 6px;
 }
+
+/* 実行履歴のステータス表示 */
+.execution-item.pending {
+    border-left: 3px solid #fbbc04;
+}
+
+.execution-item.confirmed {
+    border-left: 3px solid #34a853;
+}
+
+.execution-status {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+.execution-status.pending {
+    background: #fff8e1;
+    color: #f57c00;
+}
+
+.execution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.execution-active-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #666;
+    cursor: pointer;
+}
+
+.execution-active-checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* LLMレビュアー表示用スタイル */
+.decision-reviewer.is-llm {
+    color: #9334e6;
+    font-weight: 500;
+}

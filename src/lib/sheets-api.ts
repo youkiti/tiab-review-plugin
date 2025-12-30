@@ -14,7 +14,8 @@ const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
-    'target_count', 'include_count', 'exclude_count'
+    'target_count', 'include_count', 'exclude_count',
+    'status', 'is_active'
 ];
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
@@ -1060,6 +1061,8 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.target_count.toString(),
         execution.include_count.toString(),
         execution.exclude_count.toString(),
+        execution.status,
+        execution.is_active ? 'true' : 'false',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -1071,7 +1074,7 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
 export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
     try {
         await ensureLlmExecutionsSheet(spreadsheetId);
-        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:J`);
+        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:L`);
 
         if (values.length <= 1) {
             return [];
@@ -1100,6 +1103,12 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                             execution[header] = null;
                         }
                         break;
+                    case 'is_active':
+                        execution[header] = value.toLowerCase() === 'true';
+                        break;
+                    case 'status':
+                        execution[header] = value === 'pending' ? 'pending' : 'confirmed';
+                        break;
                     default:
                         execution[header] = value || '';
                 }
@@ -1110,6 +1119,57 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
         console.error('[getLlmExecutions] Error:', error);
         return [];
     }
+}
+
+/**
+ * LLM実行履歴を更新
+ */
+export async function updateLlmExecution(
+    spreadsheetId: string,
+    executionId: string,
+    updates: Partial<LlmExecution>
+): Promise<void> {
+    await ensureLlmExecutionsSheet(spreadsheetId);
+    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:L`);
+
+    if (values.length <= 1) {
+        throw new Error('Execution not found');
+    }
+
+    // execution_idで行を検索
+    let rowIndex = -1;
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === executionId) {
+            rowIndex = i + 1; // 1-indexed
+            break;
+        }
+    }
+
+    if (rowIndex === -1) {
+        throw new Error(`Execution not found: ${executionId}`);
+    }
+
+    const currentRow = values[rowIndex - 1];
+    const headers = values[0];
+
+    // 更新行を構築
+    const newRow = headers.map((header, i) => {
+        if (updates[header as keyof LlmExecution] !== undefined) {
+            const value = updates[header as keyof LlmExecution];
+            if (header === 'criteria_snapshot') {
+                return value ? JSON.stringify(value) : '';
+            } else if (header === 'is_active') {
+                return value ? 'true' : 'false';
+            } else if (typeof value === 'number') {
+                return value.toString();
+            } else {
+                return String(value);
+            }
+        }
+        return currentRow[i] || '';
+    });
+
+    await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:L${rowIndex}`, [newRow]);
 }
 
 /**

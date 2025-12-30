@@ -31,6 +31,7 @@ import {
     updateDecisionsBatch,
     saveLlmExecution,
     getLlmExecutions,
+    updateLlmExecution,
     DEFAULT_LLM_CONFIG,
 } from '../lib/sheets-api';
 
@@ -53,6 +54,7 @@ import {
     applyThresholdToDecisions,
     createLlmExecution,
     parseLlmDecisionNote,
+    isLlmReviewerId,
 } from '../lib/llm-processor';
 import { generateScreeningPromptFromCriteria, DEFAULT_SCREENING_PROMPT } from '../lib/prompt-templates';
 
@@ -79,6 +81,7 @@ let llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
 let batchAbortController: AbortController | null = null;
 let currentExecutionId: string = '';
 let currentBatchDecisions: Decision[] = [];
+let activeLlmExecutionIds: Set<string> = new Set();  // 確定済みかつis_active=trueのLLM実行ID
 
 // DOM要素
 const sourceFileListDiv = document.getElementById('source-file-list') as HTMLElement;
@@ -1784,21 +1787,43 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
     });
 
     // 全レビュアー（判定済み＋未判定）を表示
+    // LLM reviewer_idはactiveLlmExecutionIdsに含まれるもののみ表示
     const allReviewers = new Set([
-        ...ref.allDecisions.map(d => d.reviewer_id),
+        ...ref.allDecisions.map(d => d.reviewer_id).filter(reviewerId => {
+            // LLM reviewer_idの場合はアクティブかチェック
+            if (isLlmReviewerId(reviewerId)) {
+                return activeLlmExecutionIds.has(reviewerId);
+            }
+            return true;
+        }),
         userEmail, // 自分を必ず含める
     ]);
 
     allReviewers.forEach(reviewerId => {
         const decision = decisionsMap.get(reviewerId);
         const isMe = reviewerId === userEmail;
+        const isLlm = isLlmReviewerId(reviewerId);
 
         const item = document.createElement('div');
         item.className = 'decision-item';
 
         const reviewerSpan = document.createElement('span');
-        reviewerSpan.className = isMe ? 'decision-reviewer is-me' : 'decision-reviewer';
-        reviewerSpan.textContent = isMe ? `${reviewerId} (あなた)` : reviewerId;
+        reviewerSpan.className = isMe ? 'decision-reviewer is-me' : (isLlm ? 'decision-reviewer is-llm' : 'decision-reviewer');
+
+        // LLMの場合は表示名を短縮
+        let displayName = reviewerId;
+        if (isLlm) {
+            // llm:gemini-2.5-flash-lite@2025-12-30T13:00:04.340Z → LLM (12/30 13:00)
+            const match = reviewerId.match(/@(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+            if (match) {
+                displayName = `LLM (${parseInt(match[2])}/${parseInt(match[3])} ${match[4]}:${match[5]})`;
+            } else {
+                displayName = 'LLM';
+            }
+        } else if (isMe) {
+            displayName = `${reviewerId} (あなた)`;
+        }
+        reviewerSpan.textContent = displayName;
 
         const valueSpan = document.createElement('span');
         const decisionValue = decision?.decision || 'pending';
@@ -2574,6 +2599,25 @@ async function handleStartBatch() {
 
         // 完了後のUI更新
         if (!batchAbortController.signal.aborted) {
+            // pending状態で実行履歴を保存
+            const execution = createLlmExecution(
+                result.executionId,
+                'batch_screening',
+                llmModelSelect.value,
+                llmConfig.llm_criteria,
+                screeningPromptInput.value,
+                0,  // 閾値は未確定
+                result.processedCount,
+                0,  // include_countは未確定
+                0,  // exclude_countは未確定
+                'pending',  // status
+                true        // is_active
+            );
+            await saveLlmExecution(spreadsheetId, execution);
+
+            // 履歴を再読み込み
+            await loadExecutionHistory();
+
             thresholdProcessedCount.textContent = result.successCount.toString();
             thresholdSection.classList.remove('hidden');
 
@@ -2715,20 +2759,14 @@ async function handleConfirmThreshold() {
             await updateDecisionsBatch(spreadsheetId, updates);
         }
 
-        // 実行履歴を保存
+        // 実行履歴を更新（pending → confirmed）
         const counts = previewThresholdCounts(currentBatchDecisions, threshold);
-        const execution = createLlmExecution(
-            currentExecutionId,
-            'batch_screening',
-            llmModelSelect.value,
-            llmConfig.llm_criteria,
-            screeningPromptInput.value,
-            threshold,
-            currentBatchDecisions.length,
-            counts.includeCount,
-            counts.excludeCount
-        );
-        await saveLlmExecution(spreadsheetId, execution);
+        await updateLlmExecution(spreadsheetId, currentExecutionId, {
+            include_threshold: threshold,
+            include_count: counts.includeCount,
+            exclude_count: counts.excludeCount,
+            status: 'confirmed',
+        });
 
         // LLM設定を更新
         await updateLlmConfig(spreadsheetId, {
@@ -2757,6 +2795,14 @@ async function loadExecutionHistory() {
     try {
         const executions = await getLlmExecutions(spreadsheetId);
 
+        // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
+        activeLlmExecutionIds.clear();
+        for (const exec of executions) {
+            if (exec.status === 'confirmed' && exec.is_active) {
+                activeLlmExecutionIds.add(exec.execution_id);
+            }
+        }
+
         if (executions.length === 0) {
             executionHistory.innerHTML = '<p class="placeholder-text">実行履歴がありません</p>';
             return;
@@ -2771,23 +2817,60 @@ async function loadExecutionHistory() {
 
         for (const exec of sorted.slice(0, 10)) {
             const item = document.createElement('div');
-            item.className = 'execution-item';
+            item.className = `execution-item ${exec.status === 'pending' ? 'pending' : 'confirmed'}`;
 
             const date = new Date(exec.timestamp);
             const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 
             const typeLabel = exec.execution_type === 'batch_screening' ? 'バッチ' : '基準生成';
+            const statusLabel = exec.status === 'pending' ? '<span class="execution-status pending">未確定</span>' : '';
+
+            // pending状態では閾値・件数を非表示
+            const statsContent = exec.status === 'pending'
+                ? `${exec.target_count}件処理（閾値未確定）`
+                : `${exec.target_count}件処理 → Include: ${exec.include_count}件, Exclude: ${exec.exclude_count}件 (閾値: ${exec.include_threshold.toFixed(2)})`;
+
+            // チェックボックス（batch_screening かつ confirmed のみ）
+            const checkboxHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+                ? `<label class="execution-active-label">
+                     <input type="checkbox" class="execution-active-checkbox" 
+                            data-execution-id="${exec.execution_id}" 
+                            ${exec.is_active ? 'checked' : ''}>
+                     判定に使用
+                   </label>`
+                : '';
 
             item.innerHTML = `
-                <div class="execution-date">
-                    <span class="execution-type">${typeLabel}</span>
-                    ${dateStr}
+                <div class="execution-header">
+                    <div class="execution-date">
+                        <span class="execution-type">${typeLabel}</span>
+                        ${statusLabel}
+                        ${dateStr}
+                    </div>
+                    ${checkboxHtml}
                 </div>
                 <div class="execution-stats">
-                    ${exec.target_count}件処理 → Include: ${exec.include_count}件, Exclude: ${exec.exclude_count}件
-                    (閾値: ${exec.include_threshold.toFixed(2)})
+                    ${statsContent}
                 </div>
             `;
+
+            // チェックボックスのイベントリスナー
+            const checkbox = item.querySelector('.execution-active-checkbox') as HTMLInputElement | null;
+            if (checkbox) {
+                checkbox.addEventListener('change', async () => {
+                    try {
+                        await updateLlmExecution(spreadsheetId, exec.execution_id, {
+                            is_active: checkbox.checked,
+                        });
+                        showToast(checkbox.checked ? '判定に使用します' : '判定から除外しました');
+                    } catch (error) {
+                        console.error('[loadExecutionHistory] Failed to update is_active:', error);
+                        showToast('更新に失敗しました');
+                        checkbox.checked = !checkbox.checked; // ロールバック
+                    }
+                });
+            }
+
             executionHistory.appendChild(item);
         }
     } catch (error) {

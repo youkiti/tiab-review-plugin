@@ -95,6 +95,8 @@ export interface LlmExecution {
     target_count: number;
     include_count: number;
     exclude_count: number;
+    status: 'pending' | 'confirmed';  // 確定状態
+    is_active: boolean;               // 判定に使用するか
 }
 
 /**

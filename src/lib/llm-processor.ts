@@ -318,7 +318,9 @@ export function createLlmExecution(
     threshold: number,
     targetCount: number,
     includeCount: number,
-    excludeCount: number
+    excludeCount: number,
+    status: 'pending' | 'confirmed' = 'confirmed',
+    isActive: boolean = true
 ): LlmExecution {
     return {
         execution_id: executionId,
@@ -331,6 +333,8 @@ export function createLlmExecution(
         target_count: targetCount,
         include_count: includeCount,
         exclude_count: excludeCount,
+        status,
+        is_active: isActive,
     };
 }
 
