@@ -17,7 +17,7 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Optional
 
-DATA_DIR = Path("vendor/llm-citation-screening/Data")
+DATA_DIR = Path("scripts/asreview-baseline/raw_data")
 OUTPUT_DIR = Path("scripts/asreview-baseline/datasets")
 PASSWORD = "oami2025"
 
