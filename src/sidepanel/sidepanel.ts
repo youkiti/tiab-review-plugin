@@ -210,7 +210,7 @@ const optimizeStatusDiv = document.getElementById('optimize-status') as HTMLElem
 const optimizedCriteriaDisplay = document.getElementById('optimized-criteria-display') as HTMLElement;
 const screeningPromptInput = document.getElementById('screening-prompt-input') as HTMLTextAreaElement;
 const saveCriteriaBtn = document.getElementById('save-criteria-btn') as HTMLButtonElement;
-const batchSaveSizeSelect = document.getElementById('batch-save-size-select') as HTMLSelectElement;
+const batchSaveSizeInput = document.getElementById('batch-save-size-input') as HTMLInputElement;
 const batchTargetCount = document.getElementById('batch-target-count') as HTMLElement;
 const startBatchBtn = document.getElementById('start-batch-btn') as HTMLButtonElement;
 const stopBatchBtn = document.getElementById('stop-batch-btn') as HTMLButtonElement;
@@ -2554,7 +2554,7 @@ async function handleStartBatch() {
     currentBatchDecisions = [];
 
     try {
-        const saveBatchSize = Math.max(parseInt(batchSaveSizeSelect.value, 10) || 10, 1);
+        const saveBatchSize = Math.max(parseInt(batchSaveSizeInput.value, 10) || 5, 1);
         const result = await processBatch(targetRefs, {
             batchSize: saveBatchSize,
             screeningPrompt,

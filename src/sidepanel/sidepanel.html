@@ -373,13 +373,8 @@
 
                 <div class="setting-row">
                     <label>バッチサイズ:</label>
-                    <select id="batch-save-size-select">
-                        <option value="5">5件ずつ</option>
-                        <option value="10" selected>10件ずつ</option>
-                        <option value="25">25件ずつ</option>
-                        <option value="50">50件ずつ</option>
-                    </select>
-                    <span class="setting-hint">（一度に処理・保存する件数）</span>
+                    <input type="number" id="batch-save-size-input" value="5" min="1" max="500" style="width: 60px;">
+                    <span class="setting-hint">件ずつ（並列処理・保存）</span>
                 </div>
 
                 <div id="batch-info" class="batch-info">

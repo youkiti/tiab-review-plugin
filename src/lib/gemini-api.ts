@@ -18,7 +18,7 @@ export interface GeminiModelConfig {
  * デフォルト設定
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-flash-latest',
     temperature: 0,
     maxOutputTokens: 2048,
 };
@@ -245,7 +245,7 @@ ${protocolText}
  * APIキーの有効性をテスト
  */
 export async function testApiKey(apiKey: string): Promise<boolean> {
-    const url = `${GEMINI_API_BASE}/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `${GEMINI_API_BASE}/gemini-flash-latest:generateContent?key=${apiKey}`;
 
     const requestBody = {
         contents: [
