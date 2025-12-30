@@ -43,3 +43,6 @@ coverage/
 
 # Large dataset files (>100MB, cannot push to GitHub)
 scripts/asreview-baseline/datasets/mendeley_20240827_dev_set.json
+
+# Vendor directories (reference code from other repositories)
+vendor/
