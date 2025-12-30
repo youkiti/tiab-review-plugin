@@ -2,31 +2,103 @@
 
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
+const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
 
-/**
- * 簡易的なエンコード（Base64 + 簡単な難読化）
- * 注: これはセキュリティ目的ではなく、ストレージを覗いた時に
- * 平文で見えないようにするための措置です
- */
-function encodeApiKey(apiKey: string): string {
-    // 文字列を反転してからBase64エンコード
-    const reversed = apiKey.split('').reverse().join('');
-    return btoa(reversed);
+function bytesToBase64(bytes: Uint8Array): string {
+    let binary = '';
+    for (const b of bytes) {
+        binary += String.fromCharCode(b);
+    }
+    return btoa(binary);
 }
 
-/**
- * デコード
- */
-function decodeApiKey(encoded: string): string {
-    const reversed = atob(encoded);
-    return reversed.split('').reverse().join('');
+function base64ToBytes(base64: string): Uint8Array {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+async function getOrCreateSalt(): Promise<Uint8Array> {
+    const result = await chrome.storage.local.get([GEMINI_API_KEY_SALT_KEY]);
+    const existing = result[GEMINI_API_KEY_SALT_KEY];
+    if (typeof existing === 'string' && existing.length > 0) {
+        return base64ToBytes(existing);
+    }
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    await chrome.storage.local.set({ [GEMINI_API_KEY_SALT_KEY]: bytesToBase64(salt) });
+    return salt;
+}
+
+async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
+    const secret = chrome.runtime.id;
+    const baseKey = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(secret),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt,
+            iterations: 100000,
+            hash: 'SHA-256',
+        },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function encryptApiKey(apiKey: string): Promise<string> {
+    const salt = await getOrCreateSalt();
+    const key = await deriveKey(salt);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        new TextEncoder().encode(apiKey)
+    );
+
+    const payload = {
+        v: 1,
+        iv: bytesToBase64(iv),
+        data: bytesToBase64(new Uint8Array(ciphertext)),
+    };
+    return JSON.stringify(payload);
+}
+
+async function decryptApiKey(encoded: string): Promise<string> {
+    const parsed = JSON.parse(encoded) as { v: number; iv: string; data: string };
+    if (!parsed || parsed.v !== 1 || !parsed.iv || !parsed.data) {
+        throw new Error('Invalid encrypted payload');
+    }
+
+    const salt = await getOrCreateSalt();
+    const key = await deriveKey(salt);
+    const iv = base64ToBytes(parsed.iv);
+    const data = base64ToBytes(parsed.data);
+
+    const plaintext = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+    );
+    return new TextDecoder().decode(plaintext);
 }
 
 /**
  * Gemini APIキーを保存
  */
 export async function saveGeminiApiKey(apiKey: string): Promise<void> {
-    const encoded = encodeApiKey(apiKey);
+    const encoded = await encryptApiKey(apiKey);
     await chrome.storage.local.set({ [GEMINI_API_KEY_STORAGE_KEY]: encoded });
 }
 
@@ -38,7 +110,7 @@ export async function getGeminiApiKey(): Promise<string | null> {
     const encoded = result[GEMINI_API_KEY_STORAGE_KEY];
     if (!encoded) return null;
     try {
-        return decodeApiKey(encoded);
+        return await decryptApiKey(encoded);
     } catch {
         return null;
     }

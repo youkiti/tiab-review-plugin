@@ -372,13 +372,23 @@
                 <h4>🚀 一括実行</h4>
 
                 <div class="setting-row">
-                    <label>バッチサイズ:</label>
+                    <label>処理件数上限:</label>
                     <select id="batch-size-select">
                         <option value="10">10件</option>
                         <option value="25">25件</option>
                         <option value="50" selected>50件</option>
                         <option value="100">100件</option>
                         <option value="0">全件</option>
+                    </select>
+                </div>
+
+                <div class="setting-row">
+                    <label>保存単位:</label>
+                    <select id="batch-save-size-select">
+                        <option value="5">5件</option>
+                        <option value="10" selected>10件</option>
+                        <option value="25">25件</option>
+                        <option value="50">50件</option>
                     </select>
                 </div>
 

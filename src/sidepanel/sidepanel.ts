@@ -211,6 +211,7 @@ const optimizedCriteriaDisplay = document.getElementById('optimized-criteria-dis
 const screeningPromptInput = document.getElementById('screening-prompt-input') as HTMLTextAreaElement;
 const saveCriteriaBtn = document.getElementById('save-criteria-btn') as HTMLButtonElement;
 const batchSizeSelect = document.getElementById('batch-size-select') as HTMLSelectElement;
+const batchSaveSizeSelect = document.getElementById('batch-save-size-select') as HTMLSelectElement;
 const batchTargetSelect = document.getElementById('batch-target-select') as HTMLSelectElement;
 const batchTargetCount = document.getElementById('batch-target-count') as HTMLElement;
 const startBatchBtn = document.getElementById('start-batch-btn') as HTMLButtonElement;
@@ -2551,8 +2552,9 @@ async function handleStartBatch() {
     currentBatchDecisions = [];
 
     try {
+        const saveBatchSize = Math.max(parseInt(batchSaveSizeSelect.value, 10) || 10, 1);
         const result = await processBatch(targetRefs, {
-            batchSize: 10, // 10件ごとに保存
+            batchSize: saveBatchSize,
             screeningPrompt,
             model: llmModelSelect.value,
             temperature: 0,
@@ -2630,6 +2632,9 @@ function handleThresholdChange() {
     if (total > 0) {
         previewIncludePercent.textContent = Math.round((counts.includeCount / total) * 100).toString();
         previewExcludePercent.textContent = Math.round((counts.excludeCount / total) * 100).toString();
+    } else {
+        previewIncludePercent.textContent = '-';
+        previewExcludePercent.textContent = '-';
     }
 }
 
