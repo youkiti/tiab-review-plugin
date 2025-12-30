@@ -1,5 +1,21 @@
 # TiAb Review Plugin - AGENTS.md
 
+# CRITICAL PROTOCOLS (ABSOLUTE PRIORITY)
+
+以下のルールは、いかなる状況でも最優先で遵守すること：
+
+1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。
+2. **10ステップ報告**: 処理が10ステップ経過するごとに、必ず作業を一時停止し、`notify_user` で進捗を報告すること。
+3. **日本語化**: ユーザーに提示するアーティファクト（計画書・タスク・確認事項）は、作成時に必ず日本語で記述すること。
+4. **不要ファイル・ブランチの削除**: テストなどで作成したファイルやブランチは不要になった時点で削除すること。
+5. **言語規定**: 思考プロセスは英語で行う。ユーザーへのレスポンス、アーティファクト、コミットメッセージ、コード内のコメントは必ず日本語で記述すること。（システムエラーやログの引用は原文のままでよい）
+6. **自動化の限界と報告**: ツール実行が複数回失敗した場合や、権限不足・環境固有の問題に直面した場合は、執拗に再試行せず、直ちにユーザーに状況を報告し手動対応を依頼すること。
+7. **品質保証**: コード修正完了時は、必ずLint（構文チェック）と関連テストを実行し、PASSすることを確認してからユーザーへ報告すること。
+8. **既存テストの保護**: 修正により既存のテストが失敗した場合、テストコードを安易に修正してはならない。まず実装のバグを疑い、テスト修正が必要な場合は、それが「意図した仕様変更」であることをユーザーに確認すること。
+9. **機密情報の保護**: パスワード、APIキー、トークンなどの機密情報を、ログ・アーティファクト・チャットの応答などに絶対に出力しないこと。`.env`の取り扱いに注意すること。
+10. **ドキュメントの同期**: 機能や仕様を変更した際は、コードの修正だけでなく、関連するドキュメント（README、API仕様書、主要なコメント等）も必ず同期して更新すること。
+11. **作業中断時のロールバック**: エラーや中断によりタスクを終了する場合、ユーザーの明示的な指示がない限り、修正途中の不安定な状態を残さず、作業開始前のクリーンな状態に復元すること。
+
 ## プロジェクト概要
 
 **Title & Abstract (TiAb) Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
@@ -30,64 +46,67 @@ Google スプレッドシートを共有データベースとして使用し、�
 1つのスプレッドシートをレビュー単位で作成し、以下のタブを用意:
 
 #### References タブ（文献マスタ）
-| 列名 | 説明 | 必須 |
-|------|------|------|
-| ref_id | 文献主キー（UUID） | ✓ |
-| title | タイトル | ✓ |
-| abstract | 抄録 | |
-| year | 出版年 | |
-| authors | 著者 | |
-| journal | ジャーナル名 | |
-| doi | DOI | |
-| pmid | PubMed ID | |
-| url | URL | |
-| source | 取り込み元DB | |
-| imported_at | 取り込み日時 | |
-| imported_by | 取り込み者 | |
-| dedupe_key | 重複検出キー（後述） | |
 
+| 列名        | 説明                 | 必須 |
+| ----------- | -------------------- | ---- |
+| ref_id      | 文献主キー（UUID）   | ✓   |
+| title       | タイトル             | ✓   |
+| abstract    | 抄録                 |      |
+| year        | 出版年               |      |
+| authors     | 著者                 |      |
+| journal     | ジャーナル名         |      |
+| doi         | DOI                  |      |
+| pmid        | PubMed ID            |      |
+| url         | URL                  |      |
+| source      | 取り込み元DB         |      |
+| imported_at | 取り込み日時         |      |
+| imported_by | 取り込み者           |      |
+| dedupe_key  | 重複検出キー（後述） |      |
 
 #### Decisions タブ（最新判定のみを有効にする判定ログ）
-| 列名 | 説明 | 必須 |
-|------|------|------|
-| decision_id | 判定ID（UUID） | ✓ |
-| ref_id | 文献ID（Referencesと結合） | ✓ |
-| reviewer_id | 判定者（email） | ✓ |
-| decision | include / exclude / maybe | ✓ |
-| reason | 除外理由（excludeの場合必須） | |
-| labels | (廃止) | |
-| note | メモ | |
-| decided_at | 判定日時（ISO 8601） | ✓ |
-| client_version | 拡張機能バージョン | |
-| source_url | 判定時に見ていたURL | |
 
-**重要**: 
+| 列名           | 説明                          | 必須 |
+| -------------- | ----------------------------- | ---- |
+| decision_id    | 判定ID（UUID）                | ✓   |
+| ref_id         | 文献ID（Referencesと結合）    | ✓   |
+| reviewer_id    | 判定者（email）               | ✓   |
+| decision       | include / exclude / maybe     | ✓   |
+| reason         | 除外理由（excludeの場合必須） |      |
+| labels         | (廃止)                        |      |
+| note           | メモ                          |      |
+| decided_at     | 判定日時（ISO 8601）          | ✓   |
+| client_version | 拡張機能バージョン            |      |
+| source_url     | 判定時に見ていたURL           |      |
+
+**重要**:
+
 - **本人の判定**: 同一 `ref_id` + `reviewer_id` の既存判定は上書き可能（新しい判定で更新）
 - **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止
 - 判定履歴は保持しない（最新判定のみを有効とする）
 - **衝突解決**: 同時編集が発生した場合は `decided_at` の新しい判定を優先
 
 #### Config タブ（プロジェクト設定）
+
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
-
 
 ## 機能要件
 
 ### MVP（必須機能）
 
 1. **初期設定**
+
    - スプレッドシートID入力
    - References/Decisionsシート名設定
    - プロジェクト指定（Google Drive上のスプレッドシートを選択、Drive Picker 使用）
    - スプレッドシートが存在しない場合は新規作成（References/Decisions/Configシート自動生成）
    - RISアップロード機能
-
 2. **文献読み込み**
+
    - Referencesから文献一覧を取得
    - Decisionsから判定状態を算出
-
 3. **スクリーニング画面**
+
    - 文献情報表示（title, abstract, year, authors, journal, doi/pmid, url）
    - **キーワードハイライト機能**（include=緑, exclude=赤）
    - 判定ボタン（include / exclude / maybe）
@@ -95,20 +114,20 @@ Google スプレッドシートを共有データベースとして使用し、�
    - メモ入力
    - **キーワード編集**（サイドパネルで追加・削除→Configシートへ自動保存）
    - 次の文献へ遷移
-
 4. **判定の記録**
+
    - Decisionsタブへ判定を保存
    - **新規判定**: `spreadsheets.values.append` で追記
    - **判定更新**: 既存行を検索し `spreadsheets.values.update` で上書き
    - 同一 `ref_id` + `reviewer_id` の行が存在する場合は更新、なければ新規追加
-
 5. **フィルタ・検索**
+
    - 未判定（自分が未判定）フィルタ
    - decision別フィルタ
    - maybeは未判定とは別カテゴリとして集計
    - title/abstract検索
-
 6. **進捗表示**
+
    - 自分の判定件数
    - 全体の対象件数（レビュー対象総数）
 
@@ -136,7 +155,6 @@ Google スプレッドシートを共有データベースとして使用し、�
 - **アクセス制御**: 編集権限が必要。対象スプレッドシートはGoogle Drive上で管理
 - **判定理由**: 任意入力。バリデーションは行わない
 
-
 ## インポート規約
 
 - **必須列**: `title`
@@ -157,21 +175,21 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 
 ### RIS インポートフィールドマッピング
 
-| RIS タグ | References 列 | 備考 |
-|----------|---------------|------|
-| TI / T1 | title | 必須 |
-| AB / N2 | abstract | |
-| PY / Y1 | year | 年部分のみ抽出 |
-| AU / A1 | authors | セミコロン区切りで結合 |
-| JO / JF / T2 | journal | 優先順位: JO > JF > T2 |
-| DO | doi | |
-| AN（PubMed） | pmid | ソースがPubMedの場合 |
-| UR / L1 | url | |
-| DB | source | |
+| RIS タグ     | References 列 | 備考                   |
+| ------------ | ------------- | ---------------------- |
+| TI / T1      | title         | 必須                   |
+| AB / N2      | abstract      |                        |
+| PY / Y1      | year          | 年部分のみ抽出         |
+| AU / A1      | authors       | セミコロン区切りで結合 |
+| JO / JF / T2 | journal       | 優先順位: JO > JF > T2 |
+| DO           | doi           |                        |
+| AN（PubMed） | pmid          | ソースがPubMedの場合   |
+| UR / L1      | url           |                        |
+| DB           | source        |                        |
 
 ### オフライン同期の方針
 
-- **キュー永続化**: 
+- **キュー永続化**:
   - **小規模（100件未満）**: `chrome.storage.local` を使用（5MB制限）
   - **大規模**: IndexedDB を使用（容量制限なし）
 - **冪等性**: `decision_id` を固定し、再送時は同一IDとして扱う
@@ -335,6 +353,7 @@ https://www.googleapis.com/auth/drive.file
 ```
 
 > **Note**:
+>
 > - スプレッドシート新規作成は `spreadsheets.create` を使用（Drive API 不要）。
 > - Google Drive上のファイル選択UIは Picker/Drive API と `drive.file` が必須。
 
@@ -352,6 +371,7 @@ npm run build:zip
 ```
 
 このコマンドは以下を実行:
+
 1. プロダクションビルド
 2. `dist.zip` を作成
 3. Google Drive（`G:\マイドライブ\00SRWS-PSG\app\tiab review plugin\dist.zip`）へ自動コピー
