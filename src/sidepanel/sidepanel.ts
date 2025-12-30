@@ -196,11 +196,11 @@ const toast = document.getElementById('toast') as HTMLElement;
 const llmSection = document.getElementById('llm-section') as HTMLElement;
 const tabScreeningBtn = document.getElementById('tab-screening') as HTMLButtonElement;
 const tabLlmBtn = document.getElementById('tab-llm') as HTMLButtonElement;
+const headerTabs = document.querySelector('.header-tabs') as HTMLElement;
 const llmBackBtn = document.getElementById('llm-back-btn') as HTMLButtonElement;
 const geminiApiKeyInput = document.getElementById('gemini-api-key') as HTMLInputElement;
 const toggleApiKeyVisibilityBtn = document.getElementById('toggle-api-key-visibility') as HTMLButtonElement;
 const saveApiKeyCheckbox = document.getElementById('save-api-key-checkbox') as HTMLInputElement;
-const saveApiKeyBtn = document.getElementById('save-api-key-btn') as HTMLButtonElement;
 const apiKeyStatus = document.getElementById('api-key-status') as HTMLElement;
 const llmModelSelect = document.getElementById('llm-model-select') as HTMLSelectElement;
 const llmLanguageSelect = document.getElementById('llm-language-select') as HTMLSelectElement;
@@ -210,9 +210,7 @@ const optimizeStatusDiv = document.getElementById('optimize-status') as HTMLElem
 const optimizedCriteriaDisplay = document.getElementById('optimized-criteria-display') as HTMLElement;
 const screeningPromptInput = document.getElementById('screening-prompt-input') as HTMLTextAreaElement;
 const saveCriteriaBtn = document.getElementById('save-criteria-btn') as HTMLButtonElement;
-const batchSizeSelect = document.getElementById('batch-size-select') as HTMLSelectElement;
 const batchSaveSizeSelect = document.getElementById('batch-save-size-select') as HTMLSelectElement;
-const batchTargetSelect = document.getElementById('batch-target-select') as HTMLSelectElement;
 const batchTargetCount = document.getElementById('batch-target-count') as HTMLElement;
 const startBatchBtn = document.getElementById('start-batch-btn') as HTMLButtonElement;
 const stopBatchBtn = document.getElementById('stop-batch-btn') as HTMLButtonElement;
@@ -580,6 +578,8 @@ function extractSpreadsheetId(input: string): string | null {
 function handleBack() {
     // スクリーニング画面を隠してプロジェクト選択画面を表示
     screeningSection.classList.add('hidden');
+    llmSection.classList.add('hidden');
+    headerTabs?.classList.add('hidden');
     configSection.classList.remove('hidden');
 
     // スプレッドシートIDをクリア
@@ -764,6 +764,7 @@ async function loadDataAndShowScreening() {
         // 画面を切り替え
         configSection.classList.add('hidden');
         screeningSection.classList.remove('hidden');
+        headerTabs?.classList.remove('hidden');
 
         // 表示
         currentIndex = 0;
@@ -2215,7 +2216,8 @@ function setupLlmEventListeners() {
 
     // APIキー関連
     toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
-    saveApiKeyBtn?.addEventListener('click', handleSaveApiKey);
+    geminiApiKeyInput?.addEventListener('change', handleApiKeyAutoSave);
+    saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
 
     // 基準最適化
     optimizeCriteriaBtn?.addEventListener('click', handleOptimizeCriteria);
@@ -2224,7 +2226,6 @@ function setupLlmEventListeners() {
     // バッチ処理
     startBatchBtn?.addEventListener('click', handleStartBatch);
     stopBatchBtn?.addEventListener('click', handleStopBatch);
-    batchTargetSelect?.addEventListener('change', updateBatchTargetCount);
 
     // 閾値調整
     thresholdSlider?.addEventListener('input', handleThresholdChange);
@@ -2333,13 +2334,12 @@ function toggleApiKeyVisibility() {
 }
 
 /**
- * APIキーを保存
+ * APIキー入力時の自動保存（チェックボックスがONの場合）
  */
-async function handleSaveApiKey() {
+async function handleApiKeyAutoSave() {
     const apiKey = geminiApiKeyInput.value.trim();
     if (!apiKey) {
-        apiKeyStatus.textContent = 'APIキーを入力してください';
-        apiKeyStatus.className = 'api-key-status error';
+        apiKeyStatus.textContent = '';
         return;
     }
 
@@ -2356,17 +2356,39 @@ async function handleSaveApiKey() {
 
     // 保存設定に応じて保存
     const shouldSave = saveApiKeyCheckbox.checked;
-    await setApiKeySavePreference(shouldSave);
-
     if (shouldSave) {
         await saveGeminiApiKey(apiKey);
+        await setApiKeySavePreference(true);
         apiKeyStatus.textContent = '✓ APIキーを保存しました';
     } else {
         setSessionApiKey(apiKey);
-        await removeGeminiApiKey();
         apiKeyStatus.textContent = '✓ APIキーを設定しました（セッション限り）';
     }
     apiKeyStatus.className = 'api-key-status success';
+}
+
+/**
+ * 保存設定チェックボックスの変更処理
+ */
+async function handleSavePreferenceChange() {
+    const shouldSave = saveApiKeyCheckbox.checked;
+    await setApiKeySavePreference(shouldSave);
+
+    const apiKey = geminiApiKeyInput.value.trim();
+    if (!apiKey) return;
+
+    if (shouldSave) {
+        // 現在のAPIキーを保存
+        await saveGeminiApiKey(apiKey);
+        apiKeyStatus.textContent = '✓ APIキーを保存しました';
+        apiKeyStatus.className = 'api-key-status success';
+    } else {
+        // 保存済みキーを削除してセッションキーに切り替え
+        await removeGeminiApiKey();
+        setSessionApiKey(apiKey);
+        apiKeyStatus.textContent = '✓ セッション限りの設定に変更しました';
+        apiKeyStatus.className = 'api-key-status success';
+    }
 }
 
 /**
@@ -2492,15 +2514,8 @@ async function handleSaveCriteria() {
  * バッチ対象件数を更新
  */
 function updateBatchTargetCount() {
-    const target = batchTargetSelect.value;
-    let count: number;
-
-    if (target === 'pending') {
-        count = references.filter(r => r.status === 'pending').length;
-    } else {
-        count = references.length;
-    }
-
+    // 常に未判定のみを対象
+    const count = references.filter(r => r.status === 'pending').length;
     batchTargetCount.textContent = count.toString();
 }
 
@@ -2520,21 +2535,8 @@ async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得
-    const target = batchTargetSelect.value;
-    let targetRefs: ReferenceWithStatus[];
-
-    if (target === 'pending') {
-        targetRefs = references.filter(r => r.status === 'pending');
-    } else {
-        targetRefs = [...references];
-    }
-
-    // バッチサイズで制限
-    const batchSize = parseInt(batchSizeSelect.value, 10);
-    if (batchSize > 0) {
-        targetRefs = targetRefs.slice(0, batchSize);
-    }
+    // 対象文献を取得（常に未判定全件）
+    const targetRefs = references.filter(r => r.status === 'pending');
 
     if (targetRefs.length === 0) {
         showToast('処理対象の文献がありません');

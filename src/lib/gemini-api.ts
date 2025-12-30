@@ -18,7 +18,7 @@ export interface GeminiModelConfig {
  * デフォルト設定
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash-lite',
     temperature: 0,
     maxOutputTokens: 2048,
 };
@@ -86,7 +86,14 @@ const CRITERIA_CONVERSION_SCHEMA = {
                 fields: {
                     type: 'object',
                     description: 'テンプレートに応じたフィールド（P, I, C, O など）',
-                    additionalProperties: { type: 'string' },
+                    properties: {
+                        P: { type: 'string', description: '対象患者/集団' },
+                        I: { type: 'string', description: '介入' },
+                        E: { type: 'string', description: '曝露' },
+                        C: { type: 'string', description: '比較対照' },
+                        O: { type: 'string', description: 'アウトカム' },
+                        S: { type: 'string', description: '研究デザイン/セッティング' },
+                    },
                 },
             },
             required: ['template', 'fields'],
@@ -270,8 +277,7 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
  * 利用可能なモデル一覧
  */
 export const AVAILABLE_MODELS = [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (推奨)' },
-    { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite (高速)' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (高精度)' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (推奨)' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview (原則使わない)' },
 ];

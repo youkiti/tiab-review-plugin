@@ -114,7 +114,7 @@ export interface BatchProcessResult {
 }
 
 /**
- * 複数の文献をバッチ処理
+ * 複数の文献をバッチ処理（並列実行）
  */
 export async function processBatch(
     references: Reference[],
@@ -132,7 +132,6 @@ export async function processBatch(
     };
 
     const allDecisions: Decision[] = [];
-    let batchDecisions: Decision[] = [];
 
     const modelConfig: GeminiModelConfig = {
         model: options.model,
@@ -140,7 +139,8 @@ export async function processBatch(
         maxOutputTokens: options.maxOutputTokens,
     };
 
-    for (let i = 0; i < references.length; i++) {
+    // バッチサイズごとに並列処理
+    for (let batchStart = 0; batchStart < references.length; batchStart += options.batchSize) {
         // アボートチェック
         if (options.abortSignal?.aborted) {
             progress.isRunning = false;
@@ -148,61 +148,68 @@ export async function processBatch(
             break;
         }
 
-        const ref = references[i];
-        progress.currentRefId = ref.ref_id;
-        options.onProgress?.(progress);
+        const batchEnd = Math.min(batchStart + options.batchSize, references.length);
+        const batchRefs = references.slice(batchStart, batchEnd);
 
-        try {
-            // LLMスクリーニング実行
-            const output = await screenReference(
-                ref.title,
-                ref.abstract || '',
-                options.screeningPrompt,
-                modelConfig,
-                options.outputLanguage
-            );
+        // バッチ内の文献を並列処理
+        const batchPromises = batchRefs.map(async (ref) => {
+            try {
+                // LLMスクリーニング実行
+                const output = await screenReference(
+                    ref.title,
+                    ref.abstract || '',
+                    options.screeningPrompt,
+                    modelConfig,
+                    options.outputLanguage
+                );
 
-            // Decision作成（Phase 1: pending状態）
-            const noteData = createLlmDecisionNote(executionId, options.model, output);
-            const decision: Decision = {
-                decision_id: crypto.randomUUID(),
-                ref_id: ref.ref_id,
-                reviewer_id: executionId,
-                decision: 'pending', // Phase 1: まだ確定していない
-                reason: '', // Phase 2で設定
-                note: JSON.stringify(noteData),
-                decided_at: timestamp.toISOString(),
-                client_version: 'llm-processor-v1',
-            };
+                // Decision作成（Phase 1: pending状態）
+                const noteData = createLlmDecisionNote(executionId, options.model, output);
+                const decision: Decision = {
+                    decision_id: crypto.randomUUID(),
+                    ref_id: ref.ref_id,
+                    reviewer_id: executionId,
+                    decision: 'pending',
+                    reason: '',
+                    note: JSON.stringify(noteData),
+                    decided_at: timestamp.toISOString(),
+                    client_version: 'llm-processor-v1',
+                };
 
-            batchDecisions.push(decision);
-            allDecisions.push(decision);
-            progress.succeeded++;
-        } catch (error) {
-            console.error(`[processBatch] Failed to process ${ref.ref_id}:`, error);
-            progress.failed++;
-        }
-
-        progress.processed++;
-        options.onProgress?.(progress);
-
-        // バッチサイズに達したら保存
-        if (batchDecisions.length >= options.batchSize) {
-            if (options.onSaveBatch) {
-                await options.onSaveBatch(batchDecisions);
+                return { success: true, decision };
+            } catch (error) {
+                console.error(`[processBatch] Failed to process ${ref.ref_id}:`, error);
+                return { success: false, decision: null };
             }
-            batchDecisions = [];
+        });
+
+        // 並列処理の結果を待つ
+        const results = await Promise.all(batchPromises);
+
+        // 結果を集計
+        const batchDecisions: Decision[] = [];
+        for (const result of results) {
+            progress.processed++;
+            if (result.success && result.decision) {
+                progress.succeeded++;
+                batchDecisions.push(result.decision);
+                allDecisions.push(result.decision);
+            } else {
+                progress.failed++;
+            }
         }
 
-        // レート制限対策: 少し待機
-        if (i < references.length - 1) {
-            await sleep(100);
-        }
-    }
+        options.onProgress?.(progress);
 
-    // 残りのバッチを保存
-    if (batchDecisions.length > 0 && options.onSaveBatch) {
-        await options.onSaveBatch(batchDecisions);
+        // バッチを保存
+        if (batchDecisions.length > 0 && options.onSaveBatch) {
+            await options.onSaveBatch(batchDecisions);
+        }
+
+        // レート制限対策: バッチ間で少し待機
+        if (batchEnd < references.length) {
+            await sleep(200);
+        }
     }
 
     progress.isRunning = false;

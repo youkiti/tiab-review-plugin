@@ -886,7 +886,7 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
  */
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
     llm_enabled: false,
-    llm_model: 'gemini-2.0-flash',
+    llm_model: 'gemini-2.5-flash-lite',
     llm_temperature: 0,
     llm_thinking: 'low',
     llm_protocol_text: '',
