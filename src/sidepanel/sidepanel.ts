@@ -58,6 +58,10 @@ import {
 } from '../lib/llm-processor';
 import { generateScreeningPromptFromCriteria, DEFAULT_SCREENING_PROMPT } from '../lib/prompt-templates';
 
+// Foundation modules (Phase 1)
+import { dom } from './dom';
+import { state } from './state';
+
 // 状態管理
 let references: ReferenceWithStatus[] = [];
 let currentIndex = 0;
