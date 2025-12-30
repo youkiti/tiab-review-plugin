@@ -46,7 +46,7 @@ async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
     return crypto.subtle.deriveKey(
         {
             name: 'PBKDF2',
-            salt,
+            salt: salt as BufferSource,
             iterations: 100000,
             hash: 'SHA-256',
         },
@@ -87,9 +87,9 @@ async function decryptApiKey(encoded: string): Promise<string> {
     const data = base64ToBytes(parsed.data);
 
     const plaintext = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
+        { name: 'AES-GCM', iv: iv as BufferSource },
         key,
-        data
+        data as BufferSource
     );
     return new TextDecoder().decode(plaintext);
 }
