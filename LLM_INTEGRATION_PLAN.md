@@ -17,8 +17,8 @@
 - LLM出力の保存: **人間の判定と同じ “Decisions” の形式で保存**
   - 「判定をしたモデル、日付を評価者ID（reviewer_id）として保存」方針
   - **LLM判定の reviewer_id は予約名前空間 `llm:` を付与**し、人間の判定とは区別する（例: `llm:gemini-flash-latest@2025-12-28T14:30:00`）
-    - 集計（進捗/未判定）・不一致判定・「全レビュアー判定」表示では **LLM判定を人間判定と同じ扱いを**する
-- APIキー: **端末に保存（chrome.storage.local）**、Sheets には保存しない
+    - 集計（進捗/未判定）は **人間判定のみ**で計算し、LLMは別メトリクス（LLM進捗）として表示する
+- APIキー: **端末に保存（chrome.storage.local, 暗号化）**、Sheets には保存しない（保存しない選択肢を提示）
 - 呼び出しAPI: **AI Studio APIキー + `generativelanguage.googleapis.com` + `gemini-flash-latest`**
 - 外部送信: title/abstract を Gemini へ送信する（OK）
 - 基本的にバッチを使って、全件一括処理を行う。
@@ -48,24 +48,27 @@
    入力は設定リンクから、設定のリンクは全部の画面の右上に入れるようにする
 3) Config シートにプロトコルの組み入れ、除外基準をコピペして保存
 4) **「基準を最適化」ボタン** を押すと、LLMがコピペした基準からLLM用の適切な組み入れ・除外基準に変換し、保存（共有）
+5) LLM_Executions シートが存在しない場合は初期設定時に自動作成する
 
 ### 3.2 LLM処理の実行タイミング
 
 > [!IMPORTANT]
 > **LLM処理はユーザーの手動スクリーニング完了後に実行する**
+>
 > - LLM結果を事前に見せると automation bias が生じるため
 > - 目標: 「1人がASReview（機械学習）、もう1人がLLM」で1人省力化を実現
 > - 参考: https://arxiv.org/html/2510.06708v1
+> - 進捗/未判定の集計は人間判定のみで行い、LLM進捗は別メトリクスで表示する
 
 **実行フロー（2段階方式）:**
 
 1. ユーザーが手動スクリーニングを完了
 2. LLM処理タブで一括実行ボタンを押す
-3. LLMは `probability`（組み入れ確率: 0.0〜1.0）+ `reasons` + `evidence` を出力
+3. LLMは `include_probability`（組み入れ確率: 0.0〜1.0）+ `reasons` + `evidence` を出力
 4. **Phase 1: 生データ保存**
    - 結果は **Decisions シートへ追記**
-   - `note` 列に probability/reasons/evidence をJSON形式で保存
-   - **`decision` 列は空のまま**（まだ確定していない状態）
+   - `note` 列に include_probability/reasons/evidence をJSON形式で保存
+   - **`decision` 列は `pending`**（まだ確定していない状態）
 5. **実行完了後**に閾値調整UIが表示され、ユーザーが閾値を変えながら件数を**プレビュー**
 6. **Phase 2: 閾値確定**
    - 「確定」ボタン押下で `decision`（include/exclude）を一括更新
@@ -111,7 +114,7 @@
 - `llm_protocol_text` = （プロトコルの組み入れ/除外基準のコピペ原文）
 - `llm_criteria` = （PICO/PECO等の基準文。**JSON形式**で保存、詳細は5.3参照）
 - `llm_screening_prompt` = （スクリーニング用プロンプトテンプレート。3.3の出力）
-- `llm_include_threshold` = `0.30`（probability がこの値以上なら include、未満なら exclude）
+- `llm_include_threshold` = `0.30`（include_probability がこの値以上なら include、未満なら exclude）
 - `llm_max_output_tokens`
 - `llm_output_language` = `ja`（理由生成の言語）
 
@@ -128,32 +131,42 @@
 - **LLM判定**: `reviewer_id` は `llm:{model}@{timestamp}`（ISO 8601）で記録し、**同一実行は同一ID**として扱う
   - 例: `llm:gemini-flash-latest@2025-12-28T14:30:00`
   - 合意「実験結果は全部残す」を守るため、**再実行は timestamp を変えて別IDとして保存（上書きしない）**
+  - **冪等性**: `execution_id`（= reviewer_id）+ `ref_id` の既存行がある場合は **update** し、なければ append（LLM実行の再送・再試行に対応）
 
 #### 2段階保存方式
 
 **Phase 1: 一括実行時（生データ保存）**
 
-| ref_id | reviewer_id | decision | reason | note |
-|--------|-------------|----------|--------|------|
-| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **(空)** | (空) | `{"probability":0.72,...}` |
+| ref_id  | reviewer_id                                     | decision          | reason | note                                 |
+| ------- | ----------------------------------------------- | ----------------- | ------ | ------------------------------------ |
+| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **pending** | (空)   | `{"include_probability":0.72,...}` |
 
-- `note` 列に probability/reasons/evidence をJSON形式で保存
-- `decision` 列は**空のまま**（まだ確定していない状態）
+- `note` 列に include_probability/reasons/evidence をJSON形式で保存
+- `decision` 列は**`pending`**（まだ確定していない状態）
+  - `pending` は LLMの途中状態として扱い、手動スクリーニングの進捗・未判定集計には含めない
 
 **Phase 2: 閾値確定時**
 
-| ref_id | reviewer_id | decision | reason | note |
-|--------|-------------|----------|--------|------|
-| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **include** | RCTである | `{"probability":0.72,...}` |
+| ref_id  | reviewer_id                                     | decision          | reason    | note                                 |
+| ------- | ----------------------------------------------- | ----------------- | --------- | ------------------------------------ |
+| ref_001 | `llm:gemini-flash-latest@2025-12-30T10:00:00` | **include** | RCTである | `{"include_probability":0.72,...}` |
 
-- `probability >= 閾値` → include, それ以外 → exclude
+- `include_probability >= 閾値` → include, それ以外 → exclude
 - `decision` 列を**一括更新**（update）
 - `reason` 列には reasons の要約を設定
 
 **再確定時（閾値変更）:**
 
 - 同じ `reviewer_id` のレコードに対して `decision` 列を**上書き**
-- `note` の probability から再計算するので、再実行は不要
+- `note` の include_probability から再計算するので、再実行は不要
+
+#### pending 扱い（LLMのみ）
+
+- `pending` は Phase 1 の一時状態としてのみ使用し、人間判定には使わない
+- 手動スクリーニングの進捗・未判定集計は**人間判定のみ**で計算する
+- 「未判定」フィルタは人間判定のみで判定し、LLMの `pending` は除外する
+- 同一 `ref_id` に人間判定が存在する場合、LLMの `pending` は一覧上の未判定表示に影響しない
+- LLM処理タブでは `pending` / include / exclude の件数を別表示する
 
 **LLM出力スキーマ:**
 
@@ -224,7 +237,7 @@
   "type": "llm",
   "execution_id": "llm:gemini-flash-latest@2025-12-28T14:30:00",
   "model": "gemini-flash-latest",
-  "probability": 0.72,
+  "include_probability": 0.72,
   "reasons": ["RCTである", "T2DM患者を対象", "アウトカムにHbA1cを含む"],
   "evidence": [
     {"field": "title", "quote": "randomized controlled trial", "start_char": 45, "end_char": 71},
@@ -281,6 +294,7 @@
 
 - `📄` = スクリーニングタブ（デフォルト表示）
 - `🤖` = LLM処理タブ
+- 進捗表示（0/0）は人間判定のみを表示し、LLM進捗はLLM処理タブ内に別表示する
 
 ### 5.2 LLM処理タブ構成
 
@@ -373,13 +387,13 @@
 **機能:**
 
 - **スライダー**: 閾値を0.0〜1.0で調整（リアルタイムで件数プレビュー、**Sheetsへの書き込みなし**）
-- **分布表示**: probability の分布をヒストグラムで可視化
+- **分布表示**: include_probability の分布をヒストグラムで可視化
 - **確定ボタン**: 選択した閾値でinclude/excludeを確定し、Decisionsの `decision` 列を一括更新
 - **再確定ボタン**: 確定後に閾値を変更して再度「確定」すると、既存の `decision` を上書き
 
 **理由の確認:**
 
-閾値付近の文献については、`reasons` と `evidence` を確認することで「なぜこのprobabilityなのか」を理解できる。これにより、閾値を変更するたびに再実行する必要がなくなる。
+閾値付近の文献については、`reasons` と `evidence` を確認することで「なぜこのinclude_probabilityなのか」を理解できる。これにより、閾値を変更するたびに再実行する必要がなくなる。
 
 **ボタン動作:**
 
@@ -447,12 +461,17 @@
 | 表示   | 入力済み時はマスク（••••）、トグルで表示切替 |
 | 共有   | **されない**（端末ローカルのみ）           |
 
+補足:
+
+- 保存時はアプリ側で暗号化し、復号用パスフレーズはセッションのみ保持する
+- UIで「保存しない（毎回入力）」を選べるようにし、保存時は注意喚起を表示する
+
 ### 5.5 閾値設定
 
-LLMが出力する `probability`（組み入れ確率）から `decision` への変換ロジック:
+LLMが出力する `include_probability`（組み入れ確率）から `decision` への変換ロジック:
 
-- probability ≥ `llm_include_threshold` → include
-- probability < `llm_include_threshold` → exclude
+- include_probability ≥ `llm_include_threshold` → include
+- include_probability < `llm_include_threshold` → exclude
 
 | 設定                      | デフォルト値 | 用途                                      |
 | ------------------------- | ------------ | ----------------------------------------- |
@@ -460,8 +479,9 @@ LLMが出力する `probability`（組み入れ確率）から `decision` への
 
 > [!IMPORTANT]
 > **閾値は実行後に調整する**（5.2.1参照）
+>
 > - 実行前には閾値を設定しない
-> - LLMはprobabilityのみを出力し、閾値判定はUI側で行う
+> - LLMはinclude_probabilityのみを出力し、閾値判定はUI側で行う
 > - ユーザーは閾値を変えながら件数を確認し、最適な閾値を選択できる
 
 ---
@@ -478,10 +498,10 @@ LLMが出力する `probability`（組み入れ確率）から `decision` への
 
 ### 6.2 データ層（Sheets API）
 
-| ファイル                  | 変更内容                                                                                                                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ファイル                  | 変更内容                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/lib/sheets-api.ts` | `getLlmConfig()`, `updateLlmConfig()`, `saveLlmExecution()`, `getLlmExecutions()`, `appendDecisions()`（LLM用一括追記）追加。 |
-| `src/lib/types.ts`      | `LlmConfig`, `LlmExecution`, `LlmCriteria` 型定義追加                                                                                                                                           |
+| `src/lib/types.ts`      | `LlmConfig`, `LlmExecution`, `LlmCriteria` 型定義追加、`DecisionStatus` に `pending` を追加（LLMのみ）                        |
 
 ### 6.3 LLM連携（新規）
 
@@ -502,3 +522,113 @@ LLMが出力する `probability`（組み入れ確率）から `decision` への
 | ファイル              | 変更内容                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
 | `src/manifest.json` | `host_permissions` に `https://generativelanguage.googleapis.com/*` を追加（Gemini API呼び出し用） |
+
+
+
+7. Gemini APIのコードスニペット
+
+
+この例では、`object`、`array`、`string`、`integer` などの基本的な JSON スキーマ型を使用して、テキストから構造化データを抽出する方法を示します。
+
+[Python](https://ai.google.dev/gemini-api/docs/structured-output?hl=ja&example=recipe#python)[JavaScript](https://ai.google.dev/gemini-api/docs/structured-output?hl=ja&example=recipe#javascript)[Go](https://ai.google.dev/gemini-api/docs/structured-output?hl=ja&example=recipe#go)[REST](https://ai.google.dev/gemini-api/docs/structured-output?hl=ja&example=recipe#rest)
+
+```
+import{GoogleGenAI}from"@google/genai";
+import{z}from"zod";
+import{zodToJsonSchema}from"zod-to-json-schema";
+
+constingredientSchema=z.object({
+name:z.string().describe("Name of the ingredient."),
+quantity:z.string().describe("Quantity of the ingredient, including units."),
+});
+
+constrecipeSchema=z.object({
+recipe_name:z.string().describe("The name of the recipe."),
+prep_time_minutes:z.number().optional().describe("Optional time in minutes to prepare the recipe."),
+ingredients:z.array(ingredientSchema),
+instructions:z.array(z.string()),
+});
+
+constai=newGoogleGenAI({});
+
+constprompt=`
+Please extract the recipe from the following text.
+The user wants to make delicious chocolate chip cookies.
+They need 2 and 1/4 cups of all-purpose flour, 1 teaspoon of baking soda,
+1 teaspoon of salt, 1 cup of unsalted butter (softened), 3/4 cup of granulated sugar,
+3/4 cup of packed brown sugar, 1 teaspoon of vanilla extract, and 2 large eggs.
+For the best part, they'll need 2 cups of semisweet chocolate chips.
+First, preheat the oven to 375°F (190°C). Then, in a small bowl, whisk together the flour,
+baking soda, and salt. In a large bowl, cream together the butter, granulated sugar, and brown sugar
+until light and fluffy. Beat in the vanilla and eggs, one at a time. Gradually beat in the dry
+ingredients until just combined. Finally, stir in the chocolate chips. Drop by rounded tablespoons
+onto ungreased baking sheets and bake for 9 to 11 minutes.
+`;
+
+constresponse=awaitai.models.generateContent({
+model:"gemini-2.5-flash",
+contents:prompt,
+config:{
+responseMimeType:"application/json",
+responseJsonSchema:zodToJsonSchema(recipeSchema),
+},
+});
+
+constrecipe=recipeSchema.parse(JSON.parse(response.text));
+console.log(recipe);
+```
+
+**レスポンスの例:**
+
+```
+{
+"recipe_name":"Delicious Chocolate Chip Cookies",
+"ingredients":[
+{
+"name":"all-purpose flour",
+"quantity":"2 and 1/4 cups"
+},
+{
+"name":"baking soda",
+"quantity":"1 teaspoon"
+},
+{
+"name":"salt",
+"quantity":"1 teaspoon"
+},
+{
+"name":"unsalted butter (softened)",
+"quantity":"1 cup"
+},
+{
+"name":"granulated sugar",
+"quantity":"3/4 cup"
+},
+{
+"name":"packed brown sugar",
+"quantity":"3/4 cup"
+},
+{
+"name":"vanilla extract",
+"quantity":"1 teaspoon"
+},
+{
+"name":"large eggs",
+"quantity":"2"
+},
+{
+"name":"semisweet chocolate chips",
+"quantity":"2 cups"
+}
+],
+"instructions":[
+"Preheat the oven to 375°F (190°C).",
+"In a small bowl, whisk together the flour, baking soda, and salt.",
+"In a large bowl, cream together the butter, granulated sugar, and brown sugar until light and fluffy.",
+"Beat in the vanilla and eggs, one at a time.",
+"Gradually beat in the dry ingredients until just combined.",
+"Stir in the chocolate chips.",
+"Drop by rounded tablespoons onto ungreased baking sheets and bake for 9 to 11 minutes."
+]
+}
+```
