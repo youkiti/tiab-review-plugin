@@ -153,31 +153,29 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 「ASReview の実装（Python）と、拡張機能内の TS 実装が同じ入力に対して同じ予測確率を返す」ことを、機械的に再現・検証できる状態にする。
 
-### 5.2 検証データ ⚠️ 要再検討
+### 5.2 検証データ ✅ 確定
 
-#### SYNERGYデータセットの問題
+#### 採用データセット: LLM Citation Screening Data (CQ1-5)
 
-ASReview 推奨の **SYNERGY データセット** を調査したが、**データ品質に重大な問題**が発見された：
+リポジトリ `seveneleven711thanks39/llm-assisted_citation_screening` のデータを使用する。
+SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し、現実的なスクリーニング課題（Critical Care領域）を提供する。
 
-| データセット | 重複IDの数 | ラベル競合 | 問題の深刻度 |
-|------------|----------|----------|-----------|
-| Cohen_2006_OralHypoglycemics | 0 | 0 | なし ✓ |
-| Kwok_2020 | 123 | **118** | 🔴 深刻 |
-| Wolters_2018 | 154 | 17 | 🟠 中程度 |
+**構成:**
 
-**問題の詳細：**
-- 同一の OpenAlex ID が複数行に存在し、異なる `label_included` 値（0 と 1）を持つ
-- Kwok_2020 では included 論文 120件のうち **118件** が conflicting labels を持つ
-- 元の `*_ids.csv` は ID 取得プロセスの中間ファイルであり、重複除去されていない
-- リポジトリの README やIssue に重複に関する説明なし
+| Dataset | Total | Included | Prevalence | 特徴 |
+|---------|-------|----------|------------|------|
+| **CQ1** | 5,628 | 113 | 2.0% | **メイン検証用**（最大規模） |
+| CQ2 | 3,400 | 17 | 0.5% | 不均衡データ検証用 |
+| CQ3 | 1,038 | 16 | 1.5% | 小規模データ検証用 |
+| CQ4 | 4,326 | 72 | 1.7% | サブ検証用 |
+| CQ5 | 2,253 | 41 | 1.8% | サブ検証用 |
 
-**結論：** SYNERGY データセットを TypeScript 実装の検証には**使用しない**。
+**準備手順（スクリプト化済み `scripts/asreview-baseline/generate_datasets.py`）:**
 
-#### 代替案
-
-1. **PubMed から直接サンプリング**：任意のトピックで検索し、手動でサブセットにラベル付け
-2. **既存レビューデータの流用**：ユーザー所有のレビューデータを匿名化して使用
-3. **合成データ生成**：既知のパターンを持つ人工データでアルゴリズムの正確性を検証
+1. `Data/CQ*_data.xlsx` からタイトル・抄録を読み込む（Rayyan形式）。
+2. `Data/Reference_standard_data.xlsx` から「採用文献タイトルリスト」を読み込む。
+3. タイトルの正規化・ファジーマッチングを行い、一致する文献を `label=1`、それ以外を `0` とする。
+4. `scripts/asreview-baseline/datasets/cq{n}_labeled.json` として保存。
 
 ### 5.3 Baseline（Python）生成スクリプト（案）
 

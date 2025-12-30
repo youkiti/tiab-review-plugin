@@ -1,0 +1,316 @@
+LLM Citation Screening Dataset Analysis
+Found 6 files in vendor\llm-citation-screening\Data
+
+============================================================
+FILE: CQ1_data.xlsx
+============================================================
+
+Sheet: シート1 - CQ1_data
+Dimensions: 5636 rows x 21 cols
+
+Columns:
+  [0] CQ1_data
+
+Sample data (rows 2-4):
+  Row 2:
+    CQ1_data: key
+  Row 3:
+    CQ1_data: rayyan-1178418217
+  Row 4:
+    CQ1_data: rayyan-1178418218
+
+============================================================
+FILE: CQ2_data.xlsx
+============================================================
+
+Sheet: シート1 - CQ2_data
+Dimensions: 3420 rows x 21 cols
+
+Columns:
+  [0] CQ2_data
+
+Sample data (rows 2-4):
+  Row 2:
+    CQ2_data: key
+  Row 3:
+    CQ2_data: rayyan-414776261
+  Row 4:
+    CQ2_data: rayyan-414776262
+
+============================================================
+FILE: CQ3_data.xlsx
+============================================================
+
+Sheet: シート1 - CQ3_data
+Dimensions: 1040 rows x 21 cols
+
+Columns:
+  [0] CQ3_data
+
+Sample data (rows 2-4):
+  Row 2:
+    CQ3_data: key
+  Row 3:
+    CQ3_data: rayyan-1178417179
+  Row 4:
+    CQ3_data: rayyan-1178417180
+
+============================================================
+FILE: CQ4_data.xlsx
+============================================================
+
+Sheet: シート1 - CQ4_data
+Dimensions: 4328 rows x 21 cols
+
+Columns:
+  [0] CQ4_data
+
+Sample data (rows 2-4):
+  Row 2:
+    CQ4_data: key
+  Row 3:
+    CQ4_data: rayyan-635984185
+  Row 4:
+    CQ4_data: rayyan-635984186
+
+============================================================
+FILE: CQ5_data.xlsx
+============================================================
+
+Sheet: シート1 - CQ5_data
+Dimensions: 2255 rows x 21 cols
+
+Columns:
+  [0] CQ5_data
+
+Sample data (rows 2-4):
+  Row 2:
+    CQ5_data: key
+  Row 3:
+    CQ5_data: rayyan-1178426812
+  Row 4:
+    CQ5_data: rayyan-1178426813
+
+============================================================
+FILE: Reference_standard_data.xlsx
+============================================================
+
+Sheet: CQ1_1st
+Dimensions: 113 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: 0.9% saline V/S Ringer’s lactate for fluid resuscitation in adult sepsis patient...
+    Year: 2020
+    Journal: Hong kong journal of emergency medicine
+  Row 3:
+    Title: 0.9% Saline v/s Ringer's Lactate for fl uid resuscitation in adult sepsis patien...
+    Year: 2020
+    Journal: Journal of the Association of Physicians of India
+  Row 4:
+    Title: 0.9% Saline vs. Plasma Lyte (Registered Trademark)148 for Fluid Intervention Tri...
+    Year: 2013
+    Journal: https://trialsearch.who.int/Trial2.aspx?TrialID=ACTRN12613001042730
+
+Sheet: CQ1_2nd
+Dimensions: 9 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: 0.9% saline V/S Ringer’s lactate for fluid resuscitation in adult sepsis patient...
+    Year: 2020
+    Journal: Hong kong journal of emergency medicine
+  Row 3:
+    Title: Balanced Crystalloids versus Saline in Critically Ill Adults
+    Year: 2018
+    Journal: New England journal of medicine
+  Row 4:
+    Title: Balanced Crystalloids versus Saline in Sepsis. A Secondary Analysis of the SMART...
+    Year: 2019
+    Journal: American journal of respiratory and critical care medicine
+
+Sheet: CQ2_1st
+Dimensions: 18 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: [Effects of treatment based on different target mean arterial pressure on gastro...
+    Year: 2021
+    Journal: Zhonghua Wei Zhong Bing Ji Jiu Yi Xue
+  Row 3:
+    Title: Early resuscitation of septic shock to different levels of arterial blood pressu...
+    Year: 2007
+    Journal: Anesteziologie a intenzivni medicina
+  Row 4:
+    Title: Effect of Reduced Exposure to Vasopressors on 90-Day Mortality in Older Critical...
+    Year: 2020
+    Journal: Jama
+
+Sheet: CQ2_2nd
+Dimensions: 5 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: Effect of Reduced Exposure to Vasopressors on 90-Day Mortality in Older Critical...
+    Year: 2020
+    Journal: Jama
+  Row 3:
+    Title: High versus low blood-pressure target in patients with septic shock
+    Year: 2014
+    Journal: N Engl J Med
+  Row 4:
+    Title: Higher versus lower blood pressure targets for vasopressor therapy in shock: a m...
+    Year: 2016
+    Journal: Intensive Care Med
+
+Sheet: CQ3_1st
+Dimensions: 15 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: [The use of sodium bicarbonate in stages in treating hypoperfusion induced lacti...
+    Year: 2013
+    Journal: Zhonghua Wei Zhong Bing Ji Jiu Yi Xue
+  Row 3:
+    Title: Sodium bicarbonate therapy for patients with severe metabolic acidaemia in the i...
+    Year: 2018
+    Journal: Lancet
+  Row 4:
+    Title: Sodium Bicarbonate Ringer's Solution Versus Normal Saline for Early Fluid Resusc...
+    Year: 2021
+    Journal: https://trialsearch.who.int/Trial2.aspx?TrialID=ChiCTR2100042334
+
+Sheet: CQ3_2nd
+Dimensions: 5 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: Sodium bicarbonate therapy for patients with severe metabolic acidaemia in the i...
+    Year: 2018
+    Journal: Lancet
+  Row 3:
+    Title: Long-Term Outcome of Severe Metabolic Acidemia in ICU Patients, a BICAR-ICU Tria...
+    Year: 2023
+    Journal: Crit Care Med
+  Row 4:
+    Title: Effects of bicarbonate therapy on hemodynamics and tissue oxygenation in patient...
+    Year: 1991
+    Journal: Crit Care Med
+
+Sheet: CQ4_1st
+Dimensions: 71 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: [Comparison of the effect of fluid resuscitation as guided either by lactate cle...
+    Year: 2013
+    Journal: Zhonghua Wei Zhong Bing Ji Jiu Yi Xue
+  Row 3:
+    Title: [Early goal-directed therapy lowers the incidence, severity and mortality of mul...
+    Year: 2007
+    Journal: Nan Fang Yi Ke Da Xue Xue Bao
+  Row 4:
+    Title: [Efficacy of goal-directed therapy in the treatment of septic shock]
+    Year: 2006
+    Journal: Zhongguo Wei Zhong Bing Ji Jiu Yi Xue
+
+Sheet: CQ4_2nd
+Dimensions: 18 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: [Comparison of the effect of fluid resuscitation as guided either by lactate cle...
+    Year: 2013
+    Journal: Zhonghua Wei Zhong Bing Ji Jiu Yi Xue
+  Row 3:
+    Title: [Early goal-directed therapy lowers the incidence, severity and mortality of mul...
+    Year: 2007
+    Journal: Nan Fang Yi Ke Da Xue Xue Bao
+  Row 4:
+    Title: [Efficacy of goal-directed therapy in the treatment of septic shock]
+    Year: 2006
+    Journal: Zhongguo Wei Zhong Bing Ji Jiu Yi Xue
+
+Sheet: CQ5_1st
+Dimensions: 40 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: A Randomized Controlled Trial of a Conservative Fluid Balance Strategy for Patie...
+    Year: 2014
+    Journal: https://clinicaltrials.gov/show/NCT02159079
+  Row 3:
+    Title: Australasian Resuscitation In Sepsis Evaluation: fLUid or Vasopressors In Emerge...
+    Year: 2020
+    Journal: https://clinicaltrials.gov/show/NCT04569942
+  Row 4:
+    Title: Conservative Fluid Management After Sepsis Resuscitation: A Pilot Randomized Tri...
+    Year: 2020
+    Journal: J Intensive Care Med
+
+Sheet: CQ5_2nd
+Dimensions: 9 rows x 3 cols
+
+Columns:
+  [0] Title
+  [1] Year
+  [2] Journal
+
+Sample data (rows 2-4):
+  Row 2:
+    Title: Conservative Fluid Management After Sepsis Resuscitation: A Pilot Randomized Tri...
+    Year: 2020
+    Journal: J Intensive Care Med
+  Row 3:
+    Title: Early Restrictive or Liberal Fluid Management for Sepsis-Induced Hypotension
+    Year: 2023
+    Journal: N Engl J Med
+  Row 4:
+    Title: Restricted fluid resuscitation in suspected sepsis associated hypotension (REFRE...
+    Year: 2018
+    Journal: Intensive care medicine

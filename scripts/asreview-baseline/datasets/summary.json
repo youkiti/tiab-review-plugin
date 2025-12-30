@@ -1,0 +1,47 @@
+[
+  {
+    "cq": "CQ1",
+    "total": 5628,
+    "included": 113,
+    "excluded": 5515,
+    "prevalence": 0.0201,
+    "reference_standard_count": 112,
+    "match_rate": 1.0089
+  },
+  {
+    "cq": "CQ2",
+    "total": 3400,
+    "included": 17,
+    "excluded": 3383,
+    "prevalence": 0.005,
+    "reference_standard_count": 17,
+    "match_rate": 1.0
+  },
+  {
+    "cq": "CQ3",
+    "total": 1038,
+    "included": 16,
+    "excluded": 1022,
+    "prevalence": 0.0154,
+    "reference_standard_count": 14,
+    "match_rate": 1.1429
+  },
+  {
+    "cq": "CQ4",
+    "total": 4326,
+    "included": 72,
+    "excluded": 4254,
+    "prevalence": 0.0166,
+    "reference_standard_count": 70,
+    "match_rate": 1.0286
+  },
+  {
+    "cq": "CQ5",
+    "total": 2253,
+    "included": 41,
+    "excluded": 2212,
+    "prevalence": 0.0182,
+    "reference_standard_count": 39,
+    "match_rate": 1.0513
+  }
+]
