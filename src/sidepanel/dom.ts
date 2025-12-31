@@ -128,10 +128,15 @@ const domElements = {
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
 
     // LLM API Key
+    get apiKeyCard() { return getElement<HTMLElement>('api-key-card'); },
+    get apiKeySummary() { return getElement<HTMLElement>('api-key-summary'); },
     get geminiApiKeyInput() { return getElement<HTMLInputElement>('gemini-api-key'); },
     get toggleApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-api-key-visibility'); },
     get saveApiKeyCheckbox() { return getElement<HTMLInputElement>('save-api-key-checkbox'); },
     get apiKeyStatus() { return getElement<HTMLElement>('api-key-status'); },
+
+    // LLM Criteria
+    get criteriaCard() { return getElement<HTMLElement>('criteria-card'); },
 
     // LLM Config
     get llmModelSelect() { return getElement<HTMLSelectElement>('llm-model-select'); },
@@ -155,6 +160,7 @@ const domElements = {
     get batchProgressBarFill() { return getElement<HTMLElement>('batch-progress-bar-fill'); },
     get batchSuccessCount() { return getElement<HTMLElement>('batch-success-count'); },
     get batchFailCount() { return getElement<HTMLElement>('batch-fail-count'); },
+    get retryFailedBtn() { return getElement<HTMLButtonElement>('retry-failed-btn'); },
 
     // LLM Threshold
     get thresholdSection() { return getElement<HTMLElement>('threshold-section'); },

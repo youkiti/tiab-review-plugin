@@ -142,3 +142,45 @@ export interface LlmBatchProgress {
     isRunning: boolean;
     currentRefId?: string;
 }
+
+// API Tier関連の型定義
+
+/**
+ * API Tier（無料版/有料版）
+ */
+export type ApiTier = 'free' | 'paid' | 'unknown';
+
+/**
+ * レート制限設定
+ */
+export interface RateLimitConfig {
+    concurrency: number;          // 同時実行数
+    delayBetweenRequests: number; // リクエスト間のwait (ms)
+}
+
+/**
+ * APIキーテスト結果
+ */
+export interface ApiKeyTestResult {
+    isValid: boolean;
+    tier: ApiTier;
+    availableModels: string[];
+}
+
+/**
+ * 無料版向けレート制限設定
+ * RPM 5 = 12秒間隔の順次実行（マージン込みで13秒）
+ */
+export const RATE_LIMIT_FREE: RateLimitConfig = {
+    concurrency: 1,
+    delayBetweenRequests: 13000, // 13秒（RPM 5対応、マージン込み）
+};
+
+/**
+ * 有料版向けレート制限設定
+ * 並列実行可能
+ */
+export const RATE_LIMIT_PAID: RateLimitConfig = {
+    concurrency: 5,
+    delayBetweenRequests: 200,
+};

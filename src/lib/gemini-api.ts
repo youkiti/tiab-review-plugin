@@ -1,6 +1,6 @@
 // gemini-api.ts - Gemini API クライアント
 
-import type { LlmScreeningOutput, LlmCriteria } from './types';
+import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier } from './types';
 import { getEffectiveApiKey } from './storage';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -20,7 +20,7 @@ export interface GeminiModelConfig {
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
     model: 'gemini-flash-latest',
     temperature: 0,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 8192,
 };
 
 /**
@@ -242,35 +242,65 @@ ${protocolText}
 }
 
 /**
- * APIキーの有効性をテスト
+ * APIキーの有効性とtierをテスト
+ * models.list APIでモデル一覧を取得し、モデル数でtierを判定
  */
-export async function testApiKey(apiKey: string): Promise<boolean> {
-    const url = `${GEMINI_API_BASE}/gemini-flash-latest:generateContent?key=${apiKey}`;
-
-    const requestBody = {
-        contents: [
-            {
-                parts: [{ text: 'Hello' }],
-            },
-        ],
-        generationConfig: {
-            maxOutputTokens: 10,
-        },
-    };
+export async function testApiKeyWithTier(apiKey: string): Promise<ApiKeyTestResult> {
+    const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
     try {
-        const response = await fetch(url, {
-            method: 'POST',
+        const response = await fetch(modelsUrl, {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(requestBody),
         });
 
-        return response.ok;
-    } catch {
-        return false;
+        if (!response.ok) {
+            return {
+                isValid: false,
+                tier: 'unknown',
+                availableModels: [],
+            };
+        }
+
+        const data = await response.json();
+        const models = data.models || [];
+        const modelNames: string[] = models.map((m: { name: string }) => m.name);
+
+        // モデル数でtierを判定
+        // 無料版: 2-3モデル程度（gemini-2.5-flash, gemini-2.5-flash-lite など）
+        // 有料版: より多くのモデル（10以上）
+        let tier: ApiTier = 'unknown';
+        if (modelNames.length <= 5) {
+            tier = 'free';
+        } else if (modelNames.length > 5) {
+            tier = 'paid';
+        }
+
+        console.log(`[testApiKeyWithTier] Models: ${modelNames.length}, Tier: ${tier}`);
+
+        return {
+            isValid: true,
+            tier,
+            availableModels: modelNames,
+        };
+    } catch (error) {
+        console.error('[testApiKeyWithTier] Error:', error);
+        return {
+            isValid: false,
+            tier: 'unknown',
+            availableModels: [],
+        };
     }
+}
+
+/**
+ * APIキーの有効性をテスト（後方互換性のためのラッパー）
+ */
+export async function testApiKey(apiKey: string): Promise<boolean> {
+    const result = await testApiKeyWithTier(apiKey);
+    return result.isValid;
 }
 
 /**
@@ -281,3 +311,4 @@ export const AVAILABLE_MODELS = [
     { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
     { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview (原則使わない)' },
 ];
+

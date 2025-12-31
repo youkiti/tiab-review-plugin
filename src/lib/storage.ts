@@ -185,3 +185,56 @@ export async function getEffectiveApiKey(): Promise<string | null> {
     // 次に保存されているキーを確認
     return await getGeminiApiKey();
 }
+
+// API Tier関連
+
+import type { ApiTier } from './types';
+
+const GEMINI_API_TIER_KEY = 'gemini_api_tier';
+
+/**
+ * セッション用のAPI tier（メモリ保持）
+ */
+let sessionApiTier: ApiTier | null = null;
+
+/**
+ * API tierを保存
+ */
+export async function saveApiTier(tier: ApiTier): Promise<void> {
+    await chrome.storage.local.set({ [GEMINI_API_TIER_KEY]: tier });
+    sessionApiTier = tier;
+}
+
+/**
+ * API tierを取得
+ */
+export async function getApiTier(): Promise<ApiTier | null> {
+    // セッションtierがあればそれを返す
+    if (sessionApiTier) {
+        return sessionApiTier;
+    }
+    const result = await chrome.storage.local.get([GEMINI_API_TIER_KEY]);
+    return result[GEMINI_API_TIER_KEY] as ApiTier | null;
+}
+
+/**
+ * セッション用API tierを設定
+ */
+export function setSessionApiTier(tier: ApiTier): void {
+    sessionApiTier = tier;
+}
+
+/**
+ * セッション用API tierを取得
+ */
+export function getSessionApiTier(): ApiTier | null {
+    return sessionApiTier;
+}
+
+/**
+ * API tierをクリア
+ */
+export async function clearApiTier(): Promise<void> {
+    await chrome.storage.local.remove([GEMINI_API_TIER_KEY]);
+    sessionApiTier = null;
+}

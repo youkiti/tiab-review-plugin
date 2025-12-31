@@ -21,6 +21,7 @@ import {
     updateBatchTargetCount,
     handleStartBatch,
     handleStopBatch,
+    handleRetryFailed,
     handleThresholdChange,
     toggleDistributionChart,
     handleConfirmThreshold,
@@ -57,6 +58,7 @@ export function setupLlmEventListeners() {
     // バッチ処理
     dom.startBatchBtn?.addEventListener('click', handleStartBatch);
     dom.stopBatchBtn?.addEventListener('click', handleStopBatch);
+    dom.retryFailedBtn?.addEventListener('click', handleRetryFailed);
 
     // 閾値調整
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);
@@ -118,6 +120,12 @@ export async function initializeLlmSection() {
             // 既存の基準があれば表示
             if (llmConfig.llm_criteria) {
                 renderOptimizedCriteria(llmConfig.llm_criteria, llmConfig.llm_screening_prompt);
+
+                // 既存の基準がある場合：確定状態のスタイルを適用
+                dom.criteriaCard.classList.add('confirmed');
+            } else {
+                // 基準が未設定の場合：確定状態を解除
+                dom.criteriaCard.classList.remove('confirmed');
             }
 
             // バッチ対象件数を更新

@@ -58,6 +58,9 @@ export async function handleOptimizeCriteria() {
         dom.optimizeStatusDiv.textContent = '✓ 最適化完了';
         dom.optimizeStatusDiv.className = 'optimize-status success';
 
+        // ボタンを薄い色に変更（確定済み状態）
+        dom.optimizeCriteriaBtn.classList.add('confirmed');
+
         // 保存ボタンを表示
         dom.saveCriteriaBtn.classList.remove('hidden');
     } catch (error) {
@@ -116,6 +119,9 @@ export async function handleSaveCriteria() {
         });
 
         showToast('基準を保存しました');
+
+        // 保存成功時：確定状態のスタイルを適用
+        dom.criteriaCard.classList.add('confirmed');
     } catch (error) {
         console.error('[handleSaveCriteria] Error:', error);
         showToast('保存に失敗しました');

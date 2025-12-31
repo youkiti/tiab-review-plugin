@@ -17,8 +17,9 @@
                 <span class="build-version">Build: 2025-12-31</span>
             </div>
             <div class="header-tabs hidden">
-                <button id="tab-screening" class="tab-btn active" title="スクリーニング">📄</button>
-                <button id="tab-llm" class="tab-btn" title="LLM処理">🤖</button>
+                <button id="tab-screening" class="tab-btn active" title="手動レビュー">👤 手動</button>
+                <button id="tab-ml" class="tab-btn" title="機械学習併用（未実装）" disabled>🔬 ML（未実装）</button>
+                <button id="tab-llm" class="tab-btn" title="AIレビュー">🤖 AI</button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -293,24 +294,8 @@
                 <button id="llm-back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
                     ← 戻る
                 </button>
-                <span class="llm-title">LLM処理</span>
+                <span class="llm-title">🤖 AIレビュー</span>
                 <button id="llm-settings-btn" class="btn btn-icon" title="設定">⚙️</button>
-            </div>
-
-            <!-- APIキー設定 -->
-            <div class="llm-card">
-                <h4>🔑 Gemini APIキー</h4>
-                <div class="api-key-input-group">
-                    <input type="password" id="gemini-api-key" placeholder="APIキーを入力..." class="api-key-input">
-                    <button id="toggle-api-key-visibility" class="btn btn-icon" title="表示/非表示">👁</button>
-                </div>
-                <div class="api-key-options">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="save-api-key-checkbox" checked>
-                        <span>端末に保存する</span>
-                    </label>
-                </div>
-                <div id="api-key-status" class="api-key-status"></div>
             </div>
 
             <!-- 詳細設定 -->
@@ -338,8 +323,30 @@
                 </div>
             </div>
 
+            <!-- APIキー設定 -->
+            <div id="api-key-card" class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    🔑 Gemini APIキー
+                    <span id="api-key-summary" class="card-summary"></span>
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="api-key-input-group">
+                        <input type="password" id="gemini-api-key" placeholder="APIキーを入力..." class="api-key-input">
+                        <button id="toggle-api-key-visibility" class="btn btn-icon" title="表示/非表示">👁</button>
+                    </div>
+                    <div class="api-key-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="save-api-key-checkbox" checked>
+                            <span>端末に保存する</span>
+                        </label>
+                    </div>
+                    <div id="api-key-status" class="api-key-status"></div>
+                </div>
+            </div>
+
             <!-- レビュー基準 -->
-            <div class="llm-card">
+            <div id="criteria-card" class="llm-card">
                 <h4>📋 レビュー基準</h4>
 
                 <div class="criteria-section">
@@ -401,6 +408,10 @@
                         失敗: <span id="batch-fail-count">0</span>
                     </div>
                 </div>
+
+                <button id="retry-failed-btn" class="btn btn-secondary btn-full hidden">
+                    🔄 失敗した件をリトライ
+                </button>
             </div>
 
             <!-- 閾値調整（実行完了後に表示） -->

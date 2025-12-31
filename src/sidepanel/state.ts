@@ -40,6 +40,7 @@ let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
 let _currentBatchDecisions: Decision[] = [];
 let _activeLlmExecutionIds: Set<string> = new Set();
+let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 
 // ========== State Object with Getters/Setters ==========
 
@@ -146,6 +147,10 @@ export const state = {
     addActiveLlmExecutionId(id: string) { _activeLlmExecutionIds.add(id); },
     clearActiveLlmExecutionIds() { _activeLlmExecutionIds.clear(); },
 
+    get failedRefIds() { return _failedRefIds; },
+    setFailedRefIds(ids: string[]) { _failedRefIds = ids; },
+    clearFailedRefIds() { _failedRefIds = []; },
+
     // ----- Reset Functions -----
     resetForLogout() {
         _spreadsheetId = '';
@@ -164,6 +169,7 @@ export const state = {
         _currentExecutionId = '';
         _currentBatchDecisions = [];
         _activeLlmExecutionIds.clear();
+        _failedRefIds = [];
     },
 
     resetForBack() {

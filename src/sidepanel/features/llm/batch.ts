@@ -5,7 +5,8 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, RateLimitConfig } from '../../../lib/types';
+import { RATE_LIMIT_FREE, RATE_LIMIT_PAID } from '../../../lib/types';
 import {
     appendDecisions,
     getDecisionsByReviewerId,
@@ -15,7 +16,7 @@ import {
     updateLlmExecution,
     updateLlmConfig,
 } from '../../../lib/sheets-api';
-import { getEffectiveApiKey } from '../../../lib/storage';
+import { getEffectiveApiKey, getApiTier } from '../../../lib/storage';
 import {
     processBatch,
     calculateProbabilityDistribution,
@@ -82,6 +83,14 @@ export async function handleStartBatch() {
         const spreadsheetId = state.spreadsheetId;
         const llmConfig = state.llmConfig;
 
+        // API tierに基づいてレート制限を設定
+        const tier = await getApiTier();
+        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
+
+        if (tier === 'free') {
+            showToast('無料版APIキーのため、処理速度が制限されます（約13秒/件）', 4000);
+        }
+
         const result = await processBatch(targetRefs, {
             batchSize: saveBatchSize,
             screeningPrompt,
@@ -89,6 +98,7 @@ export async function handleStartBatch() {
             temperature: 0,
             maxOutputTokens: 2048,
             outputLanguage: dom.llmLanguageSelect.value,
+            rateLimitConfig,
             abortSignal: abortController.signal,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
@@ -99,6 +109,17 @@ export async function handleStartBatch() {
         });
 
         state.setCurrentExecutionId(result.executionId);
+
+        // 失敗したref_idを保存
+        state.setFailedRefIds(result.failedRefIds);
+
+        // 失敗があればリトライボタンを表示
+        if (result.failedRefIds.length > 0) {
+            dom.retryFailedBtn.textContent = `🔄 失敗した${result.failedRefIds.length}件をリトライ`;
+            dom.retryFailedBtn.classList.remove('hidden');
+        } else {
+            dom.retryFailedBtn.classList.add('hidden');
+        }
 
         // 完了後のUI更新
         if (!abortController.signal.aborted) {
@@ -145,6 +166,96 @@ export function handleStopBatch() {
     if (controller) {
         controller.abort();
         showToast('バッチ処理を中止しました');
+    }
+}
+
+/**
+ * 失敗した件をリトライ
+ */
+export async function handleRetryFailed() {
+    const failedRefIds = state.failedRefIds;
+    if (failedRefIds.length === 0) {
+        showToast('リトライ対象がありません');
+        return;
+    }
+
+    // 失敗したref_idに対応する文献を取得
+    const targetRefs = state.references.filter(r => failedRefIds.includes(r.ref_id));
+    if (targetRefs.length === 0) {
+        showToast('リトライ対象の文献が見つかりません');
+        return;
+    }
+
+    showToast(`${targetRefs.length}件をリトライ中...`);
+
+    // リトライボタンを非表示にしてから再処理
+    dom.retryFailedBtn.classList.add('hidden');
+    state.clearFailedRefIds();
+
+    // 通常のバッチ処理と同様に処理
+    const apiKey = await getEffectiveApiKey();
+    if (!apiKey) {
+        showToast('APIキーを設定してください');
+        return;
+    }
+
+    const screeningPrompt = dom.screeningPromptInput.value.trim();
+    if (!screeningPrompt) {
+        showToast('スクリーニング基準を設定してください');
+        return;
+    }
+
+    dom.startBatchBtn.classList.add('hidden');
+    dom.stopBatchBtn.classList.remove('hidden');
+    dom.batchProgressDiv.classList.remove('hidden');
+
+    const abortController = new AbortController();
+    state.setBatchAbortController(abortController);
+
+    try {
+        const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
+        const spreadsheetId = state.spreadsheetId;
+
+        const tier = await getApiTier();
+        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
+
+        const result = await processBatch(targetRefs, {
+            batchSize: saveBatchSize,
+            screeningPrompt,
+            model: dom.llmModelSelect.value,
+            temperature: 0,
+            maxOutputTokens: 2048,
+            outputLanguage: dom.llmLanguageSelect.value,
+            rateLimitConfig,
+            abortSignal: abortController.signal,
+            onProgress: updateBatchProgress,
+            onSaveBatch: async (decisions) => {
+                await appendDecisions(spreadsheetId, decisions);
+                const currentDecisions = state.currentBatchDecisions;
+                state.setCurrentBatchDecisions([...currentDecisions, ...decisions]);
+            },
+        });
+
+        // リトライ結果を更新
+        state.setFailedRefIds(result.failedRefIds);
+
+        if (result.failedRefIds.length > 0) {
+            dom.retryFailedBtn.textContent = `🔄 失敗した${result.failedRefIds.length}件をリトライ`;
+            dom.retryFailedBtn.classList.remove('hidden');
+            showToast(`リトライ完了: 成功${result.successCount}件、失敗${result.failCount}件`);
+        } else {
+            showToast(`リトライ完了: 全${result.successCount}件成功`);
+        }
+
+        // 閾値プレビューを更新
+        handleThresholdChange();
+    } catch (error) {
+        console.error('[handleRetryFailed] Error:', error);
+        showToast(`リトライエラー: ${(error as Error).message}`);
+    } finally {
+        dom.startBatchBtn.classList.remove('hidden');
+        dom.stopBatchBtn.classList.add('hidden');
+        state.setBatchAbortController(null);
     }
 }
 
