@@ -239,6 +239,11 @@ tiab-review-plugin/
 │   │   └── types.ts           # 型定義
 │   └── utils/
 │       └── uuid.ts
+├── experiments/               # ローカル実験用スクリプト
+│   ├── data/
+│   ├── results/
+│   ├── runner.ts
+│   └── tsconfig.json
 ├── dist/                       # ビルド出力
 ├── package.json
 ├── tsconfig.json
@@ -369,6 +374,22 @@ https://www.googleapis.com/auth/drive.file
 ```bash
 npm run build:zip
 ```
+
+### ローカル実験環境
+
+LLMのパラメーター調整などの実験をローカル環境（Chrome拡張外）で実行可能。
+
+1. **セットアップ**:
+   - `.env` に `GEMINI_API_KEY` を設定
+   - `npm install`
+2. **実行**:
+   ```bash
+   npx ts-node --project experiments/tsconfig.json experiments/runner.ts
+   ```
+3. **構成**:
+   - データ: `experiments/data/sample.json`
+   - ロジック: `experiments/runner.ts`
+   - 結果: `experiments/results/`にJSONとして保存
 
 このコマンドは以下を実行:
 

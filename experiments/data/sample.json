@@ -1,0 +1,12 @@
+[
+    {
+        "id": "1",
+        "title": "Machine learning for systematic review screening",
+        "abstract": "Systematic reviews are time consuming. Machine learning can help reduce the workload. We evaluate the performance of an automated screening tool."
+    },
+    {
+        "id": "2",
+        "title": "A unrelated study about geology",
+        "abstract": "This study examines the rock formation in the northern hemisphere. No medical relevance."
+    }
+]

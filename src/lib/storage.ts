@@ -182,7 +182,21 @@ export async function getEffectiveApiKey(): Promise<string | null> {
     if (sessionApiKey) {
         return sessionApiKey;
     }
+    // Node.js environment check (for local experiments)
+    // types/chrome があるため、chromeオブジェクト自体の存在チェックが必要
+    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
+    if (isNodeEnv) {
+        if (process.env.GEMINI_API_KEY) {
+            return process.env.GEMINI_API_KEY;
+        }
+    }
+
     // 次に保存されているキーを確認
+    // chrome environment check
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return null; // Chrome拡張環境でもNode環境でもない、またはAPIキーがない
+    }
+
     return await getGeminiApiKey();
 }
 

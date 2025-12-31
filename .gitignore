@@ -46,3 +46,7 @@ scripts/asreview-baseline/datasets/mendeley_20240827_dev_set.json
 
 # Vendor directories (reference code from other repositories)
 vendor/
+
+# Experiments
+experiments/results/
+experiments/local_data/
