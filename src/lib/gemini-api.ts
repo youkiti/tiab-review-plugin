@@ -18,7 +18,7 @@ export interface GeminiModelConfig {
  * デフォルト設定
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-flash-latest',
+    model: 'gemini-2.5-flash-lite',
     temperature: 0,
 };
 
@@ -307,7 +307,7 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
  */
 export const AVAILABLE_MODELS = [
     { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (推奨)' },
-    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
-    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview (原則使わない)' },
+    // { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+    // { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview (原則使わない)' },
 ];
 
