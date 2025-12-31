@@ -1,0 +1,274 @@
+/**
+ * スクリーニング描画モジュール
+ * 文献の表示、ハイライト、不一致表示など
+ */
+
+import { dom } from '../../dom';
+import { state } from '../../state';
+import { escapeHtml, escapeRegex } from '../../utils/text';
+import { getFilteredReferences, updateFilterCounts } from './filters';
+import type { ReferenceWithStatus } from '../../../lib/types';
+import { showStatus } from '../../ui/feedback';
+
+// 外部アクションへの参照（循環依存回避）
+let _navigate: ((dir: number) => void) | null = null;
+
+export function setRenderDependencies(deps: {
+    navigate: (dir: number) => void;
+}) {
+    _navigate = deps.navigate;
+}
+
+/**
+ * テキストハイライト処理
+ */
+export function highlightText(text: string, searchKeyword: string): string {
+    if (!text) return '';
+
+    let html = escapeHtml(text);
+
+    // 1. ハイライトキーワード（include/exclude）
+    if (state.highlightKeywords) {
+        // Excludeキーワード (赤)
+        state.highlightKeywords.exclude.forEach(keyword => {
+            if (!keyword) return;
+            const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+            html = html.replace(regex, '<span class="highlight-exclude">$1</span>');
+        });
+
+        // Includeキーワード (緑)
+        state.highlightKeywords.include.forEach(keyword => {
+            if (!keyword) return;
+            const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+            html = html.replace(regex, '<span class="highlight-include">$1</span>');
+        });
+    }
+
+    // 2. 検索キーワード（黄色）
+    if (searchKeyword) {
+        const regex = new RegExp(`(${escapeRegex(searchKeyword)})`, 'gi');
+        html = html.replace(regex, '<span class="highlight-search">$1</span>');
+    }
+
+    // 3. タームフィルター（青枠）
+    state.activeTermFilters.forEach(filter => {
+        const regex = new RegExp(`(${escapeRegex(filter.term)})`, 'gi');
+        // 既にハイライトされているタグの中身を壊さないように注意が必要だが、
+        // 簡易的に実装。詳細なHTML解析はコストが高いので、重複ハイライトは許容するか、
+        // あるいはクラスを追記する形にするのが理想。
+        // ここでは単純置換（既存のspanの中に入り込む可能性があるが、ブラウザが補正してくれることを期待）
+        html = html.replace(regex, '<span class="highlight-term">$1</span>');
+    });
+
+    return html;
+}
+
+/**
+ * 現在の文献を表示
+ */
+export function renderCurrentReference() {
+    const filtered = getFilteredReferences();
+    const ref = filtered[state.currentIndex];
+
+    // 検索結果件数の更新
+    const searchTerm = dom.searchInput.value.trim();
+    if (searchTerm) {
+        dom.searchResultCount.classList.remove('hidden');
+        if (filtered.length === 0) {
+            dom.searchResultCount.textContent = `「${searchTerm}」: 0件ヒット`;
+            dom.searchResultCount.classList.add('no-results');
+        } else {
+            dom.searchResultCount.textContent = `「${searchTerm}」: ${filtered.length}件ヒット（↓ 詳細を確認）`;
+            dom.searchResultCount.classList.remove('no-results');
+        }
+    } else {
+        dom.searchResultCount.classList.add('hidden');
+    }
+
+    if (!ref) {
+        // 文献がない場合の表示
+        dom.refTitle.textContent = '文献がありません';
+        dom.refAuthors.textContent = '';
+        dom.refYear.textContent = '';
+        dom.refJournal.textContent = '';
+        dom.refAbstract.textContent = state.references.length === 0
+            ? 'RISファイルをインポートするか、スプレッドシートに文献を追加してください'
+            : 'フィルター条件に一致する文献がありません';
+        dom.refDoi.classList.add('hidden');
+        dom.refPmid.classList.add('hidden');
+        dom.navPosition.textContent = '0 / 0';
+        dom.progressText.textContent = `0 / ${state.references.length}`;
+        dom.filterResultCount.textContent = `0件中 0件目`;
+
+        updateFilterCounts();
+
+        dom.conflictBanner.classList.add('hidden');
+        dom.allDecisionsDiv.classList.add('hidden');
+        return;
+    }
+
+    renderReferenceDetails(ref, filtered.length);
+}
+
+/**
+ * 特定の文献を描画（外部呼び出し用）
+ */
+export function renderSpecificReference(ref: ReferenceWithStatus) {
+    const filtered = getFilteredReferences();
+    renderReferenceDetails(ref, filtered.length);
+}
+
+/**
+ * 特定の文献を描画（内部関数）
+ */
+function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number) {
+    // コンフリクト表示
+    if (state.isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
+        renderAllDecisions(ref);
+        dom.allDecisionsDiv.classList.remove('hidden');
+
+        if (ref.hasConflict) {
+            dom.conflictBanner.classList.remove('hidden');
+        } else {
+            dom.conflictBanner.classList.add('hidden');
+        }
+    } else {
+        dom.conflictBanner.classList.add('hidden');
+        dom.allDecisionsDiv.classList.add('hidden');
+    }
+
+    // 基本情報表示
+    const searchKeyword = dom.searchInput.value.trim();
+    dom.refTitle.innerHTML = highlightText(ref.title, searchKeyword);
+    dom.refAuthors.textContent = ref.authors || '';
+    dom.refYear.textContent = ref.year?.toString() || '';
+    dom.refJournal.textContent = ref.journal || '';
+    dom.refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword);
+
+    // リンク
+    if (ref.doi) {
+        dom.refDoi.href = `https://doi.org/${ref.doi}`;
+        dom.refDoi.classList.remove('hidden');
+    } else {
+        dom.refDoi.classList.add('hidden');
+    }
+
+    if (ref.pmid) {
+        dom.refPmid.href = `https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}`;
+        dom.refPmid.classList.remove('hidden');
+    } else {
+        dom.refPmid.classList.add('hidden');
+    }
+
+    // ナビゲーション更新
+    dom.navPosition.textContent = `${state.currentIndex + 1} / ${totalFiltered}`;
+    dom.filterResultCount.textContent = `${totalFiltered}件中 ${state.currentIndex + 1}件目`;
+
+    // 進捗表示
+    renderProgress();
+
+    // 判定ボタンの状態
+    updateDecisionButtons(ref);
+
+    // メモ欄（変更があるためここではなくナビゲーション時や判定時に同期をとるが、
+    // 表示切替時には値をセットする必要がある）
+    dom.noteInput.value = ref.myDecision?.note || '';
+}
+
+/**
+ * 進捗状況の表示
+ */
+function renderProgress() {
+    const labeledCount = state.references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length;
+    const totalCount = state.references.length;
+    const remainingCount = totalCount - labeledCount;
+    const progressPercent = totalCount > 0 ? Math.round((labeledCount / totalCount) * 100) : 0;
+
+    dom.progressText.textContent = `${labeledCount} / ${totalCount}`;
+
+    // 励ましメッセージ
+    let encourageMessage = '';
+    if (totalCount === 0) {
+        encourageMessage = '文献をインポートしてください 📂';
+    } else if (progressPercent === 0) {
+        encourageMessage = 'さあ、始めましょう！💪';
+    } else if (progressPercent <= 25) {
+        encourageMessage = '順調なスタートです！🚀';
+    } else if (progressPercent <= 50) {
+        encourageMessage = 'いいペースです！半分まであと少し 📈';
+    } else if (progressPercent <= 75) {
+        encourageMessage = '折り返し地点を過ぎました！🎯';
+    } else if (progressPercent < 100) {
+        encourageMessage = 'ゴールが見えてきました！✨';
+    } else {
+        encourageMessage = '完了しました！お疲れ様でした 🎉';
+    }
+
+    // 設定に応じて表示位置を切り替え
+    if (state.showRecordCountBelow) {
+        dom.navProgress.innerHTML = `
+            <div class="nav-progress-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+            <div class="nav-progress-encourage">${encourageMessage}</div>
+        `;
+        dom.recordCountAbove.classList.add('hidden');
+        dom.navProgress.classList.remove('hidden');
+    } else {
+        dom.recordCountAbove.innerHTML = `
+            <div class="record-count-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+            <div class="record-count-encourage">${encourageMessage}</div>
+        `;
+        dom.recordCountAbove.classList.remove('hidden');
+        dom.navProgress.classList.add('hidden');
+    }
+
+    updateFilterCounts();
+}
+
+/**
+ * 判定ボタンのアクティブ状態を更新
+ */
+function updateDecisionButtons(ref: ReferenceWithStatus) {
+    const myStatus = ref.myDecision?.decision || 'pending';
+    dom.btnInclude.classList.toggle('active', myStatus === 'include');
+    dom.btnMaybe.classList.toggle('active', myStatus === 'maybe');
+    dom.btnExclude.classList.toggle('active', myStatus === 'exclude');
+}
+
+/**
+ * 全レビュアーの判定を表示（キーオープン時）
+ */
+function renderAllDecisions(ref: ReferenceWithStatus) {
+    if (!ref.allDecisions) return;
+
+    dom.allDecisionsDiv.innerHTML = '';
+    ref.allDecisions.forEach((d) => {
+        const div = document.createElement('div');
+        div.className = `decision-item ${d.decision}`;
+
+        let icon = '';
+        if (d.decision === 'include') icon = '⭕';
+        else if (d.decision === 'exclude') icon = '❌';
+        else if (d.decision === 'maybe') icon = '❓';
+
+        div.innerHTML = `
+            <span class="reviewer">${d.reviewer_id}</span>
+            <span class="decision">${icon} ${d.decision}</span>
+        `;
+
+        if (d.note) {
+            const noteSpan = document.createElement('span');
+            noteSpan.className = 'note';
+            noteSpan.textContent = `📝 ${d.note}`;
+            div.appendChild(noteSpan);
+        }
+
+        dom.allDecisionsDiv.appendChild(div);
+    });
+}
+
+/**
+ * キー状態ボタンの表示更新
+ */
+export function renderKeyStatus() {
+    dom.keyToggleInput.checked = state.isKeyOpened;
+}

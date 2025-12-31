@@ -131,7 +131,7 @@ export function parseRIS(content: string, sourceFile?: string): Reference[] {
                 source: truncateField(currentRecord.source),
                 source_file: truncateField(sourceFile),
                 imported_at: new Date().toISOString(),
-                dedupe_key: generateDedupeKey(currentRecord.title),
+                dedupe_key: generateDedupeKey(currentRecord.title, currentRecord.pmid, currentRecord.doi),
             };
             references.push(ref);
         }
@@ -253,9 +253,12 @@ function normalizeTitle(title: string): string {
 }
 
 /**
- * 重複検出キーを生成（正規化タイトルのみ）
+ * 重複検出キーを生成
+ * 優先順位: PMID > DOI > 正規化タイトル
  */
-function generateDedupeKey(title?: string): string {
+function generateDedupeKey(title?: string, pmid?: string, doi?: string): string {
+    if (pmid) return `pmid:${pmid}`;
+    if (doi) return `doi:${doi.toLowerCase()}`;
     return normalizeTitle(title || '');
 }
 

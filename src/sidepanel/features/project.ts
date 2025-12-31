@@ -17,6 +17,7 @@ import {
     getKeyOpenedStatus,
     isUserAdmin,
     forceReauth,
+    ensureHeaders,
 } from '../../lib/sheets-api';
 
 // 外部関数への参照（循環依存回避）
@@ -74,6 +75,9 @@ export async function handleConnect() {
             showStatus(validation.error || '対応していない形式です', 'error');
             return;
         }
+
+        // ヘッダーの整合性を確認（不足があれば追加）
+        await ensureHeaders(selectedId);
 
         showStatus(`接続成功: ${info.title}`, 'success');
 

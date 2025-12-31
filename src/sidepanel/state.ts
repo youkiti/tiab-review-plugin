@@ -64,6 +64,22 @@ export const state = {
     // ----- Keywords/Permissions -----
     get highlightKeywords() { return _highlightKeywords; },
     setHighlightKeywords(keywords: HighlightKeywords) { _highlightKeywords = keywords; },
+    addIncludeKeyword(word: string) {
+        if (!_highlightKeywords.include.includes(word)) {
+            _highlightKeywords.include.push(word);
+        }
+    },
+    removeIncludeKeyword(word: string) {
+        _highlightKeywords.include = _highlightKeywords.include.filter(w => w !== word);
+    },
+    addExcludeKeyword(word: string) {
+        if (!_highlightKeywords.exclude.includes(word)) {
+            _highlightKeywords.exclude.push(word);
+        }
+    },
+    removeExcludeKeyword(word: string) {
+        _highlightKeywords.exclude = _highlightKeywords.exclude.filter(w => w !== word);
+    },
 
     get isKeyOpened() { return _isKeyOpened; },
     setIsKeyOpened(opened: boolean) { _isKeyOpened = opened; },

@@ -1,0 +1,316 @@
+/**
+ * インポート/エクスポート機能モジュール
+ */
+import { dom } from '../dom';
+import { state } from '../state';
+import { showToast, showLoading, showStatus } from '../ui/feedback';
+import { escapeCSVField } from '../utils/csv';
+import { getFilteredReferences, renderSourceFilters } from './screening/filters';
+import { getSpreadsheetInfo, addReferences, getReferencesWithStatus } from '../../lib/sheets-api';
+import { parseRISFile } from '../../lib/ris-parser';
+
+// 外部レンダリング関数への参照
+let _renderCurrentReference: (() => void) | null = null;
+
+export function setImportExportDependencies(deps: {
+    renderCurrentReference: () => void;
+}) {
+    _renderCurrentReference = deps.renderCurrentReference;
+}
+
+/**
+ * RIS/nbibファイルをインポート
+ */
+export async function handleRISImport(e: Event) {
+    const fileInput = e.target as HTMLInputElement;
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    try {
+        // 同じ名前のファイルが既に存在するかチェック
+        if (state.sourceFiles.has(file.name)) {
+            const msg = `ファイル "${file.name}" は既にインポート済みです`;
+            showStatus(msg, 'error');
+            showToast(msg);
+            dom.importStatus.textContent = 'インポートファイルが重複しています';
+            fileInput.value = ''; // リセット
+
+            setTimeout(() => {
+                if (dom.importStatus.textContent === 'インポートファイルが重複しています') {
+                    dom.importStatus.textContent = '';
+                }
+            }, 3000);
+            return;
+        }
+
+        showLoading(true);
+        dom.importStatus.textContent = '解析中...';
+        // const text = await file.text(); // parseRISFile reads it
+        const newReferences = await parseRISFile(file);
+
+        if (newReferences.length === 0) {
+            showStatus('有効な文献が見つかりませんでした', 'error');
+            return;
+        }
+
+        // ソースファイル名を付与
+        newReferences.forEach(ref => {
+            ref.source_file = file.name;
+        });
+
+        // 重複チェック
+        const existingKeys = new Set(state.references.map(r => r.dedupe_key).filter(k => !!k));
+        const uniqueReferences = newReferences.filter(ref => !existingKeys.has(ref.dedupe_key));
+        const duplicateCount = newReferences.length - uniqueReferences.length;
+
+        if (duplicateCount > 0) {
+            console.log(`Skipped ${duplicateCount} duplicates.`);
+            showToast(`${duplicateCount} 件の重複を除外しました`);
+        }
+
+        if (uniqueReferences.length === 0) {
+            dom.importStatus.textContent = 'すべて重複';
+            showStatus('新しい文献はありません（すべて重複）', 'info');
+            return;
+        }
+
+        // スプレッドシートに追加 (分割処理)
+        const BATCH_SIZE = 500;
+        const total = uniqueReferences.length;
+
+        for (let i = 0; i < total; i += BATCH_SIZE) {
+            const chunk = uniqueReferences.slice(i, i + BATCH_SIZE);
+            const current = Math.min(i + chunk.length, total);
+
+            dom.importStatus.textContent = `アップロード中: ${current}/${total}`;
+            await addReferences(state.spreadsheetId, chunk);
+        }
+
+        // 状態を更新
+        dom.importStatus.textContent = 'データ更新中...';
+        state.addSourceFile(file.name);
+        state.addSelectedSourceFile(file.name); // 新規ファイルを選択状態にする
+
+        // データを再読み込み（現在のモードに合わせて）
+        const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+        state.setReferences(refs);
+
+        // UI更新
+        renderSourceFilters();
+        if (_renderCurrentReference) _renderCurrentReference();
+
+        const completionMsg = `${uniqueReferences.length}件インポート完了（重複除外: ${duplicateCount}件）`;
+        dom.importStatus.textContent = completionMsg;
+        showStatus(completionMsg, 'success');
+        showToast(completionMsg);
+
+    } catch (error) {
+        console.error('Import error:', error);
+        showStatus(`インポートエラー: ${(error as Error).message}`, 'error');
+    } finally {
+
+        showLoading(false);
+        fileInput.value = ''; // リセット
+
+        // 5秒後にステータスをクリア
+        setTimeout(() => {
+            // エラーや完了メッセージが表示されている場合のみクリア
+            // "解析中..." や "アップロード中..." が残っている場合は異常なのでクリアしてよい
+            if (dom.importStatus.textContent) {
+                dom.importStatus.textContent = '';
+            }
+        }, 5000);
+    }
+}
+
+/**
+ * フィルター結果をCSVとしてエクスポート
+ */
+export async function handleExportCSV() {
+    const filtered = getFilteredReferences();
+
+    if (filtered.length === 0) {
+        showToast('エクスポートする文献がありません');
+        return;
+    }
+
+    try {
+        // プロジェクトタイトルを取得
+        let projectTitle = 'TiAb_Review';
+        try {
+            const info = await getSpreadsheetInfo(state.spreadsheetId);
+            projectTitle = info.title.replace(/[\\/:*?"<>|]/g, '_');
+        } catch {
+            console.log('[handleExportCSV] Could not get spreadsheet title');
+        }
+
+        // フィルター条件ラベル
+        const filterLabels: Record<string, string> = {
+            'pending': '未判定',
+            'all': 'すべて',
+            'include': 'Include',
+            'exclude': 'Exclude',
+            'maybe': 'Maybe',
+            'conflict': '不一致',
+        };
+        const filterLabel = filterLabels[state.currentFilter] || state.currentFilter;
+
+        // 日付
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // ファイル名
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.csv`;
+
+        // CSVヘッダー
+        const headers = [
+            'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'issn',
+            'doi', 'pmid', 'status', 'note', 'source_file'
+        ];
+
+        // CSVデータを構築
+        const csvRows: string[] = [];
+        csvRows.push(headers.map(escapeCSVField).join(','));
+
+        for (const ref of filtered) {
+            const row = [
+                ref.title || '',
+                ref.authors || '',
+                ref.year?.toString() || '',
+                ref.journal || '',
+                ref.volume || '',
+                ref.issue || '',
+                ref.pages || '',
+                ref.issn || '',
+                ref.doi || '',
+                ref.pmid || '',
+                ref.status || '',
+                ref.myDecision?.note || '',
+                ref.source_file || '',
+            ];
+            csvRows.push(row.map(escapeCSVField).join(','));
+        }
+
+        downloadBlob(csvRows.join('\r\n'), filename, 'text/csv;charset=utf-8');
+        showToast(`${filtered.length}件をCSVとして出力しました`);
+    } catch (error) {
+        console.error('[handleExportCSV] Error:', error);
+        showToast('CSVエクスポートに失敗しました');
+    }
+}
+
+/**
+ * フィルター結果をRIS形式でエクスポート
+ */
+export async function handleExportRIS() {
+    const filtered = getFilteredReferences();
+
+    if (filtered.length === 0) {
+        showToast('エクスポートする文献がありません');
+        return;
+    }
+
+    try {
+        // プロジェクトタイトルを取得
+        let projectTitle = 'TiAb_Review';
+        try {
+            const info = await getSpreadsheetInfo(state.spreadsheetId);
+            projectTitle = info.title.replace(/[\\/:*?"<>|]/g, '_');
+        } catch {
+            console.log('[handleExportRIS] Could not get spreadsheet title');
+        }
+
+        const filterLabels: Record<string, string> = {
+            'pending': '未判定',
+            'all': 'すべて',
+            'include': 'Include',
+            'exclude': 'Exclude',
+            'maybe': 'Maybe',
+            'conflict': '不一致',
+        };
+        const filterLabel = filterLabels[state.currentFilter] || state.currentFilter;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.ris`;
+
+        const risLines: string[] = [];
+
+        for (const ref of filtered) {
+            risLines.push('TY  - JOUR');
+            if (ref.title) risLines.push(`TI  - ${ref.title}`);
+
+            if (ref.authors) {
+                const authors = ref.authors.split(/;\s*/);
+                for (const author of authors) {
+                    if (author && author !== 'et al.') {
+                        risLines.push(`AU  - ${author.trim()}`);
+                    }
+                }
+            }
+
+            if (ref.year) risLines.push(`PY  - ${ref.year}`);
+            if (ref.journal) risLines.push(`JO  - ${ref.journal}`);
+            if (ref.volume) risLines.push(`VL  - ${ref.volume}`);
+            if (ref.issue) risLines.push(`IS  - ${ref.issue}`);
+
+            if (ref.pages) {
+                const pageMatch = ref.pages.match(/^(\d+)\s*-\s*(\d+)$/);
+                if (pageMatch) {
+                    risLines.push(`SP  - ${pageMatch[1]}`);
+                    risLines.push(`EP  - ${pageMatch[2]}`);
+                } else {
+                    risLines.push(`SP  - ${ref.pages}`);
+                }
+            }
+
+            if (ref.issn) risLines.push(`SN  - ${ref.issn}`);
+            if (ref.doi) risLines.push(`DO  - ${ref.doi}`);
+            if (ref.pmid) risLines.push(`AN  - ${ref.pmid}`);
+            if (ref.abstract) risLines.push(`AB  - ${ref.abstract}`);
+
+            // URL
+            if (ref.pmid) {
+                risLines.push(`UR  - https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`);
+            } else if (ref.doi) {
+                risLines.push(`UR  - https://doi.org/${ref.doi}`);
+            }
+
+            // カスタムフィールド
+            if (ref.myDecision?.note) {
+                risLines.push(`N1  - ${ref.myDecision.note}`);
+            }
+            if (ref.status) {
+                risLines.push(`C1  - Status: ${ref.status}`);
+            }
+            if (ref.source_file) {
+                risLines.push(`DB  - ${ref.source_file}`);
+            }
+
+            risLines.push('ER  - ');
+            risLines.push('');
+        }
+
+        downloadBlob(risLines.join('\r\n'), filename, 'application/x-research-info-systems;charset=utf-8');
+        showToast(`${filtered.length}件をRIS形式で出力しました`);
+
+    } catch (error) {
+        console.error('[handleExportRIS] Error:', error);
+        showToast('RISエクスポートに失敗しました');
+    }
+}
+
+/**
+ * ファイルダウンロードヘルパー
+ */
+function downloadBlob(content: string, filename: string, type: string) {
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}

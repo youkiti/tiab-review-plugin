@@ -166,6 +166,33 @@ export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpre
 }
 
 /**
+ * シートのヘッダーを確認し、不足があれば更新する
+ */
+export async function ensureHeaders(spreadsheetId: string): Promise<void> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`);
+        if (!values || values.length === 0) return;
+
+        const currentHeaders = values[0];
+
+        // ヘッダーが不足している場合（例: 古いバージョンで作成されたシート）
+        if (currentHeaders.length < REFERENCES_HEADERS.length) {
+            console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
+
+            // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
+            // 一致しなくても、このアプリで管理する以上は更新して良いとする
+
+            // 行1全体を更新
+            await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
+            console.log('[ensureHeaders] Headers updated');
+        }
+    } catch (error) {
+        console.error('[ensureHeaders] Error:', error);
+        // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
+    }
+}
+
+/**
  * 新しいスプレッドシートを作成
  */
 export async function createSpreadsheet(title: string): Promise<string> {
@@ -405,6 +432,110 @@ export async function addReferences(spreadsheetId: string, references: Reference
     ]);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
+}
+
+/**
+ * 特定のソースファイルの文献を削除
+ */
+export async function deleteReferencesBySourceFile(spreadsheetId: string, sourceFileName: string): Promise<number> {
+    // 1. 全文献のソースファイル列（R列）を取得
+    // source_fileはindex 17 (0-indexed) = R列
+    // Referencesシートのデータは2行目から（1行目はヘッダー）
+
+    // 効率のため、必要な列だけ取得したいが、行番号を知る必要があるため、A:Rを取得するか、
+    // まるごと取得してJS側でフィルタする。
+    // R列だけ取得して、インデックスをマッピングするのが効率的。
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!R:R`);
+
+    if (values.length <= 1) return 0;
+
+    const rangesToDelete: { startIndex: number; endIndex: number }[] = [];
+
+    // ヘッダー(0)を除外してスキャン
+    for (let i = 1; i < values.length; i++) {
+        // R列の値が sourceFileName と一致するか
+        if (values[i][0] === sourceFileName) {
+            // iは配列のインデックス = シートの行番号 (0-indexed API用)
+            // シートの行番号は i+1 だが、APIのstartIndexは0-indexedで行番号そのもの。
+            // 例: 配列index 1 (2行目) -> startIndex 1
+
+            // 連続する行をまとめる
+            const lastRange = rangesToDelete[rangesToDelete.length - 1];
+            if (lastRange && lastRange.endIndex === i) {
+                lastRange.endIndex = i + 1;
+            } else {
+                rangesToDelete.push({ startIndex: i, endIndex: i + 1 });
+            }
+        }
+    }
+
+    if (rangesToDelete.length === 0) return 0;
+
+    // 削除リクエストを作成（後ろから順に削除しないとインデックスがずれる可能性があるが、
+    // batchUpdateのdeleteDimensionは "The requests are applied in the order they appear in the request."
+    // とあるため、インデックスの大きい方（後ろ）から指定するのが定石）
+    rangesToDelete.sort((a, b) => b.startIndex - a.startIndex);
+
+    const requests = rangesToDelete.map(range => ({
+        deleteDimension: {
+            range: {
+                sheetId: 0, // ReferencesシートのIDが必要。通常0だが、明示的に取得すべきか？
+                // シートIDを取得する処理を入れると安全だが、オーバーヘッドになる。
+                // 名前からIDを取得するヘルパーが必要。
+                dimension: 'ROWS',
+                startIndex: range.startIndex,
+                endIndex: range.endIndex
+            }
+        }
+    }));
+
+    // シートIDを取得
+    const sheetId = await getSheetIdByName(spreadsheetId, REFERENCES_SHEET);
+    if (sheetId === null) throw new Error('References sheet not found');
+
+    // sheetIdをセット
+    requests.forEach(req => req.deleteDimension.range.sheetId = sheetId);
+
+    const token = await getAuthToken();
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                requests: requests
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to delete rows: ${error.error?.message || response.statusText}`);
+    }
+
+    return rangesToDelete.reduce((acc, range) => acc + (range.endIndex - range.startIndex), 0);
+}
+
+/**
+ * シート名からシートIDを取得
+ */
+async function getSheetIdByName(spreadsheetId: string, sheetName: string): Promise<number | null> {
+    const token = await getAuthToken();
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}?fields=sheets.properties`,
+        {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const sheet = data.sheets.find((s: any) => s.properties.title === sheetName);
+    return sheet ? sheet.properties.sheetId : null;
 }
 
 /**
