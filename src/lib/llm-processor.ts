@@ -98,6 +98,7 @@ export interface BatchProcessOptions {
     model: string;
     temperature: number;
     topP?: number;
+    thinkingLevel?: string;
     maxOutputTokens?: number;
     outputLanguage: string;
     rateLimitConfig?: RateLimitConfig; // レート制限設定（無料版/有料版）
@@ -193,6 +194,7 @@ export async function processBatch(
         model: options.model,
         temperature: options.temperature,
         topP: options.topP,
+        thinkingLevel: options.thinkingLevel,
         maxOutputTokens: options.maxOutputTokens,
     };
 

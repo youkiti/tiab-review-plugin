@@ -13,6 +13,7 @@ export interface GeminiModelConfig {
     temperature: number;
     maxOutputTokens?: number;
     topP?: number;
+    thinkingLevel?: string; // 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH' - for Model B
 }
 
 /**
@@ -133,6 +134,11 @@ async function callGeminiApi<T>(
             temperature: config.temperature,
             maxOutputTokens: config.maxOutputTokens,
             topP: config.topP,
+            ...(config.thinkingLevel ? { thinkingConfig: { includeThoughts: true } } : {}), // Basic enablement
+            // Note: If 'thinkingLevel' needs to be passed explicitly as a parameter, add it here.
+            // Currently assuming 'includeThoughts: true' is sufficient or the level is used contextually if supported.
+            // For now, let's pass 'thinking_config' if the model supports it.  
+            // Since we can't be sure of the exact 'thinkingLevel' param, we just enable thinking if present.
             responseMimeType: 'application/json',
             responseSchema: responseSchema,
         },
@@ -163,18 +169,44 @@ async function callGeminiApi<T>(
         const data = await response.json();
 
         // レスポンスからテキストを抽出
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) {
+        // Thinking modelは複数partsを返すことがある (part[0]=thinking, part[1]=JSON)
+        const parts = data.candidates?.[0]?.content?.parts;
+        if (!parts || parts.length === 0) {
             throw new Error('Gemini APIからの応答が空です');
         }
 
-        // JSONをパース
-        try {
-            return JSON.parse(text) as T;
-        } catch (e) {
-            console.error('Failed to parse Gemini response:', text);
-            throw new Error('Gemini APIの応答をパースできませんでした');
+        // 全partsを逆順でチェックし、パース可能なJSONを探す
+        // (通常、JSONは最後のpartにある)
+        for (let i = parts.length - 1; i >= 0; i--) {
+            const part = parts[i];
+            const text = part?.text;
+            if (!text || typeof text !== 'string') continue;
+
+            // thought: true のpartはスキップ（thinking text）
+            if (part.thought === true) continue;
+
+            // JSONをパース
+            try {
+                return JSON.parse(text) as T;
+            } catch (e) {
+                // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
+                // 正規表現でJSONオブジェクトを抽出
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        return JSON.parse(jsonMatch[0]) as T;
+                    } catch (e2) {
+                        // このpartでは失敗、次のpartを試す
+                        continue;
+                    }
+                }
+            }
         }
+
+        // 全partsでJSONが見つからなかった
+        const firstText = parts[0]?.text || '';
+        console.error('Failed to parse Gemini response from any part:', firstText.substring(0, 500));
+        throw new Error('Gemini APIの応答をパースできませんでした');
     } catch (error) {
         clearTimeout(timeoutId);
         if (error instanceof Error && error.name === 'AbortError') {

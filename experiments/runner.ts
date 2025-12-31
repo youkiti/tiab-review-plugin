@@ -356,6 +356,7 @@ async function main(): Promise<void> {
             model: condition.model,
             temperature: condition.temperature,
             topP: condition.topP,
+            thinkingLevel: condition.thinkingLevel,
             outputLanguage: 'ja',
             rateLimitConfig,
             onProgress: (progress) => {

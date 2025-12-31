@@ -33,15 +33,17 @@ async function main() {
     // ユーザー指定: depression データセットのみを使用
     const targetDatasets = ['depression'];
 
-    // 条件 (A1-A8)
-    const conditions = config.conditions.map(c => c.id);
+    // 条件 (A1-A8 -> B1-B8)
+    const conditions = config.conditions
+        .map(c => c.id)
+        .filter(id => id.startsWith('B'));
 
     console.log(`Target Datasets: ${targetDatasets.join(', ')}`);
     console.log(`Target Conditions: ${conditions.join(', ')}`);
     console.log(`Total combinations: ${targetDatasets.length * conditions.length}`);
 
-    // Tier setting
-    const tier = 'tier2';
+    // Tier setting (tier1 for thinking model stability)
+    const tier = 'tier1';
 
     for (const dataset of targetDatasets) {
         for (const condition of conditions) {

@@ -77,6 +77,62 @@
             "model": "gemini-2.5-flash-lite",
             "temperature": 1.0,
             "topP": 0.95
+        },
+        {
+            "id": "B1",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.65,
+            "thinkingLevel": "MINIMAL"
+        },
+        {
+            "id": "B2",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL"
+        },
+        {
+            "id": "B3",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.65,
+            "thinkingLevel": "LOW"
+        },
+        {
+            "id": "B4",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.95,
+            "thinkingLevel": "LOW"
+        },
+        {
+            "id": "B5",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.65,
+            "thinkingLevel": "MEDIUM"
+        },
+        {
+            "id": "B6",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.95,
+            "thinkingLevel": "MEDIUM"
+        },
+        {
+            "id": "B7",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.65,
+            "thinkingLevel": "HIGH"
+        },
+        {
+            "id": "B8",
+            "model": "gemini-3-flash-preview",
+            "temperature": 0.7,
+            "topP": 0.95,
+            "thinkingLevel": "HIGH"
         }
     ],
     "datasetConfigs": {
