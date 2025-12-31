@@ -67,7 +67,7 @@ export function renderReviewerFilter() {
             });
 
             const span = document.createElement('span');
-            span.textContent = '💡 Show AI Evidence';
+            span.textContent = '💡 AIの根拠をハイライト';
 
             label.appendChild(checkbox);
             label.appendChild(span);

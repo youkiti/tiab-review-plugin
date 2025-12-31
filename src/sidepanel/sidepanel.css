@@ -865,6 +865,12 @@ body {
     border-radius: 2px;
 }
 
+.highlight-evidence {
+    background-color: #fff3cd;
+    border-bottom: 2px solid #fbbc04;
+    cursor: help;
+}
+
 /* アクティブなタームフィルター表示 */
 .active-term-filters {
     display: flex;

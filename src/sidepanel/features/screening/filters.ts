@@ -26,7 +26,9 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
     let filtered = state.references;
 
     // ステータスフィルター
-    if (state.currentFilter !== 'all') {
+    if (state.currentFilter === 'fulltext_candidates') {
+        filtered = filtered.filter((r) => ['include', 'maybe', 'conflict'].includes(r.status));
+    } else if (state.currentFilter !== 'all') {
         filtered = filtered.filter((r) => r.status === state.currentFilter);
     }
 
@@ -98,6 +100,11 @@ export function updateFilterCounts() {
     options[3].textContent = `Exclude (${counts.exclude})`;
     options[4].textContent = `Maybe (${counts.maybe})`;
     options[5].textContent = `不一致 (${counts.conflict})`;
+
+    const fulltextCount = filtered.filter(r => ['include', 'maybe', 'conflict'].includes(r.status)).length;
+    if (options[6]) {
+        options[6].textContent = `フルテキスト候補 (${fulltextCount})`;
+    }
 }
 
 /**
@@ -203,7 +210,7 @@ export function renderSourceFilters() {
  * ステータスフィルターの変更を処理
  */
 export function handleStatusFilterChange() {
-    state.setCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all');
+    state.setCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
     state.setCurrentIndex(0);
     if (_renderCurrentReference) _renderCurrentReference();
 }

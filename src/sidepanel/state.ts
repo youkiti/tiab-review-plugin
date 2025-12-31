@@ -12,7 +12,9 @@ import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 // 基本状態
 let _references: ReferenceWithStatus[] = [];
 let _currentIndex = 0;
-let _currentFilter: DecisionStatus | 'all' = 'pending';
+let _currentFilter: DecisionStatus | 'all' | 'fulltext_candidates' = 'pending';
+
+
 let _spreadsheetId = '';
 let _userEmail = '';
 
@@ -56,7 +58,7 @@ export const state = {
     setCurrentIndex(idx: number) { _currentIndex = idx; },
 
     get currentFilter() { return _currentFilter; },
-    setCurrentFilter(filter: DecisionStatus | 'all') { _currentFilter = filter; },
+    setCurrentFilter(filter: DecisionStatus | 'all' | 'fulltext_candidates') { _currentFilter = filter; },
 
     // ----- Spreadsheet/User -----
     get spreadsheetId() { return _spreadsheetId; },
