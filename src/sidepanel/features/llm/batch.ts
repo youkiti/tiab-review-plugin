@@ -96,7 +96,7 @@ export async function handleStartBatch() {
             screeningPrompt,
             model: dom.llmModelSelect.value,
             temperature: 0,
-            maxOutputTokens: 2048,
+
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig,
             abortSignal: abortController.signal,
@@ -224,7 +224,7 @@ export async function handleRetryFailed() {
             screeningPrompt,
             model: dom.llmModelSelect.value,
             temperature: 0,
-            maxOutputTokens: 2048,
+
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig,
             abortSignal: abortController.signal,

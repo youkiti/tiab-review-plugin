@@ -97,7 +97,7 @@ export interface BatchProcessOptions {
     screeningPrompt: string;
     model: string;
     temperature: number;
-    maxOutputTokens: number;
+    maxOutputTokens?: number;
     outputLanguage: string;
     rateLimitConfig?: RateLimitConfig; // レート制限設定（無料版/有料版）
     onProgress?: ProgressCallback;

@@ -36,7 +36,7 @@ export async function handleOptimizeCriteria() {
         const modelConfig: GeminiModelConfig = {
             model: dom.llmModelSelect.value,
             temperature: 0,
-            maxOutputTokens: 2048,
+
         };
 
         const result = await convertCriteria(

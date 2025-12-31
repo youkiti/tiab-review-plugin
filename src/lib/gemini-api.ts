@@ -11,7 +11,7 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
 export interface GeminiModelConfig {
     model: string;
     temperature: number;
-    maxOutputTokens: number;
+    maxOutputTokens?: number;
 }
 
 /**
@@ -20,7 +20,6 @@ export interface GeminiModelConfig {
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
     model: 'gemini-flash-latest',
     temperature: 0,
-    maxOutputTokens: 8192,
 };
 
 /**
