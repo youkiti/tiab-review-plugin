@@ -6,6 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
+import { showSettings } from '../settings';
 import {
     loadApiKeyStatus,
     toggleApiKeyVisibility,
@@ -45,6 +46,9 @@ export function setupLlmEventListeners() {
 
     // LLM戻るボタン
     dom.llmBackBtn?.addEventListener('click', handleLlmBack);
+
+    // LLM設定ボタン
+    dom.llmSettingsBtn?.addEventListener('click', showSettings);
 
     // APIキー関連
     dom.toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
