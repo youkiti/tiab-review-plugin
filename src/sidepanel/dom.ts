@@ -88,6 +88,7 @@ const domElements = {
     // ========== Key Open Section ==========
     get keySection() { return getElement<HTMLElement>('key-section'); },
     get keyToggleInput() { return getElement<HTMLInputElement>('key-toggle-input'); },
+    get reviewerFilterContainer() { return getElement<HTMLElement>('reviewer-filter-container'); },
     get conflictBanner() { return getElement<HTMLElement>('conflict-banner'); },
     get allDecisionsDiv() { return getElement<HTMLElement>('all-decisions'); },
 

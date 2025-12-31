@@ -25,17 +25,20 @@ let _renderKeywords: (() => void) | null = null;
 let _renderSourceFilters: (() => void) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
 let _renderKeyStatus: (() => void) | null = null;
+let _renderReviewerFilter: (() => void) | null = null;
 
 export function setProjectDependencies(deps: {
     renderKeywords: () => void;
     renderSourceFilters: () => void;
     renderCurrentReference: () => void;
     renderKeyStatus: () => void;
+    renderReviewerFilter: () => void;
 }) {
     _renderKeywords = deps.renderKeywords;
     _renderSourceFilters = deps.renderSourceFilters;
     _renderCurrentReference = deps.renderCurrentReference;
     _renderKeyStatus = deps.renderKeyStatus;
+    _renderReviewerFilter = deps.renderReviewerFilter;
 }
 
 /**
@@ -225,6 +228,21 @@ export async function loadDataAndShowScreening() {
         });
         state.setSelectedSourceFiles(new Set(state.sourceFiles));
 
+        // レビュアーを抽出（キーオープン時のみ）
+        const reviewers = new Set<string>();
+        if (keyOpenedStatus) {
+            state.references.forEach(ref => {
+                if (ref.allDecisions) {
+                    ref.allDecisions.forEach(d => reviewers.add(d.reviewer_id));
+                }
+            });
+        } else {
+            reviewers.add(userEmail);
+        }
+        state.setAvailableReviewers(reviewers);
+        state.setEnabledReviewers(new Set(reviewers)); // デフォルトは全員有効
+
+
         // 管理者の場合、キーオープンボタンを表示
         console.log('[loadDataAndShowScreening] isAdmin =', adminStatus);
 
@@ -235,6 +253,7 @@ export async function loadDataAndShowScreening() {
             console.log('[loadDataAndShowScreening] Showing keySection');
             dom.keySection.classList.remove('hidden');
             if (_renderKeyStatus) _renderKeyStatus();
+            if (_renderReviewerFilter) _renderReviewerFilter();
         } else {
             console.log('[loadDataAndShowScreening] Hiding keySection');
             dom.keySection.classList.add('hidden');

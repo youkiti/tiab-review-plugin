@@ -13,6 +13,7 @@ import * as screeningFilters from './features/screening/filters';
 import * as screeningRender from './features/screening/render';
 import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
+import * as reviewerFilter from './features/screening/reviewer-filter';
 
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
@@ -25,7 +26,8 @@ project.setProjectDependencies({
     renderKeywords: screeningKeywords.renderKeywords,
     renderSourceFilters: screeningFilters.renderSourceFilters,
     renderCurrentReference: screeningRender.renderCurrentReference,
-    renderKeyStatus: screeningRender.renderKeyStatus
+    renderKeyStatus: screeningRender.renderKeyStatus,
+    renderReviewerFilter: reviewerFilter.renderReviewerFilter
 });
 
 screeningFilters.setFilterDependencies({
@@ -53,7 +55,12 @@ screeningKeywords.setKeywordDependencies({
     renderCurrentReference: screeningRender.renderCurrentReference
 });
 
+reviewerFilter.setReviewerFilterDependencies({
+    renderCurrentReference: screeningRender.renderCurrentReference
+});
+
 llm.setHandleBack(project.handleBack);
+
 
 // Global Event Listeners setup
 document.addEventListener('DOMContentLoaded', () => {

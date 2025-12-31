@@ -22,7 +22,7 @@ export function setRenderDependencies(deps: {
 /**
  * テキストハイライト処理
  */
-export function highlightText(text: string, searchKeyword: string): string {
+export function highlightText(text: string, searchKeyword: string, evidenceList: string[] = []): string {
     if (!text) return '';
 
     let html = escapeHtml(text);
@@ -53,12 +53,17 @@ export function highlightText(text: string, searchKeyword: string): string {
     // 3. タームフィルター（青枠）
     state.activeTermFilters.forEach(filter => {
         const regex = new RegExp(`(${escapeRegex(filter.term)})`, 'gi');
-        // 既にハイライトされているタグの中身を壊さないように注意が必要だが、
-        // 簡易的に実装。詳細なHTML解析はコストが高いので、重複ハイライトは許容するか、
-        // あるいはクラスを追記する形にするのが理想。
-        // ここでは単純置換（既存のspanの中に入り込む可能性があるが、ブラウザが補正してくれることを期待）
         html = html.replace(regex, '<span class="highlight-term">$1</span>');
     });
+
+    // 4. AI Evidence Highlights (Orange)
+    if (evidenceList && evidenceList.length > 0) {
+        evidenceList.forEach(quote => {
+            if (!quote || quote.length < 5) return;
+            const regex = new RegExp(`(${escapeRegex(quote.trim())})`, 'gi');
+            html = html.replace(regex, '<span class="highlight-evidence" title="AI Evidence">$1</span>');
+        });
+    }
 
     return html;
 }
@@ -137,13 +142,37 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
         dom.allDecisionsDiv.classList.add('hidden');
     }
 
+    // Evidenceの収集 (ハイライト機能がONの場合)
+    const evidenceList: string[] = [];
+    if (state.showAiHighlights && ref.allDecisions) {
+        ref.allDecisions.forEach(d => {
+            // 表示されているレビュアーのみ
+            if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) return;
+            // AIのみ（人間がevidence形式で書くことは稀なため）
+            if (!d.reviewer_id.startsWith('llm:')) return;
+
+            try {
+                if (d.note && d.note.trim().startsWith('{')) {
+                    const parsed = JSON.parse(d.note);
+                    if (parsed.evidence && Array.isArray(parsed.evidence)) {
+                        parsed.evidence.forEach((e: any) => {
+                            if (e.quote) evidenceList.push(e.quote);
+                        });
+                    }
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        });
+    }
+
     // 基本情報表示
     const searchKeyword = dom.searchInput.value.trim();
-    dom.refTitle.innerHTML = highlightText(ref.title, searchKeyword);
+    dom.refTitle.innerHTML = highlightText(ref.title, searchKeyword, evidenceList);
     dom.refAuthors.textContent = ref.authors || '';
     dom.refYear.textContent = ref.year?.toString() || '';
     dom.refJournal.textContent = ref.journal || '';
-    dom.refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword);
+    dom.refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword, evidenceList);
 
     // リンク
     if (ref.doi) {
@@ -242,6 +271,11 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
 
     dom.allDecisionsDiv.innerHTML = '';
     ref.allDecisions.forEach((d) => {
+        // レビュアーフィルタリング
+        if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) {
+            return;
+        }
+
         const div = document.createElement('div');
         div.className = `decision-item ${d.decision}`;
 
@@ -256,10 +290,48 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         `;
 
         if (d.note) {
-            const noteSpan = document.createElement('span');
-            noteSpan.className = 'note';
-            noteSpan.textContent = `📝 ${d.note}`;
-            div.appendChild(noteSpan);
+            const noteDiv = document.createElement('div');
+            noteDiv.className = 'note';
+
+            // JSONパース（AI判定用）
+            let isJson = false;
+            // 短い文字列はJSONではないとみなす（最適化）
+            if (d.note.trim().startsWith('{') && d.note.length > 20) {
+                try {
+                    const parsed = JSON.parse(d.note);
+                    if (parsed.reasons && Array.isArray(parsed.reasons)) {
+                        isJson = true;
+
+                        // Reasonsヘッダー
+                        const label = document.createElement('div');
+                        label.innerHTML = '📝 <b>AI Reasons:</b>';
+                        noteDiv.appendChild(label);
+
+                        // リスト作成
+                        const ul = document.createElement('ul');
+                        ul.style.margin = '4px 0 8px 20px';
+                        ul.style.padding = '0';
+                        ul.style.listStyleType = 'disc';
+
+                        parsed.reasons.forEach((r: string) => {
+                            const li = document.createElement('li');
+                            li.textContent = r;
+                            li.style.marginBottom = '2px';
+                            ul.appendChild(li);
+                        });
+                        noteDiv.appendChild(ul);
+
+
+                    }
+                } catch (e) {
+                    // JSONパース失敗時は通常テキストとして表示
+                }
+            }
+
+            if (!isJson) {
+                noteDiv.textContent = `📝 ${d.note}`;
+            }
+            div.appendChild(noteDiv);
         }
 
         dom.allDecisionsDiv.appendChild(div);

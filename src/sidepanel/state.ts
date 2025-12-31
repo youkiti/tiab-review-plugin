@@ -41,6 +41,9 @@ let _currentExecutionId = '';
 let _currentBatchDecisions: Decision[] = [];
 let _activeLlmExecutionIds: Set<string> = new Set();
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
+let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
+let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
+let _showAiHighlights = false; // AIのEvidenceをハイライトするかどうか
 
 // ========== State Object with Getters/Setters ==========
 
@@ -151,6 +154,18 @@ export const state = {
     setFailedRefIds(ids: string[]) { _failedRefIds = ids; },
     clearFailedRefIds() { _failedRefIds = []; },
 
+    // ----- Reviewer Filtering -----
+    get enabledReviewers() { return _enabledReviewers; },
+    setEnabledReviewers(reviewers: Set<string>) { _enabledReviewers = reviewers; },
+    addEnabledReviewer(id: string) { _enabledReviewers.add(id); },
+    removeEnabledReviewer(id: string) { _enabledReviewers.delete(id); },
+
+    get availableReviewers() { return _availableReviewers; },
+    setAvailableReviewers(reviewers: Set<string>) { _availableReviewers = reviewers; },
+
+    get showAiHighlights() { return _showAiHighlights; },
+    setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
+
     // ----- Reset Functions -----
     resetForLogout() {
         _spreadsheetId = '';
@@ -179,6 +194,8 @@ export const state = {
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
         _activeTermFilters = [];
+        _enabledReviewers.clear();
+        _availableReviewers.clear();
     },
 };
 

@@ -10,10 +10,12 @@ import type { Decision } from '../../../lib/types';
 import {
     saveDecision as apiSaveDecision,
     setKeyOpenedStatus,
-    getReferencesWithStatus
+    getReferencesWithStatus,
+    getReferencesWithAllDecisions
 } from '../../../lib/sheets-api';
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
+import { renderReviewerFilter } from './reviewer-filter';
 
 // 外部レンダリング関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -216,11 +218,22 @@ export async function handleKeyToggle() {
             state.setIsKeyOpened(true);
 
             // データを再読み込み（全員の判定を取得）
-            const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+            const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
             state.setReferences(refs);
+
+            // レビュアーを抽出
+            const reviewers = new Set<string>();
+            refs.forEach(ref => {
+                if (ref.allDecisions) {
+                    ref.allDecisions.forEach(d => reviewers.add(d.reviewer_id));
+                }
+            });
+            state.setAvailableReviewers(reviewers);
+            state.setEnabledReviewers(new Set(reviewers));
 
             // 表示を更新
             renderKeyStatus();
+            renderReviewerFilter();
             state.setCurrentIndex(0);
             state.setCurrentFilter('pending');
             dom.statusFilter.value = 'pending';

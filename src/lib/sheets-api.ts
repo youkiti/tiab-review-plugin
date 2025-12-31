@@ -615,16 +615,29 @@ export async function getReferencesWithAllDecisions(
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
 
-    const [references, decisionsData] = await Promise.all([
+    const [references, decisionsData, llmExecutions] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
+        getLlmExecutions(spreadsheetId),
     ]);
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
 
-    // 全判定をref_id別にグループ化
+    // 有効なLLM実行IDのセットを作成
+    const validLlmExecutionIds = new Set(
+        llmExecutions
+            .filter(e => e.status === 'confirmed' && e.is_active)
+            .map(e => e.execution_id)
+    );
+
+    // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
     decisionsData.forEach(({ decision }) => {
+        // LLMの判定かつ、有効な実行IDに含まれていない場合はスキップ
+        if (decision.reviewer_id.startsWith('llm:') && !validLlmExecutionIds.has(decision.reviewer_id)) {
+            return;
+        }
+
         if (!allDecisionsMap.has(decision.ref_id)) {
             allDecisionsMap.set(decision.ref_id, []);
         }
