@@ -12,6 +12,7 @@ export interface GeminiModelConfig {
     model: string;
     temperature: number;
     maxOutputTokens?: number;
+    topP?: number;
 }
 
 /**
@@ -131,6 +132,7 @@ async function callGeminiApi<T>(
         generationConfig: {
             temperature: config.temperature,
             maxOutputTokens: config.maxOutputTokens,
+            topP: config.topP,
             responseMimeType: 'application/json',
             responseSchema: responseSchema,
         },

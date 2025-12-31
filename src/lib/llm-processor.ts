@@ -97,6 +97,7 @@ export interface BatchProcessOptions {
     screeningPrompt: string;
     model: string;
     temperature: number;
+    topP?: number;
     maxOutputTokens?: number;
     outputLanguage: string;
     rateLimitConfig?: RateLimitConfig; // レート制限設定（無料版/有料版）
@@ -191,6 +192,7 @@ export async function processBatch(
     const modelConfig: GeminiModelConfig = {
         model: options.model,
         temperature: options.temperature,
+        topP: options.topP,
         maxOutputTokens: options.maxOutputTokens,
     };
 

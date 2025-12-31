@@ -355,6 +355,7 @@ async function main(): Promise<void> {
             screeningPrompt,
             model: condition.model,
             temperature: condition.temperature,
+            topP: condition.topP,
             outputLanguage: 'ja',
             rateLimitConfig,
             onProgress: (progress) => {
