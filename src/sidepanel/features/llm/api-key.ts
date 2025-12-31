@@ -13,6 +13,7 @@ import {
     setApiKeySavePreference,
     saveApiTier,
     setSessionApiTier,
+    clearApiTier,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
@@ -67,6 +68,15 @@ export async function handleApiKeyAutoSave() {
     const apiKey = dom.geminiApiKeyInput.value.trim();
     if (!apiKey) {
         dom.apiKeyStatus.textContent = '';
+        dom.apiKeyStatus.className = 'api-key-status';
+
+        // 未入力になった場合：確定状態を解除し、キー情報をクリア
+        dom.apiKeyCard.classList.remove('confirmed', 'collapsed');
+        dom.apiKeySummary.textContent = '';
+
+        await removeGeminiApiKey();
+        setSessionApiKey('');
+        await clearApiTier();
         return;
     }
 
