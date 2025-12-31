@@ -3,7 +3,7 @@
  */
 import { dom } from '../dom';
 import { state } from '../state';
-import { showToast, showLoading, showStatus } from '../ui/feedback';
+import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences, renderSourceFilters } from './screening/filters';
 import { getSpreadsheetInfo, addReferences, getReferencesWithStatus } from '../../lib/sheets-api';
@@ -30,7 +30,6 @@ export async function handleRISImport(e: Event) {
         // 同じ名前のファイルが既に存在するかチェック
         if (state.sourceFiles.has(file.name)) {
             const msg = `ファイル "${file.name}" は既にインポート済みです`;
-            showStatus(msg, 'error');
             showToast(msg);
             dom.importStatus.textContent = 'インポートファイルが重複しています';
             fileInput.value = ''; // リセット
@@ -49,7 +48,8 @@ export async function handleRISImport(e: Event) {
         const newReferences = await parseRISFile(file);
 
         if (newReferences.length === 0) {
-            showStatus('有効な文献が見つかりませんでした', 'error');
+            showToast('有効な文献が見つかりませんでした');
+            dom.importStatus.textContent = '有効な文献が見つかりませんでした';
             return;
         }
 
@@ -70,7 +70,7 @@ export async function handleRISImport(e: Event) {
 
         if (uniqueReferences.length === 0) {
             dom.importStatus.textContent = 'すべて重複';
-            showStatus('新しい文献はありません（すべて重複）', 'info');
+            showToast('新しい文献はありません（すべて重複）');
             return;
         }
 
@@ -101,12 +101,12 @@ export async function handleRISImport(e: Event) {
 
         const completionMsg = `${uniqueReferences.length}件インポート完了（重複除外: ${duplicateCount}件）`;
         dom.importStatus.textContent = completionMsg;
-        showStatus(completionMsg, 'success');
         showToast(completionMsg);
 
     } catch (error) {
         console.error('Import error:', error);
-        showStatus(`インポートエラー: ${(error as Error).message}`, 'error');
+        showToast(`インポートエラー: ${(error as Error).message}`);
+        dom.importStatus.textContent = 'インポートエラー';
     } finally {
 
         showLoading(false);

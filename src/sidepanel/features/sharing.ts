@@ -5,7 +5,7 @@
 
 import { dom } from '../dom';
 import { state } from '../state';
-import { showStatus, showToast } from '../ui/feedback';
+import { showToast } from '../ui/feedback';
 import { addPermission, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 
 /**
@@ -17,7 +17,7 @@ export async function handleShare() {
 
     // Email validation (simple check)
     if (!email.includes('@')) {
-        showStatus('有効なメールアドレスを入力してください', 'error');
+        showToast('有効なメールアドレスを入力してください');
         return;
     }
 
@@ -32,7 +32,7 @@ export async function handleShare() {
         dom.shareInputArea.classList.add('hidden');
     } catch (error) {
         console.error('Share error:', error);
-        showStatus(`追加エラー: ${(error as Error).message}`, 'error');
+        showToast(`追加エラー: ${(error as Error).message}`);
     } finally {
         dom.shareSubmitBtn.disabled = false;
         dom.shareSubmitBtn.textContent = '追加';

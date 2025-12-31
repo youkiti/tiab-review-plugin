@@ -8,7 +8,7 @@ import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus } from '../../../lib/types';
 import { createSmartRegex } from '../../utils/text';
 import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
-import { showStatus, showToast, showLoading } from '../../ui/feedback';
+import { showToast, showLoading } from '../../ui/feedback';
 
 // 外部描画関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -163,11 +163,9 @@ export function renderSourceFilters() {
             if (confirm(`ファイル "${file}" に含まれる ${count} 件の文献をスプレッドシートから完全に削除しますか？\n（この操作は取り消せません）`)) {
                 try {
                     showLoading(true);
-                    showStatus(`${file} を削除中...`, 'info');
+                    showToast(`${file} を削除中...`, 5000);
 
                     const deletedCount = await deleteReferencesBySourceFile(state.spreadsheetId, file);
-
-                    showStatus(`${deletedCount} 件を削除しました。データを再読み込み中...`, 'success');
 
                     // データを再読み込み
                     const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
@@ -188,14 +186,9 @@ export function renderSourceFilters() {
 
                 } catch (err) {
                     console.error('Delete error:', err);
-                    showStatus(`削除エラー: ${(err as Error).message}`, 'error');
+                    showToast(`削除エラー: ${(err as Error).message}`);
                 } finally {
                     showLoading(false);
-                    setTimeout(() => {
-                        if (dom.statusMessage.textContent?.includes('削除しました')) {
-                            dom.statusMessage.classList.add('hidden');
-                        }
-                    }, 3000);
                 }
             }
         };
