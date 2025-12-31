@@ -35,7 +35,7 @@ $$
 | topP        | 0.0 - 1.0    | **0.65, 0.95**       |
 | topK        | 64（固定）   | -                          |
 
-**条件数**: 3 × 2 = **6条件**
+**条件数**: 4 × 2 = **8条件**
 
 ### Model B: gemini-3-flash-preview
 
@@ -54,16 +54,18 @@ $$
 
 ## 実験条件一覧
 
-### gemini-2.5-flash-lite（6条件）
+### gemini-2.5-flash-lite（8条件）
 
 | ID | model                 | temperature | topP |
 | -- | --------------------- | ----------- | ---- |
 | A1 | gemini-2.5-flash-lite | 0.0         | 0.65 |
 | A2 | gemini-2.5-flash-lite | 0.0         | 0.95 |
-| A3 | gemini-2.5-flash-lite | 0.5         | 0.65 |
-| A4 | gemini-2.5-flash-lite | 0.5         | 0.95 |
-| A5 | gemini-2.5-flash-lite | 1.0         | 0.65 |
-| A6 | gemini-2.5-flash-lite | 1.0         | 0.95 |
+| A3 | gemini-2.5-flash-lite | 0.3         | 0.65 |
+| A4 | gemini-2.5-flash-lite | 0.3         | 0.95 |
+| A5 | gemini-2.5-flash-lite | 0.5         | 0.65 |
+| A6 | gemini-2.5-flash-lite | 0.5         | 0.95 |
+| A7 | gemini-2.5-flash-lite | 1.0         | 0.65 |
+| A8 | gemini-2.5-flash-lite | 1.0         | 0.95 |
 
 ### gemini-3-flash-preview（8条件）
 
@@ -78,7 +80,7 @@ $$
 | B7 | gemini-3-flash-preview | HIGH          | 0.65 |
 | B8 | gemini-3-flash-preview | HIGH          | 0.95 |
 
-**総条件数**: 14条件
+**総条件数**: 16条件
 
 ---
 
@@ -165,7 +167,7 @@ results/
 | -------- | ------------------ | -------- |
 | 1        | 評価データ準備     | TBD      |
 | 2        | runner.ts 拡張     | 1-2時間  |
-| 3        | 実験実行（14条件） | ~30分    |
+| 3        | 実験実行（16条件） | ~30分    |
 | 4        | 結果分析・レポート | 1時間    |
 
 ---
