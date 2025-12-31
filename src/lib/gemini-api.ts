@@ -106,12 +106,14 @@ const CRITERIA_CONVERSION_SCHEMA = {
 };
 
 /**
- * Gemini APIを呼び出す
+ * Gemini APIを呼び出す（タイムアウト付き）
+ * thinkingモデル対応のため、デフォルト60秒
  */
 async function callGeminiApi<T>(
     prompt: string,
     responseSchema: object,
-    config: GeminiModelConfig = DEFAULT_MODEL_CONFIG
+    config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
+    timeoutMs: number = 60000
 ): Promise<T> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
@@ -134,34 +136,49 @@ async function callGeminiApi<T>(
         },
     };
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-    });
+    // タイムアウト用のAbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || response.statusText;
-        throw new Error(`Gemini API エラー: ${errorMessage}`);
-    }
-
-    const data = await response.json();
-
-    // レスポンスからテキストを抽出
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-        throw new Error('Gemini APIからの応答が空です');
-    }
-
-    // JSONをパース
     try {
-        return JSON.parse(text) as T;
-    } catch (e) {
-        console.error('Failed to parse Gemini response:', text);
-        throw new Error('Gemini APIの応答をパースできませんでした');
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.error?.message || response.statusText;
+            throw new Error(`Gemini API エラー: ${errorMessage}`);
+        }
+
+        const data = await response.json();
+
+        // レスポンスからテキストを抽出
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+            throw new Error('Gemini APIからの応答が空です');
+        }
+
+        // JSONをパース
+        try {
+            return JSON.parse(text) as T;
+        } catch (e) {
+            console.error('Failed to parse Gemini response:', text);
+            throw new Error('Gemini APIの応答をパースできませんでした');
+        }
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error(`Gemini API タイムアウト (${timeoutMs}ms)`);
+        }
+        throw error;
     }
 }
 

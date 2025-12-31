@@ -187,9 +187,9 @@ export const RATE_LIMIT_PAID: RateLimitConfig = {
 
 /**
  * Tier 2向けレート制限設定
- * RPM 1000 = 高並列実行可能
+ * RPM 1000対応、ただし安定性のため控えめに設定
  */
 export const RATE_LIMIT_TIER2: RateLimitConfig = {
-    concurrency: 15,
-    delayBetweenRequests: 50,
+    concurrency: 10,
+    delayBetweenRequests: 100,
 };

@@ -25,8 +25,8 @@
             "delayBetweenRequests": 200
         },
         "tier2": {
-            "concurrency": 15,
-            "delayBetweenRequests": 50
+            "concurrency": 30,
+            "delayBetweenRequests": 20
         }
     },
     "conditions": [
@@ -79,5 +79,28 @@
             "topP": 0.95
         }
     ],
-    "defaultScreeningPrompt": "You are a screener for a systematic review.\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+    "datasetConfigs": {
+        "cq1": {
+            "criteria": "Include studies investigating Fluid Therapy (resuscitation fluid type, rate, bolus strategy) for patients with sepsis, septic shock, or critical illness."
+        },
+        "cq2": {
+            "criteria": "Include studies investigating Target Blood Pressure (Mean Arterial Pressure targets) or vasopressor strategies for patients with sepsis or septic shock."
+        },
+        "cq3": {
+            "criteria": "Include studies investigating the use of Sodium Bicarbonate (重炭酸ナトリウム) for patients with metabolic acidosis (or other relevant conditions).\nExclude studies not related to Sodium Bicarbonate."
+        },
+        "cq4": {
+            "criteria": "Include studies investigating Early Goal-Directed Therapy (EGDT) or protocolized hemodynamic management for patients with severe sepsis or septic shock."
+        },
+        "cq5": {
+            "criteria": "Include studies investigating Restrictive Fluid Therapy strategies (fluid minimization, conservative fluid management) for patients with sepsis, septic shock, or ARDS."
+        },
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        },
+        "wilson": {
+            "criteria": "Include controlled studies (RCT or Observational with control group) investigating therapies for Wilson disease (D-penicillamine, Trientine, Tetrathiomolybdate, Zinc).\nExclude animal studies, case reports, and uncontrolled studies."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
 }

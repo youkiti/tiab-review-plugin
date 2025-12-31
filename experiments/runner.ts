@@ -20,6 +20,7 @@ interface ExperimentConfig {
     description: string;
     version: string;
     datasets: Record<string, string>;
+    datasetConfigs?: Record<string, { criteria: string }>;
     thresholds: number[];
     tierConfigs: Record<string, RateLimitConfig>;
     conditions: Condition[];
@@ -316,7 +317,20 @@ async function main(): Promise<void> {
         }
 
         // スクリーニングプロンプト
-        const screeningPrompt = args.prompt || config.defaultScreeningPrompt;
+        // プロンプト構築
+        let screeningPrompt = args.prompt || config.defaultScreeningPrompt;
+
+        // データセット固有のCriteriaを適用
+        const datasetConfig = config.datasetConfigs?.[args.dataset];
+        const criteria = datasetConfig?.criteria || '';
+
+        // {{CRITERIA}}を置換
+        if (screeningPrompt.includes('{{CRITERIA}}')) {
+            screeningPrompt = screeningPrompt.replace('{{CRITERIA}}', criteria);
+        } else if (criteria) {
+            // プレースホルダーがない場合は先頭に追加（フォールバック）
+            screeningPrompt = `## Inclusion Criteria\n${criteria}\n\n${screeningPrompt}`;
+        }
 
         // パラメータログ
         logger.setParameters({
