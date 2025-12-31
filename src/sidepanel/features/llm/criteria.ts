@@ -118,7 +118,7 @@ export async function handleSaveCriteria() {
             llm_output_language: dom.llmLanguageSelect.value,
         });
 
-        showToast('基準を保存しました');
+        showToast('基準をGoogleスプレッドシートに保存しました');
 
         // 保存成功時：確定状態のスタイルを適用
         dom.criteriaCard.classList.add('confirmed');
