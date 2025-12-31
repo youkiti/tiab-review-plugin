@@ -39,7 +39,7 @@ export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
  */
 export function updateBatchTargetCount() {
     // 常に未判定のみを対象
-    const count = state.references.filter(r => r.status === 'pending').length;
+    const count = state.references.length;
     dom.batchTargetCount.textContent = count.toString();
 }
 
@@ -59,8 +59,8 @@ export async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得（常に未判定全件）
-    const targetRefs = state.references.filter(r => r.status === 'pending');
+    // 対象文献を取得（全件）
+    const targetRefs = state.references;
 
     if (targetRefs.length === 0) {
         showToast('処理対象の文献がありません');
