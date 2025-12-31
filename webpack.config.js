@@ -35,6 +35,7 @@ module.exports = {
                 { from: 'src/popup/popup.css', to: 'popup/popup.css' },
                 { from: 'src/sidepanel/sidepanel.html', to: 'sidepanel/sidepanel.html' },
                 { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel/sidepanel.css' },
+                { from: 'src/sidepanel/styles', to: 'sidepanel/styles' },
                 { from: 'src/icons', to: 'icons' },
             ],
         }),
