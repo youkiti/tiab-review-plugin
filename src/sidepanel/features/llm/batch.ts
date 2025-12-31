@@ -349,7 +349,7 @@ export function renderDistributionChart() {
 }
 
 /**
- * 閾値を確定して保存
+ * 閾値を確定して判断をGoogleスプレッドシートに保存
  */
 export async function handleConfirmThreshold() {
     const threshold = parseFloat(dom.thresholdSlider.value);
@@ -393,7 +393,7 @@ export async function handleConfirmThreshold() {
             llm_include_threshold: threshold,
         });
 
-        showToast('閾値を確定して保存しました');
+        showToast('閾値を確定してGoogleスプレッドシートに保存しました');
 
         // データを再読み込み
         if (_loadDataAndShowScreening) {
