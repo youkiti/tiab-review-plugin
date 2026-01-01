@@ -400,11 +400,43 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
 }
 
 /**
- * 利用可能なモデル一覧
+ * モデルオプション（UI表示 + パラメータ）
  */
-export const AVAILABLE_MODELS = [
-    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (推奨)' },
-    // { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
-    // { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview (原則使わない)' },
+export interface ModelOption {
+    id: string;
+    name: string;
+    config: Omit<GeminiModelConfig, 'model'>;
+}
+
+/**
+ * 利用可能なモデル一覧
+ * 実験結果に基づき、Flash 3.0 (Thinking LOW) を推奨
+ * 各モデルに固有のパラメータを含む
+ */
+export const AVAILABLE_MODELS: ModelOption[] = [
+    {
+        id: 'gemini-3-flash-preview',
+        name: 'Gemini 3 Flash (推奨・高精度)',
+        config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
+    },
+    {
+        id: 'gemini-2.5-flash-lite',
+        name: 'Gemini 2.5 Flash Lite (コスト重視)',
+        config: { temperature: 0 }
+    },
 ];
 
+/**
+ * モデルIDから設定を取得
+ */
+export function getModelConfig(modelId: string): GeminiModelConfig {
+    const modelOption = AVAILABLE_MODELS.find(m => m.id === modelId);
+    if (modelOption) {
+        return {
+            model: modelOption.id,
+            ...modelOption.config,
+        };
+    }
+    // フォールバック: デフォルト設定
+    return DEFAULT_MODEL_CONFIG;
+}

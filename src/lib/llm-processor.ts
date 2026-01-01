@@ -410,13 +410,20 @@ export function createLlmExecution(
     includeCount: number,
     excludeCount: number,
     status: 'pending' | 'confirmed' = 'confirmed',
-    isActive: boolean = true
+    isActive: boolean = true,
+    // Model parameters
+    temperature?: number,
+    topP?: number,
+    thinkingLevel?: string
 ): LlmExecution {
     return {
         execution_id: executionId,
         execution_type: executionType,
         timestamp: new Date().toISOString(),
         model,
+        temperature,
+        topP,
+        thinkingLevel,
         criteria_snapshot: criteria,
         screening_prompt: screeningPrompt,
         include_threshold: threshold,

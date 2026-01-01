@@ -6,6 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
+import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG } from '../../../lib/gemini-api';
 import { showSettings } from '../settings';
 import {
     loadApiKeyStatus,
@@ -28,6 +29,25 @@ import {
     handleConfirmThreshold,
     loadExecutionHistory,
 } from './batch';
+
+/**
+ * モデル選択のオプションを動的に生成
+ * AVAILABLE_MODELSを参照し、DEFAULT_MODEL_CONFIGでデフォルト選択を設定
+ */
+function populateModelSelect(): void {
+    const select = dom.llmModelSelect;
+    select.innerHTML = '';
+
+    for (const model of AVAILABLE_MODELS) {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        if (model.id === DEFAULT_MODEL_CONFIG.model) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    }
+}
 
 // handleBackへの参照（循環依存回避のため関数として渡す）
 let _handleBack: (() => void) | null = null;
@@ -105,6 +125,9 @@ export function switchToTab(tab: 'screening' | 'llm') {
  */
 export async function initializeLlmSection() {
     try {
+        // モデル選択オプションを動的に生成
+        populateModelSelect();
+
         // APIキーの状態を確認
         await loadApiKeyStatus();
 

@@ -187,8 +187,13 @@ export async function handleKeyToggle() {
             const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
             state.setReferences(refs);
 
+            // レビュアーフィルターをクリア
+            state.setAvailableReviewers(new Set());
+            state.setEnabledReviewers(new Set());
+
             // 表示を更新
             renderKeyStatus();
+            renderReviewerFilter();  // レビュアーリストを非表示に
             state.setCurrentIndex(0);
             state.setCurrentFilter('pending');
             dom.statusFilter.value = 'pending';

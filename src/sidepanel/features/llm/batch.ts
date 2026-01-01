@@ -25,6 +25,7 @@ import {
     createLlmExecution,
 } from '../../../lib/llm-processor';
 import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
+import { getModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
@@ -91,11 +92,16 @@ export async function handleStartBatch() {
             showToast('無料版APIキーのため、処理速度が制限されます（約13秒/件）', 4000);
         }
 
+        // 選択されたモデルの設定を取得
+        const modelConfig = getModelConfig(dom.llmModelSelect.value);
+
         const result = await processBatch(targetRefs, {
             batchSize: saveBatchSize,
             screeningPrompt,
-            model: dom.llmModelSelect.value,
-            temperature: 0,
+            model: modelConfig.model,
+            temperature: modelConfig.temperature,
+            topP: modelConfig.topP,
+            thinkingLevel: modelConfig.thinkingLevel,
 
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig,
@@ -127,7 +133,7 @@ export async function handleStartBatch() {
             const execution = createLlmExecution(
                 result.executionId,
                 'batch_screening',
-                dom.llmModelSelect.value,
+                modelConfig.model,
                 llmConfig.llm_criteria,
                 dom.screeningPromptInput.value,
                 0,  // 閾値は未確定
@@ -135,7 +141,11 @@ export async function handleStartBatch() {
                 0,  // include_countは未確定
                 0,  // exclude_countは未確定
                 'pending',  // status
-                true        // is_active
+                true,       // is_active
+                // Model parameters
+                modelConfig.temperature,
+                modelConfig.topP,
+                modelConfig.thinkingLevel
             );
             await saveLlmExecution(spreadsheetId, execution);
 

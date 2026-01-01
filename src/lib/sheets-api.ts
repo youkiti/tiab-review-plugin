@@ -13,6 +13,7 @@ const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
 // LLM_Executionsシートのヘッダー
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
+    'temperature', 'topP', 'thinkingLevel',  // Model parameters
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
     'target_count', 'include_count', 'exclude_count',
     'status', 'is_active'
@@ -1199,6 +1200,9 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.execution_type,
         execution.timestamp,
         execution.model,
+        execution.temperature?.toString() ?? '',
+        execution.topP?.toString() ?? '',
+        execution.thinkingLevel ?? '',
         execution.criteria_snapshot ? JSON.stringify(execution.criteria_snapshot) : '',
         execution.screening_prompt,
         execution.include_threshold.toString(),

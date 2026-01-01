@@ -89,6 +89,11 @@ export interface LlmExecution {
     execution_type: 'prompt_generation' | 'batch_screening';
     timestamp: string;
     model: string;
+    // Model parameters (for traceability)
+    temperature?: number;
+    topP?: number;
+    thinkingLevel?: string;
+    // Screening settings
     criteria_snapshot: LlmCriteria | null;
     screening_prompt: string;
     include_threshold: number;
