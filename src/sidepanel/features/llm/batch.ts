@@ -396,6 +396,7 @@ export async function handleConfirmThreshold() {
             include_count: counts.includeCount,
             exclude_count: counts.excludeCount,
             status: 'confirmed',
+            is_active: true,  // 閾値確定時に「判定に使用」を自動でオン
         });
 
         // LLM設定を更新
