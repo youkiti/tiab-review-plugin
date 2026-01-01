@@ -20,6 +20,16 @@ export interface GeminiModelConfig {
  * デフォルト設定
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
+    model: 'gemini-3-flash-preview',
+    temperature: 1.0,
+    topP: 0.95,
+    thinkingLevel: 'LOW',
+};
+
+/**
+ * コスト重視設定 (Flash Lite)
+ */
+export const LITE_MODEL_CONFIG: GeminiModelConfig = {
     model: 'gemini-2.5-flash-lite',
     temperature: 0,
 };
