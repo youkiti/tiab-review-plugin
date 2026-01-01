@@ -351,7 +351,7 @@ async function main(): Promise<void> {
         const startTime = Date.now();
 
         const options: BatchProcessOptions = {
-            batchSize: 50,
+            batchSize: Math.max(50, rateLimitConfig.concurrency),
             screeningPrompt,
             model: condition.model,
             temperature: condition.temperature,

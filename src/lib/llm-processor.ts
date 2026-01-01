@@ -160,7 +160,8 @@ async function processWithRetry(
             if (attempt < maxRetries) {
                 // 指数バックオフ: 5秒, 10秒
                 const delay = 5000 * Math.pow(2, attempt);
-                console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms`);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms. Reason: ${errorMessage}`);
                 await sleep(delay);
             } else {
                 console.error(`[processWithRetry] Failed after ${maxRetries} retries for ${ref.ref_id}:`, error);
@@ -253,8 +254,8 @@ export async function processBatch(
             }
         } else {
             // 有料版: 並列処理 + 自動リトライ
-            const batchPromises = batchRefs.map(ref =>
-                processWithRetry(
+            const batchPromises = batchRefs.map(async ref => {
+                const result = await processWithRetry(
                     ref,
                     options.screeningPrompt,
                     modelConfig,
@@ -262,12 +263,8 @@ export async function processBatch(
                     executionId,
                     options.model,
                     timestamp
-                )
-            );
+                );
 
-            const results = await Promise.all(batchPromises);
-
-            for (const result of results) {
                 progress.processed++;
                 if (result.success && result.decision) {
                     progress.succeeded++;
@@ -276,9 +273,15 @@ export async function processBatch(
                 } else {
                     progress.failed++;
                 }
-            }
 
-            options.onProgress?.(progress);
+                // 即時進捗更新
+                options.onProgress?.(progress);
+
+                return result;
+            });
+
+            await Promise.all(batchPromises);
+
 
             // レート制限: バッチ間でwait
             if (batchEnd < references.length && rateLimit.delayBetweenRequests > 0) {

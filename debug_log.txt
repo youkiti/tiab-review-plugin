@@ -1,0 +1,16 @@
+[dotenv@17.2.3] injecting env (2) from .env -- tip: 屏・・ run anywhere with `dotenvx run -- yourcommand`
+=== Starting Experiment 2026-01-01T08-36-10 ===
+Dataset: depression, Condition: B1, Tier: thinking_1s
+Loaded 1993 references from depression
+Sampled 10 references
+Experiment failed: Error: Unknown tier: thinking_1s
+    at main (C:\Users\youki\codes\tiab-review-plugin\experiments\runner.ts:316:19)
+    at Object.<anonymous> (C:\Users\youki\codes\tiab-review-plugin\experiments\runner.ts:416:1)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Module.m._compile (C:\Users\youki\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\src\index.ts:1618:23)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1839:10)
+    at Object.require.extensions.<computed> [as .ts] (C:\Users\youki\AppData\Local\npm-cache\_npx\1bf7c3c15bf47d04\node_modules\ts-node\src\index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)

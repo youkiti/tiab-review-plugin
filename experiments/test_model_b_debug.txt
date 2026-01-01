@@ -1,0 +1,52 @@
+[dotenv@17.2.3] injecting env (2) from .env -- tip: 柏 prevent building .env in docker: https://dotenvx.com/prebuild
+=== Request ===
+Model: gemini-3-flash-preview
+URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=***
+
+=== Response Status ===
+Status: 200 OK
+
+=== Raw Response ===
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "**Focus on Antidepressant Effects in Rat Depression Models**\n\nOkay, so I'm looking at this study, \"Effects of antidepressant drugs on depression in rats.\" Straightforward title, which is good. The abstract states they investigated fluoxetine's impact on depression-like behavior in a rat model of depression. That confirms this is an animal study, using rats, and the primary focus is behavioral changes suggestive of depression, and the effects of an antidepressant. The use of a chronic mild stress model and the assessment tools like the forced swim test and sucrose preference test are typical for this kind of work, and that fluoxetine had a positive effect on this behavioral model. The abstract confirms the title窶冱 subject, so that's a good start. I can immediately confirm the focus of this is on the behavior of rats that are stressed, and how an antidepressant affected that, so this is solid. The reasons for including this are based upon this being an animal study, and that it is focused on behavioral depression. It's a clean data set. This study fits my requirements.\n\n\n",
+            "thought": true
+          },
+          {
+            "text": "{\n  \"include_probability\": 1.0,\n  \"reasons\": [\n    \"繝ｩ繝・ヨ繧堤畑縺・◆縺・▽逞・・in vivo繝｢繝・Ν縺ｫ髢｢縺吶ｋ遐皮ｩｶ縺ｧ縺ゅｋ縺溘ａ\",\n    \"謚励≧縺､阮ｬ縺ｮ蜉ｹ譫懊ｒ邊ｾ逾樒明謔｣縺ｨ縺励※縺ｮ縺・▽逞・｡悟虚縺ｧ隧穂ｾ｡縺励※縺・ｋ縺溘ａ\",\n    \"髯､螟門渕貅悶〒縺ゅｋ繝偵ヨ遐皮ｩｶ繧・撼邊ｾ逾樒明謔｣縺ｮ讖溯・謚大宛縺ｫ縺ｯ隧ｲ蠖薙＠縺ｪ縺・◆繧―"\n  ],\n  \"evidence\": [\n    {\n      \"end_char\": 51,\n      \"field\": \"title\",\n      \"quote\": \"Effects of antidepressant drugs on depression in rats\",\n      \"start_char\": 0\n    },\n    {\n      \"end_char\": 107,\n      \"field\": \"abstract\",\n      \"quote\": \"This study investigated the effects of fluoxetine on depression-like behavior in a rat model of depression.\",\n      \"start_char\": 0\n    }\n  ]\n}",
+            "thoughtSignature": "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"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 299,
+    "candidatesTokenCount": 205,
+    "totalTokenCount": 2443,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 299
+      }
+    ],
+    "thoughtsTokenCount": 1939
+  },
+  "modelVersion": "gemini-3-flash-preview",
+  "responseId": "TZ1VacKRHq-i2roP6Ou94Ak"
+}
+
+=== Found 2 parts ===
+
+--- Part 0 ---
+Type: THOUGHT
+Request failed: TypeError: part.thought.substring is not a function
+    at main (C:\Users\youki\codes\tiab-review-plugin\experiments\test_model_b.ts:113:46)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)

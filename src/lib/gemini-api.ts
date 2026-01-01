@@ -115,14 +115,15 @@ async function callGeminiApi<T>(
     prompt: string,
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
-    timeoutMs: number = 60000
+    timeoutMs: number = 300000
 ): Promise<T> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         throw new Error('Gemini APIキーが設定されていません');
     }
 
-    const url = `${GEMINI_API_BASE}/${config.model}:generateContent?key=${apiKey}`;
+    // streamGenerateContentを使用
+    const url = `${GEMINI_API_BASE}/${config.model}:streamGenerateContent?key=${apiKey}`;
 
     const requestBody = {
         contents: [
@@ -134,11 +135,7 @@ async function callGeminiApi<T>(
             temperature: config.temperature,
             maxOutputTokens: config.maxOutputTokens,
             topP: config.topP,
-            ...(config.thinkingLevel ? { thinkingConfig: { includeThoughts: true } } : {}), // Basic enablement
-            // Note: If 'thinkingLevel' needs to be passed explicitly as a parameter, add it here.
-            // Currently assuming 'includeThoughts: true' is sufficient or the level is used contextually if supported.
-            // For now, let's pass 'thinking_config' if the model supports it.  
-            // Since we can't be sure of the exact 'thinkingLevel' param, we just enable thinking if present.
+            ...(config.thinkingLevel ? { thinkingConfig: { includeThoughts: true } } : {}),
             responseMimeType: 'application/json',
             responseSchema: responseSchema,
         },
@@ -146,7 +143,8 @@ async function callGeminiApi<T>(
 
     // タイムアウト用のAbortController
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    // タイムアウトIDを再代入可能にする
+    let timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const response = await fetch(url, {
@@ -158,6 +156,7 @@ async function callGeminiApi<T>(
             signal: controller.signal,
         });
 
+        // 最初のレスポンスが来た時点でクリアするが、読み込み中に再設定する
         clearTimeout(timeoutId);
 
         if (!response.ok) {
@@ -166,47 +165,84 @@ async function callGeminiApi<T>(
             throw new Error(`Gemini API エラー: ${errorMessage}`);
         }
 
-        const data = await response.json();
-
-        // レスポンスからテキストを抽出
-        // Thinking modelは複数partsを返すことがある (part[0]=thinking, part[1]=JSON)
-        const parts = data.candidates?.[0]?.content?.parts;
-        if (!parts || parts.length === 0) {
-            throw new Error('Gemini APIからの応答が空です');
+        // ストリーミング読み込み
+        if (!response.body) {
+            throw new Error('Gemini APIからの応答ボディが空です');
         }
 
-        // 全partsを逆順でチェックし、パース可能なJSONを探す
-        // (通常、JSONは最後のpartにある)
-        for (let i = parts.length - 1; i >= 0; i--) {
-            const part = parts[i];
-            const text = part?.text;
-            if (!text || typeof text !== 'string') continue;
+        // Web Streams API (for browser / Node 18+)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let aggregatedText = '';
 
-            // thought: true のpartはスキップ（thinking text）
-            if (part.thought === true) continue;
+        while (true) {
+            // 待機中にタイムアウトを設定（チャンク間のタイムアウト）
+            // 注意: read() を待っている間にタイムアウトが発生するようにする
+            timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-            // JSONをパース
             try {
-                return JSON.parse(text) as T;
+                const { done, value } = await reader.read();
+                clearTimeout(timeoutId); // 読めたらクリア
+
+                if (done) break;
+
+                // チャンクをデコードして結合
+                aggregatedText += decoder.decode(value, { stream: true });
             } catch (e) {
-                // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
-                // 正規表現でJSONオブジェクトを抽出
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    try {
-                        return JSON.parse(jsonMatch[0]) as T;
-                    } catch (e2) {
-                        // このpartでは失敗、次のpartを試す
-                        continue;
+                clearTimeout(timeoutId);
+                throw e;
+            }
+        }
+
+        // JSON配列としてパース
+        let responses: any[];
+        try {
+            responses = JSON.parse(aggregatedText);
+        } catch (e) {
+            console.error('Failed to parse streaming response:', aggregatedText.substring(0, 200) + '...');
+            throw new Error('Gemini APIからのストリーミング応答のパースに失敗しました');
+        }
+
+        if (!Array.isArray(responses) || responses.length === 0) {
+            throw new Error('Gemini APIからの応答が不正な形式です');
+        }
+
+        // 全レスポンスからテキストを結合（Thinking部分を除く）
+        let fullText = '';
+        for (const res of responses) {
+            const parts = res.candidates?.[0]?.content?.parts;
+            if (parts) {
+                for (const part of parts) {
+                    // thought: true は思考プロセスなのでスキップ（ログに出してもいいが）
+                    // 将来的にはここで思考プロセスを保存可能
+                    if (part.thought === true) continue;
+                    if (part.text) {
+                        fullText += part.text;
                     }
                 }
             }
         }
 
-        // 全partsでJSONが見つからなかった
-        const firstText = parts[0]?.text || '';
-        console.error('Failed to parse Gemini response from any part:', firstText.substring(0, 500));
-        throw new Error('Gemini APIの応答をパースできませんでした');
+        if (!fullText) {
+            throw new Error('Gemini APIからの応答に有効なテキストが含まれていません');
+        }
+
+        // JSONパース
+        try {
+            return JSON.parse(fullText) as T;
+        } catch (e) {
+            // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
+            const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    return JSON.parse(jsonMatch[0]) as T;
+                } catch (e2) {
+                    throw new Error('Gemini APIからの応答をJSONとしてパースできませんでした');
+                }
+            }
+            throw new Error('Gemini APIからの応答をJSONとしてパースできませんでした: ' + fullText.substring(0, 100));
+        }
+
     } catch (error) {
         clearTimeout(timeoutId);
         if (error instanceof Error && error.name === 'AbortError') {

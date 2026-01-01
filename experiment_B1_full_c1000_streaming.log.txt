@@ -1,0 +1,12 @@
+Target Datasets: depression
+Target Conditions: B1
+Total combinations: 1
+
+=== Running: Dataset=depression, Condition=B1 ===
+[dotenv@17.2.3] injecting env (2) from .env -- tip: 翌・・backup and recover secrets: https://dotenvx.com/ops
+=== Starting Experiment 2026-01-01T09-07-44 ===
+Dataset: depression, Condition: B1, Tier: tier_max
+Loaded 1993 references from depression
+Condition: {"id":"B1","model":"gemini-3-flash-preview","temperature":1,"topP":0.65,"thinkingLevel":"MINIMAL"}
+Rate limit: concurrency=1000, delay=1ms
+[processBatch] Rate limit: concurrency=1000, delay=1ms

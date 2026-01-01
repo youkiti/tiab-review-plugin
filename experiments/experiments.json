@@ -26,7 +26,27 @@
         },
         "tier2": {
             "concurrency": 50,
-            "delayBetweenRequests": 5
+            "delayBetweenRequests": 200
+        },
+        "tier_max": {
+            "concurrency": 1000,
+            "delayBetweenRequests": 1
+        },
+        "thinking_serial": {
+            "concurrency": 1,
+            "delayBetweenRequests": 200
+        },
+        "thinking_test": {
+            "concurrency": 10,
+            "delayBetweenRequests": 1000
+        },
+        "thinking_5s": {
+            "concurrency": 3,
+            "delayBetweenRequests": 5000
+        },
+        "thinking_10s": {
+            "concurrency": 3,
+            "delayBetweenRequests": 10000
         }
     },
     "conditions": [
@@ -81,56 +101,56 @@
         {
             "id": "B1",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.65,
             "thinkingLevel": "MINIMAL"
         },
         {
             "id": "B2",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.95,
             "thinkingLevel": "MINIMAL"
         },
         {
             "id": "B3",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.65,
             "thinkingLevel": "LOW"
         },
         {
             "id": "B4",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.95,
             "thinkingLevel": "LOW"
         },
         {
             "id": "B5",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.65,
             "thinkingLevel": "MEDIUM"
         },
         {
             "id": "B6",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.95,
             "thinkingLevel": "MEDIUM"
         },
         {
             "id": "B7",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.65,
             "thinkingLevel": "HIGH"
         },
         {
             "id": "B8",
             "model": "gemini-3-flash-preview",
-            "temperature": 0.7,
+            "temperature": 1.0,
             "topP": 0.95,
             "thinkingLevel": "HIGH"
         }
@@ -158,5 +178,5 @@
             "criteria": "Include controlled studies (RCT or Observational with control group) investigating therapies for Wilson disease (D-penicillamine, Trientine, Tetrathiomolybdate, Zinc).\nExclude animal studies, case reports, and uncontrolled studies."
         }
     },
-    "defaultScreeningPrompt": "You are a screener for a systematic review.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
 }
