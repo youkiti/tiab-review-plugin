@@ -150,6 +150,10 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
             if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) return;
             // AIのみ（人間がevidence形式で書くことは稀なため）
             if (!d.reviewer_id.startsWith('llm:')) return;
+            // AI判定フィルター
+            const filter = state.aiDecisionFilter;
+            if (d.decision === 'include' && !filter.include) return;
+            if (d.decision === 'exclude' && !filter.exclude) return;
 
             try {
                 if (d.note && d.note.trim().startsWith('{')) {
@@ -274,6 +278,13 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         // レビュアーフィルタリング
         if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) {
             return;
+        }
+
+        // AI判定フィルタリング
+        if (d.reviewer_id.startsWith('llm:')) {
+            const filter = state.aiDecisionFilter;
+            if (d.decision === 'include' && !filter.include) return;
+            if (d.decision === 'exclude' && !filter.exclude) return;
         }
 
         const div = document.createElement('div');

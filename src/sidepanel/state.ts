@@ -46,6 +46,7 @@ let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 let _showAiHighlights = false; // AIのEvidenceをハイライトするかどうか
+let _aiDecisionFilter = { include: true, exclude: true }; // AI判定の表示フィルター
 
 // ========== State Object with Getters/Setters ==========
 
@@ -167,6 +168,9 @@ export const state = {
 
     get showAiHighlights() { return _showAiHighlights; },
     setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
+
+    get aiDecisionFilter() { return _aiDecisionFilter; },
+    setAiDecisionFilter(filter: { include: boolean; exclude: boolean }) { _aiDecisionFilter = filter; },
 
     // ----- Reset Functions -----
     resetForLogout() {

@@ -73,6 +73,68 @@ export function renderReviewerFilter() {
             label.appendChild(span);
             toggleDiv.appendChild(label);
             list.appendChild(toggleDiv);
+
+            // AI判定フィルター（括弧付きで視覚的に区別）
+            const filterDiv = document.createElement('div');
+            filterDiv.className = 'ai-decision-filter';
+            filterDiv.style.display = 'flex';
+            filterDiv.style.gap = '12px';
+            filterDiv.style.marginBottom = '8px';
+            filterDiv.style.paddingBottom = '8px';
+            filterDiv.style.borderBottom = '1px solid #eee';
+            filterDiv.style.fontSize = '0.9em';
+
+            // Include filter
+            const includeLabel = document.createElement('label');
+            includeLabel.style.display = 'flex';
+            includeLabel.style.alignItems = 'center';
+            includeLabel.style.gap = '4px';
+            includeLabel.style.cursor = 'pointer';
+
+            const includeCheckbox = document.createElement('input');
+            includeCheckbox.type = 'checkbox';
+            includeCheckbox.checked = state.aiDecisionFilter.include;
+            includeCheckbox.addEventListener('change', () => {
+                state.setAiDecisionFilter({
+                    ...state.aiDecisionFilter,
+                    include: includeCheckbox.checked
+                });
+                if (_renderCurrentReference) _renderCurrentReference();
+            });
+
+            const includeSpan = document.createElement('span');
+            includeSpan.textContent = '(⭕組み入れ)';
+
+            includeLabel.appendChild(includeCheckbox);
+            includeLabel.appendChild(includeSpan);
+
+            // Exclude filter
+            const excludeLabel = document.createElement('label');
+            excludeLabel.style.display = 'flex';
+            excludeLabel.style.alignItems = 'center';
+            excludeLabel.style.gap = '4px';
+            excludeLabel.style.cursor = 'pointer';
+
+            const excludeCheckbox = document.createElement('input');
+            excludeCheckbox.type = 'checkbox';
+            excludeCheckbox.checked = state.aiDecisionFilter.exclude;
+            excludeCheckbox.addEventListener('change', () => {
+                state.setAiDecisionFilter({
+                    ...state.aiDecisionFilter,
+                    exclude: excludeCheckbox.checked
+                });
+                if (_renderCurrentReference) _renderCurrentReference();
+            });
+
+            const excludeSpan = document.createElement('span');
+            excludeSpan.textContent = '(❌除外)';
+
+            excludeLabel.appendChild(excludeCheckbox);
+            excludeLabel.appendChild(excludeSpan);
+
+            filterDiv.appendChild(includeLabel);
+            filterDiv.appendChild(excludeLabel);
+            list.appendChild(filterDiv);
         }
     }
 
