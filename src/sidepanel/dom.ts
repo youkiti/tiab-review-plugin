@@ -127,6 +127,7 @@ const domElements = {
     get tabLlmBtn() { return getElement<HTMLButtonElement>('tab-llm'); },
     get headerTabs() { return querySelector<HTMLElement>('.header-tabs'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
+    get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 
     // LLM API Key
     get apiKeyCard() { return getElement<HTMLElement>('api-key-card'); },

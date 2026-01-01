@@ -1,0 +1,519 @@
+/**
+ * llm.css - LLM処理タブ
+ */
+
+/* LLMツールバー */
+.llm-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.llm-title {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* LLMカード */
+.llm-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.llm-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 12px 0;
+}
+
+/* 折りたたみカード */
+.llm-card.collapsible .collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.llm-card.collapsible .collapsible-content {
+    margin-top: 12px;
+}
+
+.llm-card.collapsible.collapsed .collapsible-content {
+    display: none;
+}
+
+.llm-card.collapsible.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.collapse-icon {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+/* 確定済みカード */
+.llm-card.confirmed {
+    background: #e6f4ea;
+    border-color: #34a853;
+}
+
+.llm-card.confirmed h4 {
+    color: #1e7e34;
+}
+
+/* 折りたたみカードのサマリー表示 */
+.card-summary {
+    font-size: 12px;
+    font-weight: normal;
+    color: #1e7e34;
+    margin-left: 8px;
+    flex: 1;
+}
+
+.llm-card:not(.confirmed) .card-summary {
+    color: #666;
+}
+
+/* APIキー入力 */
+.api-key-input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.api-key-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.api-key-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+.api-key-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.api-key-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.api-key-status.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.api-key-status.error {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* 設定行 */
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.setting-row label {
+    font-size: 13px;
+    color: #666;
+    white-space: nowrap;
+}
+
+.setting-row select {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.setting-row select:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+/* 基準セクション */
+.criteria-section {
+    margin-bottom: 12px;
+}
+
+.criteria-section label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.criteria-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.criteria-section textarea:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+/* 最適化結果表示 */
+.optimized-criteria-display {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+    min-height: 100px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.optimized-criteria-display .placeholder-text {
+    color: #999;
+    font-style: italic;
+}
+
+.optimized-criteria-display .criteria-field {
+    margin-bottom: 8px;
+}
+
+.optimized-criteria-display .criteria-field strong {
+    color: #1a73e8;
+}
+
+/* 最適化ステータス */
+.optimize-status {
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.optimize-status.loading {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.optimize-status.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.optimize-status.error {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* バッチ情報 */
+.batch-info {
+    font-size: 13px;
+    color: #666;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+/* バッチ進捗 */
+.batch-progress {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.progress-text {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #1a73e8;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-stats {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+
+/* 閾値調整セクション */
+.complete-message {
+    background: #e6f4ea;
+    color: #1e7e34;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.threshold-control {
+    margin-bottom: 16px;
+}
+
+.threshold-control label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.threshold-control input[type="range"] {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #e0e0e0;
+    border-radius: 4px;
+    outline: none;
+}
+
+.threshold-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #1a73e8;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-control input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #1a73e8;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* 閾値プレビュー */
+.threshold-preview {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.preview-item {
+    flex: 1;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.preview-item.include {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.preview-item.exclude {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* 分布チャート */
+.distribution-chart {
+    margin: 12px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.distribution-bar-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.distribution-label {
+    width: 60px;
+    color: #666;
+}
+
+.distribution-bar-wrapper {
+    flex: 1;
+    height: 16px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 8px;
+}
+
+.distribution-bar {
+    height: 100%;
+    background: #1a73e8;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.distribution-count {
+    width: 50px;
+    text-align: right;
+    color: #333;
+}
+
+.threshold-note {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin-top: 8px;
+}
+
+/* 実行履歴 */
+.execution-history {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.execution-history .placeholder-text {
+    color: #999;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.execution-item {
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.execution-item:last-child {
+    margin-bottom: 0;
+}
+
+.execution-item .execution-date {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.execution-item .execution-stats {
+    color: #666;
+}
+
+.execution-item .execution-type {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+/* 実行履歴のステータス表示 */
+.execution-item.pending {
+    border-left: 3px solid #fbbc04;
+}
+
+.execution-item.confirmed {
+    border-left: 3px solid #34a853;
+}
+
+.execution-status {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+.execution-status.pending {
+    background: #fff8e1;
+    color: #f57c00;
+}
+
+.execution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.execution-active-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #666;
+    cursor: pointer;
+}
+
+.execution-active-checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}

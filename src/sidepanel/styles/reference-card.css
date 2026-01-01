@@ -1,0 +1,87 @@
+/**
+ * reference-card.css - 文献カード
+ */
+
+.reference-card {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.ref-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.ref-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.ref-meta span:not(:last-child)::after {
+    content: ' • ';
+}
+
+.ref-abstract {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.ref-links {
+    display: flex;
+    gap: 12px;
+}
+
+.ref-links a {
+    font-size: 13px;
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+.ref-links a:hover {
+    text-decoration: underline;
+}
+
+/* 不一致バナー */
+.conflict-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #856404;
+    text-align: center;
+}
+
+/* レコード件数表示（タイトル上） */
+.record-count-display {
+    text-align: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #e8f0fe;
+    border-radius: 6px;
+}
+
+.record-count-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a73e8;
+}
+
+.record-count-encourage {
+    font-size: 12px;
+    color: #5f6368;
+    margin-top: 4px;
+}

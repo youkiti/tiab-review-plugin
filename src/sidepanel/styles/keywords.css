@@ -1,0 +1,175 @@
+/**
+ * keywords.css - キーワード設定、ハイライト
+ */
+
+/* ハイライト設定 */
+.config-settings {
+    margin-top: 16px;
+    border-top: 1px solid #ddd;
+    padding-top: 16px;
+}
+
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.config-header h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+/* キーワード設定 */
+.keyword-settings {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.keyword-group {
+    margin-bottom: 12px;
+}
+
+.keyword-group h5 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+}
+
+.keyword-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    min-height: 24px;
+}
+
+.keyword-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.include-group .keyword-tag {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+    border: 1px solid #c8e6c9;
+}
+
+.exclude-group .keyword-tag {
+    background-color: #fce8e6;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.keyword-tag .remove-keyword {
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.6;
+    margin-left: 2px;
+}
+
+.keyword-tag .remove-keyword:hover {
+    opacity: 1;
+}
+
+.keyword-tag .keyword-text {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.keyword-tag .keyword-text:hover {
+    opacity: 0.7;
+}
+
+.keyword-input-group {
+    display: flex;
+    gap: 6px;
+}
+
+.keyword-input-group input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.keyword-input-group input:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+.save-status {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #666;
+    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.save-status.saving {
+    color: #1a73e8;
+}
+
+.save-status.saved {
+    color: #1e7e34;
+}
+
+.save-status.error {
+    color: #c62828;
+}
+
+/* キーワードハイライト */
+.highlight-include {
+    background-color: #c8e6c9;
+    padding: 1px 2px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.highlight-include:hover {
+    opacity: 0.7;
+}
+
+.highlight-exclude {
+    background-color: #ffcdd2;
+    padding: 1px 2px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.highlight-exclude:hover {
+    opacity: 0.7;
+}
+
+.highlight-search {
+    background-color: #ffe0b2;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+.highlight-evidence {
+    background-color: #fff3cd;
+    border-bottom: 2px solid #fbbc04;
+    cursor: help;
+}
