@@ -100,7 +100,7 @@ export function renderReviewerFilter() {
 
             // タイムスタンプの抽出と整形 (例: llm:model@2025-12-31T01:23:45.678Z)
             const parts = reviewerId.split('@');
-            let label = '🤖 AI';
+            let aiLabel = '🤖 AI';
 
             if (parts.length > 1) {
                 try {
@@ -110,13 +110,13 @@ export function renderReviewerFilter() {
                     const day = date.getDate().toString().padStart(2, '0');
                     const hours = date.getHours().toString().padStart(2, '0');
                     const minutes = date.getMinutes().toString().padStart(2, '0');
-                    label = `🤖 AI (${month}/${day} ${hours}:${minutes})`;
+                    aiLabel = `🤖 AI (${month}/${day} ${hours}:${minutes})`;
                 } catch (e) {
                     // 日付変換エラー時はそのまま
                     console.error('Date parse error for reviewer:', reviewerId);
                 }
             }
-            nameSpan.textContent = label;
+            nameSpan.textContent = aiLabel;
 
             // AI判定フィルター（AIレビュアーの右側に配置）
             const filterContainer = document.createElement('div');
@@ -141,11 +141,13 @@ export function renderReviewerFilter() {
                     ...state.aiDecisionFilter,
                     include: includeCheckbox.checked
                 });
+                // フィルター適用のためインデックスをリセットして再描画
+                state.setCurrentIndex(0);
                 if (_renderCurrentReference) _renderCurrentReference();
             });
 
             const includeSpan = document.createElement('span');
-            includeSpan.textContent = '(🟢)';
+            includeSpan.textContent = '(🟢組み入れ判断)';
             includeSpan.title = '組み入れ';
 
             includeLabel.appendChild(includeCheckbox);
@@ -167,11 +169,13 @@ export function renderReviewerFilter() {
                     ...state.aiDecisionFilter,
                     exclude: excludeCheckbox.checked
                 });
+                // フィルター適用のためインデックスをリセットして再描画
+                state.setCurrentIndex(0);
                 if (_renderCurrentReference) _renderCurrentReference();
             });
 
             const excludeSpan = document.createElement('span');
-            excludeSpan.textContent = '(❌)';
+            excludeSpan.textContent = '(❌除外判断)';
             excludeSpan.title = '除外';
 
             excludeLabel.appendChild(excludeCheckbox);
@@ -180,14 +184,21 @@ export function renderReviewerFilter() {
             filterContainer.appendChild(includeLabel);
             filterContainer.appendChild(excludeLabel);
 
+            // 先にラベルを追加（AI名）
+            label.appendChild(checkbox);
+            label.appendChild(nameSpan);
+            item.appendChild(label);
+
+            // その後にフィルターを右側に追加
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.appendChild(filterContainer);
+        } else {
+            // 人間のレビュアーは通常通り
+            label.appendChild(checkbox);
+            label.appendChild(nameSpan);
+            item.appendChild(label);
         }
-
-        label.appendChild(checkbox);
-        label.appendChild(nameSpan);
-        item.appendChild(label);
         list.appendChild(item);
     });
 }
