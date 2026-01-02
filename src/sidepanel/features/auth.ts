@@ -8,6 +8,14 @@ import { state } from '../state';
 import { showLoading, showStatus, showToast } from '../ui/feedback';
 import { getAuthToken, getUserEmail } from '../../lib/sheets-api';
 
+// Store互換レイヤー（Phase 3）
+import {
+    showLoginView,
+    showProjectView,
+    setUserEmail as syncSetUserEmail,
+    resetForLogout as syncResetForLogout,
+} from '../store/compat';
+
 // 外部関数への参照（循環依存回避）
 let _loadRecentSheets: (() => Promise<void>) | null = null;
 let _loadConfig: (() => Promise<void>) | null = null;
@@ -90,13 +98,11 @@ export async function handleLogout() {
             });
         });
 
-        // 状態をリセット
-        state.resetForLogout();
+        // 状態をリセット（Store経由で両方に同期）
+        syncResetForLogout();
 
-        // ログイン画面に戻る
-        dom.projectSection.classList.add('hidden');
-        dom.screeningSection.classList.add('hidden');
-        dom.loginSection.classList.remove('hidden');
+        // ログイン画面に戻る（Store経由でrenderLayoutが自動更新）
+        showLoginView();
 
         showToast('ログアウトしました');
     } catch (error) {
@@ -113,21 +119,21 @@ export async function handleLogout() {
 export async function showProjectSection() {
     console.log('[showProjectSection] Starting...');
 
-    // ログインセクションを隠してプロジェクトセクションを表示
-    dom.loginSection.classList.add('hidden');
-    dom.projectSection.classList.remove('hidden');
-    console.log('[showProjectSection] Sections toggled');
+    // プロジェクトセクションを表示（Store経由でrenderLayoutが自動更新）
+    showProjectView();
+    console.log('[showProjectSection] View changed to project');
 
     // ユーザー情報を取得
     try {
         const userEmail = await getUserEmail();
-        state.setUserEmail(userEmail);
+        // Store経由で両方に同期
+        syncSetUserEmail(userEmail);
         console.log('[showProjectSection] Got user email:', userEmail);
     } catch (e) {
         console.error('[showProjectSection] Failed to get user email:', e);
-        state.setUserEmail('');
-        dom.projectSection.classList.add('hidden');
-        dom.loginSection.classList.remove('hidden');
+        syncSetUserEmail('');
+        // ログイン画面に戻す
+        showLoginView();
         showStatus('Googleアカウントにログインしてください', 'error');
         showLoading(false);
         return;

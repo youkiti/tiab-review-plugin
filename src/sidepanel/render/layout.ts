@@ -47,8 +47,8 @@ export function renderLayout(state: AppState): void {
     }
 
     // ========== キーセクションの表示 ==========
-    // Blind off 時のみ表示
-    dom.keySection.classList.toggle('hidden', !state.ui.screening.isKeyOpened);
+    // 管理者のみ表示（isAdminがtrueの場合のみ）
+    dom.keySection.classList.toggle('hidden', !state.data.isAdmin);
 
     // ========== 共通要素の表示状態 ==========
     // ローディング

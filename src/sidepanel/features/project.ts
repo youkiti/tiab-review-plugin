@@ -21,6 +21,23 @@ import {
 } from '../../lib/sheets-api';
 import { getReviewerKey } from './screening/reviewer-utils';
 
+// Store互換レイヤー（Phase 3）
+import {
+    showProjectView,
+    showScreeningView,
+    resetForBack as syncResetForBack,
+    setSpreadsheetId as syncSetSpreadsheetId,
+    setReferences as syncSetReferences,
+    setKeywords as syncSetKeywords,
+    setIsKeyOpened as syncSetIsKeyOpened,
+    setIsAdmin as syncSetIsAdmin,
+    setSourceFiles as syncSetSourceFiles,
+    setSelectedSourceFiles as syncSetSelectedSourceFiles,
+    setAvailableReviewers as syncSetAvailableReviewers,
+    setEnabledReviewers as syncSetEnabledReviewers,
+    setCurrentIndex as syncSetCurrentIndex,
+} from '../store/compat';
+
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
 let _renderSourceFilters: (() => void) | null = null;
@@ -46,14 +63,11 @@ export function setProjectDependencies(deps: {
  * 戻るボタン処理
  */
 export function handleBack() {
-    // スクリーニング画面を隠してプロジェクト選択画面を表示
-    dom.screeningSection.classList.add('hidden');
-    dom.llmSection.classList.add('hidden');
-    dom.headerTabs?.classList.add('hidden');
-    dom.configSection.classList.remove('hidden');
+    // 状態をリセット（Store経由で両方に同期）
+    syncResetForBack();
 
-    // 状態をリセット
-    state.resetForBack();
+    // プロジェクト選択画面を表示（Store経由でrenderLayoutが自動更新）
+    showProjectView();
 }
 
 /**
@@ -85,7 +99,8 @@ export async function handleConnect() {
 
         showStatus(`接続成功: ${info.title}`, 'success');
 
-        state.setSpreadsheetId(selectedId);
+        // Store経由で両方に同期
+        syncSetSpreadsheetId(selectedId);
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: selectedId });
@@ -179,7 +194,8 @@ export async function handleCreateNew() {
         const newId = await createSpreadsheet(title);
         showStatus(`作成成功: ${title}`, 'success');
 
-        state.setSpreadsheetId(newId);
+        // Store経由で両方に同期
+        syncSetSpreadsheetId(newId);
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: newId });
@@ -211,28 +227,29 @@ export async function loadDataAndShowScreening() {
             getHighlightKeywords(spreadsheetId),
         ]);
 
-        state.setIsAdmin(adminStatus);
-        state.setIsKeyOpened(keyOpenedStatus);
-        state.setHighlightKeywords(keywords);
+        // Store経由で両方に同期
+        syncSetIsAdmin(adminStatus);
+        syncSetIsKeyOpened(keyOpenedStatus);
+        syncSetKeywords(keywords);
 
         // キーオープン状態に応じてデータを読み込み
-        if (keyOpenedStatus) {
-            state.setReferences(await getReferencesWithAllDecisions(spreadsheetId, userEmail));
-        } else {
-            state.setReferences(await getReferencesWithStatus(spreadsheetId, userEmail));
-        }
+        const refs = keyOpenedStatus
+            ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
+            : await getReferencesWithStatus(spreadsheetId, userEmail);
+        syncSetReferences(refs);
 
         // ソースファイルを抽出
-        state.clearSourceFiles();
-        state.references.forEach(ref => {
-            if (ref.source_file) state.addSourceFile(ref.source_file);
+        const sourceFiles = new Set<string>();
+        refs.forEach(ref => {
+            if (ref.source_file) sourceFiles.add(ref.source_file);
         });
-        state.setSelectedSourceFiles(new Set(state.sourceFiles));
+        syncSetSourceFiles(sourceFiles);
+        syncSetSelectedSourceFiles(new Set(sourceFiles));
 
         // レビュアーを抽出（キーオープン時のみ）
         const reviewers = new Set<string>();
         if (keyOpenedStatus) {
-            state.references.forEach(ref => {
+            refs.forEach(ref => {
                 if (ref.allDecisions) {
                     ref.allDecisions.forEach(d => {
                         const reviewerKey = getReviewerKey(d);
@@ -246,8 +263,8 @@ export async function loadDataAndShowScreening() {
         } else {
             reviewers.add(userEmail);
         }
-        state.setAvailableReviewers(reviewers);
-        state.setEnabledReviewers(new Set(reviewers)); // デフォルトは全員有効
+        syncSetAvailableReviewers(reviewers);
+        syncSetEnabledReviewers(new Set(reviewers)); // デフォルトは全員有効
 
 
         // 管理者の場合、キーオープンボタンを表示
@@ -256,32 +273,27 @@ export async function loadDataAndShowScreening() {
         // ユーザー情報に権限を表示
         dom.userInfoDiv.textContent = `ログイン中: ${userEmail} (${adminStatus ? '管理者' : '一般'})`;
 
+        // 注意: キーセクションの表示はrenderLayoutで管理されるようになった
+        // ただし、レガシーなrenderKeyStatusとrenderReviewerFilterは既存コードを維持
         if (adminStatus) {
-            console.log('[loadDataAndShowScreening] Showing keySection');
-            dom.keySection.classList.remove('hidden');
+            console.log('[loadDataAndShowScreening] Admin mode');
             if (_renderKeyStatus) _renderKeyStatus();
             if (_renderReviewerFilter) _renderReviewerFilter();
-        } else {
-            console.log('[loadDataAndShowScreening] Hiding keySection');
-            dom.keySection.classList.add('hidden');
         }
 
-        // 画面を切り替え
-        dom.configSection.classList.add('hidden');
-        dom.screeningSection.classList.remove('hidden');
-        dom.headerTabs?.classList.remove('hidden');
+        // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
+        showScreeningView();
 
-        // 表示
-        state.setCurrentIndex(0);
+        // 表示（Store経由で同期）
+        syncSetCurrentIndex(0);
         if (_renderKeywords) _renderKeywords();
         if (_renderSourceFilters) _renderSourceFilters();
         if (_renderCurrentReference) _renderCurrentReference();
     } catch (error) {
         console.error('Load data error:', error);
         showStatus(`データ読み込みエラー: ${(error as Error).message}`, 'error');
-        // 設定画面に戻す
-        dom.configSection.classList.remove('hidden');
-        dom.screeningSection.classList.add('hidden');
+        // 設定画面に戻す（Store経由）
+        showProjectView();
     } finally {
         showLoading(false);
     }

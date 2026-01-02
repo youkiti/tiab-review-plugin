@@ -5,8 +5,8 @@
 
 import { state as legacyState } from '../state';
 import { getStore, dispatch, getState } from './index';
-import type { AppState, Action } from './types';
-import type { ReferenceWithStatus, Decision, LlmConfig } from '../../lib/types';
+import type { AppState, Action, View, Tab } from './types';
+import type { ReferenceWithStatus, Decision, LlmConfig, DecisionStatus } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
 
@@ -275,4 +275,128 @@ export function initializeFromLegacy(): void {
     dispatch({ type: 'settings/setTreatMlAsManual', value: appState.ui.settings.treatMlAsManual });
     dispatch({ type: 'settings/setShowAiHighlights', value: appState.ui.settings.showAiHighlights });
     dispatch({ type: 'settings/setAiDecisionFilter', filter: appState.ui.settings.aiDecisionFilter });
+}
+
+// ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
+
+/**
+ * ログイン画面を表示
+ */
+export function showLoginView(): void {
+    dispatch({ type: 'view/change', view: 'login' });
+}
+
+/**
+ * プロジェクト選択画面を表示
+ */
+export function showProjectView(): void {
+    dispatch({ type: 'view/change', view: 'project' });
+}
+
+/**
+ * スクリーニング画面を表示
+ */
+export function showScreeningView(): void {
+    dispatch({ type: 'view/change', view: 'screening' });
+}
+
+/**
+ * 設定画面を表示/非表示
+ */
+export function toggleSettingsView(): void {
+    dispatch({ type: 'ui/toggleSettings' });
+}
+
+/**
+ * 設定画面を閉じる
+ */
+export function closeSettingsView(): void {
+    dispatch({ type: 'ui/closeSettings' });
+}
+
+/**
+ * Admin状態を設定（両方に同期）
+ */
+export function setIsAdmin(isAdmin: boolean): void {
+    legacyState.setIsAdmin(isAdmin);
+    dispatch({ type: 'data/setIsAdmin', isAdmin });
+}
+
+/**
+ * ソースファイルを設定（両方に同期）
+ */
+export function setSourceFiles(files: Set<string>): void {
+    legacyState.setSourceFiles(files);
+    dispatch({ type: 'data/setSourceFiles', files });
+}
+
+/**
+ * 選択中のソースファイルを設定（両方に同期）
+ */
+export function setSelectedSourceFiles(files: Set<string>): void {
+    legacyState.setSelectedSourceFiles(files);
+    dispatch({ type: 'data/setSelectedSourceFiles', files });
+}
+
+/**
+ * 利用可能なレビュアーを設定（両方に同期）
+ */
+export function setAvailableReviewers(reviewers: Set<string>): void {
+    legacyState.setAvailableReviewers(reviewers);
+    dispatch({ type: 'data/setAvailableReviewers', reviewers });
+}
+
+/**
+ * 有効なレビュアーを設定（両方に同期）
+ */
+export function setEnabledReviewers(reviewers: Set<string>): void {
+    legacyState.setEnabledReviewers(reviewers);
+    dispatch({ type: 'data/setEnabledReviewers', reviewers });
+}
+
+/**
+ * 検索クエリを設定（Store経由）
+ */
+export function setSearchQuery(query: string): void {
+    dispatch({ type: 'screening/setSearch', query });
+}
+
+/**
+ * タームフィルターを追加（両方に同期）
+ */
+export function addTermFilter(term: string, type: 'include' | 'exclude'): void {
+    legacyState.addTermFilter({ term, type });
+    dispatch({ type: 'screening/addTermFilter', filter: { term, type } });
+}
+
+/**
+ * タームフィルターを削除（両方に同期）
+ */
+export function removeTermFilter(term: string, type: string): void {
+    legacyState.removeTermFilter(term, type);
+    dispatch({ type: 'screening/removeTermFilter', term, termType: type });
+}
+
+/**
+ * 設定値を更新（両方に同期）
+ */
+export function updateSettings(key: string, value: boolean): void {
+    switch (key) {
+        case 'autoNavigateAfterDecision':
+            legacyState.setAutoNavigateAfterDecision(value);
+            dispatch({ type: 'settings/setAutoNavigate', value });
+            break;
+        case 'showRecordCountBelow':
+            legacyState.setShowRecordCountBelow(value);
+            dispatch({ type: 'settings/setShowRecordCountBelow', value });
+            break;
+        case 'termFilterUseAnd':
+            legacyState.setTermFilterUseAnd(value);
+            dispatch({ type: 'settings/setTermFilterUseAnd', value });
+            break;
+        case 'treatMlAsManual':
+            legacyState.setTreatMlAsManual(value);
+            dispatch({ type: 'settings/setTreatMlAsManual', value });
+            break;
+    }
 }
