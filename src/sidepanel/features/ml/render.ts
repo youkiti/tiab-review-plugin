@@ -73,6 +73,8 @@ function renderMlReference() {
     if (!refId) {
         // No records or finished
         elements.ref.title()!.textContent = 'No more records';
+        elements.ref.authors()!.textContent = '';
+        elements.ref.year()!.textContent = '';
         elements.ref.abstract()!.innerHTML = '';
         return;
     }
