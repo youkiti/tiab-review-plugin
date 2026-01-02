@@ -2,7 +2,7 @@
 
 更新日: 2025-12-29（調査完了版）
 
-このドキュメントは、TiAb Review Plugin（Google Sheets をDBにした TiAb スクリーニング拡張）へ **ASReview（asreview/asreview）相当の "Active Learning による動的スクリーニング"** を新規機能として追加するための実装計画です。  
+このドキュメントは、TiAb Review Plugin（Google Sheets をDBにした TiAb スクリーニング拡張）へ **ASReview（asreview/asreview）相当の "Active Learning による動的スクリーニング"** を新規機能として追加するための実装計画です。
 最終的に、TypeScript 側で Python 版と同等の機械学習パイプライン（少なくとも1モデル）を実装し、**ASReview のサンプルデータに対して予測確率が一致すること**（検証スクリプトで再現可能）までを目標にします。
 
 ---
@@ -53,25 +53,25 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 
 - 参照: `vendor/asreview/asreview/models/models.py` の `elas_u3` (L45-57)
 
-| コンポーネント | 設定 | 確定パラメータ |
-|------------|------|---------------|
-| **Querier** | `max` | `np.argsort(-p)` で降順 |
-| **Classifier** | `nb` (MultinomialNB) | `alpha=3.822` |
-| **Balancer** | `balanced` | `ratio=1.2` |
-| **Feature Extractor** | `tfidf` | `stop_words="english"` のみ指定 |
+| コンポーネント              | 設定                   | 確定パラメータ                    |
+| --------------------------- | ---------------------- | --------------------------------- |
+| **Querier**           | `max`                | `np.argsort(-p)` で降順         |
+| **Classifier**        | `nb` (MultinomialNB) | `alpha=3.822`                   |
+| **Balancer**          | `balanced`           | `ratio=1.2`                     |
+| **Feature Extractor** | `tfidf`              | `stop_words="english"` のみ指定 |
 
 #### TF-IDF デフォルトパラメータ（確定）
 
-| パラメータ | 値 | 説明 |
-|-----------|-----|------|
-| `columns` | `["title", "abstract"]` | 結合するカラム |
-| `lowercase` | `True` | 小文字化 |
-| `token_pattern` | `r"(?u)\b\w\w+\b"` | scikit-learn 標準パターン |
-| `ngram_range` | `(1, 1)` | unigram のみ |
-| `max_df` / `min_df` | `1.0` / `1` | 上限なし / 1回以上出現 |
-| `norm` | `"l2"` | L2正規化 |
-| `smooth_idf` | `True` | `idf = log((1+n)/(1+df)) + 1` |
-| `sublinear_tf` | `False` | tf そのまま使用 |
+| パラメータ              | 値                        | 説明                            |
+| ----------------------- | ------------------------- | ------------------------------- |
+| `columns`             | `["title", "abstract"]` | 結合するカラム                  |
+| `lowercase`           | `True`                  | 小文字化                        |
+| `token_pattern`       | `r"(?u)\b\w\w+\b"`      | scikit-learn 標準パターン       |
+| `ngram_range`         | `(1, 1)`                | unigram のみ                    |
+| `max_df` / `min_df` | `1.0` / `1`           | 上限なし / 1回以上出現          |
+| `norm`                | `"l2"`                  | L2正規化                        |
+| `smooth_idf`          | `True`                  | `idf = log((1+n)/(1+df)) + 1` |
+| `sublinear_tf`        | `False`                 | tf そのまま使用                 |
 
 #### Balanced サンプル重み計算式（確定）
 
@@ -79,7 +79,7 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
 - class 0 (exclude): 重み = `n_include / (ratio * n_exclude)`
 - 正規化: `weights * (len(y) / sum(weights))`
 
-この "elas_u3 相当" を TS で再現し、検証データで確率一致を最初の到達点にする。  
+この "elas_u3 相当" を TS で再現し、検証データで確率一致を最初の到達点にする。
 （将来 `elas_u4` 相当（SVM+TFIDF）へ拡張する場合は、SVM の確率化/スコア扱いを別途設計する）
 
 ---
@@ -124,7 +124,7 @@ ASReview の `ActiveLearningCycle` のうち、拡張機能に必要な箇所だ
   - include → `1`
   - exclude → `0`
   - maybe → 原則 `-1`（未学習）として扱う（必要なら後で設定で変更可能）
-- 予測確率は Sheets に保存しない（まずはローカル表示のみ）。  
+- 予測確率は Sheets に保存しない（まずはローカル表示のみ）。
   ※ "保存するなら note に JSON" などの方針は後段で検討。
 
 ---
@@ -162,13 +162,13 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 
 **構成:**
 
-| Dataset | Total | Included | Prevalence | 特徴 |
-|---------|-------|----------|------------|------|
-| **CQ1** | 5,628 | 113 | 2.0% | **メイン検証用**（最大規模） |
-| CQ2 | 3,400 | 17 | 0.5% | 不均衡データ検証用 |
-| CQ3 | 1,038 | 16 | 1.5% | 小規模データ検証用 |
-| CQ4 | 4,326 | 72 | 1.7% | サブ検証用 |
-| CQ5 | 2,253 | 41 | 1.8% | サブ検証用 |
+| Dataset       | Total | Included | Prevalence | 特徴                               |
+| ------------- | ----- | -------- | ---------- | ---------------------------------- |
+| **CQ1** | 5,628 | 113      | 2.0%       | **メイン検証用**（最大規模） |
+| CQ2           | 3,400 | 17       | 0.5%       | 不均衡データ検証用                 |
+| CQ3           | 1,038 | 16       | 1.5%       | 小規模データ検証用                 |
+| CQ4           | 4,326 | 72       | 1.7%       | サブ検証用                         |
+| CQ5           | 2,253 | 41       | 1.8%       | サブ検証用                         |
 
 **準備手順（スクリプト化済み `scripts/asreview-baseline/generate_datasets.py`）:**
 
@@ -177,16 +177,15 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 3. タイトルの正規化・ファジーマッチングを行い、一致する文献を `label=1`、それ以外を `0` とする。
 4. `scripts/asreview-baseline/datasets/cq{n}_labeled.json` として保存。
 
-
 #### 追加採用データセット（ユーザー要望）
 
 以下のオープンデータセットも検証用として取得・整備する。
 
-| Dataset | URL | Description |
-|---------|-----|-------------|
-| **Depression (SLIM)** | [Zenodo 151190](https://zenodo.org/records/151190) | うつ病（動物モデル）SR。2名独立評価+reconcile。`scripts/asreview-baseline/datasets/depression_slim_labeled.json` を作成済み（`label_included`）。元データは `scripts/asreview-baseline/datasets/zenodo_151190/`。 |
-| **Wilson's Disease** | [Zenodo 3625931](https://zenodo.org/records/3625931) | Wilson病治療SR。TiAb全件を基準に2種ラベル保持: `label_tiab`（FT対象=1）/ `label_final_included`（最終included=1）。`scripts/asreview-baseline/datasets/wilson_tiab_labeled.json` を作成済み。元データは `scripts/asreview-baseline/datasets/zenodo_3625931/`。 |
-| **Mendeley Data** | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。`scripts/asreview-baseline/datasets/mendeley_20240827_*_set.json` と `scripts/asreview-baseline/datasets/mendeley_CD*_data_cleaned.json` を作成済み。mainセットは `label_score` を保持し、`label_included` は `label_score >= 0.5` を許容。 |
+| Dataset                     | URL                                                                 | Description                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Depression (SLIM)** | [Zenodo 151190](https://zenodo.org/records/151190)                     | うつ病（動物モデル）SR。2名独立評価+reconcile。`scripts/asreview-baseline/datasets/depression_slim_labeled.json` を作成済み（`label_included`）。元データは `scripts/asreview-baseline/datasets/zenodo_151190/`。                                                                      |
+| **Wilson's Disease**  | [Zenodo 3625931](https://zenodo.org/records/3625931)                   | Wilson病治療SR。TiAb全件を基準に2種ラベル保持:`label_tiab`（FT対象=1）/ `label_final_included`（最終included=1）。`scripts/asreview-baseline/datasets/wilson_tiab_labeled.json` を作成済み。元データは `scripts/asreview-baseline/datasets/zenodo_3625931/`。                        |
+| **Mendeley Data**     | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。`scripts/asreview-baseline/datasets/mendeley_20240827_*_set.json` と `scripts/asreview-baseline/datasets/mendeley_CD*_data_cleaned.json` を作成済み。mainセットは `label_score` を保持し、`label_included` は `label_score >= 0.5` を許容。 |
 
 #### 他のデータセット（experiments/ で確認済み）
 
@@ -212,7 +211,6 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 
 #### 拡張性（他のデータセット追加）
 
-
 PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデータセットを検証に追加したい場合は、上記 `cq*_labeled.json` と同じ JSON スキーマ（`id`, `title`, `abstract`, `label_included`）を持つファイルを作成し、`scripts/asreview-baseline/datasets/` に配置することで、検証パイプラインに追加可能とする。必要に応じて `label_score`（連続値）や `label_tiab` / `label_final_included` のような追加ラベルも併存可。
 
 ### 5.3 Baseline（Python）生成スクリプト（案）
@@ -231,7 +229,7 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 - `scripts/asreview-verify/` を作成し、TS 実装で同じ入力から `proba_included[]` を生成して比較する。
 - 期待値:
   - 原則 "完全一致" を目標（少なくとも `Float64` で計算・同じ数式なら一致しやすい）
-  - 実際に差が出る場合は、誤差許容を決める（例: `absDiff <= 1e-12`）  
+  - 実際に差が出る場合は、誤差許容を決める（例: `absDiff <= 1e-12`）
     ※ ただし「許容誤差で逃げる」のではなく、まずは tokenization / idf / 正規化 / NB の式を Python に厳密に合わせる。
 
 ### 5.5 実行コマンド（案）
@@ -261,11 +259,199 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 
 完了レポート: `experiments/asreview/REPORT.md`
 
-### Phase 3: 拡張機能 UI に統合
+### Phase 3: 拡張機能 UI に統合（ML タブ）
 
-1. Side Panel に "ML 推薦" トグルと `p(relevant)` 表示を追加。
-2. 判定（include/exclude）保存後に Worker へ通知→推薦更新。
-3. キャッシュ（ローカル）を導入して 3,000 件で快適に動くことを確認（最初は計測→必要なら最適化）。
+**目的**: ML アシストスクリーニングを Side Panel に組み込み、ASReview 同様の「連続 N 件 exclude で停止推奨」を実装する。
+
+#### 3.0 ASReview 調査結果（設計根拠）
+
+ASReview LAB の実装を調査し、以下の設計方針を採用：
+
+1. **停止基準**: 「連続 N 件 exclude（N Consecutive Irrelevant）」のみをメインで使用（デフォルトは100件）
+2. **確率非表示**: レビュー中は `p(relevant)` を表示しない（バイアス防止）
+3. **進捗可視化**: 停止基準に対する進捗バー（include でリセット）
+4. **停止到達時ダイアログ**: 「追加レビュー」「終了」「閉じる」の選択肢
+
+参照ファイル:
+
+- `vendor/asreview/asreview/models/stoppers.py`
+- `vendor/asreview/asreview/webapp/src/ProjectComponents/AnalyticsComponents/StoppingSuggestion.js`
+- `vendor/asreview/asreview/webapp/src/ProjectComponents/ReviewComponents/StoppingReachedDialog.js`
+
+#### 3.1 UI/UX 設計
+
+**ML タブ全体レイアウト:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│ TiAb Review                                         │
+│ [👤 手動] [🔬 ML] [🤖 AI]        進捗: 45 / 1,234   │
+├─────────────────────────────────────────────────────┤
+│ ← 戻る                                   ⚙️ ❓      │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ 🎯 ML アシストスクリーニング                   │   │
+│  │                                             │   │
+│  │ 学習状態: include 23件 / exclude 156件       │   │
+│  │                                             │   │
+│  │ ───────── 停止基準 ─────────                │   │
+│  │ [Set Threshold]  または [▼ 連続 exclude 50件] │   │
+│  │                                             │   │
+│  │ 進捗: ████████░░░░ 32 / 50                  │   │
+│  │       (include で リセット)                  │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │ Title: Effect of...                         │   │
+│  │ Authors: Smith J, et al. (2023)             │   │
+│  │                                             │   │
+│  │ Abstract: ...                               │   │
+│  │                                             │   │
+│  │ [DOI] [PubMed]                              │   │
+│  ├─────────────────────────────────────────────┤   │
+│  │ [✓ Include (i)]   [✕ Exclude (e)]           │   │
+│  └─────────────────────────────────────────────┘   │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+**停止基準設定ポップアップ:**
+
+```
+┌────────────────────────────────────┐
+│ [カスタム] [パーセンテージ]         │  ← タブ切り替え
+├────────────────────────────────────┤
+│ データセットの割合を選択:           │
+│ [1%] [2%] [5%] [10%]              │
+│   50   100  250   500              │  ← 件数表示
+│ [保存]                             │
+└────────────────────────────────────┘
+```
+
+**停止到達時ダイアログ:**
+
+```
+┌───────────────────────────────────────────────┐
+│ 停止基準に到達しました                          │
+│ 次のアクションを選択してください                  │
+├───────────────────────────────────────────────┤
+│ 📄 20件追加でレビュー                          │
+│    閾値を +20 して続行                         │
+│                                               │
+│ 📥 終了してエクスポート                         │
+│    結果をエクスポート                           │
+├───────────────────────────────────────────────┤
+│ [閉じる]                        [終了]          │
+└───────────────────────────────────────────────┘
+```
+
+#### 3.2 停止基準（Stopping Rule）
+
+ASReview の `NConsecutiveIrrelevant` を TS で実装:
+
+```typescript
+interface StoppingRule {
+  type: 'n_consecutive_irrelevant';
+  threshold: number;  // 例: 50
+  current: number;    // 連続 exclude カウント
+}
+
+function updateStoppingProgress(rule: StoppingRule, decision: 'include' | 'exclude'): StoppingRule {
+  if (decision === 'include') {
+    return { ...rule, current: 0 };  // リセット
+  } else {
+    return { ...rule, current: rule.current + 1 };
+  }
+}
+
+function isStoppingReached(rule: StoppingRule): boolean {
+  return rule.current >= rule.threshold;
+}
+```
+
+#### 3.3 状態管理と永続化
+
+`src/sidepanel/state.ts` に追加:
+
+```typescript
+interface MlState {
+  status: 'idle' | 'training' | 'ready' | 'error';
+  labeledCount: { include: number; exclude: number };
+  stoppingRule: StoppingRule | null;
+  ranking: string[];  // ref_id の配列（推薦順）
+  lastUpdated: number;
+}
+```
+
+永続化（`chrome.storage.local`）:
+
+- `ml_stopping_rule_{spreadsheetId}`: 停止基準設定
+- `ml_state_{spreadsheetId}`: 学習状態（ラベル数、進捗）
+
+#### 3.4 Worker 連携
+
+`src/lib/ml/worker.ts`:
+
+```typescript
+// メッセージ仕様
+type WorkerMessage =
+  | { type: 'init'; refs: RefRecord[]; labels: Map<string, Label> }
+  | { type: 'updateLabel'; refId: string; label: Label }
+  | { type: 'reset' };
+
+type WorkerResponse =
+  | { type: 'ready'; ranking: string[]; stats: LabelStats }
+  | { type: 'updated'; ranking: string[]; stats: LabelStats }
+  | { type: 'error'; message: string };
+```
+
+更新フロー:
+
+1. ユーザーが判定を保存 → Sheets に書き込み
+2. `debounce(300ms)` 後に Worker へ `updateLabel` 送信
+3. Worker: NB 再学習 → ranking 再計算 → 結果返却
+4. UI: ranking 更新 + 停止進捗更新
+
+#### 3.5 ファイル構成
+
+```
+src/
+├── lib/
+│   └── ml/
+│       ├── worker.ts          # Web Worker 本体
+│       ├── worker-client.ts   # UI → Worker 通信ラッパー
+│       ├── types.ts           # ML 関連型定義
+│       └── stopping-rules.ts  # 停止基準ロジック
+├── sidepanel/
+│   ├── features/
+│   │   └── ml/
+│   │       ├── render.ts      # ML タブ描画
+│   │       ├── actions.ts     # 判定アクション
+│   │       ├── stopping.ts    # 停止基準 UI
+│   │       └── dialogs.ts     # ダイアログ
+│   └── state.ts               # mlState 追加
+└── sidepanel.html             # ml-section 追加
+```
+
+#### 3.6 性能目標（ベンチマーク結果に基づく）
+
+| 処理                | 目標    | ベンチマーク結果           |
+| ------------------- | ------- | -------------------------- |
+| 初回学習（3,000件） | 5秒以内 | CQ2 (3,400件): 1.4秒 ✅    |
+| ラベル更新後再計算  | 1秒以内 | NB再学習のみ: 200-500ms ✅ |
+
+TF-IDF のキャッシュにより、ラベル更新時は NB 再学習のみで対応可能。
+
+#### 3.7 完了条件（受け入れ条件）
+
+1. ML タブで文献が推薦順に表示される
+2. include/exclude の保存後に推薦順が更新される（1秒以内）
+3. 停止基準を設定でき、進捗バーが正しく更新される
+4. include でカウンターがリセットされる
+5. 停止到達時にダイアログが表示され、選択肢が機能する
+6. Worker エラー時は UI が落ちず、エラー表示して手動モードに戻る
+7. 3,000件規模でスクロール/次へ/前へが快適に動く
 
 ### Phase 4: 確率一致の検証を完了（ゴール）
 
@@ -277,11 +463,9 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 
 ## 7. リスクと対策
 
-- **scikit-learn 互換 TF-IDF の厳密再現が難しい**  
-  → まずは ASReview が実際に使っているパラメータ（`elas_u3`）だけに範囲を絞る。差分は baseline の `vocabulary/idf` を吐かせて追う。
-- **ブラウザ内での性能（TF-IDF の fit が重い）**  
-  → Web Worker、疎行列、キャッシュ（IndexedDB）で回避。学習は "ラベル更新時のみ" に限定。
-- **ライセンス**  
+- **scikit-learn 互換 TF-IDF の厳密再現が難しい**→ まずは ASReview が実際に使っているパラメータ（`elas_u3`）だけに範囲を絞る。差分は baseline の `vocabulary/idf` を吐かせて追う。
+- **ブラウザ内での性能（TF-IDF の fit が重い）**→ Web Worker、疎行列、キャッシュ（IndexedDB）で回避。学習は "ラベル更新時のみ" に限定。
+- **ライセンス**
   → ASReview は Apache-2.0。コード/データ同梱時は NOTICE 等を含める。サンプルデータの再配布可否を個別確認する。
 
 ---
@@ -289,5 +473,6 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 ## Appendix: 調査結果の詳細
 
 詳細な調査結果は以下を参照:
+
 - 調査レポート: `.gemini/antigravity/brain/*/asreview_investigation_report.md`
 - 参照実装: `vendor/asreview/`
