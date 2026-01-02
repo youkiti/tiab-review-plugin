@@ -484,7 +484,7 @@
                 </div>
             </div>
 
-            <!-- 学習状態・停止基準 -->
+            <!-- 学習状態・停止基準 (ML固有設定 - 上部) -->
             <div class="llm-card">
                 <h4>📊 学習状態</h4>
                 <div class="ml-stats-row">
@@ -500,7 +500,7 @@
 
                 <div class="stopping-rule-container">
                     <div class="stopping-header">
-                        <span class="label">停止基準:</span>
+                        <span class="label">停止基準(レビューごとに要設定):</span>
                         <button id="ml-stopping-settings-btn" class="btn-link">設定なし</button>
                     </div>
                     <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">
@@ -515,17 +515,15 @@
                 </div>
             </div>
 
-            <!-- アクション -->
-            <div class="decision-buttons">
-                <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
-                <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
+            <!-- 検索 -->
+            <div class="filters">
+                <div class="search-container" style="flex: 1;">
+                    <input type="search" id="ml-search-input" placeholder="検索...">
+                    <span id="ml-search-result-count" class="search-result-count hidden"></span>
+                </div>
             </div>
 
-            <div class="navigation" style="margin-top: 10px;">
-                <button id="ml-btn-skip" class="btn btn-outline" title="スキップ">スキップ (Next)</button>
-            </div>
-
-            <!-- 現在の文献情報（簡易表示） -->
+            <!-- 現在の文献情報 -->
             <article id="ml-reference-card" class="reference-card">
                 <h3 id="ml-ref-title" class="ref-title">タイトル...</h3>
                 <div class="ref-meta">
@@ -536,6 +534,44 @@
                     抄録...
                 </div>
             </article>
+
+            <!-- 判定ボタン -->
+            <div class="decision-buttons">
+                <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
+                <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
+            </div>
+
+            <!-- ナビゲーション -->
+            <div class="navigation">
+                <button id="ml-btn-skip" class="btn btn-outline" title="スキップ">スキップ (→)</button>
+            </div>
+
+            <!-- ハイライト設定 (下部) -->
+            <div id="ml-config-settings" class="config-settings">
+                <div class="config-header">
+                    <h4>ハイライト設定</h4>
+                </div>
+
+                <!-- 組み入れキーワード -->
+                <div class="keyword-group include-group">
+                    <h5>組み入れ (緑)</h5>
+                    <div id="ml-include-keywords-list" class="keyword-list"></div>
+                    <div class="keyword-input-group">
+                        <input type="text" id="ml-new-include-input" placeholder="組み入れワード追加...">
+                        <button id="ml-add-include-btn" class="btn btn-small btn-secondary">＋</button>
+                    </div>
+                </div>
+
+                <!-- 除外キーワード -->
+                <div class="keyword-group exclude-group">
+                    <h5>除外 (赤)</h5>
+                    <div id="ml-exclude-keywords-list" class="keyword-list"></div>
+                    <div class="keyword-input-group">
+                        <input type="text" id="ml-new-exclude-input" placeholder="除外ワード追加...">
+                        <button id="ml-add-exclude-btn" class="btn btn-small btn-secondary">＋</button>
+                    </div>
+                </div>
+            </div>
 
         </section>
     </div>

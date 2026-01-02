@@ -14,8 +14,9 @@ import * as screeningRender from './features/screening/render';
 import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
-import { initMlHandlers, activateMlTab } from './features/ml/actions';
+import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { initModal } from './features/ml/dialogs';
+import { handleMlSearchInput, addMlKeyword } from './features/ml/render';
 
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
@@ -173,6 +174,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // ML
     initMlHandlers();
     initModal();
+
+    // ML Keyboard Shortcuts (global listener)
+    document.addEventListener('keydown', handleMlKeydown);
+
+    // ML Search
+    document.getElementById('ml-search-input')?.addEventListener('input', handleMlSearchInput);
+
+    // ML Keywords
+    document.getElementById('ml-add-include-btn')?.addEventListener('click', () => addMlKeyword('include'));
+    document.getElementById('ml-add-exclude-btn')?.addEventListener('click', () => addMlKeyword('exclude'));
+    document.getElementById('ml-new-include-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addMlKeyword('include');
+    });
+    document.getElementById('ml-new-exclude-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addMlKeyword('exclude');
+    });
 
     // Tab Switching
     dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));

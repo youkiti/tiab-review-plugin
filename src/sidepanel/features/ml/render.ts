@@ -1,5 +1,7 @@
 import { state } from '../../state';
 import { getStoppingProgressPercent } from '../../../lib/ml/stopping-rules';
+import { highlightText } from '../screening/render';
+import { showToast } from '../../ui/feedback';
 
 const elements = {
     section: () => document.getElementById('ml-section'),
@@ -23,6 +25,14 @@ const elements = {
         authors: () => document.getElementById('ml-ref-authors'),
         year: () => document.getElementById('ml-ref-year'),
         abstract: () => document.getElementById('ml-ref-abstract'),
+    },
+    search: {
+        input: () => document.getElementById('ml-search-input') as HTMLInputElement | null,
+        resultCount: () => document.getElementById('ml-search-result-count'),
+    },
+    keywords: {
+        includeList: () => document.getElementById('ml-include-keywords-list'),
+        excludeList: () => document.getElementById('ml-exclude-keywords-list'),
     }
 };
 
@@ -41,6 +51,7 @@ export function renderMlSection() {
     section.classList.remove('hidden');
     renderMlReference();
     renderMlStats();
+    renderMlKeywords();
 }
 
 /**
@@ -62,16 +73,71 @@ function renderMlReference() {
     if (!refId) {
         // No records or finished
         elements.ref.title()!.textContent = 'No more records';
-        elements.ref.abstract()!.textContent = '';
+        elements.ref.abstract()!.innerHTML = '';
         return;
     }
 
     const ref = state.references.find(r => r.ref_id === refId);
     if (!ref) return;
 
+    // 検索キーワード取得
+    const searchKeyword = elements.search.input()?.value.trim() || '';
+
+    // ハイライト付きでタイトルと抄録を表示
+    elements.ref.title()!.innerHTML = highlightText(ref.title || '', searchKeyword);
     elements.ref.authors()!.textContent = ref.authors || 'Unknown Authors';
     elements.ref.year()!.textContent = ref.year?.toString() || '';
-    elements.ref.abstract()!.textContent = ref.abstract || '(No Abstract)';
+    elements.ref.abstract()!.innerHTML = highlightText(ref.abstract || '(No Abstract)', searchKeyword);
+}
+
+/**
+ * キーワードリストの表示更新
+ */
+export function renderMlKeywords() {
+    renderKeywordList('include', state.highlightKeywords.include, elements.keywords.includeList());
+    renderKeywordList('exclude', state.highlightKeywords.exclude, elements.keywords.excludeList());
+}
+
+/**
+ * キーワードリストをレンダリング（内部関数）
+ */
+function renderKeywordList(type: 'include' | 'exclude', keywords: string[], container: HTMLElement | null) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (const word of keywords) {
+        if (!word) continue;
+
+        const span = document.createElement('span');
+        span.className = `keyword-tag ${type}`;
+
+        span.innerHTML = `
+            <span class="keyword-text" title="キーワード">${word}</span>
+            <span class="remove-keyword" title="削除">×</span>
+        `;
+
+        // ×ボタンクリックでキーワード削除
+        span.querySelector('.remove-keyword')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (type === 'include') {
+                state.removeIncludeKeyword(word);
+            } else {
+                state.removeExcludeKeyword(word);
+            }
+            renderMlKeywords();
+            renderMlReference(); // ハイライト即時反映
+        });
+
+        container.appendChild(span);
+    }
+}
+
+/**
+ * 検索入力ハンドラ
+ */
+export function handleMlSearchInput() {
+    // 検索時は単に再描画（現在表示中の文献のハイライトを更新）
+    renderMlReference();
 }
 
 /**
@@ -138,4 +204,36 @@ export function renderMlStats() {
         if (stopContainer) stopContainer.classList.add('hidden');
         if (settingsBtn) settingsBtn!.textContent = '設定なし';
     }
+}
+
+/**
+ * MLキーワード追加
+ */
+export function addMlKeyword(type: 'include' | 'exclude') {
+    const inputId = type === 'include' ? 'ml-new-include-input' : 'ml-new-exclude-input';
+    const input = document.getElementById(inputId) as HTMLInputElement | null;
+    if (!input) return;
+
+    const word = input.value.trim();
+    if (!word) return;
+
+    // 重複チェック
+    const list = type === 'include' ? state.highlightKeywords.include : state.highlightKeywords.exclude;
+    if (list.includes(word)) {
+        input.value = '';
+        return;
+    }
+
+    // 追加
+    if (type === 'include') {
+        state.addIncludeKeyword(word);
+    } else {
+        state.addExcludeKeyword(word);
+    }
+
+    input.value = '';
+    renderMlKeywords();
+    renderMlReference(); // ハイライト即時反映
+
+    showToast(`「${word}」を追加しました`);
 }

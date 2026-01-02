@@ -226,3 +226,47 @@ function getCurrentMlReference() {
     }
     return null;
 }
+
+/**
+ * ML画面用キーボードショートカットハンドラ
+ */
+export function handleMlKeydown(e: KeyboardEvent) {
+    // 入力フォーム内では無効
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+    }
+
+    // MLタブがアクティブでない場合は処理しない
+    if (state.currentTab !== 'ml') {
+        return;
+    }
+
+    // 修飾キーなし
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+        switch (e.key.toLowerCase()) {
+            case 'i': // Include
+                handleMlDecision('include');
+                e.preventDefault();
+                break;
+            case 'e': // Exclude
+                handleMlDecision('exclude');
+                e.preventDefault();
+                break;
+            case 'arrowright': // Next (Skip)
+            case 'j':
+            case 's': // Skip
+            case 'n': // Next
+                handleMlNext();
+                e.preventDefault();
+                break;
+            case 'arrowleft': // Prev (undo-like, but for ML we just skip)
+            case 'k':
+                // ML mode doesn't have a "previous" concept in the same way
+                // For now, we can skip this or show a toast
+                showToast('MLモードでは「前へ」はありません');
+                e.preventDefault();
+                break;
+        }
+    }
+}
+
