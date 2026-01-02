@@ -5,6 +5,7 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
+import { getReviewerLabel, isLlmReviewerKey } from './reviewer-utils';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -27,6 +28,8 @@ export function renderReviewerFilter() {
     // Blind off 時のみ表示されるコンテナを想定
     if (!filterContainer) return; // Ensure the container exists after the dom update
 
+    console.log('[renderReviewerFilter] isKeyOpened:', state.isKeyOpened, 'availableReviewers:', Array.from(state.availableReviewers));
+
     if (!state.isKeyOpened) {
         filterContainer.classList.add('hidden');
         return;
@@ -44,7 +47,7 @@ export function renderReviewerFilter() {
         // AI判定が含まれている可能性が高いので常に表示で良いが、
         // AIが一人もいなければ意味がないのでチェックしても良い。
         // ここでは簡易的に常に表示（またはAIレビュアーがいるかチェック）
-        const hasAi = Array.from(state.availableReviewers).some(id => id.startsWith('llm:'));
+        const hasAi = Array.from(state.availableReviewers).some(id => isLlmReviewerKey(id));
 
         if (hasAi) {
             const toggleDiv = document.createElement('div');
@@ -92,32 +95,13 @@ export function renderReviewerFilter() {
         checkbox.addEventListener('change', () => handleReviewerToggle(reviewerId, checkbox.checked));
 
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = reviewerId === state.userEmail ? `${reviewerId} (自分)` : reviewerId;
+        nameSpan.textContent = getReviewerLabel(reviewerId, state.userEmail);
 
-        // AIの場合の装飾と時刻表示
-        if (reviewerId.startsWith('llm:')) {
+        // AIの場合の装飾
+        if (isLlmReviewerKey(reviewerId)) {
             nameSpan.classList.add('reviewer-llm');
-
-            // タイムスタンプの抽出と整形 (例: llm:model@2025-12-31T01:23:45.678Z)
-            const parts = reviewerId.split('@');
-            let aiLabel = '🤖 AI';
-
-            if (parts.length > 1) {
-                try {
-                    const date = new Date(parts[1]);
-                    // MM/DD HH:mm 形式に整形
-                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    const hours = date.getHours().toString().padStart(2, '0');
-                    const minutes = date.getMinutes().toString().padStart(2, '0');
-                    aiLabel = `🤖 AI (${month}/${day} ${hours}:${minutes})`;
-                } catch (e) {
-                    // 日付変換エラー時はそのまま
-                    console.error('Date parse error for reviewer:', reviewerId);
-                }
-            }
-            nameSpan.textContent = aiLabel;
-
+ 
+            
             // AI判定フィルター（AIレビュアーの右側に配置）
             const filterContainer = document.createElement('div');
             filterContainer.style.display = 'flex';

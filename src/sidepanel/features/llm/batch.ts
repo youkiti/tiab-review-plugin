@@ -367,6 +367,15 @@ export async function handleConfirmThreshold() {
     const currentDecisions = state.currentBatchDecisions;
     const executionId = state.currentExecutionId;
 
+    console.log('[handleConfirmThreshold] Starting with executionId:', executionId);
+    console.log('[handleConfirmThreshold] currentDecisions count:', currentDecisions.length);
+
+    if (!executionId) {
+        console.error('[handleConfirmThreshold] executionId is empty!');
+        showToast('エラー: 実行IDが見つかりません。ページをリロードしてください。');
+        return;
+    }
+
     try {
         dom.confirmThresholdBtn.disabled = true;
         showToast('保存中...');
@@ -376,6 +385,7 @@ export async function handleConfirmThreshold() {
 
         // Decisionsシートの行を取得して更新
         const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
+        console.log('[handleConfirmThreshold] existingDecisions count:', existingDecisions.length);
 
         const updates: { rowIndex: number; decision: Decision }[] = [];
         for (const updated of updatedDecisions) {
@@ -385,12 +395,23 @@ export async function handleConfirmThreshold() {
             }
         }
 
+        console.log('[handleConfirmThreshold] updates count:', updates.length);
+
         if (updates.length > 0) {
             await updateDecisionsBatch(spreadsheetId, updates);
         }
 
         // 実行履歴を更新（pending → confirmed）
         const counts = previewThresholdCounts(currentDecisions, threshold);
+        console.log('[handleConfirmThreshold] Calling updateLlmExecution with:', {
+            executionId,
+            threshold,
+            includeCount: counts.includeCount,
+            excludeCount: counts.excludeCount,
+            status: 'confirmed',
+            is_active: true
+        });
+
         await updateLlmExecution(spreadsheetId, executionId, {
             include_threshold: threshold,
             include_count: counts.includeCount,
@@ -398,6 +419,8 @@ export async function handleConfirmThreshold() {
             status: 'confirmed',
             is_active: true,  // 閾値確定時に「判定に使用」を自動でオン
         });
+
+        console.log('[handleConfirmThreshold] updateLlmExecution completed successfully');
 
         // LLM設定を更新
         await updateLlmConfig(spreadsheetId, {
@@ -429,6 +452,13 @@ export async function loadExecutionHistory() {
 
     try {
         const executions = await getLlmExecutions(spreadsheetId);
+
+        console.log('[loadExecutionHistory] executions:', executions.map(e => ({
+            id: e.execution_id,
+            status: e.status,
+            is_active: e.is_active,
+            type: e.execution_type,
+        })));
 
         // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
         state.clearActiveLlmExecutionIds();

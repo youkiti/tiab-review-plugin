@@ -16,6 +16,7 @@ import {
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
 import { renderReviewerFilter } from './reviewer-filter';
+import { getReviewerKey } from './reviewer-utils';
 
 // 外部レンダリング関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -224,17 +225,27 @@ export async function handleKeyToggle() {
 
             // データを再読み込み（全員の判定を取得）
             const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
+            console.log('[handleKeyToggle] refs count:', refs.length);
+            console.log('[handleKeyToggle] refs with allDecisions:', refs.filter(r => r.allDecisions && r.allDecisions.length > 0).length);
             state.setReferences(refs);
 
             // レビュアーを抽出
             const reviewers = new Set<string>();
             refs.forEach(ref => {
                 if (ref.allDecisions) {
-                    ref.allDecisions.forEach(d => reviewers.add(d.reviewer_id));
+                    ref.allDecisions.forEach(d => {
+                        const reviewerKey = getReviewerKey(d);
+                        if (reviewerKey) reviewers.add(reviewerKey);
+                    });
                 }
             });
+            if (state.userEmail) {
+                reviewers.add(state.userEmail);
+            }
+            console.log('[handleKeyToggle] Extracted reviewers:', Array.from(reviewers));
             state.setAvailableReviewers(reviewers);
             state.setEnabledReviewers(new Set(reviewers));
+            console.log('[handleKeyToggle] enabledReviewers set:', Array.from(state.enabledReviewers));
 
             // 表示を更新
             renderKeyStatus();

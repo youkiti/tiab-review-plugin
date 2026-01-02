@@ -19,6 +19,7 @@ import {
     forceReauth,
     ensureHeaders,
 } from '../../lib/sheets-api';
+import { getReviewerKey } from './screening/reviewer-utils';
 
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
@@ -233,9 +234,15 @@ export async function loadDataAndShowScreening() {
         if (keyOpenedStatus) {
             state.references.forEach(ref => {
                 if (ref.allDecisions) {
-                    ref.allDecisions.forEach(d => reviewers.add(d.reviewer_id));
+                    ref.allDecisions.forEach(d => {
+                        const reviewerKey = getReviewerKey(d);
+                        if (reviewerKey) reviewers.add(reviewerKey);
+                    });
                 }
             });
+            if (userEmail) {
+                reviewers.add(userEmail);
+            }
         } else {
             reviewers.add(userEmail);
         }

@@ -9,6 +9,7 @@ import { escapeHtml, escapeRegex } from '../../utils/text';
 import { getFilteredReferences, updateFilterCounts } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
 import { showStatus } from '../../ui/feedback';
+import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -133,6 +134,7 @@ export function renderSpecificReference(ref: ReferenceWithStatus) {
  */
 function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number) {
     // コンフリクト表示
+    console.log('[renderReferenceDetails] isKeyOpened:', state.isKeyOpened, 'allDecisions:', ref.allDecisions?.length);
     if (state.isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
         renderAllDecisions(ref);
         dom.allDecisionsDiv.classList.remove('hidden');
@@ -274,51 +276,77 @@ function updateDecisionButtons(ref: ReferenceWithStatus) {
 function renderAllDecisions(ref: ReferenceWithStatus) {
     if (!ref.allDecisions) return;
 
-    dom.allDecisionsDiv.innerHTML = '';
-    ref.allDecisions.forEach((d) => {
-        // レビュアーフィルタリング
-        if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) {
-            return;
+    console.log('[renderAllDecisions] ref.allDecisions:', ref.allDecisions.length, 'items');
+    console.log('[renderAllDecisions] state.enabledReviewers:', Array.from(state.enabledReviewers));
+
+    const decisionsMap = new Map<string, ReferenceWithStatus['myDecision']>();
+    ref.allDecisions.forEach((decision) => {
+        const reviewerKey = getReviewerKey(decision);
+        if (!reviewerKey) return;
+        const existing = decisionsMap.get(reviewerKey);
+        if (!existing || (decision.decided_at || '') > (existing.decided_at || '')) {
+            decisionsMap.set(reviewerKey, decision);
         }
+    });
+
+    if (ref.myDecision) {
+        const reviewerKey = getReviewerKey(ref.myDecision);
+        if (reviewerKey && !decisionsMap.has(reviewerKey)) {
+            decisionsMap.set(reviewerKey, ref.myDecision);
+        }
+    }
+
+    const reviewersSource = state.enabledReviewers.size > 0
+        ? state.enabledReviewers
+        : state.availableReviewers;
+    const reviewerIds = reviewersSource.size > 0
+        ? Array.from(reviewersSource)
+        : Array.from(decisionsMap.keys());
+
+    dom.allDecisionsDiv.innerHTML = '';
+    reviewerIds.forEach((reviewerKey) => {
+        if (!reviewerKey) return;
+        const decision = decisionsMap.get(reviewerKey);
+        const decisionValue = decision?.decision || 'pending';
 
         const div = document.createElement('div');
-        div.className = `decision-item ${d.decision}`;
+        div.className = `decision-item ${decisionValue}`;
 
         let icon = '';
-        if (d.decision === 'include') icon = '⭕';
-        else if (d.decision === 'exclude') icon = '❌';
-        else if (d.decision === 'maybe') icon = '❓';
+        if (decisionValue === 'include') icon = '?';
+        else if (decisionValue === 'exclude') icon = '?';
+        else if (decisionValue === 'maybe') icon = '?';
 
         // ML Enhanced バッジ
         let mlBadge = '';
-        if (d.client_version?.includes('-ml-auto')) {
-            mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
-        } else if (d.client_version?.includes('-ml')) {
-            mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
+        if (decision?.client_version?.includes('-ml-auto')) {
+            mlBadge = '<span class="ml-enhanced-badge auto">?? ML(自動)</span>';
+        } else if (decision?.client_version?.includes('-ml')) {
+            mlBadge = '<span class="ml-enhanced-badge">?? ML</span>';
         }
 
         div.innerHTML = `
-            <span class="reviewer">${d.reviewer_id}</span>
-            <span class="decision">${icon} ${d.decision}</span>
+            <span class="reviewer">${getReviewerLabel(reviewerKey, state.userEmail)}</span>
+            <span class="decision">${icon} ${decisionValue}</span>
             ${mlBadge}
         `;
 
-        if (d.note) {
+        if (decision?.note) {
             const noteDiv = document.createElement('div');
             noteDiv.className = 'note';
 
             // JSONパース（AI判定用）
             let isJson = false;
             // 短い文字列はJSONではないとみなす（最適化）
-            if (d.note.trim().startsWith('{') && d.note.length > 20) {
+            if (decision.note.trim().startsWith('{') && decision.note.length > 20) {
                 try {
-                    const parsed = JSON.parse(d.note);
+                    const parsed = JSON.parse(decision.note);
                     if (parsed.reasons && Array.isArray(parsed.reasons)) {
                         isJson = true;
 
                         // Reasonsヘッダー
                         const label = document.createElement('div');
-                        label.innerHTML = '📝 <b>AI Reasons:</b>';
+                        label.innerHTML = '?? <b>AI Reasons:</b>';
                         noteDiv.appendChild(label);
 
                         // リスト作成
@@ -334,8 +362,6 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
                             ul.appendChild(li);
                         });
                         noteDiv.appendChild(ul);
-
-
                     }
                 } catch (e) {
                     // JSONパース失敗時は通常テキストとして表示
@@ -343,7 +369,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
             }
 
             if (!isJson) {
-                noteDiv.textContent = `📝 ${d.note}`;
+                noteDiv.textContent = `?? ${decision.note}`;
             }
             div.appendChild(noteDiv);
         }
@@ -351,6 +377,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         dom.allDecisionsDiv.appendChild(div);
     });
 }
+
 
 /**
  * キー状態ボタンの表示更新

@@ -584,11 +584,30 @@ export async function getReferencesWithStatus(
 
     console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
 
+    const normalizedReviewerEmail = (reviewerEmail || '').trim();
+    references.forEach((ref) => {
+        const refId = (ref.ref_id || '').trim();
+        if (refId && refId !== ref.ref_id) {
+            ref.ref_id = refId;
+        }
+    });
+
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
     decisionsData.forEach(({ decision }) => {
         // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
-        if (decision.reviewer_id === reviewerEmail) {
+        const reviewerId = (decision.reviewer_id || '').trim();
+        const refId = (decision.ref_id || '').trim();
+        if (!refId) return;
+        if (reviewerId && reviewerId !== decision.reviewer_id) {
+            decision.reviewer_id = reviewerId;
+        } else if (!reviewerId && normalizedReviewerEmail) {
+            decision.reviewer_id = normalizedReviewerEmail;
+        }
+        if (refId !== decision.ref_id) {
+            decision.ref_id = refId;
+        }
+        if (decision.reviewer_id === normalizedReviewerEmail) {
             myDecisions.set(decision.ref_id, decision);
         }
     });
@@ -596,6 +615,10 @@ export async function getReferencesWithStatus(
     console.log('[getReferencesWithStatus] My decisions count:', myDecisions.size);
 
     return references.map(ref => {
+        const refId = (ref.ref_id || '').trim();
+        if (refId && refId !== ref.ref_id) {
+            ref.ref_id = refId;
+        }
         const myDecision = myDecisions.get(ref.ref_id);
         // decision='pending' の場合も未判定として扱う
         const status: DecisionStatus = (myDecision && myDecision.decision !== 'pending') ? myDecision.decision : 'pending';
@@ -624,6 +647,22 @@ export async function getReferencesWithAllDecisions(
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
 
+    const normalizedReviewerEmail = (reviewerEmail || '').trim();
+    references.forEach((ref) => {
+        const refId = (ref.ref_id || '').trim();
+        if (refId && refId !== ref.ref_id) {
+            ref.ref_id = refId;
+        }
+    });
+
+    // デバッグ: ref_idのサンプルを表示
+    if (decisionsData.length > 0) {
+        console.log('[getReferencesWithAllDecisions] Sample decision ref_ids:', decisionsData.slice(0, 3).map(d => d.decision.ref_id));
+    }
+    if (references.length > 0) {
+        console.log('[getReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
+    }
+
     // 有効なLLM実行IDのセットを作成
     const validLlmExecutionIds = new Set(
         llmExecutions
@@ -631,11 +670,34 @@ export async function getReferencesWithAllDecisions(
             .map(e => e.execution_id)
     );
 
+    console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
+        id: e.execution_id,
+        status: e.status,
+        is_active: e.is_active
+    })));
+    console.log('[getReferencesWithAllDecisions] validLlmExecutionIds:', Array.from(validLlmExecutionIds));
+
     // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
+    let skippedLlm = 0;
+    let addedDecisions = 0;
+    let addedHuman = 0;
+    let addedLlm = 0;
     decisionsData.forEach(({ decision }) => {
+        const refId = (decision.ref_id || '').trim();
+        if (!refId) return;
+        const reviewerIdRaw = (decision.reviewer_id || '').trim();
+        const reviewerId = reviewerIdRaw || normalizedReviewerEmail;
+        if (reviewerId && reviewerId !== decision.reviewer_id) {
+            decision.reviewer_id = reviewerId;
+        }
+        if (refId !== decision.ref_id) {
+            decision.ref_id = refId;
+        }
+
         // LLMの判定かつ、有効な実行IDに含まれていない場合はスキップ
         if (decision.reviewer_id.startsWith('llm:') && !validLlmExecutionIds.has(decision.reviewer_id)) {
+            skippedLlm++;
             return;
         }
 
@@ -643,11 +705,38 @@ export async function getReferencesWithAllDecisions(
             allDecisionsMap.set(decision.ref_id, []);
         }
         allDecisionsMap.get(decision.ref_id)!.push(decision);
+        addedDecisions++;
+
+        // デバッグ: reviewer_idの種類ごとにカウント
+        if (decision.reviewer_id.startsWith('llm:')) {
+            addedLlm++;
+        } else {
+            addedHuman++;
+        }
     });
 
+    console.log('[getReferencesWithAllDecisions] allDecisionsMap size:', allDecisionsMap.size, 'addedDecisions:', addedDecisions, 'skippedLlm:', skippedLlm);
+    console.log('[getReferencesWithAllDecisions] addedHuman:', addedHuman, 'addedLlm:', addedLlm);
+
+    // デバッグ: ref_idのマッチング状況
+    const refIdsInDecisions = new Set(Array.from(allDecisionsMap.keys()));
+    const refIdsInReferences = new Set(references.map(r => r.ref_id));
+    const matchedRefIds = [...refIdsInDecisions].filter(id => refIdsInReferences.has(id));
+    const unmatchedDecisionRefIds = [...refIdsInDecisions].filter(id => !refIdsInReferences.has(id));
+    console.log('[getReferencesWithAllDecisions] ref_id matching: matched=', matchedRefIds.length, 'unmatched decisions=', unmatchedDecisionRefIds.length);
+    if (unmatchedDecisionRefIds.length > 0) {
+        console.log('[getReferencesWithAllDecisions] Sample unmatched decision ref_ids:', unmatchedDecisionRefIds.slice(0, 3));
+    }
+
     return references.map(ref => {
+        const refId = (ref.ref_id || '').trim();
+        if (refId && refId !== ref.ref_id) {
+            ref.ref_id = refId;
+        }
         const allDecisions = allDecisionsMap.get(ref.ref_id) || [];
-        const myDecision = allDecisions.find(d => d.reviewer_id === reviewerEmail);
+        const myDecision = normalizedReviewerEmail
+            ? allDecisions.find(d => d.reviewer_id === normalizedReviewerEmail)
+            : undefined;
 
         // 不一致検出
         const hasConflict = detectConflict(allDecisions);
@@ -1222,7 +1311,7 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
 export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
     try {
         await ensureLlmExecutionsSheet(spreadsheetId);
-        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:L`);
+        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:O`);
 
         if (values.length <= 1) {
             return [];
@@ -1277,8 +1366,13 @@ export async function updateLlmExecution(
     executionId: string,
     updates: Partial<LlmExecution>
 ): Promise<void> {
+    console.log('[updateLlmExecution] Starting with executionId:', executionId);
+    console.log('[updateLlmExecution] Updates:', updates);
+
     await ensureLlmExecutionsSheet(spreadsheetId);
-    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:L`);
+    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:O`);
+
+    console.log('[updateLlmExecution] Sheet rows count:', values.length);
 
     if (values.length <= 1) {
         throw new Error('Execution not found');
@@ -1286,12 +1380,16 @@ export async function updateLlmExecution(
 
     // execution_idで行を検索
     let rowIndex = -1;
+    console.log('[updateLlmExecution] Searching for executionId in column A...');
     for (let i = 1; i < values.length; i++) {
+        console.log(`[updateLlmExecution] Row ${i + 1} execution_id:`, values[i][0]);
         if (values[i][0] === executionId) {
             rowIndex = i + 1; // 1-indexed
             break;
         }
     }
+
+    console.log('[updateLlmExecution] Found rowIndex:', rowIndex);
 
     if (rowIndex === -1) {
         throw new Error(`Execution not found: ${executionId}`);
@@ -1299,6 +1397,9 @@ export async function updateLlmExecution(
 
     const currentRow = values[rowIndex - 1];
     const headers = values[0];
+
+    console.log('[updateLlmExecution] Headers:', headers);
+    console.log('[updateLlmExecution] Current row:', currentRow);
 
     // 更新行を構築
     const newRow = headers.map((header, i) => {
@@ -1317,7 +1418,10 @@ export async function updateLlmExecution(
         return currentRow[i] || '';
     });
 
-    await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:L${rowIndex}`, [newRow]);
+    console.log('[updateLlmExecution] New row:', newRow);
+
+    await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:O${rowIndex}`, [newRow]);
+    console.log('[updateLlmExecution] Update completed');
 }
 
 /**
