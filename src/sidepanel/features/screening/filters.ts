@@ -287,6 +287,10 @@ export function handleTermClick(e: MouseEvent) {
     } else if (target.classList.contains('highlight-search')) {
         const term = target.textContent;
         if (term) addTermFilter(term, 'include');
+    } else if (target.classList.contains('highlight-evidence')) {
+        // AI Evidenceハイライトをクリックした場合もフィルターに追加
+        const term = target.textContent;
+        if (term) addTermFilter(term, 'include');
     }
 }
 

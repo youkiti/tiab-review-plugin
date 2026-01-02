@@ -171,5 +171,10 @@
 .highlight-evidence {
     background-color: #fff3cd;
     border-bottom: 2px solid #fbbc04;
-    cursor: help;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.highlight-evidence:hover {
+    opacity: 0.7;
 }
