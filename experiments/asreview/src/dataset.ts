@@ -32,8 +32,12 @@ export function loadDataset(datasetPath: string): { records: ReferenceRecord[]; 
 export function resolveDatasetPath(name: string): string {
   const datasetMap: Record<string, string> = {
     cq1: "scripts/asreview-baseline/datasets/cq1_labeled.json",
+    cq2: "scripts/asreview-baseline/datasets/cq2_labeled.json",
     cq3: "scripts/asreview-baseline/datasets/cq3_labeled.json",
+    cq4: "scripts/asreview-baseline/datasets/cq4_labeled.json",
+    cq5: "scripts/asreview-baseline/datasets/cq5_labeled.json",
     depression: "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
+    wilson: "scripts/asreview-baseline/datasets/wilson_tiab_labeled.json",
   };
 
   const datasetPath = datasetMap[name];
