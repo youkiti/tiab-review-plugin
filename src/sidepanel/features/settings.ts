@@ -67,12 +67,14 @@ export async function saveUserSettings() {
     console.log('[saveUserSettings] 保存:', {
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
-        termFilterUseAnd: state.termFilterUseAnd
+        termFilterUseAnd: state.termFilterUseAnd,
+        treatMlAsManual: state.treatMlAsManual
     });
     await chrome.storage.local.set({
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
-        termFilterUseAnd: state.termFilterUseAnd
+        termFilterUseAnd: state.termFilterUseAnd,
+        treatMlAsManual: state.treatMlAsManual
     });
 }
 
@@ -80,7 +82,7 @@ export async function saveUserSettings() {
  * ユーザー設定を読み込み
  */
 export async function loadUserSettings() {
-    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd']);
+    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd', 'treatMlAsManual']);
     console.log('[loadUserSettings] 読み込み:', result);
 
     // デフォルトはtrue（自動遷移する）
@@ -104,14 +106,23 @@ export async function loadUserSettings() {
         state.setTermFilterUseAnd(true);
     }
 
+    // デフォルトはtrue（ML判定を手動判定と同一視）
+    if (result.treatMlAsManual !== undefined) {
+        state.setTreatMlAsManual(result.treatMlAsManual);
+    } else {
+        state.setTreatMlAsManual(true);
+    }
+
     // チェックボックスの状態を更新
     dom.autoNavigateCheckbox.checked = state.autoNavigateAfterDecision;
     dom.showRecordCountCheckbox.checked = state.showRecordCountBelow;
     dom.termFilterAndCheckbox.checked = state.termFilterUseAnd;
+    dom.treatMlAsManualCheckbox.checked = state.treatMlAsManual;
     console.log('[loadUserSettings] 設定完了:', {
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
-        termFilterUseAnd: state.termFilterUseAnd
+        termFilterUseAnd: state.termFilterUseAnd,
+        treatMlAsManual: state.treatMlAsManual
     });
 }
 
@@ -150,4 +161,23 @@ export async function handleTermFilterAndChange() {
     showToast(state.termFilterUseAnd
         ? '複数キーワード選択時: AND検索'
         : '複数キーワード選択時: OR検索');
+}
+
+/**
+ * ML判定と手動判定の同一視設定の変更を処理
+ */
+export async function handleTreatMlAsManualChange() {
+    state.setTreatMlAsManual(dom.treatMlAsManualCheckbox.checked);
+    console.log('[handleTreatMlAsManualChange] 設定変更:', state.treatMlAsManual);
+    await saveUserSettings();
+
+    // 表示を即時更新
+    if (state.spreadsheetId && _renderCurrentReference) {
+        state.setCurrentIndex(0);
+        _renderCurrentReference();
+    }
+
+    showToast(state.treatMlAsManual
+        ? 'ML判定と手動判定を同一視します'
+        : 'ML判定と手動判定を区別します');
 }

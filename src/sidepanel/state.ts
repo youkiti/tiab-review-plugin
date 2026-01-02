@@ -47,6 +47,7 @@ let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュア�
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 let _showAiHighlights = false; // AIのEvidenceをハイライトするかどうか
 let _aiDecisionFilter = { include: true, exclude: true }; // AI判定の表示フィルター
+let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 
 import { createInitialMlState, MlState } from '../lib/ml/types';
 let _mlState: MlState = createInitialMlState();
@@ -174,6 +175,9 @@ export const state = {
 
     get aiDecisionFilter() { return _aiDecisionFilter; },
     setAiDecisionFilter(filter: { include: boolean; exclude: boolean }) { _aiDecisionFilter = filter; },
+
+    get treatMlAsManual() { return _treatMlAsManual; },
+    setTreatMlAsManual(value: boolean) { _treatMlAsManual = value; },
 
     // ----- ML State -----
     get mlState() { return _mlState; },

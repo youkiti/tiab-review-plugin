@@ -2,7 +2,10 @@ import { state } from '../../state';
 import { mlClient } from '../../../lib/ml/worker-client';
 import {
     saveDecision as apiSaveDecision,
-    getReferencesWithStatus
+    getReferencesWithStatus,
+    getDecisions,
+    appendDecisions,
+    updateDecisionsBatch
 } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
 import { MlRecord, Label, createStoppingRule } from '../../../lib/ml/types';
@@ -352,37 +355,102 @@ export async function bulkExcludeRemaining(
     );
 
     const totalCount = unlabeledRefs.length;
+    if (totalCount === 0) return { successCount: 0, totalCount: 0 };
+
+    let processedCount = 0;
     let successCount = 0;
-    const batchSize = 10; // 並列処理数
 
-    for (let i = 0; i < unlabeledRefs.length; i += batchSize) {
-        const batch = unlabeledRefs.slice(i, i + batchSize);
-
-        await Promise.all(batch.map(async (ref) => {
-            const decision: Decision = {
-                decision_id: crypto.randomUUID(),
-                ref_id: ref.ref_id,
-                reviewer_id: state.userEmail,
-                decision: 'exclude',
-                note: 'ML stopping rule - auto excluded',
-                decided_at: new Date().toISOString(),
-                client_version: '0.7.0-ml-auto',  // Auto-exclude marker
-            };
-
-            try {
-                await apiSaveDecision(state.spreadsheetId, decision);
-                ref.myDecision = decision;
-                ref.status = 'exclude';
-                successCount++;
-            } catch (err) {
-                console.error('Failed to auto-exclude:', ref.ref_id, err);
+    // 1. 現在の決定状況を一括取得（UpdateかAppendか判断するため）
+    // 個別にapiSaveDecisionを呼ぶと、都度読み込みが発生して遅い＆API制限にかかるため
+    let myDecisionsMap = new Map<string, { rowIndex: number; decisionId: string }>();
+    try {
+        const allDecisions = await getDecisions(state.spreadsheetId);
+        allDecisions.forEach(({ decision, rowIndex }) => {
+            if (decision.reviewer_id === state.userEmail) {
+                myDecisionsMap.set(decision.ref_id, {
+                    rowIndex,
+                    decisionId: decision.decision_id
+                });
             }
-        }));
+        });
+    } catch (err) {
+        console.error('Failed to pre-fetch decisions:', err);
+        // 失敗した場合でも続行不能とするか、個別処理にフォールバックするか？
+        // ここではエラーとして終了
+        throw new Error('事前データの取得に失敗しました');
+    }
 
-        // 進捗コールバック
-        if (onProgress) {
-            onProgress(Math.min(i + batchSize, totalCount), totalCount);
+    // 2. 更新用・追加用リストを作成
+    const toAppend: { ref: any; decision: Decision }[] = [];
+    const toUpdate: { ref: any; rowIndex: number; decision: Decision }[] = [];
+
+    const now = new Date().toISOString();
+
+    for (const ref of unlabeledRefs) {
+        const existing = myDecisionsMap.get(ref.ref_id);
+        const decisionId = existing ? existing.decisionId : crypto.randomUUID();
+
+        const decision: Decision = {
+            decision_id: decisionId,
+            ref_id: ref.ref_id,
+            reviewer_id: state.userEmail,
+            decision: 'exclude',
+            note: 'ML stopping rule - auto excluded',
+            decided_at: now,
+            client_version: '0.7.0-ml-auto',
+        };
+
+        if (existing) {
+            toUpdate.push({ ref, rowIndex: existing.rowIndex, decision });
+        } else {
+            toAppend.push({ ref, decision });
         }
+    }
+
+    // 3. バッチ実行（チャンク分割して進捗報告できるようにする）
+    const BATCH_SIZE = 100; // API制限を回避しつつ高速化
+
+    // Append実行
+    for (let i = 0; i < toAppend.length; i += BATCH_SIZE) {
+        const chunk = toAppend.slice(i, i + BATCH_SIZE);
+        try {
+            await appendDecisions(state.spreadsheetId, chunk.map(c => c.decision));
+
+            // ローカル状態更新
+            chunk.forEach(item => {
+                item.ref.myDecision = item.decision;
+                item.ref.status = 'exclude';
+            });
+            successCount += chunk.length;
+        } catch (err) {
+            console.error('Batch append failed:', err);
+        }
+
+        processedCount += chunk.length;
+        if (onProgress) onProgress(processedCount, totalCount);
+    }
+
+    // Update実行
+    for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+        const chunk = toUpdate.slice(i, i + BATCH_SIZE);
+        try {
+            await updateDecisionsBatch(
+                state.spreadsheetId,
+                chunk.map(c => ({ rowIndex: c.rowIndex, decision: c.decision }))
+            );
+
+            // ローカル状態更新
+            chunk.forEach(item => {
+                item.ref.myDecision = item.decision;
+                item.ref.status = 'exclude';
+            });
+            successCount += chunk.length;
+        } catch (err) {
+            console.error('Batch update failed:', err);
+        }
+
+        processedCount += chunk.length;
+        if (onProgress) onProgress(processedCount, totalCount);
     }
 
     return { successCount, totalCount };

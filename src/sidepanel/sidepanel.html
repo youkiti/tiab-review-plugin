@@ -139,7 +139,7 @@
                     <option value="exclude">Exclude</option>
                     <option value="maybe">Maybe</option>
                     <option value="conflict">不一致</option>
-                    <option value="fulltext_candidates">フルテキスト候補(Include/Maybe/不一致)</option>
+                    <option value="fulltext_candidates">フルテキスト候補(2つ以上の組み入れ判断)</option>
                 </select>
                 <div class="search-container">
                     <div id="active-term-filters" class="active-term-filters"></div>
@@ -287,6 +287,17 @@
                     <p class="setting-description">
                         オン: すべてのキーワードを含む文献のみ表示（AND検索）<br>
                         オフ: いずれかのキーワードを含む文献を表示（OR検索）
+                    </p>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="treat-ml-as-manual-checkbox" checked>
+                        <span>ML判定を手動判定と同一視する</span>
+                    </label>
+                    <p class="setting-description">
+                        ONにすると、ML画面での判定(🔬)と手動画面での判定(👤)を
+                        同じレビュアーの判定として扱います。フィルターやレビュアー表示で区別されません。
                     </p>
                 </div>
             </div>

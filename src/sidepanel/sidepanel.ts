@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.autoNavigateCheckbox?.addEventListener('change', settings.handleAutoNavigateChange);
     dom.showRecordCountCheckbox?.addEventListener('change', settings.handleShowRecordCountChange);
     dom.termFilterAndCheckbox?.addEventListener('change', settings.handleTermFilterAndChange);
+    dom.treatMlAsManualCheckbox?.addEventListener('change', settings.handleTreatMlAsManualChange);
 
     // Import/Export
     dom.risFileInput?.addEventListener('change', importExport.handleRISImport);

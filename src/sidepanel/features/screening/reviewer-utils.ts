@@ -1,4 +1,5 @@
 import type { Decision } from '../../../lib/types';
+import { state } from '../../state';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -6,6 +7,14 @@ export function getReviewerKey(decision: Decision): string {
     const reviewerId = (decision.reviewer_id || '').trim();
     if (!reviewerId) return '';
     if (reviewerId.startsWith('llm:')) return reviewerId;
+
+    // ML判定を手動と同一視する場合の例外
+    // 0.7.0-ml (ユーザー確認済みML) の場合のみ同一視
+    // ※ -ml-auto などの自動判定は常にML扱いとする
+    if (state.treatMlAsManual && decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+        return reviewerId;
+    }
+
     if (decision.client_version?.includes('-ml')) return `${reviewerId}${ML_REVIEWER_SUFFIX}`;
     return reviewerId;
 }

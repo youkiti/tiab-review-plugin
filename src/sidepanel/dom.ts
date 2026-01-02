@@ -120,6 +120,7 @@ const domElements = {
     get autoNavigateCheckbox() { return getElement<HTMLInputElement>('auto-navigate-checkbox'); },
     get showRecordCountCheckbox() { return getElement<HTMLInputElement>('show-record-count-checkbox'); },
     get termFilterAndCheckbox() { return getElement<HTMLInputElement>('term-filter-and-checkbox'); },
+    get treatMlAsManualCheckbox() { return getElement<HTMLInputElement>('treat-ml-as-manual-checkbox'); },
 
     // ========== LLM Section ==========
     get llmSection() { return getElement<HTMLElement>('llm-section'); },

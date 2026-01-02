@@ -5,7 +5,7 @@
 
 import { state } from '../../state';
 import { dom } from '../../dom';
-import type { ReferenceWithStatus, DecisionStatus } from '../../../lib/types';
+import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
 import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
@@ -21,6 +21,135 @@ export function setFilterDependencies(deps: {
 }
 
 /**
+ * フルテキスト候補の判定
+ * 手動（複数人含む）、ML、LLMの3カテゴリのうち、2つ以上が「Include」であるかを判定
+ */
+function isFulltextCandidate(r: ReferenceWithStatus): boolean {
+    let includeCategories = 0;  // Includeと判定したカテゴリ数
+
+    const userEmail = state.userEmail;
+
+    // ヘルパー: 特定の条件でInclude判定があるか
+    const hasInclude = (check: (d: Decision) => boolean) => {
+        return (r.allDecisions?.some(d => check(d) && d.decision === 'include')) ||
+            (r.myDecision && check(r.myDecision) && r.myDecision.decision === 'include');
+    };
+
+    // 1. 手動判定（複数人対応）
+    // treatMlAsManualがONの場合、0.7.0-mlも手動判定（ただし自分のものに限る）として扱う
+    // ※ 他人の判定の場合は、その人がMLを使っていても手動扱いとするかどうかは議論の余地があるが、
+    //    ここではシンプルに「バージョン」で判断する。
+    //    ただしisFulltextCandidateは「カテゴリ」のカウントなので、
+    //    「手動」カテゴリにMLを含めるかどうかが重要。
+
+    // 手動カテゴリ判定条件:
+    // - client_version === '0.1.0' (純粋手動)
+    // - OR (treatMlAsManual && client_version startsWith '0.7.0-ml' && reviewer_id === me) (自分のML判定)
+    const isManual = (d: Decision) => {
+        if (d.client_version === '0.1.0') return true;
+        if (state.treatMlAsManual && d.reviewer_id === userEmail && d.client_version?.startsWith('0.7.0-ml')) {
+            return true;
+        }
+        return false;
+    };
+
+    if (hasInclude(isManual)) includeCategories++;
+
+    // 2. ML判定
+    // treatMlAsManualがONの場合、ここでのカウントはどうするか？
+    // 「手動」でカウント済みなら「ML」ではカウントしないべきか？（二重計上防止）
+    // -> はい。ただし、「自分の手動(ML含む)」とは別に「純粋なシステムML推論」があるならそれをカウントすべき。
+    //    現状のシステム構成では '0.7.0-ml' はユーザーの確認済みアクション。
+    //    -ml を含む他の判定（自動判定など）があればここでカウント。
+    //    '0.7.0-ml' (確認済み) は isManual で拾われるので、ここでは
+    //    '0.7.0-ml' 以外で -ml を含むもの（例: -ml-auto）を対象にするのが適切かもしれないが、
+    //    現状の定義では -ml を含む判定はすべてMLカテゴリだった。
+
+    // 修正方針:
+    // treatMlAsManual = true の場合:
+    //   - 手動カテゴリ: 0.1.0 OR 0.7.0-ml
+    //   - MLカテゴリ: -mlを含むもの (ただし0.7.0-mlですでに手動カウントされた判定と重複してカテゴリ2を満たすのは避けたい)
+    //   
+    //   例: 0.7.0-ml で include した場合
+    //   -> 手動カテゴリ: OK
+    //   -> MLカテゴリ: OK (既存ロジックだと)
+    //   -> 合計2カテゴリ -> フルテキスト候補になってしまう。これは意図通りか？
+    //      「MDとML両方でInclude」=有力候補。
+    //      しかし、同一判定が両方に寄与するのはおかしい。
+    //      
+    //      したがって、MLカテゴリの判定では「手動カテゴリでカウントされた判定」を除外する必要がある。
+
+    const isMl = (d: Decision) => {
+        // ML系である
+        if (!d.client_version?.includes('-ml')) return false;
+
+        // 手動とみなされたものは除外
+        if (isManual(d)) return false;
+
+        return true;
+    };
+
+    if (hasInclude(isMl)) includeCategories++;
+
+    // 3. LLM判定 - reviewer_idがllm:で始まる判定
+    const llmInclude = r.allDecisions?.some(d =>
+        d.reviewer_id.startsWith('llm:') &&
+        d.decision === 'include'
+    );
+
+    if (llmInclude) includeCategories++;
+
+    return includeCategories >= 2;
+}
+
+/**
+ * 自分の手動判定ステータスを取得
+ * client_version === '0.1.0' の判定のみを手動判定として扱う
+ */
+/**
+ * 自分の手動判定ステータスを取得
+ * client_version === '0.1.0' の判定のみを手動判定として扱う
+ * ただし treatMlAsManual が true の場合は ML判定(0.7.0-ml)も手動判定として扱う
+ */
+export function getMyManualDecisionStatus(r: ReferenceWithStatus): DecisionStatus {
+    const userEmail = state.userEmail;
+
+    // 判定が自分の手動（またはML許可時のML）かどうか
+    const isMyManual = (d: Decision) => {
+        if (d.reviewer_id !== userEmail) return false;
+
+        if (d.client_version === '0.1.0') return true;
+
+        if (state.treatMlAsManual && d.client_version?.startsWith('0.7.0-ml')) {
+            return true;
+        }
+
+        return false;
+    };
+
+    // allDecisionsから自分の手動判定を探す
+    // 複数の判定がある場合（0.1.0と0.7.0-mlが混在など）、最新を優先すべきだが
+    // 配列順序は保証されていない。decided_atでソートするか、
+    // あるいは単純に見つかったものを返すか。
+    // 通常、一人のユーザーが複数判定を持つことはシステム上稀（上書きされるため）。
+    // コンフリクト時のみ複数持つ可能性がある。
+
+    // ここでは find で最初に見つかったものを返す（既存ロジック準拠）
+    const myManualDecision = r.allDecisions?.find(isMyManual);
+
+    if (myManualDecision) {
+        return myManualDecision.decision as DecisionStatus;
+    }
+
+    // myDecisionも確認
+    if (r.myDecision && isMyManual(r.myDecision)) {
+        return r.myDecision.decision as DecisionStatus;
+    }
+
+    return 'pending';
+}
+
+/**
  * フィルタリング済み文献リストを取得
  */
 export function getFilteredReferences(): ReferenceWithStatus[] {
@@ -28,9 +157,13 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
 
     // ステータスフィルター
     if (state.currentFilter === 'fulltext_candidates') {
-        filtered = filtered.filter((r) => ['include', 'maybe', 'conflict'].includes(r.status));
+        filtered = filtered.filter(isFulltextCandidate);
+    } else if (state.currentFilter === 'conflict') {
+        // 不一致は合成ステータスをそのまま使用
+        filtered = filtered.filter((r) => r.status === 'conflict');
     } else if (state.currentFilter !== 'all') {
-        filtered = filtered.filter((r) => r.status === state.currentFilter);
+        // pending, include, exclude, maybe は自分の手動判定(0.1.0)でフィルタリング
+        filtered = filtered.filter((r) => getMyManualDecisionStatus(r) === state.currentFilter);
     }
 
     // ソースファイルフィルター
@@ -123,12 +256,12 @@ export function updateFilterCounts() {
     }
 
     const counts = {
-        pending: filtered.filter(r => r.status === 'pending').length,
+        pending: filtered.filter(r => getMyManualDecisionStatus(r) === 'pending').length,
         all: filtered.length,
-        include: filtered.filter(r => r.status === 'include').length,
-        exclude: filtered.filter(r => r.status === 'exclude').length,
-        maybe: filtered.filter(r => r.status === 'maybe').length,
-        conflict: filtered.filter(r => r.status === 'conflict').length,
+        include: filtered.filter(r => getMyManualDecisionStatus(r) === 'include').length,
+        exclude: filtered.filter(r => getMyManualDecisionStatus(r) === 'exclude').length,
+        maybe: filtered.filter(r => getMyManualDecisionStatus(r) === 'maybe').length,
+        conflict: filtered.filter(r => r.status === 'conflict').length,  // 不一致は合成ステータス
     };
 
     const options = dom.statusFilter.options;
@@ -139,7 +272,8 @@ export function updateFilterCounts() {
     options[4].textContent = `Maybe (${counts.maybe})`;
     options[5].textContent = `不一致 (${counts.conflict})`;
 
-    const fulltextCount = filtered.filter(r => ['include', 'maybe', 'conflict'].includes(r.status)).length;
+    // フルテキスト候補（独立アルゴリズム）
+    const fulltextCount = filtered.filter(isFulltextCandidate).length;
     if (options[6]) {
         options[6].textContent = `フルテキスト候補 (${fulltextCount})`;
     }

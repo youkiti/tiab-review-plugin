@@ -6,7 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { escapeHtml, escapeRegex } from '../../utils/text';
-import { getFilteredReferences, updateFilterCounts } from './filters';
+import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
 import { showStatus } from '../../ui/feedback';
 import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
@@ -215,7 +215,12 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
  * 進捗状況の表示
  */
 function renderProgress() {
-    const labeledCount = state.references.filter((r) => r.status !== 'pending' && r.status !== 'conflict').length;
+    // フィルターと同じロジックで「判定済み」をカウントする
+    // (r.statusはMLを含む合成ステータスの場合があるため、getMyManualDecisionStatusを使う)
+    const labeledCount = state.references.filter((r) => {
+        const status = getMyManualDecisionStatus(r);
+        return status !== 'pending' && status !== 'conflict';
+    }).length;
     const totalCount = state.references.length;
     const remainingCount = totalCount - labeledCount;
     const progressPercent = totalCount > 0 ? Math.round((labeledCount / totalCount) * 100) : 0;
@@ -311,18 +316,17 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
 
         const div = document.createElement('div');
         div.className = `decision-item ${decisionValue}`;
-
         let icon = '';
-        if (decisionValue === 'include') icon = '?';
-        else if (decisionValue === 'exclude') icon = '?';
+        if (decisionValue === 'include') icon = '✓';
+        else if (decisionValue === 'exclude') icon = '✕';
         else if (decisionValue === 'maybe') icon = '?';
 
         // ML Enhanced バッジ
         let mlBadge = '';
         if (decision?.client_version?.includes('-ml-auto')) {
-            mlBadge = '<span class="ml-enhanced-badge auto">?? ML(自動)</span>';
+            mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
         } else if (decision?.client_version?.includes('-ml')) {
-            mlBadge = '<span class="ml-enhanced-badge">?? ML</span>';
+            mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
         }
 
         div.innerHTML = `
