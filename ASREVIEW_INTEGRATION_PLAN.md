@@ -251,13 +251,15 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 2. ⬜ 検証対象の ASReview バージョンを pin（commit hash）して、以後の比較基準を固定する。
 3. ⚠️ `generic.csv` / `generic_labels.csv` は不十分。代替データセットを用意する。
 
-### Phase 2: TS で "elas_u3 相当" の ML コア実装
+### Phase 2: TS で "elas_u3 相当" の ML コア実装 ✅ 完了
 
 1. `token_pattern` / `stop_words="english"` / `ngram_range` 等、scikit-learn 互換の tokenization を TS で実装。
 2. TF-IDF（`TfidfVectorizer` 相当）を TS で実装（min_df/max_df/sublinear_tf/norm/smooth_idf を含む）。
 3. MultinomialNB を TS で実装（`alpha`、`predict_proba`、`sample_weight` 対応）。
 4. Balanced sample weight（ASReview の式）を TS で実装。
 5. Querier=`max` を実装し、`fit → proba → ranking` が動く状態にする。
+
+完了レポート: `experiments/asreview/REPORT.md`
 
 ### Phase 3: 拡張機能 UI に統合
 

@@ -4,6 +4,7 @@ export interface ReferenceRecord {
   id: string | number;
   title?: string;
   abstract?: string;
+  label?: number;
   label_included?: number;
 }
 

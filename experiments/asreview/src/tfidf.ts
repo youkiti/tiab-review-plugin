@@ -18,7 +18,10 @@ function buildDocTokens(texts: string[], params: TfidfParams): DocTokens[] {
 }
 
 function resolveDfThreshold(value: number, nDocs: number, isMax: boolean): number {
-  if (value <= 1 && value > 0) {
+  if (value === 1 && isMax) {
+    return Math.floor(value * nDocs);
+  }
+  if (value > 0 && value < 1) {
     return isMax ? Math.floor(value * nDocs) : Math.ceil(value * nDocs);
   }
   return Math.floor(value);

@@ -19,6 +19,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 development_log/
+experiments/asreview/outputs/
 
 # Environment
 .env

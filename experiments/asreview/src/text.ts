@@ -26,7 +26,7 @@ export function createDefaultTfidfParams(): TfidfParams {
   return {
     columns: ["title", "abstract"],
     lowercase: true,
-    tokenPattern: /\b\w\w+\b/gu,
+    tokenPattern: /[\p{L}\p{N}_]{2,}/gu,
     ngramRange: [1, 1],
     maxDf: 1.0,
     minDf: 1,

@@ -8,7 +8,7 @@ export const ENGLISH_STOP_WORDS = new Set([
   "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done",
   "down", "due", "during", "each", "eg", "eight", "either", "eleven", "else", "elsewhere",
   "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except",
-  "few", "fifteen", "fify", "fill", "find", "fire", "first", "five", "for", "former",
+  "few", "fifteen", "fifty", "fify", "fill", "find", "fire", "first", "five", "for", "former",
   "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give",
   "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter",
   "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however",

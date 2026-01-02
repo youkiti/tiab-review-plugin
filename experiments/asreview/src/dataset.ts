@@ -16,10 +16,11 @@ export function loadDataset(datasetPath: string): { records: ReferenceRecord[]; 
   }
 
   const labels: Label[] = records.map((rec) => {
-    if (rec.label_included === 1) {
+    const raw = rec.label_included ?? rec.label;
+    if (raw === 1) {
       return 1;
     }
-    if (rec.label_included === 0) {
+    if (raw === 0) {
       return 0;
     }
     return -1;
@@ -30,6 +31,7 @@ export function loadDataset(datasetPath: string): { records: ReferenceRecord[]; 
 
 export function resolveDatasetPath(name: string): string {
   const datasetMap: Record<string, string> = {
+    cq1: "scripts/asreview-baseline/datasets/cq1_labeled.json",
     cq3: "scripts/asreview-baseline/datasets/cq3_labeled.json",
     depression: "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
   };

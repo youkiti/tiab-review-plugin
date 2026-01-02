@@ -13,6 +13,32 @@ ASReview の `elas_u3`（TF-IDF + MultinomialNB + Balanced + max querier）相�
 npx ts-node --project experiments/asreview/tsconfig.json experiments/asreview/src/index.ts --dataset cq3
 ```
 
+## Python baseline 実行例
+
+```bash
+python experiments/asreview/baseline.py --dataset cq3
+```
+
+前提: `numpy`, `pandas`, `scikit-learn` がインストール済みであること。
+
+## 差分比較
+
+```bash
+python experiments/asreview/compare.py --dataset cq3
+```
+
+最新の `asreview_ts_*` と `asreview_py_*` を自動で選択して比較します。
+`ranking_by_id` でレコードIDベースの一致も確認します。
+
+## 10-fold 検証（CQ1）
+
+```bash
+python experiments/asreview/make_folds.py --dataset cq1 --k 10 --seed 42
+npx ts-node --project experiments/asreview/tsconfig.json experiments/asreview/src/cv.ts --dataset cq1
+python experiments/asreview/cv_baseline.py --dataset cq1
+python experiments/asreview/compare_cv.py --dataset cq1
+```
+
 ## データセット
 
 `experiments/asreview/src/index.ts` で `cq3` または `depression` を指定します。
