@@ -22,10 +22,13 @@ export function setRenderDependencies(deps: {
 /**
  * テキストハイライト処理
  */
-export function highlightText(text: string, searchKeyword: string, evidenceList: string[] = []): string {
+export function highlightText(text: string, searchKeyword: string | string[], evidenceList: string[] = []): string {
     if (!text) return '';
 
     let html = escapeHtml(text);
+    const searchTerms = Array.isArray(searchKeyword)
+        ? searchKeyword.filter(Boolean)
+        : (searchKeyword ? [searchKeyword] : []);
 
     // 1. ハイライトキーワード（include/exclude）
     if (state.highlightKeywords) {
@@ -45,9 +48,11 @@ export function highlightText(text: string, searchKeyword: string, evidenceList:
     }
 
     // 2. 検索キーワード（黄色）
-    if (searchKeyword) {
-        const regex = new RegExp(`(${escapeRegex(searchKeyword)})`, 'gi');
-        html = html.replace(regex, '<span class="highlight-search">$1</span>');
+    if (searchTerms.length > 0) {
+        searchTerms.forEach(term => {
+            const regex = new RegExp(`(${escapeRegex(term)})`, 'gi');
+            html = html.replace(regex, '<span class="highlight-search">$1</span>');
+        });
     }
 
     // 3. タームフィルター（青枠）

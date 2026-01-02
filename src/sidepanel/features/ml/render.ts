@@ -2,6 +2,7 @@ import { state } from '../../state';
 import { getStoppingProgressPercent } from '../../../lib/ml/stopping-rules';
 import { highlightText } from '../screening/render';
 import { showToast } from '../../ui/feedback';
+import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 
 const elements = {
     section: () => document.getElementById('ml-section'),
@@ -58,21 +59,41 @@ export function renderMlSection() {
  * 現在の文献を表示
  */
 function renderMlReference() {
-    const ranking = state.mlState.ranking;
-    const index = state.mlState.currentIndex;
+    const ranking = resolveMlRanking(state.references, state.mlState.ranking);
+    const searchKeyword = elements.search.input()?.value.trim() || '';
+    const { terms, mode } = parseMlSearchQuery(searchKeyword, state.termFilterUseAnd);
+    const filteredRanking = getMlFilteredRanking(ranking, state.references, terms, mode);
 
-    let refId: string | null = null;
-
-    if (ranking.length > 0 && index < ranking.length) {
-        refId = ranking[index];
-    } else if (state.references.length > 0 && index < state.references.length) {
-        // Fallback to normal order if ranking not ready
-        refId = state.references[index].ref_id;
+    const resultCount = elements.search.resultCount();
+    if (searchKeyword) {
+        if (resultCount) {
+            resultCount.classList.remove('hidden');
+            if (filteredRanking.length === 0) {
+                resultCount.textContent = `「${searchKeyword}」: 0件ヒット`;
+                resultCount.classList.add('no-results');
+            } else {
+                resultCount.textContent = `「${searchKeyword}」: ${filteredRanking.length}件ヒット`;
+                resultCount.classList.remove('no-results');
+            }
+        }
+    } else if (resultCount) {
+        resultCount.classList.add('hidden');
     }
 
+    let index = state.mlState.currentIndex;
+    if (index >= filteredRanking.length) {
+        index = 0;
+        if (state.mlState.currentIndex !== 0) {
+            state.setMlState({ ...state.mlState, currentIndex: 0 });
+        }
+    }
+
+    const refId = filteredRanking[index] || null;
     if (!refId) {
         // No records or finished
-        elements.ref.title()!.textContent = 'No more records';
+        elements.ref.title()!.textContent = searchKeyword
+            ? '検索条件に一致する文献がありません'
+            : 'No more records';
         elements.ref.authors()!.textContent = '';
         elements.ref.year()!.textContent = '';
         elements.ref.abstract()!.innerHTML = '';
@@ -82,14 +103,13 @@ function renderMlReference() {
     const ref = state.references.find(r => r.ref_id === refId);
     if (!ref) return;
 
-    // 検索キーワード取得
-    const searchKeyword = elements.search.input()?.value.trim() || '';
+    const highlightTerms = terms.length > 0 ? terms : (searchKeyword ? [searchKeyword] : []);
 
     // ハイライト付きでタイトルと抄録を表示
-    elements.ref.title()!.innerHTML = highlightText(ref.title || '', searchKeyword);
+    elements.ref.title()!.innerHTML = highlightText(ref.title || '', highlightTerms);
     elements.ref.authors()!.textContent = ref.authors || 'Unknown Authors';
     elements.ref.year()!.textContent = ref.year?.toString() || '';
-    elements.ref.abstract()!.innerHTML = highlightText(ref.abstract || '(No Abstract)', searchKeyword);
+    elements.ref.abstract()!.innerHTML = highlightText(ref.abstract || '(No Abstract)', highlightTerms);
 }
 
 /**
@@ -138,7 +158,8 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[], cont
  * 検索入力ハンドラ
  */
 export function handleMlSearchInput() {
-    // 検索時は単に再描画（現在表示中の文献のハイライトを更新）
+    // 検索時は先頭へ戻して再描画
+    state.setMlState({ ...state.mlState, currentIndex: 0 });
     renderMlReference();
 }
 

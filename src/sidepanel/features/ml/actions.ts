@@ -10,6 +10,7 @@ import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
 import { showToast, showLoading } from '../../ui/feedback';
+import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 
 // Map ML Label type
 function mapDecisionToLabel(decision: 'include' | 'exclude'): 1 | 0 {
@@ -238,24 +239,19 @@ function handleMlNext() {
 }
 
 function moveToNextUnlabeled() {
-    const ranking = state.mlState.ranking;
-    if (!ranking || ranking.length === 0) {
-        // Fallback to simple index increment of state.references?
-        // But render uses ranking.
+    const filteredRanking = getCurrentMlFilteredRanking();
+    if (filteredRanking.length === 0) {
+        state.setMlState({
+            ...state.mlState,
+            currentIndex: 0
+        });
         return;
     }
 
-    let currentIndex = state.mlState.currentIndex;
-
-    // Start searching from current + 1
-    // But we need to check if current item is labeled.
-    // The ranking might change asynchronously.
-    // Strategy: scan ranking from top (0) until we find an unlabeled item.
-    // This ensures we always pick the highest prob unlabeled item.
-
+    // 検索条件に合致したランキング内で未判定を探す
     let foundIndex = -1;
-    for (let i = 0; i < ranking.length; i++) {
-        const refId = ranking[i];
+    for (let i = 0; i < filteredRanking.length; i++) {
+        const refId = filteredRanking[i];
         const ref = state.references.find(r => r.ref_id === refId);
         if (ref) {
             // Check if labeled by ME
@@ -278,26 +274,25 @@ function moveToNextUnlabeled() {
         // Keep index at end or show finished?
         state.setMlState({
             ...state.mlState,
-            currentIndex: ranking.length
+            currentIndex: filteredRanking.length
         });
     }
 }
 
 function getCurrentMlReference() {
-    const ranking = state.mlState.ranking;
+    const filteredRanking = getCurrentMlFilteredRanking();
     const index = state.mlState.currentIndex;
+    if (index >= filteredRanking.length) return null;
+    const refId = filteredRanking[index];
+    return state.references.find(r => r.ref_id === refId) || null;
+}
 
-    if (ranking.length > 0) {
-        if (index >= ranking.length) return null;
-        const refId = ranking[index];
-        return state.references.find(r => r.ref_id === refId) || null;
-    }
-
-    // Fallback
-    if (state.references.length > 0 && index < state.references.length) {
-        return state.references[index];
-    }
-    return null;
+function getCurrentMlFilteredRanking(): string[] {
+    const searchInput = document.getElementById('ml-search-input') as HTMLInputElement | null;
+    const searchKeyword = searchInput?.value.trim() || '';
+    const ranking = resolveMlRanking(state.references, state.mlState.ranking);
+    const { terms, mode } = parseMlSearchQuery(searchKeyword, state.termFilterUseAnd);
+    return getMlFilteredRanking(ranking, state.references, terms, mode);
 }
 
 /**
