@@ -284,9 +284,18 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         else if (d.decision === 'exclude') icon = '❌';
         else if (d.decision === 'maybe') icon = '❓';
 
+        // ML Enhanced バッジ
+        let mlBadge = '';
+        if (d.client_version?.includes('-ml-auto')) {
+            mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
+        } else if (d.client_version?.includes('-ml')) {
+            mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
+        }
+
         div.innerHTML = `
             <span class="reviewer">${d.reviewer_id}</span>
             <span class="decision">${icon} ${d.decision}</span>
+            ${mlBadge}
         `;
 
         if (d.note) {

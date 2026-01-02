@@ -210,6 +210,7 @@ export const state = {
         _activeTermFilters = [];
         _enabledReviewers.clear();
         _availableReviewers.clear();
+        _mlState = createInitialMlState();  // ML状態もリセット
     },
 };
 

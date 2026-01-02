@@ -181,6 +181,16 @@ export function renderMlStats() {
     const stopContainer = elements.stopping.container();
     const settingsBtn = elements.stopping.settingsBtn();
 
+    // ボタンのテキスト更新（常に実行）
+    if (settingsBtn) {
+        if (stopping) {
+            settingsBtn.textContent = `連続 exclude ${stopping.threshold}件`;
+        } else {
+            settingsBtn.textContent = '設定なし';
+        }
+    }
+
+    // プログレスバーの表示/非表示
     if (stopping && stopContainer) {
         stopContainer.classList.remove('hidden');
         if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.current.toString();
@@ -196,13 +206,8 @@ export function renderMlStats() {
                 elements.stopping.fill()!.style.backgroundColor = '#1a73e8'; // Blue
             }
         }
-
-        if (settingsBtn) {
-            settingsBtn.textContent = `連続 exclude ${stopping.threshold}件`;
-        }
-    } else {
-        if (stopContainer) stopContainer.classList.add('hidden');
-        if (settingsBtn) settingsBtn!.textContent = '設定なし';
+    } else if (stopContainer) {
+        stopContainer.classList.add('hidden');
     }
 }
 

@@ -484,32 +484,37 @@
                 </div>
             </div>
 
-            <!-- 学習状態・停止基準 (ML固有設定 - 上部) -->
-            <div class="llm-card">
-                <h4>📊 学習状態</h4>
-                <div class="ml-stats-row">
-                    <div class="ml-stat-item">
-                        <span class="label">Include</span>
-                        <span class="value include" id="ml-count-include">0</span>
-                    </div>
-                    <div class="ml-stat-item">
-                        <span class="label">Exclude</span>
-                        <span class="value exclude" id="ml-count-exclude">0</span>
-                    </div>
-                </div>
-
-                <div class="stopping-rule-container">
-                    <div class="stopping-header">
-                        <span class="label">停止基準(レビューごとに要設定):</span>
-                        <button id="ml-stopping-settings-btn" class="btn-link">設定なし</button>
-                    </div>
-                    <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" id="ml-stopping-progress-fill" style="width: 0%"></div>
+            <!-- 学習状態・停止基準 (折りたたみ可能) -->
+            <div class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    📊 学習状態
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="ml-stats-row">
+                        <div class="ml-stat-item">
+                            <span class="label">Include</span>
+                            <span class="value include" id="ml-count-include">0</span>
                         </div>
-                        <div class="progress-text">
-                            <span id="ml-stopping-current">0</span> / <span id="ml-stopping-threshold">50</span>
-                            (連続 exclude)
+                        <div class="ml-stat-item">
+                            <span class="label">Exclude</span>
+                            <span class="value exclude" id="ml-count-exclude">0</span>
+                        </div>
+                    </div>
+
+                    <div class="stopping-rule-container">
+                        <div class="stopping-header">
+                            <span class="label">停止基準:</span>
+                            <button id="ml-stopping-settings-btn" class="btn-link">設定なし</button>
+                        </div>
+                        <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="ml-stopping-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span id="ml-stopping-current">0</span> / <span id="ml-stopping-threshold">50</span>
+                                (連続 exclude)
+                            </div>
                         </div>
                     </div>
                 </div>

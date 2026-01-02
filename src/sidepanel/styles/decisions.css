@@ -112,3 +112,21 @@
     background-color: #e0e0e0;
     color: #666;
 }
+
+/* ML Enhanced バッジ */
+.ml-enhanced-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    margin-left: 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    background-color: #e8d5f9;
+    color: #7c3aed;
+}
+
+.ml-enhanced-badge.auto {
+    background-color: #e5e7eb;
+    color: #6b7280;
+}

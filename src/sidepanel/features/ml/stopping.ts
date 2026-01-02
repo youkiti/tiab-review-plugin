@@ -5,6 +5,71 @@ import { showModal, hideModal } from './dialogs';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { renderMlStats } from './render';
 
+/**
+ * 初回セットアップダイアログを表示
+ */
+export function showInitialStoppingRuleDialog(
+    onConfirm: (threshold: number) => void
+) {
+    const body = document.createElement('div');
+    body.innerHTML = `
+        <div style="margin-bottom: 16px;">
+            <p style="margin-bottom: 12px; line-height: 1.6;">
+                連続で <strong><span id="threshold-display">50</span>件</strong> Excludeされたら<br>
+                スクリーニング終了を提案します。
+            </p>
+            
+            <div style="margin: 16px 0;">
+                <label style="font-weight: 500;">推奨値: </label>
+                <select id="initial-threshold-select" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="30">30件</option>
+                    <option value="50" selected>50件（推奨）</option>
+                    <option value="100">100件</option>
+                    <option value="200">200件</option>
+                </select>
+            </div>
+            
+            <div style="background: #f0f4f8; padding: 12px; border-radius: 6px; font-size: 12px;">
+                <p style="margin: 0; line-height: 1.5;">
+                    ⓘ わからない場合は50件で問題ありません。<br>
+                    詳しくは 
+                    <a href="https://github.com/asreview/asreview/discussions/557" 
+                       target="_blank" 
+                       style="color: #1a73e8; text-decoration: underline;">
+                       ASReviewの議論
+                    </a> 
+                    を参照してください。
+                </p>
+            </div>
+        </div>
+    `;
+
+    // セレクトボックスの変更を反映
+    const select = body.querySelector('#initial-threshold-select') as HTMLSelectElement;
+    const display = body.querySelector('#threshold-display') as HTMLElement;
+    select.onchange = () => {
+        display.textContent = select.value;
+    };
+
+    // フッター
+    const footer = document.createElement('div');
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn btn-primary btn-full';
+    confirmBtn.textContent = 'この設定で開始';
+    confirmBtn.onclick = () => {
+        const threshold = parseInt(select.value, 10);
+        onConfirm(threshold);
+        hideModal();
+    };
+    footer.appendChild(confirmBtn);
+
+    showModal({
+        title: '📊 停止基準の設定',
+        body: body,
+        footer: footer
+    });
+}
+
 export function showStoppingSettingsDialog() {
     const totalRecords = state.references.length;
     let currentThreshold = state.mlState.stoppingRule?.threshold || 50;
@@ -141,10 +206,10 @@ export function showStoppingReachedDialog(onContinue: (addCount: number) => void
         </div>
 
         <div class="list-item-btn" id="action-finish">
-            <span class="list-item-icon">📥</span>
+            <span class="list-item-icon">🏁</span>
             <div class="list-item-content">
-                <span class="list-item-primary">終了してエクスポート</span>
-                <span class="list-item-secondary">現在の状態で終了します</span>
+                <span class="list-item-primary">終了して残りを除外</span>
+                <span class="list-item-secondary">未判定の文献を全てExcludeとして保存します</span>
             </div>
         </div>
     `;
@@ -156,8 +221,8 @@ export function showStoppingReachedDialog(onContinue: (addCount: number) => void
     });
 
     body.querySelector('#action-finish')!.addEventListener('click', () => {
-        onFinish();
         hideModal();
+        showBulkExcludeConfirmDialog(onFinish);
     });
 
     const footer = document.createElement('div');
@@ -173,3 +238,150 @@ export function showStoppingReachedDialog(onContinue: (addCount: number) => void
         footer: footer
     });
 }
+
+/**
+ * 一括Exclude確認ダイアログ
+ */
+function showBulkExcludeConfirmDialog(onComplete: () => void) {
+    // 未判定件数を計算
+    const { getMlStats } = require('./actions');
+    const stats = getMlStats();
+
+    const body = document.createElement('div');
+    body.innerHTML = `
+        <div style="text-align: center; margin-bottom: 16px;">
+            <p style="font-size: 14px; margin-bottom: 8px;">
+                残り <strong>${stats.remaining}件</strong> の未判定文献を<br>
+                すべて <span style="color: #ea4335; font-weight: bold;">Exclude</span> として保存します。
+            </p>
+            <p style="color: #666; font-size: 12px;">
+                この操作は取り消せません。<br>
+                個別に変更する場合はレビュー画面から行ってください。
+            </p>
+        </div>
+        <div id="bulk-progress" style="display: none;">
+            <div style="text-align: center; margin-bottom: 8px;">
+                <span id="bulk-progress-text">処理中... 0 / ${stats.remaining}</span>
+            </div>
+            <div style="background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden;">
+                <div id="bulk-progress-bar" style="background: #1a73e8; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+    `;
+
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.gap = '8px';
+    footer.style.justifyContent = 'flex-end';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-outline btn-small';
+    cancelBtn.textContent = 'キャンセル';
+    cancelBtn.onclick = () => hideModal();
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn btn-primary btn-small';
+    confirmBtn.textContent = '実行する';
+    confirmBtn.onclick = async () => {
+        // ボタンを無効化
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        confirmBtn.textContent = '処理中...';
+
+        // 進捗表示を表示
+        const progressDiv = body.querySelector('#bulk-progress') as HTMLElement;
+        const progressText = body.querySelector('#bulk-progress-text') as HTMLElement;
+        const progressBar = body.querySelector('#bulk-progress-bar') as HTMLElement;
+        progressDiv.style.display = 'block';
+
+        // 一括Exclude実行
+        const { bulkExcludeRemaining } = require('./actions');
+        const result = await bulkExcludeRemaining((current: number, total: number) => {
+            progressText.textContent = `処理中... ${current} / ${total}`;
+            progressBar.style.width = `${(current / total) * 100}%`;
+        });
+
+        hideModal();
+
+        // 完了通知
+        const { showToast } = require('../../ui/feedback');
+        showToast(`${result.successCount}件をExcludeとして保存しました`);
+
+        // コールバック実行
+        onComplete();
+
+        // 完了画面を表示
+        showMlCompleteDialog();
+    };
+
+    footer.appendChild(cancelBtn);
+    footer.appendChild(confirmBtn);
+
+    showModal({
+        title: '⚠️ 確認',
+        body: body,
+        footer: footer
+    });
+}
+
+/**
+ * ML完了ダイアログ
+ */
+function showMlCompleteDialog() {
+    const { getMlStats, resetAndStartNewMlReview } = require('./actions');
+    const stats = getMlStats();
+
+    const body = document.createElement('div');
+    body.innerHTML = `
+        <div style="text-align: center; margin-bottom: 16px;">
+            <p style="font-size: 24px; margin-bottom: 8px;">✅</p>
+            <p style="font-size: 16px; font-weight: bold; margin-bottom: 16px;">MLレビュー完了</p>
+            
+            <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 16px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #34a853;">${stats.include}</div>
+                    <div style="font-size: 12px; color: #666;">Include</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #ea4335;">${stats.exclude}</div>
+                    <div style="font-size: 12px; color: #666;">Exclude</div>
+                </div>
+            </div>
+            
+            <p style="font-size: 12px; color: #666;">
+                (うち自動除外: ${stats.autoExcluded}件)
+            </p>
+        </div>
+    `;
+
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.flexDirection = 'column';
+    footer.style.gap = '8px';
+
+    const newReviewBtn = document.createElement('button');
+    newReviewBtn.className = 'btn btn-primary btn-full';
+    newReviewBtn.innerHTML = '🔄 新しいMLレビューを開始';
+    newReviewBtn.onclick = async () => {
+        hideModal();
+        await resetAndStartNewMlReview();
+    };
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'btn btn-outline btn-full';
+    backBtn.innerHTML = '← レビュー画面に戻る';
+    backBtn.onclick = () => {
+        hideModal();
+        document.getElementById('tab-screening')?.click();
+    };
+
+    footer.appendChild(newReviewBtn);
+    footer.appendChild(backBtn);
+
+    showModal({
+        title: 'MLレビュー結果',
+        body: body,
+        footer: footer
+    });
+}
+

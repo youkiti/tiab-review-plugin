@@ -5,9 +5,9 @@ import {
     getReferencesWithStatus
 } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
-import { MlRecord, Label } from '../../../lib/ml/types';
+import { MlRecord, Label, createStoppingRule } from '../../../lib/ml/types';
 import { renderMlSection, renderMlStats } from './render';
-import { showStoppingSettingsDialog, showStoppingReachedDialog } from './stopping';
+import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
 import { showToast, showLoading } from '../../ui/feedback';
 
@@ -15,6 +15,42 @@ import { showToast, showLoading } from '../../ui/feedback';
 function mapDecisionToLabel(decision: 'include' | 'exclude'): 1 | 0 {
     return decision === 'include' ? 1 : 0;
 }
+
+// ========== ストレージ関数 ==========
+
+/**
+ * 停止基準の設定をブラウザに保存（プロジェクトごと）
+ */
+async function saveStoppingRuleToStorage(threshold: number): Promise<void> {
+    const key = `mlStoppingRule_${state.spreadsheetId}`;
+    await chrome.storage.local.set({
+        [key]: { confirmed: true, threshold }
+    });
+}
+
+/**
+ * 停止基準の設定をブラウザから読み込み（プロジェクトごと）
+ */
+async function loadStoppingRuleFromStorage(): Promise<{ confirmed: boolean; threshold: number }> {
+    const key = `mlStoppingRule_${state.spreadsheetId}`;
+    const result = await chrome.storage.local.get([key]);
+    const data = result[key];
+
+    if (data && data.confirmed) {
+        return {
+            confirmed: true,
+            threshold: data.threshold || 50
+        };
+    }
+
+    return {
+        confirmed: false,
+        threshold: 50
+    };
+}
+
+
+// ========== 要素 ==========
 
 const elements = {
     buttons: {
@@ -44,7 +80,15 @@ export function initMlHandlers() {
 
     // Subscribe to Worker updates
     mlClient.subscribe((newState) => {
-        state.setMlState(newState);
+        const currentState = state.mlState;
+        state.setMlState({
+            ...currentState,
+            status: newState.status,
+            labeledCount: newState.labeledCount,
+            ranking: newState.ranking,
+            errorMessage: newState.errorMessage,
+            lastUpdated: newState.lastUpdated
+        });
         renderMlStats();
 
         // If ranking updated, re-render current reference (might change)
@@ -67,9 +111,38 @@ export async function activateMlTab() {
 
     // Check if initialization needed
     if (state.mlState.status === 'idle') {
-        await initMlWorker();
+        // ストレージから設定を読み込み
+        const savedRule = await loadStoppingRuleFromStorage();
+
+        if (!savedRule.confirmed) {
+            // 初回: ダイアログを表示
+            showInitialStoppingRuleDialog(async (threshold) => {
+                // 設定をブラウザに保存
+                await saveStoppingRuleToStorage(threshold);
+
+                // 停止基準を設定
+                state.setMlState({
+                    ...state.mlState,
+                    stoppingRule: createStoppingRule(threshold)
+                });
+
+                await initMlWorker();
+                renderMlSection();  // UI全体を更新
+            });
+        } else {
+            // 2回目以降: 保存された設定を使用
+            if (!state.mlState.stoppingRule) {
+                state.setMlState({
+                    ...state.mlState,
+                    stoppingRule: createStoppingRule(savedRule.threshold)
+                });
+            }
+            await initMlWorker();
+            renderMlSection();  // UI全体を更新
+        }
     }
 }
+
 
 async function initMlWorker() {
     // 1. Prepare records for Worker (mlRecord format)
@@ -105,7 +178,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         reviewer_id: state.userEmail,
         decision,
         decided_at: new Date().toISOString(),
-        client_version: '0.1.0',
+        client_version: '0.7.0-ml',  // ML Enhanced marker
     };
     ref.myDecision = decisionObj;
     ref.status = decision; // Local update
@@ -270,3 +343,112 @@ export function handleMlKeydown(e: KeyboardEvent) {
     }
 }
 
+/**
+ * 残りの未判定レコードを一括でexcludeとして保存
+ * @param onProgress 進捗コールバック (current, total)
+ * @returns 保存成功件数
+ */
+export async function bulkExcludeRemaining(
+    onProgress?: (current: number, total: number) => void
+): Promise<{ successCount: number; totalCount: number }> {
+    // 未判定レコードを取得
+    const unlabeledRefs = state.references.filter(r =>
+        !r.myDecision || r.status === 'pending'
+    );
+
+    const totalCount = unlabeledRefs.length;
+    let successCount = 0;
+    const batchSize = 10; // 並列処理数
+
+    for (let i = 0; i < unlabeledRefs.length; i += batchSize) {
+        const batch = unlabeledRefs.slice(i, i + batchSize);
+
+        await Promise.all(batch.map(async (ref) => {
+            const decision: Decision = {
+                decision_id: crypto.randomUUID(),
+                ref_id: ref.ref_id,
+                reviewer_id: state.userEmail,
+                decision: 'exclude',
+                note: 'ML stopping rule - auto excluded',
+                decided_at: new Date().toISOString(),
+                client_version: '0.7.0-ml-auto',  // Auto-exclude marker
+            };
+
+            try {
+                await apiSaveDecision(state.spreadsheetId, decision);
+                ref.myDecision = decision;
+                ref.status = 'exclude';
+                successCount++;
+            } catch (err) {
+                console.error('Failed to auto-exclude:', ref.ref_id, err);
+            }
+        }));
+
+        // 進捗コールバック
+        if (onProgress) {
+            onProgress(Math.min(i + batchSize, totalCount), totalCount);
+        }
+    }
+
+    return { successCount, totalCount };
+}
+
+/**
+ * 現在のML状態の統計を取得
+ */
+export function getMlStats(): {
+    include: number;
+    exclude: number;
+    autoExcluded: number;
+    remaining: number;
+} {
+    let include = 0;
+    let exclude = 0;
+    let autoExcluded = 0;
+    let remaining = 0;
+
+    state.references.forEach(ref => {
+        if (!ref.myDecision || ref.status === 'pending') {
+            remaining++;
+        } else if (ref.myDecision.decision === 'include') {
+            include++;
+        } else if (ref.myDecision.decision === 'exclude') {
+            if (ref.myDecision.client_version?.includes('-ml-auto')) {
+                autoExcluded++;
+            }
+            exclude++;
+        }
+    });
+
+    return { include, exclude, autoExcluded, remaining };
+}
+
+/**
+ * MLレビューをリセットして新規開始
+ */
+export async function resetAndStartNewMlReview() {
+    showLoading(true);
+
+    try {
+        // 1. 参照データを再読み込み（最新の判定情報込み）
+        const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+        state.setReferences(refs);
+
+        // 2. ML状態をリセット
+        const { createInitialMlState } = await import('../../../lib/ml/types');
+        state.setMlState(createInitialMlState());
+
+        // 3. ML Workerを再初期化
+        await initMlWorker();
+
+        // 4. UI更新
+        renderMlSection();
+
+        showToast('新しいMLレビューを開始しました');
+    } catch (err) {
+        console.error('Failed to reset ML review:', err);
+        showToast('リセットに失敗しました');
+    } finally {
+        showLoading(false);
+    }
+}
