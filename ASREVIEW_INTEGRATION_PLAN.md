@@ -188,6 +188,28 @@ SYNERGYデータセットの問題（ラベル競合・ID重複）を回避し�
 | **Wilson's Disease** | [Zenodo 3625931](https://zenodo.org/records/3625931) | Wilson病治療SR。TiAb全件を基準に2種ラベル保持: `label_tiab`（FT対象=1）/ `label_final_included`（最終included=1）。`scripts/asreview-baseline/datasets/wilson_tiab_labeled.json` を作成済み。元データは `scripts/asreview-baseline/datasets/zenodo_3625931/`。 |
 | **Mendeley Data** | [Mendeley 7sgmg89zb6](https://data.mendeley.com/datasets/7sgmg89zb6/1) | Title/Absスクリーニング用大規模データ。`scripts/asreview-baseline/datasets/mendeley_20240827_*_set.json` と `scripts/asreview-baseline/datasets/mendeley_CD*_data_cleaned.json` を作成済み。mainセットは `label_score` を保持し、`label_included` は `label_score >= 0.5` を許容。 |
 
+#### 他のデータセット（experiments/ で確認済み）
+
+- **Depression (SLIM)**: `scripts/asreview-baseline/datasets/depression_slim_labeled.json`
+- **Wilson's Disease**: `scripts/asreview-baseline/datasets/wilson_tiab_labeled.json`
+- **Mendeley Cochrane 系**: `scripts/asreview-baseline/datasets/mendeley_CD*_data_cleaned.json`
+- **Mendeley 追加セット**: `scripts/asreview-baseline/datasets/mendeley_20240827_{dev,val,random_test,heart_test,HIV_test}_set.json`
+
+#### 追加データの詳細（experiments/ の整理内容）
+
+- **CQデータ合計**: 16,645件（採用259件）
+  - 根拠: `experiments/data/datasets/cq_datasets.md`
+  - 生データ: `scripts/asreview-baseline/raw_data/CQ1_data.xlsx` 〜 `CQ5_data.xlsx`
+- **Depression (zenodo_151190)**: スクリーニング済み5,749件の一部をラベル化して利用
+  - 形式: JSON配列（`id`, `title`, `abstract`, `label_included`）
+  - 詳細: `experiments/data/datasets/zenodo_151190_depression.md`
+- **Wilson (zenodo_3625931)**: TiAb 3,453件 / 最終採用26件
+  - 元データはRIS形式（パース + ラベル突合が必要）
+  - 詳細: `experiments/data/datasets/zenodo_3625931_wilson.md`
+- **Mendeley Cochrane**: CD011218 〜 CD015432 の複数セット（最大: CD014715 = 89.3MB）
+  - 追加セット: dev 810MB / val 46.7MB / random_test 46.7MB / heart_test 36.1MB / HIV_test 7.8MB
+  - 詳細: `experiments/data/datasets/mendeley_cochrane_overview.md`
+
 #### 拡張性（他のデータセット追加）
 
 
