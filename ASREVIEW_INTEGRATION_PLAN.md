@@ -259,7 +259,7 @@ PubMed検索結果やユーザー独自データ（RIS/CSV）など、他のデ�
 
 完了レポート: `experiments/asreview/REPORT.md`
 
-### Phase 3: 拡張機能 UI に統合（ML タブ）
+### Phase 3: 拡張機能 UI に統合（ML タブ） ✅ 完了
 
 **目的**: ML アシストスクリーニングを Side Panel に組み込み、ASReview 同様の「連続 N 件 exclude で停止推奨」を実装する。
 

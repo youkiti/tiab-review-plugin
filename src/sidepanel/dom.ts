@@ -125,6 +125,7 @@ const domElements = {
     get llmSection() { return getElement<HTMLElement>('llm-section'); },
     get tabScreeningBtn() { return getElement<HTMLButtonElement>('tab-screening'); },
     get tabLlmBtn() { return getElement<HTMLButtonElement>('tab-llm'); },
+    get tabMlBtn() { return getElement<HTMLButtonElement>('tab-ml'); },
     get headerTabs() { return querySelector<HTMLElement>('.header-tabs'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },

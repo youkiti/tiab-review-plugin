@@ -18,7 +18,7 @@
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" title="手動レビュー">👤 手動</button>
-                <button id="tab-ml" class="tab-btn" title="機械学習併用（未実装）" disabled>🔬 ML（未実装）</button>
+                <button id="tab-ml" class="tab-btn" title="機械学習アシスト">🔬 ML</button>
                 <button id="tab-llm" class="tab-btn" title="AIレビュー">🤖 AI</button>
             </div>
             <div class="progress">
@@ -473,6 +473,87 @@
                 </div>
             </div>
         </section>
+        <!-- ML処理セクション -->
+        <section id="ml-section" class="section hidden">
+            <!-- ツールバー -->
+            <div class="llm-toolbar">
+                <button id="ml-back-btn" class="btn btn-nav btn-small" title="戻る">← 戻る</button>
+                <span class="llm-title">🎯 MLスクリーニング</span>
+                <div class="ml-status-badge" id="ml-status-badge">
+                    <span class="status-indicator">●</span> <span id="ml-status-text">未学習</span>
+                </div>
+            </div>
+
+            <!-- 学習状態・停止基準 -->
+            <div class="llm-card">
+                <h4>📊 学習状態</h4>
+                <div class="ml-stats-row">
+                    <div class="ml-stat-item">
+                        <span class="label">Include</span>
+                        <span class="value include" id="ml-count-include">0</span>
+                    </div>
+                    <div class="ml-stat-item">
+                        <span class="label">Exclude</span>
+                        <span class="value exclude" id="ml-count-exclude">0</span>
+                    </div>
+                </div>
+
+                <div class="stopping-rule-container">
+                    <div class="stopping-header">
+                        <span class="label">停止基準:</span>
+                        <button id="ml-stopping-settings-btn" class="btn-link">設定なし</button>
+                    </div>
+                    <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="ml-stopping-progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="ml-stopping-current">0</span> / <span id="ml-stopping-threshold">50</span>
+                            (連続 exclude)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- アクション -->
+            <div class="decision-buttons">
+                <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
+                <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
+            </div>
+
+            <div class="navigation" style="margin-top: 10px;">
+                <button id="ml-btn-skip" class="btn btn-outline" title="スキップ">スキップ (Next)</button>
+            </div>
+
+            <!-- 現在の文献情報（簡易表示） -->
+            <article id="ml-reference-card" class="reference-card">
+                <h3 id="ml-ref-title" class="ref-title">タイトル...</h3>
+                <div class="ref-meta">
+                    <span id="ml-ref-authors">Authors...</span>
+                    <span id="ml-ref-year">Year</span>
+                </div>
+                <div id="ml-ref-abstract" class="ref-abstract">
+                    抄録...
+                </div>
+            </article>
+
+        </section>
+    </div>
+
+    <!-- モーダルダイアログ -->
+    <div id="modal-backdrop" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">タイトル</h3>
+                <button id="modal-close-btn" class="btn-icon">✕</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <!-- 動的コンテンツ -->
+            </div>
+            <div id="modal-footer" class="modal-footer">
+                <!-- 動的ボタン -->
+            </div>
+        </div>
     </div>
 
     <!-- トースト通知 -->

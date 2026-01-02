@@ -40,3 +40,6 @@
 
 /* LLM処理タブ */
 @import url('./styles/llm.css');
+
+/* ML処理タブ */
+@import url('./styles/ml.css');

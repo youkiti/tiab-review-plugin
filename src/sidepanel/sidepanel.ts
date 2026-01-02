@@ -14,6 +14,8 @@ import * as screeningRender from './features/screening/render';
 import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
+import { initMlHandlers, activateMlTab } from './features/ml/actions';
+import { initModal } from './features/ml/dialogs';
 
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
@@ -167,6 +169,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // LLM
     llm.setupLlmEventListeners();
+
+    // ML
+    initMlHandlers();
+    initModal();
+
+    // Tab Switching
+    dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
+    dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
+    dom.tabMlBtn?.addEventListener('click', () => {
+        llm.switchToTab('ml');
+        activateMlTab();
+    });
 
     // Start App
     auth.initApp();

@@ -60,9 +60,9 @@ export function setHandleBack(fn: () => void) {
  * LLMイベントリスナーを設定
  */
 export function setupLlmEventListeners() {
-    // タブ切り替え
-    dom.tabScreeningBtn?.addEventListener('click', () => switchToTab('screening'));
-    dom.tabLlmBtn?.addEventListener('click', () => switchToTab('llm'));
+    // タブ切り替え: sidepanel.ts で一元管理するため削除
+    // dom.tabScreeningBtn?.addEventListener('click', () => switchToTab('screening'));
+    // dom.tabLlmBtn?.addEventListener('click', () => switchToTab('llm'));
 
     // LLM戻るボタン
     dom.llmBackBtn?.addEventListener('click', handleLlmBack);
@@ -101,22 +101,27 @@ export function setupLlmEventListeners() {
 /**
  * タブを切り替え
  */
-export function switchToTab(tab: 'screening' | 'llm') {
+export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
     state.setCurrentTab(tab);
+
+    dom.tabScreeningBtn?.classList.remove('active');
+    dom.tabLlmBtn?.classList.remove('active');
+    dom.tabMlBtn?.classList.remove('active');
+
+    dom.screeningSection.classList.add('hidden');
+    dom.llmSection?.classList.add('hidden');
+    document.getElementById('ml-section')?.classList.add('hidden');
 
     if (tab === 'screening') {
         dom.tabScreeningBtn?.classList.add('active');
-        dom.tabLlmBtn?.classList.remove('active');
         dom.screeningSection.classList.remove('hidden');
-        dom.llmSection?.classList.add('hidden');
-    } else {
-        dom.tabScreeningBtn?.classList.remove('active');
+    } else if (tab === 'llm') {
         dom.tabLlmBtn?.classList.add('active');
-        dom.screeningSection.classList.add('hidden');
         dom.llmSection?.classList.remove('hidden');
-
-        // LLMセクションを初期化
         initializeLlmSection();
+    } else if (tab === 'ml') {
+        dom.tabMlBtn?.classList.add('active');
+        document.getElementById('ml-section')?.classList.remove('hidden');
     }
 }
 
