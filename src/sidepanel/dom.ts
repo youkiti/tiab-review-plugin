@@ -138,6 +138,10 @@ const domElements = {
     get saveApiKeyCheckbox() { return getElement<HTMLInputElement>('save-api-key-checkbox'); },
     get apiKeyStatus() { return getElement<HTMLElement>('api-key-status'); },
 
+    // ========== ML Section ==========
+    get mlSection() { return getElement<HTMLElement>('ml-section'); },
+    get mlSettingsBtn() { return getElement<HTMLButtonElement>('ml-settings-btn'); },
+
     // LLM Criteria
     get criteriaCard() { return getElement<HTMLElement>('criteria-card'); },
 

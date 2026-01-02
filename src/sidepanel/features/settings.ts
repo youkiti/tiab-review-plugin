@@ -23,6 +23,7 @@ export function showSettings() {
     dom.configSection.classList.add('hidden');
     dom.screeningSection.classList.add('hidden');
     dom.llmSection?.classList.add('hidden');
+    dom.mlSection?.classList.add('hidden');
     dom.settingsSection.classList.remove('hidden');
 }
 
@@ -37,6 +38,8 @@ export function hideSettings() {
         // 現在のタブに応じて適切なセクションを表示
         if (state.currentTab === 'llm') {
             dom.llmSection?.classList.remove('hidden');
+        } else if (state.currentTab === 'ml') {
+            dom.mlSection?.classList.remove('hidden');
         } else {
             dom.screeningSection.classList.remove('hidden');
         }

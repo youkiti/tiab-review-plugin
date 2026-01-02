@@ -7,6 +7,7 @@ import { state } from '../../state';
 import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus } from '../../../lib/types';
 import { createSmartRegex } from '../../utils/text';
+import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 
@@ -38,13 +39,26 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
     }
 
     // 検索フィルター
-    const searchTerm = dom.searchInput.value.toLowerCase().trim();
-    if (searchTerm) {
-        filtered = filtered.filter(
-            (r) =>
-                r.title.toLowerCase().includes(searchTerm) ||
-                r.abstract?.toLowerCase().includes(searchTerm)
-        );
+    const rawSearch = dom.searchInput.value;
+    if (rawSearch.trim()) {
+        const { terms, mode } = parseSearchQuery(rawSearch, state.termFilterUseAnd);
+
+        filtered = filtered.filter(r => {
+            const text = `${r.title} ${r.abstract || ''}`;
+            const regexes = terms.map(t => createSmartRegex(t));
+
+            if (mode === 'and') {
+                return regexes.every(regex => {
+                    regex.lastIndex = 0;
+                    return regex.test(text);
+                });
+            } else {
+                return regexes.some(regex => {
+                    regex.lastIndex = 0;
+                    return regex.test(text);
+                });
+            }
+        });
     }
 
     // タームフィルター（AND/OR条件）

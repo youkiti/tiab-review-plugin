@@ -110,7 +110,7 @@ export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
 
     dom.screeningSection.classList.add('hidden');
     dom.llmSection?.classList.add('hidden');
-    document.getElementById('ml-section')?.classList.add('hidden');
+    dom.mlSection?.classList.add('hidden');
 
     if (tab === 'screening') {
         dom.tabScreeningBtn?.classList.add('active');
@@ -121,7 +121,7 @@ export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
         initializeLlmSection();
     } else if (tab === 'ml') {
         dom.tabMlBtn?.classList.add('active');
-        document.getElementById('ml-section')?.classList.remove('hidden');
+        dom.mlSection?.classList.remove('hidden');
     }
 }
 

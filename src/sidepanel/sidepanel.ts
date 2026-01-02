@@ -3,6 +3,7 @@
  */
 
 import { dom } from './dom';
+import { state } from './state';
 import * as auth from './features/auth';
 import * as project from './features/project';
 import * as settings from './features/settings';
@@ -16,7 +17,7 @@ import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { initModal } from './features/ml/dialogs';
-import { handleMlSearchInput, addMlKeyword } from './features/ml/render';
+import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
@@ -38,7 +39,13 @@ screeningFilters.setFilterDependencies({
 });
 
 settings.setSettingsDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference
+    renderCurrentReference: () => {
+        if (state.currentTab === 'ml') {
+            renderMlSection();
+        } else {
+            screeningRender.renderCurrentReference();
+        }
+    }
 });
 
 importExport.setImportExportDependencies({
@@ -79,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Settings
     dom.settingsBtnProject?.addEventListener('click', settings.showSettings);
     dom.settingsBtnScreening?.addEventListener('click', settings.showSettings);
+    dom.mlSettingsBtn?.addEventListener('click', settings.showSettings);
     dom.closeSettingsBtn?.addEventListener('click', settings.hideSettings);
     dom.autoNavigateCheckbox?.addEventListener('change', settings.handleAutoNavigateChange);
     dom.showRecordCountCheckbox?.addEventListener('change', settings.handleShowRecordCountChange);
