@@ -86,12 +86,15 @@ npm run watch
 
 ```
 tiab-review-plugin/
+├── scripts/                   # 分析用Pythonスクリプト
 ├── src/
 │   ├── manifest.json          # Chrome Extension Manifest V3
 │   ├── background/            # Service Worker
 │   ├── popup/                 # ポップアップUI
 │   ├── sidepanel/             # サイドパネルUI
+│   │   └── features/          # 機能モジュール (LLM, Screening等)
 │   └── lib/                   # 共通ライブラリ
+├── experiments/               # 実験用コード
 ├── dist/                      # ビルド出力
 ├── package.json
 ├── tsconfig.json

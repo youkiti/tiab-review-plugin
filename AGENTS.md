@@ -29,7 +29,7 @@ Google スプレッドシートを共有データベースとして使用し、�
   - Content Scripts (ページからのメタデータ抽出用、将来拡張)
 - **認証**: Google OAuth 2.0 (`chrome.identity.getAuthToken`)
 - **バックエンド**: Google Sheets API (読み取り・追記)
-- **言語**: TypeScript, HTML, CSS
+- **言語**: TypeScript, HTML, CSS, Python (データ分析・実験用)
 
 ## Manifest要件（要件抜粋）
 
@@ -130,6 +130,12 @@ Google スプレッドシートを共有データベースとして使用し、�
 
    - 自分の判定件数
    - 全体の対象件数（レビュー対象総数）
+7. **LLMスクリーニング支援**
+
+   - **APIキー設定**: Gemini APIキーの保存・管理
+   - **判定基準設定**: プロンプト・判定基準のカスタマイズ
+   - **一括判定**: 未判定文献に対するLLMによる自動判定（バッチ処理）
+   - **結果表示**: LLMの判定結果・理由の表示
 
 ### キーボードショートカット
 
@@ -219,32 +225,36 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 tiab-review-plugin/
 ├── .agent/
 │   └── AGENTS.md
+├── scripts/                   # データ分析・ユーティリティスクリプト (Python)
+│   ├── analyze_llm_datasets.py
+│   ├── fetch_openalex_testdata.py
+│   └── ...
 ├── src/
 │   ├── manifest.json          # Chrome Extension Manifest V3
 │   ├── background/
-│   │   └── service-worker.ts  # バックグラウンドスクリプト
 │   ├── popup/
-│   │   ├── popup.html
-│   │   ├── popup.ts
-│   │   └── popup.css
-│   ├── sidepanel/             # サイドパネルUI（推奨）
+│   ├── sidepanel/             # サイドパネルUI
+│   │   ├── features/          # 機能別モジュール
+│   │   │   ├── llm/           # LLM機能 (API, Batch, Criteria)
+│   │   │   ├── screening/     # スクリーニング機能
+│   │   │   ├── project.ts     # プロジェクト管理
+│   │   │   └── ...
+│   │   ├── ui/                # UIコンポーネント
 │   │   ├── sidepanel.html
-│   │   ├── sidepanel.ts
-│   │   └── sidepanel.css
+│   │   └── sidepanel.ts
 │   ├── lib/
-│   │   ├── sheets-api.ts      # Google Sheets API ラッパー
-│   │   ├── auth.ts            # 認証関連
-│   │   ├── storage.ts         # ローカルストレージ
-│   │   ├── ris-parser.ts      # RIS ファイルパーサー
-│   │   └── types.ts           # 型定義
+│   │   ├── gemini-api.ts      # Gemini API クライアント
+│   │   ├── sheets-api.ts
+│   │   └── ...
 │   └── utils/
-│       └── uuid.ts
-├── experiments/               # ローカル実験用スクリプト
+├── experiments/               # LLM実験・検証用 (TypeScript)
 │   ├── data/
 │   ├── results/
-│   ├── runner.ts
-│   └── tsconfig.json
-├── dist/                       # ビルド出力
+│   ├── logs/
+│   ├── runner.ts              # 実験ランナー
+│   ├── evaluate.ts            # 評価スクリプト
+│   └── ...
+├── dist/                      # ビルド出力
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -404,7 +414,6 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
 - **フルテキスト対応は対象外**（PDFアップロード、PDFビューア等は実装しない）
 - **排他制御は不要**（追記型設計のため）
 - **重複解決は手動**（自動重複解決は将来拡張）
-- **AI推薦は対象外**（将来拡張として検討可能）
 
 ## 参考リンク
 

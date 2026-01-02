@@ -165,6 +165,10 @@
                             <span class="ja">設定オプション</span> /
                             <span class="en">Settings</span>
                         </a></li>
+                    <li><a href="#ai-screening">
+                            <span class="ja">AIスクリーニング支援</span> /
+                            <span class="en">AI Screening Support</span>
+                        </a></li>
                     <li><a href="#faq">
                             <span class="ja">よくある質問</span> /
                             <span class="en">FAQ</span>
@@ -406,6 +410,68 @@
                     <span class="en">ON (default): Show progress in navigation area<br>OFF: Show progress prominently
                         above title</span>
                 </p>
+            </section>
+
+            <!-- AIスクリーニング -->
+            <section id="ai-screening" class="help-section">
+                <h2>
+                    <span class="ja">AIスクリーニング支援</span>
+                    <span class="en">AI Screening Support</span>
+                </h2>
+                <p>
+                    <span class="ja">Google Gemini API を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。</span>
+                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using the Google Gemini
+                        API.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">セットアップ</span>
+                    <span class="en">Setup</span>
+                </h3>
+                <p>
+                    <span class="ja">1. <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI
+                            Studio</a> から API キーを取得します（<a href="https://ai.google.dev/gemini-api/docs/api-key"
+                            target="_blank">取得方法</a>）。<br>
+                        2. 設定（⚙️）ボタンをクリックし、「Gemini API設定」を開きます。<br>
+                        3. APIキーを入力して「保存」をクリックします。</span>
+                    <span class="en">1. Get an API key from <a href="https://aistudio.google.com/app/apikey"
+                            target="_blank">Google AI Studio</a> (see <a
+                            href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">instructions</a>).<br>
+                        2. Click the Settings (⚙️) button and open "Gemini API Settings".<br>
+                        3. Enter your API key and click "Save".</span>
+                </p>
+
+                <h3>
+                    <span class="ja">一括判定の実行</span>
+                    <span class="en">Running Batch Screening</span>
+                </h3>
+                <p>
+                    <span class="ja">サイドパネルの「AI判定」タブから実行できます。<br>
+                        「未判定の文献をAIで判定開始」をクリックすると、現在のフィルター条件に一致する未判定の文献に対して順次判定を行います。</span>
+                    <span class="en">Run from the "AI Screening" tab in the side panel.<br>
+                        Click "Start AI Screening for Pending" to sequentially evaluate pending references matching the
+                        current filter.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">判定基準のカスタマイズ</span>
+                    <span class="en">Customizing Criteria</span>
+                </h3>
+                <p>
+                    <span class="ja">「判定基準」タブで、AIに与える指示（プロンプト）を編集できます。<br>
+                        デフォルトのプロンプトを参考に、ご自身のレビュー基準に合わせて修正してください。</span>
+                    <span class="en">Edit the instructions (prompt) given to the AI in the "Criteria" tab.<br>
+                        Modify the default prompt to fit your specific review criteria.</span>
+                </p>
+                <div class="note"
+                    style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-top: 16px;">
+                    <p>
+                        <span class="ja"><strong>注意:</strong> APIの利用には料金が発生する場合があります（Google AI
+                            Studioの利用規約をご確認ください）。また、センシティブなデータを含む場合は、組織のポリシーに従ってください。</span>
+                        <span class="en"><strong>Note:</strong> API usage may incur charges (check Google AI Studio
+                            terms). Follow your organization's policy when handling sensitive data.</span>
+                    </p>
+                </div>
             </section>
 
             <!-- FAQ -->
