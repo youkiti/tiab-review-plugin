@@ -1,5 +1,7 @@
 /**
  * TiAb Review Plugin Sidepanel Scripts (Refactored)
+ *
+ * Phase 2: Store基盤を統合し、段階的にrender一本化へ移行中
  */
 
 import { dom } from './dom';
@@ -18,6 +20,10 @@ import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { initModal } from './features/ml/dialogs';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
+
+// Store（Phase 2で導入）
+import { initializeStore, subscribe, getState } from './store';
+import { renderLayout, renderTemporaryUI } from './render/layout';
 
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
@@ -207,6 +213,24 @@ document.addEventListener('DOMContentLoaded', () => {
         llm.switchToTab('ml');
         activateMlTab();
     });
+
+    // ========== Store初期化（Phase 2） ==========
+    // Storeを初期化
+    initializeStore();
+
+    // Storeの状態変更を購読してレイアウトと一時UIを自動更新
+    // 注意: 現在は既存のレンダリング関数と並行して動作
+    // 完全移行後は renderApp() のみを呼び出す
+    subscribe((appState) => {
+        // レイアウト（セクション表示/非表示）を更新
+        renderLayout(appState);
+        // 一時UI（メニュー/トースト/ローディング）を更新
+        renderTemporaryUI(appState);
+    });
+
+    // 初期レイアウト描画
+    renderLayout(getState());
+    renderTemporaryUI(getState());
 
     // Start App
     auth.initApp();
