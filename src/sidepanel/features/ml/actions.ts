@@ -20,6 +20,19 @@ function mapDecisionToLabel(decision: 'include' | 'exclude'): 1 | 0 {
     return decision === 'include' ? 1 : 0;
 }
 
+function buildMlLabelsFromReferences(): Record<string, Label> {
+    const labels: Record<string, Label> = {};
+
+    state.references.forEach((ref) => {
+        const decision = ref.myDecision?.decision;
+        if (decision === 'include' || decision === 'exclude') {
+            labels[ref.ref_id] = mapDecisionToLabel(decision);
+        }
+    });
+
+    return labels;
+}
+
 // ========== ストレージ関数 ==========
 
 /**
@@ -159,13 +172,7 @@ async function initMlWorker() {
 
     // 2. Prepare Labels
     // We need to fetch current labels map
-    const labels: Record<string, 1 | 0 | -1> = {};
-
-    // We should use references' status if available
-    state.references.forEach(r => {
-        if (r.myDecision?.decision === 'include') labels[r.ref_id] = 1;
-        else if (r.myDecision?.decision === 'exclude') labels[r.ref_id] = 0;
-    });
+    const labels = buildMlLabelsFromReferences();
 
     mlClient.init(mlRecords, labels);
 }
@@ -227,8 +234,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
     }
 
     // 4. Update Worker (NB model)
-    const labels: Record<string, 1 | 0 | -1> = {};
-    labels[ref.ref_id] = mapDecisionToLabel(decision);
+    const labels = buildMlLabelsFromReferences();
     mlClient.updateLabels(labels);
 
     // 5. Move next
