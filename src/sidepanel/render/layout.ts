@@ -26,8 +26,9 @@ export function renderLayout(state: AppState): void {
     // Fix: Only show screeningSection (Manual UI) if we are in manual tab
     dom.screeningSection.classList.toggle('hidden', !isManualTabActive);
 
-    // config-section（プロジェクト設定の見出しを含む）はMLタブ・AIタブでは非表示
-    const shouldShowConfigSection = view === 'login' || view === 'project' || isManualTabActive;
+    // config-section（プロジェクト設定の見出しを含む）はMLタブ・AIタブ・手動タブすべてで非表示
+    // ログイン画面またはプロジェクト選択画面のみ表示
+    const shouldShowConfigSection = view === 'login' || view === 'project';
     dom.configSection.classList.toggle('hidden', !shouldShowConfigSection);
 
     // ========== スクリーニングセクション内のタブ表示 ==========
