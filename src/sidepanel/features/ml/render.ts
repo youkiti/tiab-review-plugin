@@ -4,6 +4,9 @@ import { highlightText } from '../screening/render';
 import { showToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 
+// Store互換レイヤー（Phase 5）
+import { setMlState as syncSetMlState } from '../../store/compat';
+
 const elements = {
     section: () => document.getElementById('ml-section'),
     badge: {
@@ -84,7 +87,8 @@ function renderMlReference() {
     if (index >= filteredRanking.length) {
         index = 0;
         if (state.mlState.currentIndex !== 0) {
-            state.setMlState({ ...state.mlState, currentIndex: 0 });
+            // Store経由で両方に同期
+            syncSetMlState({ ...state.mlState, currentIndex: 0 });
         }
     }
 
@@ -159,7 +163,8 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[], cont
  */
 export function handleMlSearchInput() {
     // 検索時は先頭へ戻して再描画
-    state.setMlState({ ...state.mlState, currentIndex: 0 });
+    // Store経由で両方に同期
+    syncSetMlState({ ...state.mlState, currentIndex: 0 });
     renderMlReference();
 }
 

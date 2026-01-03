@@ -15,6 +15,13 @@ import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopp
 import { showToast, showLoading } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 
+// Store互換レイヤー（Phase 5）
+import {
+    changeTab as syncChangeTab,
+    setMlState as syncSetMlState,
+    setReferences as syncSetReferences,
+} from '../../store/compat';
+
 // Map ML Label type
 function mapDecisionToLabel(decision: 'include' | 'exclude'): 1 | 0 {
     return decision === 'include' ? 1 : 0;
@@ -98,7 +105,8 @@ export function initMlHandlers() {
     // Subscribe to Worker updates
     mlClient.subscribe((newState) => {
         const currentState = state.mlState;
-        state.setMlState({
+        // Store経由で両方に同期
+        syncSetMlState({
             ...currentState,
             status: newState.status,
             labeledCount: newState.labeledCount,
@@ -123,7 +131,8 @@ export function initMlHandlers() {
 }
 
 export async function activateMlTab() {
-    state.setCurrentTab('ml');
+    // Store経由で両方に同期
+    syncChangeTab('ml');
     renderMlSection();
 
     // Check if initialization needed
@@ -137,8 +146,8 @@ export async function activateMlTab() {
                 // 設定をブラウザに保存
                 await saveStoppingRuleToStorage(threshold);
 
-                // 停止基準を設定
-                state.setMlState({
+                // 停止基準を設定（Store経由で両方に同期）
+                syncSetMlState({
                     ...state.mlState,
                     stoppingRule: createStoppingRule(threshold)
                 });
@@ -149,7 +158,8 @@ export async function activateMlTab() {
         } else {
             // 2回目以降: 保存された設定を使用
             if (!state.mlState.stoppingRule) {
-                state.setMlState({
+                // Store経由で両方に同期
+                syncSetMlState({
                     ...state.mlState,
                     stoppingRule: createStoppingRule(savedRule.threshold)
                 });
@@ -204,7 +214,8 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
     if (state.mlState.stoppingRule) {
         // Pass decision ('include' | 'exclude') directly as expected by updateStoppingProgress
         const newRule = updateStoppingProgress(state.mlState.stoppingRule, decision);
-        state.setMlState({
+        // Store経由で両方に同期
+        syncSetMlState({
             ...state.mlState,
             stoppingRule: newRule
         });
@@ -213,9 +224,9 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         if (isStoppingReached(newRule)) {
             showStoppingReachedDialog(
                 (addCount) => {
-                    // Extend threshold
+                    // Extend threshold（Store経由で両方に同期）
                     const extendedRule = { ...newRule, threshold: newRule.threshold + addCount };
-                    state.setMlState({
+                    syncSetMlState({
                         ...state.mlState,
                         stoppingRule: extendedRule
                     });
@@ -250,7 +261,8 @@ function handleMlNext() {
 function moveToNextUnlabeled() {
     const filteredRanking = getCurrentMlFilteredRanking();
     if (filteredRanking.length === 0) {
-        state.setMlState({
+        // Store経由で両方に同期
+        syncSetMlState({
             ...state.mlState,
             currentIndex: 0
         });
@@ -274,14 +286,16 @@ function moveToNextUnlabeled() {
     }
 
     if (foundIndex !== -1) {
-        state.setMlState({
+        // Store経由で両方に同期
+        syncSetMlState({
             ...state.mlState,
             currentIndex: foundIndex
         });
     } else {
         // All labeled?
         // Keep index at end or show finished?
-        state.setMlState({
+        // Store経由で両方に同期
+        syncSetMlState({
             ...state.mlState,
             currentIndex: filteredRanking.length
         });
@@ -501,11 +515,13 @@ export async function resetAndStartNewMlReview() {
     try {
         // 1. 参照データを再読み込み（最新の判定情報込み）
         const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-        state.setReferences(refs);
+        // Store経由で両方に同期
+        syncSetReferences(refs);
 
         // 2. ML状態をリセット
         const { createInitialMlState } = await import('../../../lib/ml/types');
-        state.setMlState(createInitialMlState());
+        // Store経由で両方に同期
+        syncSetMlState(createInitialMlState());
 
         // 3. ML Workerを再初期化
         await initMlWorker();

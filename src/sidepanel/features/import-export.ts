@@ -7,6 +7,9 @@ import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences, renderSourceFilters } from './screening/filters';
 import { getSpreadsheetInfo, addReferences, getReferencesWithStatus } from '../../lib/sheets-api';
+
+// Store互換レイヤー（Phase 5）
+import { setReferences as syncSetReferences } from '../store/compat';
 import { parseRISFile } from '../../lib/ris-parser';
 
 // 外部レンダリング関数への参照
@@ -93,7 +96,8 @@ export async function handleRISImport(e: Event) {
 
         // データを再読み込み（現在のモードに合わせて）
         const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-        state.setReferences(refs);
+        // Store経由で両方に同期
+        syncSetReferences(refs);
 
         // UI更新
         renderSourceFilters();

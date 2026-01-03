@@ -30,6 +30,12 @@ import {
     loadExecutionHistory,
 } from './batch';
 
+// Store互換レイヤー（Phase 5）
+import {
+    changeTab as syncChangeTab,
+    setLlmConfig as syncSetLlmConfig,
+} from '../../store/compat';
+
 /**
  * モデル選択のオプションを動的に生成
  * AVAILABLE_MODELSを参照し、DEFAULT_MODEL_CONFIGでデフォルト選択を設定
@@ -100,28 +106,16 @@ export function setupLlmEventListeners() {
 
 /**
  * タブを切り替え
+ * 注意: renderLayoutでStore経由でセクション表示が制御されるため、
+ * ここではStore更新とLLM初期化のみ行う
  */
 export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
-    state.setCurrentTab(tab);
+    // Store経由で両方に同期（renderLayoutで表示が更新される）
+    syncChangeTab(tab);
 
-    dom.tabScreeningBtn?.classList.remove('active');
-    dom.tabLlmBtn?.classList.remove('active');
-    dom.tabMlBtn?.classList.remove('active');
-
-    dom.screeningSection.classList.add('hidden');
-    dom.llmSection?.classList.add('hidden');
-    dom.mlSection?.classList.add('hidden');
-
-    if (tab === 'screening') {
-        dom.tabScreeningBtn?.classList.add('active');
-        dom.screeningSection.classList.remove('hidden');
-    } else if (tab === 'llm') {
-        dom.tabLlmBtn?.classList.add('active');
-        dom.llmSection?.classList.remove('hidden');
+    // LLMタブの場合は初期化を行う
+    if (tab === 'llm') {
         initializeLlmSection();
-    } else if (tab === 'ml') {
-        dom.tabMlBtn?.classList.add('active');
-        dom.mlSection?.classList.remove('hidden');
     }
 }
 
@@ -140,7 +134,8 @@ export async function initializeLlmSection() {
         const spreadsheetId = state.spreadsheetId;
         if (spreadsheetId) {
             const llmConfig = await getLlmConfig(spreadsheetId);
-            state.setLlmConfig(llmConfig);
+            // Store経由で両方に同期
+            syncSetLlmConfig(llmConfig);
 
             // UI更新
             dom.llmModelSelect.value = llmConfig.llm_model;

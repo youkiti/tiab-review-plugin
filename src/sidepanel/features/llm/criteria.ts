@@ -11,6 +11,9 @@ import { convertCriteria, GeminiModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 
+// Store互換レイヤー（Phase 5）
+import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
+
 /**
  * 基準を最適化
  */
@@ -53,7 +56,8 @@ export async function handleOptimizeCriteria() {
         llmConfig.llm_criteria = result.criteria;
         llmConfig.llm_screening_prompt = result.screening_prompt;
         llmConfig.llm_protocol_text = protocolText;
-        state.setLlmConfig(llmConfig);
+        // Store経由で両方に同期
+        syncSetLlmConfig(llmConfig);
 
         dom.optimizeStatusDiv.textContent = '✓ 最適化完了';
         dom.optimizeStatusDiv.className = 'optimize-status success';

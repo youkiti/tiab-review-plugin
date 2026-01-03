@@ -5,6 +5,9 @@ import { showModal, hideModal } from './dialogs';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { renderMlStats } from './render';
 
+// Store互換レイヤー（Phase 5）
+import { setMlState as syncSetMlState } from '../../store/compat';
+
 /**
  * 初回セットアップダイアログを表示
  */
@@ -161,9 +164,9 @@ export function showStoppingSettingsDialog() {
     saveBtn.className = 'btn btn-primary btn-small';
     saveBtn.textContent = '保存';
     saveBtn.onclick = () => {
-        // Save to state
+        // Save to state - Store経由で両方に同期
         const rule = createStoppingRule(currentThreshold);
-        state.setMlState({
+        syncSetMlState({
             ...state.mlState,
             stoppingRule: rule
         });
