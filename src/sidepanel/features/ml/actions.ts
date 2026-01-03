@@ -1,4 +1,6 @@
 import { state } from '../../state';
+import { dom } from '../../dom';
+
 import { mlClient } from '../../../lib/ml/worker-client';
 import { saveDecision as apiSaveDecision } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
@@ -177,9 +179,11 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         ref_id: ref.ref_id,
         reviewer_id: state.userEmail,
         decision,
+        note: dom.mlNoteInput.value || undefined,
         decided_at: new Date().toISOString(),
         client_version: getMlClientVersion('-ml'),
     };
+
     ref.myDecision = decisionObj;
     ref.status = decision; // Local update
 
