@@ -23,6 +23,11 @@ export function renderLayout(state: AppState): void {
     const isScreeningView = view === 'screening';
     dom.screeningSection.classList.toggle('hidden', !isScreeningView);
 
+    // config-section（プロジェクト設定の見出しを含む）はMLタブ・AIタブでは非表示
+    const isManualTabActive = isScreeningView && currentTab === 'screening';
+    const shouldShowConfigSection = view === 'login' || view === 'project' || isManualTabActive;
+    dom.configSection.classList.toggle('hidden', !shouldShowConfigSection);
+
     // ========== スクリーニングセクション内のタブ表示 ==========
     if (isScreeningView) {
         // 手動タブかどうか

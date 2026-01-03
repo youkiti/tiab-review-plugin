@@ -80,7 +80,6 @@ const elements = {
     buttons: {
         include: () => document.getElementById('ml-btn-include'),
         exclude: () => document.getElementById('ml-btn-exclude'),
-        skip: () => document.getElementById('ml-btn-skip'),
         stoppingSettings: () => document.getElementById('ml-stopping-settings-btn'),
         back: () => document.getElementById('ml-back-btn'),
     }
@@ -90,7 +89,6 @@ export function initMlHandlers() {
     // Buttons
     elements.buttons.include()?.addEventListener('click', () => handleMlDecision('include'));
     elements.buttons.exclude()?.addEventListener('click', () => handleMlDecision('exclude'));
-    elements.buttons.skip()?.addEventListener('click', () => handleMlNext());
 
     elements.buttons.stoppingSettings()?.addEventListener('click', () => {
         showStoppingSettingsDialog();
@@ -343,17 +341,9 @@ export function handleMlKeydown(e: KeyboardEvent) {
                 handleMlDecision('exclude');
                 e.preventDefault();
                 break;
-            case 'arrowright': // Next (Skip)
-            case 'j':
-            case 's': // Skip
-            case 'n': // Next
-                handleMlNext();
-                e.preventDefault();
-                break;
-            case 'arrowleft': // Prev (undo-like, but for ML we just skip)
+            case 'arrowleft': // 前へ（MLでは未対応）
             case 'k':
-                // ML mode doesn't have a "previous" concept in the same way
-                // For now, we can skip this or show a toast
+                // MLモードでは「前へ」は未対応
                 showToast('MLモードでは「前へ」はありません');
                 e.preventDefault();
                 break;

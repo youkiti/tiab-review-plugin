@@ -14,7 +14,7 @@
         <header class="header">
             <div class="header-title">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-01-02</span>
+                <span class="build-version">Build: 2026-01-03</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" title="手動レビュー">👤 手動</button>
@@ -324,8 +324,8 @@
                     <div class="setting-row">
                         <label>モデル:</label>
                         <select id="llm-model-select">
-                            <option value="gemini-2.5-flash-lite" selected>Gemini 2.5 Flash Lite (推奨)</option>
-                            <!-- <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option> -->
+                            <option value="gemini-3-flash-preview" selected>Gemini 3 Flash (推奨・高精度)</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (コスト重視)</option>
                             <!-- <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (原則使わない)</option> -->
                         </select>
                     </div>
@@ -556,11 +556,6 @@
             <div class="decision-buttons">
                 <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
                 <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
-            </div>
-
-            <!-- ナビゲーション -->
-            <div class="navigation">
-                <button id="ml-btn-skip" class="btn btn-outline" title="スキップ">スキップ (→)</button>
             </div>
 
             <!-- ハイライト設定 (下部) -->
