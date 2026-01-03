@@ -25,6 +25,14 @@ import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/m
 import { initializeStore, subscribe, getState } from './store';
 import { renderLayout, renderTemporaryUI } from './render/layout';
 
+// Store互換レイヤー（Phase 4）
+import {
+    toggleExportMenu,
+    closeExportMenu,
+    toggleShareInput,
+    closeShareInput,
+} from './store/compat';
+
 // Initialize Dependencies for all modules to resolve circular refs
 auth.setAuthDependencies({
     loadRecentSheets: project.loadRecentSheets,
@@ -104,34 +112,46 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.importBtn?.addEventListener('click', () => dom.risFileInput.click());
     dom.exportBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        dom.exportMenu.classList.toggle('hidden');
+        // Store経由で開閉
+        toggleExportMenu();
     });
     // Close export menu when clicking outside
     document.addEventListener('click', (e) => {
         if (dom.exportMenu && !dom.exportMenu.contains(e.target as Node) && e.target !== dom.exportBtn) {
-            dom.exportMenu.classList.add('hidden');
+            // Store経由で閉じる
+            closeExportMenu();
         }
     });
 
     dom.exportCsvBtn?.addEventListener('click', () => {
-        dom.exportMenu.classList.add('hidden');
+        // Store経由で閉じる
+        closeExportMenu();
         importExport.handleExportCSV();
     });
     dom.exportRisBtn?.addEventListener('click', () => {
-        dom.exportMenu.classList.add('hidden');
+        // Store経由で閉じる
+        closeExportMenu();
         importExport.handleExportRIS();
     });
 
     // Sharing
     dom.shareBtn?.addEventListener('click', () => {
-        dom.shareInputArea.classList.toggle('hidden');
-        if (!dom.shareInputArea.classList.contains('hidden')) {
-            dom.shareEmailInput.focus();
-            sharing.loadSharedUsers();
-        }
+        // Store経由で開閉
+        toggleShareInput();
+        // 開いた場合はフォーカスと共有ユーザー読み込み
+        // 注意: Store状態に基づく判定は次のrenderTemporaryUIで反映されるため、
+        // ここではgetState()で状態を確認
+        setTimeout(() => {
+            const appState = getState();
+            if (appState.ui.flags.shareInputOpen) {
+                dom.shareEmailInput.focus();
+                sharing.loadSharedUsers();
+            }
+        }, 0);
     });
     dom.shareCancelBtn?.addEventListener('click', () => {
-        dom.shareInputArea.classList.add('hidden');
+        // Store経由で閉じる
+        closeShareInput();
         dom.shareEmailInput.value = '';
     });
     dom.shareSubmitBtn?.addEventListener('click', sharing.handleShare);

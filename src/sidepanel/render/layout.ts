@@ -71,12 +71,12 @@ export function renderTemporaryUI(state: AppState): void {
     // 共有入力エリア
     dom.shareInputArea.classList.toggle('hidden', !flags.shareInputOpen);
 
-    // トースト
+    // トースト（既存CSSは.showクラスを使用）
     if (toast) {
         dom.toast.textContent = toast.message;
-        dom.toast.classList.remove('hidden');
+        dom.toast.classList.add('show');
     } else {
-        dom.toast.classList.add('hidden');
+        dom.toast.classList.remove('show');
     }
 }
 

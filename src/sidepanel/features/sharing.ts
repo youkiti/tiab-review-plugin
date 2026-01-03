@@ -8,6 +8,9 @@ import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { addPermission, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 
+// Store互換レイヤー（Phase 4）
+import { closeShareInput } from '../store/compat';
+
 /**
  * 共有設定を追加
  */
@@ -29,7 +32,8 @@ export async function handleShare() {
 
         showToast(`${email} を追加しました`);
         dom.shareEmailInput.value = '';
-        dom.shareInputArea.classList.add('hidden');
+        // Store経由で閉じる
+        closeShareInput();
     } catch (error) {
         console.error('Share error:', error);
         showToast(`追加エラー: ${(error as Error).message}`);

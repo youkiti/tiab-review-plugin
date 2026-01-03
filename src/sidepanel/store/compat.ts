@@ -425,3 +425,40 @@ export function deleteSourceFile(file: string): void {
     legacyState.selectedSourceFiles.delete(file);
     dispatch({ type: 'data/deleteSourceFile', file });
 }
+
+// ========== 一時UI関連（Phase 4） ==========
+
+/**
+ * エクスポートメニューを開閉（Store経由）
+ */
+export function toggleExportMenu(): void {
+    dispatch({ type: 'ui/toggleExportMenu' });
+}
+
+/**
+ * エクスポートメニューを閉じる（Store経由）
+ */
+export function closeExportMenu(): void {
+    dispatch({ type: 'ui/closeExportMenu' });
+}
+
+/**
+ * 共有入力欄を開閉（Store経由）
+ */
+export function toggleShareInput(): void {
+    dispatch({ type: 'ui/toggleShareInput' });
+}
+
+/**
+ * 共有入力欄を閉じる（Store経由）
+ */
+export function closeShareInput(): void {
+    dispatch({ type: 'ui/closeShareInput' });
+}
+
+/**
+ * すべてのメニューを閉じる（Store経由）
+ */
+export function closeAllMenus(): void {
+    dispatch({ type: 'ui/closeAllMenus' });
+}
