@@ -16,6 +16,7 @@ const elements = {
     stats: {
         include: () => document.getElementById('ml-count-include'),
         exclude: () => document.getElementById('ml-count-exclude'),
+        remaining: () => document.getElementById('ml-count-remaining'),
     },
     stopping: {
         container: () => document.getElementById('ml-stopping-progress-container'),
@@ -203,6 +204,14 @@ export function renderMlStats() {
     // Label Counts
     if (elements.stats.include()) elements.stats.include()!.textContent = mlState.labeledCount.include.toString();
     if (elements.stats.exclude()) elements.stats.exclude()!.textContent = mlState.labeledCount.exclude.toString();
+
+    // Remaining Count
+    if (elements.stats.remaining()) {
+        const total = state.references.length;
+        const labeled = mlState.labeledCount.include + mlState.labeledCount.exclude;
+        const remaining = Math.max(0, total - labeled);
+        elements.stats.remaining()!.textContent = remaining.toString();
+    }
 
     // Stopping Rule
     const stopping = mlState.stoppingRule;
