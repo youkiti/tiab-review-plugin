@@ -21,44 +21,21 @@ export function renderLayout(state: AppState): void {
 
     // screening/llm/ml は同じ「スクリーニングセクション」内でタブ切替
     const isScreeningView = view === 'screening';
-    dom.screeningSection.classList.toggle('hidden', !isScreeningView);
+    const isManualTabActive = isScreeningView && currentTab === 'screening';
+
+    // Fix: Only show screeningSection (Manual UI) if we are in manual tab
+    dom.screeningSection.classList.toggle('hidden', !isManualTabActive);
 
     // config-section（プロジェクト設定の見出しを含む）はMLタブ・AIタブでは非表示
-    const isManualTabActive = isScreeningView && currentTab === 'screening';
     const shouldShowConfigSection = view === 'login' || view === 'project' || isManualTabActive;
     dom.configSection.classList.toggle('hidden', !shouldShowConfigSection);
 
     // ========== スクリーニングセクション内のタブ表示 ==========
+    // Fix: Ensure LLM/ML sections are hidden if not in their respective tabs/view
+    dom.llmSection.classList.toggle('hidden', !(isScreeningView && currentTab === 'llm'));
+    dom.mlSection.classList.toggle('hidden', !(isScreeningView && currentTab === 'ml'));
+
     if (isScreeningView) {
-        // 手動タブかどうか
-        const isManualTab = currentTab === 'screening';
-
-        // タブコンテンツの表示切替
-        // screeningSection 内の reference-detail 等
-        const referenceDetail = document.getElementById('reference-detail');
-        if (referenceDetail) {
-            referenceDetail.classList.toggle('hidden', !isManualTab);
-        }
-        dom.llmSection.classList.toggle('hidden', currentTab !== 'llm');
-        dom.mlSection.classList.toggle('hidden', currentTab !== 'ml');
-
-        // 手動タブ専用要素：MLタブ/AIタブでは非表示
-        const importSection = document.getElementById('import-section');
-        const filtersDiv = document.querySelector('.filters') as HTMLElement | null;
-        const decisionButtons = document.querySelector('.decision-buttons') as HTMLElement | null;
-        const navigationDiv = document.querySelector('.navigation') as HTMLElement | null;
-        const configSettings = document.getElementById('config-settings');
-        const noteSection = document.querySelector('.form-group') as HTMLElement | null;
-        const sourceFiltersSection = document.getElementById('source-filters-section');
-
-        if (importSection) importSection.classList.toggle('hidden', !isManualTab);
-        if (filtersDiv) filtersDiv.classList.toggle('hidden', !isManualTab);
-        if (decisionButtons) decisionButtons.classList.toggle('hidden', !isManualTab);
-        if (navigationDiv) navigationDiv.classList.toggle('hidden', !isManualTab);
-        if (configSettings) configSettings.classList.toggle('hidden', !isManualTab);
-        if (noteSection) noteSection.classList.toggle('hidden', !isManualTab);
-        if (sourceFiltersSection) sourceFiltersSection.classList.toggle('hidden', !isManualTab);
-
         // タブボタンのアクティブ状態
         dom.tabScreeningBtn.classList.toggle('active', currentTab === 'screening');
         dom.tabLlmBtn.classList.toggle('active', currentTab === 'llm');
