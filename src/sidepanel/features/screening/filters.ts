@@ -11,6 +11,18 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 
+// Store互換レイヤー（Phase 3）
+import {
+    setCurrentIndex as syncSetCurrentIndex,
+    setCurrentFilter as syncSetCurrentFilter,
+    addTermFilter as syncAddTermFilter,
+    removeTermFilter as syncRemoveTermFilter,
+    addSelectedSourceFile as syncAddSelectedSourceFile,
+    removeSelectedSourceFile as syncRemoveSelectedSourceFile,
+    deleteSourceFile as syncDeleteSourceFile,
+    setReferences as syncSetReferences,
+} from '../../store/compat';
+
 // 外部描画関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
 
@@ -310,13 +322,13 @@ export function renderSourceFilters() {
         checkbox.id = `source-${file}`;
         checkbox.checked = state.selectedSourceFiles.has(file);
         checkbox.addEventListener('change', () => {
+            // Store経由で両方に同期
             if (checkbox.checked) {
-                state.addSelectedSourceFile(file);
+                syncAddSelectedSourceFile(file);
             } else {
-                state.removeSelectedSourceFile(file);
+                syncRemoveSelectedSourceFile(file);
             }
-            // フィルター適用
-            state.setCurrentIndex(0);
+            // 注意: syncAdd/Remove はcurrentIndexを0にリセットする
             if (_renderCurrentReference) _renderCurrentReference();
         });
 
@@ -346,19 +358,17 @@ export function renderSourceFilters() {
 
                     const deletedCount = await deleteReferencesBySourceFile(state.spreadsheetId, file);
 
-                    // データを再読み込み
+                    // データを再読み込み（Store経由で両方に同期）
                     const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-                    state.setReferences(refs);
+                    syncSetReferences(refs);
 
-                    // 状態更新
+                    // 状態更新（Store経由で両方に同期）
                     if (state.references.filter(r => r.source_file === file).length === 0) {
-                        state.sourceFiles.delete(file);
-                        state.selectedSourceFiles.delete(file);
+                        syncDeleteSourceFile(file);
                     }
 
-                    // UI更新
+                    // UI更新（syncDeleteSourceFileがcurrentIndexを0にリセット）
                     renderSourceFilters();
-                    state.setCurrentIndex(0);
                     if (_renderCurrentReference) _renderCurrentReference();
 
                     showToast(`${deletedCount} 件を削除しました`);
@@ -382,8 +392,9 @@ export function renderSourceFilters() {
  * ステータスフィルターの変更を処理
  */
 export function handleStatusFilterChange() {
-    state.setCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
-    state.setCurrentIndex(0);
+    // Store経由で両方に同期（currentFilterとcurrentIndex）
+    syncSetCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
+    // 注意: syncSetCurrentFilterはcurrentIndexを0にリセットするので、別途呼び出し不要
     if (_renderCurrentReference) _renderCurrentReference();
 }
 
@@ -391,7 +402,8 @@ export function handleStatusFilterChange() {
  * 検索入力の変更を処理
  */
 export function handleSearchInput() {
-    state.setCurrentIndex(0);
+    // Store経由でインデックスをリセット
+    syncSetCurrentIndex(0);
     if (_renderCurrentReference) _renderCurrentReference();
 }
 
@@ -405,8 +417,8 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
     );
     if (exists) return;
 
-    state.addTermFilter({ term, type });
-    state.setCurrentIndex(0);
+    // Store経由で両方に同期（addTermFilterはcurrentIndexを0にリセット）
+    syncAddTermFilter(term, type);
     renderActiveTermFilters();
     if (_renderCurrentReference) _renderCurrentReference();
 }
@@ -415,8 +427,8 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
  * タームフィルターを削除
  */
 export function removeTermFilter(term: string, type: string) {
-    state.removeTermFilter(term, type);
-    state.setCurrentIndex(0);
+    // Store経由で両方に同期（removeTermFilterはcurrentIndexを0にリセット）
+    syncRemoveTermFilter(term, type);
     renderActiveTermFilters();
     if (_renderCurrentReference) _renderCurrentReference();
 }

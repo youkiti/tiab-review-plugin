@@ -18,6 +18,16 @@ import { renderKeyStatus } from './render';
 import { renderReviewerFilter } from './reviewer-filter';
 import { getReviewerKey } from './reviewer-utils';
 
+// Store互換レイヤー（Phase 3）
+import {
+    setCurrentIndex as syncSetCurrentIndex,
+    setCurrentFilter as syncSetCurrentFilter,
+    setIsKeyOpened as syncSetIsKeyOpened,
+    setReferences as syncSetReferences,
+    setAvailableReviewers as syncSetAvailableReviewers,
+    setEnabledReviewers as syncSetEnabledReviewers,
+} from '../../store/compat';
+
 // 外部レンダリング関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
 let _renderSpecificReference: ((ref: any) => void) | null = null;
@@ -87,7 +97,8 @@ export async function navigate(direction: number) {
     }
 
     if (filtered.length > 0) {
-        state.setCurrentIndex(newIndex);
+        // Store経由で両方に同期
+        syncSetCurrentIndex(newIndex);
         if (_renderCurrentReference) {
             _renderCurrentReference();
         }
@@ -182,21 +193,22 @@ export async function handleKeyToggle() {
         try {
             showLoading(true);
             await setKeyOpenedStatus(state.spreadsheetId, false);
-            state.setIsKeyOpened(false);
+            // Store経由で両方に同期
+            syncSetIsKeyOpened(false);
 
             // データを再読み込み（自分の判定のみ取得になる）
             const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-            state.setReferences(refs);
+            syncSetReferences(refs);
 
-            // レビュアーフィルターをクリア
-            state.setAvailableReviewers(new Set());
-            state.setEnabledReviewers(new Set());
+            // レビュアーフィルターをクリア（Store経由）
+            syncSetAvailableReviewers(new Set());
+            syncSetEnabledReviewers(new Set());
 
             // 表示を更新
             renderKeyStatus();
             renderReviewerFilter();  // レビュアーリストを非表示に
-            state.setCurrentIndex(0);
-            state.setCurrentFilter('pending');
+            syncSetCurrentIndex(0);
+            syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
 
@@ -221,13 +233,14 @@ export async function handleKeyToggle() {
         try {
             showLoading(true);
             await setKeyOpenedStatus(state.spreadsheetId, true);
-            state.setIsKeyOpened(true);
+            // Store経由で両方に同期
+            syncSetIsKeyOpened(true);
 
             // データを再読み込み（全員の判定を取得）
             const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
             console.log('[handleKeyToggle] refs count:', refs.length);
             console.log('[handleKeyToggle] refs with allDecisions:', refs.filter(r => r.allDecisions && r.allDecisions.length > 0).length);
-            state.setReferences(refs);
+            syncSetReferences(refs);
 
             // レビュアーを抽出
             const reviewers = new Set<string>();
@@ -243,15 +256,16 @@ export async function handleKeyToggle() {
                 reviewers.add(state.userEmail);
             }
             console.log('[handleKeyToggle] Extracted reviewers:', Array.from(reviewers));
-            state.setAvailableReviewers(reviewers);
-            state.setEnabledReviewers(new Set(reviewers));
+            // Store経由で両方に同期
+            syncSetAvailableReviewers(reviewers);
+            syncSetEnabledReviewers(new Set(reviewers));
             console.log('[handleKeyToggle] enabledReviewers set:', Array.from(state.enabledReviewers));
 
             // 表示を更新
             renderKeyStatus();
             renderReviewerFilter();
-            state.setCurrentIndex(0);
-            state.setCurrentFilter('pending');
+            syncSetCurrentIndex(0);
+            syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
 

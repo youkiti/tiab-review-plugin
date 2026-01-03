@@ -7,6 +7,14 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
 
+// Store互換レイヤー（Phase 3）
+import {
+    toggleSettingsView,
+    closeSettingsView,
+    updateSettings,
+    setCurrentIndex as syncSetCurrentIndex,
+} from '../store/compat';
+
 // 外部関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
 
@@ -52,7 +60,8 @@ export function hideSettings() {
  * 自動遷移設定の変更を処理
  */
 export async function handleAutoNavigateChange() {
-    state.setAutoNavigateAfterDecision(dom.autoNavigateCheckbox.checked);
+    // Store経由で両方に同期
+    updateSettings('autoNavigateAfterDecision', dom.autoNavigateCheckbox.checked);
     console.log('[handleAutoNavigateChange] 設定変更:', state.autoNavigateAfterDecision);
     await saveUserSettings();
     showToast(state.autoNavigateAfterDecision
@@ -85,33 +94,17 @@ export async function loadUserSettings() {
     const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd', 'treatMlAsManual']);
     console.log('[loadUserSettings] 読み込み:', result);
 
-    // デフォルトはtrue（自動遷移する）
-    if (result.autoNavigateAfterDecision !== undefined) {
-        state.setAutoNavigateAfterDecision(result.autoNavigateAfterDecision);
-    } else {
-        state.setAutoNavigateAfterDecision(true);
-    }
+    // デフォルトはtrue（自動遷移する）- Store経由で両方に同期
+    updateSettings('autoNavigateAfterDecision', result.autoNavigateAfterDecision ?? true);
 
-    // デフォルトはtrue（タイトル下に表示）
-    if (result.showRecordCountBelow !== undefined) {
-        state.setShowRecordCountBelow(result.showRecordCountBelow);
-    } else {
-        state.setShowRecordCountBelow(true);
-    }
+    // デフォルトはtrue（タイトル下に表示）- Store経由で両方に同期
+    updateSettings('showRecordCountBelow', result.showRecordCountBelow ?? true);
 
-    // デフォルトはtrue（AND検索）
-    if (result.termFilterUseAnd !== undefined) {
-        state.setTermFilterUseAnd(result.termFilterUseAnd);
-    } else {
-        state.setTermFilterUseAnd(true);
-    }
+    // デフォルトはtrue（AND検索）- Store経由で両方に同期
+    updateSettings('termFilterUseAnd', result.termFilterUseAnd ?? true);
 
-    // デフォルトはtrue（ML判定を手動判定と同一視）
-    if (result.treatMlAsManual !== undefined) {
-        state.setTreatMlAsManual(result.treatMlAsManual);
-    } else {
-        state.setTreatMlAsManual(true);
-    }
+    // デフォルトはtrue（ML判定を手動判定と同一視）- Store経由で両方に同期
+    updateSettings('treatMlAsManual', result.treatMlAsManual ?? true);
 
     // チェックボックスの状態を更新
     dom.autoNavigateCheckbox.checked = state.autoNavigateAfterDecision;
@@ -130,7 +123,8 @@ export async function loadUserSettings() {
  * レコード件数表示設定の変更を処理
  */
 export async function handleShowRecordCountChange() {
-    state.setShowRecordCountBelow(dom.showRecordCountCheckbox.checked);
+    // Store経由で両方に同期
+    updateSettings('showRecordCountBelow', dom.showRecordCountCheckbox.checked);
     console.log('[handleShowRecordCountChange] 設定変更:', state.showRecordCountBelow);
     await saveUserSettings();
 
@@ -148,13 +142,14 @@ export async function handleShowRecordCountChange() {
  * ターム検索AND/OR設定の変更を処理
  */
 export async function handleTermFilterAndChange() {
-    state.setTermFilterUseAnd(dom.termFilterAndCheckbox.checked);
+    // Store経由で両方に同期
+    updateSettings('termFilterUseAnd', dom.termFilterAndCheckbox.checked);
     console.log('[handleTermFilterAndChange] 設定変更:', state.termFilterUseAnd);
     await saveUserSettings();
 
-    // フィルターが適用中なら即時反映
+    // フィルターが適用中なら即時反映（Store経由でインデックスリセット）
     if (state.spreadsheetId && state.activeTermFilters.length > 0 && _renderCurrentReference) {
-        state.setCurrentIndex(0);
+        syncSetCurrentIndex(0);
         _renderCurrentReference();
     }
 
@@ -167,13 +162,14 @@ export async function handleTermFilterAndChange() {
  * ML判定と手動判定の同一視設定の変更を処理
  */
 export async function handleTreatMlAsManualChange() {
-    state.setTreatMlAsManual(dom.treatMlAsManualCheckbox.checked);
+    // Store経由で両方に同期
+    updateSettings('treatMlAsManual', dom.treatMlAsManualCheckbox.checked);
     console.log('[handleTreatMlAsManualChange] 設定変更:', state.treatMlAsManual);
     await saveUserSettings();
 
-    // 表示を即時更新
+    // 表示を即時更新（Store経由でインデックスリセット）
     if (state.spreadsheetId && _renderCurrentReference) {
-        state.setCurrentIndex(0);
+        syncSetCurrentIndex(0);
         _renderCurrentReference();
     }
 

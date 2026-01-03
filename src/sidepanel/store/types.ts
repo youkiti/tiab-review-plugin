@@ -126,6 +126,9 @@ export type Action =
     | { type: 'data/setSourceFiles'; files: Set<string> }
     | { type: 'data/setSelectedSourceFiles'; files: Set<string> }
     | { type: 'data/toggleSourceFile'; file: string }
+    | { type: 'data/addSelectedSourceFile'; file: string }
+    | { type: 'data/removeSelectedSourceFile'; file: string }
+    | { type: 'data/deleteSourceFile'; file: string }
     | { type: 'data/setAvailableReviewers'; reviewers: Set<string> }
     | { type: 'data/setEnabledReviewers'; reviewers: Set<string> }
     | { type: 'data/toggleReviewer'; reviewerId: string }

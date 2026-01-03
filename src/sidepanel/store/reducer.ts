@@ -223,6 +223,51 @@ export function reducer(state: AppState, action: Action): AppState {
             };
         }
 
+        case 'data/addSelectedSourceFile': {
+            const newSelected = new Set(state.data.selectedSourceFiles);
+            newSelected.add(action.file);
+            return {
+                ...state,
+                data: { ...state.data, selectedSourceFiles: newSelected },
+                ui: {
+                    ...state.ui,
+                    screening: { ...state.ui.screening, currentIndex: 0 },
+                },
+            };
+        }
+
+        case 'data/removeSelectedSourceFile': {
+            const newSelected = new Set(state.data.selectedSourceFiles);
+            newSelected.delete(action.file);
+            return {
+                ...state,
+                data: { ...state.data, selectedSourceFiles: newSelected },
+                ui: {
+                    ...state.ui,
+                    screening: { ...state.ui.screening, currentIndex: 0 },
+                },
+            };
+        }
+
+        case 'data/deleteSourceFile': {
+            const newSourceFiles = new Set(state.data.sourceFiles);
+            newSourceFiles.delete(action.file);
+            const newSelectedSourceFiles = new Set(state.data.selectedSourceFiles);
+            newSelectedSourceFiles.delete(action.file);
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    sourceFiles: newSourceFiles,
+                    selectedSourceFiles: newSelectedSourceFiles,
+                },
+                ui: {
+                    ...state.ui,
+                    screening: { ...state.ui.screening, currentIndex: 0 },
+                },
+            };
+        }
+
         case 'data/setAvailableReviewers':
             return {
                 ...state,

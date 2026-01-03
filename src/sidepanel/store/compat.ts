@@ -400,3 +400,28 @@ export function updateSettings(key: string, value: boolean): void {
             break;
     }
 }
+
+/**
+ * ソースファイルを選択に追加（両方に同期）
+ */
+export function addSelectedSourceFile(file: string): void {
+    legacyState.addSelectedSourceFile(file);
+    dispatch({ type: 'data/addSelectedSourceFile', file });
+}
+
+/**
+ * ソースファイルを選択から削除（両方に同期）
+ */
+export function removeSelectedSourceFile(file: string): void {
+    legacyState.removeSelectedSourceFile(file);
+    dispatch({ type: 'data/removeSelectedSourceFile', file });
+}
+
+/**
+ * ソースファイル自体を削除（両方に同期）
+ */
+export function deleteSourceFile(file: string): void {
+    legacyState.sourceFiles.delete(file);
+    legacyState.selectedSourceFiles.delete(file);
+    dispatch({ type: 'data/deleteSourceFile', file });
+}
