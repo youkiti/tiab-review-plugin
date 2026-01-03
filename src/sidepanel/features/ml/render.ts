@@ -1,4 +1,6 @@
 import { state } from '../../state';
+import { dom } from '../../dom';
+
 import { getStoppingProgressPercent } from '../../../lib/ml/stopping-rules';
 import { highlightText } from '../screening/render';
 import { showToast } from '../../ui/feedback';
@@ -115,7 +117,11 @@ function renderMlReference() {
     elements.ref.authors()!.textContent = ref.authors || 'Unknown Authors';
     elements.ref.year()!.textContent = ref.year?.toString() || '';
     elements.ref.abstract()!.innerHTML = highlightText(ref.abstract || '(No Abstract)', highlightTerms);
+
+    // メモ欄を復元
+    dom.mlNoteInput.value = ref.myDecision?.note || '';
 }
+
 
 /**
  * キーワードリストの表示更新

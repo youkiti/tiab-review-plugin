@@ -138,8 +138,8 @@
                 <span class="en">Help Guide</span>
             </h1>
             <p class="last-updated">
-                <span class="ja">最終更新: 2024年12月29日</span>
-                <span class="en">Last updated: December 29, 2024</span>
+                <span class="ja">最終更新: 2026年1月3日</span>
+                <span class="en">Last updated: January 3, 2026</span>
             </p>
 
             <!-- 目次 -->
@@ -164,6 +164,10 @@
                     <li><a href="#settings">
                             <span class="ja">設定オプション</span> /
                             <span class="en">Settings</span>
+                        </a></li>
+                    <li><a href="#ml-screening">
+                            <span class="ja">MLスクリーニング（機械学習支援）</span> /
+                            <span class="en">ML Screening (Machine Learning)</span>
                         </a></li>
                     <li><a href="#ai-screening">
                             <span class="ja">AIスクリーニング支援</span> /
@@ -412,6 +416,177 @@
                 </p>
             </section>
 
+            <!-- MLスクリーニング -->
+            <section id="ml-screening" class="help-section">
+                <h2>
+                    <span class="ja">MLスクリーニング（機械学習支援）</span>
+                    <span class="en">ML Screening (Machine Learning)</span>
+                </h2>
+                <p>
+                    <span class="ja">タイトル・抄録などのレコードを「Include /
+                        Exclude」でラベル付けし、機械学習（アクティブラーニング）で残りの提示順を並べ替えながらスクリーニングを進める機能です。判断が追加されるたびにモデルは更新され、より関連しそうなレコードが先に出るようになります。</span>
+                    <span class="en">This feature labels records (title/abstract) as Include/Exclude and uses machine
+                        learning (active learning) to reorder the remaining records. The model updates with each
+                        decision, prioritizing more relevant records.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">基本コンセプト</span>
+                    <span class="en">Basic Concept</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja">レコードを1件ずつ読み、Include（Relevant）/ Exclude（Irrelevant）を付けます。</span>
+                        <span class="en">Read records one by one and label them as Include (Relevant) or Exclude
+                            (Irrelevant).</span>
+                    </li>
+                    <li>
+                        <span
+                            class="ja">判断が増えるたびにモデル学習が走り、未読レコードの順位（提示順）が更新されます。学習はバックグラウンドで非同期に進み、スクリーニングを止めずに続けられます。</span>
+                        <span class="en">The model learns with each new decision and updates the ranking of unread
+                            records. Learning runs asynchronously in the background, so you can continue
+                            screening.</span>
+                    </li>
+                    <li>
+                        <span class="ja">新規レビューでは、初回学習に最低限<strong>「Include 1件 + Exclude
+                                1件」</strong>が必要です（1+1ルール）。</span>
+                        <span class="en">For new reviews, the initial training requires at least <strong>1 Include + 1
+                                Exclude</strong> (1+1 rule).</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">新規レビュー開始の流れ</span>
+                    <span class="en">Starting a New Review</span>
+                </h3>
+                <ol>
+                    <li>
+                        <span class="ja"><strong>データセットを読み込む</strong>：CSV/TSVなど、タイトル・抄録を含むデータを取り込みます。</span>
+                        <span class="en"><strong>Load dataset</strong>: Import data containing titles and abstracts
+                            (CSV/TSV etc.).</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>（任意）Prior knowledge
+                                を追加</strong>：すでに「明らかに組み入れ（Include）」と分かる論文がある場合、検索機能で探して先にラベルを付けます。最初から大量にラベル付けせず、種として正確な
+                            prior knowledge を少数入れる方が効率的です。</span>
+                        <span class="en"><strong>(Optional) Add prior knowledge</strong>: If you already know some
+                            papers should definitely be included, search and label them first. Add only a small number
+                            as seeds rather than labeling many at once.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>スクリーニング開始</strong>：ML画面で、1件ずつ判断していきます。</span>
+                        <span class="en"><strong>Start screening</strong>: Enter the ML screen and make decisions one by
+                            one.</span>
+                    </li>
+                </ol>
+
+                <h3>
+                    <span class="ja">学習開始条件（ラベル数）と挙動</span>
+                    <span class="en">Learning Trigger Conditions</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span
+                            class="ja"><strong>自動開始条件</strong>：Includeが1件以上、Excludeが1件以上そろった時点（1+1）でモデル学習と推薦を有効化します。</span>
+                        <span class="en"><strong>Auto-start condition</strong>: Model training and recommendations are
+                            enabled when there is at least 1 Include and 1 Exclude (1+1).</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>条件未満の間</strong>：提示順はランダム（もしくは固定の初期順）として扱い、状態表示が出ます（例：Need at least 1
+                            include & 1 exclude）。</span>
+                        <span class="en"><strong>Before conditions are met</strong>: Records are presented in random or
+                            initial order, with a status message displayed (e.g., "Need at least 1 include & 1
+                            exclude").</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>都度更新</strong>：判断が増えるたびに（学習中でなければ）新しいモデル学習が走り、順位が更新されます。</span>
+                        <span class="en"><strong>Continuous updates</strong>: Each new decision triggers model
+                            retraining (if not already in progress) and ranking updates.</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">スクリーニング画面の使い方</span>
+                    <span class="en">Using the Screening Interface</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja">レコード（タイトル・抄録）を読み、Include または Exclude を選択します。次のレコードが表示されます。</span>
+                        <span class="en">Read the record (title/abstract) and select Include or Exclude. The next record
+                            will be displayed.</span>
+                    </li>
+                    <li>
+                        <span class="ja">任意で、ノートを残します（後でフィルタ・理由整理に役立ちます）。</span>
+                        <span class="en">Optionally add notes (useful for filtering, PRISMA reporting, and audit
+                            later).</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">p(relevant) の表示方針</span>
+                    <span class="en">p(relevant) Display Policy</span>
+                </h3>
+                <p>
+                    <span class="ja">p(relevant)（関連確率スコア）は非表示です。常時表示はアンカリング等の運用バイアスを招く可能性があるためです。</span>
+                    <span class="en">p(relevant) (relevance probability score) is hidden by default. Constant display
+                        may cause anchoring bias.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">後半フェーズの運用</span>
+                    <span class="en">Late-Phase Workflow</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>前半</strong>：モデル構築を助けるため、Include/Exclude を丁寧に判断。特に境界例は慎重に。</span>
+                        <span class="en"><strong>Early phase</strong>: Make careful Include/Exclude decisions to help
+                            model training. Be especially careful with borderline cases.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>後半</strong>：関連が薄いレコードが増え、Exclude
+                            が中心になります。疲労で判断が雑になりやすいので注意です。</span>
+                        <span class="en"><strong>Late phase</strong>: Less relevant records increase and Excludes become
+                            dominant. As fatigue may affect judgment quality, be careful.</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">2人レビュー（独立スクリーニング）</span>
+                    <span class="en">Dual Review (Independent Screening)</span>
+                </h3>
+                <p>
+                    <span class="ja">独立したスクリーニングを行う場合の最小ルール案：</span>
+                    <span class="en">Minimum rules for independent screening:</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>原則</strong>：2人が独立に Include/Exclude を付ける</span>
+                        <span class="en"><strong>Principle</strong>: Two reviewers independently assign
+                            Include/Exclude</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>その後</strong>：不一致だけ抽出し、合議または第三者で解決</span>
+                        <span class="en"><strong>Then</strong>: Extract conflicts only and resolve through discussion or
+                            third-party arbitration</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>方式A</strong>：各自が別プロジェクトで学習（独立性が高い）</span>
+                        <span class="en"><strong>Method A</strong>: Each reviewer uses separate projects for learning
+                            (high independence)</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>方式B</strong>：同一プロジェクトで共同学習（効率重視だが相互影響が出やすい）</span>
+                        <span class="en"><strong>Method B</strong>: Shared project for joint learning (more efficient
+                            but may cause mutual influence)</span>
+                    </li>
+                </ul>
+                <p>
+                    <span class="ja">実装と監査性の観点では、方式Aが説明しやすいことが多いです。</span>
+                    <span class="en">From implementation and auditability perspectives, Method A is often easier to
+                        explain.</span>
+                </p>
+            </section>
+
             <!-- AIスクリーニング -->
             <section id="ai-screening" class="help-section">
                 <h2>
@@ -526,6 +701,31 @@
                         <span class="ja">A: 全てのデータはあなたのGoogle Driveに保存されます。プラグインはデータを外部サーバーに送信しません。</span>
                         <span class="en">A: All data is stored in your Google Drive. The plugin does not send data to
                             external servers.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: どれくらい集まったらML学習開始？</span>
+                        <span class="en">Q: When does ML training start?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: Include と Exclude が各1件以上（1+1）で自動開始し、その後は判断が増えるたびに更新されます。</span>
+                        <span class="en">A: Training starts automatically when there is at least 1 Include and 1 Exclude
+                            (1+1), and updates with each new decision thereafter.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: 最初に Include を何件くらい入れる？</span>
+                        <span class="en">Q: How many Includes should I add initially?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 既知の Include があるなら少数（数件）で十分です。大量に付けるより、種として正確な prior knowledge
+                            を入れる方が効率的です。</span>
+                        <span class="en">A: If you have known Includes, a small number (a few) is sufficient. Adding
+                            accurate prior knowledge as seeds is more efficient than labeling many at once.</span>
                     </p>
                 </div>
             </section>

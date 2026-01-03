@@ -142,6 +142,8 @@ const domElements = {
     // ========== ML Section ==========
     get mlSection() { return getElement<HTMLElement>('ml-section'); },
     get mlSettingsBtn() { return getElement<HTMLButtonElement>('ml-settings-btn'); },
+    get mlNoteInput() { return getElement<HTMLTextAreaElement>('ml-note'); },
+
 
     // LLM Criteria
     get criteriaCard() { return getElement<HTMLElement>('criteria-card'); },
