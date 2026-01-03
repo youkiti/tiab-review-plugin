@@ -18,8 +18,10 @@ import {
     isUserAdmin,
     forceReauth,
     ensureHeaders,
+    saveDecision as apiSaveDecision,
 } from '../../lib/sheets-api';
 import { getReviewerKey } from './screening/reviewer-utils';
+import { flushDecisionQueue } from '../utils/offline-queue';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -291,6 +293,14 @@ export async function loadDataAndShowScreening() {
         if (_renderKeywords) _renderKeywords();
         if (_renderSourceFilters) _renderSourceFilters();
         if (_renderCurrentReference) _renderCurrentReference();
+
+        try {
+            await flushDecisionQueue(spreadsheetId, userEmail, (queued) =>
+                apiSaveDecision(spreadsheetId, queued)
+            );
+        } catch (error) {
+            console.error('Queue flush error:', error);
+        }
     } catch (error) {
         console.error('Load data error:', error);
         showStatus(`データ読み込みエラー: ${(error as Error).message}`, 'error');

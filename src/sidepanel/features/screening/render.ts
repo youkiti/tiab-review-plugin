@@ -138,7 +138,6 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
     const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
         ? detectConflictWithSettings(ref.allDecisions, state.treatMlAsManual)
         : false;
-    console.log('[renderReferenceDetails] isKeyOpened:', state.isKeyOpened, 'allDecisions:', ref.allDecisions?.length, 'hasConflict:', hasConflict);
     if (state.isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
         renderAllDecisions(ref);
         dom.allDecisionsDiv.classList.remove('hidden');
@@ -285,8 +284,6 @@ function updateDecisionButtons(ref: ReferenceWithStatus) {
 function renderAllDecisions(ref: ReferenceWithStatus) {
     if (!ref.allDecisions) return;
 
-    console.log('[renderAllDecisions] ref.allDecisions:', ref.allDecisions.length, 'items');
-    console.log('[renderAllDecisions] state.enabledReviewers:', Array.from(state.enabledReviewers));
 
     // treatMlAsManualがオンの場合、手動とMLの両方があるかを検出
     const mixedReviewers = new Set<string>();
@@ -387,7 +384,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
 
                         // Reasonsヘッダー
                         const label = document.createElement('div');
-                        label.innerHTML = '?? <b>AI Reasons:</b>';
+                        label.innerHTML = '<b>AI理由:</b>';
                         noteDiv.appendChild(label);
 
                         // リスト作成
@@ -410,7 +407,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
             }
 
             if (!isJson) {
-                noteDiv.textContent = `?? ${decision.note}`;
+                noteDiv.textContent = `メモ: ${decision.note}`;
             }
             div.appendChild(noteDiv);
         }

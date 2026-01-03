@@ -20,6 +20,8 @@ import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { initModal } from './features/ml/dialogs';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
+import { flushDecisionQueue } from './utils/offline-queue';
+import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
 
 // Store（Phase 2で導入）
 import { initializeStore, subscribe, getState } from './store';
@@ -89,6 +91,21 @@ llm.setHandleBack(project.handleBack);
 
 // Global Event Listeners setup
 document.addEventListener('DOMContentLoaded', () => {
+    const flushQueueIfReady = async () => {
+        if (!state.spreadsheetId || !state.userEmail) return;
+        try {
+            await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
+                apiSaveDecision(state.spreadsheetId, queued)
+            );
+        } catch (error) {
+            console.error('Queue flush error:', error);
+        }
+    };
+
+    window.addEventListener('online', () => {
+        void flushQueueIfReady();
+    });
+
     // Auth
     dom.loginBtn?.addEventListener('click', auth.handleLogin);
     dom.logoutBtn?.addEventListener('click', auth.handleLogout);
@@ -255,4 +272,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Start App
     auth.initApp();
+    void flushQueueIfReady();
 });

@@ -2,8 +2,9 @@ import { state } from '../../state';
 import { calculateThresholdFromPercent, STOPPING_PRESETS } from '../../../lib/ml/stopping-rules';
 import { createStoppingRule } from '../../../lib/ml/types';
 import { showModal, hideModal } from './dialogs';
-import { mlClient } from '../../../lib/ml/worker-client';
 import { renderMlStats } from './render';
+import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
+import { showToast } from '../../ui/feedback';
 
 // Store互換レイヤー（Phase 5）
 import { setMlState as syncSetMlState } from '../../store/compat';
@@ -247,7 +248,6 @@ export function showStoppingReachedDialog(onContinue: (addCount: number) => void
  */
 function showBulkExcludeConfirmDialog(onComplete: () => void) {
     // 未判定件数を計算
-    const { getMlStats } = require('./actions');
     const stats = getMlStats();
 
     const body = document.createElement('div');
@@ -298,7 +298,6 @@ function showBulkExcludeConfirmDialog(onComplete: () => void) {
         progressDiv.style.display = 'block';
 
         // 一括Exclude実行
-        const { bulkExcludeRemaining } = require('./actions');
         const result = await bulkExcludeRemaining((current: number, total: number) => {
             progressText.textContent = `処理中... ${current} / ${total}`;
             progressBar.style.width = `${(current / total) * 100}%`;
@@ -307,7 +306,6 @@ function showBulkExcludeConfirmDialog(onComplete: () => void) {
         hideModal();
 
         // 完了通知
-        const { showToast } = require('../../ui/feedback');
         showToast(`${result.successCount}件をExcludeとして保存しました`);
 
         // コールバック実行
@@ -331,7 +329,6 @@ function showBulkExcludeConfirmDialog(onComplete: () => void) {
  * ML完了ダイアログ
  */
 function showMlCompleteDialog() {
-    const { getMlStats, resetAndStartNewMlReview } = require('./actions');
     const stats = getMlStats();
 
     const body = document.createElement('div');

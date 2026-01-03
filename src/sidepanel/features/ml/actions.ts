@@ -1,44 +1,22 @@
 import { state } from '../../state';
 import { mlClient } from '../../../lib/ml/worker-client';
-import {
-    saveDecision as apiSaveDecision,
-    getReferencesWithStatus,
-    getDecisions,
-    appendDecisions,
-    updateDecisionsBatch
-} from '../../../lib/sheets-api';
+import { saveDecision as apiSaveDecision } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
-import { MlRecord, Label, createStoppingRule } from '../../../lib/ml/types';
+import { createStoppingRule } from '../../../lib/ml/types';
 import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
-import { showToast, showLoading } from '../../ui/feedback';
+import { showToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
+import { buildMlLabelsFromReferences, initMlWorker } from './operations';
+import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
+import { getMlClientVersion } from './version';
 
 // Store互換レイヤー（Phase 5）
 import {
     changeTab as syncChangeTab,
     setMlState as syncSetMlState,
-    setReferences as syncSetReferences,
 } from '../../store/compat';
-
-// Map ML Label type
-function mapDecisionToLabel(decision: 'include' | 'exclude'): 1 | 0 {
-    return decision === 'include' ? 1 : 0;
-}
-
-function buildMlLabelsFromReferences(): Record<string, Label> {
-    const labels: Record<string, Label> = {};
-
-    state.references.forEach((ref) => {
-        const decision = ref.myDecision?.decision;
-        if (decision === 'include' || decision === 'exclude') {
-            labels[ref.ref_id] = mapDecisionToLabel(decision);
-        }
-    });
-
-    return labels;
-}
 
 // ========== ストレージ関数 ==========
 
@@ -128,6 +106,25 @@ export function initMlHandlers() {
     });
 }
 
+async function saveMlDecisionWithQueue(decision: Decision) {
+    try {
+        await apiSaveDecision(state.spreadsheetId, decision);
+    } catch (err) {
+        console.error('Failed to save decision', err);
+        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
+        showToast('オフラインのため判定をキューに保存しました');
+        return;
+    }
+
+    try {
+        await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
+            apiSaveDecision(state.spreadsheetId, queued)
+        );
+    } catch (err) {
+        console.error('Queue flush error:', err);
+    }
+}
+
 export async function activateMlTab() {
     // Store経由で両方に同期
     syncChangeTab('ml');
@@ -169,22 +166,6 @@ export async function activateMlTab() {
 }
 
 
-async function initMlWorker() {
-    // 1. Prepare records for Worker (mlRecord format)
-    // We use all references currently loaded
-    const mlRecords = state.references.map(r => ({
-        refId: r.ref_id, // Map id to refId
-        title: r.title || '',
-        abstract: r.abstract || ''
-    }));
-
-    // 2. Prepare Labels
-    // We need to fetch current labels map
-    const labels = buildMlLabelsFromReferences();
-
-    mlClient.init(mlRecords, labels);
-}
-
 async function handleMlDecision(decision: 'include' | 'exclude') {
     // 1. Identify current record
     const ref = getCurrentMlReference();
@@ -197,16 +178,13 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         reviewer_id: state.userEmail,
         decision,
         decided_at: new Date().toISOString(),
-        client_version: '0.7.0-ml',  // ML Enhanced marker
+        client_version: getMlClientVersion('-ml'),
     };
     ref.myDecision = decisionObj;
     ref.status = decision; // Local update
 
     // API Save (background)
-    apiSaveDecision(state.spreadsheetId, decisionObj).catch(err => {
-        console.error('Failed to save decision', err);
-        showToast('保存に失敗しました'); // Fixed: removed 'error'
-    });
+    saveMlDecisionWithQueue(decisionObj);
 
     // 3. Update Stopping Rule
     if (state.mlState.stoppingRule) {
@@ -356,174 +334,3 @@ export function handleMlKeydown(e: KeyboardEvent) {
  * @param onProgress 進捗コールバック (current, total)
  * @returns 保存成功件数
  */
-export async function bulkExcludeRemaining(
-    onProgress?: (current: number, total: number) => void
-): Promise<{ successCount: number; totalCount: number }> {
-    // 未判定レコードを取得
-    const unlabeledRefs = state.references.filter(r =>
-        !r.myDecision || r.status === 'pending'
-    );
-
-    const totalCount = unlabeledRefs.length;
-    if (totalCount === 0) return { successCount: 0, totalCount: 0 };
-
-    let processedCount = 0;
-    let successCount = 0;
-
-    // 1. 現在の決定状況を一括取得（UpdateかAppendか判断するため）
-    // 個別にapiSaveDecisionを呼ぶと、都度読み込みが発生して遅い＆API制限にかかるため
-    let myDecisionsMap = new Map<string, { rowIndex: number; decisionId: string }>();
-    try {
-        const allDecisions = await getDecisions(state.spreadsheetId);
-        allDecisions.forEach(({ decision, rowIndex }) => {
-            if (decision.reviewer_id === state.userEmail) {
-                myDecisionsMap.set(decision.ref_id, {
-                    rowIndex,
-                    decisionId: decision.decision_id
-                });
-            }
-        });
-    } catch (err) {
-        console.error('Failed to pre-fetch decisions:', err);
-        // 失敗した場合でも続行不能とするか、個別処理にフォールバックするか？
-        // ここではエラーとして終了
-        throw new Error('事前データの取得に失敗しました');
-    }
-
-    // 2. 更新用・追加用リストを作成
-    const toAppend: { ref: any; decision: Decision }[] = [];
-    const toUpdate: { ref: any; rowIndex: number; decision: Decision }[] = [];
-
-    const now = new Date().toISOString();
-
-    for (const ref of unlabeledRefs) {
-        const existing = myDecisionsMap.get(ref.ref_id);
-        const decisionId = existing ? existing.decisionId : crypto.randomUUID();
-
-        const decision: Decision = {
-            decision_id: decisionId,
-            ref_id: ref.ref_id,
-            reviewer_id: state.userEmail,
-            decision: 'exclude',
-            note: 'ML stopping rule - auto excluded',
-            decided_at: now,
-            client_version: '0.7.0-ml-auto',
-        };
-
-        if (existing) {
-            toUpdate.push({ ref, rowIndex: existing.rowIndex, decision });
-        } else {
-            toAppend.push({ ref, decision });
-        }
-    }
-
-    // 3. バッチ実行（チャンク分割して進捗報告できるようにする）
-    const BATCH_SIZE = 100; // API制限を回避しつつ高速化
-
-    // Append実行
-    for (let i = 0; i < toAppend.length; i += BATCH_SIZE) {
-        const chunk = toAppend.slice(i, i + BATCH_SIZE);
-        try {
-            await appendDecisions(state.spreadsheetId, chunk.map(c => c.decision));
-
-            // ローカル状態更新
-            chunk.forEach(item => {
-                item.ref.myDecision = item.decision;
-                item.ref.status = 'exclude';
-            });
-            successCount += chunk.length;
-        } catch (err) {
-            console.error('Batch append failed:', err);
-        }
-
-        processedCount += chunk.length;
-        if (onProgress) onProgress(processedCount, totalCount);
-    }
-
-    // Update実行
-    for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
-        const chunk = toUpdate.slice(i, i + BATCH_SIZE);
-        try {
-            await updateDecisionsBatch(
-                state.spreadsheetId,
-                chunk.map(c => ({ rowIndex: c.rowIndex, decision: c.decision }))
-            );
-
-            // ローカル状態更新
-            chunk.forEach(item => {
-                item.ref.myDecision = item.decision;
-                item.ref.status = 'exclude';
-            });
-            successCount += chunk.length;
-        } catch (err) {
-            console.error('Batch update failed:', err);
-        }
-
-        processedCount += chunk.length;
-        if (onProgress) onProgress(processedCount, totalCount);
-    }
-
-    return { successCount, totalCount };
-}
-
-/**
- * 現在のML状態の統計を取得
- */
-export function getMlStats(): {
-    include: number;
-    exclude: number;
-    autoExcluded: number;
-    remaining: number;
-} {
-    let include = 0;
-    let exclude = 0;
-    let autoExcluded = 0;
-    let remaining = 0;
-
-    state.references.forEach(ref => {
-        if (!ref.myDecision || ref.status === 'pending') {
-            remaining++;
-        } else if (ref.myDecision.decision === 'include') {
-            include++;
-        } else if (ref.myDecision.decision === 'exclude') {
-            if (ref.myDecision.client_version?.includes('-ml-auto')) {
-                autoExcluded++;
-            }
-            exclude++;
-        }
-    });
-
-    return { include, exclude, autoExcluded, remaining };
-}
-
-/**
- * MLレビューをリセットして新規開始
- */
-export async function resetAndStartNewMlReview() {
-    showLoading(true);
-
-    try {
-        // 1. 参照データを再読み込み（最新の判定情報込み）
-        const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-        // Store経由で両方に同期
-        syncSetReferences(refs);
-
-        // 2. ML状態をリセット
-        const { createInitialMlState } = await import('../../../lib/ml/types');
-        // Store経由で両方に同期
-        syncSetMlState(createInitialMlState());
-
-        // 3. ML Workerを再初期化
-        await initMlWorker();
-
-        // 4. UI更新
-        renderMlSection();
-
-        showToast('新しいMLレビューを開始しました');
-    } catch (err) {
-        console.error('Failed to reset ML review:', err);
-        showToast('リセットに失敗しました');
-    } finally {
-        showLoading(false);
-    }
-}

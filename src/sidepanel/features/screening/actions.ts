@@ -17,6 +17,7 @@ import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
 import { renderReviewerFilter } from './reviewer-filter';
 import { getReviewerKey } from './reviewer-utils';
+import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -40,6 +41,27 @@ export function setActionDependencies(deps: {
     _renderSpecificReference = deps.renderSpecificReference;
 }
 
+async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolean) {
+    try {
+        await apiSaveDecision(state.spreadsheetId, decision);
+    } catch (error) {
+        console.error('Failed to save decision:', error);
+        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
+        if (notifyOnFailure) {
+            showToast('オフラインのため判定をキューに保存しました');
+        }
+        return;
+    }
+
+    try {
+        await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
+            apiSaveDecision(state.spreadsheetId, queued)
+        );
+    } catch (error) {
+        console.error('Queue flush error:', error);
+    }
+}
+
 /**
  * ナビゲーション処理
  */
@@ -59,11 +81,7 @@ export async function navigate(direction: number) {
                 currentRef.myDecision.decided_at = new Date().toISOString();
 
                 // バックグラウンドで保存
-                apiSaveDecision(state.spreadsheetId, currentRef.myDecision)
-                    .then(() => console.log('Note saved on navigate:', currentRef.myDecision))
-                    .catch((error) => {
-                        console.error('Failed to save note on navigate:', error);
-                    });
+                saveDecisionWithQueue(currentRef.myDecision, false);
             } else if (currentNote) {
                 // 未判定だがメモが入力されている場合は新しいDecisionを作成
                 const newDecision: Decision = {
@@ -78,11 +96,7 @@ export async function navigate(direction: number) {
                 currentRef.myDecision = newDecision;
 
                 // バックグラウンドで保存
-                apiSaveDecision(state.spreadsheetId, newDecision)
-                    .then(() => console.log('Note saved on navigate (new decision):', newDecision))
-                    .catch((error) => {
-                        console.error('Failed to save note on navigate:', error);
-                    });
+                saveDecisionWithQueue(newDecision, false);
             }
         }
     }
@@ -155,7 +169,6 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
     }
 
     // 次の文献へ（自動遷移設定が有効な場合のみ）
-    console.log('[handleDecision] autoNavigateAfterDecision:', state.autoNavigateAfterDecision);
     if (state.autoNavigateAfterDecision) {
         // 自動遷移オン: UIを更新して次へ
         if (_renderCurrentReference) _renderCurrentReference();
@@ -167,12 +180,7 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
     }
 
     // APIに保存（バックグラウンド、UIブロックしない）
-    apiSaveDecision(state.spreadsheetId, decisionObj)
-        .then(() => console.log('Decision saved:', decisionObj))
-        .catch((error) => {
-            console.error('Failed to save decision:', error);
-            // TODO: オフラインキューに追加
-        });
+    saveDecisionWithQueue(decisionObj, true);
 }
 
 /**
@@ -238,8 +246,6 @@ export async function handleKeyToggle() {
 
             // データを再読み込み（全員の判定を取得）
             const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
-            console.log('[handleKeyToggle] refs count:', refs.length);
-            console.log('[handleKeyToggle] refs with allDecisions:', refs.filter(r => r.allDecisions && r.allDecisions.length > 0).length);
             syncSetReferences(refs);
 
             // レビュアーを抽出
@@ -255,11 +261,9 @@ export async function handleKeyToggle() {
             if (state.userEmail) {
                 reviewers.add(state.userEmail);
             }
-            console.log('[handleKeyToggle] Extracted reviewers:', Array.from(reviewers));
             // Store経由で両方に同期
             syncSetAvailableReviewers(reviewers);
             syncSetEnabledReviewers(new Set(reviewers));
-            console.log('[handleKeyToggle] enabledReviewers set:', Array.from(state.enabledReviewers));
 
             // 表示を更新
             renderKeyStatus();

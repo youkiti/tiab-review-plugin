@@ -82,6 +82,11 @@ npm run watch
 | `npm run lint` | ESLint実行 |
 | `npm run typecheck` | 型チェック |
 
+## オフライン同期
+
+- 判定保存に失敗した場合はキューに退避し、オンライン復帰時や次回保存時に再送します
+- 100件未満は `chrome.storage.local`、100件以上は IndexedDB に保存します
+
 ## ディレクトリ構造
 
 ```
