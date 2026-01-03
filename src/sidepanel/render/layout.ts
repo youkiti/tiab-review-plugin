@@ -25,14 +25,34 @@ export function renderLayout(state: AppState): void {
 
     // ========== スクリーニングセクション内のタブ表示 ==========
     if (isScreeningView) {
+        // 手動タブかどうか
+        const isManualTab = currentTab === 'screening';
+
         // タブコンテンツの表示切替
         // screeningSection 内の reference-detail 等
         const referenceDetail = document.getElementById('reference-detail');
         if (referenceDetail) {
-            referenceDetail.classList.toggle('hidden', currentTab !== 'screening');
+            referenceDetail.classList.toggle('hidden', !isManualTab);
         }
         dom.llmSection.classList.toggle('hidden', currentTab !== 'llm');
         dom.mlSection.classList.toggle('hidden', currentTab !== 'ml');
+
+        // 手動タブ専用要素：MLタブ/AIタブでは非表示
+        const importSection = document.getElementById('import-section');
+        const filtersDiv = document.querySelector('.filters') as HTMLElement | null;
+        const decisionButtons = document.querySelector('.decision-buttons') as HTMLElement | null;
+        const navigationDiv = document.querySelector('.navigation') as HTMLElement | null;
+        const configSettings = document.getElementById('config-settings');
+        const noteSection = document.querySelector('.form-group') as HTMLElement | null;
+        const sourceFiltersSection = document.getElementById('source-filters-section');
+
+        if (importSection) importSection.classList.toggle('hidden', !isManualTab);
+        if (filtersDiv) filtersDiv.classList.toggle('hidden', !isManualTab);
+        if (decisionButtons) decisionButtons.classList.toggle('hidden', !isManualTab);
+        if (navigationDiv) navigationDiv.classList.toggle('hidden', !isManualTab);
+        if (configSettings) configSettings.classList.toggle('hidden', !isManualTab);
+        if (noteSection) noteSection.classList.toggle('hidden', !isManualTab);
+        if (sourceFiltersSection) sourceFiltersSection.classList.toggle('hidden', !isManualTab);
 
         // タブボタンのアクティブ状態
         dom.tabScreeningBtn.classList.toggle('active', currentTab === 'screening');

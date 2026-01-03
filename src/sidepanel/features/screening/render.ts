@@ -10,6 +10,7 @@ import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } 
 import type { ReferenceWithStatus } from '../../../lib/types';
 import { showStatus } from '../../ui/feedback';
 import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
+import { detectConflictWithSettings } from '../../render/helpers';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -133,13 +134,16 @@ export function renderSpecificReference(ref: ReferenceWithStatus) {
  * 特定の文献を描画（内部関数）
  */
 function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number) {
-    // コンフリクト表示
-    console.log('[renderReferenceDetails] isKeyOpened:', state.isKeyOpened, 'allDecisions:', ref.allDecisions?.length);
+    // コンフリクト表示（treatMlAsManual設定を考慮して動的に計算）
+    const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
+        ? detectConflictWithSettings(ref.allDecisions, state.treatMlAsManual)
+        : false;
+    console.log('[renderReferenceDetails] isKeyOpened:', state.isKeyOpened, 'allDecisions:', ref.allDecisions?.length, 'hasConflict:', hasConflict);
     if (state.isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
         renderAllDecisions(ref);
         dom.allDecisionsDiv.classList.remove('hidden');
 
-        if (ref.hasConflict) {
+        if (hasConflict) {
             dom.conflictBanner.classList.remove('hidden');
         } else {
             dom.conflictBanner.classList.add('hidden');
@@ -336,6 +340,11 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
     dom.allDecisionsDiv.innerHTML = '';
     reviewerIds.forEach((reviewerKey) => {
         if (!reviewerKey) return;
+        // treatMlAsManualがONの場合、::mlサフィックス付きのキーはスキップ
+        // （既にメインのキーにマージされているため）
+        if (state.treatMlAsManual && reviewerKey.endsWith('::ml')) {
+            return;
+        }
         const decision = decisionsMap.get(reviewerKey);
         const decisionValue = decision?.decision || 'pending';
 

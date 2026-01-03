@@ -282,6 +282,8 @@ export async function loadDataAndShowScreening() {
         }
 
         // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
+        // ログイン成功時のステータスメッセージを非表示にする
+        hideStatus();
         showScreeningView();
 
         // 表示（Store経由で同期）

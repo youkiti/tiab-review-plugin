@@ -141,3 +141,57 @@ export function getMlBadgeHtml(clientVersion?: string): string {
 
     return '';
 }
+
+/**
+ * 不一致を検出（treatMlAsManual設定を考慮）
+ * - treatMlAsManualがONの場合、同一ユーザーのML判定と手動判定を同一視
+ * - 2人以上のレビュアーが存在し、判定内容が異なる場合のみ不一致
+ */
+export function detectConflictWithSettings(
+    decisions: import('../../lib/types').Decision[],
+    treatMlAsManual: boolean
+): boolean {
+    if (decisions.length === 0) {
+        return false;
+    }
+
+    // レビュアーごとの最新判定をマップ化
+    const reviewerDecisions = new Map<string, import('../../lib/types').Decision>();
+
+    decisions.forEach(d => {
+        const reviewerId = (d.reviewer_id || '').trim();
+        if (!reviewerId) return;
+
+        // LLMはそのまま
+        let reviewerKey = reviewerId;
+
+        // treatMlAsManualがONで、かつML判定(0.7.0-ml、autoを除く)の場合
+        // 同一ユーザーの手動判定と同じキーにする
+        if (!reviewerId.startsWith('llm:') && treatMlAsManual) {
+            if (d.client_version?.startsWith('0.7.0-ml') && !d.client_version.includes('auto')) {
+                // ML判定も手動と同じreviewerIdをキーとする（サフィックスなし）
+                reviewerKey = reviewerId;
+            }
+        } else if (!reviewerId.startsWith('llm:') && !treatMlAsManual) {
+            // treatMlAsManualがOFFの場合、ML判定は別キーにする
+            if (d.client_version?.includes('-ml')) {
+                reviewerKey = `${reviewerId}::ml`;
+            }
+        }
+
+        const existing = reviewerDecisions.get(reviewerKey);
+        if (!existing || (d.decided_at || '') > (existing.decided_at || '')) {
+            reviewerDecisions.set(reviewerKey, d);
+        }
+    });
+
+    const uniqueReviewers = reviewerDecisions.size;
+
+    // 0人または1人のレビュアーの場合は不一致なし
+    // （マージ後に1人になった場合も含む）
+    if (uniqueReviewers <= 1) return false;
+
+    // 2人以上の場合、判定内容が異なれば不一致
+    const uniqueDecisionValues = new Set([...reviewerDecisions.values()].map(d => d.decision));
+    return uniqueDecisionValues.size > 1;
+}

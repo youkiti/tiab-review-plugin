@@ -6,7 +6,7 @@
 import type { AppState } from '../store/types';
 import { renderLayout, renderTemporaryUI, renderFilterOptions } from './layout';
 import { getFilterCounts, getProgressStats, getFilteredReferences, getCurrentReference, getAiEvidenceList } from '../store/selectors';
-import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml } from './helpers';
+import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings } from './helpers';
 import { dom } from '../dom';
 
 /**
@@ -197,8 +197,11 @@ function renderReferenceDetails(
     dom.navPosition.textContent = `${state.ui.screening.currentIndex + 1} / ${totalFiltered}`;
     dom.filterResultCount.textContent = `${totalFiltered}件中 ${state.ui.screening.currentIndex + 1}件目`;
 
-    // コンフリクト表示
-    if (state.ui.screening.isKeyOpened && ref.hasConflict) {
+    // コンフリクト表示（treatMlAsManual設定を考慮して動的に計算）
+    const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
+        ? detectConflictWithSettings(ref.allDecisions, state.ui.settings.treatMlAsManual)
+        : false;
+    if (state.ui.screening.isKeyOpened && hasConflict) {
         dom.conflictBanner.classList.remove('hidden');
     } else {
         dom.conflictBanner.classList.add('hidden');
@@ -313,6 +316,12 @@ function renderAllDecisions(
         : Array.from(decisionsMap.keys());
 
     reviewerIds.forEach(reviewerId => {
+        // treatMlAsManualがONの場合、::mlサフィックス付きのキーはスキップ
+        // （既にメインのキーにマージされているため）
+        if (state.ui.settings.treatMlAsManual && reviewerId.endsWith('::ml')) {
+            return;
+        }
+
         const decision = decisionsMap.get(reviewerId);
         const decisionValue = decision?.decision || 'pending';
 
@@ -476,4 +485,4 @@ function renderSettingsSection(state: AppState): void {
 
 // ========== Export ==========
 export { renderLayout, renderTemporaryUI, renderFilterOptions } from './layout';
-export { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml } from './helpers';
+export { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings } from './helpers';

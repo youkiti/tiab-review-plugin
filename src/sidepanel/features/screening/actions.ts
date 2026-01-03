@@ -290,6 +290,11 @@ export function handleKeydown(e: KeyboardEvent) {
         return;
     }
 
+    // screeningタブがアクティブでない場合は処理しない（ML/AIタブでは各自のハンドラを使用）
+    if (state.currentTab !== 'screening') {
+        return;
+    }
+
     // 修飾キーなし
     if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
         switch (e.key.toLowerCase()) {
