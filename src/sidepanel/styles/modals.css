@@ -153,8 +153,19 @@
     font-size: 13px;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    /* デフォルトは非表示 */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
 }
 
+/* .showで表示（既存のshowToast関数との互換性） */
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* 後方互換性のため.hiddenも維持 */
 .toast.hidden {
     display: none;
 }
