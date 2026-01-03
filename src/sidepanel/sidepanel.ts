@@ -59,7 +59,8 @@ settings.setSettingsDependencies({
         } else {
             screeningRender.renderCurrentReference();
         }
-    }
+    },
+    renderReviewerFilter: reviewerFilter.renderReviewerFilter
 });
 
 importExport.setImportExportDependencies({
@@ -203,10 +204,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back button
     dom.backBtn?.addEventListener('click', project.handleBack);
 
+    // ========== Store初期化（Phase 2） ==========
+    // Storeを初期化 - 他のハンドラより先に初期化する必要がある
+    initializeStore();
+
+    // Storeの状態変更を購読してレイアウトと一時UIを自動更新
+    // 注意: 現在は既存のレンダリング関数と並行して動作
+    // 完全移行後は renderApp() のみを呼び出す
+    subscribe((appState) => {
+        // レイアウト（セクション表示/非表示）を更新
+        renderLayout(appState);
+        // 一時UI（メニュー/トースト/ローディング）を更新
+        renderTemporaryUI(appState);
+    });
+
+    // 初期レイアウト描画
+    renderLayout(getState());
+    renderTemporaryUI(getState());
+
     // LLM
     llm.setupLlmEventListeners();
 
-    // ML
+    // ML (Store初期化後に実行)
     initMlHandlers();
     initModal();
 
@@ -233,24 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
         llm.switchToTab('ml');
         activateMlTab();
     });
-
-    // ========== Store初期化（Phase 2） ==========
-    // Storeを初期化
-    initializeStore();
-
-    // Storeの状態変更を購読してレイアウトと一時UIを自動更新
-    // 注意: 現在は既存のレンダリング関数と並行して動作
-    // 完全移行後は renderApp() のみを呼び出す
-    subscribe((appState) => {
-        // レイアウト（セクション表示/非表示）を更新
-        renderLayout(appState);
-        // 一時UI（メニュー/トースト/ローディング）を更新
-        renderTemporaryUI(appState);
-    });
-
-    // 初期レイアウト描画
-    renderLayout(getState());
-    renderTemporaryUI(getState());
 
     // Start App
     auth.initApp();

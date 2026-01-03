@@ -284,6 +284,31 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
     console.log('[renderAllDecisions] ref.allDecisions:', ref.allDecisions.length, 'items');
     console.log('[renderAllDecisions] state.enabledReviewers:', Array.from(state.enabledReviewers));
 
+    // treatMlAsManualがオンの場合、手動とMLの両方があるかを検出
+    const mixedReviewers = new Set<string>();
+    if (state.treatMlAsManual) {
+        const reviewerVersions = new Map<string, { hasManual: boolean; hasMl: boolean }>();
+        ref.allDecisions.forEach((decision) => {
+            const reviewerId = (decision.reviewer_id || '').trim();
+            if (!reviewerId || reviewerId.startsWith('llm:')) return;
+
+            const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
+            if (decision.client_version === '0.1.0') {
+                current.hasManual = true;
+            }
+            if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+                current.hasMl = true;
+            }
+            reviewerVersions.set(reviewerId, current);
+        });
+
+        reviewerVersions.forEach((versions, reviewerId) => {
+            if (versions.hasManual && versions.hasMl) {
+                mixedReviewers.add(reviewerId);
+            }
+        });
+    }
+
     const decisionsMap = new Map<string, ReferenceWithStatus['myDecision']>();
     ref.allDecisions.forEach((decision) => {
         const reviewerKey = getReviewerKey(decision);
@@ -321,16 +346,19 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         else if (decisionValue === 'exclude') icon = '✕';
         else if (decisionValue === 'maybe') icon = '?';
 
-        // ML Enhanced バッジ
+        // ML Enhanced バッジ (treatMlAsManualがオンで混在の場合は非表示)
         let mlBadge = '';
-        if (decision?.client_version?.includes('-ml-auto')) {
-            mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
-        } else if (decision?.client_version?.includes('-ml')) {
-            mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
+        const isMixed = mixedReviewers.has(reviewerKey);
+        if (!isMixed) {
+            if (decision?.client_version?.includes('-ml-auto')) {
+                mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
+            } else if (decision?.client_version?.includes('-ml')) {
+                mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
+            }
         }
 
         div.innerHTML = `
-            <span class="reviewer">${getReviewerLabel(reviewerKey, state.userEmail)}</span>
+            <span class="reviewer">${getReviewerLabel(reviewerKey, state.userEmail, isMixed)}</span>
             <span class="decision">${icon} ${decisionValue}</span>
             ${mlBadge}
         `;

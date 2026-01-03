@@ -262,14 +262,48 @@ function renderAllDecisions(
     dom.allDecisionsDiv.classList.remove('hidden');
     dom.allDecisionsDiv.innerHTML = '';
 
+    // treatMlAsManualがオンの場合、手動とMLの両方があるかを検出
+    const mixedReviewers = new Set<string>();
+    if (state.ui.settings.treatMlAsManual) {
+        const reviewerVersions = new Map<string, { hasManual: boolean; hasMl: boolean }>();
+        ref.allDecisions.forEach(decision => {
+            const reviewerId = (decision.reviewer_id || '').trim();
+            if (!reviewerId || reviewerId.startsWith('llm:')) return;
+
+            const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
+            if (decision.client_version === '0.1.0') {
+                current.hasManual = true;
+            }
+            if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+                current.hasMl = true;
+            }
+            reviewerVersions.set(reviewerId, current);
+        });
+
+        reviewerVersions.forEach((versions, reviewerId) => {
+            if (versions.hasManual && versions.hasMl) {
+                mixedReviewers.add(reviewerId);
+            }
+        });
+    }
+
     // 判定をレビュアーごとにまとめる（最新のみ）
+    // treatMlAsManualがオンの場合はgetReviewerKeyでまとめる必要がある
     const decisionsMap = new Map<string, import('../../lib/types').Decision>();
     ref.allDecisions.forEach(decision => {
-        const reviewerId = decision.reviewer_id;
-        if (!reviewerId) return;
-        const existing = decisionsMap.get(reviewerId);
+        let reviewerKey = decision.reviewer_id;
+        if (!reviewerKey) return;
+
+        // treatMlAsManualがオンの場合、ML判定(0.7.0-ml)も同じキーとして扱う
+        if (state.ui.settings.treatMlAsManual &&
+            decision.client_version?.startsWith('0.7.0-ml') &&
+            !decision.client_version.includes('auto')) {
+            reviewerKey = (decision.reviewer_id || '').trim();
+        }
+
+        const existing = decisionsMap.get(reviewerKey);
         if (!existing || (decision.decided_at || '') > (existing.decided_at || '')) {
-            decisionsMap.set(reviewerId, decision);
+            decisionsMap.set(reviewerKey, decision);
         }
     });
 
@@ -286,10 +320,16 @@ function renderAllDecisions(
         div.className = `decision-item ${decisionValue}`;
 
         const icon = getDecisionIcon(decisionValue);
-        const mlBadge = getMlBadgeHtml(decision?.client_version);
+
+        // ML Enhanced バッジ (混在の場合は非表示)
+        const isMixed = mixedReviewers.has(reviewerId);
+        const mlBadge = isMixed ? '' : getMlBadgeHtml(decision?.client_version);
+
+        // ラベル生成（混在情報を含む）
+        const label = getReviewerLabelWithMixed(reviewerId, state.data.userEmail, isMixed, state.ui.settings.treatMlAsManual);
 
         div.innerHTML = `
-            <span class="reviewer">${getReviewerLabel(reviewerId, state.data.userEmail)}</span>
+            <span class="reviewer">${label}</span>
             <span class="decision">${icon} ${decisionValue}</span>
             ${mlBadge}
         `;
@@ -330,6 +370,44 @@ function renderAllDecisions(
 
         dom.allDecisionsDiv.appendChild(div);
     });
+}
+
+/**
+ * 混在情報を含むレビュアーラベル生成
+ */
+function getReviewerLabelWithMixed(reviewerId: string, currentUserEmail: string, hasMixed: boolean, treatMlAsManual: boolean): string {
+    if (!reviewerId) return '(不明)';
+
+    // LLM reviewer
+    if (reviewerId.startsWith('llm:')) {
+        const modelName = reviewerId.replace('llm:', '');
+        return `🤖 ${modelName}`;
+    }
+
+    // 混在の場合
+    if (hasMixed && treatMlAsManual) {
+        if (reviewerId === currentUserEmail) {
+            return `👤 自分 (手動＋ML)`;
+        }
+        const atIndex = reviewerId.indexOf('@');
+        if (atIndex > 0) {
+            return `👤 ${reviewerId.substring(0, atIndex)} (手動＋ML)`;
+        }
+        return `👤 ${reviewerId} (手動＋ML)`;
+    }
+
+    // Current user
+    if (reviewerId === currentUserEmail) {
+        return `👤 自分`;
+    }
+
+    // Other human reviewer - show email prefix
+    const atIndex = reviewerId.indexOf('@');
+    if (atIndex > 0) {
+        return `👤 ${reviewerId.substring(0, atIndex)}`;
+    }
+
+    return `👤 ${reviewerId}`;
 }
 
 /**

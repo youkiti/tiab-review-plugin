@@ -5,7 +5,9 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import { getReviewerLabel, isLlmReviewerKey } from './reviewer-utils';
+import { getReviewerLabel, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
+
+const ML_REVIEWER_SUFFIX = '::ml';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -40,6 +42,34 @@ export function renderReviewerFilter() {
     if (!list) return;
 
     list.innerHTML = '';
+
+    // treatMlAsManualがオンの場合、手動とML両方があるレビュアーを検出
+    const mixedReviewers = new Set<string>();
+    if (state.treatMlAsManual) {
+        const reviewerVersions = new Map<string, { hasManual: boolean; hasMl: boolean }>();
+        state.references.forEach(ref => {
+            if (!ref.allDecisions) return;
+            ref.allDecisions.forEach(decision => {
+                const reviewerId = (decision.reviewer_id || '').trim();
+                if (!reviewerId || reviewerId.startsWith('llm:')) return;
+
+                const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
+                if (decision.client_version === '0.1.0') {
+                    current.hasManual = true;
+                }
+                if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+                    current.hasMl = true;
+                }
+                reviewerVersions.set(reviewerId, current);
+            });
+        });
+
+        reviewerVersions.forEach((versions, reviewerId) => {
+            if (versions.hasManual && versions.hasMl) {
+                mixedReviewers.add(reviewerId);
+            }
+        });
+    }
 
     // Evidence Highlight Toggle
     if (state.availableReviewers.size > 0) {
@@ -80,7 +110,25 @@ export function renderReviewerFilter() {
         }
     }
 
+    // treatMlAsManualがオンの場合、::mlサフィックス付きのレビュアーをスキップ
+    // 対応する通常のキーがある場合のみスキップ
+    const processedReviewers = new Set<string>();
+
     state.availableReviewers.forEach(reviewerId => {
+        // treatMlAsManualがオンで、::ml付きのレビュアーの場合
+        if (state.treatMlAsManual && isMlReviewerKey(reviewerId)) {
+            // 対応する通常のキーがあるかチェック
+            const baseId = reviewerId.slice(0, -ML_REVIEWER_SUFFIX.length);
+            if (state.availableReviewers.has(baseId)) {
+                // スキップ（通常のキーで表示される）
+                return;
+            }
+        }
+
+        // 既に処理済みの場合はスキップ
+        if (processedReviewers.has(reviewerId)) return;
+        processedReviewers.add(reviewerId);
+
         const item = document.createElement('div');
         item.className = 'reviewer-filter-item';
 
@@ -89,19 +137,35 @@ export function renderReviewerFilter() {
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = state.enabledReviewers.has(reviewerId);
+        // treatMlAsManualがオンの場合、混在レビュアーは両方のキーを考慮
+        const isMixed = mixedReviewers.has(reviewerId);
+        const mlKey = reviewerId + ML_REVIEWER_SUFFIX;
+        const isEnabledBase = state.enabledReviewers.has(reviewerId);
+        const isEnabledMl = state.treatMlAsManual && isMixed && state.enabledReviewers.has(mlKey);
+        checkbox.checked = isEnabledBase || isEnabledMl;
         checkbox.dataset.reviewer = reviewerId;
 
-        checkbox.addEventListener('change', () => handleReviewerToggle(reviewerId, checkbox.checked));
+        checkbox.addEventListener('change', () => {
+            // 混在の場合は両方のキーを同期
+            if (state.treatMlAsManual && isMixed) {
+                handleReviewerToggle(reviewerId, checkbox.checked);
+                if (state.availableReviewers.has(mlKey)) {
+                    handleReviewerToggle(mlKey, checkbox.checked);
+                }
+            } else {
+                handleReviewerToggle(reviewerId, checkbox.checked);
+            }
+        });
 
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = getReviewerLabel(reviewerId, state.userEmail);
+        // 混在情報を含むラベルを表示
+        nameSpan.textContent = getReviewerLabel(reviewerId, state.userEmail, isMixed);
 
         // AIの場合の装飾
         if (isLlmReviewerKey(reviewerId)) {
             nameSpan.classList.add('reviewer-llm');
- 
-            
+
+
             // AI判定フィルター（AIレビュアーの右側に配置）
             const filterContainer = document.createElement('div');
             filterContainer.style.display = 'flex';

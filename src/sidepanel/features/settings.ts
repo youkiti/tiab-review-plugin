@@ -9,50 +9,41 @@ import { showToast } from '../ui/feedback';
 
 // Store互換レイヤー（Phase 3）
 import {
-    toggleSettingsView,
-    closeSettingsView,
+    changeView,
     updateSettings,
     setCurrentIndex as syncSetCurrentIndex,
 } from '../store/compat';
 
 // 外部関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
+let _renderReviewerFilter: (() => void) | null = null;
 
 export function setSettingsDependencies(deps: {
     renderCurrentReference: () => void;
+    renderReviewerFilter?: () => void;
 }) {
     _renderCurrentReference = deps.renderCurrentReference;
+    _renderReviewerFilter = deps.renderReviewerFilter || null;
 }
 
 /**
  * 設定画面を表示
  */
 export function showSettings() {
-    dom.configSection.classList.add('hidden');
-    dom.screeningSection.classList.add('hidden');
-    dom.llmSection?.classList.add('hidden');
-    dom.mlSection?.classList.add('hidden');
-    dom.settingsSection.classList.remove('hidden');
+    // Store経由でview変更（renderLayoutで反映される）
+    changeView('settings');
 }
 
 /**
  * 設定画面を閉じる
  */
 export function hideSettings() {
-    dom.settingsSection.classList.add('hidden');
-
-    // 前に表示していた画面に戻る
+    // Store経由でview変更（renderLayoutで反映される）
+    // スクリーニングビューに戻る（タブ状態は保持される）
     if (state.spreadsheetId) {
-        // 現在のタブに応じて適切なセクションを表示
-        if (state.currentTab === 'llm') {
-            dom.llmSection?.classList.remove('hidden');
-        } else if (state.currentTab === 'ml') {
-            dom.mlSection?.classList.remove('hidden');
-        } else {
-            dom.screeningSection.classList.remove('hidden');
-        }
+        changeView('screening');
     } else {
-        dom.configSection.classList.remove('hidden');
+        changeView('project');
     }
 }
 
@@ -171,6 +162,11 @@ export async function handleTreatMlAsManualChange() {
     if (state.spreadsheetId && _renderCurrentReference) {
         syncSetCurrentIndex(0);
         _renderCurrentReference();
+    }
+
+    // レビュアーフィルターも更新
+    if (_renderReviewerFilter) {
+        _renderReviewerFilter();
     }
 
     showToast(state.treatMlAsManual

@@ -47,8 +47,8 @@ export function renderLayout(state: AppState): void {
     }
 
     // ========== キーセクションの表示 ==========
-    // 管理者のみ表示（isAdminがtrueの場合のみ）
-    dom.keySection.classList.toggle('hidden', !state.data.isAdmin);
+    // 管理者のみ表示、かつ手動タブのみ表示（ML/AIでは非表示）
+    dom.keySection.classList.toggle('hidden', !state.data.isAdmin || currentTab !== 'screening');
 
     // ========== 共通要素の表示状態 ==========
     // ローディング
@@ -56,7 +56,7 @@ export function renderLayout(state: AppState): void {
 
     // 設定ボタンの表示（view に応じて）
     dom.settingsBtnProject.classList.toggle('hidden', view !== 'project');
-    dom.settingsBtnScreening.classList.toggle('hidden', view !== 'screening' || currentTab !== 'screening');
+    dom.settingsBtnScreening.classList.toggle('hidden', view !== 'screening');
 }
 
 /**
