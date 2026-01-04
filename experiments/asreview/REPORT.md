@@ -12,6 +12,12 @@ CQ1データセットに対して、10-fold internal validation を用い、各f
 
 ## 再現手順
 
+### 0. 仮想環境の設定
+
+```bash
+conda activate asreview
+```
+
 ### 1. fold生成
 
 ```bash
