@@ -436,6 +436,25 @@ export async function handleConfirmThreshold() {
 
         // 実行履歴を更新
         await loadExecutionHistory();
+
+        // ML判定完了後のガイダンスメッセージ
+        setTimeout(() => {
+            const shouldSwitch = confirm(
+                'ML判定が完了しました。\n\n' +
+                '手動タブで判定結果を確認しますか？\n' +
+                '（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）'
+            );
+            if (shouldSwitch) {
+                // 手動タブに切り替え
+                document.getElementById('tab-screening')?.click();
+                // フィルターを「すべて」に設定
+                const statusFilter = document.getElementById('status-filter') as HTMLSelectElement | null;
+                if (statusFilter) {
+                    statusFilter.value = 'all';
+                    statusFilter.dispatchEvent(new Event('change'));
+                }
+            }
+        }, 1000);
     } catch (error) {
         console.error('[handleConfirmThreshold] Error:', error);
         showToast(`保存エラー: ${(error as Error).message}`);

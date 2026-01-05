@@ -278,10 +278,10 @@ export function updateFilterCounts() {
 
     const options = dom.statusFilter.options;
     options[0].textContent = `未判定 (${counts.pending})`;
-    options[1].textContent = `すべて (${counts.all})`;
-    options[2].textContent = `Include (${counts.include})`;
-    options[3].textContent = `Exclude (${counts.exclude})`;
-    options[4].textContent = `Maybe (${counts.maybe})`;
+    options[1].textContent = `すべて（判定済みも含む） (${counts.all})`;
+    options[2].textContent = `Include（修正可） (${counts.include})`;
+    options[3].textContent = `Exclude（修正可） (${counts.exclude})`;
+    options[4].textContent = `Maybe（修正可） (${counts.maybe})`;
     options[5].textContent = `不一致 (${counts.conflict})`;
 
     // フルテキスト候補（独立アルゴリズム）
