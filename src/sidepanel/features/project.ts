@@ -38,7 +38,9 @@ import {
     setAvailableReviewers as syncSetAvailableReviewers,
     setEnabledReviewers as syncSetEnabledReviewers,
     setCurrentIndex as syncSetCurrentIndex,
+    setMlState as syncSetMlState,
 } from '../store/compat';
+import { createInitialMlState } from '../../lib/ml/types';
 
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
@@ -239,6 +241,9 @@ export async function loadDataAndShowScreening() {
             ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
             : await getReferencesWithStatus(spreadsheetId, userEmail);
         syncSetReferences(refs);
+
+        // MLの状態をリセット（前のプロジェクトのデータをクリア）
+        syncSetMlState(createInitialMlState());
 
         // ソースファイルを抽出
         const sourceFiles = new Set<string>();

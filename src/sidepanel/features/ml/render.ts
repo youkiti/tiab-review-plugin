@@ -212,14 +212,28 @@ export function renderMlStats() {
         }
     }
 
-    // Label Counts
-    if (elements.stats.include()) elements.stats.include()!.textContent = mlState.labeledCount.include.toString();
-    if (elements.stats.exclude()) elements.stats.exclude()!.textContent = mlState.labeledCount.exclude.toString();
+    // Label Counts - ML Workerが未初期化の場合はstate.referencesから直接計算
+    let includeCount = mlState.labeledCount.include;
+    let excludeCount = mlState.labeledCount.exclude;
+
+    // フォールバック: Workerカウントが0の場合はreferencesから直接計算
+    if (includeCount === 0 && excludeCount === 0 && state.references.length > 0) {
+        state.references.forEach(ref => {
+            if (ref.myDecision?.decision === 'include') {
+                includeCount++;
+            } else if (ref.myDecision?.decision === 'exclude') {
+                excludeCount++;
+            }
+        });
+    }
+
+    if (elements.stats.include()) elements.stats.include()!.textContent = includeCount.toString();
+    if (elements.stats.exclude()) elements.stats.exclude()!.textContent = excludeCount.toString();
 
     // Remaining Count
     if (elements.stats.remaining()) {
         const total = state.references.length;
-        const labeled = mlState.labeledCount.include + mlState.labeledCount.exclude;
+        const labeled = includeCount + excludeCount;
         const remaining = Math.max(0, total - labeled);
         elements.stats.remaining()!.textContent = remaining.toString();
     }

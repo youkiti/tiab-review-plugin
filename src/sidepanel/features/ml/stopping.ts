@@ -4,6 +4,7 @@ import { createStoppingRule } from '../../../lib/ml/types';
 import { showModal, hideModal } from './dialogs';
 import { renderMlStats } from './render';
 import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
+import { saveStoppingRuleToStorage } from './actions';
 import { showToast } from '../../ui/feedback';
 
 // Store互換レイヤー（Phase 5）
@@ -172,7 +173,8 @@ export function showStoppingSettingsDialog() {
             stoppingRule: rule
         });
 
-        // Save to persistent storage (mock for now, should implement in storage.ts)
+        // ブラウザストレージに永続化
+        saveStoppingRuleToStorage(currentThreshold);
 
         renderMlStats(); // Update UI
         hideModal();

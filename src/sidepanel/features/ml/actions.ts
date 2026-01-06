@@ -25,7 +25,7 @@ import {
 /**
  * 停止基準の設定をブラウザに保存（プロジェクトごと）
  */
-async function saveStoppingRuleToStorage(threshold: number): Promise<void> {
+export async function saveStoppingRuleToStorage(threshold: number): Promise<void> {
     const key = `mlStoppingRule_${state.spreadsheetId}`;
     await chrome.storage.local.set({
         [key]: { confirmed: true, threshold }
@@ -173,6 +173,13 @@ export async function activateMlTab() {
 
 
 async function handleMlDecision(decision: 'include' | 'exclude') {
+    // 設定なしの場合は設定ダイアログを表示して戻す
+    if (!state.mlState.stoppingRule) {
+        showToast('先に停止基準を設定してください');
+        showStoppingSettingsDialog();
+        return;
+    }
+
     // 1. Identify current record
     const ref = getCurrentMlReference();
     if (!ref) return;
