@@ -82,6 +82,7 @@ export function initMlHandlers() {
 
     // Navigation
     dom.mlBtnPrev?.addEventListener('click', () => handleMlPrev());
+    dom.mlBtnNext?.addEventListener('click', () => handleMlForward());
 
     // Subscribe to Worker updates
     mlClient.subscribe((newState) => {
@@ -247,6 +248,12 @@ function handleMlPrev() {
     renderMlSection();
 }
 
+function handleMlForward() {
+    // Move to next item (only within labeled records)
+    moveToNext();
+    renderMlSection();
+}
+
 function moveToPrevious() {
     const filteredRanking = getCurrentMlFilteredRanking();
     if (filteredRanking.length === 0) {
@@ -267,6 +274,43 @@ function moveToPrevious() {
         ...state.mlState,
         currentIndex: newIndex
     });
+}
+
+/**
+ * 次のレコードに移動（判定済みのみ、未判定より先には進まない）
+ */
+function moveToNext() {
+    const filteredRanking = getCurrentMlFilteredRanking();
+    if (filteredRanking.length === 0) {
+        syncSetMlState({ ...state.mlState, currentIndex: 0 });
+        return;
+    }
+
+    const currentIndex = state.mlState.currentIndex;
+    // 未判定の位置を探す（ここが上限）
+    const firstUnlabeledIndex = findFirstUnlabeledIndex(filteredRanking);
+    const maxIndex = firstUnlabeledIndex !== -1 ? firstUnlabeledIndex : filteredRanking.length - 1;
+
+    // 未判定より先には進まない
+    const newIndex = Math.min(maxIndex, currentIndex + 1);
+    syncSetMlState({ ...state.mlState, currentIndex: newIndex });
+}
+
+/**
+ * フィルター済みランキング内で最初の未判定インデックスを返す
+ */
+function findFirstUnlabeledIndex(filteredRanking: string[]): number {
+    for (let i = 0; i < filteredRanking.length; i++) {
+        const refId = filteredRanking[i];
+        const ref = state.references.find(r => r.ref_id === refId);
+        if (ref) {
+            const isLabeled = ref.myDecision && ref.myDecision.decision !== 'pending';
+            if (!isLabeled) {
+                return i;
+            }
+        }
+    }
+    return -1; // 全て判定済み
 }
 
 function moveToNextUnlabeled() {
@@ -357,6 +401,11 @@ export function handleMlKeydown(e: KeyboardEvent) {
             case 'arrowleft': // 前へ
             case 'k':
                 handleMlPrev();
+                e.preventDefault();
+                break;
+            case 'arrowright': // 進む
+            case 'j':
+                handleMlForward();
                 e.preventDefault();
                 break;
         }

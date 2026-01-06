@@ -144,6 +144,7 @@ const domElements = {
     get mlSettingsBtn() { return getElement<HTMLButtonElement>('ml-settings-btn'); },
     get mlNoteInput() { return getElement<HTMLTextAreaElement>('ml-note'); },
     get mlBtnPrev() { return getElement<HTMLButtonElement>('ml-btn-prev'); },
+    get mlBtnNext() { return getElement<HTMLButtonElement>('ml-btn-next'); },
     get mlNavPosition() { return getElement<HTMLElement>('ml-nav-position'); },
 
 

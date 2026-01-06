@@ -221,6 +221,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back button
     dom.backBtn?.addEventListener('click', project.handleBack);
 
+    // Header title click (go back to project selection)
+    document.getElementById('header-title')?.addEventListener('click', project.handleBack);
+
     // ========== Store初期化（Phase 2） ==========
     // Storeを初期化 - 他のハンドラより先に初期化する必要がある
     initializeStore();
