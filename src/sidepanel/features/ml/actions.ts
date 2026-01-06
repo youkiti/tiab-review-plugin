@@ -80,6 +80,9 @@ export function initMlHandlers() {
         document.getElementById('tab-screening')?.click();
     });
 
+    // Navigation
+    dom.mlBtnPrev?.addEventListener('click', () => handleMlPrev());
+
     // Subscribe to Worker updates
     mlClient.subscribe((newState) => {
         const currentState = state.mlState;
@@ -238,6 +241,34 @@ function handleMlNext() {
     renderMlSection();
 }
 
+function handleMlPrev() {
+    // Move to previous item in ranking (including labeled items)
+    moveToPrevious();
+    renderMlSection();
+}
+
+function moveToPrevious() {
+    const filteredRanking = getCurrentMlFilteredRanking();
+    if (filteredRanking.length === 0) {
+        // Store経由で両方に同期
+        syncSetMlState({
+            ...state.mlState,
+            currentIndex: 0
+        });
+        return;
+    }
+
+    // 単純に前のインデックスに移動（判定済みも含む）
+    const currentIndex = state.mlState.currentIndex;
+    const newIndex = Math.max(0, currentIndex - 1);
+
+    // Store経由で両方に同期
+    syncSetMlState({
+        ...state.mlState,
+        currentIndex: newIndex
+    });
+}
+
 function moveToNextUnlabeled() {
     const filteredRanking = getCurrentMlFilteredRanking();
     if (filteredRanking.length === 0) {
@@ -323,10 +354,9 @@ export function handleMlKeydown(e: KeyboardEvent) {
                 handleMlDecision('exclude');
                 e.preventDefault();
                 break;
-            case 'arrowleft': // 前へ（MLでは未対応）
+            case 'arrowleft': // 前へ
             case 'k':
-                // MLモードでは「前へ」は未対応
-                showToast('MLモードでは「前へ」はありません');
+                handleMlPrev();
                 e.preventDefault();
                 break;
         }

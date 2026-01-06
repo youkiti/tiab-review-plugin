@@ -120,6 +120,11 @@ function renderMlReference() {
 
     // メモ欄を復元
     dom.mlNoteInput.value = ref.myDecision?.note || '';
+
+    // ナビゲーション位置を表示
+    if (dom.mlNavPosition) {
+        dom.mlNavPosition.textContent = `${index + 1} / ${filteredRanking.length}`;
+    }
 }
 
 

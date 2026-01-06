@@ -143,6 +143,8 @@ const domElements = {
     get mlSection() { return getElement<HTMLElement>('ml-section'); },
     get mlSettingsBtn() { return getElement<HTMLButtonElement>('ml-settings-btn'); },
     get mlNoteInput() { return getElement<HTMLTextAreaElement>('ml-note'); },
+    get mlBtnPrev() { return getElement<HTMLButtonElement>('ml-btn-prev'); },
+    get mlNavPosition() { return getElement<HTMLElement>('ml-nav-position'); },
 
 
     // LLM Criteria
