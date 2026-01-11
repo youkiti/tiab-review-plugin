@@ -82,6 +82,12 @@ npm run watch
 | `npm run lint` | ESLint実行 |
 | `npm run typecheck` | 型チェック |
 
+## Chrome Web Store への提出（初回公開向け）
+
+- 提出用ZIPは `npm run build:zip` で生成される `dist.zip` をアップロードします。
+- Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
+- `chrome.identity` のOAuthを使う場合、公開後の「拡張機能ID」に紐づくOAuthクライアント（Chrome拡張機能）をGCP側で作成し、`src/manifest.json` の `oauth2.client_id` を差し替える必要があります。
+
 ## オフライン同期
 
 - 判定保存に失敗した場合はキューに退避し、オンライン復帰時や次回保存時に再送します

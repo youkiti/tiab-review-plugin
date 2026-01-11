@@ -23,7 +23,7 @@
     <main class="document-page">
         <div class="container">
             <h1>プライバシーポリシー / Privacy Policy</h1>
-            <p class="last-updated">最終更新日 / Last Updated: 2025年12月27日 / December 27, 2025</p>
+            <p class="last-updated">最終更新日 / Last Updated: 2026年1月11日 / January 11, 2026</p>
 
             <section>
                 <h2>1. はじめに / Introduction</h2>
@@ -55,6 +55,20 @@
                         <span class="ja">本サービスで作成したスプレッドシートへのアクセス</span> / <span class="en">Access to spreadsheets
                             created by this Service</span>
                     </li>
+                    <li>
+                        <strong class="ja">LLM（Gemini）機能（任意）</strong> / <strong class="en">LLM (Gemini) Feature
+                            (Optional)</strong>：
+                        <span class="ja">ユーザーが明示的に実行した場合に、文献のタイトル・抄録などを Gemini API に送信し、判定支援を行います。</span> /
+                        <span class="en">When explicitly enabled by the user, the Service sends reference titles,
+                            abstracts, etc. to the Gemini API to assist screening.</span>
+                    </li>
+                    <li>
+                        <strong class="ja">拡張機能のローカル保存データ</strong> / <strong class="en">Extension Local Storage</strong>：
+                        <span class="ja">設定（スプレッドシートID、UI設定等）、オフライン同期用の判定キュー、（任意）Gemini
+                            APIキーをユーザー端末内に保存します。</span> /
+                        <span class="en">We store settings (spreadsheet ID, UI preferences, etc.), an offline decision
+                            queue for synchronization, and (optionally) the Gemini API key on the user's device.</span>
+                    </li>
                 </ul>
             </section>
 
@@ -69,6 +83,8 @@
                             management</span></li>
                     <li><span class="ja">スプレッドシートの共有機能の提供</span> / <span class="en">Providing spreadsheet sharing
                             functionality</span></li>
+                    <li><span class="ja">（任意）LLM（Gemini）による判定支援</span> / <span class="en">(Optional) Decision support via
+                            LLM (Gemini)</span></li>
                 </ul>
             </section>
 
@@ -80,16 +96,29 @@
                 <p class="ja">すべてのスクリーニングデータは、ユーザー自身の Google Drive 内の Google Sheets に保存されます。データの管理権限はユーザー自身にあります。</p>
                 <p class="en">All screening data is stored in Google Sheets within the user's own Google Drive. Users
                     have full control over their data.</p>
+                <p class="ja">また、本拡張機能の設定やオフライン同期用の判定キューは、ユーザー端末内（Chrome 拡張機能のストレージ / IndexedDB）に保存される場合があります。</p>
+                <p class="en">In addition, the extension's settings and offline decision queue may be stored on the
+                    user's device (Chrome extension storage / IndexedDB).</p>
+                <p class="ja">Gemini APIキーは、ユーザーが「保存」を選択した場合に限り、ユーザー端末内に保存されます（開発者のサーバーには送信・保存しません）。</p>
+                <p class="en">The Gemini API key is stored only on the user's device if the user chooses to save it (we
+                    do not send or store it on developer servers).</p>
             </section>
 
             <section>
                 <h2>5. 情報の第三者提供 / Third-Party Disclosure</h2>
-                <p class="ja">本サービスは、ユーザーの個人情報を第三者に販売、貸与、または共有しません。ただし、以下の場合を除きます：</p>
-                <p class="en">The Service does not sell, rent, or share user personal information with third parties,
-                    except in the following cases:</p>
+                <p class="ja">本サービスは、ユーザーの個人情報を第三者に販売、貸与、または不必要に共有しません。</p>
+                <p class="en">The Service does not sell, rent, or unnecessarily share user personal information with
+                    third parties.</p>
+                <p class="ja">ただし、本サービスの提供に必要な範囲で、ユーザーの操作に応じて以下の第三者サービスへデータを送信する場合があります：</p>
+                <p class="en">However, to provide the Service, we may send data to the following third-party services
+                    based on user actions:</p>
                 <ul>
-                    <li><span class="ja">ユーザーの明示的な同意がある場合</span> / <span class="en">With explicit user consent</span>
-                    </li>
+                    <li><span class="ja">Google Sheets API / Google Drive API（スプレッドシートの読み書き、作成・選択のため）</span> /
+                        <span class="en">Google Sheets API / Google Drive API (to read/write, create, and select
+                            spreadsheets)</span></li>
+                    <li><span class="ja">Google Generative Language API（Gemini）※任意機能（判定支援のため）</span> / <span
+                            class="en">Google Generative Language API (Gemini) *optional feature (for decision
+                            support)</span></li>
                     <li><span class="ja">法令に基づく開示要求がある場合</span> / <span class="en">When required by law</span></li>
                 </ul>
             </section>
@@ -107,11 +136,15 @@
 
             <section>
                 <h2>7. データのセキュリティ / Data Security</h2>
-                <p class="ja">本サービスは、Google の OAuth 2.0
-                    認証を使用してセキュアな認証を行います。アクセストークンはブラウザのローカルストレージに安全に保存され、必要最小限のスコープのみを要求します。</p>
-                <p class="en">The Service uses Google's OAuth 2.0 authentication for secure authorization. Access tokens
-                    are securely stored in the browser's local storage, and only the minimum required scopes are
-                    requested.</p>
+                <p class="ja">本サービスは、Google の OAuth 2.0 認証を使用してセキュアな認証を行います。認証トークンは
+                    <code>chrome.identity</code> により取得し、Google API の呼び出しに必要な範囲で使用します。</p>
+                <p class="en">The Service uses Google's OAuth 2.0 authorization. Authentication tokens are obtained via
+                    <code>chrome.identity</code> and used only as needed to call Google APIs.</p>
+                <p class="ja">本拡張機能は、外部から JavaScript / Wasm をダウンロードして実行することはありません（いわゆるリモートコードは使用しません）。</p>
+                <p class="en">The extension does not download and execute external JavaScript/Wasm (i.e., we do not use
+                    remote code).</p>
+                <p class="ja">Gemini APIキーを保存する場合、ユーザー端末内に暗号化して保存します。</p>
+                <p class="en">If the Gemini API key is saved, it is stored encrypted on the user's device.</p>
             </section>
 
             <section>
@@ -138,9 +171,10 @@
 
             <section>
                 <h2>9. Cookie の使用 / Cookie Usage</h2>
-                <p class="ja">本サービスは Cookie を使用しません。認証情報は Chrome 拡張機能の標準ストレージ API を使用して保存されます。</p>
-                <p class="en">The Service does not use cookies. Authentication information is stored using the Chrome
-                    extension's standard storage API.</p>
+                <p class="ja">本サービスは Cookie を使用しません。設定・オフライン同期用データ等は、Chrome 拡張機能のストレージ API / IndexedDB
+                    を使用してユーザー端末内に保存される場合があります。</p>
+                <p class="en">The Service does not use cookies. Settings and offline sync data may be stored on the
+                    user's device using the Chrome extension storage API / IndexedDB.</p>
             </section>
 
             <section>
