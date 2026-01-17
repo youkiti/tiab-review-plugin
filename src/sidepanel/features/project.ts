@@ -75,12 +75,41 @@ export function handleBack() {
 }
 
 /**
+ * スプレッドシートURLまたはIDからIDを抽出
+ */
+function extractSpreadsheetId(input: string): string | null {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    // URLパターン: https://docs.google.com/spreadsheets/d/{ID}/...
+    const urlMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (urlMatch) {
+        return urlMatch[1];
+    }
+
+    // IDとして有効かチェック（英数字、ハイフン、アンダースコアのみ）
+    if (/^[a-zA-Z0-9_-]+$/.test(trimmed) && trimmed.length > 10) {
+        return trimmed;
+    }
+
+    return null;
+}
+
+/**
  * スプレッドシート接続処理
  */
 export async function handleConnect() {
+    const manualInput = dom.spreadsheetInput.value.trim();
     const selectedId = dom.recentSheetsSelect.value;
-    if (!selectedId) {
-        showStatus('スプレッドシートを選択してください', 'error');
+    const resolvedId = manualInput ? extractSpreadsheetId(manualInput) : selectedId;
+
+    if (!resolvedId) {
+        showStatus(
+            manualInput
+                ? 'スプレッドシートURL/IDが正しくありません'
+                : 'スプレッドシートを選択するかURL/IDを入力してください',
+            'error'
+        );
         return;
     }
 
@@ -89,25 +118,25 @@ export async function handleConnect() {
         hideStatus();
 
         // スプレッドシートの存在確認
-        const info = await getSpreadsheetInfo(selectedId);
+        const info = await getSpreadsheetInfo(resolvedId);
 
         // スプレッドシート形式の検証
-        const validation = await validateSpreadsheetFormat(selectedId);
+        const validation = await validateSpreadsheetFormat(resolvedId);
         if (!validation.valid) {
             showStatus(validation.error || '対応していない形式です', 'error');
             return;
         }
 
         // ヘッダーの整合性を確認（不足があれば追加）
-        await ensureHeaders(selectedId);
+        await ensureHeaders(resolvedId);
 
         showStatus(`接続成功: ${info.title}`, 'success');
 
         // Store経由で両方に同期
-        syncSetSpreadsheetId(selectedId);
+        syncSetSpreadsheetId(resolvedId);
 
         // 設定を保存
-        await chrome.storage.local.set({ spreadsheetId: selectedId });
+        await chrome.storage.local.set({ spreadsheetId: resolvedId });
 
         // データを読み込んで画面切り替え
         await loadDataAndShowScreening();
@@ -322,7 +351,12 @@ export async function loadDataAndShowScreening() {
 export async function loadConfig() {
     const result = await chrome.storage.local.get(['spreadsheetId']);
     if (result.spreadsheetId) {
-        // ドロップダウンで選択
-        dom.recentSheetsSelect.value = result.spreadsheetId;
+        const hasOption = Array.from(dom.recentSheetsSelect.options)
+            .some((opt) => opt.value === result.spreadsheetId);
+        if (hasOption) {
+            dom.recentSheetsSelect.value = result.spreadsheetId;
+        } else {
+            dom.spreadsheetInput.value = result.spreadsheetId;
+        }
     }
 }

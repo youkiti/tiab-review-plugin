@@ -27,6 +27,7 @@ let _domCache: typeof domElements | null = null;
 const domElements = {
     // ========== Config/Project Section ==========
     get configSection() { return getElement<HTMLElement>('config-section'); },
+    get spreadsheetInput() { return getElement<HTMLInputElement>('spreadsheet-input'); },
     get recentSheetsSelect() { return getElement<HTMLSelectElement>('recent-sheets'); },
     get connectBtn() { return getElement<HTMLButtonElement>('connect-btn'); },
     get createBtn() { return getElement<HTMLButtonElement>('create-btn'); },

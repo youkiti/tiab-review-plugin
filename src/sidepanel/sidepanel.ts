@@ -113,7 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Project
     dom.createBtn?.addEventListener('click', project.handleCreateNew);
     dom.connectBtn?.addEventListener('click', project.handleConnect);
-    dom.recentSheetsSelect?.addEventListener('change', project.handleConnect);
+    dom.recentSheetsSelect?.addEventListener('change', () => {
+        if (dom.spreadsheetInput.value.trim()) {
+            dom.spreadsheetInput.value = '';
+        }
+        project.handleConnect();
+    });
+    dom.spreadsheetInput?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') project.handleConnect();
+    });
 
     // Settings
     dom.settingsBtnProject?.addEventListener('click', settings.showSettings);
