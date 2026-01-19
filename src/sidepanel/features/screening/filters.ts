@@ -10,6 +10,7 @@ import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
+import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -58,8 +59,8 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
     // - client_version === '0.1.0' (純粋手動)
     // - OR (treatMlAsManual && client_version startsWith '0.7.0-ml' && reviewer_id === me) (自分のML判定)
     const isManual = (d: Decision) => {
-        if (d.client_version === '0.1.0') return true;
-        if (state.treatMlAsManual && d.reviewer_id === userEmail && d.client_version?.startsWith('0.7.0-ml')) {
+        if (isHumanDecision(d.client_version)) return true;
+        if (state.treatMlAsManual && d.reviewer_id === userEmail && isConfirmedMlDecision(d.client_version)) {
             return true;
         }
         return false;
@@ -93,7 +94,7 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
 
     const isMl = (d: Decision) => {
         // ML系である
-        if (!d.client_version?.includes('-ml')) return false;
+        if (!isMlDecision(d.client_version)) return false;
 
         // 手動とみなされたものは除外
         if (isManual(d)) return false;
@@ -130,9 +131,9 @@ export function getMyManualDecisionStatus(r: ReferenceWithStatus): DecisionStatu
     const isMyManual = (d: Decision) => {
         if (d.reviewer_id !== userEmail) return false;
 
-        if (d.client_version === '0.1.0') return true;
+        if (isHumanDecision(d.client_version)) return true;
 
-        if (state.treatMlAsManual && d.client_version?.startsWith('0.7.0-ml')) {
+        if (state.treatMlAsManual && isConfirmedMlDecision(d.client_version)) {
             return true;
         }
 

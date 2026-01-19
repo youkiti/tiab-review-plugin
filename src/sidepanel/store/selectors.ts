@@ -7,6 +7,7 @@ import type { AppState } from './types';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/types';
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
+import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
 
 // ========== フィルタリング関連 ==========
 
@@ -22,8 +23,8 @@ export function getMyManualDecisionStatus(
 ): DecisionStatus {
     const isMyManual = (d: Decision) => {
         if (d.reviewer_id !== userEmail) return false;
-        if (d.client_version === '0.1.0') return true;
-        if (treatMlAsManual && d.client_version?.startsWith('0.7.0-ml')) {
+        if (isHumanDecision(d.client_version)) return true;
+        if (treatMlAsManual && isConfirmedMlDecision(d.client_version)) {
             return true;
         }
         return false;
@@ -59,8 +60,8 @@ function isFulltextCandidate(
 
     // 1. 手動判定
     const isManual = (d: Decision) => {
-        if (d.client_version === '0.1.0') return true;
-        if (treatMlAsManual && d.reviewer_id === userEmail && d.client_version?.startsWith('0.7.0-ml')) {
+        if (isHumanDecision(d.client_version)) return true;
+        if (treatMlAsManual && d.reviewer_id === userEmail && isConfirmedMlDecision(d.client_version)) {
             return true;
         }
         return false;
@@ -69,7 +70,7 @@ function isFulltextCandidate(
 
     // 2. ML判定（手動とみなされたものは除外）
     const isMl = (d: Decision) => {
-        if (!d.client_version?.includes('-ml')) return false;
+        if (!isMlDecision(d.client_version)) return false;
         if (isManual(d)) return false;
         return true;
     };

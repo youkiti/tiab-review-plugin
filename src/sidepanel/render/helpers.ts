@@ -5,6 +5,7 @@
 
 import type { AppState } from '../store/types';
 import { escapeHtml, escapeRegex } from '../utils/text';
+import { isMlAutoDecision, isMlDecision, isConfirmedMlDecision } from '../../lib/client-version';
 
 /**
  * テキストハイライト処理
@@ -133,9 +134,9 @@ export function getDecisionIcon(decision: string): string {
 export function getMlBadgeHtml(clientVersion?: string): string {
     if (!clientVersion) return '';
 
-    if (clientVersion.includes('-ml-auto')) {
+    if (isMlAutoDecision(clientVersion)) {
         return '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
-    } else if (clientVersion.includes('-ml')) {
+    } else if (isMlDecision(clientVersion)) {
         return '<span class="ml-enhanced-badge">🤖 ML</span>';
     }
 
@@ -168,13 +169,13 @@ export function detectConflictWithSettings(
         // treatMlAsManualがONで、かつML判定(0.7.0-ml、autoを除く)の場合
         // 同一ユーザーの手動判定と同じキーにする
         if (!reviewerId.startsWith('llm:') && treatMlAsManual) {
-            if (d.client_version?.startsWith('0.7.0-ml') && !d.client_version.includes('auto')) {
+            if (isConfirmedMlDecision(d.client_version)) {
                 // ML判定も手動と同じreviewerIdをキーとする（サフィックスなし）
                 reviewerKey = reviewerId;
             }
         } else if (!reviewerId.startsWith('llm:') && !treatMlAsManual) {
             // treatMlAsManualがOFFの場合、ML判定は別キーにする
-            if (d.client_version?.includes('-ml')) {
+            if (isMlDecision(d.client_version)) {
                 reviewerKey = `${reviewerId}::ml`;
             }
         }

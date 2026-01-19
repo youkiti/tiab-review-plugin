@@ -14,6 +14,7 @@ import type {
 import { RATE_LIMIT_PAID } from './types';
 import { screenReference, GeminiModelConfig } from './gemini-api';
 import { PROMPT_VERSION } from './prompt-templates';
+import { getClientVersion } from './client-version';
 
 /**
  * 進捗コールバック型
@@ -152,7 +153,7 @@ async function processWithRetry(
                 reason: '',
                 note: JSON.stringify(noteData),
                 decided_at: timestamp.toISOString(),
-                client_version: 'llm-processor-v1',
+                client_version: getClientVersion('-llm'),
             };
 
             return { success: true, decision, refId: ref.ref_id };

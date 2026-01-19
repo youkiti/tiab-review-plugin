@@ -6,6 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getReviewerLabel, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
+import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -54,10 +55,10 @@ export function renderReviewerFilter() {
                 if (!reviewerId || reviewerId.startsWith('llm:')) return;
 
                 const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
-                if (decision.client_version === '0.1.0') {
+                if (isHumanDecision(decision.client_version)) {
                     current.hasManual = true;
                 }
-                if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+                if (isConfirmedMlDecision(decision.client_version)) {
                     current.hasMl = true;
                 }
                 reviewerVersions.set(reviewerId, current);

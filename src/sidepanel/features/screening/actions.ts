@@ -13,6 +13,7 @@ import {
     getReferencesWithStatus,
     getReferencesWithAllDecisions
 } from '../../../lib/sheets-api';
+import { getClientVersion } from '../../../lib/client-version';
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
 import { renderReviewerFilter } from './reviewer-filter';
@@ -91,7 +92,7 @@ export async function navigate(direction: number) {
                     decision: 'pending',  // 未判定時のメモはpendingとして保存
                     note: currentNote,
                     decided_at: new Date().toISOString(),
-                    client_version: '0.1.0',
+                    client_version: getClientVersion('-human'),
                 };
                 currentRef.myDecision = newDecision;
 
@@ -136,7 +137,7 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         decision,
         note: dom.noteInput.value || undefined,
         decided_at: new Date().toISOString(),
-        client_version: '0.1.0',
+        client_version: getClientVersion('-human'),
     };
 
     // ローカル状態を更新

@@ -1,5 +1,6 @@
 import type { Decision } from '../../../lib/types';
 import { state } from '../../state';
+import { isHumanDecision, isConfirmedMlDecision as isConfirmedMl, isMlDecision } from '../../../lib/client-version';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -7,14 +8,14 @@ const ML_REVIEWER_SUFFIX = '::ml';
  * 判定がML判定か判定する（-ml-autoは除外）
  */
 export function isConfirmedMlDecision(decision: Decision): boolean {
-    return decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto') || false;
+    return isConfirmedMl(decision.client_version);
 }
 
 /**
  * 判定が手動判定か判定する
  */
 export function isManualDecision(decision: Decision): boolean {
-    return decision.client_version === '0.1.0';
+    return isHumanDecision(decision.client_version);
 }
 
 export function getReviewerKey(decision: Decision): string {
@@ -23,13 +24,13 @@ export function getReviewerKey(decision: Decision): string {
     if (reviewerId.startsWith('llm:')) return reviewerId;
 
     // ML判定を手動と同一視する場合の例外
-    // 0.7.0-ml (ユーザー確認済みML) の場合のみ同一視
+    // ユーザー確認済みML の場合のみ同一視
     // ※ -ml-auto などの自動判定は常にML扱いとする
     if (state.treatMlAsManual && isConfirmedMlDecision(decision)) {
         return reviewerId;
     }
 
-    if (decision.client_version?.includes('-ml')) return `${reviewerId}${ML_REVIEWER_SUFFIX}`;
+    if (isMlDecision(decision.client_version)) return `${reviewerId}${ML_REVIEWER_SUFFIX}`;
     return reviewerId;
 }
 

@@ -11,6 +11,7 @@ import type { ReferenceWithStatus } from '../../../lib/types';
 import { showStatus } from '../../ui/feedback';
 import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
 import { detectConflictWithSettings } from '../../render/helpers';
+import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -294,10 +295,10 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
             if (!reviewerId || reviewerId.startsWith('llm:')) return;
 
             const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
-            if (decision.client_version === '0.1.0') {
+            if (isHumanDecision(decision.client_version)) {
                 current.hasManual = true;
             }
-            if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+            if (isConfirmedMlDecision(decision.client_version)) {
                 current.hasMl = true;
             }
             reviewerVersions.set(reviewerId, current);
@@ -356,9 +357,9 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         let mlBadge = '';
         const isMixed = mixedReviewers.has(reviewerKey);
         if (!isMixed) {
-            if (decision?.client_version?.includes('-ml-auto')) {
+            if (isMlAutoDecision(decision?.client_version)) {
                 mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
-            } else if (decision?.client_version?.includes('-ml')) {
+            } else if (isMlDecision(decision?.client_version)) {
                 mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
             }
         }

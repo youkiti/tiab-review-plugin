@@ -8,6 +8,7 @@ import { renderLayout, renderTemporaryUI, renderFilterOptions } from './layout';
 import { getFilterCounts, getProgressStats, getFilteredReferences, getCurrentReference, getAiEvidenceList } from '../store/selectors';
 import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings } from './helpers';
 import { dom } from '../dom';
+import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 
 /**
  * メイン描画関数
@@ -274,10 +275,10 @@ function renderAllDecisions(
             if (!reviewerId || reviewerId.startsWith('llm:')) return;
 
             const current = reviewerVersions.get(reviewerId) || { hasManual: false, hasMl: false };
-            if (decision.client_version === '0.1.0') {
+            if (isHumanDecision(decision.client_version)) {
                 current.hasManual = true;
             }
-            if (decision.client_version?.startsWith('0.7.0-ml') && !decision.client_version.includes('auto')) {
+            if (isConfirmedMlDecision(decision.client_version)) {
                 current.hasMl = true;
             }
             reviewerVersions.set(reviewerId, current);
@@ -299,8 +300,7 @@ function renderAllDecisions(
 
         // treatMlAsManualがオンの場合、ML判定(0.7.0-ml)も同じキーとして扱う
         if (state.ui.settings.treatMlAsManual &&
-            decision.client_version?.startsWith('0.7.0-ml') &&
-            !decision.client_version.includes('auto')) {
+            isConfirmedMlDecision(decision.client_version)) {
             reviewerKey = (decision.reviewer_id || '').trim();
         }
 

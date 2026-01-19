@@ -1,5 +1,5 @@
+import { getClientVersion } from '../../../lib/client-version';
+
 export function getMlClientVersion(suffix: string): string {
-    const manifestVersion = chrome?.runtime?.getManifest?.().version;
-    const baseVersion = manifestVersion || 'unknown';
-    return `${baseVersion}${suffix}`;
+    return getClientVersion(suffix);
 }
