@@ -48,6 +48,13 @@ export function showToast(message: string, duration = 2000) {
 }
 
 /**
+ * トースト通知を非表示
+ */
+export function hideToast() {
+    dom.toast.classList.remove('show');
+}
+
+/**
  * 保存ステータス表示を更新
  */
 export function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error') {

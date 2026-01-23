@@ -8,6 +8,7 @@ import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
 import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG } from '../../../lib/gemini-api';
 import { showSettings } from '../settings';
+import { hideToast } from '../../ui/feedback';
 import {
     loadApiKeyStatus,
     toggleApiKeyVisibility,
@@ -110,6 +111,7 @@ export function setupLlmEventListeners() {
  * ここではStore更新とLLM初期化のみ行う
  */
 export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
+    hideToast();
     // Store経由で両方に同期（renderLayoutで表示が更新される）
     syncChangeTab(tab);
 

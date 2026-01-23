@@ -276,9 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Switching
     dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
-    dom.tabMlBtn?.addEventListener('click', () => {
-        llm.switchToTab('ml');
-        activateMlTab();
+    dom.tabMlBtn?.addEventListener('click', async () => {
+        await activateMlTab();
     });
 
     // Start App

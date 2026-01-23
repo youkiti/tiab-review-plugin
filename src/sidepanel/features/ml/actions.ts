@@ -8,7 +8,7 @@ import { createStoppingRule, isCmhStoppingRule } from '../../../lib/ml/types';
 import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
-import { showToast } from '../../ui/feedback';
+import { showToast, hideToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 import { buildMlLabelsFromReferences, initMlWorker } from './operations';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
@@ -131,7 +131,7 @@ async function saveMlDecisionWithQueue(decision: Decision) {
     }
 }
 
-export async function activateMlTab() {
+export async function activateMlTab(): Promise<boolean> {
     const { canUseCmhStopping } = await import('../../../lib/ml/stopping-rules');
     const { CMH_DEFAULTS } = await import('../../../lib/ml/cmh');
 
@@ -139,8 +139,10 @@ export async function activateMlTab() {
     const totalRecords = state.references.length;
     if (!canUseCmhStopping(totalRecords)) {
         showToast(`ML機能は${CMH_DEFAULTS.minRecords}件以上のデータセットでのみ使用できます（現在: ${totalRecords}件）`);
-        return;
+        return false;
     }
+
+    hideToast();
 
     // Store経由で両方に同期
     syncChangeTab('ml');
@@ -179,6 +181,8 @@ export async function activateMlTab() {
             renderMlSection();  // UI全体を更新
         }
     }
+
+    return true;
 }
 
 
