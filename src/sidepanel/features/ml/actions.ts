@@ -4,7 +4,7 @@ import { dom } from '../../dom';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { saveDecision as apiSaveDecision } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
-import { createStoppingRule } from '../../../lib/ml/types';
+import { createStoppingRule, isCmhStoppingRule } from '../../../lib/ml/types';
 import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
@@ -215,12 +215,22 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         if (isStoppingReached(newRule)) {
             showStoppingReachedDialog(
                 (addCount) => {
-                    // Extend threshold（Store経由で両方に同期）
-                    const extendedRule = { ...newRule, threshold: newRule.threshold + addCount };
-                    syncSetMlState({
-                        ...state.mlState,
-                        stoppingRule: extendedRule
-                    });
+                    // Extend threshold or screened count（Store経由で両方に同期）
+                    if (isCmhStoppingRule(newRule)) {
+                        // CMH: canStop をリセット
+                        const extendedRule = { ...newRule, canStop: false };
+                        syncSetMlState({
+                            ...state.mlState,
+                            stoppingRule: extendedRule
+                        });
+                    } else {
+                        // Consecutive: threshold を増加
+                        const extendedRule = { ...newRule, threshold: newRule.threshold + addCount };
+                        syncSetMlState({
+                            ...state.mlState,
+                            stoppingRule: extendedRule
+                        });
+                    }
                     renderMlStats();
                     handleMlNext(); // Continue to next
                 },

@@ -2,6 +2,7 @@ import { state } from '../../state';
 import { dom } from '../../dom';
 
 import { getStoppingProgressPercent } from '../../../lib/ml/stopping-rules';
+import { isCmhStoppingRule } from '../../../lib/ml/types';
 import { highlightText } from '../screening/render';
 import { showToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
@@ -246,7 +247,11 @@ export function renderMlStats() {
     // ボタンのテキスト更新（常に実行）
     if (settingsBtn) {
         if (stopping) {
-            settingsBtn.textContent = `連続 exclude ${stopping.threshold}件`;
+            if (isCmhStoppingRule(stopping)) {
+                settingsBtn.textContent = `CMH リコール${(stopping.targetRecall * 100).toFixed(0)}%`;
+            } else {
+                settingsBtn.textContent = `連続 exclude ${stopping.threshold}件`;
+            }
         } else {
             settingsBtn.textContent = '設定なし';
         }
@@ -255,8 +260,16 @@ export function renderMlStats() {
     // プログレスバーの表示/非表示
     if (stopping && stopContainer) {
         stopContainer.classList.remove('hidden');
-        if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.current.toString();
-        if (elements.stopping.threshold()) elements.stopping.threshold()!.textContent = stopping.threshold.toString();
+
+        if (isCmhStoppingRule(stopping)) {
+            // CMH: screened / included を表示
+            if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.screened.toString();
+            if (elements.stopping.threshold()) elements.stopping.threshold()!.textContent = stopping.included.toString();
+        } else {
+            // Consecutive: current / threshold を表示
+            if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.current.toString();
+            if (elements.stopping.threshold()) elements.stopping.threshold()!.textContent = stopping.threshold.toString();
+        }
 
         const percent = getStoppingProgressPercent(stopping);
         if (elements.stopping.fill()) {
