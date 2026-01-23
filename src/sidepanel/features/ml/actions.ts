@@ -132,6 +132,16 @@ async function saveMlDecisionWithQueue(decision: Decision) {
 }
 
 export async function activateMlTab() {
+    const { canUseCmhStopping } = await import('../../../lib/ml/stopping-rules');
+    const { CMH_DEFAULTS } = await import('../../../lib/ml/cmh');
+
+    // レコード数が最小要件を満たさない場合はブロック
+    const totalRecords = state.references.length;
+    if (!canUseCmhStopping(totalRecords)) {
+        showToast(`ML機能は${CMH_DEFAULTS.minRecords}件以上のデータセットでのみ使用できます（現在: ${totalRecords}件）`);
+        return;
+    }
+
     // Store経由で両方に同期
     syncChangeTab('ml');
     renderMlSection();
