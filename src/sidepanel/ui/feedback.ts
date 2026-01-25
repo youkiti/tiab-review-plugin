@@ -42,13 +42,14 @@ export function hideStatus() {
  * トースト通知を表示
  */
 export function showToast(message: string, duration = 2000) {
+    // Store経由でも状態を更新（将来のReact等への移行用）
     try {
         showToastStore(message, duration);
-        return;
     } catch {
-        // Store未初期化時は従来のDOMトーストで表示
+        // Store未初期化時は無視
     }
 
+    // DOMトーストを直接表示（確実に表示するため）
     dom.toast.textContent = message;
     dom.toast.classList.add('show');
     setTimeout(() => {
