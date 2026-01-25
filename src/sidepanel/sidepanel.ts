@@ -22,6 +22,7 @@ import { initModal } from './features/ml/dialogs';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 import { flushDecisionQueue } from './utils/offline-queue';
 import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
+import { showToast } from './ui/feedback';
 
 // Store（Phase 2で導入）
 import { initializeStore, subscribe, getState } from './store';
@@ -277,7 +278,17 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
     dom.tabMlBtn?.addEventListener('click', async () => {
-        await activateMlTab();
+        try {
+            console.log('ML tab clicked');
+            const success = await activateMlTab();
+            console.log('ML tab activation result:', success);
+            if (!success) {
+                console.log('ML tab activation failed (insufficient records)');
+            }
+        } catch (error) {
+            console.error('Error activating ML tab:', error);
+            showToast(`MLタブの起動に失敗しました: ${error instanceof Error ? error.message : String(error)}`, 5000);
+        }
     });
 
     // Start App

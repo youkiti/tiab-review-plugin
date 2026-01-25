@@ -4,6 +4,8 @@
  */
 
 import { dom } from '../dom';
+import { showToast as showToastStore } from '../store/compat';
+import { dispatch } from '../store';
 
 /**
  * ローディング表示を切り替え
@@ -40,6 +42,13 @@ export function hideStatus() {
  * トースト通知を表示
  */
 export function showToast(message: string, duration = 2000) {
+    try {
+        showToastStore(message, duration);
+        return;
+    } catch {
+        // Store未初期化時は従来のDOMトーストで表示
+    }
+
     dom.toast.textContent = message;
     dom.toast.classList.add('show');
     setTimeout(() => {
@@ -51,6 +60,13 @@ export function showToast(message: string, duration = 2000) {
  * トースト通知を非表示
  */
 export function hideToast() {
+    try {
+        dispatch({ type: 'ui/hideToast' });
+        return;
+    } catch {
+        // Store未初期化時は従来のDOMトーストを非表示
+    }
+
     dom.toast.classList.remove('show');
 }
 
