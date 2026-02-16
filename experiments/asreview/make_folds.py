@@ -10,7 +10,10 @@ ROOT = Path(__file__).resolve().parents[2]
 def resolve_dataset_path(name: str) -> Path:
     dataset_map = {
         "cq1": ROOT / "scripts" / "asreview-baseline" / "datasets" / "cq1_labeled.json",
+        "cq2": ROOT / "scripts" / "asreview-baseline" / "datasets" / "cq2_labeled.json",
         "cq3": ROOT / "scripts" / "asreview-baseline" / "datasets" / "cq3_labeled.json",
+        "cq4": ROOT / "scripts" / "asreview-baseline" / "datasets" / "cq4_labeled.json",
+        "cq5": ROOT / "scripts" / "asreview-baseline" / "datasets" / "cq5_labeled.json",
         "depression": ROOT
         / "scripts"
         / "asreview-baseline"
