@@ -51,7 +51,7 @@ gcloud services enable drive.googleapis.com
 2. 「認証情報を作成」→「OAuthクライアントID」
 3. アプリケーションの種類: **Chrome拡張機能**
 4. 拡張機能ID: (後で`chrome://extensions`から取得)
-5. 作成されたクライアントIDを `src/manifest.json` の `oauth2.client_id` に設定
+5. 作成されたクライアントIDを `.env` の `OAUTH_CLIENT_ID` に設定
 
 ### 5. ビルド
 
@@ -84,9 +84,11 @@ npm run watch
 
 ## Chrome Web Store への提出（初回公開向け）
 
-- 提出用ZIPは `npm run build:zip` で生成される `dist.zip` をアップロードします。
+- 提出用ZIPは `npm run build:release` で生成される `dist.zip` をアップロードします。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
-- `chrome.identity` のOAuthを使う場合、公開後の「拡張機能ID」に紐づくOAuthクライアント（Chrome拡張機能）をGCP側で作成し、`src/manifest.json` の `oauth2.client_id` を差し替える必要があります。
+- `chrome.identity` のOAuthを使う場合、公開後の「拡張機能ID」に紐づくOAuthクライアント（Chrome拡張機能）をGCP側で作成し、`.env` の `OAUTH_CLIENT_ID` に設定してください。
+- `OAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
+- テスター配布向けの Google Drive コピー付きZIPは `npm run build:zip` を使います。
 
 ## オフライン同期
 

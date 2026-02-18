@@ -5,7 +5,7 @@
     "private": true,
     "scripts": {
         "build": "webpack --mode production",
-        "build:zip": "webpack --mode development && powershell -Command \"[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content .env -Encoding UTF8 | ForEach-Object { if($_ -match '^([^#][^=]*)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2]) } }; Compress-Archive -Path ./dist/* -DestinationPath ./dist.zip -Force; Copy-Item ./dist.zip (Join-Path $env:DIST_COPY_PATH 'dist.zip') -Force\"",
+        "build:zip": "webpack --mode production && powershell -Command \"[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content .env -Encoding UTF8 | ForEach-Object { if($_ -match '^([^#][^=]*)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2]) } }; Compress-Archive -Path ./dist/* -DestinationPath ./dist.zip -Force; Copy-Item ./dist.zip (Join-Path $env:DIST_COPY_PATH 'dist.zip') -Force\"",
         "build:release": "webpack --mode production && powershell -Command \"Compress-Archive -Path ./dist/* -DestinationPath ./dist.zip -Force\"",
         "bump": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1",
         "bump:minor": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -BumpType minor",
