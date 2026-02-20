@@ -51,22 +51,36 @@ gcloud services enable drive.googleapis.com
 2. 「認証情報を作成」→「OAuthクライアントID」
 3. アプリケーションの種類: **Chrome拡張機能**
 4. 拡張機能ID: (後で`chrome://extensions`から取得)
-5. 作成されたクライアントIDを `.env` の `OAUTH_CLIENT_ID` に設定
+5. 作成されたクライアントIDを `.env` に設定（下記参照）
 
-### 5. ビルド
+### 5. 環境変数の設定
+
+`.env.example` を `.env` にコピーして値を設定します。
+
+| 変数名 | 用途 | 必須 |
+|--------|------|------|
+| `OAUTH_CLIENT_ID` | Chrome Web Store用 OAuth Client ID | 本番ビルド時 |
+| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID | 開発ビルド時 |
+| `GEMINI_API_KEY` | Gemini API キー | LLM機能使用時 |
+| `DIST_COPY_PATH` | dist.zip のコピー先パス | build:zip 時 |
+
+> **ローカル開発とストア公開で異なる OAuth Client ID が必要です。**
+> ローカル開発用は `manifest.json` の `key` から決まる拡張機能IDに紐づけたクライアント、ストア用は公開後の拡張機能IDに紐づけたクライアントを使用します。
+
+### 6. ビルド
 
 ```bash
-# 開発ビルド
+# 開発ビルド（LOCAL_OAUTH_CLIENT_ID + key 保持）
 npm run dev
 
-# 本番ビルド
+# 本番ビルド（OAUTH_CLIENT_ID + key 削除）
 npm run build
 
 # ウォッチモード（開発中）
 npm run watch
 ```
 
-### 6. Chrome への読み込み
+### 7. Chrome への読み込み
 
 1. `chrome://extensions` を開く
 2. 「デベロッパーモード」をON

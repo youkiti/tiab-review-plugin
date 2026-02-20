@@ -6,7 +6,11 @@ dotenv.config();
 
 module.exports = (env, argv) => {
     const isProduction = argv.mode === 'production';
-    const oauthClientIdFromEnv = process.env.OAUTH_CLIENT_ID?.trim();
+    // 開発モード: LOCAL_OAUTH_CLIENT_ID → OAUTH_CLIENT_ID の順にフォールバック
+    // 本番モード: OAUTH_CLIENT_ID（ストア用）を使用
+    const oauthClientIdFromEnv = isProduction
+        ? process.env.OAUTH_CLIENT_ID?.trim()
+        : (process.env.LOCAL_OAUTH_CLIENT_ID?.trim() || process.env.OAUTH_CLIENT_ID?.trim());
 
     if (isProduction && !oauthClientIdFromEnv) {
         throw new Error('OAUTH_CLIENT_ID が未設定です。.env に OAUTH_CLIENT_ID を設定してから本番ビルドを実行してください。');

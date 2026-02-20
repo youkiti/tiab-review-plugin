@@ -375,9 +375,11 @@ https://www.googleapis.com/auth/drive.file
 ## 開発ワークフロー
 
 1. `npm install` - 依存関係インストール
-2. `npm run build` - TypeScriptビルド
-3. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
-4. 開発中は `npm run watch` でホットリロード
+2. `.env.example` を `.env` にコピーし、`LOCAL_OAUTH_CLIENT_ID`（ローカル開発用）と `OAUTH_CLIENT_ID`（ストア用）を設定
+3. `npm run dev` - 開発ビルド（`LOCAL_OAUTH_CLIENT_ID` + `key` 保持）
+4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
+5. 開発中は `npm run watch` でホットリロード
+6. ストア提出時は `npm run build`（`OAUTH_CLIENT_ID` + `key` 削除）
 
 ### テスター向け配布
 
