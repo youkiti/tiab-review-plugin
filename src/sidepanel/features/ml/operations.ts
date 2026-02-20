@@ -2,6 +2,7 @@ import { state } from '../../state';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { Decision } from '../../../lib/types';
 import type { Label } from '../../../lib/ml/types';
+import { t } from '../../../lib/i18n';
 import {
     getReferencesWithStatus,
     getDecisions,
@@ -79,7 +80,7 @@ export async function bulkExcludeRemaining(
         });
     } catch (err) {
         console.error('Failed to pre-fetch decisions:', err);
-        throw new Error('事前データの取得に失敗しました');
+        throw new Error(t('ml_preFetchFailed'));
     }
 
     const toAppend: { ref: any; decision: Decision }[] = [];
@@ -205,10 +206,10 @@ export async function resetAndStartNewMlReview() {
         await initMlWorker();
         renderMlSection();
 
-        showToast('新しいMLレビューを開始しました');
+        showToast(t('ml_newReviewStarted'));
     } catch (err) {
         console.error('Failed to reset ML review:', err);
-        showToast('リセットに失敗しました');
+        showToast(t('ml_resetFailed'));
     } finally {
         showLoading(false);
     }

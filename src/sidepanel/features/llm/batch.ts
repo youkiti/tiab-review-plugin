@@ -27,6 +27,7 @@ import {
 import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
 import { getModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
+import { t } from '../../../lib/i18n';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -50,13 +51,13 @@ export function updateBatchTargetCount() {
 export async function handleStartBatch() {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
-        showToast('APIキーを設定してください');
+        showToast(t('llm_apiKeyRequired'));
         return;
     }
 
     const screeningPrompt = dom.screeningPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
     if (!screeningPrompt) {
-        showToast('スクリーニング基準を設定してください');
+        showToast(t('llm_screeningPromptRequired'));
         return;
     }
 
@@ -64,7 +65,7 @@ export async function handleStartBatch() {
     const targetRefs = state.references;
 
     if (targetRefs.length === 0) {
-        showToast('処理対象の文献がありません');
+        showToast(t('llm_batchNoTarget'));
         return;
     }
 
@@ -89,7 +90,7 @@ export async function handleStartBatch() {
         const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
 
         if (tier === 'free') {
-            showToast('無料版APIキーのため、処理速度が制限されます（約13秒/件）', 4000);
+            showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
         // 選択されたモデルの設定を取得
@@ -121,7 +122,7 @@ export async function handleStartBatch() {
 
         // 失敗があればリトライボタンを表示
         if (result.failedRefIds.length > 0) {
-            dom.retryFailedBtn.textContent = `🔄 失敗した${result.failedRefIds.length}件をリトライ`;
+            dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
             dom.retryFailedBtn.classList.remove('hidden');
         } else {
             dom.retryFailedBtn.classList.add('hidden');
@@ -160,7 +161,7 @@ export async function handleStartBatch() {
         }
     } catch (error) {
         console.error('[handleStartBatch] Error:', error);
-        showToast(`バッチ処理エラー: ${(error as Error).message}`);
+        showToast(t('llm_batchError', (error as Error).message));
     } finally {
         dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
@@ -175,7 +176,7 @@ export function handleStopBatch() {
     const controller = state.batchAbortController;
     if (controller) {
         controller.abort();
-        showToast('バッチ処理を中止しました');
+        showToast(t('llm_batchStopped'));
     }
 }
 
@@ -185,18 +186,18 @@ export function handleStopBatch() {
 export async function handleRetryFailed() {
     const failedRefIds = state.failedRefIds;
     if (failedRefIds.length === 0) {
-        showToast('リトライ対象がありません');
+        showToast(t('llm_retryNoTarget'));
         return;
     }
 
     // 失敗したref_idに対応する文献を取得
     const targetRefs = state.references.filter(r => failedRefIds.includes(r.ref_id));
     if (targetRefs.length === 0) {
-        showToast('リトライ対象の文献が見つかりません');
+        showToast(t('llm_retryNoRefs'));
         return;
     }
 
-    showToast(`${targetRefs.length}件をリトライ中...`);
+    showToast(t('llm_retrying', String(targetRefs.length)));
 
     // リトライボタンを非表示にしてから再処理
     dom.retryFailedBtn.classList.add('hidden');
@@ -205,13 +206,13 @@ export async function handleRetryFailed() {
     // 通常のバッチ処理と同様に処理
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
-        showToast('APIキーを設定してください');
+        showToast(t('llm_apiKeyRequired'));
         return;
     }
 
     const screeningPrompt = dom.screeningPromptInput.value.trim();
     if (!screeningPrompt) {
-        showToast('スクリーニング基準を設定してください');
+        showToast(t('llm_screeningPromptRequired'));
         return;
     }
 
@@ -250,18 +251,18 @@ export async function handleRetryFailed() {
         state.setFailedRefIds(result.failedRefIds);
 
         if (result.failedRefIds.length > 0) {
-            dom.retryFailedBtn.textContent = `🔄 失敗した${result.failedRefIds.length}件をリトライ`;
+            dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
             dom.retryFailedBtn.classList.remove('hidden');
-            showToast(`リトライ完了: 成功${result.successCount}件、失敗${result.failCount}件`);
+            showToast(t('llm_retryPartial', [String(result.successCount), String(result.failCount)]));
         } else {
-            showToast(`リトライ完了: 全${result.successCount}件成功`);
+            showToast(t('llm_retryComplete', String(result.successCount)));
         }
 
         // 閾値プレビューを更新
         handleThresholdChange();
     } catch (error) {
         console.error('[handleRetryFailed] Error:', error);
-        showToast(`リトライエラー: ${(error as Error).message}`);
+        showToast(t('llm_retryError', (error as Error).message));
     } finally {
         dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
@@ -349,7 +350,7 @@ export function renderDistributionChart() {
 
         const count = document.createElement('span');
         count.className = 'distribution-count';
-        count.textContent = `${bin.count}件`;
+        count.textContent = t('common_countItems', String(bin.count));
 
         container.appendChild(label);
         container.appendChild(barWrapper);
@@ -372,13 +373,13 @@ export async function handleConfirmThreshold() {
 
     if (!executionId) {
         console.error('[handleConfirmThreshold] executionId is empty!');
-        showToast('エラー: 実行IDが見つかりません。ページをリロードしてください。');
+        showToast(t('llm_thresholdMissingId'));
         return;
     }
 
     try {
         dom.confirmThresholdBtn.disabled = true;
-        showToast('保存中...');
+        showToast(t('common_saving'));
 
         // 閾値を適用してdecisionを確定
         const updatedDecisions = applyThresholdToDecisions(currentDecisions, threshold);
@@ -427,7 +428,7 @@ export async function handleConfirmThreshold() {
             llm_include_threshold: threshold,
         });
 
-        showToast('閾値を確定してGoogleスプレッドシートに保存しました');
+        showToast(t('llm_thresholdSaved'));
 
         // データを再読み込み
         if (_loadDataAndShowScreening) {
@@ -439,11 +440,7 @@ export async function handleConfirmThreshold() {
 
         // ML判定完了後のガイダンスメッセージ
         setTimeout(() => {
-            const shouldSwitch = confirm(
-                'ML判定が完了しました。\n\n' +
-                '手動タブで判定結果を確認しますか？\n' +
-                '（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）'
-            );
+            const shouldSwitch = confirm(t('llm_completedConfirm'));
             if (shouldSwitch) {
                 // 手動タブに切り替え
                 document.getElementById('tab-screening')?.click();
@@ -457,7 +454,7 @@ export async function handleConfirmThreshold() {
         }, 1000);
     } catch (error) {
         console.error('[handleConfirmThreshold] Error:', error);
-        showToast(`保存エラー: ${(error as Error).message}`);
+        showToast(t('llm_thresholdSaveError', (error as Error).message));
     } finally {
         dom.confirmThresholdBtn.disabled = false;
     }
@@ -488,7 +485,7 @@ export async function loadExecutionHistory() {
         }
 
         if (executions.length === 0) {
-            dom.executionHistory.innerHTML = '<p class="placeholder-text">実行履歴がありません</p>';
+            dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
             return;
         }
 
@@ -506,13 +503,13 @@ export async function loadExecutionHistory() {
             const date = new Date(exec.timestamp);
             const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 
-            const typeLabel = exec.execution_type === 'batch_screening' ? 'バッチ' : '基準生成';
-            const statusLabel = exec.status === 'pending' ? '<span class="execution-status pending">未確定</span>' : '';
+            const typeLabel = exec.execution_type === 'batch_screening' ? t('llm_historyBatch') : t('llm_historyCriteria');
+            const statusLabel = exec.status === 'pending' ? `<span class="execution-status pending">${t('llm_historyPending')}</span>` : '';
 
             // pending状態では閾値・件数を非表示
             const statsContent = exec.status === 'pending'
-                ? `${exec.target_count}件処理（閾値未確定）`
-                : `${exec.target_count}件処理 → Include: ${exec.include_count}件, Exclude: ${exec.exclude_count}件 (閾値: ${exec.include_threshold.toFixed(2)})`;
+                ? t('llm_historyPendingStats', String(exec.target_count))
+                : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), exec.include_threshold.toFixed(2)]);
 
             // チェックボックス（batch_screening かつ confirmed のみ）
             const checkboxHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
@@ -520,7 +517,7 @@ export async function loadExecutionHistory() {
                      <input type="checkbox" class="execution-active-checkbox" 
                             data-execution-id="${exec.execution_id}" 
                             ${exec.is_active ? 'checked' : ''}>
-                     判定に使用
+                     ${t('llm_historyUseDecision')}
                    </label>`
                 : '';
 
@@ -546,10 +543,10 @@ export async function loadExecutionHistory() {
                         await updateLlmExecution(spreadsheetId, exec.execution_id, {
                             is_active: checkbox.checked,
                         });
-                        showToast(checkbox.checked ? '判定に使用します' : '判定から除外しました');
+                        showToast(checkbox.checked ? t('llm_historyActivated') : t('llm_historyDeactivated'));
                     } catch (error) {
                         console.error('[loadExecutionHistory] Failed to update is_active:', error);
-                        showToast('更新に失敗しました');
+                        showToast(t('llm_historyUpdateFailed'));
                         checkbox.checked = !checkbox.checked; // ロールバック
                     }
                 });

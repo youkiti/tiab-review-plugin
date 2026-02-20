@@ -1,0 +1,1157 @@
+{
+  "extName": {
+    "message": "TiAb Review"
+  },
+  "extDescription": {
+    "message": "Title & Abstract Screening Support Tool"
+  },
+
+  "auth_loginWithGoogle": {
+    "message": "Sign in with Google"
+  },
+  "auth_loginWithGoogleShort": {
+    "message": "Sign in with Google"
+  },
+  "auth_loginFailed": {
+    "message": "Login failed: $1",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "auth_loginRequired": {
+    "message": "Please sign in with your Google account"
+  },
+  "auth_loginPrompt": {
+    "message": "Please sign in to start screening"
+  },
+  "auth_logout": {
+    "message": "Sign out"
+  },
+  "auth_logoutConfirm": {
+    "message": "Are you sure you want to sign out?"
+  },
+  "auth_logoutSuccess": {
+    "message": "Signed out successfully"
+  },
+  "auth_logoutError": {
+    "message": "Sign out error: $1"
+  },
+  "auth_loggedInAs": {
+    "message": "Signed in: $1"
+  },
+  "auth_loggedInAsRole": {
+    "message": "Signed in: $1 ($2)"
+  },
+  "auth_roleAdmin": {
+    "message": "Admin"
+  },
+  "auth_roleGeneral": {
+    "message": "Member"
+  },
+
+  "project_settings": {
+    "message": "Project Settings"
+  },
+  "project_createNew": {
+    "message": "+ Create New Review Project"
+  },
+  "project_createHelp": {
+    "message": "Creates a new spreadsheet in Google Drive"
+  },
+  "project_orDivider": {
+    "message": "or"
+  },
+  "project_inputLabel": {
+    "message": "Enter spreadsheet URL/ID (priority)"
+  },
+  "project_inputPlaceholder": {
+    "message": "https://docs.google.com/spreadsheets/d/... or ID"
+  },
+  "project_inputHelp": {
+    "message": "You can also connect using a shared sheet URL/ID"
+  },
+  "project_recentLabel": {
+    "message": "Select from recent spreadsheets"
+  },
+  "project_connect": {
+    "message": "Connect to selected sheet"
+  },
+  "project_loading": {
+    "message": "Loading..."
+  },
+  "project_noSheets": {
+    "message": "No spreadsheets found"
+  },
+  "project_selectSheet": {
+    "message": "— Select a spreadsheet —"
+  },
+  "project_loadFailed": {
+    "message": "Failed to load"
+  },
+  "project_sheetListFailed": {
+    "message": "Failed to load sheet list - please re-authorize"
+  },
+  "project_reauthBtn": {
+    "message": "🔄 Re-authorize"
+  },
+  "project_reauthFailed": {
+    "message": "Re-authorization failed"
+  },
+  "project_invalidUrl": {
+    "message": "Invalid spreadsheet URL/ID"
+  },
+  "project_selectOrInput": {
+    "message": "Please select a spreadsheet or enter a URL/ID"
+  },
+  "project_invalidFormat": {
+    "message": "Unsupported format"
+  },
+  "project_connectSuccess": {
+    "message": "Connected: $1"
+  },
+  "project_connectError": {
+    "message": "Connection error: $1"
+  },
+  "project_createPrompt": {
+    "message": "Enter a name for the new review project:"
+  },
+  "project_createDefault": {
+    "message": "TiAb Review Project"
+  },
+  "project_createSuccess": {
+    "message": "Created: $1"
+  },
+  "project_createError": {
+    "message": "Creation error: $1"
+  },
+  "project_loadDataError": {
+    "message": "Data loading error: $1"
+  },
+  "project_invalidFormatFull": {
+    "message": "Unsupported format. Please create a new review project first using the Create button."
+  },
+
+  "screening_back": {
+    "message": "← Back"
+  },
+  "screening_importRis": {
+    "message": "📁 Import RIS/nbib"
+  },
+  "screening_export": {
+    "message": "📥 Export"
+  },
+  "screening_exportCsv": {
+    "message": "CSV format"
+  },
+  "screening_exportRis": {
+    "message": "RIS format"
+  },
+  "screening_share": {
+    "message": "👤 Share"
+  },
+  "screening_title": {
+    "message": "Title"
+  },
+  "screening_abstractPlaceholder": {
+    "message": "Abstract will be displayed here"
+  },
+  "screening_noAbstract": {
+    "message": "(No abstract)"
+  },
+  "screening_noReferences": {
+    "message": "No references"
+  },
+  "screening_importPrompt": {
+    "message": "Import a RIS file or add references to the spreadsheet"
+  },
+  "screening_noFilterMatch": {
+    "message": "No references match the filter criteria"
+  },
+  "screening_conflictBanner": {
+    "message": "⚠️ Conflict detected - please review the decisions below"
+  },
+  "screening_noteLabel": {
+    "message": "Note"
+  },
+  "screening_notePlaceholder": {
+    "message": "Enter a note..."
+  },
+  "screening_searchPlaceholder": {
+    "message": "Search..."
+  },
+  "screening_searchHits": {
+    "message": "\"$1\": $2 hits (↓ see details)"
+  },
+  "screening_searchNoHits": {
+    "message": "\"$1\": 0 hits"
+  },
+  "screening_aiReasons": {
+    "message": "AI Reasons:"
+  },
+  "screening_notePrefix": {
+    "message": "Note: $1"
+  },
+  "screening_offlineQueued": {
+    "message": "Offline: decision saved to queue"
+  },
+
+  "nav_prev": {
+    "message": "Prev (←)"
+  },
+  "nav_next": {
+    "message": "Next (→)"
+  },
+  "nav_backToProject": {
+    "message": "Back to project selection"
+  },
+  "nav_tabManual": {
+    "message": "👤 Manual"
+  },
+  "nav_tabMl": {
+    "message": "🔬 ML"
+  },
+  "nav_tabAi": {
+    "message": "🤖 AI"
+  },
+  "nav_tabManualTitle": {
+    "message": "Manual Review"
+  },
+  "nav_tabMlTitle": {
+    "message": "Machine Learning Assist"
+  },
+  "nav_tabAiTitle": {
+    "message": "AI Review"
+  },
+
+  "filter_pending": {
+    "message": "Pending"
+  },
+  "filter_all": {
+    "message": "All (including decided)"
+  },
+  "filter_include": {
+    "message": "Include (editable)"
+  },
+  "filter_exclude": {
+    "message": "Exclude (editable)"
+  },
+  "filter_maybe": {
+    "message": "Maybe (editable)"
+  },
+  "filter_conflict": {
+    "message": "Conflict"
+  },
+  "filter_fulltextCandidates": {
+    "message": "Full-text candidates (2+ include decisions)"
+  },
+  "filter_pendingCount": {
+    "message": "Pending ($1)"
+  },
+  "filter_allCount": {
+    "message": "All (including decided) ($1)"
+  },
+  "filter_includeCount": {
+    "message": "Include (editable) ($1)"
+  },
+  "filter_excludeCount": {
+    "message": "Exclude (editable) ($1)"
+  },
+  "filter_maybeCount": {
+    "message": "Maybe (editable) ($1)"
+  },
+  "filter_conflictCount": {
+    "message": "Conflict ($1)"
+  },
+  "filter_fulltextCount": {
+    "message": "Full-text candidates ($1)"
+  },
+  "filter_resultCount": {
+    "message": "$2 of $1"
+  },
+  "filter_aiHighlight": {
+    "message": "💡 Highlight AI evidence"
+  },
+  "filter_includeDecision": {
+    "message": "(🟢 Include)"
+  },
+  "filter_excludeDecision": {
+    "message": "(❌ Exclude)"
+  },
+  "filter_includeLabel": {
+    "message": "Include"
+  },
+  "filter_excludeLabel": {
+    "message": "Exclude"
+  },
+  "filter_sourceFiles": {
+    "message": "Source Files"
+  },
+  "filter_deleteFile": {
+    "message": "Delete all references from this file"
+  },
+  "filter_deleteConfirm": {
+    "message": "Permanently delete $2 references from file \"$1\" from the spreadsheet?\n(This cannot be undone)"
+  },
+  "filter_deleting": {
+    "message": "Deleting $1..."
+  },
+  "filter_deleted": {
+    "message": "$1 references deleted"
+  },
+  "filter_deleteError": {
+    "message": "Delete error: $1"
+  },
+  "filter_applyToast": {
+    "message": "Filtered by \"$1\""
+  },
+
+  "keyword_highlightSettings": {
+    "message": "Highlight Settings"
+  },
+  "keyword_includeGroup": {
+    "message": "Include (green)"
+  },
+  "keyword_excludeGroup": {
+    "message": "Exclude (red)"
+  },
+  "keyword_addIncludePlaceholder": {
+    "message": "Add include keyword..."
+  },
+  "keyword_addExcludePlaceholder": {
+    "message": "Add exclude keyword..."
+  },
+  "keyword_clickToFilter": {
+    "message": "Click to add to filter"
+  },
+  "keyword_delete": {
+    "message": "Delete"
+  },
+  "keyword_added": {
+    "message": "\"$1\" added",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "keyword_presetConfirm": {
+    "message": "Apply $1 preset? Current keyword settings will be overwritten."
+  },
+  "keyword_presetApplied": {
+    "message": "$1 preset applied"
+  },
+  "keyword_presetRctTitle": {
+    "message": "Apply RCT preset (overwrite)"
+  },
+  "keyword_presetSrTitle": {
+    "message": "Apply SR preset (overwrite)"
+  },
+  "keyword_autoSave": {
+    "message": "Settings are saved automatically"
+  },
+
+  "settings_title": {
+    "message": "Settings"
+  },
+  "settings_close": {
+    "message": "Close"
+  },
+  "settings_autoNavigate": {
+    "message": "Auto-advance to next reference after decision"
+  },
+  "settings_autoNavigateDesc": {
+    "message": "When off, clicking Include/Exclude/Maybe won't auto-advance. Use the Next button to navigate manually."
+  },
+  "settings_autoNavigateOn": {
+    "message": "Auto-advance after decision is enabled"
+  },
+  "settings_autoNavigateOff": {
+    "message": "Please navigate manually after decision"
+  },
+  "settings_showRecordCount": {
+    "message": "Show progress below navigation"
+  },
+  "settings_showRecordCountDesc": {
+    "message": "When off, progress moves above the title for more visibility."
+  },
+  "settings_showRecordCountBelow": {
+    "message": "Progress shown below navigation"
+  },
+  "settings_showRecordCountAbove": {
+    "message": "Progress moved above title"
+  },
+  "settings_termFilterAnd": {
+    "message": "Use AND search for multiple keywords"
+  },
+  "settings_termFilterAndDesc": {
+    "message": "On: Show only references containing all keywords (AND)\nOff: Show references containing any keyword (OR)"
+  },
+  "settings_termFilterAndOn": {
+    "message": "Multiple keywords: AND search"
+  },
+  "settings_termFilterAndOff": {
+    "message": "Multiple keywords: OR search"
+  },
+  "settings_treatMlAsManual": {
+    "message": "Treat ML decisions as manual decisions"
+  },
+  "settings_treatMlAsManualDesc": {
+    "message": "When on, ML screening decisions (🔬) and manual decisions (👤) are treated as the same reviewer. They won't be distinguished in filters or reviewer display."
+  },
+  "settings_treatMlAsManualOn": {
+    "message": "ML and manual decisions are unified"
+  },
+  "settings_treatMlAsManualOff": {
+    "message": "ML and manual decisions are separate"
+  },
+
+  "share_emailPlaceholder": {
+    "message": "Google account (email)"
+  },
+  "share_add": {
+    "message": "Add"
+  },
+  "share_sharedUsers": {
+    "message": "Shared Users"
+  },
+  "share_invalidEmail": {
+    "message": "Please enter a valid email address"
+  },
+  "share_added": {
+    "message": "$1 has been added"
+  },
+  "share_addError": {
+    "message": "Add error: $1"
+  },
+  "share_roleOwner": {
+    "message": "Owner"
+  },
+  "share_roleWriter": {
+    "message": "Editor"
+  },
+  "share_roleViewer": {
+    "message": "Viewer"
+  },
+  "share_roleUnknown": {
+    "message": "Editor (details unknown)"
+  },
+  "share_self": {
+    "message": "$1 (you)"
+  },
+  "share_permissionNote": {
+    "message": "* Additional authentication may be required to view the permission list"
+  },
+  "share_noUsers": {
+    "message": "No users found"
+  },
+  "share_loadFailed": {
+    "message": "Failed to load"
+  },
+
+  "import_duplicate": {
+    "message": "File \"$1\" has already been imported"
+  },
+  "import_duplicateStatus": {
+    "message": "Duplicate import file"
+  },
+  "import_parsing": {
+    "message": "Parsing..."
+  },
+  "import_noValid": {
+    "message": "No valid references found"
+  },
+  "import_skippedDuplicates": {
+    "message": "$1 duplicates removed"
+  },
+  "import_allDuplicate": {
+    "message": "All duplicates"
+  },
+  "import_noNew": {
+    "message": "No new references (all duplicates)"
+  },
+  "import_uploading": {
+    "message": "Uploading: $1/$2"
+  },
+  "import_updating": {
+    "message": "Updating data..."
+  },
+  "import_complete": {
+    "message": "$1 references imported (duplicates removed: $2)"
+  },
+  "import_error": {
+    "message": "Import error: $1"
+  },
+  "import_errorStatus": {
+    "message": "Import error"
+  },
+
+  "export_noData": {
+    "message": "No references to export"
+  },
+  "export_csvDone": {
+    "message": "$1 references exported as CSV"
+  },
+  "export_csvError": {
+    "message": "CSV export failed"
+  },
+  "export_risDone": {
+    "message": "$1 references exported as RIS"
+  },
+  "export_risError": {
+    "message": "RIS export failed"
+  },
+  "export_filterPending": {
+    "message": "Pending"
+  },
+  "export_filterAll": {
+    "message": "All"
+  },
+  "export_filterConflict": {
+    "message": "Conflict"
+  },
+  "export_countSuffix": {
+    "message": ""
+  },
+
+  "blind_onConfirm": {
+    "message": "Enable blinding?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
+  },
+  "blind_onSuccess": {
+    "message": "Blinding enabled"
+  },
+  "blind_onError": {
+    "message": "Blinding error: $1"
+  },
+  "blind_offConfirm": {
+    "message": "Disable blinding?\nAll reviewers' decisions will become visible and conflicts will be shown."
+  },
+  "blind_offSuccess": {
+    "message": "Blinding disabled"
+  },
+  "blind_offError": {
+    "message": "Unblinding error: $1"
+  },
+
+  "progress_importPrompt": {
+    "message": "Import references to get started 📂"
+  },
+  "progress_start": {
+    "message": "Let's get started! 💪"
+  },
+  "progress_goodStart": {
+    "message": "Great start! 🚀"
+  },
+  "progress_goodPace": {
+    "message": "Good pace! Almost halfway there 📈"
+  },
+  "progress_pastHalf": {
+    "message": "Past the halfway point! 🎯"
+  },
+  "progress_nearGoal": {
+    "message": "The finish line is in sight! ✨"
+  },
+  "progress_complete": {
+    "message": "All done! Great work 🎉"
+  },
+  "progress_count": {
+    "message": "$1 / $2 ($3 remaining)"
+  },
+
+  "reviewer_selfMl": {
+    "message": "$1 (you/ML)"
+  },
+  "reviewer_ml": {
+    "message": "$1 (ML)"
+  },
+  "reviewer_selfManualPlusMl": {
+    "message": "$1 (you/Manual+ML)"
+  },
+  "reviewer_manualPlusMl": {
+    "message": "$1 (Manual+ML)"
+  },
+  "reviewer_self": {
+    "message": "$1 (you)"
+  },
+  "reviewer_mlAutoLabel": {
+    "message": "🤖 ML(auto)"
+  },
+  "reviewer_mlLabel": {
+    "message": "🤖 ML"
+  },
+  "reviewer_unknown": {
+    "message": "(Unknown)"
+  },
+  "reviewer_selfLabel": {
+    "message": "Me"
+  },
+
+  "llm_title": {
+    "message": "🤖 AI Review"
+  },
+  "llm_detailSettings": {
+    "message": "⚙️ Advanced Settings"
+  },
+  "llm_modelLabel": {
+    "message": "Model:"
+  },
+  "llm_modelFlash3": {
+    "message": "Gemini 3 Flash (Recommended, High Accuracy)"
+  },
+  "llm_modelLite": {
+    "message": "Gemini 2.5 Flash Lite (Cost-effective)"
+  },
+  "llm_outputLanguage": {
+    "message": "Output language:"
+  },
+  "llm_langJa": {
+    "message": "Japanese"
+  },
+  "llm_langEn": {
+    "message": "English"
+  },
+  "llm_apiKeyTitle": {
+    "message": "🔑 Gemini API Key"
+  },
+  "llm_apiKeyPlaceholder": {
+    "message": "Enter API key..."
+  },
+  "llm_apiKeySaveToDevice": {
+    "message": "Save to device"
+  },
+  "llm_apiKeySet": {
+    "message": "✓ API key is configured"
+  },
+  "llm_apiKeySaved": {
+    "message": "✓ API key saved"
+  },
+  "llm_apiKeySessionOnly": {
+    "message": "✓ API key set (session only)"
+  },
+  "llm_apiKeyInvalid": {
+    "message": "✕ Invalid API key"
+  },
+  "llm_apiKeyVerifying": {
+    "message": "Verifying..."
+  },
+  "llm_apiKeySummarySet": {
+    "message": "✓ Configured"
+  },
+  "llm_apiKeySummarySession": {
+    "message": "✓ Session"
+  },
+  "llm_apiKeySessionChanged": {
+    "message": "✓ Changed to session-only setting"
+  },
+  "llm_apiKeyRequired": {
+    "message": "Please set an API key"
+  },
+  "llm_freeTierWarning": {
+    "message": "Free tier API key detected. Processing speed is limited (~13 sec/item)"
+  },
+  "llm_freeTierBatchWarning": {
+    "message": "Free tier API key: processing speed is limited (~13 sec/item)"
+  },
+  "llm_criteriaTitle": {
+    "message": "📋 Review Criteria"
+  },
+  "llm_protocolInputLabel": {
+    "message": "[Input] Copy & paste from protocol:"
+  },
+  "llm_protocolPlaceholder": {
+    "message": "Paste the inclusion/exclusion criteria from your protocol here..."
+  },
+  "llm_optimizeBtn": {
+    "message": "💡 Optimize Criteria"
+  },
+  "llm_optimizing": {
+    "message": "🔄 Optimizing criteria..."
+  },
+  "llm_optimizeComplete": {
+    "message": "✓ Optimization complete"
+  },
+  "llm_optimizeError": {
+    "message": "✕ Error: $1"
+  },
+  "llm_optimizedLabel": {
+    "message": "[Output] Optimized screening criteria:"
+  },
+  "llm_optimizedPlaceholder": {
+    "message": "Click \"Optimize Criteria\" to see results here"
+  },
+  "llm_screeningPromptPlaceholder": {
+    "message": "Screening prompt (auto-generated or editable)"
+  },
+  "llm_saveCriteria": {
+    "message": "💾 Save Criteria to Google Spreadsheet"
+  },
+  "llm_criteriaSaved": {
+    "message": "Criteria saved to Google Spreadsheet"
+  },
+  "llm_criteriaSaveError": {
+    "message": "Failed to save"
+  },
+  "llm_protocolRequired": {
+    "message": "Please enter protocol text"
+  },
+  "llm_templateCustom": {
+    "message": "Custom"
+  },
+  "llm_templateLabel": {
+    "message": "Template:"
+  },
+  "llm_batchTitle": {
+    "message": "🚀 Batch Processing"
+  },
+  "llm_batchSizeLabel": {
+    "message": "Batch size:"
+  },
+  "llm_batchSizeHint": {
+    "message": "items (parallel processing & saving)"
+  },
+  "llm_batchPending": {
+    "message": "Pending:"
+  },
+  "llm_batchPendingCount": {
+    "message": "$1 items"
+  },
+  "llm_batchStart": {
+    "message": "▶️ Start Batch"
+  },
+  "llm_batchStop": {
+    "message": "⏹️ Stop"
+  },
+  "llm_batchStopped": {
+    "message": "Batch processing stopped"
+  },
+  "llm_batchError": {
+    "message": "Batch processing error: $1"
+  },
+  "llm_batchProgress": {
+    "message": "Progress:"
+  },
+  "llm_batchSuccess": {
+    "message": "Success:"
+  },
+  "llm_batchFail": {
+    "message": "Failed:"
+  },
+  "llm_batchNoTarget": {
+    "message": "No references to process"
+  },
+  "llm_screeningPromptRequired": {
+    "message": "Please set screening criteria"
+  },
+  "llm_retryBtn": {
+    "message": "🔄 Retry $1 failed items"
+  },
+  "llm_retryNoTarget": {
+    "message": "No items to retry"
+  },
+  "llm_retryNoRefs": {
+    "message": "No references found to retry"
+  },
+  "llm_retrying": {
+    "message": "Retrying $1 items..."
+  },
+  "llm_retryPartial": {
+    "message": "Retry complete: $1 succeeded, $2 failed"
+  },
+  "llm_retryComplete": {
+    "message": "Retry complete: all $1 succeeded"
+  },
+  "llm_retryError": {
+    "message": "Retry error: $1"
+  },
+  "llm_thresholdTitle": {
+    "message": "📊 Threshold Adjustment"
+  },
+  "llm_thresholdComplete": {
+    "message": "✓ Batch complete ($1 processed)"
+  },
+  "llm_thresholdLabel": {
+    "message": "Include threshold:"
+  },
+  "llm_showDistribution": {
+    "message": "📈 Show Distribution"
+  },
+  "llm_confirmThreshold": {
+    "message": "💾 Confirm Threshold & Save to Google Spreadsheet"
+  },
+  "llm_thresholdNote": {
+    "message": "* After confirmation, decisions will be recorded in the Decisions sheet"
+  },
+  "llm_thresholdSaved": {
+    "message": "Threshold confirmed and saved to Google Spreadsheet"
+  },
+  "llm_thresholdSaveError": {
+    "message": "Save error: $1"
+  },
+  "llm_thresholdMissingId": {
+    "message": "Error: Execution ID not found. Please reload the page."
+  },
+  "llm_historyTitle": {
+    "message": "📜 Execution History"
+  },
+  "llm_historyEmpty": {
+    "message": "No execution history"
+  },
+  "llm_historyBatch": {
+    "message": "Batch"
+  },
+  "llm_historyCriteria": {
+    "message": "Criteria Gen"
+  },
+  "llm_historyPending": {
+    "message": "Pending"
+  },
+  "llm_historyPendingStats": {
+    "message": "$1 processed (threshold not set)"
+  },
+  "llm_historyConfirmedStats": {
+    "message": "$1 processed → Include: $2, Exclude: $3 (threshold: $4)"
+  },
+  "llm_historyUseDecision": {
+    "message": "Use for decisions"
+  },
+  "llm_historyActivated": {
+    "message": "Using for decisions"
+  },
+  "llm_historyDeactivated": {
+    "message": "Removed from decisions"
+  },
+  "llm_historyUpdateFailed": {
+    "message": "Update failed"
+  },
+  "llm_completedConfirm": {
+    "message": "ML screening complete.\n\nWould you like to review the results in the Manual tab?\n(Select \"All\" or \"Include\"/\"Exclude\" in the filter to see the results)"
+  },
+
+  "ml_title": {
+    "message": "🎯 ML Screening"
+  },
+  "ml_statusIdle": {
+    "message": "Not trained"
+  },
+  "ml_statusTraining": {
+    "message": "Training..."
+  },
+  "ml_statusReady": {
+    "message": "Trained"
+  },
+  "ml_statusError": {
+    "message": "Error"
+  },
+  "ml_learningState": {
+    "message": "📊 Training Status"
+  },
+  "ml_stoppingLabel": {
+    "message": "Stopping rule:"
+  },
+  "ml_stoppingNone": {
+    "message": "Not set"
+  },
+  "ml_stoppingConsecutive": {
+    "message": "(consecutive excludes)"
+  },
+  "ml_stoppingConsecutiveCount": {
+    "message": "Consecutive exclude $1",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "ml_stoppingRequired": {
+    "message": "Please set a stopping rule first"
+  },
+  "ml_back": {
+    "message": "Back (←)"
+  },
+  "ml_forward": {
+    "message": "Forward (→)"
+  },
+  "ml_abstractPlaceholder": {
+    "message": "Abstract..."
+  },
+  "ml_titlePlaceholder": {
+    "message": "Title..."
+  },
+  "ml_minRecordsError": {
+    "message": "ML requires at least $1 records (current: $2)"
+  },
+  "ml_newReviewStarted": {
+    "message": "New ML review started"
+  },
+  "ml_resetFailed": {
+    "message": "Reset failed"
+  },
+  "ml_stoppingFinish": {
+    "message": "Finishing screening"
+  },
+  "ml_cmhTitle": {
+    "message": "📊 Statistical Stopping Rule (CMH)"
+  },
+  "ml_cmhDescription": {
+    "message": "Stopping will be suggested when target recall of <strong>$1%</strong> is achieved at <strong>$2%</strong> confidence level."
+  },
+  "ml_screeningProcedure": {
+    "message": "Screening procedure:"
+  },
+  "ml_initialRandom": {
+    "message": "First <strong>$1</strong> items are presented randomly"
+  },
+  "ml_priorityOrder": {
+    "message": "Then presented in ML priority order"
+  },
+  "ml_stopProposal": {
+    "message": "Stopping suggested when statistical criteria are met"
+  },
+  "ml_startWithSettings": {
+    "message": "Start with these settings"
+  },
+  "ml_cmhSettingsTitle": {
+    "message": "📊 Statistical Stopping Rule Settings"
+  },
+  "ml_recordCountWarning": {
+    "message": "⚠️ Statistical stopping rule unavailable for $1 records. Using consecutive exclude rule instead."
+  },
+  "ml_excludeThresholdMsg": {
+    "message": "Stopping will be suggested after <strong><span id=\"threshold-display\">$1</span></strong> consecutive Excludes."
+  },
+  "ml_recommendedValue": {
+    "message": "Recommended: "
+  },
+  "ml_count30": {
+    "message": "30"
+  },
+  "ml_count50Recommended": {
+    "message": "50 (recommended)"
+  },
+  "ml_count100": {
+    "message": "100"
+  },
+  "ml_count200": {
+    "message": "200"
+  },
+  "ml_stoppingCriteriaTitle": {
+    "message": "📊 Stopping Rule Settings"
+  },
+  "ml_customTab": {
+    "message": "Custom"
+  },
+  "ml_percentageTab": {
+    "message": "Percentage (%)"
+  },
+  "ml_consecutiveExcludeLabel": {
+    "message": "Consecutive excludes:"
+  },
+  "ml_consecutiveExcludeHelp": {
+    "message": "Stopping is recommended after the specified number of consecutive excludes."
+  },
+  "ml_datasetPercentageLabel": {
+    "message": "Percentage of entire dataset:"
+  },
+  "ml_selectedPercentageCount": {
+    "message": "Selected: <span id=\"calculated-count\">-</span> items"
+  },
+  "ml_stoppingSettingsTitle": {
+    "message": "Stopping Rule Settings"
+  },
+  "ml_targetRecall": {
+    "message": "Target recall:"
+  },
+  "ml_confidenceLevel": {
+    "message": "Confidence level:"
+  },
+  "ml_screenedCount": {
+    "message": "Screened:"
+  },
+  "ml_stoppingProbability": {
+    "message": "Stop probability:"
+  },
+  "ml_canStop": {
+    "message": "✅ Can stop"
+  },
+  "ml_cmhInfo": {
+    "message": "ⓘ The statistical stopping rule suggests stopping when the probability of achieving target recall reaches the confidence level."
+  },
+  "ml_cmhStatusTitle": {
+    "message": "📊 CMH Stopping Rule Status"
+  },
+  "ml_reachedTitle": {
+    "message": "Stopping criterion reached"
+  },
+  "ml_noRelevantFound": {
+    "message": "No consecutive relevant references found."
+  },
+  "ml_review20More": {
+    "message": "Review 20 more"
+  },
+  "ml_thresholdPlus20": {
+    "message": "Increase threshold by 20 and continue"
+  },
+  "ml_finishExcludeRest": {
+    "message": "Finish and exclude remaining"
+  },
+  "ml_saveAllExclude": {
+    "message": "Save all pending references as Exclude"
+  },
+  "ml_closeNoAction": {
+    "message": "Close (no action)"
+  },
+  "ml_stopRecommended": {
+    "message": "Stop recommended"
+  },
+  "ml_cmhCriteriaMet": {
+    "message": "Statistical stopping criterion met"
+  },
+  "ml_cmhMetDescription": {
+    "message": "Target recall of <strong>$1%</strong> estimated at<br><strong>$2%</strong> confidence level."
+  },
+  "ml_remainingUnread": {
+    "message": "Remaining:"
+  },
+  "ml_pValue": {
+    "message": "p-value:"
+  },
+  "ml_auditSamplingRecommended": {
+    "message": "Perform audit sampling (recommended)"
+  },
+  "ml_auditRandomSample": {
+    "message": "Randomly sample $1 from remaining for review"
+  },
+  "ml_finishWithoutAudit": {
+    "message": "Finish without audit"
+  },
+  "ml_continueScreening": {
+    "message": "Continue screening"
+  },
+  "ml_continueNoStop": {
+    "message": "Continue without stopping"
+  },
+  "ml_stopRecommendedTitle": {
+    "message": "📊 Stop Recommended"
+  },
+  "ml_auditSampleDescription": {
+    "message": "Randomly sampling <strong>$2</strong> from <strong>$1 remaining</strong> for review."
+  },
+  "ml_auditZeroInclude": {
+    "message": "✅ If audit finds <strong>0</strong> Includes: → Confirm screening complete"
+  },
+  "ml_auditFoundInclude": {
+    "message": "⚠️ If audit finds <strong>1+</strong> Includes: → Strongly recommend continuing screening"
+  },
+  "ml_startAudit": {
+    "message": "Start audit"
+  },
+  "ml_auditStartMessage": {
+    "message": "Starting audit sampling of $1 items"
+  },
+  "ml_auditTitle": {
+    "message": "🔍 Audit Sampling"
+  },
+  "ml_bulkExcludeMessage": {
+    "message": "Save all <strong>$1 remaining</strong> pending references as <span style=\"color: #ea4335; font-weight: bold;\">Exclude</span>."
+  },
+  "ml_bulkExcludeWarning": {
+    "message": "This cannot be undone. Use the review screen to change individual decisions."
+  },
+  "ml_processingProgress": {
+    "message": "Processing... $1 / $2"
+  },
+  "ml_savedExcludeCount": {
+    "message": "$1 saved as Exclude"
+  },
+  "ml_confirmWarning": {
+    "message": "⚠️ Confirm"
+  },
+  "ml_reviewComplete": {
+    "message": "ML Review Complete"
+  },
+  "ml_autoExcludedCount": {
+    "message": "(auto-excluded: $1)"
+  },
+  "ml_startNewReview": {
+    "message": "🔄 Start new ML review"
+  },
+  "ml_backToReview": {
+    "message": "← Back to review"
+  },
+  "ml_reviewResultsTitle": {
+    "message": "ML Review Results"
+  },
+  "ml_preFetchFailed": {
+    "message": "Failed to fetch preliminary data"
+  },
+
+  "common_help": {
+    "message": "Help"
+  },
+  "common_settings": {
+    "message": "Settings"
+  },
+  "common_close": {
+    "message": "Close"
+  },
+  "common_save": {
+    "message": "Save"
+  },
+  "common_cancel": {
+    "message": "Cancel"
+  },
+  "common_execute": {
+    "message": "Execute"
+  },
+  "common_processing": {
+    "message": "Processing..."
+  },
+  "common_saving": {
+    "message": "⏳ Saving..."
+  },
+  "common_saved": {
+    "message": "✓ Saved"
+  },
+  "common_saveFailed": {
+    "message": "✕ Save failed"
+  },
+  "common_loading": {
+    "message": "Loading..."
+  },
+  "common_openSidepanel": {
+    "message": "Open side panel"
+  },
+  "common_showHide": {
+    "message": "Show/Hide"
+  },
+  "common_includeCount": {
+    "message": "Include: $1"
+  },
+  "common_excludeCount": {
+    "message": "Exclude: $1"
+  },
+  "common_countItems": {
+    "message": "$1 items",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+
+  "error_geminiApiKeyMissing": {
+    "message": "Gemini API key is not set"
+  },
+  "error_geminiApi": {
+    "message": "Gemini API error: $1"
+  },
+  "error_geminiEmptyResponse": {
+    "message": "Empty response body from Gemini API"
+  },
+  "error_geminiParseFailed": {
+    "message": "Failed to parse streaming response from Gemini API"
+  },
+  "error_geminiInvalidFormat": {
+    "message": "Invalid response format from Gemini API"
+  },
+  "error_geminiNoText": {
+    "message": "No valid text in Gemini API response"
+  },
+  "error_geminiJsonParseFailed": {
+    "message": "Failed to parse Gemini API response as JSON"
+  },
+  "error_geminiTimeout": {
+    "message": "Gemini API timeout ($1ms)"
+  },
+  "error_unsupportedFormat": {
+    "message": "Unsupported format. Please create a new review project first."
+  },
+  "error_loginFailedPrefix": {
+    "message": "Login failed: "
+  }
+}

@@ -13,6 +13,7 @@ import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './se
 import { buildMlLabelsFromReferences, initMlWorker } from './operations';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
 import { getMlClientVersion } from './version';
+import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import {
@@ -118,7 +119,7 @@ async function saveMlDecisionWithQueue(decision: Decision) {
     } catch (err) {
         console.error('Failed to save decision', err);
         await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
-        showToast('オフラインのため判定をキューに保存しました');
+        showToast(t('screening_offlineQueued'));
         return;
     }
 
@@ -145,7 +146,7 @@ export async function activateMlTab(): Promise<boolean> {
     console.log('Can use CMH stopping:', canUseCmhStopping(totalRecords));
 
     if (!canUseCmhStopping(totalRecords)) {
-        const message = `ML機能は${CMH_DEFAULTS.minRecords}件以上のデータセットでのみ使用できます（現在: ${totalRecords}件）`;
+        const message = t('ml_minRecordsError', [String(CMH_DEFAULTS.minRecords), String(totalRecords)]);
         console.log('Showing toast:', message);
         showToast(message, 5000);
         return false;
@@ -198,7 +199,7 @@ export async function activateMlTab(): Promise<boolean> {
 async function handleMlDecision(decision: 'include' | 'exclude') {
     // 設定なしの場合は設定ダイアログを表示して戻す
     if (!state.mlState.stoppingRule) {
-        showToast('先に停止基準を設定してください');
+        showToast(t('ml_stoppingRequired'));
         showStoppingSettingsDialog();
         return;
     }
@@ -259,7 +260,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
                 },
                 () => {
                     // Finish
-                    showToast('スクリーニングを終了します');
+                    showToast(t('ml_stoppingFinish'));
                     // Maybe redirect or show summary?
                 }
             );

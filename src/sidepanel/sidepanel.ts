@@ -23,6 +23,7 @@ import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/m
 import { flushDecisionQueue } from './utils/offline-queue';
 import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
 import { showToast } from './ui/feedback';
+import { localizeHtml } from '../lib/i18n';
 
 // Store（Phase 2で導入）
 import { initializeStore, subscribe, getState } from './store';
@@ -92,6 +93,8 @@ llm.setHandleBack(project.handleBack);
 
 // Global Event Listeners setup
 document.addEventListener('DOMContentLoaded', () => {
+    // i18n: HTMLの静的テキストを翻訳
+    localizeHtml();
     const flushQueueIfReady = async () => {
         if (!state.spreadsheetId || !state.userEmail) return;
         try {

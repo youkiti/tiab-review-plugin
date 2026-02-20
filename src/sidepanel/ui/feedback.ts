@@ -6,6 +6,7 @@
 import { dom } from '../dom';
 import { showToast as showToastStore } from '../store/compat';
 import { dispatch } from '../store';
+import { t } from '../../lib/i18n';
 
 /**
  * ローディング表示を切り替え
@@ -81,11 +82,11 @@ export function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error'
             dom.saveStatus.className = 'save-status';
             break;
         case 'saving':
-            dom.saveStatus.textContent = '⏳ 保存中...';
+            dom.saveStatus.textContent = t('common_saving');
             dom.saveStatus.className = 'save-status saving';
             break;
         case 'saved':
-            dom.saveStatus.textContent = '✓ 保存しました';
+            dom.saveStatus.textContent = t('common_saved');
             dom.saveStatus.className = 'save-status saved';
             // 3秒後にデフォルトに戻す
             setTimeout(() => {
@@ -94,7 +95,7 @@ export function updateSaveStatus(state: 'default' | 'saving' | 'saved' | 'error'
             }, 3000);
             break;
         case 'error':
-            dom.saveStatus.textContent = '✕ 保存失敗';
+            dom.saveStatus.textContent = t('common_saveFailed');
             dom.saveStatus.className = 'save-status error';
             break;
     }

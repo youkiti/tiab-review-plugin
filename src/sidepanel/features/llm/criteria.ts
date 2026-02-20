@@ -10,6 +10,7 @@ import { getEffectiveApiKey } from '../../../lib/storage';
 import { convertCriteria, GeminiModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
+import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
@@ -20,19 +21,19 @@ import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
 export async function handleOptimizeCriteria() {
     const protocolText = dom.protocolTextInput.value.trim();
     if (!protocolText) {
-        showToast('プロトコルのテキストを入力してください');
+        showToast(t('llm_protocolRequired'));
         return;
     }
 
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
-        showToast('APIキーを設定してください');
+        showToast(t('llm_apiKeyRequired'));
         return;
     }
 
     try {
         dom.optimizeCriteriaBtn.disabled = true;
-        dom.optimizeStatusDiv.textContent = '🔄 基準を最適化中...';
+        dom.optimizeStatusDiv.textContent = t('llm_optimizing');
         dom.optimizeStatusDiv.className = 'optimize-status loading';
         dom.optimizeStatusDiv.classList.remove('hidden');
 
@@ -59,7 +60,7 @@ export async function handleOptimizeCriteria() {
         // Store経由で両方に同期
         syncSetLlmConfig(llmConfig);
 
-        dom.optimizeStatusDiv.textContent = '✓ 最適化完了';
+        dom.optimizeStatusDiv.textContent = t('llm_optimizeComplete');
         dom.optimizeStatusDiv.className = 'optimize-status success';
 
         // ボタンを薄い色に変更（確定済み状態）
@@ -69,7 +70,7 @@ export async function handleOptimizeCriteria() {
         dom.saveCriteriaBtn.classList.remove('hidden');
     } catch (error) {
         console.error('[handleOptimizeCriteria] Error:', error);
-        dom.optimizeStatusDiv.textContent = `✕ エラー: ${(error as Error).message}`;
+        dom.optimizeStatusDiv.textContent = t('llm_optimizeError', (error as Error).message);
         dom.optimizeStatusDiv.className = 'optimize-status error';
     } finally {
         dom.optimizeCriteriaBtn.disabled = false;
@@ -87,12 +88,12 @@ export function renderOptimizedCriteria(criteria: LlmCriteria, screeningPrompt: 
         'pico': 'PICO',
         'peco': 'PECO',
         'spider': 'SPIDER',
-        'custom': 'カスタム',
+        'custom': t('llm_templateCustom'),
     }[criteria.template] || criteria.template;
 
     const templateDiv = document.createElement('div');
     templateDiv.className = 'criteria-field';
-    templateDiv.innerHTML = `<strong>テンプレート:</strong> ${templateLabel}`;
+    templateDiv.innerHTML = `<strong>${t('llm_templateLabel')}</strong> ${templateLabel}`;
     dom.optimizedCriteriaDisplay.appendChild(templateDiv);
 
     for (const [key, value] of Object.entries(criteria.fields)) {
@@ -122,13 +123,13 @@ export async function handleSaveCriteria() {
             llm_output_language: dom.llmLanguageSelect.value,
         });
 
-        showToast('基準をGoogleスプレッドシートに保存しました');
+        showToast(t('llm_criteriaSaved'));
 
         // 保存成功時：確定状態のスタイルを適用
         dom.criteriaCard.classList.add('confirmed');
     } catch (error) {
         console.error('[handleSaveCriteria] Error:', error);
-        showToast('保存に失敗しました');
+        showToast(t('llm_criteriaSaveError'));
     } finally {
         dom.saveCriteriaBtn.disabled = false;
     }

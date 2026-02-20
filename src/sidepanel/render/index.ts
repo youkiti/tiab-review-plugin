@@ -9,6 +9,7 @@ import { getFilterCounts, getProgressStats, getFilteredReferences, getCurrentRef
 import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings } from './helpers';
 import { dom } from '../dom';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
+import { t } from '../../lib/i18n';
 
 /**
  * メイン描画関数
@@ -140,18 +141,18 @@ function renderSearchResultCount(state: AppState, filteredCount: number): void {
  * 空状態（文献なし）の描画
  */
 function renderEmptyState(state: AppState): void {
-    dom.refTitle.textContent = '文献がありません';
+    dom.refTitle.textContent = t('screening_noReferences');
     dom.refAuthors.textContent = '';
     dom.refYear.textContent = '';
     dom.refJournal.textContent = '';
     dom.refAbstract.textContent = state.data.references.length === 0
-        ? 'RISファイルをインポートするか、スプレッドシートに文献を追加してください'
-        : 'フィルター条件に一致する文献がありません';
+        ? t('screening_importPrompt')
+        : t('screening_noFilterMatch');
     dom.refDoi.classList.add('hidden');
     dom.refPmid.classList.add('hidden');
     dom.navPosition.textContent = '0 / 0';
     dom.progressText.textContent = `0 / ${state.data.references.length}`;
-    dom.filterResultCount.textContent = `0件中 0件目`;
+    dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
     dom.conflictBanner.classList.add('hidden');
     dom.allDecisionsDiv.classList.add('hidden');
 }

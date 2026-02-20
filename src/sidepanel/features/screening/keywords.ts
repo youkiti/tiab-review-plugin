@@ -2,6 +2,7 @@
  * ハイライトキーワード管理モジュール
  */
 
+import { t } from '../../../lib/i18n';
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { updateConfigKeywords, PRESET_RCT, PRESET_SR } from '../../../lib/sheets-api';
@@ -40,15 +41,15 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[]) {
 
         // タグの構造: [テキスト] [削除ボタン]
         span.innerHTML = `
-            <span class="keyword-text" title="クリックでフィルターに追加">${word}</span>
-            <span class="remove-keyword" title="削除">×</span>
+            <span class="keyword-text" title="${t('keyword_clickToFilter')}">${word}</span>
+            <span class="remove-keyword" title="${t('keyword_delete')}">×</span>
         `;
 
         // タグ本体クリックでフィルター適用
         span.querySelector('.keyword-text')?.addEventListener('click', () => {
             // フィルターに追加
             addTermFilter(word, type);
-            showToast(`"${word}" でフィルター適用`);
+            showToast(t('filter_applyToast', word));
         });
 
         // ×ボタンクリックでキーワード削除
@@ -111,7 +112,7 @@ export async function removeKeyword(type: 'include' | 'exclude', word: string) {
  * プリセットを適用
  */
 export async function applyPreset(type: 'RCT' | 'SR') {
-    if (!confirm(`${type}用プリセットを適用しますか？\n現在のキーワード設定は上書きされます。`)) {
+    if (!confirm(t('keyword_presetConfirm', type))) {
         return;
     }
 
@@ -129,7 +130,7 @@ export async function applyPreset(type: 'RCT' | 'SR') {
     // 自動保存
     await saveKeywordsAuto();
 
-    showToast(`${type}用プリセットを適用しました`);
+    showToast(t('keyword_presetApplied', type));
 }
 
 /**

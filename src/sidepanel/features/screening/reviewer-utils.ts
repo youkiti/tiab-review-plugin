@@ -1,6 +1,7 @@
 import type { Decision } from '../../../lib/types';
 import { state } from '../../state';
 import { isHumanDecision, isConfirmedMlDecision as isConfirmedMl, isMlDecision } from '../../../lib/client-version';
+import { t } from '../../../lib/i18n';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -68,21 +69,21 @@ export function getReviewerLabel(key: string, userEmail: string, hasBothManualAn
     if (isMlReviewerKey(key)) {
         const reviewerId = key.slice(0, -ML_REVIEWER_SUFFIX.length);
         if (reviewerId === userEmail) {
-            return `${reviewerId} (自分/ML)`;
+            return t('reviewer_selfMl', reviewerId);
         }
-        return `${reviewerId} (ML)`;
+        return t('reviewer_ml', reviewerId);
     }
 
     // treatMlAsManualがオンで、手動とML両方がある場合
     if (hasBothManualAndMl && state.treatMlAsManual) {
         if (key === userEmail) {
-            return `${key} (自分/手動＋ML)`;
+            return t('reviewer_selfManualPlusMl', key);
         }
-        return `${key} (手動＋ML)`;
+        return t('reviewer_manualPlusMl', key);
     }
 
     if (key === userEmail) {
-        return `${key} (自分)`;
+        return t('reviewer_self', key);
     }
     return key;
 }

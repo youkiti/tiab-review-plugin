@@ -17,6 +17,7 @@ import {
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
+import { t } from '../../../lib/i18n';
 
 /**
  * APIキーの状態を読み込み
@@ -31,12 +32,12 @@ export async function loadApiKeyStatus() {
         const key = await getGeminiApiKey();
         if (key) {
             dom.geminiApiKeyInput.value = key;
-            dom.apiKeyStatus.textContent = '✓ APIキーが設定されています';
+            dom.apiKeyStatus.textContent = t('llm_apiKeySet');
             dom.apiKeyStatus.className = 'api-key-status success';
 
             // 保存済みの場合：確定状態のスタイルを適用し、折りたたむ
             dom.apiKeyCard.classList.add('confirmed', 'collapsed');
-            dom.apiKeySummary.textContent = '✓ 設定済み';
+            dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
         }
     } else {
         dom.apiKeyStatus.textContent = '';
@@ -80,13 +81,13 @@ export async function handleApiKeyAutoSave() {
         return;
     }
 
-    dom.apiKeyStatus.textContent = '検証中...';
+    dom.apiKeyStatus.textContent = t('llm_apiKeyVerifying');
     dom.apiKeyStatus.className = 'api-key-status';
 
     // APIキーを検証（tier検出含む）
     const result = await testApiKeyWithTier(apiKey);
     if (!result.isValid) {
-        dom.apiKeyStatus.textContent = '✕ 無効なAPIキーです';
+        dom.apiKeyStatus.textContent = t('llm_apiKeyInvalid');
         dom.apiKeyStatus.className = 'api-key-status error';
         return;
     }
@@ -97,25 +98,25 @@ export async function handleApiKeyAutoSave() {
         await saveGeminiApiKey(apiKey);
         await setApiKeySavePreference(true);
         await saveApiTier(result.tier);
-        dom.apiKeyStatus.textContent = '✓ APIキーを保存しました';
+        dom.apiKeyStatus.textContent = t('llm_apiKeySaved');
 
         // 保存済みの場合：確定状態のスタイルを適用
         dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = '✓ 設定済み';
+        dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
     } else {
         setSessionApiKey(apiKey);
         setSessionApiTier(result.tier);
-        dom.apiKeyStatus.textContent = '✓ APIキーを設定しました（セッション限り）';
+        dom.apiKeyStatus.textContent = t('llm_apiKeySessionOnly');
 
         // セッション限りの場合：確定スタイルは適用するが、展開したまま
         dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = '✓ セッション';
+        dom.apiKeySummary.textContent = t('llm_apiKeySummarySession');
     }
     dom.apiKeyStatus.className = 'api-key-status success';
 
     // 無料版の場合は警告を表示
     if (result.tier === 'free') {
-        showToast('無料版APIキーを検出しました。処理速度が制限されます（約13秒/件）', 5000);
+        showToast(t('llm_freeTierWarning'), 5000);
         console.log(`[handleApiKeyAutoSave] Free tier detected. Available models: ${result.availableModels.join(', ')}`);
     }
 }
@@ -133,21 +134,21 @@ export async function handleSavePreferenceChange() {
     if (shouldSave) {
         // 現在のAPIキーを保存
         await saveGeminiApiKey(apiKey);
-        dom.apiKeyStatus.textContent = '✓ APIキーを保存しました';
+        dom.apiKeyStatus.textContent = t('llm_apiKeySaved');
         dom.apiKeyStatus.className = 'api-key-status success';
 
         // 確定状態のスタイルを適用
         dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = '✓ 設定済み';
+        dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
     } else {
         // 保存済みキーを削除してセッションキーに切り替え
         await removeGeminiApiKey();
         setSessionApiKey(apiKey);
-        dom.apiKeyStatus.textContent = '✓ セッション限りの設定に変更しました';
+        dom.apiKeyStatus.textContent = t('llm_apiKeySessionChanged');
         dom.apiKeyStatus.className = 'api-key-status success';
 
         // セッション限りの場合：確定スタイルを適用
         dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = '✓ セッション';
+        dom.apiKeySummary.textContent = t('llm_apiKeySummarySession');
     }
 }

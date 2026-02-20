@@ -8,6 +8,7 @@ import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/ty
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
+import { t } from '../../lib/i18n';
 
 // ========== フィルタリング関連 ==========
 
@@ -341,18 +342,18 @@ export function getEncourageMessage(state: AppState): string {
     const { total, percent } = getProgressStats(state);
 
     if (total === 0) {
-        return '文献をインポートしてください';
+        return t('progress_importPrompt');
     } else if (percent === 0) {
-        return 'さあ、始めましょう！';
+        return t('progress_start');
     } else if (percent <= 25) {
-        return '順調なスタートです！';
+        return t('progress_goodStart');
     } else if (percent <= 50) {
-        return 'いいペースです！半分まであと少し';
+        return t('progress_goodPace');
     } else if (percent <= 75) {
-        return '折り返し地点を過ぎました！';
+        return t('progress_pastHalf');
     } else if (percent < 100) {
-        return 'ゴールが見えてきました！';
+        return t('progress_nearGoal');
     } else {
-        return '完了しました！お疲れ様でした';
+        return t('progress_complete');
     }
 }

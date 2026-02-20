@@ -72,6 +72,7 @@ module.exports = (env, argv) => {
                     { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel/sidepanel.css' },
                     { from: 'src/sidepanel/styles', to: 'sidepanel/styles' },
                     { from: 'src/icons', to: 'icons' },
+                    { from: 'src/_locales', to: '_locales' },
                 ],
             }),
         ],

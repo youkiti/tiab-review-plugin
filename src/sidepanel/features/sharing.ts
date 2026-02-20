@@ -7,6 +7,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { addPermission, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
+import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 4）
 import { closeShareInput } from '../store/compat';
@@ -20,7 +21,7 @@ export async function handleShare() {
 
     // Email validation (simple check)
     if (!email.includes('@')) {
-        showToast('有効なメールアドレスを入力してください');
+        showToast(t('share_invalidEmail'));
         return;
     }
 
@@ -30,16 +31,16 @@ export async function handleShare() {
 
         await addPermission(state.spreadsheetId, email, 'writer');
 
-        showToast(`${email} を追加しました`);
+        showToast(t('share_added', email));
         dom.shareEmailInput.value = '';
         // Store経由で閉じる
         closeShareInput();
     } catch (error) {
         console.error('Share error:', error);
-        showToast(`追加エラー: ${(error as Error).message}`);
+        showToast(t('share_addError', (error as Error).message));
     } finally {
         dom.shareSubmitBtn.disabled = false;
-        dom.shareSubmitBtn.textContent = '追加';
+        dom.shareSubmitBtn.textContent = t('share_add');
     }
 }
 
@@ -51,7 +52,7 @@ export async function loadSharedUsers() {
     const userEmail = state.userEmail;
 
     try {
-        dom.sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">読み込み中...</div>';
+        dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#666;">${t('common_loading')}</div>`;
 
         // 管理者権限チェック（fallback含む）
         const isAdmin = await isUserAdmin(spreadsheetId, userEmail);
@@ -70,8 +71,8 @@ export async function loadSharedUsers() {
                 const div = document.createElement('div');
                 div.className = 'shared-user-item';
                 div.innerHTML = `
-                    <span class="shared-user-email" title="${userEmail}">${userEmail} (自分)</span>
-                    <span class="shared-user-role">編集者(詳細不明)</span>
+                    <span class="shared-user-email" title="${userEmail}">${t('share_self', userEmail)}</span>
+                    <span class="shared-user-role">${t('share_roleUnknown')}</span>
                 `;
                 dom.sharedUsersList.appendChild(div);
 
@@ -79,10 +80,10 @@ export async function loadSharedUsers() {
                 note.style.fontSize = '10px';
                 note.style.color = '#999';
                 note.style.marginTop = '4px';
-                note.textContent = '※権限リストの取得には追加の認証が必要な場合があります';
+                note.textContent = t('share_permissionNote');
                 dom.sharedUsersList.appendChild(note);
             } else {
-                dom.sharedUsersList.innerHTML = '<div style="font-size:11px;color:#666;">ユーザーが見つかりません</div>';
+                dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#666;">${t('share_noUsers')}</div>`;
             }
             return;
         }
@@ -99,7 +100,7 @@ export async function loadSharedUsers() {
 
             const roleSpan = document.createElement('span');
             roleSpan.className = 'shared-user-role';
-            roleSpan.textContent = p.role === 'owner' ? 'オーナー' : (p.role === 'writer' ? '編集者' : '閲覧者');
+            roleSpan.textContent = p.role === 'owner' ? t('share_roleOwner') : (p.role === 'writer' ? t('share_roleWriter') : t('share_roleViewer'));
 
             div.appendChild(emailSpan);
             div.appendChild(roleSpan);
@@ -108,6 +109,6 @@ export async function loadSharedUsers() {
 
     } catch (error) {
         console.error('Failed to load shared users:', error);
-        dom.sharedUsersList.innerHTML = '<div style="font-size:11px;color:#c62828;">読み込み失敗</div>';
+        dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#c62828;">${t('share_loadFailed')}</div>`;
     }
 }
