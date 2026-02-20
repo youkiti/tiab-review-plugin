@@ -6,6 +6,7 @@
 import type { AppState } from '../store/types';
 import { escapeHtml, escapeRegex } from '../utils/text';
 import { isMlAutoDecision, isMlDecision, isConfirmedMlDecision } from '../../lib/client-version';
+import { t } from '../../lib/i18n';
 
 /**
  * テキストハイライト処理
@@ -74,19 +75,19 @@ export function highlightText(
  */
 export function getEncourageMessage(total: number, percent: number): string {
     if (total === 0) {
-        return '文献をインポートしてください 📂';
+        return t('progress_importPrompt');
     } else if (percent === 0) {
-        return 'さあ、始めましょう！💪';
+        return t('progress_start');
     } else if (percent <= 25) {
-        return '順調なスタートです！🚀';
+        return t('progress_goodStart');
     } else if (percent <= 50) {
-        return 'いいペースです！半分まであと少し 📈';
+        return t('progress_goodPace');
     } else if (percent <= 75) {
-        return '折り返し地点を過ぎました！🎯';
+        return t('progress_pastHalf');
     } else if (percent < 100) {
-        return 'ゴールが見えてきました！✨';
+        return t('progress_nearGoal');
     } else {
-        return '完了しました！お疲れ様でした 🎉';
+        return t('progress_complete');
     }
 }
 
@@ -94,7 +95,7 @@ export function getEncourageMessage(total: number, percent: number): string {
  * レビュアーIDからラベルを生成
  */
 export function getReviewerLabel(reviewerId: string, currentUserEmail: string): string {
-    if (!reviewerId) return '(不明)';
+    if (!reviewerId) return t('reviewer_unknown');
 
     // LLM reviewer
     if (reviewerId.startsWith('llm:')) {
@@ -104,7 +105,7 @@ export function getReviewerLabel(reviewerId: string, currentUserEmail: string): 
 
     // Current user
     if (reviewerId === currentUserEmail) {
-        return `👤 自分`;
+        return `👤 ${t('reviewer_selfLabel')}`;
     }
 
     // Other human reviewer - show email prefix

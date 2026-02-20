@@ -1,6 +1,8 @@
 // Popup スクリプト
+import { localizeHtml } from '../lib/i18n';
 
 document.addEventListener('DOMContentLoaded', () => {
+    localizeHtml();
     const loginSection = document.getElementById('login-section') as HTMLElement;
     const userSection = document.getElementById('user-section') as HTMLElement;
     const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
@@ -15,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await chrome.runtime.sendMessage({ type: 'GET_AUTH_TOKEN' });
             if (response.error) {
                 console.error('Auth error:', response.error);
-                alert('ログインに失敗しました: ' + response.error);
+                const { t } = await import('../lib/i18n');
+                alert(t('auth_loginFailed', response.error));
             } else {
                 checkAuthStatus();
             }

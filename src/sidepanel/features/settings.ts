@@ -6,6 +6,7 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
+import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -56,8 +57,8 @@ export async function handleAutoNavigateChange() {
     console.log('[handleAutoNavigateChange] 設定変更:', state.autoNavigateAfterDecision);
     await saveUserSettings();
     showToast(state.autoNavigateAfterDecision
-        ? '判断後に自動的に次の文献に遷移します'
-        : '判断後は手動で遷移してください');
+        ? t('settings_autoNavigateOn')
+        : t('settings_autoNavigateOff'));
 }
 
 /**
@@ -125,8 +126,8 @@ export async function handleShowRecordCountChange() {
     }
 
     showToast(state.showRecordCountBelow
-        ? 'レコード件数をタイトル下に表示します'
-        : 'レコード件数をタイトル上に移動しました');
+        ? t('settings_showRecordCountBelow')
+        : t('settings_showRecordCountAbove'));
 }
 
 /**
@@ -145,8 +146,8 @@ export async function handleTermFilterAndChange() {
     }
 
     showToast(state.termFilterUseAnd
-        ? '複数キーワード選択時: AND検索'
-        : '複数キーワード選択時: OR検索');
+        ? t('settings_termFilterAndOn')
+        : t('settings_termFilterAndOff'));
 }
 
 /**
@@ -170,6 +171,6 @@ export async function handleTreatMlAsManualChange() {
     }
 
     showToast(state.treatMlAsManual
-        ? 'ML判定と手動判定を同一視します'
-        : 'ML判定と手動判定を区別します');
+        ? t('settings_treatMlAsManualOn')
+        : t('settings_treatMlAsManualOff'));
 }

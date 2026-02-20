@@ -7,6 +7,7 @@ import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences, renderSourceFilters } from './screening/filters';
 import { getSpreadsheetInfo, addReferences, getReferencesWithStatus } from '../../lib/sheets-api';
+import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import { setReferences as syncSetReferences } from '../store/compat';
@@ -32,13 +33,13 @@ export async function handleRISImport(e: Event) {
     try {
         // 同じ名前のファイルが既に存在するかチェック
         if (state.sourceFiles.has(file.name)) {
-            const msg = `ファイル "${file.name}" は既にインポート済みです`;
+            const msg = t('import_duplicate', file.name);
             showToast(msg);
-            dom.importStatus.textContent = 'インポートファイルが重複しています';
+            dom.importStatus.textContent = t('import_duplicateStatus');
             fileInput.value = ''; // リセット
 
             setTimeout(() => {
-                if (dom.importStatus.textContent === 'インポートファイルが重複しています') {
+                if (dom.importStatus.textContent === t('import_duplicateStatus')) {
                     dom.importStatus.textContent = '';
                 }
             }, 3000);
@@ -46,13 +47,13 @@ export async function handleRISImport(e: Event) {
         }
 
         showLoading(true);
-        dom.importStatus.textContent = '解析中...';
+        dom.importStatus.textContent = t('import_parsing');
         // const text = await file.text(); // parseRISFile reads it
         const newReferences = await parseRISFile(file);
 
         if (newReferences.length === 0) {
-            showToast('有効な文献が見つかりませんでした');
-            dom.importStatus.textContent = '有効な文献が見つかりませんでした';
+            showToast(t('import_noValid'));
+            dom.importStatus.textContent = t('import_noValid');
             return;
         }
 
@@ -68,12 +69,12 @@ export async function handleRISImport(e: Event) {
 
         if (duplicateCount > 0) {
             console.log(`Skipped ${duplicateCount} duplicates.`);
-            showToast(`${duplicateCount} 件の重複を除外しました`);
+            showToast(t('import_skippedDuplicates', String(duplicateCount)));
         }
 
         if (uniqueReferences.length === 0) {
-            dom.importStatus.textContent = 'すべて重複';
-            showToast('新しい文献はありません（すべて重複）');
+            dom.importStatus.textContent = t('import_allDuplicate');
+            showToast(t('import_noNew'));
             return;
         }
 
@@ -85,12 +86,12 @@ export async function handleRISImport(e: Event) {
             const chunk = uniqueReferences.slice(i, i + BATCH_SIZE);
             const current = Math.min(i + chunk.length, total);
 
-            dom.importStatus.textContent = `アップロード中: ${current}/${total}`;
+            dom.importStatus.textContent = t('import_uploading', [String(current), String(total)]);
             await addReferences(state.spreadsheetId, chunk);
         }
 
         // 状態を更新
-        dom.importStatus.textContent = 'データ更新中...';
+        dom.importStatus.textContent = t('import_updating');
         state.addSourceFile(file.name);
         state.addSelectedSourceFile(file.name); // 新規ファイルを選択状態にする
 
@@ -103,14 +104,14 @@ export async function handleRISImport(e: Event) {
         renderSourceFilters();
         if (_renderCurrentReference) _renderCurrentReference();
 
-        const completionMsg = `${uniqueReferences.length}件インポート完了（重複除外: ${duplicateCount}件）`;
+        const completionMsg = t('import_complete', [String(uniqueReferences.length), String(duplicateCount)]);
         dom.importStatus.textContent = completionMsg;
         showToast(completionMsg);
 
     } catch (error) {
         console.error('Import error:', error);
-        showToast(`インポートエラー: ${(error as Error).message}`);
-        dom.importStatus.textContent = 'インポートエラー';
+        showToast(t('import_error', (error as Error).message));
+        dom.importStatus.textContent = t('import_errorStatus');
     } finally {
 
         showLoading(false);
@@ -134,7 +135,7 @@ export async function handleExportCSV() {
     const filtered = getFilteredReferences();
 
     if (filtered.length === 0) {
-        showToast('エクスポートする文献がありません');
+        showToast(t('export_noData'));
         return;
     }
 
@@ -150,12 +151,12 @@ export async function handleExportCSV() {
 
         // フィルター条件ラベル
         const filterLabels: Record<string, string> = {
-            'pending': '未判定',
-            'all': 'すべて',
+            'pending': t('export_filterPending'),
+            'all': t('export_filterAll'),
             'include': 'Include',
             'exclude': 'Exclude',
             'maybe': 'Maybe',
-            'conflict': '不一致',
+            'conflict': t('export_filterConflict'),
         };
         const filterLabel = filterLabels[state.currentFilter] || state.currentFilter;
 
@@ -164,7 +165,7 @@ export async function handleExportCSV() {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         // ファイル名
-        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.csv`;
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}${t('export_countSuffix')}.csv`;
 
         // CSVヘッダー
         const headers = [
@@ -196,10 +197,10 @@ export async function handleExportCSV() {
         }
 
         downloadBlob(csvRows.join('\r\n'), filename, 'text/csv;charset=utf-8');
-        showToast(`${filtered.length}件をCSVとして出力しました`);
+        showToast(t('export_csvDone', String(filtered.length)));
     } catch (error) {
         console.error('[handleExportCSV] Error:', error);
-        showToast('CSVエクスポートに失敗しました');
+        showToast(t('export_csvError'));
     }
 }
 
@@ -210,7 +211,7 @@ export async function handleExportRIS() {
     const filtered = getFilteredReferences();
 
     if (filtered.length === 0) {
-        showToast('エクスポートする文献がありません');
+        showToast(t('export_noData'));
         return;
     }
 
@@ -225,17 +226,17 @@ export async function handleExportRIS() {
         }
 
         const filterLabels: Record<string, string> = {
-            'pending': '未判定',
-            'all': 'すべて',
+            'pending': t('export_filterPending'),
+            'all': t('export_filterAll'),
             'include': 'Include',
             'exclude': 'Exclude',
             'maybe': 'Maybe',
-            'conflict': '不一致',
+            'conflict': t('export_filterConflict'),
         };
         const filterLabel = filterLabels[state.currentFilter] || state.currentFilter;
         const now = new Date();
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}件.ris`;
+        const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}${t('export_countSuffix')}.ris`;
 
         const risLines: string[] = [];
 
@@ -295,11 +296,11 @@ export async function handleExportRIS() {
         }
 
         downloadBlob(risLines.join('\r\n'), filename, 'application/x-research-info-systems;charset=utf-8');
-        showToast(`${filtered.length}件をRIS形式で出力しました`);
+        showToast(t('export_risDone', String(filtered.length)));
 
     } catch (error) {
         console.error('[handleExportRIS] Error:', error);
-        showToast('RISエクスポートに失敗しました');
+        showToast(t('export_risError'));
     }
 }
 

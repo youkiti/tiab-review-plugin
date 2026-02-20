@@ -6,6 +6,7 @@ import { isCmhStoppingRule } from '../../../lib/ml/types';
 import { highlightText } from '../screening/render';
 import { showToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
+import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import { setMlState as syncSetMlState } from '../../store/compat';
@@ -76,10 +77,10 @@ function renderMlReference() {
         if (resultCount) {
             resultCount.classList.remove('hidden');
             if (filteredRanking.length === 0) {
-                resultCount.textContent = `「${searchKeyword}」: 0件ヒット`;
+                resultCount.textContent = t('screening_searchNoHits', searchKeyword);
                 resultCount.classList.add('no-results');
             } else {
-                resultCount.textContent = `「${searchKeyword}」: ${filteredRanking.length}件ヒット`;
+                resultCount.textContent = t('screening_searchHits', [searchKeyword, String(filteredRanking.length)]);
                 resultCount.classList.remove('no-results');
             }
         }
@@ -100,7 +101,7 @@ function renderMlReference() {
     if (!refId) {
         // No records or finished
         elements.ref.title()!.textContent = searchKeyword
-            ? '検索条件に一致する文献がありません'
+            ? t('screening_noFilterMatch')
             : 'No more records';
         elements.ref.authors()!.textContent = '';
         elements.ref.year()!.textContent = '';
@@ -151,8 +152,8 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[], cont
         span.className = `keyword-tag ${type}`;
 
         span.innerHTML = `
-            <span class="keyword-text" title="キーワード">${word}</span>
-            <span class="remove-keyword" title="削除">×</span>
+            <span class="keyword-text" title="${t('keyword_clickToFilter')}">${word}</span>
+            <span class="remove-keyword" title="${t('keyword_delete')}">×</span>
         `;
 
         // ×ボタンクリックでキーワード削除
@@ -195,11 +196,11 @@ export function renderMlStats() {
         badgeContainer.className = 'ml-status-badge';
         switch (mlState.status) {
             case 'initializing':
-                badgeText.textContent = '初期化中...';
+                badgeText.textContent = t('common_loading');
                 break;
             case 'training':
                 badgeContainer.classList.add('training');
-                badgeText.textContent = '学習中...';
+                badgeText.textContent = t('ml_statusTraining');
                 break;
             case 'ready':
                 badgeContainer.classList.add('ready');
@@ -209,7 +210,7 @@ export function renderMlStats() {
                 badgeText.innerHTML = '<span style="color:red">Error</span>';
                 break;
             default:
-                badgeText.textContent = '未学習';
+                badgeText.textContent = t('ml_statusIdle');
         }
     }
 
@@ -250,10 +251,10 @@ export function renderMlStats() {
             if (isCmhStoppingRule(stopping)) {
                 settingsBtn.textContent = `CMH リコール${(stopping.targetRecall * 100).toFixed(0)}%`;
             } else {
-                settingsBtn.textContent = `連続 exclude ${stopping.threshold}件`;
+                settingsBtn.textContent = t('ml_stoppingConsecutiveCount', String(stopping.threshold));
             }
         } else {
-            settingsBtn.textContent = '設定なし';
+            settingsBtn.textContent = t('ml_stoppingNone');
         }
     }
 
@@ -315,5 +316,5 @@ export function addMlKeyword(type: 'include' | 'exclude') {
     renderMlKeywords();
     renderMlReference(); // ハイライト即時反映
 
-    showToast(`「${word}」を追加しました`);
+    showToast(t('keyword_added', word));
 }

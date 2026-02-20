@@ -3,6 +3,7 @@
  * 他のレビュアーの判定を表示/非表示にする
  */
 
+import { t } from '../../../lib/i18n';
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getReviewerLabel, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
@@ -101,7 +102,7 @@ export function renderReviewerFilter() {
             });
 
             const span = document.createElement('span');
-            span.textContent = '💡 AIの根拠をハイライト';
+            span.textContent = t('filter_aiHighlight');
 
             label.appendChild(checkbox);
             label.appendChild(span);
@@ -196,8 +197,8 @@ export function renderReviewerFilter() {
             });
 
             const includeSpan = document.createElement('span');
-            includeSpan.textContent = '(🟢組み入れ判断)';
-            includeSpan.title = '組み入れ';
+            includeSpan.textContent = t('filter_includeDecision');
+            includeSpan.title = t('filter_includeLabel');
 
             includeLabel.appendChild(includeCheckbox);
             includeLabel.appendChild(includeSpan);
@@ -224,8 +225,8 @@ export function renderReviewerFilter() {
             });
 
             const excludeSpan = document.createElement('span');
-            excludeSpan.textContent = '(❌除外判断)';
-            excludeSpan.title = '除外';
+            excludeSpan.textContent = t('filter_excludeDecision');
+            excludeSpan.title = t('filter_excludeLabel');
 
             excludeLabel.appendChild(excludeCheckbox);
             excludeLabel.appendChild(excludeSpan);

@@ -5,6 +5,7 @@
 
 import type { AppState } from '../store/types';
 import { dom } from '../dom';
+import { t } from '../../lib/i18n';
 
 /**
  * レイアウト描画
@@ -96,13 +97,13 @@ export function renderFilterOptions(counts: {
     fulltextCandidates: number;
 }): void {
     const options = dom.statusFilter.options;
-    options[0].textContent = `未判定 (${counts.pending})`;
-    options[1].textContent = `すべて (${counts.all})`;
-    options[2].textContent = `Include (${counts.include})`;
-    options[3].textContent = `Exclude (${counts.exclude})`;
-    options[4].textContent = `Maybe (${counts.maybe})`;
-    options[5].textContent = `不一致 (${counts.conflict})`;
+    options[0].textContent = t('filter_pendingCount', String(counts.pending));
+    options[1].textContent = t('filter_allCount', String(counts.all));
+    options[2].textContent = t('filter_includeCount', String(counts.include));
+    options[3].textContent = t('filter_excludeCount', String(counts.exclude));
+    options[4].textContent = t('filter_maybeCount', String(counts.maybe));
+    options[5].textContent = t('filter_conflictCount', String(counts.conflict));
     if (options[6]) {
-        options[6].textContent = `フルテキスト候補 (${counts.fulltextCandidates})`;
+        options[6].textContent = t('filter_fulltextCount', String(counts.fulltextCandidates));
     }
 }

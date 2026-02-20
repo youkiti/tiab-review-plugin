@@ -19,6 +19,7 @@ import { renderKeyStatus } from './render';
 import { renderReviewerFilter } from './reviewer-filter';
 import { getReviewerKey } from './reviewer-utils';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
+import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -49,7 +50,7 @@ async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolea
         console.error('Failed to save decision:', error);
         await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
         if (notifyOnFailure) {
-            showToast('オフラインのため判定をキューに保存しました');
+            showToast(t('screening_offlineQueued'));
         }
         return;
     }
@@ -193,7 +194,7 @@ export async function handleKeyToggle() {
 
     if (!newState) {
         // CLOSE処理 (ON -> OFF)
-        if (!confirm('Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。')) {
+        if (!confirm(t('blind_onConfirm'))) {
             // キャンセルされたら元の状態に戻す
             dom.keyToggleInput.checked = true;
             return;
@@ -221,10 +222,10 @@ export async function handleKeyToggle() {
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
 
-            showToast('Blind onを実行しました');
+            showToast(t('blind_onSuccess'));
         } catch (error) {
             console.error('Key close error:', error);
-            alert(`Blind onエラー: ${(error as Error).message}`);
+            alert(t('blind_onError', (error as Error).message));
             // エラー時は元の状態に戻す
             dom.keyToggleInput.checked = true;
         } finally {
@@ -233,7 +234,7 @@ export async function handleKeyToggle() {
 
     } else {
         // OPEN処理 (OFF -> ON)
-        if (!confirm('Blind offを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。')) {
+        if (!confirm(t('blind_offConfirm'))) {
             // キャンセルされたら元の状態に戻す
             dom.keyToggleInput.checked = false;
             return;
@@ -274,10 +275,10 @@ export async function handleKeyToggle() {
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
 
-            showToast('Blind offを実行しました');
+            showToast(t('blind_offSuccess'));
         } catch (error) {
             console.error('Key open error:', error);
-            alert(`Blind openエラー: ${(error as Error).message}`);
+            alert(t('blind_offError', (error as Error).message));
             // エラー時は元の状態に戻す
             dom.keyToggleInput.checked = false;
         } finally {

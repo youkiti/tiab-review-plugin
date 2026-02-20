@@ -2,6 +2,7 @@
 
 import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier } from './types';
 import { getEffectiveApiKey } from './storage';
+import { t } from './i18n';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -129,7 +130,7 @@ async function callGeminiApi<T>(
 ): Promise<T> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
-        throw new Error('Gemini APIキーが設定されていません');
+        throw new Error(t('error_geminiApiKeyMissing'));
     }
 
     // streamGenerateContentを使用
@@ -172,12 +173,12 @@ async function callGeminiApi<T>(
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const errorMessage = errorData.error?.message || response.statusText;
-            throw new Error(`Gemini API エラー: ${errorMessage}`);
+            throw new Error(t('error_geminiApi', errorMessage));
         }
 
         // ストリーミング読み込み
         if (!response.body) {
-            throw new Error('Gemini APIからの応答ボディが空です');
+            throw new Error(t('error_geminiEmptyResponse'));
         }
 
         // Web Streams API (for browser / Node 18+)
@@ -210,11 +211,11 @@ async function callGeminiApi<T>(
             responses = JSON.parse(aggregatedText);
         } catch (e) {
             console.error('Failed to parse streaming response:', aggregatedText.substring(0, 200) + '...');
-            throw new Error('Gemini APIからのストリーミング応答のパースに失敗しました');
+            throw new Error(t('error_geminiParseFailed'));
         }
 
         if (!Array.isArray(responses) || responses.length === 0) {
-            throw new Error('Gemini APIからの応答が不正な形式です');
+            throw new Error(t('error_geminiInvalidFormat'));
         }
 
         // 全レスポンスからテキストを結合（Thinking部分を除く）
@@ -234,7 +235,7 @@ async function callGeminiApi<T>(
         }
 
         if (!fullText) {
-            throw new Error('Gemini APIからの応答に有効なテキストが含まれていません');
+            throw new Error(t('error_geminiNoText'));
         }
 
         // JSONパース
@@ -247,16 +248,16 @@ async function callGeminiApi<T>(
                 try {
                     return JSON.parse(jsonMatch[0]) as T;
                 } catch (e2) {
-                    throw new Error('Gemini APIからの応答をJSONとしてパースできませんでした');
+                    throw new Error(t('error_geminiJsonParseFailed'));
                 }
             }
-            throw new Error('Gemini APIからの応答をJSONとしてパースできませんでした: ' + fullText.substring(0, 100));
+            throw new Error(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100));
         }
 
     } catch (error) {
         clearTimeout(timeoutId);
         if (error instanceof Error && error.name === 'AbortError') {
-            throw new Error(`Gemini API タイムアウト (${timeoutMs}ms)`);
+            throw new Error(t('error_geminiTimeout', String(timeoutMs)));
         }
         throw error;
     }
@@ -416,12 +417,12 @@ export interface ModelOption {
 export const AVAILABLE_MODELS: ModelOption[] = [
     {
         id: 'gemini-3-flash-preview',
-        name: 'Gemini 3 Flash (推奨・高精度)',
+        name: 'Gemini 3 Flash',
         config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
     },
     {
         id: 'gemini-2.5-flash-lite',
-        name: 'Gemini 2.5 Flash Lite (コスト重視)',
+        name: 'Gemini 2.5 Flash Lite',
         config: { temperature: 0 }
     },
 ];

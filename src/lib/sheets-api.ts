@@ -1,6 +1,7 @@
 // Google Sheets API ラッパー
 
 import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution } from './types';
+import { t } from './i18n';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -250,7 +251,7 @@ export async function validateSpreadsheetFormat(spreadsheetId: string): Promise<
         if (!values || values.length === 0) {
             return {
                 valid: false,
-                error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+                error: t('error_unsupportedFormat')
             };
         }
 
@@ -263,7 +264,7 @@ export async function validateSpreadsheetFormat(spreadsheetId: string): Promise<
             headers[2] !== expectedHeaders[2]) {
             return {
                 valid: false,
-                error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+                error: t('error_unsupportedFormat')
             };
         }
 
@@ -272,7 +273,7 @@ export async function validateSpreadsheetFormat(spreadsheetId: string): Promise<
         // Referencesタブが存在しない場合もエラーになる
         return {
             valid: false,
-            error: '対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください'
+            error: t('error_unsupportedFormat')
         };
     }
 }

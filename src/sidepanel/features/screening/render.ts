@@ -12,6 +12,7 @@ import { showStatus } from '../../ui/feedback';
 import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
 import { detectConflictWithSettings } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
+import { t } from '../../../lib/i18n';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -88,10 +89,10 @@ export function renderCurrentReference() {
     if (searchTerm) {
         dom.searchResultCount.classList.remove('hidden');
         if (filtered.length === 0) {
-            dom.searchResultCount.textContent = `「${searchTerm}」: 0件ヒット`;
+            dom.searchResultCount.textContent = t('screening_searchNoHits', searchTerm);
             dom.searchResultCount.classList.add('no-results');
         } else {
-            dom.searchResultCount.textContent = `「${searchTerm}」: ${filtered.length}件ヒット（↓ 詳細を確認）`;
+            dom.searchResultCount.textContent = t('screening_searchHits', [searchTerm, String(filtered.length)]);
             dom.searchResultCount.classList.remove('no-results');
         }
     } else {
@@ -100,18 +101,18 @@ export function renderCurrentReference() {
 
     if (!ref) {
         // 文献がない場合の表示
-        dom.refTitle.textContent = '文献がありません';
+        dom.refTitle.textContent = t('screening_noReferences');
         dom.refAuthors.textContent = '';
         dom.refYear.textContent = '';
         dom.refJournal.textContent = '';
         dom.refAbstract.textContent = state.references.length === 0
-            ? 'RISファイルをインポートするか、スプレッドシートに文献を追加してください'
-            : 'フィルター条件に一致する文献がありません';
+            ? t('screening_importPrompt')
+            : t('screening_noFilterMatch');
         dom.refDoi.classList.add('hidden');
         dom.refPmid.classList.add('hidden');
         dom.navPosition.textContent = '0 / 0';
         dom.progressText.textContent = `0 / ${state.references.length}`;
-        dom.filterResultCount.textContent = `0件中 0件目`;
+        dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
 
         updateFilterCounts();
 
@@ -183,7 +184,7 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
     dom.refAuthors.textContent = ref.authors || '';
     dom.refYear.textContent = ref.year?.toString() || '';
     dom.refJournal.textContent = ref.journal || '';
-    dom.refAbstract.innerHTML = highlightText(ref.abstract || '(抄録なし)', searchKeyword, evidenceList);
+    dom.refAbstract.innerHTML = highlightText(ref.abstract || t('screening_noAbstract'), searchKeyword, evidenceList);
 
     // リンク
     if (ref.doi) {
@@ -202,7 +203,7 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
 
     // ナビゲーション更新
     dom.navPosition.textContent = `${state.currentIndex + 1} / ${totalFiltered}`;
-    dom.filterResultCount.textContent = `${totalFiltered}件中 ${state.currentIndex + 1}件目`;
+    dom.filterResultCount.textContent = t('filter_resultCount', [String(totalFiltered), String(state.currentIndex + 1)]);
 
     // 進捗表示
     renderProgress();
@@ -234,32 +235,32 @@ function renderProgress() {
     // 励ましメッセージ
     let encourageMessage = '';
     if (totalCount === 0) {
-        encourageMessage = '文献をインポートしてください 📂';
+        encourageMessage = t('progress_importPrompt');
     } else if (progressPercent === 0) {
-        encourageMessage = 'さあ、始めましょう！💪';
+        encourageMessage = t('progress_start');
     } else if (progressPercent <= 25) {
-        encourageMessage = '順調なスタートです！🚀';
+        encourageMessage = t('progress_goodStart');
     } else if (progressPercent <= 50) {
-        encourageMessage = 'いいペースです！半分まであと少し 📈';
+        encourageMessage = t('progress_goodPace');
     } else if (progressPercent <= 75) {
-        encourageMessage = '折り返し地点を過ぎました！🎯';
+        encourageMessage = t('progress_pastHalf');
     } else if (progressPercent < 100) {
-        encourageMessage = 'ゴールが見えてきました！✨';
+        encourageMessage = t('progress_nearGoal');
     } else {
-        encourageMessage = '完了しました！お疲れ様でした 🎉';
+        encourageMessage = t('progress_complete');
     }
 
     // 設定に応じて表示位置を切り替え
     if (state.showRecordCountBelow) {
         dom.navProgress.innerHTML = `
-            <div class="nav-progress-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+            <div class="nav-progress-main">${t('progress_count', [String(labeledCount), String(totalCount), String(remainingCount)])}</div>
             <div class="nav-progress-encourage">${encourageMessage}</div>
         `;
         dom.recordCountAbove.classList.add('hidden');
         dom.navProgress.classList.remove('hidden');
     } else {
         dom.recordCountAbove.innerHTML = `
-            <div class="record-count-main">${labeledCount} / ${totalCount}件（残り${remainingCount}件）</div>
+            <div class="record-count-main">${t('progress_count', [String(labeledCount), String(totalCount), String(remainingCount)])}</div>
             <div class="record-count-encourage">${encourageMessage}</div>
         `;
         dom.recordCountAbove.classList.remove('hidden');
@@ -358,9 +359,9 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
         const isMixed = mixedReviewers.has(reviewerKey);
         if (!isMixed) {
             if (isMlAutoDecision(decision?.client_version)) {
-                mlBadge = '<span class="ml-enhanced-badge auto">🤖 ML(自動)</span>';
+                mlBadge = '<span class="ml-enhanced-badge auto">' + t('reviewer_mlAutoLabel') + '</span>';
             } else if (isMlDecision(decision?.client_version)) {
-                mlBadge = '<span class="ml-enhanced-badge">🤖 ML</span>';
+                mlBadge = '<span class="ml-enhanced-badge">' + t('reviewer_mlLabel') + '</span>';
             }
         }
 
@@ -385,7 +386,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
 
                         // Reasonsヘッダー
                         const label = document.createElement('div');
-                        label.innerHTML = '<b>AI理由:</b>';
+                        label.innerHTML = '<b>' + t('screening_aiReasons') + '</b>';
                         noteDiv.appendChild(label);
 
                         // リスト作成
@@ -408,7 +409,7 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
             }
 
             if (!isJson) {
-                noteDiv.textContent = `メモ: ${decision.note}`;
+                noteDiv.textContent = t('screening_notePrefix', decision.note);
             }
             div.appendChild(noteDiv);
         }

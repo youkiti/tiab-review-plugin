@@ -3,6 +3,7 @@
  * 文献のフィルタリングロジック
  */
 
+import { t } from '../../../lib/i18n';
 import { state } from '../../state';
 import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
@@ -278,17 +279,17 @@ export function updateFilterCounts() {
     };
 
     const options = dom.statusFilter.options;
-    options[0].textContent = `未判定 (${counts.pending})`;
-    options[1].textContent = `すべて（判定済みも含む） (${counts.all})`;
-    options[2].textContent = `Include（修正可） (${counts.include})`;
-    options[3].textContent = `Exclude（修正可） (${counts.exclude})`;
-    options[4].textContent = `Maybe（修正可） (${counts.maybe})`;
-    options[5].textContent = `不一致 (${counts.conflict})`;
+    options[0].textContent = t('filter_pendingCount', String(counts.pending));
+    options[1].textContent = t('filter_allCount', String(counts.all));
+    options[2].textContent = t('filter_includeCount', String(counts.include));
+    options[3].textContent = t('filter_excludeCount', String(counts.exclude));
+    options[4].textContent = t('filter_maybeCount', String(counts.maybe));
+    options[5].textContent = t('filter_conflictCount', String(counts.conflict));
 
     // フルテキスト候補（独立アルゴリズム）
     const fulltextCount = filtered.filter(isFulltextCandidate).length;
     if (options[6]) {
-        options[6].textContent = `フルテキスト候補 (${fulltextCount})`;
+        options[6].textContent = t('filter_fulltextCount', String(fulltextCount));
     }
 }
 
@@ -344,7 +345,7 @@ export function renderSourceFilters() {
         // Delete Button
         const deleteBtn = document.createElement('button');
         deleteBtn.textContent = '🗑️';
-        deleteBtn.title = 'このファイルの文献をすべて削除';
+        deleteBtn.title = t('filter_deleteFile');
         deleteBtn.className = 'btn-icon';
         deleteBtn.style.marginLeft = '8px';
         deleteBtn.style.cursor = 'pointer';
@@ -352,10 +353,10 @@ export function renderSourceFilters() {
             e.preventDefault();
             e.stopPropagation();
 
-            if (confirm(`ファイル "${file}" に含まれる ${count} 件の文献をスプレッドシートから完全に削除しますか？\n（この操作は取り消せません）`)) {
+            if (confirm(t('filter_deleteConfirm', [file, String(count)]))) {
                 try {
                     showLoading(true);
-                    showToast(`${file} を削除中...`, 5000);
+                    showToast(t('filter_deleting', file), 5000);
 
                     const deletedCount = await deleteReferencesBySourceFile(state.spreadsheetId, file);
 
@@ -372,11 +373,11 @@ export function renderSourceFilters() {
                     renderSourceFilters();
                     if (_renderCurrentReference) _renderCurrentReference();
 
-                    showToast(`${deletedCount} 件を削除しました`);
+                    showToast(t('filter_deleted', String(deletedCount)));
 
                 } catch (err) {
                     console.error('Delete error:', err);
-                    showToast(`削除エラー: ${(err as Error).message}`);
+                    showToast(t('filter_deleteError', (err as Error).message));
                 } finally {
                     showLoading(false);
                 }

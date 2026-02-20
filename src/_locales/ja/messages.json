@@ -1,0 +1,1157 @@
+{
+  "extName": {
+    "message": "TiAb Review"
+  },
+  "extDescription": {
+    "message": "タイトル・抄録スクリーニング支援ツール"
+  },
+
+  "auth_loginWithGoogle": {
+    "message": "Googleアカウントでログイン"
+  },
+  "auth_loginWithGoogleShort": {
+    "message": "Googleでログイン"
+  },
+  "auth_loginFailed": {
+    "message": "ログインに失敗しました: $1",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "auth_loginRequired": {
+    "message": "Googleアカウントにログインしてください"
+  },
+  "auth_loginPrompt": {
+    "message": "スクリーニングを開始するにはログインしてください"
+  },
+  "auth_logout": {
+    "message": "ログアウト"
+  },
+  "auth_logoutConfirm": {
+    "message": "ログアウトしますか？"
+  },
+  "auth_logoutSuccess": {
+    "message": "ログアウトしました"
+  },
+  "auth_logoutError": {
+    "message": "ログアウトエラー: $1"
+  },
+  "auth_loggedInAs": {
+    "message": "ログイン中: $1"
+  },
+  "auth_loggedInAsRole": {
+    "message": "ログイン中: $1 ($2)"
+  },
+  "auth_roleAdmin": {
+    "message": "管理者"
+  },
+  "auth_roleGeneral": {
+    "message": "一般"
+  },
+
+  "project_settings": {
+    "message": "プロジェクト設定"
+  },
+  "project_createNew": {
+    "message": "＋ 新規レビュープロジェクトを作成"
+  },
+  "project_createHelp": {
+    "message": "Google Driveに新しいスプレッドシートを作成します"
+  },
+  "project_orDivider": {
+    "message": "または"
+  },
+  "project_inputLabel": {
+    "message": "スプレッドシートURL/IDを入力（優先）"
+  },
+  "project_inputPlaceholder": {
+    "message": "https://docs.google.com/spreadsheets/d/... または ID"
+  },
+  "project_inputHelp": {
+    "message": "共有されたシートのURL/IDでも接続できます"
+  },
+  "project_recentLabel": {
+    "message": "最近のスプレッドシートから選択"
+  },
+  "project_connect": {
+    "message": "選択したシートに接続"
+  },
+  "project_loading": {
+    "message": "読み込み中..."
+  },
+  "project_noSheets": {
+    "message": "スプレッドシートが見つかりません"
+  },
+  "project_selectSheet": {
+    "message": "— スプレッドシートを選択 —"
+  },
+  "project_loadFailed": {
+    "message": "読み込み失敗"
+  },
+  "project_sheetListFailed": {
+    "message": "シート一覧取得失敗 - 権限を再設定してください"
+  },
+  "project_reauthBtn": {
+    "message": "🔄 権限を再設定"
+  },
+  "project_reauthFailed": {
+    "message": "再認証に失敗しました"
+  },
+  "project_invalidUrl": {
+    "message": "スプレッドシートURL/IDが正しくありません"
+  },
+  "project_selectOrInput": {
+    "message": "スプレッドシートを選択するかURL/IDを入力してください"
+  },
+  "project_invalidFormat": {
+    "message": "対応していない形式です"
+  },
+  "project_connectSuccess": {
+    "message": "接続成功: $1"
+  },
+  "project_connectError": {
+    "message": "接続エラー: $1"
+  },
+  "project_createPrompt": {
+    "message": "新しいレビュープロジェクトの名前を入力してください:"
+  },
+  "project_createDefault": {
+    "message": "TiAb Review Project"
+  },
+  "project_createSuccess": {
+    "message": "作成成功: $1"
+  },
+  "project_createError": {
+    "message": "作成エラー: $1"
+  },
+  "project_loadDataError": {
+    "message": "データ読み込みエラー: $1"
+  },
+  "project_invalidFormatFull": {
+    "message": "対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください"
+  },
+
+  "screening_back": {
+    "message": "← 戻る"
+  },
+  "screening_importRis": {
+    "message": "📁 RIS/nbibインポート"
+  },
+  "screening_export": {
+    "message": "📥 エクスポート"
+  },
+  "screening_exportCsv": {
+    "message": "CSV形式"
+  },
+  "screening_exportRis": {
+    "message": "RIS形式"
+  },
+  "screening_share": {
+    "message": "👤 共有"
+  },
+  "screening_title": {
+    "message": "タイトル"
+  },
+  "screening_abstractPlaceholder": {
+    "message": "抄録がここに表示されます"
+  },
+  "screening_noAbstract": {
+    "message": "(抄録なし)"
+  },
+  "screening_noReferences": {
+    "message": "文献がありません"
+  },
+  "screening_importPrompt": {
+    "message": "RISファイルをインポートするか、スプレッドシートに文献を追加してください"
+  },
+  "screening_noFilterMatch": {
+    "message": "フィルター条件に一致する文献がありません"
+  },
+  "screening_conflictBanner": {
+    "message": "⚠️ 不一致あり - 下記の判定を確認してください"
+  },
+  "screening_noteLabel": {
+    "message": "メモ"
+  },
+  "screening_notePlaceholder": {
+    "message": "メモを入力..."
+  },
+  "screening_searchPlaceholder": {
+    "message": "検索..."
+  },
+  "screening_searchHits": {
+    "message": "「$1」: $2件ヒット（↓ 詳細を確認）"
+  },
+  "screening_searchNoHits": {
+    "message": "「$1」: 0件ヒット"
+  },
+  "screening_aiReasons": {
+    "message": "AI理由:"
+  },
+  "screening_notePrefix": {
+    "message": "メモ: $1"
+  },
+  "screening_offlineQueued": {
+    "message": "オフラインのため判定をキューに保存しました"
+  },
+
+  "nav_prev": {
+    "message": "前へ (←)"
+  },
+  "nav_next": {
+    "message": "次へ (→)"
+  },
+  "nav_backToProject": {
+    "message": "プロジェクト選択に戻る"
+  },
+  "nav_tabManual": {
+    "message": "👤 手動"
+  },
+  "nav_tabMl": {
+    "message": "🔬 ML"
+  },
+  "nav_tabAi": {
+    "message": "🤖 AI"
+  },
+  "nav_tabManualTitle": {
+    "message": "手動レビュー"
+  },
+  "nav_tabMlTitle": {
+    "message": "機械学習アシスト"
+  },
+  "nav_tabAiTitle": {
+    "message": "AIレビュー"
+  },
+
+  "filter_pending": {
+    "message": "未判定"
+  },
+  "filter_all": {
+    "message": "すべて（判定済みも含む）"
+  },
+  "filter_include": {
+    "message": "Include（修正可）"
+  },
+  "filter_exclude": {
+    "message": "Exclude（修正可）"
+  },
+  "filter_maybe": {
+    "message": "Maybe（修正可）"
+  },
+  "filter_conflict": {
+    "message": "不一致"
+  },
+  "filter_fulltextCandidates": {
+    "message": "フルテキスト候補(2つ以上の組み入れ判断)"
+  },
+  "filter_pendingCount": {
+    "message": "未判定 ($1)"
+  },
+  "filter_allCount": {
+    "message": "すべて（判定済みも含む） ($1)"
+  },
+  "filter_includeCount": {
+    "message": "Include（修正可） ($1)"
+  },
+  "filter_excludeCount": {
+    "message": "Exclude（修正可） ($1)"
+  },
+  "filter_maybeCount": {
+    "message": "Maybe（修正可） ($1)"
+  },
+  "filter_conflictCount": {
+    "message": "不一致 ($1)"
+  },
+  "filter_fulltextCount": {
+    "message": "フルテキスト候補 ($1)"
+  },
+  "filter_resultCount": {
+    "message": "$1件中 $2件目"
+  },
+  "filter_aiHighlight": {
+    "message": "💡 AIの根拠をハイライト"
+  },
+  "filter_includeDecision": {
+    "message": "(🟢組み入れ判断)"
+  },
+  "filter_excludeDecision": {
+    "message": "(❌除外判断)"
+  },
+  "filter_includeLabel": {
+    "message": "組み入れ"
+  },
+  "filter_excludeLabel": {
+    "message": "除外"
+  },
+  "filter_sourceFiles": {
+    "message": "インポート元ファイル"
+  },
+  "filter_deleteFile": {
+    "message": "このファイルの文献をすべて削除"
+  },
+  "filter_deleteConfirm": {
+    "message": "ファイル \"$1\" に含まれる $2 件の文献をスプレッドシートから完全に削除しますか？\n（この操作は取り消せません）"
+  },
+  "filter_deleting": {
+    "message": "$1 を削除中..."
+  },
+  "filter_deleted": {
+    "message": "$1 件を削除しました"
+  },
+  "filter_deleteError": {
+    "message": "削除エラー: $1"
+  },
+  "filter_applyToast": {
+    "message": "\"$1\" でフィルター適用"
+  },
+
+  "keyword_highlightSettings": {
+    "message": "ハイライト設定"
+  },
+  "keyword_includeGroup": {
+    "message": "組み入れ (緑)"
+  },
+  "keyword_excludeGroup": {
+    "message": "除外 (赤)"
+  },
+  "keyword_addIncludePlaceholder": {
+    "message": "組み入れワード追加..."
+  },
+  "keyword_addExcludePlaceholder": {
+    "message": "除外ワード追加..."
+  },
+  "keyword_clickToFilter": {
+    "message": "クリックでフィルターに追加"
+  },
+  "keyword_delete": {
+    "message": "削除"
+  },
+  "keyword_added": {
+    "message": "「$1」を追加しました",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "keyword_presetConfirm": {
+    "message": "$1用プリセットを適用しますか？\n現在のキーワード設定は上書きされます。"
+  },
+  "keyword_presetApplied": {
+    "message": "$1用プリセットを適用しました"
+  },
+  "keyword_presetRctTitle": {
+    "message": "RCT用プリセットを適用（上書き）"
+  },
+  "keyword_presetSrTitle": {
+    "message": "SR用プリセットを適用（上書き）"
+  },
+  "keyword_autoSave": {
+    "message": "設定は自動的に保存されます"
+  },
+
+  "settings_title": {
+    "message": "設定"
+  },
+  "settings_close": {
+    "message": "閉じる"
+  },
+  "settings_autoNavigate": {
+    "message": "判断後に自動的に次の文献に遷移する"
+  },
+  "settings_autoNavigateDesc": {
+    "message": "オフにすると、Include/Exclude/Maybeボタンをクリックしても次の文献に自動的に遷移しません。「次へ」ボタンで手動で遷移できます。"
+  },
+  "settings_autoNavigateOn": {
+    "message": "判断後に自動的に次の文献に遷移します"
+  },
+  "settings_autoNavigateOff": {
+    "message": "判断後は手動で遷移してください"
+  },
+  "settings_showRecordCount": {
+    "message": "進捗表示を下部に表示"
+  },
+  "settings_showRecordCountDesc": {
+    "message": "オフにすると、タイトルの上に移動してより目立つ位置に表示されます。"
+  },
+  "settings_showRecordCountBelow": {
+    "message": "レコード件数をタイトル下に表示します"
+  },
+  "settings_showRecordCountAbove": {
+    "message": "レコード件数をタイトル上に移動しました"
+  },
+  "settings_termFilterAnd": {
+    "message": "複数キーワード選択時にAND検索"
+  },
+  "settings_termFilterAndDesc": {
+    "message": "オン: すべてのキーワードを含む文献のみ表示（AND検索）\nオフ: いずれかのキーワードを含む文献を表示（OR検索）"
+  },
+  "settings_termFilterAndOn": {
+    "message": "複数キーワード選択時: AND検索"
+  },
+  "settings_termFilterAndOff": {
+    "message": "複数キーワード選択時: OR検索"
+  },
+  "settings_treatMlAsManual": {
+    "message": "ML判定を手動判定と同一視する"
+  },
+  "settings_treatMlAsManualDesc": {
+    "message": "ONにすると、ML画面での判定(🔬)と手動画面での判定(👤)を同じレビュアーの判定として扱います。フィルターやレビュアー表示で区別されません。"
+  },
+  "settings_treatMlAsManualOn": {
+    "message": "ML判定と手動判定を同一視します"
+  },
+  "settings_treatMlAsManualOff": {
+    "message": "ML判定と手動判定を区別します"
+  },
+
+  "share_emailPlaceholder": {
+    "message": "Googleアカウント（メール）"
+  },
+  "share_add": {
+    "message": "追加"
+  },
+  "share_sharedUsers": {
+    "message": "共有済みユーザー"
+  },
+  "share_invalidEmail": {
+    "message": "有効なメールアドレスを入力してください"
+  },
+  "share_added": {
+    "message": "$1 を追加しました"
+  },
+  "share_addError": {
+    "message": "追加エラー: $1"
+  },
+  "share_roleOwner": {
+    "message": "オーナー"
+  },
+  "share_roleWriter": {
+    "message": "編集者"
+  },
+  "share_roleViewer": {
+    "message": "閲覧者"
+  },
+  "share_roleUnknown": {
+    "message": "編集者(詳細不明)"
+  },
+  "share_self": {
+    "message": "$1 (自分)"
+  },
+  "share_permissionNote": {
+    "message": "※権限リストの取得には追加の認証が必要な場合があります"
+  },
+  "share_noUsers": {
+    "message": "ユーザーが見つかりません"
+  },
+  "share_loadFailed": {
+    "message": "読み込み失敗"
+  },
+
+  "import_duplicate": {
+    "message": "ファイル \"$1\" は既にインポート済みです"
+  },
+  "import_duplicateStatus": {
+    "message": "インポートファイルが重複しています"
+  },
+  "import_parsing": {
+    "message": "解析中..."
+  },
+  "import_noValid": {
+    "message": "有効な文献が見つかりませんでした"
+  },
+  "import_skippedDuplicates": {
+    "message": "$1 件の重複を除外しました"
+  },
+  "import_allDuplicate": {
+    "message": "すべて重複"
+  },
+  "import_noNew": {
+    "message": "新しい文献はありません（すべて重複）"
+  },
+  "import_uploading": {
+    "message": "アップロード中: $1/$2"
+  },
+  "import_updating": {
+    "message": "データ更新中..."
+  },
+  "import_complete": {
+    "message": "$1件インポート完了（重複除外: $2件）"
+  },
+  "import_error": {
+    "message": "インポートエラー: $1"
+  },
+  "import_errorStatus": {
+    "message": "インポートエラー"
+  },
+
+  "export_noData": {
+    "message": "エクスポートする文献がありません"
+  },
+  "export_csvDone": {
+    "message": "$1件をCSVとして出力しました"
+  },
+  "export_csvError": {
+    "message": "CSVエクスポートに失敗しました"
+  },
+  "export_risDone": {
+    "message": "$1件をRIS形式で出力しました"
+  },
+  "export_risError": {
+    "message": "RISエクスポートに失敗しました"
+  },
+  "export_filterPending": {
+    "message": "未判定"
+  },
+  "export_filterAll": {
+    "message": "すべて"
+  },
+  "export_filterConflict": {
+    "message": "不一致"
+  },
+  "export_countSuffix": {
+    "message": "件"
+  },
+
+  "blind_onConfirm": {
+    "message": "Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。"
+  },
+  "blind_onSuccess": {
+    "message": "Blind onを実行しました"
+  },
+  "blind_onError": {
+    "message": "Blind onエラー: $1"
+  },
+  "blind_offConfirm": {
+    "message": "Blind offを実行しますか？\n全レビュアーの判定が相互に見えるようになり、不一致が表示されます。"
+  },
+  "blind_offSuccess": {
+    "message": "Blind offを実行しました"
+  },
+  "blind_offError": {
+    "message": "Blind openエラー: $1"
+  },
+
+  "progress_importPrompt": {
+    "message": "文献をインポートしてください 📂"
+  },
+  "progress_start": {
+    "message": "さあ、始めましょう！💪"
+  },
+  "progress_goodStart": {
+    "message": "順調なスタートです！🚀"
+  },
+  "progress_goodPace": {
+    "message": "いいペースです！半分まであと少し 📈"
+  },
+  "progress_pastHalf": {
+    "message": "折り返し地点を過ぎました！🎯"
+  },
+  "progress_nearGoal": {
+    "message": "ゴールが見えてきました！✨"
+  },
+  "progress_complete": {
+    "message": "完了しました！お疲れ様でした 🎉"
+  },
+  "progress_count": {
+    "message": "$1 / $2件（残り$3件）"
+  },
+
+  "reviewer_selfMl": {
+    "message": "$1 (自分/ML)"
+  },
+  "reviewer_ml": {
+    "message": "$1 (ML)"
+  },
+  "reviewer_selfManualPlusMl": {
+    "message": "$1 (自分/手動＋ML)"
+  },
+  "reviewer_manualPlusMl": {
+    "message": "$1 (手動＋ML)"
+  },
+  "reviewer_self": {
+    "message": "$1 (自分)"
+  },
+  "reviewer_mlAutoLabel": {
+    "message": "🤖 ML(自動)"
+  },
+  "reviewer_mlLabel": {
+    "message": "🤖 ML"
+  },
+  "reviewer_unknown": {
+    "message": "(不明)"
+  },
+  "reviewer_selfLabel": {
+    "message": "自分"
+  },
+
+  "llm_title": {
+    "message": "🤖 AIレビュー"
+  },
+  "llm_detailSettings": {
+    "message": "⚙️ 詳細設定"
+  },
+  "llm_modelLabel": {
+    "message": "モデル:"
+  },
+  "llm_modelFlash3": {
+    "message": "Gemini 3 Flash (推奨・高精度)"
+  },
+  "llm_modelLite": {
+    "message": "Gemini 2.5 Flash Lite (コスト重視)"
+  },
+  "llm_outputLanguage": {
+    "message": "出力言語:"
+  },
+  "llm_langJa": {
+    "message": "日本語"
+  },
+  "llm_langEn": {
+    "message": "English"
+  },
+  "llm_apiKeyTitle": {
+    "message": "🔑 Gemini APIキー"
+  },
+  "llm_apiKeyPlaceholder": {
+    "message": "APIキーを入力..."
+  },
+  "llm_apiKeySaveToDevice": {
+    "message": "端末に保存する"
+  },
+  "llm_apiKeySet": {
+    "message": "✓ APIキーが設定されています"
+  },
+  "llm_apiKeySaved": {
+    "message": "✓ APIキーを保存しました"
+  },
+  "llm_apiKeySessionOnly": {
+    "message": "✓ APIキーを設定しました（セッション限り）"
+  },
+  "llm_apiKeyInvalid": {
+    "message": "✕ 無効なAPIキーです"
+  },
+  "llm_apiKeyVerifying": {
+    "message": "検証中..."
+  },
+  "llm_apiKeySummarySet": {
+    "message": "✓ 設定済み"
+  },
+  "llm_apiKeySummarySession": {
+    "message": "✓ セッション"
+  },
+  "llm_apiKeySessionChanged": {
+    "message": "✓ セッション限りの設定に変更しました"
+  },
+  "llm_apiKeyRequired": {
+    "message": "APIキーを設定してください"
+  },
+  "llm_freeTierWarning": {
+    "message": "無料版APIキーを検出しました。処理速度が制限されます（約13秒/件）"
+  },
+  "llm_freeTierBatchWarning": {
+    "message": "無料版APIキーのため、処理速度が制限されます（約13秒/件）"
+  },
+  "llm_criteriaTitle": {
+    "message": "📋 レビュー基準"
+  },
+  "llm_protocolInputLabel": {
+    "message": "【入力】プロトコルからコピペ:"
+  },
+  "llm_protocolPlaceholder": {
+    "message": "プロトコルの組み入れ・除外基準をここにコピペしてください..."
+  },
+  "llm_optimizeBtn": {
+    "message": "💡 基準を最適化"
+  },
+  "llm_optimizing": {
+    "message": "🔄 基準を最適化中..."
+  },
+  "llm_optimizeComplete": {
+    "message": "✓ 最適化完了"
+  },
+  "llm_optimizeError": {
+    "message": "✕ エラー: $1"
+  },
+  "llm_optimizedLabel": {
+    "message": "【出力】最適化されたスクリーニング基準:"
+  },
+  "llm_optimizedPlaceholder": {
+    "message": "「基準を最適化」ボタンを押すと、ここに結果が表示されます"
+  },
+  "llm_screeningPromptPlaceholder": {
+    "message": "スクリーニング用プロンプト（自動生成または編集）"
+  },
+  "llm_saveCriteria": {
+    "message": "💾 基準をGoogleスプレッドシートに保存"
+  },
+  "llm_criteriaSaved": {
+    "message": "基準をGoogleスプレッドシートに保存しました"
+  },
+  "llm_criteriaSaveError": {
+    "message": "保存に失敗しました"
+  },
+  "llm_protocolRequired": {
+    "message": "プロトコルのテキストを入力してください"
+  },
+  "llm_templateCustom": {
+    "message": "カスタム"
+  },
+  "llm_templateLabel": {
+    "message": "テンプレート:"
+  },
+  "llm_batchTitle": {
+    "message": "🚀 一括実行"
+  },
+  "llm_batchSizeLabel": {
+    "message": "バッチサイズ:"
+  },
+  "llm_batchSizeHint": {
+    "message": "件ずつ（並列処理・保存）"
+  },
+  "llm_batchPending": {
+    "message": "未判定:"
+  },
+  "llm_batchPendingCount": {
+    "message": "$1件"
+  },
+  "llm_batchStart": {
+    "message": "▶️ 一括実行開始"
+  },
+  "llm_batchStop": {
+    "message": "⏹️ 実行を中止"
+  },
+  "llm_batchStopped": {
+    "message": "バッチ処理を中止しました"
+  },
+  "llm_batchError": {
+    "message": "バッチ処理エラー: $1"
+  },
+  "llm_batchProgress": {
+    "message": "進捗:"
+  },
+  "llm_batchSuccess": {
+    "message": "成功:"
+  },
+  "llm_batchFail": {
+    "message": "失敗:"
+  },
+  "llm_batchNoTarget": {
+    "message": "処理対象の文献がありません"
+  },
+  "llm_screeningPromptRequired": {
+    "message": "スクリーニング基準を設定してください"
+  },
+  "llm_retryBtn": {
+    "message": "🔄 失敗した$1件をリトライ"
+  },
+  "llm_retryNoTarget": {
+    "message": "リトライ対象がありません"
+  },
+  "llm_retryNoRefs": {
+    "message": "リトライ対象の文献が見つかりません"
+  },
+  "llm_retrying": {
+    "message": "$1件をリトライ中..."
+  },
+  "llm_retryPartial": {
+    "message": "リトライ完了: 成功$1件、失敗$2件"
+  },
+  "llm_retryComplete": {
+    "message": "リトライ完了: 全$1件成功"
+  },
+  "llm_retryError": {
+    "message": "リトライエラー: $1"
+  },
+  "llm_thresholdTitle": {
+    "message": "📊 閾値調整"
+  },
+  "llm_thresholdComplete": {
+    "message": "✓ 一括実行完了 ($1件処理)"
+  },
+  "llm_thresholdLabel": {
+    "message": "Include閾値:"
+  },
+  "llm_showDistribution": {
+    "message": "📈 分布を表示"
+  },
+  "llm_confirmThreshold": {
+    "message": "💾 閾値を確定して判断をGoogleスプレッドシートに保存"
+  },
+  "llm_thresholdNote": {
+    "message": "※ 確定後、Decisionsシートに判定が記録されます"
+  },
+  "llm_thresholdSaved": {
+    "message": "閾値を確定してGoogleスプレッドシートに保存しました"
+  },
+  "llm_thresholdSaveError": {
+    "message": "保存エラー: $1"
+  },
+  "llm_thresholdMissingId": {
+    "message": "エラー: 実行IDが見つかりません。ページをリロードしてください。"
+  },
+  "llm_historyTitle": {
+    "message": "📜 実行履歴"
+  },
+  "llm_historyEmpty": {
+    "message": "実行履歴がありません"
+  },
+  "llm_historyBatch": {
+    "message": "バッチ"
+  },
+  "llm_historyCriteria": {
+    "message": "基準生成"
+  },
+  "llm_historyPending": {
+    "message": "未確定"
+  },
+  "llm_historyPendingStats": {
+    "message": "$1件処理（閾値未確定）"
+  },
+  "llm_historyConfirmedStats": {
+    "message": "$1件処理 → Include: $2件, Exclude: $3件 (閾値: $4)"
+  },
+  "llm_historyUseDecision": {
+    "message": "判定に使用"
+  },
+  "llm_historyActivated": {
+    "message": "判定に使用します"
+  },
+  "llm_historyDeactivated": {
+    "message": "判定から除外しました"
+  },
+  "llm_historyUpdateFailed": {
+    "message": "更新に失敗しました"
+  },
+  "llm_completedConfirm": {
+    "message": "ML判定が完了しました。\n\n手動タブで判定結果を確認しますか？\n（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）"
+  },
+
+  "ml_title": {
+    "message": "🎯 MLスクリーニング"
+  },
+  "ml_statusIdle": {
+    "message": "未学習"
+  },
+  "ml_statusTraining": {
+    "message": "学習中..."
+  },
+  "ml_statusReady": {
+    "message": "学習済み"
+  },
+  "ml_statusError": {
+    "message": "エラー"
+  },
+  "ml_learningState": {
+    "message": "📊 学習状態"
+  },
+  "ml_stoppingLabel": {
+    "message": "停止基準:"
+  },
+  "ml_stoppingNone": {
+    "message": "設定なし"
+  },
+  "ml_stoppingConsecutive": {
+    "message": "(連続 exclude)"
+  },
+  "ml_stoppingConsecutiveCount": {
+    "message": "連続 exclude $1件",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+  "ml_stoppingRequired": {
+    "message": "先に停止基準を設定してください"
+  },
+  "ml_back": {
+    "message": "戻る (←)"
+  },
+  "ml_forward": {
+    "message": "進む (→)"
+  },
+  "ml_abstractPlaceholder": {
+    "message": "抄録..."
+  },
+  "ml_titlePlaceholder": {
+    "message": "タイトル..."
+  },
+  "ml_minRecordsError": {
+    "message": "ML機能は$1件以上のデータセットでのみ使用できます（現在: $2件）"
+  },
+  "ml_newReviewStarted": {
+    "message": "新しいMLレビューを開始しました"
+  },
+  "ml_resetFailed": {
+    "message": "リセットに失敗しました"
+  },
+  "ml_stoppingFinish": {
+    "message": "スクリーニングを終了します"
+  },
+  "ml_cmhTitle": {
+    "message": "📊 統計的停止基準(CMH)"
+  },
+  "ml_cmhDescription": {
+    "message": "目標リコール <strong>$1%</strong> を信頼水準 <strong>$2%</strong> で達成したと判断できた時点で停止を提案します。"
+  },
+  "ml_screeningProcedure": {
+    "message": "スクリーニング手順:"
+  },
+  "ml_initialRandom": {
+    "message": "最初の <strong>$1件</strong> はランダムに提示"
+  },
+  "ml_priorityOrder": {
+    "message": "その後は ML の優先順位に従って提示"
+  },
+  "ml_stopProposal": {
+    "message": "統計基準を満たしたら停止を提案"
+  },
+  "ml_startWithSettings": {
+    "message": "この設定で開始"
+  },
+  "ml_cmhSettingsTitle": {
+    "message": "📊 統計的停止基準の設定"
+  },
+  "ml_recordCountWarning": {
+    "message": "⚠️ レコード数が $1 件のため、統計的停止基準は使用できません。連続除外ルールを使用します。"
+  },
+  "ml_excludeThresholdMsg": {
+    "message": "連続で <strong><span id=\"threshold-display\">$1</span>件</strong> Excludeされたらスクリーニング終了を提案します。"
+  },
+  "ml_recommendedValue": {
+    "message": "推奨値: "
+  },
+  "ml_count30": {
+    "message": "30件"
+  },
+  "ml_count50Recommended": {
+    "message": "50件(推奨)"
+  },
+  "ml_count100": {
+    "message": "100件"
+  },
+  "ml_count200": {
+    "message": "200件"
+  },
+  "ml_stoppingCriteriaTitle": {
+    "message": "📊 停止基準の設定"
+  },
+  "ml_customTab": {
+    "message": "カスタム"
+  },
+  "ml_percentageTab": {
+    "message": "割合 (%)"
+  },
+  "ml_consecutiveExcludeLabel": {
+    "message": "連続 Exclude 件数:"
+  },
+  "ml_consecutiveExcludeHelp": {
+    "message": "指定した件数だけ連続で Exclude されたら停止を推奨します。"
+  },
+  "ml_datasetPercentageLabel": {
+    "message": "データセット全体の割合:"
+  },
+  "ml_selectedPercentageCount": {
+    "message": "選択した割合: <span id=\"calculated-count\">-</span> 件"
+  },
+  "ml_stoppingSettingsTitle": {
+    "message": "停止基準の設定"
+  },
+  "ml_targetRecall": {
+    "message": "目標リコール:"
+  },
+  "ml_confidenceLevel": {
+    "message": "信頼水準:"
+  },
+  "ml_screenedCount": {
+    "message": "スクリーニング済み:"
+  },
+  "ml_stoppingProbability": {
+    "message": "停止可能性:"
+  },
+  "ml_canStop": {
+    "message": "✅ 停止可能"
+  },
+  "ml_cmhInfo": {
+    "message": "ⓘ 統計的停止基準は、目標リコールを達成した確率が信頼水準に達したときに停止を提案します。"
+  },
+  "ml_cmhStatusTitle": {
+    "message": "📊 CMH 停止基準の状態"
+  },
+  "ml_reachedTitle": {
+    "message": "停止基準に到達しました"
+  },
+  "ml_noRelevantFound": {
+    "message": "連続して relevant な文献が見つかりませんでした。"
+  },
+  "ml_review20More": {
+    "message": "20件追加でレビュー"
+  },
+  "ml_thresholdPlus20": {
+    "message": "閾値を+20して続行します"
+  },
+  "ml_finishExcludeRest": {
+    "message": "終了して残りを除外"
+  },
+  "ml_saveAllExclude": {
+    "message": "未判定の文献を全てExcludeとして保存します"
+  },
+  "ml_closeNoAction": {
+    "message": "閉じる (何もしない)"
+  },
+  "ml_stopRecommended": {
+    "message": "停止推奨"
+  },
+  "ml_cmhCriteriaMet": {
+    "message": "統計的停止基準を満たしました"
+  },
+  "ml_cmhMetDescription": {
+    "message": "目標リコール <strong>$1%</strong> を<br>信頼水準 <strong>$2%</strong> で達成したと推定されます。"
+  },
+  "ml_remainingUnread": {
+    "message": "残り未読:"
+  },
+  "ml_pValue": {
+    "message": "p値:"
+  },
+  "ml_auditSamplingRecommended": {
+    "message": "監査サンプリングを実施(推奨)"
+  },
+  "ml_auditRandomSample": {
+    "message": "残りから $1 件をランダム抽出して確認"
+  },
+  "ml_finishWithoutAudit": {
+    "message": "監査なしで終了"
+  },
+  "ml_continueScreening": {
+    "message": "スクリーニングを続行"
+  },
+  "ml_continueNoStop": {
+    "message": "停止せずに続けます"
+  },
+  "ml_stopRecommendedTitle": {
+    "message": "📊 停止推奨"
+  },
+  "ml_auditSampleDescription": {
+    "message": "残り <strong>$1件</strong> から<strong>$2件</strong> をランダムに抽出してレビューします。"
+  },
+  "ml_auditZeroInclude": {
+    "message": "✅ 監査で <strong>0件</strong> の Include が見つかった場合：→ スクリーニング完了を確定"
+  },
+  "ml_auditFoundInclude": {
+    "message": "⚠️ 監査で <strong>1件以上</strong> の Include が見つかった場合：→ スクリーニング続行を強く推奨"
+  },
+  "ml_startAudit": {
+    "message": "監査を開始"
+  },
+  "ml_auditStartMessage": {
+    "message": "監査サンプリング $1 件を開始します"
+  },
+  "ml_auditTitle": {
+    "message": "🔍 監査サンプリング"
+  },
+  "ml_bulkExcludeMessage": {
+    "message": "残り <strong>$1件</strong> の未判定文献をすべて <span style=\"color: #ea4335; font-weight: bold;\">Exclude</span> として保存します。"
+  },
+  "ml_bulkExcludeWarning": {
+    "message": "この操作は取り消せません。個別に変更する場合はレビュー画面から行ってください。"
+  },
+  "ml_processingProgress": {
+    "message": "処理中... $1 / $2"
+  },
+  "ml_savedExcludeCount": {
+    "message": "$1件をExcludeとして保存しました"
+  },
+  "ml_confirmWarning": {
+    "message": "⚠️ 確認"
+  },
+  "ml_reviewComplete": {
+    "message": "MLレビュー完了"
+  },
+  "ml_autoExcludedCount": {
+    "message": "(うち自動除外: $1件)"
+  },
+  "ml_startNewReview": {
+    "message": "🔄 新しいMLレビューを開始"
+  },
+  "ml_backToReview": {
+    "message": "← レビュー画面に戻る"
+  },
+  "ml_reviewResultsTitle": {
+    "message": "MLレビュー結果"
+  },
+  "ml_preFetchFailed": {
+    "message": "事前データの取得に失敗しました"
+  },
+
+  "common_help": {
+    "message": "ヘルプ"
+  },
+  "common_settings": {
+    "message": "設定"
+  },
+  "common_close": {
+    "message": "閉じる"
+  },
+  "common_save": {
+    "message": "保存"
+  },
+  "common_cancel": {
+    "message": "キャンセル"
+  },
+  "common_execute": {
+    "message": "実行する"
+  },
+  "common_processing": {
+    "message": "処理中..."
+  },
+  "common_saving": {
+    "message": "⏳ 保存中..."
+  },
+  "common_saved": {
+    "message": "✓ 保存しました"
+  },
+  "common_saveFailed": {
+    "message": "✕ 保存失敗"
+  },
+  "common_loading": {
+    "message": "読み込み中..."
+  },
+  "common_openSidepanel": {
+    "message": "サイドパネルを開く"
+  },
+  "common_showHide": {
+    "message": "表示/非表示"
+  },
+  "common_includeCount": {
+    "message": "Include: $1件"
+  },
+  "common_excludeCount": {
+    "message": "Exclude: $1件"
+  },
+  "common_countItems": {
+    "message": "$1件",
+    "placeholders": { "1": { "content": "$1" } }
+  },
+
+  "error_geminiApiKeyMissing": {
+    "message": "Gemini APIキーが設定されていません"
+  },
+  "error_geminiApi": {
+    "message": "Gemini API エラー: $1"
+  },
+  "error_geminiEmptyResponse": {
+    "message": "Gemini APIからの応答ボディが空です"
+  },
+  "error_geminiParseFailed": {
+    "message": "Gemini APIからのストリーミング応答のパースに失敗しました"
+  },
+  "error_geminiInvalidFormat": {
+    "message": "Gemini APIからの応答が不正な形式です"
+  },
+  "error_geminiNoText": {
+    "message": "Gemini APIからの応答に有効なテキストが含まれていません"
+  },
+  "error_geminiJsonParseFailed": {
+    "message": "Gemini APIからの応答をJSONとしてパースできませんでした"
+  },
+  "error_geminiTimeout": {
+    "message": "Gemini API タイムアウト ($1ms)"
+  },
+  "error_unsupportedFormat": {
+    "message": "対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください"
+  },
+  "error_loginFailedPrefix": {
+    "message": "ログインに失敗しました: "
+  }
+}

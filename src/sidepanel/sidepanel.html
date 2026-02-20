@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 
 <head>
     <meta charset="UTF-8">
@@ -12,14 +12,14 @@
     <div class="container">
         <!-- ヘッダー -->
         <header class="header">
-            <div id="header-title" class="header-title" style="cursor: pointer;" title="プロジェクト選択に戻る">
+            <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
                 <span class="build-version">Build: 2026-02-15</span>
             </div>
             <div class="header-tabs hidden">
-                <button id="tab-screening" class="tab-btn active" title="手動レビュー">👤 手動</button>
-                <button id="tab-ml" class="tab-btn" title="機械学習アシスト">🔬 ML</button>
-                <button id="tab-llm" class="tab-btn" title="AIレビュー">🤖 AI</button>
+                <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
+                <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
+                <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -29,16 +29,15 @@
 
         <!-- 設定セクション -->
         <section id="config-section" class="section">
-            <h2>プロジェクト設定</h2>
+            <h2 data-i18n="project_settings"></h2>
 
             <!-- ログインセクション（未ログイン時のみ表示） -->
             <div id="login-section" class="login-section">
                 <div class="login-header">
                     <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
-                        class="btn btn-icon" title="ヘルプ">❓</a>
+                        class="btn btn-icon" data-i18n-title="common_help">❓</a>
                 </div>
-                <button id="login-btn" class="btn btn-primary btn-large">
-                    Googleアカウントでログイン
+                <button id="login-btn" class="btn btn-primary btn-large" data-i18n="auth_loginWithGoogle">
                 </button>
             </div>
 
@@ -47,72 +46,67 @@
                 <div class="user-info-container">
                     <div id="user-info" class="user-info"></div>
                     <div class="user-info-buttons">
-                        <button id="settings-btn-project" class="btn btn-icon" title="設定">⚙️</button>
+                        <button id="settings-btn-project" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                         <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
-                            class="btn btn-icon" title="ヘルプ">❓</a>
-                        <button id="logout-btn" class="btn btn-outline btn-xsmall">ログアウト</button>
+                            class="btn btn-icon" data-i18n-title="common_help">❓</a>
+                        <button id="logout-btn" class="btn btn-outline btn-xsmall" data-i18n="auth_logout"></button>
                     </div>
                 </div>
 
                 <!-- 新規プロジェクト作成 -->
                 <div class="setup-option primary">
-                    <button id="create-btn" class="btn btn-primary btn-large">
-                        ＋ 新規レビュープロジェクトを作成
+                    <button id="create-btn" class="btn btn-primary btn-large" data-i18n="project_createNew">
                     </button>
-                    <p class="help-text">Google Driveに新しいスプレッドシートを作成します</p>
+                    <p class="help-text" data-i18n="project_createHelp"></p>
                 </div>
 
                 <!-- 既存プロジェクトに接続 -->
                 <div class="setup-option secondary">
-                    <div class="divider"><span>または</span></div>
-                    <label>スプレッドシートURL/IDを入力（優先）</label>
+                    <div class="divider"><span data-i18n="project_orDivider"></span></div>
+                    <label data-i18n="project_inputLabel"></label>
                     <input id="spreadsheet-input" class="manual-sheet-input" type="text"
-                        placeholder="https://docs.google.com/spreadsheets/d/... または ID">
-                    <p class="help-text">共有されたシートのURL/IDでも接続できます</p>
-                    <label>最近のスプレッドシートから選択</label>
+                        data-i18n-placeholder="project_inputPlaceholder">
+                    <p class="help-text" data-i18n="project_inputHelp"></p>
+                    <label data-i18n="project_recentLabel"></label>
                     <select id="recent-sheets" class="recent-sheets-select">
-                        <option value="">読み込み中...</option>
+                        <option value="" data-i18n="project_loading"></option>
                     </select>
                     <button id="connect-btn" class="btn btn-secondary"
-                        style="margin-top: 8px; width: 100%;">選択したシートに接続</button>
+                        style="margin-top: 8px; width: 100%;" data-i18n="project_connect"></button>
                 </div>
             </div>
 
             <div id="status-message" class="status-message hidden"></div>
-            <div id="loading" class="loading hidden">読み込み中...</div>
+            <div id="loading" class="loading hidden" data-i18n="common_loading"></div>
         </section>
 
         <!-- スクリーニングセクション -->
         <section id="screening-section" class="section hidden">
             <!-- ツールバー -->
             <div id="import-section" class="import-section">
-                <button id="back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
-                    ← 戻る
+                <button id="back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back">
                 </button>
                 <input type="file" id="ris-file" accept=".ris,.nbib,.txt" class="hidden">
-                <button id="import-btn" class="btn btn-secondary btn-small">
-                    📁 RIS/nbibインポート
+                <button id="import-btn" class="btn btn-secondary btn-small" data-i18n="screening_importRis">
                 </button>
                 <div class="export-container">
-                    <button id="export-btn" class="btn btn-secondary btn-small" title="フィルター結果をエクスポート">
-                        📥 エクスポート
+                    <button id="export-btn" class="btn btn-secondary btn-small" data-i18n="screening_export">
                     </button>
                     <div id="export-menu" class="export-menu hidden">
-                        <button id="export-csv-btn" class="export-menu-item">CSV形式</button>
-                        <button id="export-ris-btn" class="export-menu-item">RIS形式</button>
+                        <button id="export-csv-btn" class="export-menu-item" data-i18n="screening_exportCsv"></button>
+                        <button id="export-ris-btn" class="export-menu-item" data-i18n="screening_exportRis"></button>
                     </div>
                 </div>
                 <div class="share-container">
-                    <button id="share-btn" class="btn btn-secondary btn-small" title="共同編集者を追加">
-                        👤 共有
+                    <button id="share-btn" class="btn btn-secondary btn-small" data-i18n="screening_share">
                     </button>
                     <div id="share-input-area" class="share-input-area hidden">
-                        <input type="email" id="share-email-input" placeholder="Googleアカウント（メール）"
+                        <input type="email" id="share-email-input" data-i18n-placeholder="share_emailPlaceholder"
                             class="share-email-input">
-                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall">追加</button>
+                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-i18n="share_add"></button>
                         <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
                         <div class="shared-users-section">
-                            <h5>共有済みユーザー</h5>
+                            <h5 data-i18n="share_sharedUsers"></h5>
                             <div id="shared-users-list" class="shared-users-list"></div>
                         </div>
                     </div>
@@ -128,36 +122,35 @@
                     <h5>Reviewers</h5>
                     <div class="reviewer-list"></div>
                 </div>
-                <button id="settings-btn-screening" class="btn btn-icon" title="設定">⚙️</button>
+                <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                 <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
-                    class="btn btn-icon btn-help" title="ヘルプ">❓</a>
+                    class="btn btn-icon btn-help" data-i18n-title="common_help">❓</a>
                 <span id="import-status" class="import-status"></span>
             </div>
 
             <!-- フィルター -->
             <div class="filters">
                 <select id="status-filter">
-                    <option value="pending">未判定</option>
-                    <option value="all">すべて（判定済みも含む）</option>
-                    <option value="include">Include（修正可）</option>
-                    <option value="exclude">Exclude（修正可）</option>
-                    <option value="maybe">Maybe（修正可）</option>
-                    <option value="conflict">不一致</option>
-                    <option value="fulltext_candidates">フルテキスト候補(2つ以上の組み入れ判断)</option>
+                    <option value="pending" data-i18n="filter_pending"></option>
+                    <option value="all" data-i18n="filter_all"></option>
+                    <option value="include" data-i18n="filter_include"></option>
+                    <option value="exclude" data-i18n="filter_exclude"></option>
+                    <option value="maybe" data-i18n="filter_maybe"></option>
+                    <option value="conflict" data-i18n="filter_conflict"></option>
+                    <option value="fulltext_candidates" data-i18n="filter_fulltextCandidates"></option>
                 </select>
                 <div class="search-container">
                     <div id="active-term-filters" class="active-term-filters"></div>
-                    <input type="search" id="search-input" placeholder="検索...">
+                    <input type="search" id="search-input" data-i18n-placeholder="screening_searchPlaceholder">
                     <span id="search-result-count" class="search-result-count hidden"></span>
                 </div>
-                <span id="filter-result-count" class="filter-result-count">0件中 0件目</span>
+                <span id="filter-result-count" class="filter-result-count"></span>
             </div>
 
             <!-- 文献詳細 -->
             <article id="reference-detail" class="reference-card">
                 <!-- 不一致警告バナー（キーオープン後のみ表示） -->
-                <div id="conflict-banner" class="conflict-banner hidden">
-                    ⚠️ 不一致あり - 下記の判定を確認してください
+                <div id="conflict-banner" class="conflict-banner hidden" data-i18n="screening_conflictBanner">
                 </div>
 
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
@@ -166,14 +159,14 @@
                 <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
                 <div id="record-count-above" class="record-count-display hidden"></div>
 
-                <h3 id="ref-title" class="ref-title">タイトル</h3>
+                <h3 id="ref-title" class="ref-title" data-i18n="screening_title"></h3>
                 <div class="ref-meta">
                     <span id="ref-authors"></span>
                     <span id="ref-year"></span>
                     <span id="ref-journal"></span>
                 </div>
 
-                <div id="ref-abstract" class="ref-abstract">抄録がここに表示されます</div>
+                <div id="ref-abstract" class="ref-abstract" data-i18n="screening_abstractPlaceholder"></div>
                 <div class="ref-links">
                     <a id="ref-doi" href="#" target="_blank" class="hidden">DOI</a>
                     <a id="ref-pmid" href="#" target="_blank" class="hidden">PubMed</a>
@@ -195,61 +188,61 @@
 
             <!-- ナビゲーション -->
             <div class="navigation">
-                <button id="btn-prev" class="btn btn-nav" title="前へ (←)">前へ (←)</button>
+                <button id="btn-prev" class="btn btn-nav" data-i18n="nav_prev"></button>
                 <div class="nav-center">
                     <span id="nav-position">1 / 100</span>
                     <div id="nav-progress" class="nav-progress hidden"></div>
                 </div>
-                <button id="btn-next" class="btn btn-nav" title="次へ (→)">次へ (→)</button>
+                <button id="btn-next" class="btn btn-nav" data-i18n="nav_next"></button>
             </div>
 
             <!-- ハイライト設定 -->
             <div id="config-settings" class="config-settings">
                 <div class="config-header">
-                    <h4>ハイライト設定</h4>
+                    <h4 data-i18n="keyword_highlightSettings"></h4>
                     <div class="preset-buttons">
                         <button id="preset-rct-btn" class="btn btn-xsmall btn-outline"
-                            title="RCT用プリセットを適用（上書き）">RCT</button>
+                            data-i18n-title="keyword_presetRctTitle">RCT</button>
                         <button id="preset-sr-btn" class="btn btn-xsmall btn-outline"
-                            title="SR用プリセットを適用（上書き）">SR</button>
+                            data-i18n-title="keyword_presetSrTitle">SR</button>
                     </div>
                 </div>
 
                 <!-- 組み入れキーワード -->
                 <div class="keyword-group include-group">
-                    <h5>組み入れ (緑)</h5>
+                    <h5 data-i18n="keyword_includeGroup"></h5>
                     <div id="include-keywords-list" class="keyword-list"></div>
                     <div class="keyword-input-group">
-                        <input type="text" id="new-include-input" placeholder="組み入れワード追加...">
+                        <input type="text" id="new-include-input" data-i18n-placeholder="keyword_addIncludePlaceholder">
                         <button id="add-include-btn" class="btn btn-small btn-secondary">＋</button>
                     </div>
                 </div>
 
                 <!-- 除外キーワード -->
                 <div class="keyword-group exclude-group">
-                    <h5>除外 (赤)</h5>
+                    <h5 data-i18n="keyword_excludeGroup"></h5>
                     <div id="exclude-keywords-list" class="keyword-list"></div>
                     <div class="keyword-input-group">
-                        <input type="text" id="new-exclude-input" placeholder="除外ワード追加...">
+                        <input type="text" id="new-exclude-input" data-i18n-placeholder="keyword_addExcludePlaceholder">
                         <button id="add-exclude-btn" class="btn btn-small btn-secondary">＋</button>
                     </div>
                 </div>
 
                 <!-- 自動保存ステータス -->
                 <div id="save-status" class="save-status">
-                    <span class="save-icon">✓</span> 設定は自動的に保存されます
+                    <span class="save-icon">✓</span> <span data-i18n="keyword_autoSave"></span>
                 </div>
             </div>
 
             <!-- メモ -->
             <div class="form-group">
-                <label for="note">メモ</label>
-                <textarea id="note" rows="2" placeholder="メモを入力..."></textarea>
+                <label for="note" data-i18n="screening_noteLabel"></label>
+                <textarea id="note" rows="2" data-i18n-placeholder="screening_notePlaceholder"></textarea>
             </div>
 
             <!-- インポート元フィルター (最下部) -->
             <div id="source-filters-section" class="source-filters-section">
-                <h4>インポート元ファイル</h4>
+                <h4 data-i18n="filter_sourceFiles"></h4>
                 <div id="source-file-list" class="source-file-list"></div>
             </div>
         </section>
@@ -257,51 +250,44 @@
         <!-- 設定画面セクション -->
         <section id="settings-section" class="section hidden">
             <div class="settings-header">
-                <h2>設定</h2>
-                <button id="close-settings-btn" class="btn btn-outline btn-small">閉じる</button>
+                <h2 data-i18n="settings_title"></h2>
+                <button id="close-settings-btn" class="btn btn-outline btn-small" data-i18n="settings_close"></button>
             </div>
 
             <div class="settings-content">
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="auto-navigate-checkbox" checked>
-                        <span>判断後に自動的に次の文献に遷移する</span>
+                        <span data-i18n="settings_autoNavigate"></span>
                     </label>
-                    <p class="setting-description">
-                        オフにすると、Include/Exclude/Maybeボタンをクリックしても次の文献に自動的に遷移しません。
-                        「次へ」ボタンで手動で遷移できます。
+                    <p class="setting-description" data-i18n="settings_autoNavigateDesc">
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="show-record-count-checkbox" checked>
-                        <span>進捗表示を下部に表示</span>
+                        <span data-i18n="settings_showRecordCount"></span>
                     </label>
-                    <p class="setting-description">
-                        オフにすると、タイトルの上に移動してより目立つ位置に表示されます。
+                    <p class="setting-description" data-i18n="settings_showRecordCountDesc">
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="term-filter-and-checkbox" checked>
-                        <span>複数キーワード選択時にAND検索</span>
+                        <span data-i18n="settings_termFilterAnd"></span>
                     </label>
-                    <p class="setting-description">
-                        オン: すべてのキーワードを含む文献のみ表示（AND検索）<br>
-                        オフ: いずれかのキーワードを含む文献を表示（OR検索）
+                    <p class="setting-description" data-i18n="settings_termFilterAndDesc">
                     </p>
                 </div>
 
                 <div class="setting-item">
                     <label class="setting-label">
                         <input type="checkbox" id="treat-ml-as-manual-checkbox" checked>
-                        <span>ML判定を手動判定と同一視する</span>
+                        <span data-i18n="settings_treatMlAsManual"></span>
                     </label>
-                    <p class="setting-description">
-                        ONにすると、ML画面での判定(🔬)と手動画面での判定(👤)を
-                        同じレビュアーの判定として扱います。フィルターやレビュアー表示で区別されません。
+                    <p class="setting-description" data-i18n="settings_treatMlAsManualDesc">
                     </p>
                 </div>
             </div>
@@ -311,33 +297,31 @@
         <section id="llm-section" class="section hidden">
             <!-- ツールバー -->
             <div class="llm-toolbar">
-                <button id="llm-back-btn" class="btn btn-nav btn-small" title="プロジェクト選択に戻る">
-                    ← 戻る
+                <button id="llm-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back">
                 </button>
-                <span class="llm-title">🤖 AIレビュー</span>
-                <button id="llm-settings-btn" class="btn btn-icon" title="設定">⚙️</button>
+                <span class="llm-title" data-i18n="llm_title"></span>
+                <button id="llm-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
             </div>
 
             <!-- 詳細設定 -->
             <div class="llm-card collapsible">
                 <h4 class="collapsible-header">
-                    ⚙️ 詳細設定
+                    <span data-i18n="llm_detailSettings"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
                     <div class="setting-row">
-                        <label>モデル:</label>
+                        <label data-i18n="llm_modelLabel"></label>
                         <select id="llm-model-select">
-                            <option value="gemini-3-flash-preview" selected>Gemini 3 Flash (推奨・高精度)</option>
-                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (コスト重視)</option>
-                            <!-- <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (原則使わない)</option> -->
+                            <option value="gemini-3-flash-preview" selected data-i18n="llm_modelFlash3"></option>
+                            <option value="gemini-2.5-flash-lite" data-i18n="llm_modelLite"></option>
                         </select>
                     </div>
                     <div class="setting-row">
-                        <label>出力言語:</label>
+                        <label data-i18n="llm_outputLanguage"></label>
                         <select id="llm-language-select">
-                            <option value="ja">日本語</option>
-                            <option value="en">English</option>
+                            <option value="ja" data-i18n="llm_langJa"></option>
+                            <option value="en" data-i18n="llm_langEn"></option>
                         </select>
                     </div>
                 </div>
@@ -346,19 +330,19 @@
             <!-- APIキー設定 -->
             <div id="api-key-card" class="llm-card collapsible">
                 <h4 class="collapsible-header">
-                    🔑 Gemini APIキー
+                    <span data-i18n="llm_apiKeyTitle"></span>
                     <span id="api-key-summary" class="card-summary"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
                     <div class="api-key-input-group">
-                        <input type="password" id="gemini-api-key" placeholder="APIキーを入力..." class="api-key-input">
-                        <button id="toggle-api-key-visibility" class="btn btn-icon" title="表示/非表示">👁</button>
+                        <input type="password" id="gemini-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
+                        <button id="toggle-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
                     </div>
                     <div class="api-key-options">
                         <label class="checkbox-label">
                             <input type="checkbox" id="save-api-key-checkbox" checked>
-                            <span>端末に保存する</span>
+                            <span data-i18n="llm_apiKeySaveToDevice"></span>
                         </label>
                     </div>
                     <div id="api-key-status" class="api-key-status"></div>
@@ -367,83 +351,77 @@
 
             <!-- レビュー基準 -->
             <div id="criteria-card" class="llm-card">
-                <h4>📋 レビュー基準</h4>
+                <h4 data-i18n="llm_criteriaTitle"></h4>
 
                 <div class="criteria-section">
-                    <label>【入力】プロトコルからコピペ:</label>
+                    <label data-i18n="llm_protocolInputLabel"></label>
                     <textarea id="protocol-text-input" rows="6"
-                        placeholder="プロトコルの組み入れ・除外基準をここにコピペしてください..."></textarea>
+                        data-i18n-placeholder="llm_protocolPlaceholder"></textarea>
                 </div>
 
-                <button id="optimize-criteria-btn" class="btn btn-primary btn-full">
-                    💡 基準を最適化
+                <button id="optimize-criteria-btn" class="btn btn-primary btn-full" data-i18n="llm_optimizeBtn">
                 </button>
                 <div id="optimize-status" class="optimize-status hidden"></div>
 
                 <div class="criteria-section">
-                    <label>【出力】最適化されたスクリーニング基準:</label>
+                    <label data-i18n="llm_optimizedLabel"></label>
                     <div id="optimized-criteria-display" class="optimized-criteria-display">
-                        <p class="placeholder-text">「基準を最適化」ボタンを押すと、ここに結果が表示されます</p>
+                        <p class="placeholder-text" data-i18n="llm_optimizedPlaceholder"></p>
                     </div>
-                    <textarea id="screening-prompt-input" rows="4" placeholder="スクリーニング用プロンプト（自動生成または編集）"
+                    <textarea id="screening-prompt-input" rows="4" data-i18n-placeholder="llm_screeningPromptPlaceholder"
                         class="hidden"></textarea>
                 </div>
 
-                <button id="save-criteria-btn" class="btn btn-secondary btn-full hidden">
-                    💾 基準をGoogleスプレッドシートに保存
+                <button id="save-criteria-btn" class="btn btn-secondary btn-full hidden" data-i18n="llm_saveCriteria">
                 </button>
             </div>
 
             <!-- 一括実行 -->
             <div class="llm-card">
-                <h4>🚀 一括実行</h4>
+                <h4 data-i18n="llm_batchTitle"></h4>
 
                 <div class="setting-row">
-                    <label>バッチサイズ:</label>
+                    <label data-i18n="llm_batchSizeLabel"></label>
                     <input type="number" id="batch-save-size-input" value="5" min="1" max="500" style="width: 60px;">
-                    <span class="setting-hint">件ずつ（並列処理・保存）</span>
+                    <span class="setting-hint" data-i18n="llm_batchSizeHint"></span>
                 </div>
 
                 <div id="batch-info" class="batch-info">
-                    未判定: <span id="batch-target-count">0</span>件
+                    <span data-i18n="llm_batchPending"></span> <span id="batch-target-count">0</span>
                 </div>
 
-                <button id="start-batch-btn" class="btn btn-primary btn-full">
-                    ▶️ 一括実行開始
+                <button id="start-batch-btn" class="btn btn-primary btn-full" data-i18n="llm_batchStart">
                 </button>
-                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden">
-                    ⏹️ 実行を中止
+                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-i18n="llm_batchStop">
                 </button>
 
                 <div id="batch-progress" class="batch-progress hidden">
                     <div class="progress-text">
-                        進捗: <span id="batch-progress-current">0</span>/<span id="batch-progress-total">0</span>
+                        <span data-i18n="llm_batchProgress"></span> <span id="batch-progress-current">0</span>/<span id="batch-progress-total">0</span>
                         (<span id="batch-progress-percent">0</span>%)
                     </div>
                     <div class="progress-bar">
                         <div id="batch-progress-bar-fill" class="progress-bar-fill"></div>
                     </div>
                     <div class="progress-stats">
-                        成功: <span id="batch-success-count">0</span> /
-                        失敗: <span id="batch-fail-count">0</span>
+                        <span data-i18n="llm_batchSuccess"></span> <span id="batch-success-count">0</span> /
+                        <span data-i18n="llm_batchFail"></span> <span id="batch-fail-count">0</span>
                     </div>
                 </div>
 
                 <button id="retry-failed-btn" class="btn btn-secondary btn-full hidden">
-                    🔄 失敗した件をリトライ
                 </button>
             </div>
 
             <!-- 閾値調整（実行完了後に表示） -->
             <div id="threshold-section" class="llm-card hidden">
-                <h4>📊 閾値調整</h4>
+                <h4 data-i18n="llm_thresholdTitle"></h4>
 
                 <div id="threshold-complete-message" class="complete-message">
-                    ✓ 一括実行完了 (<span id="threshold-processed-count">0</span>件処理)
                 </div>
 
                 <div class="threshold-control">
-                    <label>Include閾値: <span id="threshold-value-display">0.30</span></label>
+                    <label><span data-i18n="llm_thresholdLabel"></span> <span id="threshold-value-display">0.30</span></label>
                     <input type="range" id="threshold-slider" min="0" max="1" step="0.01" value="0.30">
                     <div class="threshold-range-labels">
                         <span>0.0</span>
@@ -453,37 +431,34 @@
 
                 <div class="threshold-preview">
                     <div class="preview-item include">
-                        Include: <span id="preview-include-count">0</span>件
+                        Include: <span id="preview-include-count">0</span>
                         (<span id="preview-include-percent">0</span>%)
                     </div>
                     <div class="preview-item exclude">
-                        Exclude: <span id="preview-exclude-count">0</span>件
+                        Exclude: <span id="preview-exclude-count">0</span>
                         (<span id="preview-exclude-percent">0</span>%)
                     </div>
                 </div>
 
-                <button id="toggle-distribution-btn" class="btn btn-outline btn-small">
-                    📈 分布を表示
+                <button id="toggle-distribution-btn" class="btn btn-outline btn-small" data-i18n="llm_showDistribution">
                 </button>
                 <div id="distribution-chart" class="distribution-chart hidden">
-                    <!-- ヒストグラムがここに動的に生成される -->
                 </div>
 
-                <button id="confirm-threshold-btn" class="btn btn-primary btn-full">
-                    💾 閾値を確定して判断をGoogleスプレッドシートに保存
+                <button id="confirm-threshold-btn" class="btn btn-primary btn-full" data-i18n="llm_confirmThreshold">
                 </button>
-                <p class="threshold-note">※ 確定後、Decisionsシートに判定が記録されます</p>
+                <p class="threshold-note" data-i18n="llm_thresholdNote"></p>
             </div>
 
             <!-- LLM実行履歴 -->
             <div class="llm-card collapsible">
                 <h4 class="collapsible-header">
-                    📜 実行履歴
+                    <span data-i18n="llm_historyTitle"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
                     <div id="execution-history" class="execution-history">
-                        <p class="placeholder-text">実行履歴がありません</p>
+                        <p class="placeholder-text" data-i18n="llm_historyEmpty"></p>
                     </div>
                 </div>
             </div>
@@ -492,18 +467,18 @@
         <section id="ml-section" class="section hidden">
             <!-- ツールバー -->
             <div class="llm-toolbar">
-                <button id="ml-back-btn" class="btn btn-nav btn-small" title="戻る">← 戻る</button>
-                <span class="llm-title">🎯 MLスクリーニング</span>
-                <button id="ml-settings-btn" class="btn btn-icon" title="設定">⚙️</button>
+                <button id="ml-back-btn" class="btn btn-nav btn-small" data-i18n="screening_back"></button>
+                <span class="llm-title" data-i18n="ml_title"></span>
+                <button id="ml-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                 <div class="ml-status-badge" id="ml-status-badge">
-                    <span class="status-indicator">●</span> <span id="ml-status-text">未学習</span>
+                    <span class="status-indicator">●</span> <span id="ml-status-text" data-i18n="ml_statusIdle"></span>
                 </div>
             </div>
 
             <!-- 学習状態・停止基準 (折りたたみ可能) -->
             <div class="llm-card collapsible">
                 <h4 class="collapsible-header">
-                    📊 学習状態
+                    <span data-i18n="ml_learningState"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
@@ -524,8 +499,8 @@
 
                     <div class="stopping-rule-container">
                         <div class="stopping-header">
-                            <span class="label">停止基準:</span>
-                            <button id="ml-stopping-settings-btn" class="btn-link">設定なし</button>
+                            <span class="label" data-i18n="ml_stoppingLabel"></span>
+                            <button id="ml-stopping-settings-btn" class="btn-link" data-i18n="ml_stoppingNone"></button>
                         </div>
                         <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">
                             <div class="progress-bar-bg">
@@ -533,7 +508,7 @@
                             </div>
                             <div class="progress-text">
                                 <span id="ml-stopping-current">0</span> / <span id="ml-stopping-threshold">50</span>
-                                (連続 exclude)
+                                <span data-i18n="ml_stoppingConsecutive"></span>
                             </div>
                         </div>
                     </div>
@@ -543,20 +518,19 @@
             <!-- 検索 -->
             <div class="filters">
                 <div class="search-container" style="flex: 1;">
-                    <input type="search" id="ml-search-input" placeholder="検索...">
+                    <input type="search" id="ml-search-input" data-i18n-placeholder="screening_searchPlaceholder">
                     <span id="ml-search-result-count" class="search-result-count hidden"></span>
                 </div>
             </div>
 
             <!-- 現在の文献情報 -->
             <article id="ml-reference-card" class="reference-card">
-                <h3 id="ml-ref-title" class="ref-title">タイトル...</h3>
+                <h3 id="ml-ref-title" class="ref-title" data-i18n="ml_titlePlaceholder"></h3>
                 <div class="ref-meta">
                     <span id="ml-ref-authors">Authors...</span>
                     <span id="ml-ref-year">Year</span>
                 </div>
-                <div id="ml-ref-abstract" class="ref-abstract">
-                    抄録...
+                <div id="ml-ref-abstract" class="ref-abstract" data-i18n="ml_abstractPlaceholder">
                 </div>
             </article>
 
@@ -568,42 +542,42 @@
 
             <!-- ナビゲーション -->
             <div class="navigation">
-                <button id="ml-btn-prev" class="btn btn-nav" title="前へ (←)">戻る (←)</button>
+                <button id="ml-btn-prev" class="btn btn-nav" data-i18n="ml_back"></button>
                 <div class="nav-center">
                     <span id="ml-nav-position">- / -</span>
                 </div>
-                <button id="ml-btn-next" class="btn btn-nav" title="進む (→)">進む (→)</button>
+                <button id="ml-btn-next" class="btn btn-nav" data-i18n="ml_forward"></button>
             </div>
 
             <!-- メモ -->
             <div class="form-group">
-                <label for="ml-note">メモ</label>
-                <textarea id="ml-note" rows="2" placeholder="メモを入力..."></textarea>
+                <label for="ml-note" data-i18n="screening_noteLabel"></label>
+                <textarea id="ml-note" rows="2" data-i18n-placeholder="screening_notePlaceholder"></textarea>
             </div>
 
             <!-- ハイライト設定 (下部) -->
 
             <div id="ml-config-settings" class="config-settings">
                 <div class="config-header">
-                    <h4>ハイライト設定</h4>
+                    <h4 data-i18n="keyword_highlightSettings"></h4>
                 </div>
 
                 <!-- 組み入れキーワード -->
                 <div class="keyword-group include-group">
-                    <h5>組み入れ (緑)</h5>
+                    <h5 data-i18n="keyword_includeGroup"></h5>
                     <div id="ml-include-keywords-list" class="keyword-list"></div>
                     <div class="keyword-input-group">
-                        <input type="text" id="ml-new-include-input" placeholder="組み入れワード追加...">
+                        <input type="text" id="ml-new-include-input" data-i18n-placeholder="keyword_addIncludePlaceholder">
                         <button id="ml-add-include-btn" class="btn btn-small btn-secondary">＋</button>
                     </div>
                 </div>
 
                 <!-- 除外キーワード -->
                 <div class="keyword-group exclude-group">
-                    <h5>除外 (赤)</h5>
+                    <h5 data-i18n="keyword_excludeGroup"></h5>
                     <div id="ml-exclude-keywords-list" class="keyword-list"></div>
                     <div class="keyword-input-group">
-                        <input type="text" id="ml-new-exclude-input" placeholder="除外ワード追加...">
+                        <input type="text" id="ml-new-exclude-input" data-i18n-placeholder="keyword_addExcludePlaceholder">
                         <button id="ml-add-exclude-btn" class="btn btn-small btn-secondary">＋</button>
                     </div>
                 </div>
@@ -616,14 +590,12 @@
     <div id="modal-backdrop" class="modal-backdrop hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">タイトル</h3>
+                <h3 id="modal-title"></h3>
                 <button id="modal-close-btn" class="btn-icon">✕</button>
             </div>
             <div id="modal-body" class="modal-body">
-                <!-- 動的コンテンツ -->
             </div>
             <div id="modal-footer" class="modal-footer">
-                <!-- 動的ボタン -->
             </div>
         </div>
     </div>

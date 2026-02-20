@@ -7,6 +7,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showLoading, showStatus, showToast } from '../ui/feedback';
 import { getAuthToken, getUserEmail } from '../../lib/sheets-api';
+import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -68,7 +69,7 @@ export async function handleLogin() {
         await showProjectSection();
     } catch (error) {
         console.error('Login error:', error);
-        showStatus('ログインに失敗しました。もう一度お試しください。', 'error');
+        showStatus(t('auth_loginFailed', (error as Error).message), 'error');
     } finally {
         showLoading(false);
     }
@@ -78,7 +79,7 @@ export async function handleLogin() {
  * ログアウト処理
  */
 export async function handleLogout() {
-    if (!confirm('ログアウトしますか？')) {
+    if (!confirm(t('auth_logoutConfirm'))) {
         return;
     }
 
@@ -104,10 +105,10 @@ export async function handleLogout() {
         // ログイン画面に戻る（Store経由でrenderLayoutが自動更新）
         showLoginView();
 
-        showToast('ログアウトしました');
+        showToast(t('auth_logoutSuccess'));
     } catch (error) {
         console.error('Logout error:', error);
-        alert(`ログアウトエラー: ${(error as Error).message}`);
+        alert(t('auth_logoutError', (error as Error).message));
     } finally {
         showLoading(false);
     }
@@ -134,11 +135,11 @@ export async function showProjectSection() {
         syncSetUserEmail('');
         // ログイン画面に戻す
         showLoginView();
-        showStatus('Googleアカウントにログインしてください', 'error');
+        showStatus(t('auth_loginRequired'), 'error');
         showLoading(false);
         return;
     }
-    dom.userInfoDiv.textContent = `ログイン中: ${state.userEmail}`;
+    dom.userInfoDiv.textContent = t('auth_loggedInAs', state.userEmail);
 
     // 最近使用したスプレッドシートを読み込み
     console.log('[showProjectSection] Loading recent sheets...');

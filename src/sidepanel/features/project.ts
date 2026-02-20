@@ -6,6 +6,7 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showLoading, showStatus, hideStatus, showToast } from '../ui/feedback';
+import { t } from '../../lib/i18n';
 import {
     getSpreadsheetInfo,
     validateSpreadsheetFormat,
@@ -106,8 +107,8 @@ export async function handleConnect() {
     if (!resolvedId) {
         showStatus(
             manualInput
-                ? 'スプレッドシートURL/IDが正しくありません'
-                : 'スプレッドシートを選択するかURL/IDを入力してください',
+                ? t('project_invalidUrl')
+                : t('project_selectOrInput'),
             'error'
         );
         return;
@@ -123,14 +124,14 @@ export async function handleConnect() {
         // スプレッドシート形式の検証
         const validation = await validateSpreadsheetFormat(resolvedId);
         if (!validation.valid) {
-            showStatus(validation.error || '対応していない形式です', 'error');
+            showStatus(validation.error || t('project_invalidFormat'), 'error');
             return;
         }
 
         // ヘッダーの整合性を確認（不足があれば追加）
         await ensureHeaders(resolvedId);
 
-        showStatus(`接続成功: ${info.title}`, 'success');
+        showStatus(t('project_connectSuccess', info.title), 'success');
 
         // Store経由で両方に同期
         syncSetSpreadsheetId(resolvedId);
@@ -142,7 +143,7 @@ export async function handleConnect() {
         await loadDataAndShowScreening();
     } catch (error) {
         console.error('Connection error:', error);
-        showStatus(`接続エラー: ${(error as Error).message}`, 'error');
+        showStatus(t('project_connectError', (error as Error).message), 'error');
     } finally {
         showLoading(false);
     }
@@ -153,7 +154,7 @@ export async function handleConnect() {
  */
 export async function loadRecentSheets() {
     try {
-        dom.recentSheetsSelect.innerHTML = '<option value="">読み込み中...</option>';
+        dom.recentSheetsSelect.innerHTML = `<option value="">${t('project_loading')}</option>`;
 
         const sheets = await getRecentSpreadsheets(15);
 
@@ -162,7 +163,7 @@ export async function loadRecentSheets() {
         if (sheets.length === 0) {
             const opt = document.createElement('option');
             opt.value = '';
-            opt.textContent = 'スプレッドシートが見つかりません';
+            opt.textContent = t('project_noSheets');
             dom.recentSheetsSelect.appendChild(opt);
             return;
         }
@@ -170,7 +171,7 @@ export async function loadRecentSheets() {
         // 空の選択肢
         const emptyOpt = document.createElement('option');
         emptyOpt.value = '';
-        emptyOpt.textContent = '— スプレッドシートを選択 —';
+        emptyOpt.textContent = t('project_selectSheet');
         dom.recentSheetsSelect.appendChild(emptyOpt);
 
         for (const sheet of sheets) {
@@ -185,15 +186,15 @@ export async function loadRecentSheets() {
         dom.recentSheetsSelect.innerHTML = '';
         const opt = document.createElement('option');
         opt.value = '';
-        opt.textContent = '読み込み失敗';
+        opt.textContent = t('project_loadFailed');
         dom.recentSheetsSelect.appendChild(opt);
 
         // 再認証ボタンを表示
-        showStatus(`シート一覧取得失敗 - 権限を再設定してください`, 'error');
+        showStatus(t('project_sheetListFailed'), 'error');
 
         // 再認証リンクを追加
         const reauthBtn = document.createElement('button');
-        reauthBtn.textContent = '🔄 権限を再設定';
+        reauthBtn.textContent = t('project_reauthBtn');
         reauthBtn.className = 'btn btn-primary';
         reauthBtn.style.marginTop = '12px';
         reauthBtn.style.width = '100%';
@@ -204,7 +205,7 @@ export async function loadRecentSheets() {
                 await loadRecentSheets();
                 hideStatus();
             } catch (e) {
-                showStatus('再認証に失敗しました', 'error');
+                showStatus(t('project_reauthFailed'), 'error');
             } finally {
                 showLoading(false);
             }
@@ -217,7 +218,7 @@ export async function loadRecentSheets() {
  * 新規プロジェクト作成
  */
 export async function handleCreateNew() {
-    const title = prompt('新しいレビュープロジェクトの名前を入力してください:', 'TiAb Review Project');
+    const title = prompt(t('project_createPrompt'), t('project_createDefault'));
     if (!title) return;
 
     try {
@@ -225,7 +226,7 @@ export async function handleCreateNew() {
         hideStatus();
 
         const newId = await createSpreadsheet(title);
-        showStatus(`作成成功: ${title}`, 'success');
+        showStatus(t('project_createSuccess', title), 'success');
 
         // Store経由で両方に同期
         syncSetSpreadsheetId(newId);
@@ -237,7 +238,7 @@ export async function handleCreateNew() {
         await loadDataAndShowScreening();
     } catch (error) {
         console.error('Create error:', error);
-        showStatus(`作成エラー: ${(error as Error).message}`, 'error');
+        showStatus(t('project_createError', (error as Error).message), 'error');
     } finally {
         showLoading(false);
     }
@@ -307,7 +308,7 @@ export async function loadDataAndShowScreening() {
         console.log('[loadDataAndShowScreening] isAdmin =', adminStatus);
 
         // ユーザー情報に権限を表示
-        dom.userInfoDiv.textContent = `ログイン中: ${userEmail} (${adminStatus ? '管理者' : '一般'})`;
+        dom.userInfoDiv.textContent = t('auth_loggedInAsRole', [userEmail, adminStatus ? t('auth_roleAdmin') : t('auth_roleGeneral')]);
 
         // 注意: キーセクションの表示はrenderLayoutで管理されるようになった
         // ただし、レガシーなrenderKeyStatusとrenderReviewerFilterは既存コードを維持
@@ -337,7 +338,7 @@ export async function loadDataAndShowScreening() {
         }
     } catch (error) {
         console.error('Load data error:', error);
-        showStatus(`データ読み込みエラー: ${(error as Error).message}`, 'error');
+        showStatus(t('project_loadDataError', (error as Error).message), 'error');
         // 設定画面に戻す（Store経由）
         showProjectView();
     } finally {
