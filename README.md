@@ -2,6 +2,8 @@
 
 Chrome拡張機能 - Systematic Reviewのタイトル・抄録スクリーニングを効率化するツール
 
+[Chrome store](https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja)で公開されてます。
+
 ## 必要条件
 
 - **Node.js** >= 18.0.0
