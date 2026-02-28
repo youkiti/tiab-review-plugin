@@ -25,6 +25,7 @@ experiments/asreview/outputs/
 .env
 .env.local
 .env.*.local
+.claude/settings.json
 
 # TypeScript
 *.tsbuildinfo

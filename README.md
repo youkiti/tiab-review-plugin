@@ -52,19 +52,19 @@ gcloud services enable drive.googleapis.com
 1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) を開く
 2. 「認証情報を作成」→「OAuthクライアントID」
 3. アプリケーションの種類: **Chrome拡張機能**
-4. 拡張機能ID: (後で`chrome://extensions`から取得)
+4. 拡張機能ID: (後で `chrome://extensions`から取得)
 5. 作成されたクライアントIDを `.env` に設定（下記参照）
 
 ### 5. 環境変数の設定
 
 `.env.example` を `.env` にコピーして値を設定します。
 
-| 変数名 | 用途 | 必須 |
-|--------|------|------|
-| `OAUTH_CLIENT_ID` | Chrome Web Store用 OAuth Client ID | 本番ビルド時 |
-| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID | 開発ビルド時 |
-| `GEMINI_API_KEY` | Gemini API キー | LLM機能使用時 |
-| `DIST_COPY_PATH` | dist.zip のコピー先パス | build:zip 時 |
+| 変数名                    | 用途                               | 必須          |
+| ------------------------- | ---------------------------------- | ------------- |
+| `OAUTH_CLIENT_ID`       | Chrome Web Store用 OAuth Client ID | 本番ビルド時  |
+| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID     | 開発ビルド時  |
+| `GEMINI_API_KEY`        | Gemini API キー                    | LLM機能使用時 |
+| `DIST_COPY_PATH`        | dist.zip のコピー先パス            | build:zip 時  |
 
 > **ローカル開発とストア公開で異なる OAuth Client ID が必要です。**
 > ローカル開発用は `manifest.json` の `key` から決まる拡張機能IDに紐づけたクライアント、ストア用は公開後の拡張機能IDに紐づけたクライアントを使用します。
@@ -90,13 +90,13 @@ npm run watch
 
 ## 開発コマンド
 
-| コマンド | 説明 |
-|----------|------|
-| `npm run build` | 本番用ビルド |
-| `npm run dev` | 開発用ビルド |
-| `npm run watch` | ホットリロード開発 |
-| `npm run lint` | ESLint実行 |
-| `npm run typecheck` | 型チェック |
+| コマンド              | 説明               |
+| --------------------- | ------------------ |
+| `npm run build`     | 本番用ビルド       |
+| `npm run dev`       | 開発用ビルド       |
+| `npm run watch`     | ホットリロード開発 |
+| `npm run lint`      | ESLint実行         |
+| `npm run typecheck` | 型チェック         |
 
 ## Chrome Web Store への提出（初回公開向け）
 
@@ -138,7 +138,7 @@ tiab-review-plugin/
 
 ### リモート開発環境（Codespaces, devcontainer等）を使う場合
 
-リモート環境では`dist`フォルダを都度ダウンロードする必要があり、開発効率が低下します。
+リモート環境では `dist`フォルダを都度ダウンロードする必要があり、開発効率が低下します。
 
 **推奨: ローカルでの開発**
 
@@ -155,8 +155,24 @@ npm install
 npm run watch  # 変更を監視して自動ビルド
 ```
 
-ローカルの`dist`フォルダをChromeに読み込めば、コード変更後は拡張機能の**リロードボタン（🔄）**を押すだけで反映されます。
+ローカルの `dist`フォルダをChromeに読み込めば、コード変更後は拡張機能の**リロードボタン（🔄）**を押すだけで反映されます。
 
 ## ライセンス
 
 MIT
+
+## 研究助成 / Funding
+
+本プロジェクトは以下の研究費の助成を受けて開発されています。
+This project is supported by the following research grant.
+
+**大規模言語モデルが加速するエビデンスの統合**
+**Accelerating Evidence Synthesis with Large Language Models**
+
+| 項目 / Item                 | 内容 / Details                                         |
+| --------------------------- | ------------------------------------------------------ |
+| 研究課題番号 / Grant Number | 25K13585                                               |
+| 研究種目 / Category         | 基盤研究(C) / Grant-in-Aid for Scientific Research (C) |
+| 配分区分 / Funding Type     | 基金 / Fund                                            |
+| 研究期間 / Period           | 2025-04-01 – 2028-03-31                               |
+|                             |                                                        |
