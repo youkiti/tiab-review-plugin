@@ -1,0 +1,57 @@
+{
+  "experimentId": "2026-03-04T23-17-25",
+  "startTime": "2026-03-04T23:17:25.285Z",
+  "parameters": {
+    "dataset": "cq5",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\cq5_labeled.json",
+    "totalRecords": 2253,
+    "condition": {
+      "id": "C1",
+      "model": "gemini-3.1-flash-lite-preview",
+      "temperature": 0
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Restrictive Fluid Therapy strategies (fluid minimization, conservative fluid management) for patients with sepsis, septic shock, or ARDS.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 2253,
+    "successCount": 2253,
+    "failCount": 0,
+    "durationMs": 29364,
+    "avgTimePerItem": 13.033288948069242
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 40,
+    "falsePositives": 176,
+    "trueNegatives": 2036,
+    "falseNegatives": 1,
+    "sensitivity": 0.975609756097561,
+    "specificity": 0.9204339963833634,
+    "precision": 0.18518518518518517,
+    "fBetaScore": 0.8988764044943819
+  },
+  "endTime": "2026-03-04T23:17:54.762Z",
+  "consoleLog": [
+    "[2026-03-04T23:17:25.285Z] === Starting Experiment 2026-03-04T23-17-25 ===",
+    "[2026-03-04T23:17:25.285Z] Dataset: cq5, Condition: C1, Tier: tier_max",
+    "[2026-03-04T23:17:25.337Z] 2253件の文献をcq5から読み込み",
+    "[2026-03-04T23:17:25.338Z] ラベル分布: 陽性=41, 陰性=2212",
+    "[2026-03-04T23:17:25.338Z] 条件: {\"id\":\"C1\",\"model\":\"gemini-3.1-flash-lite-preview\",\"temperature\":0}",
+    "[2026-03-04T23:17:25.338Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-03-04T23:17:54.705Z] 完了: 2253/2253 成功 (29.4秒)",
+    "[2026-03-04T23:17:54.706Z] 平均処理時間: 13ms/件",
+    "[2026-03-04T23:17:54.751Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite\\results\\decisions_2026-03-04T23-17-25.json",
+    "[2026-03-04T23:17:54.761Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-03-04T23:17:54.761Z] TP: 40, FP: 176",
+    "[2026-03-04T23:17:54.761Z] TN: 2036, FN: 1",
+    "[2026-03-04T23:17:54.761Z] Sensitivity: 97.56%",
+    "[2026-03-04T23:17:54.761Z] Specificity: 92.04%",
+    "[2026-03-04T23:17:54.761Z] Precision: 18.52%",
+    "[2026-03-04T23:17:54.761Z] Fβ(β=7): 89.89%"
+  ]
+}
