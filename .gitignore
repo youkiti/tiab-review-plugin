@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 
+
 # Build output
 dist/
 dist.zip
@@ -10,6 +11,8 @@ dist.zip
 .idea/
 *.swp
 *.swo
+contexts/
+document/
 
 # OS
 .DS_Store

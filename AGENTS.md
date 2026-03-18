@@ -193,6 +193,30 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 | UR / L1      | url           |                        |
 | DB           | source        |                        |
 
+### ClinicalTrials.gov CSV インポートフィールドマッピング
+
+| CSV カラム                  | References 列 | 備考                                     |
+| --------------------------- | ------------- | ---------------------------------------- |
+| Study Title                 | title         | 必須                                     |
+| NCT Number                  | pmid          | dedupe_key 生成に使用                    |
+| Study URL                   | url           |                                          |
+| Start Date                  | year          | 年部分のみ抽出                           |
+| ―                           | journal       | 固定値 "ClinicalTrials.gov"              |
+| ―                           | source        | 固定値 "ClinicalTrials.gov"              |
+| その他全カラム              | abstract      | `カラム名: 値` 形式で `\|` 区切り合成    |
+
+### ICTRP XML インポートフィールドマッピング
+
+| XML 要素                    | References 列 | 備考                                     |
+| --------------------------- | ------------- | ---------------------------------------- |
+| Scientific_title            | title         | 必須                                     |
+| TrialID                     | pmid          | dedupe_key 生成に使用                    |
+| web_address                 | url           |                                          |
+| Date_registration           | year          | 年部分のみ抽出                           |
+| Source_Register              | source        | レジストリ名（REBEC, JPRN 等）           |
+| ―                           | journal       | 固定値 "ICTRP"                           |
+| その他臨床情報要素          | abstract      | `要素名: 値` 形式で `\|` 区切り合成      |
+
 ### オフライン同期の方針
 
 - **キュー永続化**:

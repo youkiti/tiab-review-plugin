@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import { setReferences as syncSetReferences } from '../store/compat';
-import { parseRISFile } from '../../lib/ris-parser';
+import { parseImportFile } from '../../lib/file-dispatcher';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -49,7 +49,7 @@ export async function handleRISImport(e: Event) {
         showLoading(true);
         dom.importStatus.textContent = t('import_parsing');
         // const text = await file.text(); // parseRISFile reads it
-        const newReferences = await parseRISFile(file);
+        const newReferences = await parseImportFile(file);
 
         if (newReferences.length === 0) {
             showToast(t('import_noValid'));

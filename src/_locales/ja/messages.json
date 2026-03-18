@@ -133,7 +133,7 @@
     "message": "← 戻る"
   },
   "screening_importRis": {
-    "message": "📁 RIS/nbibインポート"
+    "message": "📁 インポート"
   },
   "screening_export": {
     "message": "📥 エクスポート"
@@ -160,7 +160,7 @@
     "message": "文献がありません"
   },
   "screening_importPrompt": {
-    "message": "RISファイルをインポートするか、スプレッドシートに文献を追加してください"
+    "message": "ファイルをインポートするか、スプレッドシートに文献を追加してください"
   },
   "screening_noFilterMatch": {
     "message": "フィルター条件に一致する文献がありません"
@@ -477,6 +477,10 @@
   },
   "import_errorStatus": {
     "message": "インポートエラー"
+  },
+  "import_unsupportedFormat": {
+    "message": "非対応のファイル形式です: $1",
+    "placeholders": { "1": { "content": "$1" } }
   },
 
   "export_noData": {

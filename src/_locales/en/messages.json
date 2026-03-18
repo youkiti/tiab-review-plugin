@@ -133,7 +133,7 @@
     "message": "← Back"
   },
   "screening_importRis": {
-    "message": "📁 Import RIS/nbib"
+    "message": "📁 Import"
   },
   "screening_export": {
     "message": "📥 Export"
@@ -160,7 +160,7 @@
     "message": "No references"
   },
   "screening_importPrompt": {
-    "message": "Import a RIS file or add references to the spreadsheet"
+    "message": "Import a file or add references to the spreadsheet"
   },
   "screening_noFilterMatch": {
     "message": "No references match the filter criteria"
@@ -477,6 +477,10 @@
   },
   "import_errorStatus": {
     "message": "Import error"
+  },
+  "import_unsupportedFormat": {
+    "message": "Unsupported file format: $1",
+    "placeholders": { "1": { "content": "$1" } }
   },
 
   "export_noData": {
