@@ -106,6 +106,13 @@ npm run watch
 - `OAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
 - テスター配布向けの Google Drive コピー付きZIPは `npm run build:zip` を使います。
 
+## 担当セット（複数人レビュー）
+
+- 管理者は、文献取り込み後に「全員用キャリブレーション」と「残りのグループ分割」を一度だけ作成できます。
+- 分割後は `References` シートの `screening_set` 列に `calibration` / `group-n` を保存します。
+- 管理者は設定画面から各グループの担当者メールを編集できます。
+- 一般ユーザーには、自分に割り当てられたセットと `calibration` のみ表示されます。
+- ウィザードで「今回は分割しない」を選ぶと再表示されませんが、管理者は設定画面から再表示できます。
 ## オフライン同期
 
 - 判定保存に失敗した場合はキューに退避し、オンライン復帰時や次回保存時に再送します
@@ -176,3 +183,4 @@ This project is supported by the following research grant.
 | 配分区分 / Funding Type     | 基金 / Fund                                            |
 | 研究期間 / Period           | 2025-04-01 – 2028-03-31                               |
 |                             |                                                        |
+

@@ -19,6 +19,17 @@ export interface Reference {
     imported_at?: string;     // ISO 8601
     imported_by?: string;     // email
     dedupe_key?: string;
+    screening_set?: string;   // 担当セットID
+}
+
+export interface AssignmentConfig {
+    status: 'none' | 'dismissed' | 'configured';
+    calibrationSize: number;
+    groupCount: number;
+    reviewerMap: Record<string, string[]>;
+    seed?: string;
+    generatedAt?: string;
+    dismissedAt?: string;
 }
 
 export interface Decision {

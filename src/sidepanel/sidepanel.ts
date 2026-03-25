@@ -11,6 +11,7 @@ import * as project from './features/project';
 import * as settings from './features/settings';
 import * as sharing from './features/sharing';
 import * as importExport from './features/import-export';
+import * as assignment from './features/assignment';
 import * as llm from './features/llm';
 import * as screeningFilters from './features/screening/filters';
 import * as screeningRender from './features/screening/render';
@@ -53,7 +54,8 @@ project.setProjectDependencies({
 });
 
 screeningFilters.setFilterDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference
+    renderCurrentReference: screeningRender.renderCurrentReference,
+    loadDataAndShowScreening: project.loadDataAndShowScreening
 });
 
 settings.setSettingsDependencies({
@@ -68,7 +70,8 @@ settings.setSettingsDependencies({
 });
 
 importExport.setImportExportDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference
+    renderCurrentReference: screeningRender.renderCurrentReference,
+    loadDataAndShowScreening: project.loadDataAndShowScreening
 });
 
 screeningRender.setRenderDependencies({
@@ -81,6 +84,11 @@ screeningActions.setActionDependencies({
 });
 
 screeningKeywords.setKeywordDependencies({
+    renderCurrentReference: screeningRender.renderCurrentReference
+});
+
+assignment.setAssignmentDependencies({
+    loadDataAndShowScreening: project.loadDataAndShowScreening,
     renderCurrentReference: screeningRender.renderCurrentReference
 });
 
@@ -136,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.showRecordCountCheckbox?.addEventListener('change', settings.handleShowRecordCountChange);
     dom.termFilterAndCheckbox?.addEventListener('change', settings.handleTermFilterAndChange);
     dom.treatMlAsManualCheckbox?.addEventListener('change', settings.handleTreatMlAsManualChange);
+    dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
+    dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
 
     // Import/Export
     dom.risFileInput?.addEventListener('change', importExport.handleRISImport);
@@ -298,3 +308,4 @@ document.addEventListener('DOMContentLoaded', () => {
     auth.initApp();
     void flushQueueIfReady();
 });
+

@@ -9,9 +9,10 @@ import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
 import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
-import { deleteReferencesBySourceFile, getReferencesWithStatus } from '../../../lib/sheets-api';
+import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
+import { getReferenceAssignmentSet } from '../assignment';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -27,11 +28,14 @@ import {
 
 // 外部描画関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
+let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setFilterDependencies(deps: {
     renderCurrentReference: () => void;
+    loadDataAndShowScreening: () => Promise<void>;
 }) {
     _renderCurrentReference = deps.renderCurrentReference;
+    _loadDataAndShowScreening = deps.loadDataAndShowScreening;
 }
 
 /**
@@ -185,6 +189,11 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
         filtered = filtered.filter(r => r.source_file && state.selectedSourceFiles.has(r.source_file));
     }
 
+    // 担当セットフィルター（管理者のみ）
+    if (state.isAdmin && state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
+        filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
+    }
+
     // 検索フィルター
     const rawSearch = dom.searchInput.value;
     if (rawSearch.trim()) {
@@ -267,6 +276,10 @@ export function updateFilterCounts() {
     let filtered = state.references;
     if (state.selectedSourceFiles.size > 0 && state.selectedSourceFiles.size < state.sourceFiles.size) {
         filtered = state.references.filter(r => r.source_file && state.selectedSourceFiles.has(r.source_file));
+    }
+
+    if (state.isAdmin && state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
+        filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
     }
 
     const counts = {
@@ -360,18 +373,12 @@ export function renderSourceFilters() {
 
                     const deletedCount = await deleteReferencesBySourceFile(state.spreadsheetId, file);
 
-                    // データを再読み込み（Store経由で両方に同期）
-                    const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-                    syncSetReferences(refs);
-
-                    // 状態更新（Store経由で両方に同期）
-                    if (state.references.filter(r => r.source_file === file).length === 0) {
+                    if (_loadDataAndShowScreening) {
+                        await _loadDataAndShowScreening();
+                    } else {
                         syncDeleteSourceFile(file);
+                        if (_renderCurrentReference) _renderCurrentReference();
                     }
-
-                    // UI更新（syncDeleteSourceFileがcurrentIndexを0にリセット）
-                    renderSourceFilters();
-                    if (_renderCurrentReference) _renderCurrentReference();
 
                     showToast(t('filter_deleted', String(deletedCount)));
 
@@ -480,3 +487,4 @@ export function renderActiveTermFilters() {
         dom.activeTermFiltersDiv.appendChild(tag);
     }
 }
+

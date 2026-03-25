@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, AssignmentConfig } from './types';
 import { t } from './i18n';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
@@ -50,12 +50,19 @@ export const PRESET_SR = {
 const DEFAULT_INCLUDE_KEYWORDS = PRESET_RCT.include;
 const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
 
+const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
+    status: 'none',
+    calibrationSize: 50,
+    groupCount: 4,
+    reviewerMap: {},
+};
+
 // References タブのヘッダー
 const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
-    'imported_at', 'imported_by', 'dedupe_key', 'source_file'
+    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set'
 ];
 
 
@@ -381,7 +388,7 @@ async function updateRange(spreadsheetId: string, range: string, values: (string
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:R`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:S`);
 
     if (values.length <= 1) {
         return []; // ヘッダーのみ or 空
@@ -431,6 +438,7 @@ export async function addReferences(spreadsheetId: string, references: Reference
         ref.imported_by || '',
         ref.dedupe_key || '',
         ref.source_file || '',
+        ref.screening_set || '',
     ]);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
@@ -828,6 +836,191 @@ export interface HighlightKeywords {
     exclude: string[];
 }
 
+const ASSIGNMENT_CONFIG_KEYS = [
+    'assignment_status',
+    'assignment_calibration_size',
+    'assignment_group_count',
+    'assignment_reviewer_map',
+    'assignment_seed',
+    'assignment_generated_at',
+    'assignment_dismissed_at',
+];
+
+export async function getAssignmentConfig(spreadsheetId: string): Promise<AssignmentConfig> {
+    const config: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
+
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+
+        for (const row of values) {
+            const key = row[0];
+            const value = row[1];
+
+            if (!ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
+
+            switch (key) {
+                case 'assignment_status':
+                    if (value === 'dismissed' || value === 'configured' || value === 'none') {
+                        config.status = value;
+                    }
+                    break;
+                case 'assignment_calibration_size':
+                    config.calibrationSize = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.calibrationSize;
+                    break;
+                case 'assignment_group_count':
+                    config.groupCount = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.groupCount;
+                    break;
+                case 'assignment_reviewer_map':
+                    try {
+                        config.reviewerMap = JSON.parse(value) || {};
+                    } catch {
+                        config.reviewerMap = {};
+                    }
+                    break;
+                case 'assignment_seed':
+                    config.seed = value;
+                    break;
+                case 'assignment_generated_at':
+                    config.generatedAt = value;
+                    break;
+                case 'assignment_dismissed_at':
+                    config.dismissedAt = value;
+                    break;
+            }
+        }
+    } catch (error) {
+        console.log('[getAssignmentConfig] Config not found, using defaults:', error);
+    }
+
+    return config;
+}
+
+export async function saveAssignmentConfig(spreadsheetId: string, config: AssignmentConfig): Promise<void> {
+    try {
+        await trySaveAssignmentConfig(spreadsheetId, config);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveAssignmentConfig] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveAssignmentConfig(spreadsheetId, config);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveAssignmentConfig(spreadsheetId: string, config: AssignmentConfig): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    const rowIndices: Record<string, number> = {};
+
+    values.forEach((row, index) => {
+        if (ASSIGNMENT_CONFIG_KEYS.includes(row[0])) {
+            rowIndices[row[0]] = index + 1;
+        }
+    });
+
+    const entries: Record<string, string> = {
+        assignment_status: config.status,
+        assignment_calibration_size: String(config.calibrationSize),
+        assignment_group_count: String(config.groupCount),
+        assignment_reviewer_map: JSON.stringify(config.reviewerMap || {}),
+        assignment_seed: config.seed || '',
+        assignment_generated_at: config.generatedAt || '',
+        assignment_dismissed_at: config.dismissedAt || '',
+    };
+
+    for (const [key, value] of Object.entries(entries)) {
+        if (rowIndices[key]) {
+            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[value]]);
+        } else {
+            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
+        }
+    }
+}
+
+function columnNumberToLetter(columnIndex: number): string {
+    let result = '';
+    let current = columnIndex + 1;
+
+    while (current > 0) {
+        const remainder = (current - 1) % 26;
+        result = String.fromCharCode(65 + remainder) + result;
+        current = Math.floor((current - 1) / 26);
+    }
+
+    return result;
+}
+
+async function batchUpdateRanges(
+    spreadsheetId: string,
+    updates: Array<{ range: string; values: string[][] }>
+): Promise<void> {
+    const token = await getAuthToken();
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                valueInputOption: 'USER_ENTERED',
+                data: updates,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to batch update ranges: ${error.error?.message || response.statusText}`);
+    }
+}
+
+export async function updateReferenceScreeningSets(
+    spreadsheetId: string,
+    assignments: Array<{ refId: string; screeningSet: string }>
+): Promise<void> {
+    if (assignments.length === 0) return;
+
+    await ensureHeaders(spreadsheetId);
+
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:S`);
+    if (values.length <= 1) return;
+
+    const headers = values[0];
+    const refIdIndex = headers.indexOf('ref_id');
+    const screeningSetIndex = headers.indexOf('screening_set');
+
+    if (refIdIndex === -1 || screeningSetIndex === -1) {
+        throw new Error('screening_set column not found');
+    }
+
+    const rowIndexByRefId = new Map<string, number>();
+    values.slice(1).forEach((row, index) => {
+        const refId = (row[refIdIndex] || '').trim();
+        if (refId) {
+            rowIndexByRefId.set(refId, index + 2);
+        }
+    });
+
+    const column = columnNumberToLetter(screeningSetIndex);
+    const updates = assignments
+        .map(({ refId, screeningSet }) => {
+            const rowIndex = rowIndexByRefId.get(refId);
+            if (!rowIndex) return null;
+            return {
+                range: `${REFERENCES_SHEET}!${column}${rowIndex}`,
+                values: [[screeningSet]],
+            };
+        })
+        .filter((update): update is { range: string; values: string[][] } => update !== null);
+
+    const batchSize = 500;
+    for (let i = 0; i < updates.length; i += batchSize) {
+        await batchUpdateRanges(spreadsheetId, updates.slice(i, i + batchSize));
+    }
+}
 /**
  * Config タブからハイライトキーワードを取得
  * Config タブは Key-Value 形式（A列=キー、B列=値）を想定
@@ -1517,3 +1710,7 @@ export async function getLlmPendingDecisions(
         decision.reviewer_id === executionId && decision.decision === 'pending'
     );
 }
+
+
+
+

@@ -19,9 +19,11 @@ import {
     isUserAdmin,
     forceReauth,
     ensureHeaders,
+    getAssignmentConfig,
     saveDecision as apiSaveDecision,
 } from '../../lib/sheets-api';
 import { getReviewerKey } from './screening/reviewer-utils';
+import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { flushDecisionQueue } from '../utils/offline-queue';
 
 // Store互換レイヤー（Phase 3）
@@ -255,10 +257,11 @@ export async function loadDataAndShowScreening() {
         showLoading(true);
 
         // 管理者権限とキーオープン状態を確認
-        const [adminStatus, keyOpenedStatus, keywords] = await Promise.all([
+        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig] = await Promise.all([
             isUserAdmin(spreadsheetId, userEmail),
             getKeyOpenedStatus(spreadsheetId),
             getHighlightKeywords(spreadsheetId),
+            getAssignmentConfig(spreadsheetId),
         ]);
 
         // Store経由で両方に同期
@@ -270,14 +273,15 @@ export async function loadDataAndShowScreening() {
         const refs = keyOpenedStatus
             ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
             : await getReferencesWithStatus(spreadsheetId, userEmail);
-        syncSetReferences(refs);
+        const visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
+        syncSetReferences(visibleRefs);
 
         // MLの状態をリセット（前のプロジェクトのデータをクリア）
         syncSetMlState(createInitialMlState());
 
         // ソースファイルを抽出
         const sourceFiles = new Set<string>();
-        refs.forEach(ref => {
+        visibleRefs.forEach(ref => {
             if (ref.source_file) sourceFiles.add(ref.source_file);
         });
         syncSetSourceFiles(sourceFiles);
@@ -286,7 +290,7 @@ export async function loadDataAndShowScreening() {
         // レビュアーを抽出（キーオープン時のみ）
         const reviewers = new Set<string>();
         if (keyOpenedStatus) {
-            refs.forEach(ref => {
+            visibleRefs.forEach(ref => {
                 if (ref.allDecisions) {
                     ref.allDecisions.forEach(d => {
                         const reviewerKey = getReviewerKey(d);
@@ -317,6 +321,7 @@ export async function loadDataAndShowScreening() {
             if (_renderKeyStatus) _renderKeyStatus();
             if (_renderReviewerFilter) _renderReviewerFilter();
         }
+        renderAssignmentManager();
 
         // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
         // ログイン成功時のステータスメッセージを非表示にする
@@ -327,7 +332,9 @@ export async function loadDataAndShowScreening() {
         syncSetCurrentIndex(0);
         if (_renderKeywords) _renderKeywords();
         if (_renderSourceFilters) _renderSourceFilters();
+        renderAssignmentFilters();
         if (_renderCurrentReference) _renderCurrentReference();
+        void maybeShowAssignmentWizard('load');
 
         try {
             await flushDecisionQueue(spreadsheetId, userEmail, (queued) =>
@@ -361,3 +368,4 @@ export async function loadConfig() {
         }
     }
 }
+

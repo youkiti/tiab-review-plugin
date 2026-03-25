@@ -5,7 +5,6 @@
   "extDescription": {
     "message": "Title & Abstract Screening Support Tool"
   },
-
   "auth_loginWithGoogle": {
     "message": "Sign in with Google"
   },
@@ -14,7 +13,11 @@
   },
   "auth_loginFailed": {
     "message": "Login failed: $1",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "auth_loginRequired": {
     "message": "Please sign in with your Google account"
@@ -46,7 +49,6 @@
   "auth_roleGeneral": {
     "message": "Member"
   },
-
   "project_settings": {
     "message": "Project Settings"
   },
@@ -128,7 +130,6 @@
   "project_invalidFormatFull": {
     "message": "Unsupported format. Please create a new review project first using the Create button."
   },
-
   "screening_back": {
     "message": "← Back"
   },
@@ -192,7 +193,6 @@
   "screening_offlineQueued": {
     "message": "Offline: decision saved to queue"
   },
-
   "nav_prev": {
     "message": "Prev (←)"
   },
@@ -220,7 +220,6 @@
   "nav_tabAiTitle": {
     "message": "AI Review"
   },
-
   "filter_pending": {
     "message": "Pending"
   },
@@ -302,7 +301,6 @@
   "filter_applyToast": {
     "message": "Filtered by \"$1\""
   },
-
   "keyword_highlightSettings": {
     "message": "Highlight Settings"
   },
@@ -326,7 +324,11 @@
   },
   "keyword_added": {
     "message": "\"$1\" added",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "keyword_presetConfirm": {
     "message": "Apply $1 preset? Current keyword settings will be overwritten."
@@ -343,7 +345,6 @@
   "keyword_autoSave": {
     "message": "Settings are saved automatically"
   },
-
   "settings_title": {
     "message": "Settings"
   },
@@ -398,7 +399,6 @@
   "settings_treatMlAsManualOff": {
     "message": "ML and manual decisions are separate"
   },
-
   "share_emailPlaceholder": {
     "message": "Google account (email)"
   },
@@ -441,7 +441,6 @@
   "share_loadFailed": {
     "message": "Failed to load"
   },
-
   "import_duplicate": {
     "message": "File \"$1\" has already been imported"
   },
@@ -480,9 +479,12 @@
   },
   "import_unsupportedFormat": {
     "message": "Unsupported file format: $1",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
-
   "export_noData": {
     "message": "No references to export"
   },
@@ -510,7 +512,6 @@
   "export_countSuffix": {
     "message": ""
   },
-
   "blind_onConfirm": {
     "message": "Enable blinding?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
   },
@@ -529,7 +530,6 @@
   "blind_offError": {
     "message": "Unblinding error: $1"
   },
-
   "progress_importPrompt": {
     "message": "Import references to get started 📂"
   },
@@ -554,7 +554,6 @@
   "progress_count": {
     "message": "$1 / $2 ($3 remaining)"
   },
-
   "reviewer_selfMl": {
     "message": "$1 (you/ML)"
   },
@@ -582,7 +581,6 @@
   "reviewer_selfLabel": {
     "message": "Me"
   },
-
   "llm_title": {
     "message": "🤖 AI Review"
   },
@@ -823,7 +821,6 @@
   "llm_completedConfirm": {
     "message": "ML screening complete.\n\nWould you like to review the results in the Manual tab?\n(Select \"All\" or \"Include\"/\"Exclude\" in the filter to see the results)"
   },
-
   "ml_title": {
     "message": "🎯 ML Screening"
   },
@@ -853,7 +850,11 @@
   },
   "ml_stoppingConsecutiveCount": {
     "message": "Consecutive exclude $1",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "ml_stoppingRequired": {
     "message": "Please set a stopping rule first"
@@ -1077,7 +1078,6 @@
   "ml_preFetchFailed": {
     "message": "Failed to fetch preliminary data"
   },
-
   "common_help": {
     "message": "Help"
   },
@@ -1125,9 +1125,12 @@
   },
   "common_countItems": {
     "message": "$1 items",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
-
   "error_geminiApiKeyMissing": {
     "message": "Gemini API key is not set"
   },
@@ -1157,5 +1160,135 @@
   },
   "error_loginFailedPrefix": {
     "message": "Login failed: "
+  },
+  "assignment_filterTitle": {
+    "message": "Assignment Sets"
+  },
+  "assignment_setCalibration": {
+    "message": "Calibration"
+  },
+  "assignment_setGroup": {
+    "message": "Group $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_setUnassigned": {
+    "message": "Unassigned"
+  },
+  "assignment_noAssignedGroup": {
+    "message": "No assignment set is linked to your account. Please contact the admin."
+  },
+  "assignment_settingsTitle": {
+    "message": "Assignment Sets"
+  },
+  "assignment_settingsPending": {
+    "message": "No assignment set has been created yet. Open the wizard when you are ready to split this review."
+  },
+  "assignment_settingsDismissed": {
+    "message": "The assignment wizard is hidden. You can reopen it from here."
+  },
+  "assignment_settingsConfigured": {
+    "message": "$1 references are reserved for calibration and the rest are split into $2 groups.",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
+  "assignment_settingsShowWizard": {
+    "message": "Open wizard"
+  },
+  "assignment_settingsSaveMap": {
+    "message": "Save reviewer assignments"
+  },
+  "assignment_settingsMapSaved": {
+    "message": "Reviewer assignments saved"
+  },
+  "assignment_settingsMapError": {
+    "message": "Assignment settings error: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardTitle": {
+    "message": "Create Assignment Sets"
+  },
+  "assignment_wizardIntro": {
+    "message": "Would you like to split this review into sets for multiple reviewers?"
+  },
+  "assignment_wizardSummary": {
+    "message": "Current references: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardCalibrationLabel": {
+    "message": "Calibration references for everyone"
+  },
+  "assignment_wizardGroupCountLabel": {
+    "message": "Number of groups"
+  },
+  "assignment_wizardReviewerHelp": {
+    "message": "Enter reviewer emails for each group, separated by commas. You can edit them later from Settings."
+  },
+  "assignment_wizardReviewerLabel": {
+    "message": "Reviewers for Group $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_reviewerPlaceholder": {
+    "message": "reviewer1@example.com, reviewer2@example.com"
+  },
+  "assignment_wizardNo": {
+    "message": "Not now"
+  },
+  "assignment_wizardCreate": {
+    "message": "Create sets"
+  },
+  "assignment_wizardValidationCalibration": {
+    "message": "Enter a calibration size between 0 and $1.",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardValidationGroupCount": {
+    "message": "Enter a group count of 1 or more."
+  },
+  "assignment_wizardCreateError": {
+    "message": "Failed to create assignment sets: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_dismissed": {
+    "message": "The assignment wizard has been hidden"
+  },
+  "assignment_configured": {
+    "message": "$1 references were set aside for calibration and the rest were split into $2 groups.",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
   }
 }

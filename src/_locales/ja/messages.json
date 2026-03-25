@@ -5,7 +5,6 @@
   "extDescription": {
     "message": "タイトル・抄録スクリーニング支援ツール"
   },
-
   "auth_loginWithGoogle": {
     "message": "Googleアカウントでログイン"
   },
@@ -14,7 +13,11 @@
   },
   "auth_loginFailed": {
     "message": "ログインに失敗しました: $1",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "auth_loginRequired": {
     "message": "Googleアカウントにログインしてください"
@@ -46,7 +49,6 @@
   "auth_roleGeneral": {
     "message": "一般"
   },
-
   "project_settings": {
     "message": "プロジェクト設定"
   },
@@ -128,7 +130,6 @@
   "project_invalidFormatFull": {
     "message": "対応していない形式です。新規レビュープロジェクトを作成ボタンから、最初に作成ください"
   },
-
   "screening_back": {
     "message": "← 戻る"
   },
@@ -192,7 +193,6 @@
   "screening_offlineQueued": {
     "message": "オフラインのため判定をキューに保存しました"
   },
-
   "nav_prev": {
     "message": "前へ (←)"
   },
@@ -220,7 +220,6 @@
   "nav_tabAiTitle": {
     "message": "AIレビュー"
   },
-
   "filter_pending": {
     "message": "未判定"
   },
@@ -302,7 +301,6 @@
   "filter_applyToast": {
     "message": "\"$1\" でフィルター適用"
   },
-
   "keyword_highlightSettings": {
     "message": "ハイライト設定"
   },
@@ -326,7 +324,11 @@
   },
   "keyword_added": {
     "message": "「$1」を追加しました",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "keyword_presetConfirm": {
     "message": "$1用プリセットを適用しますか？\n現在のキーワード設定は上書きされます。"
@@ -343,7 +345,6 @@
   "keyword_autoSave": {
     "message": "設定は自動的に保存されます"
   },
-
   "settings_title": {
     "message": "設定"
   },
@@ -398,7 +399,6 @@
   "settings_treatMlAsManualOff": {
     "message": "ML判定と手動判定を区別します"
   },
-
   "share_emailPlaceholder": {
     "message": "Googleアカウント（メール）"
   },
@@ -441,7 +441,6 @@
   "share_loadFailed": {
     "message": "読み込み失敗"
   },
-
   "import_duplicate": {
     "message": "ファイル \"$1\" は既にインポート済みです"
   },
@@ -480,9 +479,12 @@
   },
   "import_unsupportedFormat": {
     "message": "非対応のファイル形式です: $1",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
-
   "export_noData": {
     "message": "エクスポートする文献がありません"
   },
@@ -510,7 +512,6 @@
   "export_countSuffix": {
     "message": "件"
   },
-
   "blind_onConfirm": {
     "message": "Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。"
   },
@@ -529,7 +530,6 @@
   "blind_offError": {
     "message": "Blind openエラー: $1"
   },
-
   "progress_importPrompt": {
     "message": "文献をインポートしてください 📂"
   },
@@ -554,7 +554,6 @@
   "progress_count": {
     "message": "$1 / $2件（残り$3件）"
   },
-
   "reviewer_selfMl": {
     "message": "$1 (自分/ML)"
   },
@@ -582,7 +581,6 @@
   "reviewer_selfLabel": {
     "message": "自分"
   },
-
   "llm_title": {
     "message": "🤖 AIレビュー"
   },
@@ -823,7 +821,6 @@
   "llm_completedConfirm": {
     "message": "ML判定が完了しました。\n\n手動タブで判定結果を確認しますか？\n（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）"
   },
-
   "ml_title": {
     "message": "🎯 MLスクリーニング"
   },
@@ -853,7 +850,11 @@
   },
   "ml_stoppingConsecutiveCount": {
     "message": "連続 exclude $1件",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
   "ml_stoppingRequired": {
     "message": "先に停止基準を設定してください"
@@ -1077,7 +1078,6 @@
   "ml_preFetchFailed": {
     "message": "事前データの取得に失敗しました"
   },
-
   "common_help": {
     "message": "ヘルプ"
   },
@@ -1125,9 +1125,12 @@
   },
   "common_countItems": {
     "message": "$1件",
-    "placeholders": { "1": { "content": "$1" } }
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   },
-
   "error_geminiApiKeyMissing": {
     "message": "Gemini APIキーが設定されていません"
   },
@@ -1157,5 +1160,135 @@
   },
   "error_loginFailedPrefix": {
     "message": "ログインに失敗しました: "
+  },
+  "assignment_filterTitle": {
+    "message": "担当セット"
+  },
+  "assignment_setCalibration": {
+    "message": "全員用キャリブレーション"
+  },
+  "assignment_setGroup": {
+    "message": "グループ$1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_setUnassigned": {
+    "message": "未割当"
+  },
+  "assignment_noAssignedGroup": {
+    "message": "担当セットが割り当てられていません。管理者に確認してください"
+  },
+  "assignment_settingsTitle": {
+    "message": "担当セット"
+  },
+  "assignment_settingsPending": {
+    "message": "まだ担当セットは作成されていません。必要ならウィザードを開いて設定してください。"
+  },
+  "assignment_settingsDismissed": {
+    "message": "担当セットの案内は非表示です。再表示して設定できます。"
+  },
+  "assignment_settingsConfigured": {
+    "message": "全員用キャリブレーション $1件、残りを $2 グループに分割済みです。",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
+  "assignment_settingsShowWizard": {
+    "message": "ウィザードを開く"
+  },
+  "assignment_settingsSaveMap": {
+    "message": "担当者設定を保存"
+  },
+  "assignment_settingsMapSaved": {
+    "message": "担当者設定を保存しました"
+  },
+  "assignment_settingsMapError": {
+    "message": "担当セット設定エラー: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardTitle": {
+    "message": "担当セットの作成"
+  },
+  "assignment_wizardIntro": {
+    "message": "このレビューを複数人で分割するためのセットに分けますか？"
+  },
+  "assignment_wizardSummary": {
+    "message": "現在の文献数: $1件",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardCalibrationLabel": {
+    "message": "全員用キャリブレーション件数"
+  },
+  "assignment_wizardGroupCountLabel": {
+    "message": "分割グループ数"
+  },
+  "assignment_wizardReviewerHelp": {
+    "message": "各グループの担当者メールをカンマ区切りで入力してください。あとから設定画面で変更できます。"
+  },
+  "assignment_wizardReviewerLabel": {
+    "message": "グループ$1の担当者",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_reviewerPlaceholder": {
+    "message": "reviewer1@example.com, reviewer2@example.com"
+  },
+  "assignment_wizardNo": {
+    "message": "今回は分割しない"
+  },
+  "assignment_wizardCreate": {
+    "message": "セットを作成"
+  },
+  "assignment_wizardValidationCalibration": {
+    "message": "キャリブレーション件数は 0 〜 $1 の範囲で入力してください",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardValidationGroupCount": {
+    "message": "グループ数は 1 以上で入力してください"
+  },
+  "assignment_wizardCreateError": {
+    "message": "担当セットの作成に失敗しました: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_dismissed": {
+    "message": "担当セットの案内を非表示にしました"
+  },
+  "assignment_configured": {
+    "message": "$1件を全員用、残りを $2 グループに分割しました",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
   }
 }

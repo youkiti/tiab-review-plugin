@@ -3,11 +3,18 @@
  * getter/setter パターンで副作用を制御し、状態変更の影響範囲を限定
  */
 
-import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision } from '../lib/types';
+import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 
 // ========== Private State Variables ==========
+
+const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
+    status: 'none',
+    calibrationSize: 50,
+    groupCount: 4,
+    reviewerMap: {},
+};
 
 // 基本状態
 let _references: ReferenceWithStatus[] = [];
@@ -26,6 +33,11 @@ let _isAdmin = false;
 // ソースファイルフィルター
 let _sourceFiles: Set<string> = new Set();
 let _selectedSourceFiles: Set<string> = new Set();
+
+// 担当セットフィルター
+let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
+let _assignmentSets: Set<string> = new Set();
+let _selectedAssignmentSets: Set<string> = new Set();
 
 // ユーザー設定
 let _autoNavigateAfterDecision = true;
@@ -108,6 +120,21 @@ export const state = {
     setSelectedSourceFiles(files: Set<string>) { _selectedSourceFiles = files; },
     addSelectedSourceFile(file: string) { _selectedSourceFiles.add(file); },
     removeSelectedSourceFile(file: string) { _selectedSourceFiles.delete(file); },
+
+    // ----- Assignment Filters -----
+    get assignmentConfig() { return _assignmentConfig; },
+    setAssignmentConfig(config: AssignmentConfig) { _assignmentConfig = config; },
+    resetAssignmentConfig() { _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG }; },
+
+    get assignmentSets() { return _assignmentSets; },
+    setAssignmentSets(sets: Set<string>) { _assignmentSets = sets; },
+    clearAssignmentSets() { _assignmentSets.clear(); },
+    addAssignmentSet(setId: string) { _assignmentSets.add(setId); },
+
+    get selectedAssignmentSets() { return _selectedAssignmentSets; },
+    setSelectedAssignmentSets(sets: Set<string>) { _selectedAssignmentSets = sets; },
+    addSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.add(setId); },
+    removeSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.delete(setId); },
 
     // ----- User Settings -----
     get autoNavigateAfterDecision() { return _autoNavigateAfterDecision; },
@@ -194,6 +221,9 @@ export const state = {
         _currentFilter = 'pending';
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
+        _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
+        _assignmentSets.clear();
+        _selectedAssignmentSets.clear();
         _activeTermFilters = [];
         _currentTab = 'screening';
         _llmConfig = { ...DEFAULT_LLM_CONFIG };
@@ -211,6 +241,9 @@ export const state = {
         _currentIndex = 0;
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
+        _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
+        _assignmentSets.clear();
+        _selectedAssignmentSets.clear();
         _activeTermFilters = [];
         _enabledReviewers.clear();
         _availableReviewers.clear();

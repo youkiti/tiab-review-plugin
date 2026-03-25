@@ -21,9 +21,6 @@ function querySelector<T extends HTMLElement>(selector: string): T {
     return el as T;
 }
 
-// 遅延初期化用のプロキシ（DOMContentLoaded後に初期化）
-let _domCache: typeof domElements | null = null;
-
 const domElements = {
     // ========== Config/Project Section ==========
     get configSection() { return getElement<HTMLElement>('config-section'); },
@@ -76,6 +73,10 @@ const domElements = {
     get sourceFiltersSection() { return getElement<HTMLElement>('source-filters-section'); },
     get activeTermFiltersDiv() { return getElement<HTMLElement>('active-term-filters'); },
 
+    // ========== Assignment Filters ==========
+    get assignmentFiltersSection() { return getElement<HTMLElement>('assignment-filters-section'); },
+    get assignmentSetListDiv() { return getElement<HTMLElement>('assignment-set-list'); },
+
     // ========== Import/Export ==========
     get risFileInput() { return getElement<HTMLInputElement>('ris-file'); },
     get importBtn() { return getElement<HTMLButtonElement>('import-btn'); },
@@ -122,6 +123,11 @@ const domElements = {
     get showRecordCountCheckbox() { return getElement<HTMLInputElement>('show-record-count-checkbox'); },
     get termFilterAndCheckbox() { return getElement<HTMLInputElement>('term-filter-and-checkbox'); },
     get treatMlAsManualCheckbox() { return getElement<HTMLInputElement>('treat-ml-as-manual-checkbox'); },
+    get assignmentSettingsItem() { return getElement<HTMLElement>('assignment-settings-item'); },
+    get assignmentSettingsStatus() { return getElement<HTMLElement>('assignment-settings-status'); },
+    get assignmentResetBtn() { return getElement<HTMLButtonElement>('assignment-reset-btn'); },
+    get assignmentReviewerMap() { return getElement<HTMLElement>('assignment-reviewer-map'); },
+    get assignmentSaveBtn() { return getElement<HTMLButtonElement>('assignment-save-btn'); },
 
     // ========== LLM Section ==========
     get llmSection() { return getElement<HTMLElement>('llm-section'); },

@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-03-18</span>
+                <span class="build-version">Build: 2026-03-26</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -240,6 +240,12 @@
                 <textarea id="note" rows="2" data-i18n-placeholder="screening_notePlaceholder"></textarea>
             </div>
 
+            <!-- 担当セットフィルター (管理者のみ) -->
+            <div id="assignment-filters-section" class="source-filters-section hidden">
+                <h4 data-i18n="assignment_filterTitle"></h4>
+                <div id="assignment-set-list" class="source-file-list"></div>
+            </div>
+
             <!-- インポート元フィルター (最下部) -->
             <div id="source-filters-section" class="source-filters-section">
                 <h4 data-i18n="filter_sourceFiles"></h4>
@@ -289,6 +295,17 @@
                     </label>
                     <p class="setting-description" data-i18n="settings_treatMlAsManualDesc">
                     </p>
+                </div>
+                            <div id="assignment-settings-item" class="setting-item hidden">
+                    <div class="setting-header-row">
+                        <div>
+                            <div class="setting-title" data-i18n="assignment_settingsTitle"></div>
+                            <p id="assignment-settings-status" class="setting-description"></p>
+                        </div>
+                        <button id="assignment-reset-btn" class="btn btn-secondary btn-small hidden"></button>
+                    </div>
+                    <div id="assignment-reviewer-map" class="assignment-reviewer-map hidden"></div>
+                    <button id="assignment-save-btn" class="btn btn-primary btn-small hidden" data-i18n="assignment_settingsSaveMap"></button>
                 </div>
             </div>
         </section>
@@ -607,3 +624,5 @@
 </body>
 
 </html>
+
+

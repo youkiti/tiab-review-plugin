@@ -5,21 +5,22 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
-import { getFilteredReferences, renderSourceFilters } from './screening/filters';
-import { getSpreadsheetInfo, addReferences, getReferencesWithStatus } from '../../lib/sheets-api';
+import { getFilteredReferences } from './screening/filters';
+import { getSpreadsheetInfo, addReferences, getReferences } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
-// Store互換レイヤー（Phase 5）
-import { setReferences as syncSetReferences } from '../store/compat';
 import { parseImportFile } from '../../lib/file-dispatcher';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
+let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setImportExportDependencies(deps: {
     renderCurrentReference: () => void;
+    loadDataAndShowScreening: () => Promise<void>;
 }) {
     _renderCurrentReference = deps.renderCurrentReference;
+    _loadDataAndShowScreening = deps.loadDataAndShowScreening;
 }
 
 /**
@@ -31,8 +32,16 @@ export async function handleRISImport(e: Event) {
     if (!file) return;
 
     try {
-        // 同じ名前のファイルが既に存在するかチェック
-        if (state.sourceFiles.has(file.name)) {
+        showLoading(true);
+
+        const allReferences = await getReferences(state.spreadsheetId);
+        const existingSourceFiles = new Set(
+            allReferences
+                .map(ref => ref.source_file)
+                .filter((sourceFile): sourceFile is string => Boolean(sourceFile))
+        );
+
+        if (existingSourceFiles.has(file.name)) {
             const msg = t('import_duplicate', file.name);
             showToast(msg);
             dom.importStatus.textContent = t('import_duplicateStatus');
@@ -46,7 +55,6 @@ export async function handleRISImport(e: Event) {
             return;
         }
 
-        showLoading(true);
         dom.importStatus.textContent = t('import_parsing');
         // const text = await file.text(); // parseRISFile reads it
         const newReferences = await parseImportFile(file);
@@ -63,8 +71,12 @@ export async function handleRISImport(e: Event) {
         });
 
         // 重複チェック
-        const existingKeys = new Set(state.references.map(r => r.dedupe_key).filter(k => !!k));
-        const uniqueReferences = newReferences.filter(ref => !existingKeys.has(ref.dedupe_key));
+        const existingKeys = new Set(
+            allReferences
+                .map(ref => ref.dedupe_key)
+                .filter((key): key is string => Boolean(key))
+        );
+        const uniqueReferences = newReferences.filter(ref => !ref.dedupe_key || !existingKeys.has(ref.dedupe_key));
         const duplicateCount = newReferences.length - uniqueReferences.length;
 
         if (duplicateCount > 0) {
@@ -94,15 +106,11 @@ export async function handleRISImport(e: Event) {
         dom.importStatus.textContent = t('import_updating');
         state.addSourceFile(file.name);
         state.addSelectedSourceFile(file.name); // 新規ファイルを選択状態にする
-
-        // データを再読み込み（現在のモードに合わせて）
-        const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
-        // Store経由で両方に同期
-        syncSetReferences(refs);
-
-        // UI更新
-        renderSourceFilters();
-        if (_renderCurrentReference) _renderCurrentReference();
+        if (_loadDataAndShowScreening) {
+            await _loadDataAndShowScreening();
+        } else if (_renderCurrentReference) {
+            _renderCurrentReference();
+        }
 
         const completionMsg = t('import_complete', [String(uniqueReferences.length), String(duplicateCount)]);
         dom.importStatus.textContent = completionMsg;
@@ -319,3 +327,6 @@ function downloadBlob(content: string, filename: string, type: string) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+
+

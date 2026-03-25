@@ -7,6 +7,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
+import { handleAssignmentResetClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -31,7 +32,7 @@ export function setSettingsDependencies(deps: {
  * 設定画面を表示
  */
 export function showSettings() {
-    // Store経由でview変更（renderLayoutで反映される）
+    renderAssignmentManager();
     changeView('settings');
 }
 
@@ -39,8 +40,6 @@ export function showSettings() {
  * 設定画面を閉じる
  */
 export function hideSettings() {
-    // Store経由でview変更（renderLayoutで反映される）
-    // スクリーニングビューに戻る（タブ状態は保持される）
     if (state.spreadsheetId) {
         changeView('screening');
     } else {
@@ -52,7 +51,6 @@ export function hideSettings() {
  * 自動遷移設定の変更を処理
  */
 export async function handleAutoNavigateChange() {
-    // Store経由で両方に同期
     updateSettings('autoNavigateAfterDecision', dom.autoNavigateCheckbox.checked);
     console.log('[handleAutoNavigateChange] 設定変更:', state.autoNavigateAfterDecision);
     await saveUserSettings();
@@ -86,23 +84,16 @@ export async function loadUserSettings() {
     const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd', 'treatMlAsManual']);
     console.log('[loadUserSettings] 読み込み:', result);
 
-    // デフォルトはtrue（自動遷移する）- Store経由で両方に同期
     updateSettings('autoNavigateAfterDecision', result.autoNavigateAfterDecision ?? true);
-
-    // デフォルトはtrue（タイトル下に表示）- Store経由で両方に同期
     updateSettings('showRecordCountBelow', result.showRecordCountBelow ?? true);
-
-    // デフォルトはtrue（AND検索）- Store経由で両方に同期
     updateSettings('termFilterUseAnd', result.termFilterUseAnd ?? true);
-
-    // デフォルトはtrue（ML判定を手動判定と同一視）- Store経由で両方に同期
     updateSettings('treatMlAsManual', result.treatMlAsManual ?? true);
 
-    // チェックボックスの状態を更新
     dom.autoNavigateCheckbox.checked = state.autoNavigateAfterDecision;
     dom.showRecordCountCheckbox.checked = state.showRecordCountBelow;
     dom.termFilterAndCheckbox.checked = state.termFilterUseAnd;
     dom.treatMlAsManualCheckbox.checked = state.treatMlAsManual;
+    renderAssignmentManager();
     console.log('[loadUserSettings] 設定完了:', {
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
@@ -115,12 +106,10 @@ export async function loadUserSettings() {
  * レコード件数表示設定の変更を処理
  */
 export async function handleShowRecordCountChange() {
-    // Store経由で両方に同期
     updateSettings('showRecordCountBelow', dom.showRecordCountCheckbox.checked);
     console.log('[handleShowRecordCountChange] 設定変更:', state.showRecordCountBelow);
     await saveUserSettings();
 
-    // 表示を即時更新
     if (state.spreadsheetId && _renderCurrentReference) {
         _renderCurrentReference();
     }
@@ -134,12 +123,10 @@ export async function handleShowRecordCountChange() {
  * ターム検索AND/OR設定の変更を処理
  */
 export async function handleTermFilterAndChange() {
-    // Store経由で両方に同期
     updateSettings('termFilterUseAnd', dom.termFilterAndCheckbox.checked);
     console.log('[handleTermFilterAndChange] 設定変更:', state.termFilterUseAnd);
     await saveUserSettings();
 
-    // フィルターが適用中なら即時反映（Store経由でインデックスリセット）
     if (state.spreadsheetId && state.activeTermFilters.length > 0 && _renderCurrentReference) {
         syncSetCurrentIndex(0);
         _renderCurrentReference();
@@ -154,18 +141,15 @@ export async function handleTermFilterAndChange() {
  * ML判定と手動判定の同一視設定の変更を処理
  */
 export async function handleTreatMlAsManualChange() {
-    // Store経由で両方に同期
     updateSettings('treatMlAsManual', dom.treatMlAsManualCheckbox.checked);
     console.log('[handleTreatMlAsManualChange] 設定変更:', state.treatMlAsManual);
     await saveUserSettings();
 
-    // 表示を即時更新（Store経由でインデックスリセット）
     if (state.spreadsheetId && _renderCurrentReference) {
         syncSetCurrentIndex(0);
         _renderCurrentReference();
     }
 
-    // レビュアーフィルターも更新
     if (_renderReviewerFilter) {
         _renderReviewerFilter();
     }
@@ -173,4 +157,12 @@ export async function handleTreatMlAsManualChange() {
     showToast(state.treatMlAsManual
         ? t('settings_treatMlAsManualOn')
         : t('settings_treatMlAsManualOff'));
+}
+
+export async function handleAssignmentReset() {
+    await handleAssignmentResetClick();
+}
+
+export async function handleAssignmentSave() {
+    await handleAssignmentSaveMap();
 }
