@@ -20,6 +20,9 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 let _references: ReferenceWithStatus[] = [];
 let _currentIndex = 0;
 let _currentFilter: DecisionStatus | 'all' | 'fulltext_candidates' = 'pending';
+let _reviewHistoryRefIds: string[] = [];
+let _reviewHistoryCursor = -1;
+let _reviewHistoryReturnRefId: string | null = null;
 
 
 let _spreadsheetId = '';
@@ -76,6 +79,41 @@ export const state = {
 
     get currentFilter() { return _currentFilter; },
     setCurrentFilter(filter: DecisionStatus | 'all' | 'fulltext_candidates') { _currentFilter = filter; },
+
+    // ----- Review History -----
+    get reviewHistoryRefIds() { return _reviewHistoryRefIds; },
+    setReviewHistoryRefIds(refIds: string[]) {
+        _reviewHistoryRefIds = Array.from(new Set(refIds.filter(Boolean))).slice(0, 5);
+    },
+    pushReviewHistoryRefId(refId: string) {
+        if (!refId) return;
+        _reviewHistoryRefIds = [refId, ..._reviewHistoryRefIds.filter(id => id !== refId)].slice(0, 5);
+    },
+
+    get reviewHistoryCursor() { return _reviewHistoryCursor; },
+    setReviewHistoryCursor(cursor: number) { _reviewHistoryCursor = cursor; },
+
+    get reviewHistoryReturnRefId() { return _reviewHistoryReturnRefId; },
+    setReviewHistoryReturnRefId(refId: string | null) { _reviewHistoryReturnRefId = refId; },
+
+    isReviewHistoryActive() {
+        return _reviewHistoryCursor >= 0 && _reviewHistoryCursor < _reviewHistoryRefIds.length;
+    },
+    getCurrentReviewHistoryRefId() {
+        if (_reviewHistoryCursor < 0 || _reviewHistoryCursor >= _reviewHistoryRefIds.length) {
+            return null;
+        }
+        return _reviewHistoryRefIds[_reviewHistoryCursor];
+    },
+    resetReviewHistoryNavigation() {
+        _reviewHistoryCursor = -1;
+        _reviewHistoryReturnRefId = null;
+    },
+    clearReviewHistory() {
+        _reviewHistoryRefIds = [];
+        _reviewHistoryCursor = -1;
+        _reviewHistoryReturnRefId = null;
+    },
 
     // ----- Spreadsheet/User -----
     get spreadsheetId() { return _spreadsheetId; },
@@ -219,6 +257,9 @@ export const state = {
         _isAdmin = false;
         _currentIndex = 0;
         _currentFilter = 'pending';
+        _reviewHistoryRefIds = [];
+        _reviewHistoryCursor = -1;
+        _reviewHistoryReturnRefId = null;
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
@@ -239,6 +280,9 @@ export const state = {
         _spreadsheetId = '';
         _references = [];
         _currentIndex = 0;
+        _reviewHistoryRefIds = [];
+        _reviewHistoryCursor = -1;
+        _reviewHistoryReturnRefId = null;
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };

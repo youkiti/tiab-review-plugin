@@ -10,6 +10,56 @@
     margin-bottom: 16px;
 }
 
+.reference-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.reference-status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #5f6368;
+}
+
+.reference-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+}
+
+.reference-status-chip.pending {
+    background: #f1f3f4;
+    color: #5f6368;
+    border-color: #dadce0;
+}
+
+.reference-status-chip.include {
+    background: #e6f4ea;
+    color: #137333;
+    border-color: #34a853;
+}
+
+.reference-status-chip.maybe {
+    background: #fef7e0;
+    color: #b06000;
+    border-color: #fbbc04;
+}
+
+.reference-status-chip.exclude {
+    background: #fce8e6;
+    color: #c5221f;
+    border-color: #ea4335;
+}
+
 .ref-title {
     font-size: 16px;
     font-weight: 600;

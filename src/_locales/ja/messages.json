@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "TiAb Review"
+    "message": "TiAb Review Plugin"
   },
   "extDescription": {
     "message": "タイトル・抄録スクリーニング支援ツール"
@@ -190,8 +190,14 @@
   "screening_notePrefix": {
     "message": "メモ: $1"
   },
+  "screening_currentDecision": {
+    "message": "現在の判定"
+  },
   "screening_offlineQueued": {
     "message": "オフラインのため判定をキューに保存しました"
+  },
+  "screening_historyPosition": {
+    "message": "履歴 $1 / $2"
   },
   "nav_prev": {
     "message": "前へ (←)"
@@ -264,6 +270,9 @@
   },
   "filter_resultCount": {
     "message": "$1件中 $2件目"
+  },
+  "filter_historyResultCount": {
+    "message": "履歴 $1件中 $2件目"
   },
   "filter_aiHighlight": {
     "message": "💡 AIの根拠をハイライト"
@@ -1130,6 +1139,21 @@
         "content": "$1"
       }
     }
+  },
+  "decision_pendingChip": {
+    "message": "未判定"
+  },
+  "decision_includeChip": {
+    "message": "✓ Include"
+  },
+  "decision_maybeChip": {
+    "message": "? Maybe"
+  },
+  "decision_excludeChip": {
+    "message": "✕ Exclude"
+  },
+  "decision_conflictChip": {
+    "message": "要確認"
   },
   "error_geminiApiKeyMissing": {
     "message": "Gemini APIキーが設定されていません"
