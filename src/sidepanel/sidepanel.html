@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-03-26</span>
+                <span class="build-version">Build: 2026-03-29</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -158,6 +158,11 @@
 
                 <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
                 <div id="record-count-above" class="record-count-display hidden"></div>
+
+                <div id="ref-decision-status-row" class="reference-status-row hidden">
+                    <span class="reference-status-label" data-i18n="screening_currentDecision"></span>
+                    <span id="ref-decision-chip" class="reference-status-chip pending"></span>
+                </div>
 
                 <h3 id="ref-title" class="ref-title" data-i18n="screening_title"></h3>
                 <div class="ref-meta">
@@ -542,6 +547,10 @@
 
             <!-- 現在の文献情報 -->
             <article id="ml-reference-card" class="reference-card">
+                <div id="ml-ref-decision-status-row" class="reference-status-row hidden">
+                    <span class="reference-status-label" data-i18n="screening_currentDecision"></span>
+                    <span id="ml-ref-decision-chip" class="reference-status-chip pending"></span>
+                </div>
                 <h3 id="ml-ref-title" class="ref-title" data-i18n="ml_titlePlaceholder"></h3>
                 <div class="ref-meta">
                     <span id="ml-ref-authors">Authors...</span>

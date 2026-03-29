@@ -53,6 +53,8 @@ const domElements = {
     get refAbstract() { return getElement<HTMLElement>('ref-abstract'); },
     get refDoi() { return getElement<HTMLAnchorElement>('ref-doi'); },
     get refPmid() { return getElement<HTMLAnchorElement>('ref-pmid'); },
+    get refDecisionStatusRow() { return getElement<HTMLElement>('ref-decision-status-row'); },
+    get refDecisionChip() { return getElement<HTMLElement>('ref-decision-chip'); },
 
     // Decision buttons
     get btnInclude() { return getElement<HTMLButtonElement>('btn-include'); },
@@ -153,6 +155,8 @@ const domElements = {
     get mlBtnPrev() { return getElement<HTMLButtonElement>('ml-btn-prev'); },
     get mlBtnNext() { return getElement<HTMLButtonElement>('ml-btn-next'); },
     get mlNavPosition() { return getElement<HTMLElement>('ml-nav-position'); },
+    get mlRefDecisionStatusRow() { return getElement<HTMLElement>('ml-ref-decision-status-row'); },
+    get mlRefDecisionChip() { return getElement<HTMLElement>('ml-ref-decision-chip'); },
 
 
     // LLM Criteria

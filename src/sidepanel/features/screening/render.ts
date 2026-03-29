@@ -8,11 +8,11 @@ import { state } from '../../state';
 import { escapeHtml, escapeRegex } from '../../utils/text';
 import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
-import { showStatus } from '../../ui/feedback';
 import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
 import { detectConflictWithSettings } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { t } from '../../../lib/i18n';
+import type { DecisionStatus } from '../../../lib/types';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -21,6 +21,35 @@ export function setRenderDependencies(deps: {
     navigate: (dir: number) => void;
 }) {
     _navigate = deps.navigate;
+}
+
+function getCurrentHistoryReference(): ReferenceWithStatus | undefined {
+    const historyRefId = state.getCurrentReviewHistoryRefId();
+    if (!historyRefId) return undefined;
+    return state.references.find((ref) => ref.ref_id === historyRefId);
+}
+
+export function getDecisionChipContent(status: DecisionStatus | 'pending') {
+    switch (status) {
+        case 'include':
+            return { className: 'include', text: t('decision_includeChip') };
+        case 'exclude':
+            return { className: 'exclude', text: t('decision_excludeChip') };
+        case 'maybe':
+            return { className: 'maybe', text: t('decision_maybeChip') };
+        case 'conflict':
+            return { className: 'maybe', text: t('decision_conflictChip') };
+        case 'pending':
+        default:
+            return { className: 'pending', text: t('decision_pendingChip') };
+    }
+}
+
+function renderDecisionChip(chip: HTMLElement, statusRow: HTMLElement, status: DecisionStatus | 'pending') {
+    const content = getDecisionChipContent(status);
+    chip.className = `reference-status-chip ${content.className}`;
+    chip.textContent = content.text;
+    statusRow.classList.remove('hidden');
 }
 
 /**
@@ -82,7 +111,8 @@ export function highlightText(text: string, searchKeyword: string | string[], ev
  */
 export function renderCurrentReference() {
     const filtered = getFilteredReferences();
-    const ref = filtered[state.currentIndex];
+    const historyRef = getCurrentHistoryReference();
+    const ref = historyRef || filtered[state.currentIndex];
 
     // 検索結果件数の更新
     const searchTerm = dom.searchInput.value.trim();
@@ -110,6 +140,7 @@ export function renderCurrentReference() {
             : t('screening_noFilterMatch');
         dom.refDoi.classList.add('hidden');
         dom.refPmid.classList.add('hidden');
+        dom.refDecisionStatusRow.classList.add('hidden');
         dom.navPosition.textContent = '0 / 0';
         dom.progressText.textContent = `0 / ${state.references.length}`;
         dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
@@ -121,7 +152,7 @@ export function renderCurrentReference() {
         return;
     }
 
-    renderReferenceDetails(ref, filtered.length);
+    renderReferenceDetails(ref, filtered.length, Boolean(historyRef));
 }
 
 /**
@@ -129,13 +160,13 @@ export function renderCurrentReference() {
  */
 export function renderSpecificReference(ref: ReferenceWithStatus) {
     const filtered = getFilteredReferences();
-    renderReferenceDetails(ref, filtered.length);
+    renderReferenceDetails(ref, filtered.length, false);
 }
 
 /**
  * 特定の文献を描画（内部関数）
  */
-function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number) {
+function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number, isHistoryView: boolean) {
     // コンフリクト表示（treatMlAsManual設定を考慮して動的に計算）
     const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
         ? detectConflictWithSettings(ref.allDecisions, state.treatMlAsManual)
@@ -201,9 +232,19 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number)
         dom.refPmid.classList.add('hidden');
     }
 
+    const myStatus = (ref.myDecision?.decision || 'pending') as DecisionStatus | 'pending';
+    renderDecisionChip(dom.refDecisionChip, dom.refDecisionStatusRow, myStatus);
+
     // ナビゲーション更新
-    dom.navPosition.textContent = `${state.currentIndex + 1} / ${totalFiltered}`;
-    dom.filterResultCount.textContent = t('filter_resultCount', [String(totalFiltered), String(state.currentIndex + 1)]);
+    if (isHistoryView) {
+        const historyPosition = state.reviewHistoryCursor + 1;
+        const historyTotal = state.reviewHistoryRefIds.length;
+        dom.navPosition.textContent = t('screening_historyPosition', [String(historyPosition), String(historyTotal)]);
+        dom.filterResultCount.textContent = t('filter_historyResultCount', [String(historyTotal), String(historyPosition)]);
+    } else {
+        dom.navPosition.textContent = `${state.currentIndex + 1} / ${totalFiltered}`;
+        dom.filterResultCount.textContent = t('filter_resultCount', [String(totalFiltered), String(state.currentIndex + 1)]);
+    }
 
     // 進捗表示
     renderProgress();

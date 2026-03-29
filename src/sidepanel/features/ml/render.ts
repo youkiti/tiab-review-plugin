@@ -3,7 +3,7 @@ import { dom } from '../../dom';
 
 import { getStoppingProgressPercent } from '../../../lib/ml/stopping-rules';
 import { isCmhStoppingRule } from '../../../lib/ml/types';
-import { highlightText } from '../screening/render';
+import { highlightText, getDecisionChipContent } from '../screening/render';
 import { showToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 import { t } from '../../../lib/i18n';
@@ -106,6 +106,7 @@ function renderMlReference() {
         elements.ref.authors()!.textContent = '';
         elements.ref.year()!.textContent = '';
         elements.ref.abstract()!.innerHTML = '';
+        dom.mlRefDecisionStatusRow.classList.add('hidden');
         return;
     }
 
@@ -119,6 +120,11 @@ function renderMlReference() {
     elements.ref.authors()!.textContent = ref.authors || 'Unknown Authors';
     elements.ref.year()!.textContent = ref.year?.toString() || '';
     elements.ref.abstract()!.innerHTML = highlightText(ref.abstract || '(No Abstract)', highlightTerms);
+
+    const decisionChip = getDecisionChipContent(ref.myDecision?.decision || 'pending');
+    dom.mlRefDecisionChip.className = `reference-status-chip ${decisionChip.className}`;
+    dom.mlRefDecisionChip.textContent = decisionChip.text;
+    dom.mlRefDecisionStatusRow.classList.remove('hidden');
 
     // メモ欄を復元
     dom.mlNoteInput.value = ref.myDecision?.note || '';

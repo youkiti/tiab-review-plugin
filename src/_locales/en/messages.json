@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "TiAb Review"
+    "message": "TiAb Review Plugin"
   },
   "extDescription": {
     "message": "Title & Abstract Screening Support Tool"
@@ -190,8 +190,14 @@
   "screening_notePrefix": {
     "message": "Note: $1"
   },
+  "screening_currentDecision": {
+    "message": "Current decision"
+  },
   "screening_offlineQueued": {
     "message": "Offline: decision saved to queue"
+  },
+  "screening_historyPosition": {
+    "message": "History $1 / $2"
   },
   "nav_prev": {
     "message": "Prev (←)"
@@ -264,6 +270,9 @@
   },
   "filter_resultCount": {
     "message": "$2 of $1"
+  },
+  "filter_historyResultCount": {
+    "message": "$2 of $1 history"
   },
   "filter_aiHighlight": {
     "message": "💡 Highlight AI evidence"
@@ -1130,6 +1139,21 @@
         "content": "$1"
       }
     }
+  },
+  "decision_pendingChip": {
+    "message": "Pending"
+  },
+  "decision_includeChip": {
+    "message": "✓ Include"
+  },
+  "decision_maybeChip": {
+    "message": "? Maybe"
+  },
+  "decision_excludeChip": {
+    "message": "✕ Exclude"
+  },
+  "decision_conflictChip": {
+    "message": "Needs review"
   },
   "error_geminiApiKeyMissing": {
     "message": "Gemini API key is not set"
