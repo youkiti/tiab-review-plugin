@@ -255,6 +255,7 @@ export async function loadDataAndShowScreening() {
 
     try {
         showLoading(true);
+        state.clearReviewHistory();
 
         // 管理者権限とキーオープン状態を確認
         const [adminStatus, keyOpenedStatus, keywords, assignmentConfig] = await Promise.all([

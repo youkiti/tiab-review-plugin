@@ -337,6 +337,7 @@ export function renderSourceFilters() {
         checkbox.id = `source-${file}`;
         checkbox.checked = state.selectedSourceFiles.has(file);
         checkbox.addEventListener('change', () => {
+            state.resetReviewHistoryNavigation();
             // Store経由で両方に同期
             if (checkbox.checked) {
                 syncAddSelectedSourceFile(file);
@@ -401,6 +402,7 @@ export function renderSourceFilters() {
  * ステータスフィルターの変更を処理
  */
 export function handleStatusFilterChange() {
+    state.resetReviewHistoryNavigation();
     // Store経由で両方に同期（currentFilterとcurrentIndex）
     syncSetCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
     // 注意: syncSetCurrentFilterはcurrentIndexを0にリセットするので、別途呼び出し不要
@@ -411,6 +413,7 @@ export function handleStatusFilterChange() {
  * 検索入力の変更を処理
  */
 export function handleSearchInput() {
+    state.resetReviewHistoryNavigation();
     // Store経由でインデックスをリセット
     syncSetCurrentIndex(0);
     if (_renderCurrentReference) _renderCurrentReference();
@@ -426,6 +429,7 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
     );
     if (exists) return;
 
+    state.resetReviewHistoryNavigation();
     // Store経由で両方に同期（addTermFilterはcurrentIndexを0にリセット）
     syncAddTermFilter(term, type);
     renderActiveTermFilters();
@@ -436,6 +440,7 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
  * タームフィルターを削除
  */
 export function removeTermFilter(term: string, type: string) {
+    state.resetReviewHistoryNavigation();
     // Store経由で両方に同期（removeTermFilterはcurrentIndexを0にリセット）
     syncRemoveTermFilter(term, type);
     renderActiveTermFilters();

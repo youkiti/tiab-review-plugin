@@ -6,7 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getFilteredReferences } from './filters';
-import type { Decision } from '../../../lib/types';
+import type { Decision, ReferenceWithStatus } from '../../../lib/types';
 import {
     saveDecision as apiSaveDecision,
     setKeyOpenedStatus,
@@ -64,43 +64,138 @@ async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolea
     }
 }
 
+function getReferenceById(refId: string | null | undefined): ReferenceWithStatus | undefined {
+    if (!refId) return undefined;
+    return state.references.find((ref) => ref.ref_id === refId);
+}
+
+function getDisplayedReference(filtered = getFilteredReferences()): ReferenceWithStatus | undefined {
+    const historyRefId = state.getCurrentReviewHistoryRefId();
+    const historyRef = getReferenceById(historyRefId);
+    if (historyRef) {
+        return historyRef;
+    }
+    return filtered[state.currentIndex];
+}
+
+async function persistDisplayedNote(ref: ReferenceWithStatus | undefined) {
+    if (!ref) return;
+
+    const currentNote = dom.noteInput.value || undefined;
+    const savedNote = ref.myDecision?.note;
+
+    if (currentNote === savedNote) return;
+
+    if (ref.myDecision) {
+        // 既存の判定がある場合はメモを更新する
+        ref.myDecision.note = currentNote;
+        ref.myDecision.decided_at = new Date().toISOString();
+        saveDecisionWithQueue(ref.myDecision, false);
+        return;
+    }
+
+    if (!currentNote) return;
+
+    const newDecision: Decision = {
+        decision_id: crypto.randomUUID(),
+        ref_id: ref.ref_id,
+        reviewer_id: state.userEmail,
+        decision: 'pending',
+        note: currentNote,
+        decided_at: new Date().toISOString(),
+        client_version: getClientVersion('-human'),
+    };
+    ref.myDecision = newDecision;
+    saveDecisionWithQueue(newDecision, false);
+}
+
+function syncCurrentIndexToRefId(refId: string | null, filtered = getFilteredReferences()): boolean {
+    if (filtered.length === 0) {
+        syncSetCurrentIndex(0);
+        return false;
+    }
+
+    if (refId) {
+        const nextIndex = filtered.findIndex((ref) => ref.ref_id === refId);
+        if (nextIndex !== -1) {
+            syncSetCurrentIndex(nextIndex);
+            return true;
+        }
+    }
+
+    const boundedIndex = Math.max(0, Math.min(state.currentIndex, filtered.length - 1));
+    syncSetCurrentIndex(boundedIndex);
+    return true;
+}
+
+function finishReviewHistoryNavigation(filtered = getFilteredReferences()) {
+    const returnRefId = state.reviewHistoryReturnRefId;
+    state.resetReviewHistoryNavigation();
+    syncCurrentIndexToRefId(returnRefId, filtered);
+}
+
+function canUseReviewHistory() {
+    return state.currentFilter === 'pending' && state.reviewHistoryRefIds.length > 0;
+}
+
+function renderCurrentReference() {
+    if (_renderCurrentReference) {
+        _renderCurrentReference();
+    }
+}
+
+function handleReviewHistoryNavigation(direction: number, filtered = getFilteredReferences()): boolean {
+    if (!canUseReviewHistory()) {
+        if (state.isReviewHistoryActive()) {
+            state.resetReviewHistoryNavigation();
+        }
+        return false;
+    }
+
+    if (state.isReviewHistoryActive()) {
+        if (direction < 0) {
+            const nextCursor = Math.min(state.reviewHistoryCursor + 1, state.reviewHistoryRefIds.length - 1);
+            state.setReviewHistoryCursor(nextCursor);
+            renderCurrentReference();
+            return true;
+        }
+
+        if (direction > 0) {
+            if (state.reviewHistoryCursor > 0) {
+                state.setReviewHistoryCursor(state.reviewHistoryCursor - 1);
+            } else {
+                finishReviewHistoryNavigation(filtered);
+            }
+            renderCurrentReference();
+            return true;
+        }
+
+        return true;
+    }
+
+    if (direction < 0) {
+        const returnRefId = filtered[state.currentIndex]?.ref_id ?? null;
+        state.setReviewHistoryReturnRefId(returnRefId);
+        state.setReviewHistoryCursor(0);
+        renderCurrentReference();
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * ナビゲーション処理
  */
 export async function navigate(direction: number) {
     const filtered = getFilteredReferences();
-    const currentRef = filtered[state.currentIndex];
+    const currentRef = getDisplayedReference(filtered);
 
     // 遷移前に現在のメモを保存（変更されている場合のみ）
-    if (currentRef) {
-        const currentNote = dom.noteInput.value || undefined;
-        const savedNote = currentRef.myDecision?.note;
+    await persistDisplayedNote(currentRef);
 
-        if (currentNote !== savedNote) {
-            if (currentRef.myDecision) {
-                // 既存の判定がある場合はメモを更新
-                currentRef.myDecision.note = currentNote;
-                currentRef.myDecision.decided_at = new Date().toISOString();
-
-                // バックグラウンドで保存
-                saveDecisionWithQueue(currentRef.myDecision, false);
-            } else if (currentNote) {
-                // 未判定だがメモが入力されている場合は新しいDecisionを作成
-                const newDecision: Decision = {
-                    decision_id: crypto.randomUUID(),
-                    ref_id: currentRef.ref_id,
-                    reviewer_id: state.userEmail,
-                    decision: 'pending',  // 未判定時のメモはpendingとして保存
-                    note: currentNote,
-                    decided_at: new Date().toISOString(),
-                    client_version: getClientVersion('-human'),
-                };
-                currentRef.myDecision = newDecision;
-
-                // バックグラウンドで保存
-                saveDecisionWithQueue(newDecision, false);
-            }
-        }
+    if (handleReviewHistoryNavigation(direction, filtered)) {
+        return;
     }
 
     let newIndex = state.currentIndex + direction;
@@ -115,9 +210,7 @@ export async function navigate(direction: number) {
     if (filtered.length > 0) {
         // Store経由で両方に同期
         syncSetCurrentIndex(newIndex);
-        if (_renderCurrentReference) {
-            _renderCurrentReference();
-        }
+        renderCurrentReference();
     }
 }
 
@@ -126,7 +219,9 @@ export async function navigate(direction: number) {
  */
 export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
     const filtered = getFilteredReferences();
-    const ref = filtered[state.currentIndex];
+    const ref = getDisplayedReference(filtered);
+    const wasReviewHistoryActive = state.isReviewHistoryActive();
+    const historyReturnRefId = state.reviewHistoryReturnRefId;
 
     if (!ref) return;
 
@@ -170,11 +265,24 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         ref.status = decision;
     }
 
+    if (state.currentFilter === 'pending' || wasReviewHistoryActive) {
+        state.pushReviewHistoryRefId(ref.ref_id);
+    } else {
+        state.resetReviewHistoryNavigation();
+    }
+
     // 次の文献へ（自動遷移設定が有効な場合のみ）
-    if (state.autoNavigateAfterDecision) {
-        // 自動遷移オン: UIを更新して次へ
-        if (_renderCurrentReference) _renderCurrentReference();
-        navigate(1);
+    if (wasReviewHistoryActive) {
+        state.resetReviewHistoryNavigation();
+        syncCurrentIndexToRefId(historyReturnRefId, getFilteredReferences());
+        renderCurrentReference();
+    } else if (state.autoNavigateAfterDecision) {
+        if (state.currentFilter === 'pending') {
+            syncCurrentIndexToRefId(null, getFilteredReferences());
+            renderCurrentReference();
+        } else {
+            navigate(1);
+        }
     } else {
         // 自動遷移オフ: 同じ文献に留まる
         // フィルター結果ではなく、判定した文献を直接表示
@@ -203,6 +311,7 @@ export async function handleKeyToggle() {
         try {
             showLoading(true);
             await setKeyOpenedStatus(state.spreadsheetId, false);
+            state.clearReviewHistory();
             // Store経由で両方に同期
             syncSetIsKeyOpened(false);
 
@@ -243,6 +352,7 @@ export async function handleKeyToggle() {
         try {
             showLoading(true);
             await setKeyOpenedStatus(state.spreadsheetId, true);
+            state.clearReviewHistory();
             // Store経由で両方に同期
             syncSetIsKeyOpened(true);
 
