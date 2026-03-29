@@ -2,7 +2,7 @@
  * 停止基準（Stopping Rules）のロジック
  * 
  * - 旧方式: NConsecutiveIrrelevant（連続除外）
- * - 新方式: CMH（Conservative Hypergeometric Method）
+ * - 新方式: CMH（Callaghan & Müller-Hansen）
  */
 
 import { StoppingRule, CmhStoppingRule, ConsecutiveStoppingRule, isCmhStoppingRule } from './types';

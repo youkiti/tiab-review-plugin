@@ -1,5 +1,5 @@
 /**
- * CMH（Conservative Hypergeometric Method）停止基準の計算ロジック
+ * CMH（Callaghan & Müller-Hansen）停止基準の計算ロジック
  * 
  * 参照実装: vendor/rapid-screening/analysis/rapid_review.py L263-275
  * 論文: Callaghan & Müller-Hansen (2020) "Statistical stopping criteria for automated screening"
