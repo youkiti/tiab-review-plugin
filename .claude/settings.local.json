@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Grep",
+      "Bash(ls -la \"c:\\\\Users\\\\youki\\\\codes\\\\tiab-review-plugin\\\\vendor\\\\rapid-screening\\\\manuscript\"\" 2>/dev/null || echo \"Directory may not exist \")",
+      "Bash(git submodule:*)",
+      "Bash(xargs ls:*)",
+      "Bash(xargs grep:*)",
+      "Read(//c/Users/youki/**)"
+    ]
+  }
+}
