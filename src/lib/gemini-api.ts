@@ -1,6 +1,6 @@
 // gemini-api.ts - Gemini API クライアント
 
-import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier } from './types';
+import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, UsageMetadata } from './types';
 import { getEffectiveApiKey } from './storage';
 import { t } from './i18n';
 
@@ -127,7 +127,7 @@ async function callGeminiApi<T>(
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     timeoutMs: number = 300000
-): Promise<T> {
+): Promise<{ result: T; usageMetadata: UsageMetadata }> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         throw new Error(t('error_geminiApiKeyMissing'));
@@ -146,7 +146,7 @@ async function callGeminiApi<T>(
             temperature: config.temperature,
             maxOutputTokens: config.maxOutputTokens,
             topP: config.topP,
-            ...(config.thinkingLevel ? { thinkingConfig: { includeThoughts: true } } : {}),
+            ...(config.thinkingLevel ? { thinkingConfig: { thinkingLevel: config.thinkingLevel.toLowerCase(), includeThoughts: true } } : {}),
             responseMimeType: 'application/json',
             responseSchema: responseSchema,
         },
@@ -218,6 +218,16 @@ async function callGeminiApi<T>(
             throw new Error(t('error_geminiInvalidFormat'));
         }
 
+        // usageMetadata を最後のチャンクから抽出
+        const lastResponse = responses[responses.length - 1];
+        const rawUsage = lastResponse?.usageMetadata || {};
+        const usageMetadata: UsageMetadata = {
+            promptTokenCount: rawUsage.promptTokenCount || 0,
+            candidatesTokenCount: rawUsage.candidatesTokenCount || 0,
+            thoughtsTokenCount: rawUsage.thoughtsTokenCount || 0,
+            totalTokenCount: rawUsage.totalTokenCount || 0,
+        };
+
         // 全レスポンスからテキストを結合（Thinking部分を除く）
         let fullText = '';
         for (const res of responses) {
@@ -240,13 +250,13 @@ async function callGeminiApi<T>(
 
         // JSONパース
         try {
-            return JSON.parse(fullText) as T;
+            return { result: JSON.parse(fullText) as T, usageMetadata };
         } catch (e) {
             // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
             const jsonMatch = fullText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
-                    return JSON.parse(jsonMatch[0]) as T;
+                    return { result: JSON.parse(jsonMatch[0]) as T, usageMetadata };
                 } catch (e2) {
                     throw new Error(t('error_geminiJsonParseFailed'));
                 }
@@ -272,7 +282,7 @@ export async function screenReference(
     screeningPrompt: string,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     outputLanguage: string = 'ja'
-): Promise<LlmScreeningOutput> {
+): Promise<{ output: LlmScreeningOutput; usageMetadata: UsageMetadata }> {
     const prompt = `${screeningPrompt}
 
 ## 対象文献
@@ -290,11 +300,12 @@ ${abstract || '(抄録なし)'}
 
 注意: quoteはtitleまたはabstract内の正確な部分文字列でなければなりません。`;
 
-    return await callGeminiApi<LlmScreeningOutput>(
+    const { result, usageMetadata } = await callGeminiApi<LlmScreeningOutput>(
         prompt,
         SCREENING_OUTPUT_SCHEMA,
         config
     );
+    return { output: result, usageMetadata };
 }
 
 /**
@@ -331,11 +342,12 @@ ${protocolText}
 - フルテキストでしか確認できない基準は緩めに解釈する
 - 明確に除外できる場合のみ低確率とする`;
 
-    return await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
+    const { result } = await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
         prompt,
         CRITERIA_CONVERSION_SCHEMA,
         config
     );
+    return result;
 }
 
 /**

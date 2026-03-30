@@ -135,6 +135,16 @@ export interface LlmScreeningOutput {
 }
 
 /**
+ * Gemini API usageMetadata
+ */
+export interface UsageMetadata {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    thoughtsTokenCount: number;
+    totalTokenCount: number;
+}
+
+/**
  * LLM判定のnoteフィールドに保存する構造
  */
 export interface LlmDecisionNote {
@@ -145,6 +155,7 @@ export interface LlmDecisionNote {
     reasons: string[];
     evidence: LlmEvidence[];
     prompt_version: string;
+    usageMetadata?: UsageMetadata;
 }
 
 /**

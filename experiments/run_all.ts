@@ -30,11 +30,11 @@ async function main() {
     // wilsonはラベル異常のため除外できるなら除外したい。
     // しかしRunnerはエラー時に落ちずに次へ行くべき。
 
-    // ユーザー指定: depression データセットのみを使用
-    const targetDatasets = ['depression'];
+    // B4条件（最適設定）× 全6データセットで再実行
+    const targetDatasets = ['depression', 'cq1', 'cq2', 'cq3', 'cq4', 'cq5'];
 
-    // 条件 (B1-B8)
-    const conditions = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8'];
+    // 条件 (B4: thinkingLevel=LOW, TopP=0.95)
+    const conditions = ['B4'];
 
     console.log(`Target Datasets: ${targetDatasets.join(', ')}`);
     console.log(`Target Conditions: ${conditions.join(', ')}`);

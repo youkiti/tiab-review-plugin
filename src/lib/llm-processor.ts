@@ -10,6 +10,7 @@ import type {
     LlmExecution,
     LlmCriteria,
     RateLimitConfig,
+    UsageMetadata,
 } from './types';
 import { RATE_LIMIT_PAID } from './types';
 import { screenReference, GeminiModelConfig } from './gemini-api';
@@ -42,7 +43,8 @@ export function isLlmReviewerId(reviewerId: string): boolean {
 export function createLlmDecisionNote(
     executionId: string,
     model: string,
-    output: LlmScreeningOutput
+    output: LlmScreeningOutput,
+    usageMetadata?: UsageMetadata
 ): LlmDecisionNote {
     return {
         type: 'llm',
@@ -52,6 +54,7 @@ export function createLlmDecisionNote(
         reasons: output.reasons,
         evidence: output.evidence,
         prompt_version: PROMPT_VERSION,
+        usageMetadata,
     };
 }
 
@@ -136,7 +139,7 @@ async function processWithRetry(
 ): Promise<{ success: boolean; decision: Decision | null; refId: string }> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            const output = await screenReference(
+            const { output, usageMetadata } = await screenReference(
                 ref.title,
                 ref.abstract || '',
                 screeningPrompt,
@@ -144,7 +147,7 @@ async function processWithRetry(
                 outputLanguage
             );
 
-            const noteData = createLlmDecisionNote(executionId, model, output);
+            const noteData = createLlmDecisionNote(executionId, model, output, usageMetadata);
             const decision: Decision = {
                 decision_id: crypto.randomUUID(),
                 ref_id: ref.ref_id,
