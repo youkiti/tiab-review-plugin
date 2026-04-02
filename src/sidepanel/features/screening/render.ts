@@ -13,6 +13,7 @@ import { detectConflictWithSettings } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { t } from '../../../lib/i18n';
 import type { DecisionStatus } from '../../../lib/types';
+import { parseJsonWithBom } from '../../../lib/json-utils';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -194,17 +195,13 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
             // AIのみ（人間がevidence形式で書くことは稀なため）
             if (!d.reviewer_id.startsWith('llm:')) return;
 
-            try {
-                if (d.note && d.note.trim().startsWith('{')) {
-                    const parsed = JSON.parse(d.note);
-                    if (parsed.evidence && Array.isArray(parsed.evidence)) {
-                        parsed.evidence.forEach((e: any) => {
-                            if (e.quote) evidenceList.push(e.quote);
-                        });
-                    }
+            if (d.note && d.note.trim().startsWith('{')) {
+                const parsed = parseJsonWithBom<{ evidence?: Array<{ quote?: string }> }>(d.note);
+                if (parsed?.evidence && Array.isArray(parsed.evidence)) {
+                    parsed.evidence.forEach((e) => {
+                        if (e.quote) evidenceList.push(e.quote);
+                    });
                 }
-            } catch (e) {
-                // Ignore parse errors
             }
         });
     }
@@ -420,32 +417,28 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
             let isJson = false;
             // 短い文字列はJSONではないとみなす（最適化）
             if (decision.note.trim().startsWith('{') && decision.note.length > 20) {
-                try {
-                    const parsed = JSON.parse(decision.note);
-                    if (parsed.reasons && Array.isArray(parsed.reasons)) {
-                        isJson = true;
+                const parsed = parseJsonWithBom<{ reasons?: string[] }>(decision.note);
+                if (parsed?.reasons && Array.isArray(parsed.reasons)) {
+                    isJson = true;
 
-                        // Reasonsヘッダー
-                        const label = document.createElement('div');
-                        label.innerHTML = '<b>' + t('screening_aiReasons') + '</b>';
-                        noteDiv.appendChild(label);
+                    // Reasonsヘッダー
+                    const label = document.createElement('div');
+                    label.innerHTML = '<b>' + t('screening_aiReasons') + '</b>';
+                    noteDiv.appendChild(label);
 
-                        // リスト作成
-                        const ul = document.createElement('ul');
-                        ul.style.margin = '4px 0 8px 20px';
-                        ul.style.padding = '0';
-                        ul.style.listStyleType = 'disc';
+                    // リスト作成
+                    const ul = document.createElement('ul');
+                    ul.style.margin = '4px 0 8px 20px';
+                    ul.style.padding = '0';
+                    ul.style.listStyleType = 'disc';
 
-                        parsed.reasons.forEach((r: string) => {
-                            const li = document.createElement('li');
-                            li.textContent = r;
-                            li.style.marginBottom = '2px';
-                            ul.appendChild(li);
-                        });
-                        noteDiv.appendChild(ul);
-                    }
-                } catch (e) {
-                    // JSONパース失敗時は通常テキストとして表示
+                    parsed.reasons.forEach((r: string) => {
+                        const li = document.createElement('li');
+                        li.textContent = r;
+                        li.style.marginBottom = '2px';
+                        ul.appendChild(li);
+                    });
+                    noteDiv.appendChild(ul);
                 }
             }
 

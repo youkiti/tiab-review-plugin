@@ -9,6 +9,7 @@ import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
 import { t } from '../../lib/i18n';
+import { parseJsonWithBom } from '../../lib/json-utils';
 
 // ========== フィルタリング関連 ==========
 
@@ -316,17 +317,13 @@ export function getAiEvidenceList(
         // AIのみ
         if (!d.reviewer_id.startsWith('llm:')) return;
 
-        try {
-            if (d.note && d.note.trim().startsWith('{')) {
-                const parsed = JSON.parse(d.note);
-                if (parsed.evidence && Array.isArray(parsed.evidence)) {
-                    parsed.evidence.forEach((e: { quote?: string }) => {
-                        if (e.quote) evidenceList.push(e.quote);
-                    });
-                }
+        if (d.note && d.note.trim().startsWith('{')) {
+            const parsed = parseJsonWithBom<{ evidence?: { quote?: string }[] }>(d.note);
+            if (parsed?.evidence && Array.isArray(parsed.evidence)) {
+                parsed.evidence.forEach((e: { quote?: string }) => {
+                    if (e.quote) evidenceList.push(e.quote);
+                });
             }
-        } catch {
-            // Ignore parse errors
         }
     });
 

@@ -2,6 +2,7 @@
 
 import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, AssignmentConfig } from './types';
 import { t } from './i18n';
+import { parseJsonWithBom, stripUtf8Bom } from './json-utils';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -329,7 +330,9 @@ async function getSheetValues(spreadsheetId: string, range: string): Promise<str
     }
 
     const data = await response.json();
-    return data.values || [];
+    return (data.values || []).map((row: unknown[]) =>
+        row.map((value) => stripUtf8Bom(typeof value === 'string' ? value : String(value ?? '')))
+    );
 }
 
 /**
@@ -871,11 +874,7 @@ export async function getAssignmentConfig(spreadsheetId: string): Promise<Assign
                     config.groupCount = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.groupCount;
                     break;
                 case 'assignment_reviewer_map':
-                    try {
-                        config.reviewerMap = JSON.parse(value) || {};
-                    } catch {
-                        config.reviewerMap = {};
-                    }
+                    config.reviewerMap = parseJsonWithBom<Record<string, string[]>>(value) || {};
                     break;
                 case 'assignment_seed':
                     config.seed = value;
@@ -1374,11 +1373,7 @@ export async function getLlmConfig(spreadsheetId: string): Promise<LlmConfig> {
                     config.llm_protocol_text = value;
                     break;
                 case 'llm_criteria':
-                    try {
-                        config.llm_criteria = JSON.parse(value);
-                    } catch {
-                        config.llm_criteria = null;
-                    }
+                    config.llm_criteria = parseJsonWithBom<LlmCriteria>(value);
                     break;
                 case 'llm_screening_prompt':
                     config.llm_screening_prompt = value;
@@ -1528,11 +1523,7 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                         execution[header] = parseInt(value, 10) || 0;
                         break;
                     case 'criteria_snapshot':
-                        try {
-                            execution[header] = value ? JSON.parse(value) : null;
-                        } catch {
-                            execution[header] = null;
-                        }
+                        execution[header] = parseJsonWithBom<LlmCriteria>(value);
                         break;
                     case 'is_active':
                         execution[header] = value.toLowerCase() === 'true';

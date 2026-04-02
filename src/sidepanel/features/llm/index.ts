@@ -153,8 +153,13 @@ export async function initializeLlmSection() {
                 // 既存の基準がある場合：確定状態のスタイルを適用
                 dom.criteriaCard.classList.add('confirmed');
             } else {
-                // 基準が未設定の場合：確定状態を解除
+                // 基準が未設定の場合：表示をクリアし確定状態を解除
+                dom.optimizedCriteriaDisplay.innerHTML = '';
+                dom.screeningPromptInput.value = '';
+                dom.screeningPromptInput.classList.add('hidden');
+                dom.saveCriteriaBtn.classList.add('hidden');
                 dom.criteriaCard.classList.remove('confirmed');
+                dom.optimizeCriteriaBtn.classList.remove('confirmed');
             }
 
             // バッチ対象件数を更新

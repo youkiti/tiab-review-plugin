@@ -10,6 +10,7 @@ import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, 
 import { dom } from '../dom';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { t } from '../../lib/i18n';
+import { parseJsonWithBom } from '../../lib/json-utils';
 
 /**
  * メイン描画関数
@@ -352,23 +353,19 @@ function renderAllDecisions(
             // JSONパース（AI判定用）
             let isJson = false;
             if (decision.note.trim().startsWith('{') && decision.note.length > 20) {
-                try {
-                    const parsed = JSON.parse(decision.note);
-                    if (parsed.reasons && Array.isArray(parsed.reasons)) {
-                        isJson = true;
-                        noteDiv.innerHTML = `<div>📝 <b>AI Reasons:</b></div>`;
-                        const ul = document.createElement('ul');
-                        ul.style.cssText = 'margin: 4px 0 8px 20px; padding: 0; list-style-type: disc;';
-                        parsed.reasons.forEach((r: string) => {
-                            const li = document.createElement('li');
-                            li.textContent = r;
-                            li.style.marginBottom = '2px';
-                            ul.appendChild(li);
-                        });
-                        noteDiv.appendChild(ul);
-                    }
-                } catch {
-                    // JSONパース失敗時は通常テキスト
+                const parsed = parseJsonWithBom<{ reasons?: string[] }>(decision.note);
+                if (parsed?.reasons && Array.isArray(parsed.reasons)) {
+                    isJson = true;
+                    noteDiv.innerHTML = `<div>📝 <b>AI Reasons:</b></div>`;
+                    const ul = document.createElement('ul');
+                    ul.style.cssText = 'margin: 4px 0 8px 20px; padding: 0; list-style-type: disc;';
+                    parsed.reasons.forEach((r: string) => {
+                        const li = document.createElement('li');
+                        li.textContent = r;
+                        li.style.marginBottom = '2px';
+                        ul.appendChild(li);
+                    });
+                    noteDiv.appendChild(ul);
                 }
             }
 

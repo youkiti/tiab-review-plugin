@@ -15,6 +15,7 @@ import { RATE_LIMIT_PAID } from './types';
 import { screenReference, GeminiModelConfig } from './gemini-api';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
+import { parseJsonWithBom } from './json-utils';
 
 /**
  * 進捗コールバック型
@@ -60,15 +61,11 @@ export function createLlmDecisionNote(
  */
 export function parseLlmDecisionNote(note: string): LlmDecisionNote | null {
     if (!note) return null;
-    try {
-        const parsed = JSON.parse(note);
-        if (parsed.type === 'llm') {
-            return parsed as LlmDecisionNote;
-        }
-        return null;
-    } catch {
+    const parsed = parseJsonWithBom<LlmDecisionNote>(note);
+    if (!parsed) {
         return null;
     }
+    return parsed.type === 'llm' ? parsed : null;
 }
 
 /**
