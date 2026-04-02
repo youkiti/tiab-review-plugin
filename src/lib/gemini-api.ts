@@ -7,6 +7,26 @@ import { t } from './i18n';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
+ * Gemini APIレスポンスのメタデータ
+ */
+export interface GeminiApiMetadata {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    thoughtsTokenCount?: number;
+    finishReason?: string;
+    modelVersion?: string;
+}
+
+/**
+ * Gemini API呼び出し結果（データ＋メタデータ）
+ */
+export interface GeminiApiResult<T> {
+    data: T;
+    metadata: GeminiApiMetadata;
+}
+
+/**
  * Gemini APIモデル設定
  */
 export interface GeminiModelConfig {
@@ -127,7 +147,7 @@ async function callGeminiApi<T>(
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     timeoutMs: number = 300000
-): Promise<T> {
+): Promise<GeminiApiResult<T>> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         throw new Error(t('error_geminiApiKeyMissing'));
@@ -218,8 +238,10 @@ async function callGeminiApi<T>(
             throw new Error(t('error_geminiInvalidFormat'));
         }
 
-        // 全レスポンスからテキストを結合（Thinking部分を除く）
+        // 全レスポンスからテキストを結合（Thinking部分を除く）+ メタデータ抽出
         let fullText = '';
+        const metadata: GeminiApiMetadata = {};
+
         for (const res of responses) {
             const parts = res.candidates?.[0]?.content?.parts;
             if (parts) {
@@ -232,6 +254,29 @@ async function callGeminiApi<T>(
                     }
                 }
             }
+
+            // finishReason（最後のチャンクに含まれる）
+            const finishReason = res.candidates?.[0]?.finishReason;
+            if (finishReason) {
+                metadata.finishReason = finishReason;
+            }
+
+            // usageMetadata（最後のチャンクに含まれる）
+            const usage = res.usageMetadata;
+            if (usage) {
+                metadata.promptTokenCount = usage.promptTokenCount;
+                metadata.candidatesTokenCount = usage.candidatesTokenCount;
+                metadata.totalTokenCount = usage.totalTokenCount;
+                // Thinking modelの場合、thoughtsTokenCountがある
+                if (usage.thoughtsTokenCount) {
+                    metadata.thoughtsTokenCount = usage.thoughtsTokenCount;
+                }
+            }
+
+            // modelVersion
+            if (res.modelVersion) {
+                metadata.modelVersion = res.modelVersion;
+            }
         }
 
         if (!fullText) {
@@ -239,20 +284,24 @@ async function callGeminiApi<T>(
         }
 
         // JSONパース
+        let data: T;
         try {
-            return JSON.parse(fullText) as T;
+            data = JSON.parse(fullText) as T;
         } catch (e) {
             // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
             const jsonMatch = fullText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
-                    return JSON.parse(jsonMatch[0]) as T;
+                    data = JSON.parse(jsonMatch[0]) as T;
                 } catch (e2) {
                     throw new Error(t('error_geminiJsonParseFailed'));
                 }
+            } else {
+                throw new Error(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100));
             }
-            throw new Error(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100));
         }
+
+        return { data: data!, metadata };
 
     } catch (error) {
         clearTimeout(timeoutId);
@@ -272,7 +321,7 @@ export async function screenReference(
     screeningPrompt: string,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     outputLanguage: string = 'ja'
-): Promise<LlmScreeningOutput> {
+): Promise<GeminiApiResult<LlmScreeningOutput>> {
     const prompt = `${screeningPrompt}
 
 ## 対象文献
@@ -304,7 +353,7 @@ export async function convertCriteria(
     protocolText: string,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     outputLanguage: string = 'ja'
-): Promise<{ criteria: LlmCriteria; screening_prompt: string }> {
+): Promise<{ criteria: LlmCriteria; screening_prompt: string; metadata: GeminiApiMetadata }> {
     const prompt = `以下のプロトコルの組み入れ・除外基準を解析し、システマティックレビューのタイトル・抄録スクリーニングに最適な形式に変換してください。
 
 ## 入力: プロトコルの基準
@@ -331,11 +380,12 @@ ${protocolText}
 - フルテキストでしか確認できない基準は緩めに解釈する
 - 明確に除外できる場合のみ低確率とする`;
 
-    return await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
+    const result = await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
         prompt,
         CRITERIA_CONVERSION_SCHEMA,
         config
     );
+    return { ...result.data, metadata: result.metadata };
 }
 
 /**

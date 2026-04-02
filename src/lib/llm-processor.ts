@@ -12,7 +12,7 @@ import type {
     RateLimitConfig,
 } from './types';
 import { RATE_LIMIT_PAID } from './types';
-import { screenReference, GeminiModelConfig } from './gemini-api';
+import { screenReference, GeminiModelConfig, GeminiApiMetadata } from './gemini-api';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
 import { parseJsonWithBom } from './json-utils';
@@ -43,9 +43,10 @@ export function isLlmReviewerId(reviewerId: string): boolean {
 export function createLlmDecisionNote(
     executionId: string,
     model: string,
-    output: LlmScreeningOutput
+    output: LlmScreeningOutput,
+    metadata?: GeminiApiMetadata
 ): LlmDecisionNote {
-    return {
+    const note: LlmDecisionNote = {
         type: 'llm',
         execution_id: executionId,
         model,
@@ -54,6 +55,26 @@ export function createLlmDecisionNote(
         evidence: output.evidence,
         prompt_version: PROMPT_VERSION,
     };
+
+    if (metadata) {
+        const { promptTokenCount, candidatesTokenCount, totalTokenCount, thoughtsTokenCount } = metadata;
+        if (promptTokenCount || candidatesTokenCount || totalTokenCount || thoughtsTokenCount) {
+            note.usage = {
+                ...(promptTokenCount && { promptTokenCount }),
+                ...(candidatesTokenCount && { candidatesTokenCount }),
+                ...(totalTokenCount && { totalTokenCount }),
+                ...(thoughtsTokenCount && { thoughtsTokenCount }),
+            };
+        }
+        if (metadata.finishReason) {
+            note.finishReason = metadata.finishReason;
+        }
+        if (metadata.modelVersion) {
+            note.modelVersion = metadata.modelVersion;
+        }
+    }
+
+    return note;
 }
 
 /**
@@ -133,7 +154,7 @@ async function processWithRetry(
 ): Promise<{ success: boolean; decision: Decision | null; refId: string }> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            const output = await screenReference(
+            const { data: output, metadata } = await screenReference(
                 ref.title,
                 ref.abstract || '',
                 screeningPrompt,
@@ -141,7 +162,7 @@ async function processWithRetry(
                 outputLanguage
             );
 
-            const noteData = createLlmDecisionNote(executionId, model, output);
+            const noteData = createLlmDecisionNote(executionId, model, output, metadata);
             const decision: Decision = {
                 decision_id: crypto.randomUUID(),
                 ref_id: ref.ref_id,

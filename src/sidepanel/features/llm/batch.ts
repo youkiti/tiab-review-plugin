@@ -5,11 +5,12 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision, RateLimitConfig } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, RateLimitConfig, LlmExecution } from '../../../lib/types';
 import { RATE_LIMIT_FREE, RATE_LIMIT_PAID } from '../../../lib/types';
 import {
     appendDecisions,
     getDecisionsByReviewerId,
+    getLlmPendingDecisions,
     updateDecisionsBatch,
     saveLlmExecution,
     getLlmExecutions,
@@ -34,6 +35,32 @@ let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
     _loadDataAndShowScreening = fn;
+}
+
+function updateThresholdCompleteMessage(processedCount: number) {
+    dom.thresholdCompleteMessage.textContent = t('llm_thresholdComplete', String(processedCount));
+}
+
+function clearThresholdConfirmationState() {
+    state.setCurrentExecutionId('');
+    state.setCurrentBatchDecisions([]);
+    dom.thresholdCompleteMessage.textContent = '';
+    dom.thresholdSection.classList.add('hidden');
+}
+
+async function restorePendingExecution(exec: LlmExecution) {
+    const spreadsheetId = state.spreadsheetId;
+    const pendingDecisions = await getLlmPendingDecisions(spreadsheetId, exec.execution_id);
+
+    if (pendingDecisions.length === 0) {
+        throw new Error(t('llm_historyPendingLoadError'));
+    }
+
+    state.setCurrentExecutionId(exec.execution_id);
+    state.setCurrentBatchDecisions(pendingDecisions.map(({ decision }) => decision));
+    updateThresholdCompleteMessage(pendingDecisions.length);
+    handleThresholdChange();
+    dom.thresholdSection.classList.remove('hidden');
 }
 
 /**
@@ -78,7 +105,9 @@ export async function handleStartBatch() {
     // AbortControllerを作成
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
+    state.setCurrentExecutionId('');
     state.setCurrentBatchDecisions([]);
+    dom.thresholdCompleteMessage.textContent = '';
 
     try {
         const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
@@ -153,7 +182,7 @@ export async function handleStartBatch() {
             // 履歴を再読み込み
             await loadExecutionHistory();
 
-            dom.thresholdProcessedCount.textContent = result.successCount.toString();
+            updateThresholdCompleteMessage(result.successCount);
             dom.thresholdSection.classList.remove('hidden');
 
             // 閾値プレビューを更新
@@ -486,6 +515,7 @@ export async function loadExecutionHistory() {
 
         if (executions.length === 0) {
             dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
+            clearThresholdConfirmationState();
             return;
         }
 
@@ -494,6 +524,9 @@ export async function loadExecutionHistory() {
         // 新しい順にソート
         const sorted = [...executions].sort((a, b) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        const pendingExecutions = sorted.filter(
+            exec => exec.execution_type === 'batch_screening' && exec.status === 'pending'
         );
 
         for (const exec of sorted.slice(0, 10)) {
@@ -512,14 +545,19 @@ export async function loadExecutionHistory() {
                 : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), exec.include_threshold.toFixed(2)]);
 
             // チェックボックス（batch_screening かつ confirmed のみ）
-            const checkboxHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
-                ? `<label class="execution-active-label">
+            const actionHtml = exec.status === 'pending' && exec.execution_type === 'batch_screening'
+                ? `<button type="button" class="btn btn-outline btn-small execution-resume-btn"
+                            data-execution-id="${exec.execution_id}">
+                        ${t('llm_historyResumePending')}
+                   </button>`
+                : exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+                    ? `<label class="execution-active-label">
                      <input type="checkbox" class="execution-active-checkbox" 
                             data-execution-id="${exec.execution_id}" 
                             ${exec.is_active ? 'checked' : ''}>
                      ${t('llm_historyUseDecision')}
                    </label>`
-                : '';
+                    : '';
 
             item.innerHTML = `
                 <div class="execution-header">
@@ -528,7 +566,7 @@ export async function loadExecutionHistory() {
                         ${statusLabel}
                         ${dateStr}
                     </div>
-                    ${checkboxHtml}
+                    ${actionHtml}
                 </div>
                 <div class="execution-stats">
                     ${statsContent}
@@ -552,7 +590,40 @@ export async function loadExecutionHistory() {
                 });
             }
 
+            const resumeButton = item.querySelector('.execution-resume-btn') as HTMLButtonElement | null;
+            if (resumeButton) {
+                resumeButton.addEventListener('click', async () => {
+                    try {
+                        await restorePendingExecution(exec);
+                        showToast(t('llm_historyResumeLoaded'));
+                    } catch (error) {
+                        console.error('[loadExecutionHistory] Failed to restore pending execution:', error);
+                        showToast(t('llm_historyPendingLoadError'));
+                    }
+                });
+            }
+
             dom.executionHistory.appendChild(item);
+        }
+
+        if (pendingExecutions.length === 0) {
+            clearThresholdConfirmationState();
+            return;
+        }
+
+        const pendingExecutionIds = new Set(pendingExecutions.map(exec => exec.execution_id));
+        const shouldRestoreLatestPending =
+            state.currentBatchDecisions.length === 0 ||
+            !pendingExecutionIds.has(state.currentExecutionId);
+
+        if (shouldRestoreLatestPending) {
+            try {
+                await restorePendingExecution(pendingExecutions[0]);
+            } catch (error) {
+                console.error('[loadExecutionHistory] Failed to auto-restore pending execution:', error);
+                clearThresholdConfirmationState();
+                showToast(t('llm_historyPendingLoadError'));
+            }
         }
     } catch (error) {
         console.error('[loadExecutionHistory] Error:', error);

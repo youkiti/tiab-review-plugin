@@ -6,7 +6,8 @@
       "Bash(git submodule:*)",
       "Bash(xargs ls:*)",
       "Bash(xargs grep:*)",
-      "Read(//c/Users/youki/**)"
+      "Read(//c/Users/youki/**)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

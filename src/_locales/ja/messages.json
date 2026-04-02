@@ -827,6 +827,15 @@
   "llm_historyUpdateFailed": {
     "message": "更新に失敗しました"
   },
+  "llm_historyResumePending": {
+    "message": "閾値調整を再開"
+  },
+  "llm_historyResumeLoaded": {
+    "message": "未確定の閾値調整を読み込みました"
+  },
+  "llm_historyPendingLoadError": {
+    "message": "未確定のLLM判定を読み込めませんでした"
+  },
   "llm_completedConfirm": {
     "message": "ML判定が完了しました。\n\n手動タブで判定結果を確認しますか？\n（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）"
   },

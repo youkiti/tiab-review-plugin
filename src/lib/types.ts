@@ -145,6 +145,15 @@ export interface LlmDecisionNote {
     reasons: string[];
     evidence: LlmEvidence[];
     prompt_version: string;
+    /** APIレスポンスのトークン使用量・メタデータ */
+    usage?: {
+        promptTokenCount?: number;
+        candidatesTokenCount?: number;
+        totalTokenCount?: number;
+        thoughtsTokenCount?: number;
+    };
+    finishReason?: string;
+    modelVersion?: string;
 }
 
 /**
