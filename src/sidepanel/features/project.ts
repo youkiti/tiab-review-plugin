@@ -51,6 +51,7 @@ let _renderSourceFilters: (() => void) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
 let _renderKeyStatus: (() => void) | null = null;
 let _renderReviewerFilter: (() => void) | null = null;
+let _renderAiHighlightToggle: (() => void) | null = null;
 
 export function setProjectDependencies(deps: {
     renderKeywords: () => void;
@@ -58,12 +59,14 @@ export function setProjectDependencies(deps: {
     renderCurrentReference: () => void;
     renderKeyStatus: () => void;
     renderReviewerFilter: () => void;
+    renderAiHighlightToggle: () => void;
 }) {
     _renderKeywords = deps.renderKeywords;
     _renderSourceFilters = deps.renderSourceFilters;
     _renderCurrentReference = deps.renderCurrentReference;
     _renderKeyStatus = deps.renderKeyStatus;
     _renderReviewerFilter = deps.renderReviewerFilter;
+    _renderAiHighlightToggle = deps.renderAiHighlightToggle;
 }
 
 /**
@@ -321,6 +324,7 @@ export async function loadDataAndShowScreening() {
             console.log('[loadDataAndShowScreening] Admin mode');
             if (_renderKeyStatus) _renderKeyStatus();
             if (_renderReviewerFilter) _renderReviewerFilter();
+            if (_renderAiHighlightToggle) _renderAiHighlightToggle();
         }
         renderAssignmentManager();
 

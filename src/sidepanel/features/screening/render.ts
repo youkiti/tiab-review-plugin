@@ -189,8 +189,8 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     const evidenceList: string[] = [];
     if (state.showAiHighlights && ref.allDecisions) {
         ref.allDecisions.forEach(d => {
-            // 表示されているレビュアーのみ
-            if (state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) return;
+            // Blind OFF時のみレビュアーフィルターを適用する
+            if (state.isKeyOpened && state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) return;
             // AIのみ（人間がevidence形式で書くことは稀なため）
             if (!d.reviewer_id.startsWith('llm:')) return;
 

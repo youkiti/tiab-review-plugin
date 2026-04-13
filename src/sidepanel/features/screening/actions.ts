@@ -16,7 +16,7 @@ import {
 import { getClientVersion } from '../../../lib/client-version';
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
-import { renderReviewerFilter } from './reviewer-filter';
+import { renderReviewerFilter, renderAiHighlightToggle } from './reviewer-filter';
 import { getReviewerKey } from './reviewer-utils';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
 import { t } from '../../../lib/i18n';
@@ -326,6 +326,7 @@ export async function handleKeyToggle() {
             // 表示を更新
             renderKeyStatus();
             renderReviewerFilter();  // レビュアーリストを非表示に
+            renderAiHighlightToggle();  // AIハイライトトグルを更新
             syncSetCurrentIndex(0);
             syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';
@@ -380,6 +381,7 @@ export async function handleKeyToggle() {
             // 表示を更新
             renderKeyStatus();
             renderReviewerFilter();
+            renderAiHighlightToggle();
             syncSetCurrentIndex(0);
             syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';

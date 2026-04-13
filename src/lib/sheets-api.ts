@@ -603,6 +603,8 @@ export async function getReferencesWithStatus(
 
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
+    // Blind ONでもAI Evidenceハイライトに必要なLLM判定だけ保持する
+    const llmDecisionsMap = new Map<string, Decision[]>();
     decisionsData.forEach(({ decision }) => {
         // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
         const reviewerId = (decision.reviewer_id || '').trim();
@@ -618,6 +620,12 @@ export async function getReferencesWithStatus(
         }
         if (decision.reviewer_id === normalizedReviewerEmail) {
             myDecisions.set(decision.ref_id, decision);
+        }
+        if (decision.reviewer_id.startsWith('llm:')) {
+            if (!llmDecisionsMap.has(decision.ref_id)) {
+                llmDecisionsMap.set(decision.ref_id, []);
+            }
+            llmDecisionsMap.get(decision.ref_id)!.push(decision);
         }
     });
 
@@ -635,6 +643,7 @@ export async function getReferencesWithStatus(
             ...ref,
             myDecision,
             status,
+            allDecisions: llmDecisionsMap.get(ref.ref_id) || [],
         };
     });
 }

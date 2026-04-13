@@ -73,44 +73,7 @@ export function renderReviewerFilter() {
         });
     }
 
-    // Evidence Highlight Toggle
-    if (state.availableReviewers.size > 0) {
-        // AIレビュアーがいる場合のみ表示するか、常に表示するか。
-        // AI判定が含まれている可能性が高いので常に表示で良いが、
-        // AIが一人もいなければ意味がないのでチェックしても良い。
-        // ここでは簡易的に常に表示（またはAIレビュアーがいるかチェック）
-        const hasAi = Array.from(state.availableReviewers).some(id => isLlmReviewerKey(id));
 
-        if (hasAi) {
-            const toggleDiv = document.createElement('div');
-            toggleDiv.className = 'reviewer-filter-item highlight-toggle';
-            toggleDiv.style.borderBottom = '1px solid #eee';
-            toggleDiv.style.marginBottom = '8px';
-            toggleDiv.style.paddingBottom = '8px';
-
-            const label = document.createElement('label');
-            label.className = 'reviewer-label';
-            label.style.fontWeight = 'bold';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = state.showAiHighlights;
-
-            checkbox.addEventListener('change', () => {
-                state.setShowAiHighlights(checkbox.checked);
-                if (_renderCurrentReference) _renderCurrentReference();
-            });
-
-            const span = document.createElement('span');
-            span.textContent = t('filter_aiHighlight');
-
-            label.appendChild(checkbox);
-            label.appendChild(span);
-            toggleDiv.appendChild(label);
-            list.appendChild(toggleDiv);
-
-        }
-    }
 
     // treatMlAsManualがオンの場合、::mlサフィックス付きのレビュアーをスキップ
     // 対応する通常のキーがある場合のみスキップ
@@ -267,4 +230,40 @@ export function handleReviewerToggle(reviewerId: string, enabled: boolean) {
     if (_renderCurrentReference) {
         _renderCurrentReference();
     }
+}
+
+/**
+ * AI Evidenceハイライトトグルの表示/非表示を更新
+ * Blind状態（isKeyOpened）に依存せず、AIレビュアーの有無のみで制御する
+ */
+export function renderAiHighlightToggle() {
+    const container = dom.aiHighlightContainer;
+    if (!container) return;
+
+    // 現在読み込まれている文献内にAI判定が存在するかチェック
+    const hasAi = state.references.some((ref) =>
+        ref.allDecisions?.some((decision) => isLlmReviewerKey(decision.reviewer_id)) ?? false
+    );
+
+    if (hasAi) {
+        container.classList.remove('hidden');
+        // チェックボックスの状態を同期
+        dom.aiHighlightCheckbox.checked = state.showAiHighlights;
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+/**
+ * AI Evidenceハイライトチェックボックスのイベントリスナーを初期化
+ * 初期化時に1回だけ呼び出すこと（HTMLに静的配置されたチェックボックス用）
+ */
+export function initAiHighlightListener() {
+    const checkbox = dom.aiHighlightCheckbox;
+    if (!checkbox) return;
+
+    checkbox.addEventListener('change', () => {
+        state.setShowAiHighlights(checkbox.checked);
+        if (_renderCurrentReference) _renderCurrentReference();
+    });
 }

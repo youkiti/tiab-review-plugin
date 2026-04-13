@@ -50,7 +50,8 @@ project.setProjectDependencies({
     renderSourceFilters: screeningFilters.renderSourceFilters,
     renderCurrentReference: screeningRender.renderCurrentReference,
     renderKeyStatus: screeningRender.renderKeyStatus,
-    renderReviewerFilter: reviewerFilter.renderReviewerFilter
+    renderReviewerFilter: reviewerFilter.renderReviewerFilter,
+    renderAiHighlightToggle: reviewerFilter.renderAiHighlightToggle
 });
 
 screeningFilters.setFilterDependencies({
@@ -239,6 +240,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Key Toggle
     dom.keyToggleInput?.addEventListener('change', screeningActions.handleKeyToggle);
+
+    // AI Evidenceハイライトチェックボックス（初期化時に1回だけ登録）
+    reviewerFilter.initAiHighlightListener();
 
     // Back button
     dom.backBtn?.addEventListener('click', project.handleBack);
