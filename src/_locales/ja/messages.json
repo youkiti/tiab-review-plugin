@@ -818,6 +818,9 @@
   "llm_historyUseDecision": {
     "message": "判定に使用"
   },
+  "llm_historyAdjustThreshold": {
+    "message": "閾値を変更"
+  },
   "llm_historyActivated": {
     "message": "判定に使用します"
   },
@@ -826,6 +829,15 @@
   },
   "llm_historyUpdateFailed": {
     "message": "更新に失敗しました"
+  },
+  "llm_thresholdAdjustReady": {
+    "message": "保存済みのLLM判定を読み込みました。閾値を変更して再確定できます"
+  },
+  "llm_thresholdAdjustLoaded": {
+    "message": "✓ 保存済みのLLM判定を読み込みました ($1件)"
+  },
+  "llm_thresholdAdjustNoDecisions": {
+    "message": "再適用対象のLLM判定が見つかりませんでした"
   },
   "llm_completedConfirm": {
     "message": "ML判定が完了しました。\n\n手動タブで判定結果を確認しますか？\n（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）"

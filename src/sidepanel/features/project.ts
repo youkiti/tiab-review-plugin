@@ -16,6 +16,7 @@ import {
     getReferencesWithAllDecisions,
     getHighlightKeywords,
     getKeyOpenedStatus,
+    getLlmExecutions,
     isUserAdmin,
     forceReauth,
     ensureHeaders,
@@ -40,6 +41,7 @@ import {
     setSelectedSourceFiles as syncSetSelectedSourceFiles,
     setAvailableReviewers as syncSetAvailableReviewers,
     setEnabledReviewers as syncSetEnabledReviewers,
+    setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds,
     setCurrentIndex as syncSetCurrentIndex,
     setMlState as syncSetMlState,
 } from '../store/compat';
@@ -261,17 +263,23 @@ export async function loadDataAndShowScreening() {
         state.clearReviewHistory();
 
         // 管理者権限とキーオープン状態を確認
-        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig] = await Promise.all([
+        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig, llmExecutions] = await Promise.all([
             isUserAdmin(spreadsheetId, userEmail),
             getKeyOpenedStatus(spreadsheetId),
             getHighlightKeywords(spreadsheetId),
             getAssignmentConfig(spreadsheetId),
+            getLlmExecutions(spreadsheetId),
         ]);
 
         // Store経由で両方に同期
         syncSetIsAdmin(adminStatus);
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(keywords);
+
+        const activeBatchExecution = llmExecutions
+            .filter((execution) => execution.execution_type === 'batch_screening' && execution.status === 'confirmed' && execution.is_active)
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+        syncSetActiveLlmExecutionIds(new Set(activeBatchExecution ? [activeBatchExecution.execution_id] : []));
 
         // キーオープン状態に応じてデータを読み込み
         const refs = keyOpenedStatus

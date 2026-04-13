@@ -464,6 +464,10 @@
     color: #666;
 }
 
+.execution-adjust-btn {
+    margin-top: 8px;
+}
+
 .execution-item .execution-type {
     display: inline-block;
     padding: 2px 6px;

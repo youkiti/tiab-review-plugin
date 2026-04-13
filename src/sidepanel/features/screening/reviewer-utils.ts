@@ -39,6 +39,11 @@ export function isLlmReviewerKey(key: string): boolean {
     return key.startsWith('llm:');
 }
 
+export function isActiveConfirmedLlmDecision(decision: Decision): boolean {
+    const reviewerId = (decision.reviewer_id || '').trim();
+    return isLlmReviewerKey(reviewerId) && state.activeLlmExecutionIds.has(reviewerId);
+}
+
 export function isMlReviewerKey(key: string): boolean {
     return key.endsWith(ML_REVIEWER_SUFFIX);
 }

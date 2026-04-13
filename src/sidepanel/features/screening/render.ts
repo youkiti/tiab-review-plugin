@@ -8,7 +8,7 @@ import { state } from '../../state';
 import { escapeHtml, escapeRegex } from '../../utils/text';
 import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
-import { getReviewerKey, getReviewerLabel } from './reviewer-utils';
+import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { detectConflictWithSettings } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { t } from '../../../lib/i18n';
@@ -191,8 +191,8 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
         ref.allDecisions.forEach(d => {
             // Blind OFF時のみレビュアーフィルターを適用する
             if (state.isKeyOpened && state.enabledReviewers.size > 0 && !state.enabledReviewers.has(d.reviewer_id)) return;
-            // AIのみ（人間がevidence形式で書くことは稀なため）
-            if (!d.reviewer_id.startsWith('llm:')) return;
+            // 閾値確定済みで有効なAI判定のみ
+            if (!isActiveConfirmedLlmDecision(d)) return;
 
             try {
                 if (d.note && d.note.trim().startsWith('{')) {

@@ -313,8 +313,11 @@ export function getAiEvidenceList(
             !state.data.enabledReviewers.has(d.reviewer_id)) {
             return;
         }
-        // AIのみ
-        if (!d.reviewer_id.startsWith('llm:')) return;
+        // 閾値確定済みで有効なAI判定のみ
+        if (!d.reviewer_id.startsWith('llm:') ||
+            !state.data.activeLlmExecutionIds.has(d.reviewer_id)) {
+            return;
+        }
 
         try {
             if (d.note && d.note.trim().startsWith('{')) {

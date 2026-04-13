@@ -28,6 +28,7 @@ import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
 import { getModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
+import { setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds } from '../../store/compat';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -42,6 +43,26 @@ function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getL
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return activeBatchExecutions[0]?.execution_id ?? null;
+}
+
+async function prepareThresholdAdjustment(executionId: string, threshold: number, targetCount: number): Promise<void> {
+    const spreadsheetId = state.spreadsheetId;
+    const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
+
+    if (existingDecisions.length === 0) {
+        throw new Error(t('llm_thresholdAdjustNoDecisions'));
+    }
+
+    state.setCurrentExecutionId(executionId);
+    state.setCurrentBatchDecisions(existingDecisions.map(({ decision }) => decision));
+
+    dom.thresholdSlider.value = threshold.toFixed(2);
+    dom.thresholdValueDisplay.textContent = threshold.toFixed(2);
+    dom.thresholdCompleteMessage.textContent = t('llm_thresholdAdjustLoaded', String(targetCount));
+    dom.thresholdSection.classList.remove('hidden');
+
+    handleThresholdChange();
+    dom.thresholdSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function setSingleActiveExecution(spreadsheetId: string, selectedExecutionId: string): Promise<void> {
@@ -505,10 +526,7 @@ export async function loadExecutionHistory() {
         })));
 
         // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
-        state.clearActiveLlmExecutionIds();
-        if (selectedActiveExecutionId) {
-            state.addActiveLlmExecutionId(selectedActiveExecutionId);
-        }
+        syncSetActiveLlmExecutionIds(new Set(selectedActiveExecutionId ? [selectedActiveExecutionId] : []));
 
         if (executions.length === 0) {
             dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
@@ -548,6 +566,12 @@ export async function loadExecutionHistory() {
                    </label>`
                 : '';
 
+            const adjustButtonHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+                ? `<button type="button" class="btn btn-outline btn-xsmall execution-adjust-btn" data-execution-id="${exec.execution_id}">
+                     ${t('llm_historyAdjustThreshold')}
+                   </button>`
+                : '';
+
             item.innerHTML = `
                 <div class="execution-header">
                     <div class="execution-date">
@@ -560,6 +584,7 @@ export async function loadExecutionHistory() {
                 <div class="execution-stats">
                     ${statsContent}
                 </div>
+                ${adjustButtonHtml}
             `;
 
             // ラジオボタンのイベントリスナー
@@ -572,14 +597,26 @@ export async function loadExecutionHistory() {
 
                     try {
                         await setSingleActiveExecution(spreadsheetId, exec.execution_id);
-                        state.clearActiveLlmExecutionIds();
-                        state.addActiveLlmExecutionId(exec.execution_id);
+                        syncSetActiveLlmExecutionIds(new Set([exec.execution_id]));
                         showToast(t('llm_historyActivated'));
                         await loadExecutionHistory();
                     } catch (error) {
                         console.error('[loadExecutionHistory] Failed to update is_active:', error);
                         showToast(t('llm_historyUpdateFailed'));
                         await loadExecutionHistory();
+                    }
+                });
+            }
+
+            const adjustButton = item.querySelector('.execution-adjust-btn') as HTMLButtonElement | null;
+            if (adjustButton) {
+                adjustButton.addEventListener('click', async () => {
+                    try {
+                        await prepareThresholdAdjustment(exec.execution_id, exec.include_threshold, exec.target_count);
+                        showToast(t('llm_thresholdAdjustReady'));
+                    } catch (error) {
+                        console.error('[loadExecutionHistory] Failed to prepare threshold adjustment:', error);
+                        showToast((error as Error).message || t('llm_historyUpdateFailed'));
                     }
                 });
             }

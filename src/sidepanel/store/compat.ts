@@ -355,6 +355,17 @@ export function setEnabledReviewers(reviewers: Set<string>): void {
 }
 
 /**
+ * アクティブなLLM実行IDを設定（両方に同期）
+ */
+export function setActiveLlmExecutionIds(ids: Set<string>): void {
+    legacyState.setActiveLlmExecutionIds(ids);
+    dispatch({ type: 'data/clearActiveLlmExecutionIds' });
+    ids.forEach((id) => {
+        dispatch({ type: 'data/addActiveLlmExecutionId', id });
+    });
+}
+
+/**
  * 検索クエリを設定（Store経由）
  */
 export function setSearchQuery(query: string): void {

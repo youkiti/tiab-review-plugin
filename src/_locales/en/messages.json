@@ -818,6 +818,9 @@
   "llm_historyUseDecision": {
     "message": "Use for decisions"
   },
+  "llm_historyAdjustThreshold": {
+    "message": "Adjust threshold"
+  },
   "llm_historyActivated": {
     "message": "Using for decisions"
   },
@@ -826,6 +829,15 @@
   },
   "llm_historyUpdateFailed": {
     "message": "Update failed"
+  },
+  "llm_thresholdAdjustReady": {
+    "message": "Loaded saved LLM decisions. You can change the threshold and reconfirm"
+  },
+  "llm_thresholdAdjustLoaded": {
+    "message": "✓ Loaded saved LLM decisions ($1)"
+  },
+  "llm_thresholdAdjustNoDecisions": {
+    "message": "No saved LLM decisions were found for reapply"
   },
   "llm_completedConfirm": {
     "message": "ML screening complete.\n\nWould you like to review the results in the Manual tab?\n(Select \"All\" or \"Include\"/\"Exclude\" in the filter to see the results)"

@@ -6,7 +6,7 @@
 import { t } from '../../../lib/i18n';
 import { dom } from '../../dom';
 import { state } from '../../state';
-import { getReviewerLabel, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
+import { getReviewerLabel, isActiveConfirmedLlmDecision, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 
 const ML_REVIEWER_SUFFIX = '::ml';
@@ -240,16 +240,18 @@ export function renderAiHighlightToggle() {
     const container = dom.aiHighlightContainer;
     if (!container) return;
 
-    // 現在読み込まれている文献内にAI判定が存在するかチェック
-    const hasAi = state.references.some((ref) =>
-        ref.allDecisions?.some((decision) => isLlmReviewerKey(decision.reviewer_id)) ?? false
+    // 閾値確定済みで有効なAI判定が少なくとも1件存在する場合のみ表示
+    const hasConfirmedAi = state.references.some((ref) =>
+        ref.allDecisions?.some((decision) => isActiveConfirmedLlmDecision(decision)) ?? false
     );
 
-    if (hasAi) {
+    if (hasConfirmedAi) {
         container.classList.remove('hidden');
         // チェックボックスの状態を同期
         dom.aiHighlightCheckbox.checked = state.showAiHighlights;
     } else {
+        state.setShowAiHighlights(false);
+        dom.aiHighlightCheckbox.checked = false;
         container.classList.add('hidden');
     }
 }
