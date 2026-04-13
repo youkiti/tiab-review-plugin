@@ -4,6 +4,8 @@ Chrome拡張機能 - Systematic Reviewのタイトル・抄録スクリーニン
 
 [Chrome store](https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja)で公開されてます。
 
+📄 **プレプリント**: Kataoka Y, Banno M, Kyo M, et al. TiAb review plugin: A browser-based tool for AI-assisted title and abstract screening. arXiv. 2026. [arXiv:2604.08602](http://arxiv.org/abs/2604.08602)
+
 ## 必要条件
 
 - **Node.js** >= 18.0.0
@@ -170,6 +172,12 @@ npm run watch  # 変更を監視して自動ビルド
 ```
 
 ローカルの `dist`フォルダをChromeに読み込めば、コード変更後は拡張機能の**リロードボタン（🔄）**を押すだけで反映されます。
+
+## 論文 / Publication
+
+本ツールについてのプレプリントが公開されています。引用する場合は以下をご利用ください。
+
+> Kataoka Y, Banno M, Kyo M, Nakao S, Sato T, Taito S, Takayama T, Tsuge T, Tsujimoto Y, So R, Furukawa TA. TiAb review plugin: A browser-based tool for AI-assisted title and abstract screening [Internet]. arXiv [cs.DL]. 2026. Available from: http://arxiv.org/abs/2604.08602
 
 ## ライセンス
 
