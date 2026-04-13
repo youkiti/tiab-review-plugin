@@ -29,6 +29,7 @@ import {
     toggleDistributionChart,
     handleConfirmThreshold,
     loadExecutionHistory,
+    setLoadDataAndShowScreening as setLoadDataAndShowScreeningForBatch,
 } from './batch';
 
 // Store互換レイヤー（Phase 5）
@@ -61,6 +62,10 @@ let _handleBack: (() => void) | null = null;
 
 export function setHandleBack(fn: () => void) {
     _handleBack = fn;
+}
+
+export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
+    setLoadDataAndShowScreeningForBatch(fn);
 }
 
 /**

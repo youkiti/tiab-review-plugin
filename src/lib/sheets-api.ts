@@ -681,11 +681,13 @@ export async function getReferencesWithAllDecisions(
         console.log('[getReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
     }
 
-    // 有効なLLM実行IDのセットを作成
+    // 有効なLLM実行IDは最新の1件だけを採用
+    const activeBatchExecution = llmExecutions
+        .filter(e => e.execution_type === 'batch_screening' && e.status === 'confirmed' && e.is_active)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
     const validLlmExecutionIds = new Set(
-        llmExecutions
-            .filter(e => e.status === 'confirmed' && e.is_active)
-            .map(e => e.execution_id)
+        activeBatchExecution ? [activeBatchExecution.execution_id] : []
     );
 
     console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({

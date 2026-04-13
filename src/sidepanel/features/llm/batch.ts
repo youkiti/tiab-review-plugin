@@ -36,6 +36,30 @@ export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
     _loadDataAndShowScreening = fn;
 }
 
+function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getLlmExecutions>>): string | null {
+    const activeBatchExecutions = executions
+        .filter(exec => exec.execution_type === 'batch_screening' && exec.status === 'confirmed' && exec.is_active)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return activeBatchExecutions[0]?.execution_id ?? null;
+}
+
+async function setSingleActiveExecution(spreadsheetId: string, selectedExecutionId: string): Promise<void> {
+    const executions = await getLlmExecutions(spreadsheetId);
+    const targetExecutions = executions.filter(exec =>
+        exec.execution_type === 'batch_screening' && exec.status === 'confirmed'
+    );
+
+    for (const exec of targetExecutions) {
+        const shouldBeActive = exec.execution_id === selectedExecutionId;
+        if (exec.is_active !== shouldBeActive) {
+            await updateLlmExecution(spreadsheetId, exec.execution_id, {
+                is_active: shouldBeActive,
+            });
+        }
+    }
+}
+
 /**
  * バッチ対象件数を更新
  */
@@ -74,6 +98,7 @@ export async function handleStartBatch() {
     dom.stopBatchBtn.classList.remove('hidden');
     dom.batchProgressDiv.classList.remove('hidden');
     dom.thresholdSection.classList.add('hidden');
+    dom.thresholdCompleteMessage.textContent = '';
 
     // AbortControllerを作成
     const abortController = new AbortController();
@@ -153,7 +178,7 @@ export async function handleStartBatch() {
             // 履歴を再読み込み
             await loadExecutionHistory();
 
-            dom.thresholdProcessedCount.textContent = result.successCount.toString();
+            dom.thresholdCompleteMessage.textContent = t('llm_thresholdComplete', String(result.successCount));
             dom.thresholdSection.classList.remove('hidden');
 
             // 閾値プレビューを更新
@@ -421,6 +446,8 @@ export async function handleConfirmThreshold() {
             is_active: true,  // 閾値確定時に「判定に使用」を自動でオン
         });
 
+        await setSingleActiveExecution(spreadsheetId, executionId);
+
         console.log('[handleConfirmThreshold] updateLlmExecution completed successfully');
 
         // LLM設定を更新
@@ -468,6 +495,7 @@ export async function loadExecutionHistory() {
 
     try {
         const executions = await getLlmExecutions(spreadsheetId);
+        const selectedActiveExecutionId = getSelectedActiveExecutionId(executions);
 
         console.log('[loadExecutionHistory] executions:', executions.map(e => ({
             id: e.execution_id,
@@ -478,10 +506,8 @@ export async function loadExecutionHistory() {
 
         // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
         state.clearActiveLlmExecutionIds();
-        for (const exec of executions) {
-            if (exec.status === 'confirmed' && exec.is_active) {
-                state.addActiveLlmExecutionId(exec.execution_id);
-            }
+        if (selectedActiveExecutionId) {
+            state.addActiveLlmExecutionId(selectedActiveExecutionId);
         }
 
         if (executions.length === 0) {
@@ -511,12 +537,13 @@ export async function loadExecutionHistory() {
                 ? t('llm_historyPendingStats', String(exec.target_count))
                 : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), exec.include_threshold.toFixed(2)]);
 
-            // チェックボックス（batch_screening かつ confirmed のみ）
-            const checkboxHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+            // ラジオボタン（batch_screening かつ confirmed のみ、単一選択）
+            const radioHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
                 ? `<label class="execution-active-label">
-                     <input type="checkbox" class="execution-active-checkbox" 
+                     <input type="radio" class="execution-active-checkbox"
+                            name="active-llm-execution"
                             data-execution-id="${exec.execution_id}" 
-                            ${exec.is_active ? 'checked' : ''}>
+                            ${exec.execution_id === selectedActiveExecutionId ? 'checked' : ''}>
                      ${t('llm_historyUseDecision')}
                    </label>`
                 : '';
@@ -528,26 +555,31 @@ export async function loadExecutionHistory() {
                         ${statusLabel}
                         ${dateStr}
                     </div>
-                    ${checkboxHtml}
+                    ${radioHtml}
                 </div>
                 <div class="execution-stats">
                     ${statsContent}
                 </div>
             `;
 
-            // チェックボックスのイベントリスナー
-            const checkbox = item.querySelector('.execution-active-checkbox') as HTMLInputElement | null;
-            if (checkbox) {
-                checkbox.addEventListener('change', async () => {
+            // ラジオボタンのイベントリスナー
+            const radio = item.querySelector('.execution-active-checkbox') as HTMLInputElement | null;
+            if (radio) {
+                radio.addEventListener('change', async () => {
+                    if (!radio.checked) {
+                        return;
+                    }
+
                     try {
-                        await updateLlmExecution(spreadsheetId, exec.execution_id, {
-                            is_active: checkbox.checked,
-                        });
-                        showToast(checkbox.checked ? t('llm_historyActivated') : t('llm_historyDeactivated'));
+                        await setSingleActiveExecution(spreadsheetId, exec.execution_id);
+                        state.clearActiveLlmExecutionIds();
+                        state.addActiveLlmExecutionId(exec.execution_id);
+                        showToast(t('llm_historyActivated'));
+                        await loadExecutionHistory();
                     } catch (error) {
                         console.error('[loadExecutionHistory] Failed to update is_active:', error);
                         showToast(t('llm_historyUpdateFailed'));
-                        checkbox.checked = !checkbox.checked; // ロールバック
+                        await loadExecutionHistory();
                     }
                 });
             }

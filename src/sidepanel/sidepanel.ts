@@ -98,6 +98,7 @@ reviewerFilter.setReviewerFilterDependencies({
 });
 
 llm.setHandleBack(project.handleBack);
+llm.setLoadDataAndShowScreening(project.loadDataAndShowScreening);
 
 
 // Global Event Listeners setup

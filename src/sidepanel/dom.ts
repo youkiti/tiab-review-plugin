@@ -190,7 +190,7 @@ const domElements = {
 
     // LLM Threshold
     get thresholdSection() { return getElement<HTMLElement>('threshold-section'); },
-    get thresholdProcessedCount() { return getElement<HTMLElement>('threshold-processed-count'); },
+    get thresholdCompleteMessage() { return getElement<HTMLElement>('threshold-complete-message'); },
     get thresholdSlider() { return getElement<HTMLInputElement>('threshold-slider'); },
     get thresholdValueDisplay() { return getElement<HTMLElement>('threshold-value-display'); },
     get previewIncludeCount() { return getElement<HTMLElement>('preview-include-count'); },
