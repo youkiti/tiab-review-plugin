@@ -41,6 +41,7 @@ temp_key.txt
 
 # Test coverage
 coverage/
+debug/
 
 # Temporary files
 *.tmp

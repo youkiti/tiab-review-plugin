@@ -45,6 +45,15 @@ function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getL
     return activeBatchExecutions[0]?.execution_id ?? null;
 }
 
+function getThresholdForAdjustment(exec: Awaited<ReturnType<typeof getLlmExecutions>>[number]): number {
+    if (exec.status === 'confirmed') {
+        return exec.include_threshold;
+    }
+
+    const configuredThreshold = state.llmConfig?.llm_include_threshold;
+    return typeof configuredThreshold === 'number' ? configuredThreshold : 0.3;
+}
+
 async function prepareThresholdAdjustment(executionId: string, threshold: number, targetCount: number): Promise<void> {
     const spreadsheetId = state.spreadsheetId;
     const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
@@ -566,10 +575,15 @@ export async function loadExecutionHistory() {
                    </label>`
                 : '';
 
-            const adjustButtonHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+            const canAdjustThreshold = exec.execution_type === 'batch_screening'
+                && (exec.status === 'pending' || exec.status === 'confirmed');
+            const adjustButtonLabel = exec.status === 'pending'
+                ? t('llm_historySetThreshold')
+                : t('llm_historyAdjustThreshold');
+            const adjustButtonHtml = canAdjustThreshold
                 ? `<button type="button" class="btn btn-outline btn-xsmall execution-adjust-btn" data-execution-id="${exec.execution_id}">
-                     ${t('llm_historyAdjustThreshold')}
-                   </button>`
+                     ${adjustButtonLabel}
+                    </button>`
                 : '';
 
             item.innerHTML = `
@@ -612,7 +626,7 @@ export async function loadExecutionHistory() {
             if (adjustButton) {
                 adjustButton.addEventListener('click', async () => {
                     try {
-                        await prepareThresholdAdjustment(exec.execution_id, exec.include_threshold, exec.target_count);
+                        await prepareThresholdAdjustment(exec.execution_id, getThresholdForAdjustment(exec), exec.target_count);
                         showToast(t('llm_thresholdAdjustReady'));
                     } catch (error) {
                         console.error('[loadExecutionHistory] Failed to prepare threshold adjustment:', error);

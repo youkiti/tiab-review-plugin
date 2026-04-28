@@ -821,6 +821,9 @@
   "llm_historyAdjustThreshold": {
     "message": "Adjust threshold"
   },
+  "llm_historySetThreshold": {
+    "message": "Set threshold"
+  },
   "llm_historyActivated": {
     "message": "Using for decisions"
   },

@@ -821,6 +821,9 @@
   "llm_historyAdjustThreshold": {
     "message": "閾値を変更"
   },
+  "llm_historySetThreshold": {
+    "message": "閾値を設定"
+  },
   "llm_historyActivated": {
     "message": "判定に使用します"
   },
