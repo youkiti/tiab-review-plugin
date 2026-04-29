@@ -136,6 +136,9 @@
   "screening_importRis": {
     "message": "📁 インポート"
   },
+  "screening_importTitle": {
+    "message": "対応形式: RIS / nbib / CSV(ClinicalTrials.gov) / XML(ICTRP・EndNote)。EndNote の .enl / .enlp は非対応です。EndNote で File → Export → XML を書き出してアップロードしてください。"
+  },
   "screening_export": {
     "message": "📥 エクスポート"
   },
@@ -493,6 +496,9 @@
         "content": "$1"
       }
     }
+  },
+  "import_endnoteEnlpUnsupported": {
+    "message": "EndNote の .enl / .enlp ファイルは直接読み込めません。EndNote で File → Export → XML 形式で書き出して、その .xml ファイルをアップロードしてください。"
   },
   "export_noData": {
     "message": "エクスポートする文献がありません"

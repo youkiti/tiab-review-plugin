@@ -136,6 +136,9 @@
   "screening_importRis": {
     "message": "📁 Import"
   },
+  "screening_importTitle": {
+    "message": "Supported: RIS / nbib / CSV (ClinicalTrials.gov) / XML (ICTRP, EndNote). EndNote .enl / .enlp are not supported — in EndNote choose File → Export and select XML, then upload that file."
+  },
   "screening_export": {
     "message": "📥 Export"
   },
@@ -493,6 +496,9 @@
         "content": "$1"
       }
     }
+  },
+  "import_endnoteEnlpUnsupported": {
+    "message": "EndNote .enl / .enlp files cannot be imported directly. In EndNote, choose File → Export and select XML, then upload that .xml file."
   },
   "export_noData": {
     "message": "No references to export"
