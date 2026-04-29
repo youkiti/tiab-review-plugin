@@ -9,7 +9,7 @@ import { getFilteredReferences } from './screening/filters';
 import { getSpreadsheetInfo, addReferences, getReferences } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
-import { parseImportFile } from '../../lib/file-dispatcher';
+import { parseImportFile, UnsupportedImportFormatError } from '../../lib/file-dispatcher';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -118,8 +118,14 @@ export async function handleRISImport(e: Event) {
 
     } catch (error) {
         console.error('Import error:', error);
-        showToast(t('import_error', (error as Error).message));
-        dom.importStatus.textContent = t('import_errorStatus');
+        if (error instanceof UnsupportedImportFormatError && error.code === 'endnote-enlp') {
+            const msg = t('import_endnoteEnlpUnsupported');
+            showToast(msg);
+            dom.importStatus.textContent = msg;
+        } else {
+            showToast(t('import_error', (error as Error).message));
+            dom.importStatus.textContent = t('import_errorStatus');
+        }
     } finally {
 
         showLoading(false);

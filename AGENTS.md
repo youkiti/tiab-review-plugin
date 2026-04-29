@@ -217,6 +217,27 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 | ―                           | journal       | 固定値 "ICTRP"                           |
 | その他臨床情報要素          | abstract      | `要素名: 値` 形式で `\|` 区切り合成      |
 
+### EndNote XML インポートフィールドマッピング
+
+EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。各テキスト値は `<style face="..." font="..." size="...">value</style>` でラップされているが `Element.textContent` で取得する。
+
+| XML 要素                                         | References 列 | 備考                                                                             |
+| ------------------------------------------------ | ------------- | -------------------------------------------------------------------------------- |
+| `titles > title`                                 | title         | 必須                                                                             |
+| `contributors > authors > author`                | authors       | セミコロン区切りで結合（10名超は `et al.` を付与）                               |
+| `dates > year`                                   | year          | 年部分のみ抽出                                                                   |
+| `periodical > full-title`                        | journal       | 第1優先                                                                          |
+| `titles > secondary-title`                       | journal       | `full-title` が無い場合のフォールバック                                          |
+| `volume`                                         | volume        | "6(2)" 形式の場合は volume="6", issue="2" に分離（Embase 経由のエクスポート対応） |
+| `number`                                         | issue         | 標準の EndNote エクスポートではこちらに号が入る。第1優先                         |
+| `pages`                                          | pages         |                                                                                  |
+| `isbn`                                           | issn          | EndNote DTD は ISSN 専用フィールドを持たないため `<isbn>` に格納される。ISSN形式（XXXX-XXXX）の場合のみ採用 |
+| `electronic-resource-num`                        | doi           | 末尾の `[doi]` 等のサフィックスは除去                                            |
+| `accession-num`                                  | pmid          | `remote-database-name` が PubMed の場合のみ。Embase 等の場合は誤マッチ防止のため未設定 |
+| `urls > related-urls > url`                      | url           | 最初の1件                                                                        |
+| `abstract`                                       | abstract      | 15,000 文字に制限                                                                |
+| `remote-database-name`                           | source        | 例: "Embase", "PubMed"。空なら "EndNote"                                         |
+
 ### オフライン同期の方針
 
 - **キュー永続化**:
