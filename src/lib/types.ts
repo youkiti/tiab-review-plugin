@@ -111,8 +111,27 @@ export interface LlmExecution {
     target_count: number;
     include_count: number;
     exclude_count: number;
-    status: 'pending' | 'confirmed';  // 確定状態
+    /**
+     * 確定状態:
+     *  - 'running'   : processBatch が実行中。再開可能性のためのプレースホルダ
+     *  - 'pending'   : 実行は完了したが閾値未確定
+     *  - 'confirmed' : 閾値確定済み（is_active=true なら判定として使用される）
+     * 既存データには 'pending' / 'confirmed' のみが含まれる（後方互換）。
+     */
+    status: 'running' | 'pending' | 'confirmed';
     is_active: boolean;               // 判定に使用するか
+}
+
+/**
+ * LLM処理で永続的に失敗した文献の記録 (LLM_Failures シート)。
+ * 同一 execution 内で複数回失敗した場合は最後のエラーで上書き／追記される。
+ */
+export interface LlmFailure {
+    execution_id: string;
+    ref_id: string;
+    failed_at: string;     // ISO 8601
+    error_message: string; // 最後のリトライ時のエラーメッセージ
+    model: string;
 }
 
 /**

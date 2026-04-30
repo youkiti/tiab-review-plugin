@@ -773,6 +773,21 @@
   "llm_retryError": {
     "message": "リトライエラー: $1"
   },
+  "llm_retryNoExecutionId": {
+    "message": "リトライ対象の実行IDが特定できません。一度サイドパネルを再読み込みし、実行履歴から「閾値を変更」を押してから再試行してください。"
+  },
+  "llm_skipFailedBtn": {
+    "message": "⏭ 失敗 $1 件を諦めて閾値設定へ進む"
+  },
+  "llm_skipFailedConfirm": {
+    "message": "失敗中の $1 件を諦めて閾値設定に進みます。\n\nこれらの ref_id は判定が記録されません。後から手動で判定するか、再度バッチ実行で対応してください。"
+  },
+  "llm_skipFailedDone": {
+    "message": "失敗 $1 件をスキップし、閾値設定に進みました"
+  },
+  "llm_batchUnfinishedConfirm": {
+    "message": "未確定の LLM 一括実行が $1 件あります。\n\n新規実行を開始すると別ジョブとして扱われ、Decisions シートに別々の実行 ID で記録されます。\n\nそれでも続行しますか？\n\n（既存ジョブを続けたい場合は、画面下の「実行履歴」から「閾値を変更」または「閾値を設定」を押してください）"
+  },
   "llm_thresholdTitle": {
     "message": "📊 閾値調整"
   },

@@ -25,6 +25,7 @@ import {
     handleStartBatch,
     handleStopBatch,
     handleRetryFailed,
+    handleSkipFailedAndProceed,
     handleThresholdChange,
     toggleDistributionChart,
     handleConfirmThreshold,
@@ -95,6 +96,7 @@ export function setupLlmEventListeners() {
     dom.startBatchBtn?.addEventListener('click', handleStartBatch);
     dom.stopBatchBtn?.addEventListener('click', handleStopBatch);
     dom.retryFailedBtn?.addEventListener('click', handleRetryFailed);
+    dom.skipFailedBtn?.addEventListener('click', handleSkipFailedAndProceed);
 
     // 閾値調整
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);

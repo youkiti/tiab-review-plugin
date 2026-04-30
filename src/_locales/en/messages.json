@@ -773,6 +773,21 @@
   "llm_retryError": {
     "message": "Retry error: $1"
   },
+  "llm_retryNoExecutionId": {
+    "message": "Cannot determine retry target execution. Reload the side panel, click 'Adjust threshold' on the relevant history item, then retry."
+  },
+  "llm_skipFailedBtn": {
+    "message": "⏭ Skip $1 failed and proceed to threshold"
+  },
+  "llm_skipFailedConfirm": {
+    "message": "Skip $1 failed items and proceed to threshold confirmation.\n\nThese ref_ids will not have judgments recorded. You can re-judge them manually or run a new batch later."
+  },
+  "llm_skipFailedDone": {
+    "message": "Skipped $1 failures and moved to threshold settings"
+  },
+  "llm_batchUnfinishedConfirm": {
+    "message": "$1 unfinished LLM batch run(s) exist.\n\nStarting a new run will create a separate job, recorded with a different execution_id in the Decisions sheet.\n\nProceed anyway?\n\n(To continue an existing job, click 'Adjust threshold' or 'Set threshold' under Execution History below.)"
+  },
   "llm_thresholdTitle": {
     "message": "📊 Threshold Adjustment"
   },

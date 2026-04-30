@@ -6,7 +6,24 @@
       "Bash(git submodule:*)",
       "Bash(xargs ls:*)",
       "Bash(xargs grep:*)",
-      "Read(//c/Users/youki/**)"
+      "Read(//c/Users/youki/**)",
+      "Bash(gcloud --version)",
+      "Bash(pip --version)",
+      "Bash(pip show *)",
+      "Bash(python c:/Users/youki/codes/tiab-review-plugin/scripts/diagnose_batch_counts.py)",
+      "Bash(python -c \"import openpyxl; print\\(openpyxl.__version__\\)\")",
+      "Bash(python -c \"import pandas; print\\(pandas.__version__\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(tee c:/Users/youki/codes/tiab-review-plugin/debug/diagnose_result.txt)",
+      "Bash(python scripts/reproduce_failed_ref.py --model gemini-2.5-flash-lite --attempts 3)",
+      "Bash(tee debug/reproduce_lite_actual.txt)",
+      "Bash(python scripts/reproduce_failed_ref.py --model gemini-3-flash-preview --attempts 3)",
+      "Bash(tee debug/reproduce_flash3.txt)",
+      "Bash(python scripts/reproduce_failed_ref.py --model gemini-2.5-flash-lite --attempts 3 --burst 5)",
+      "Bash(tee debug/reproduce_burst.txt)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(python scripts/consolidate_decisions.py)"
     ]
   }
 }

@@ -42,6 +42,7 @@ temp_key.txt
 # Test coverage
 coverage/
 debug/
+scripts/diagnose_data/
 
 # Temporary files
 *.tmp

@@ -109,6 +109,17 @@ export interface BatchProcessOptions {
     onProgress?: ProgressCallback;
     onSaveBatch?: (decisions: Decision[]) => Promise<void>;
     abortSignal?: AbortSignal;
+    /**
+     * 既存の execution_id を引き継ぐ場合に指定。
+     * 未指定なら新規 UUID 相当の executionId が発行される。
+     * リトライ時は初回 run の executionId を渡すことで、
+     * Decisions シート / LLM_Executions に同一 execution として記録される。
+     */
+    existingExecutionId?: string;
+    /** バッチ処理開始時に1回だけ呼ばれる（pending 登録に使用） */
+    onStart?: (executionId: string, total: number) => Promise<void>;
+    /** 失敗した ref と最後のエラーを通知 (B8 用、永続化は呼び出し側で実施) */
+    onRefFailed?: (refId: string, error: string) => Promise<void>;
 }
 
 /**
@@ -126,6 +137,7 @@ export interface BatchProcessResult {
 /**
  * 1件の文献を処理（リトライ付き）
  * 失敗時は指数バックオフで最大2回リトライ
+ * 戻り値の lastError は失敗時の最後のエラーメッセージ（永続化用）。
  */
 async function processWithRetry(
     ref: Reference,
@@ -136,7 +148,8 @@ async function processWithRetry(
     model: string,
     timestamp: Date,
     maxRetries: number = 2
-): Promise<{ success: boolean; decision: Decision | null; refId: string }> {
+): Promise<{ success: boolean; decision: Decision | null; refId: string; lastError: string | null }> {
+    let lastError: string | null = null;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
             const { output, usageMetadata } = await screenReference(
@@ -159,12 +172,13 @@ async function processWithRetry(
                 client_version: getClientVersion('-llm'),
             };
 
-            return { success: true, decision, refId: ref.ref_id };
+            return { success: true, decision, refId: ref.ref_id, lastError: null };
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            lastError = errorMessage;
             if (attempt < maxRetries) {
                 // 指数バックオフ: 5秒, 10秒
                 const delay = 5000 * Math.pow(2, attempt);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms. Reason: ${errorMessage}`);
                 await sleep(delay);
             } else {
@@ -172,7 +186,7 @@ async function processWithRetry(
             }
         }
     }
-    return { success: false, decision: null, refId: ref.ref_id };
+    return { success: false, decision: null, refId: ref.ref_id, lastError };
 }
 
 /**
@@ -183,7 +197,19 @@ export async function processBatch(
     options: BatchProcessOptions
 ): Promise<BatchProcessResult> {
     const timestamp = new Date();
-    const executionId = generateLlmReviewerId(options.model, timestamp);
+    // リトライ時は呼び出し側から既存 executionId を引き継ぐ。
+    // 引き継がない場合のみ新規発行する。
+    const executionId = options.existingExecutionId
+        || generateLlmReviewerId(options.model, timestamp);
+
+    // 開始通知（呼び出し側で LLM_Executions への pending 登録などを行える）
+    if (options.onStart) {
+        try {
+            await options.onStart(executionId, references.length);
+        } catch (e) {
+            console.warn('[processBatch] onStart callback failed (continuing):', e);
+        }
+    }
 
     const progress: LlmBatchProgress = {
         total: references.length,
@@ -222,6 +248,13 @@ export async function processBatch(
         const batchRefs = references.slice(batchStart, batchEnd);
         const batchDecisions: Decision[] = [];
 
+        // 失敗ログを batch 単位でまとめて呼び出し側に通知するためのバッファ
+        const batchFailures: { refId: string; error: string }[] = [];
+
+        const reportFailure = (refId: string, error: string | null) => {
+            batchFailures.push({ refId, error: error || 'Unknown error' });
+        };
+
         if (isSequential) {
             // 無料版: 順次実行（1件ずつ処理し、間にwait）+ 自動リトライ
             for (const ref of batchRefs) {
@@ -247,6 +280,7 @@ export async function processBatch(
                     allDecisions.push(result.decision);
                 } else {
                     progress.failed++;
+                    reportFailure(result.refId, result.lastError);
                 }
 
                 options.onProgress?.(progress);
@@ -276,6 +310,7 @@ export async function processBatch(
                     allDecisions.push(result.decision);
                 } else {
                     progress.failed++;
+                    reportFailure(result.refId, result.lastError);
                 }
 
                 // 即時進捗更新
@@ -296,6 +331,17 @@ export async function processBatch(
         // バッチを保存
         if (batchDecisions.length > 0 && options.onSaveBatch) {
             await options.onSaveBatch(batchDecisions);
+        }
+
+        // 失敗を通知（永続化は呼び出し側）
+        if (batchFailures.length > 0 && options.onRefFailed) {
+            for (const f of batchFailures) {
+                try {
+                    await options.onRefFailed(f.refId, f.error);
+                } catch (e) {
+                    console.warn('[processBatch] onRefFailed callback failed:', e);
+                }
+            }
         }
     }
 
@@ -413,7 +459,7 @@ export function createLlmExecution(
     targetCount: number,
     includeCount: number,
     excludeCount: number,
-    status: 'pending' | 'confirmed' = 'confirmed',
+    status: 'running' | 'pending' | 'confirmed' = 'confirmed',
     isActive: boolean = true,
     // Model parameters
     temperature?: number,

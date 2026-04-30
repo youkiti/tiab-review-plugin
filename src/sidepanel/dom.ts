@@ -187,6 +187,7 @@ const domElements = {
     get batchSuccessCount() { return getElement<HTMLElement>('batch-success-count'); },
     get batchFailCount() { return getElement<HTMLElement>('batch-fail-count'); },
     get retryFailedBtn() { return getElement<HTMLButtonElement>('retry-failed-btn'); },
+    get skipFailedBtn() { return getElement<HTMLButtonElement>('skip-failed-btn'); },
 
     // LLM Threshold
     get thresholdSection() { return getElement<HTMLElement>('threshold-section'); },

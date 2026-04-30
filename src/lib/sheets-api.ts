@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, AssignmentConfig } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmFailure, AssignmentConfig } from './types';
 import { t } from './i18n';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
@@ -10,6 +10,7 @@ const REFERENCES_SHEET = 'References';
 const DECISIONS_SHEET = 'Decisions';
 const CONFIG_SHEET = 'Config';
 const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
+const LLM_FAILURES_SHEET = 'LLM_Failures';
 
 // LLM_Executionsシートのヘッダー
 const LLM_EXECUTIONS_HEADERS = [
@@ -18,6 +19,11 @@ const LLM_EXECUTIONS_HEADERS = [
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
     'target_count', 'include_count', 'exclude_count',
     'status', 'is_active'
+];
+
+// LLM_Failures シートのヘッダー
+const LLM_FAILURES_HEADERS = [
+    'execution_id', 'ref_id', 'failed_at', 'error_message', 'model'
 ];
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
@@ -1549,7 +1555,10 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                         execution[header] = value.toLowerCase() === 'true';
                         break;
                     case 'status':
-                        execution[header] = value === 'pending' ? 'pending' : 'confirmed';
+                        // 後方互換: 既存データは 'pending'/'confirmed' のみ。'running' を新規追加。
+                        execution[header] = (value === 'running' || value === 'pending')
+                            ? value
+                            : 'confirmed';
                         break;
                     default:
                         execution[header] = value || '';
@@ -1627,6 +1636,94 @@ export async function updateLlmExecution(
 
     await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:O${rowIndex}`, [newRow]);
     console.log('[updateLlmExecution] Update completed');
+}
+
+/**
+ * LLM 実行を「あれば更新、なければ追加」する upsert。
+ * processBatch 開始時に running として登録するために使用する。
+ */
+export async function upsertLlmExecution(
+    spreadsheetId: string,
+    execution: LlmExecution
+): Promise<void> {
+    await ensureLlmExecutionsSheet(spreadsheetId);
+    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:A`);
+    let exists = false;
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === execution.execution_id) {
+            exists = true;
+            break;
+        }
+    }
+    if (exists) {
+        await updateLlmExecution(spreadsheetId, execution.execution_id, execution);
+    } else {
+        await saveLlmExecution(spreadsheetId, execution);
+    }
+}
+
+/**
+ * LLM_Failures シートを初期化（無ければ作成）
+ */
+export async function ensureLlmFailuresSheet(spreadsheetId: string): Promise<void> {
+    try {
+        await getSheetValues(spreadsheetId, `${LLM_FAILURES_SHEET}!A1:A1`);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[ensureLlmFailuresSheet] Creating LLM_Failures sheet...');
+            await addSheet(spreadsheetId, LLM_FAILURES_SHEET);
+            await appendRows(spreadsheetId, LLM_FAILURES_SHEET, [LLM_FAILURES_HEADERS]);
+        } else {
+            throw error;
+        }
+    }
+}
+
+/**
+ * LLM_Failures シートに失敗レコードを一括追加
+ */
+export async function appendLlmFailures(
+    spreadsheetId: string,
+    failures: LlmFailure[]
+): Promise<void> {
+    if (failures.length === 0) return;
+    await ensureLlmFailuresSheet(spreadsheetId);
+    const rows = failures.map(f => [
+        f.execution_id,
+        f.ref_id,
+        f.failed_at,
+        f.error_message,
+        f.model,
+    ]);
+    await appendRows(spreadsheetId, LLM_FAILURES_SHEET, rows);
+}
+
+/**
+ * 特定 execution の失敗一覧を取得
+ */
+export async function getLlmFailures(
+    spreadsheetId: string,
+    executionId: string
+): Promise<LlmFailure[]> {
+    try {
+        await ensureLlmFailuresSheet(spreadsheetId);
+        const values = await getSheetValues(spreadsheetId, `${LLM_FAILURES_SHEET}!A:E`);
+        if (values.length <= 1) return [];
+        const headers = values[0];
+        const out: LlmFailure[] = [];
+        for (let i = 1; i < values.length; i++) {
+            const row = values[i];
+            const f: Record<string, string> = {};
+            headers.forEach((h, j) => { f[h] = row[j] || ''; });
+            if (f.execution_id === executionId) {
+                out.push(f as unknown as LlmFailure);
+            }
+        }
+        return out;
+    } catch (error) {
+        console.error('[getLlmFailures] Error:', error);
+        return [];
+    }
 }
 
 /**
