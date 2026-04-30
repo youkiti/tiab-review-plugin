@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Grep",
+      "Bash(git submodule:*)",
+      "Bash(git checkout *)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(python)",
+      "Bash(python -c ' *)",
+      "Bash(xargs ls:*)",
+      "Bash(xargs grep:*)",
+      "Bash(echo \"exit=$?\")"
+    ]
+  }
+}
