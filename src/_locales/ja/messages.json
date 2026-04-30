@@ -746,6 +746,21 @@
   "llm_batchFail": {
     "message": "失敗:"
   },
+  "llm_batchFallback": {
+    "message": "解析失敗:"
+  },
+  "llm_batchFallbackNotice": {
+    "message": "⚠️ $1件はLLM出力を解析できなかったため、確率1.0（必ずレビュー）として保存しました。閾値ではフィルタされません。"
+  },
+  "llm_batchMaxCountLabel": {
+    "message": "実行件数:"
+  },
+  "llm_batchMaxCountAll": {
+    "message": "すべて"
+  },
+  "llm_batchPlanned": {
+    "message": "今回実行:"
+  },
   "llm_batchNoTarget": {
     "message": "処理対象の文献がありません"
   },
@@ -778,6 +793,9 @@
   },
   "llm_thresholdComplete": {
     "message": "✓ 一括実行完了 ($1件処理)"
+  },
+  "llm_thresholdCompleteWithFallback": {
+    "message": "✓ 一括実行完了 ($1件処理。うち$2件はLLM出力解析失敗のため確率1.0で保存)"
   },
   "llm_thresholdLabel": {
     "message": "Include閾値:"

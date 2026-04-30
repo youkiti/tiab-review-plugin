@@ -176,7 +176,9 @@ const domElements = {
 
     // LLM Batch
     get batchSaveSizeInput() { return getElement<HTMLInputElement>('batch-save-size-input'); },
+    get batchMaxCountSelect() { return getElement<HTMLSelectElement>('batch-max-count-select'); },
     get batchTargetCount() { return getElement<HTMLElement>('batch-target-count'); },
+    get batchPlannedCount() { return getElement<HTMLElement>('batch-planned-count'); },
     get startBatchBtn() { return getElement<HTMLButtonElement>('start-batch-btn'); },
     get stopBatchBtn() { return getElement<HTMLButtonElement>('stop-batch-btn'); },
     get batchProgressDiv() { return getElement<HTMLElement>('batch-progress'); },
@@ -186,6 +188,7 @@ const domElements = {
     get batchProgressBarFill() { return getElement<HTMLElement>('batch-progress-bar-fill'); },
     get batchSuccessCount() { return getElement<HTMLElement>('batch-success-count'); },
     get batchFailCount() { return getElement<HTMLElement>('batch-fail-count'); },
+    get batchFallbackCount() { return getElement<HTMLElement>('batch-fallback-count'); },
     get retryFailedBtn() { return getElement<HTMLButtonElement>('retry-failed-btn'); },
 
     // LLM Threshold

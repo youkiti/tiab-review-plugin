@@ -95,6 +95,7 @@ export function setupLlmEventListeners() {
     dom.startBatchBtn?.addEventListener('click', handleStartBatch);
     dom.stopBatchBtn?.addEventListener('click', handleStopBatch);
     dom.retryFailedBtn?.addEventListener('click', handleRetryFailed);
+    dom.batchMaxCountSelect?.addEventListener('change', updateBatchTargetCount);
 
     // 閾値調整
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);

@@ -420,8 +420,20 @@
                     <span class="setting-hint" data-i18n="llm_batchSizeHint"></span>
                 </div>
 
+                <div class="setting-row">
+                    <label data-i18n="llm_batchMaxCountLabel"></label>
+                    <select id="batch-max-count-select">
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100" selected>100</option>
+                        <option value="500">500</option>
+                        <option value="all" data-i18n="llm_batchMaxCountAll"></option>
+                    </select>
+                </div>
+
                 <div id="batch-info" class="batch-info">
                     <span data-i18n="llm_batchPending"></span> <span id="batch-target-count">0</span>
+                    / <span data-i18n="llm_batchPlanned"></span> <span id="batch-planned-count">0</span>
                 </div>
 
                 <button id="start-batch-btn" class="btn btn-primary btn-full" data-i18n="llm_batchStart">
@@ -439,7 +451,8 @@
                     </div>
                     <div class="progress-stats">
                         <span data-i18n="llm_batchSuccess"></span> <span id="batch-success-count">0</span> /
-                        <span data-i18n="llm_batchFail"></span> <span id="batch-fail-count">0</span>
+                        <span data-i18n="llm_batchFail"></span> <span id="batch-fail-count">0</span> /
+                        <span data-i18n="llm_batchFallback"></span> <span id="batch-fallback-count">0</span>
                     </div>
                 </div>
 

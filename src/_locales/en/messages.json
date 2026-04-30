@@ -746,6 +746,21 @@
   "llm_batchFail": {
     "message": "Failed:"
   },
+  "llm_batchFallback": {
+    "message": "Parse error:"
+  },
+  "llm_batchFallbackNotice": {
+    "message": "⚠️ $1 item(s) could not be parsed by the LLM and were saved as probability 1.0 (always reviewed). They are not filtered by the threshold."
+  },
+  "llm_batchMaxCountLabel": {
+    "message": "Run count:"
+  },
+  "llm_batchMaxCountAll": {
+    "message": "All"
+  },
+  "llm_batchPlanned": {
+    "message": "This run:"
+  },
   "llm_batchNoTarget": {
     "message": "No references to process"
   },
@@ -778,6 +793,9 @@
   },
   "llm_thresholdComplete": {
     "message": "✓ Batch complete ($1 processed)"
+  },
+  "llm_thresholdCompleteWithFallback": {
+    "message": "✓ Batch complete ($1 processed; $2 saved as probability 1.0 due to LLM output parse error)"
   },
   "llm_thresholdLabel": {
     "message": "Include threshold:"

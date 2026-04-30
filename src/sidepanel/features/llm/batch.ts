@@ -94,9 +94,14 @@ async function setSingleActiveExecution(spreadsheetId: string, selectedExecution
  * バッチ対象件数を更新
  */
 export function updateBatchTargetCount() {
-    // 常に未判定のみを対象
-    const count = state.references.length;
-    dom.batchTargetCount.textContent = count.toString();
+    const pendingCount = state.references.filter((r) => r.status === 'pending').length;
+    dom.batchTargetCount.textContent = pendingCount.toString();
+
+    const maxCountRaw = dom.batchMaxCountSelect.value;
+    const plannedCount = maxCountRaw === 'all'
+        ? pendingCount
+        : Math.min(pendingCount, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+    dom.batchPlannedCount.textContent = plannedCount.toString();
 }
 
 /**
@@ -115,8 +120,12 @@ export async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得（全件）
-    const targetRefs = state.references;
+    // 対象文献を取得（未判定のみ・件数上限を適用）
+    const pendingRefs = state.references.filter((r) => r.status === 'pending');
+    const maxCountRaw = dom.batchMaxCountSelect.value;
+    const targetRefs = maxCountRaw === 'all'
+        ? pendingRefs
+        : pendingRefs.slice(0, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
 
     if (targetRefs.length === 0) {
         showToast(t('llm_batchNoTarget'));
@@ -208,8 +217,15 @@ export async function handleStartBatch() {
             // 履歴を再読み込み
             await loadExecutionHistory();
 
-            dom.thresholdCompleteMessage.textContent = t('llm_thresholdComplete', String(result.successCount));
+            dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
+                ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
+                : t('llm_thresholdComplete', String(result.successCount));
             dom.thresholdSection.classList.remove('hidden');
+
+            // フォールバック発生時はトーストでも明示
+            if (result.fallbackCount > 0) {
+                showToast(t('llm_batchFallbackNotice', String(result.fallbackCount)), 6000);
+            }
 
             // 閾値プレビューを更新
             handleThresholdChange();
@@ -308,9 +324,13 @@ export async function handleRetryFailed() {
         if (result.failedRefIds.length > 0) {
             dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
             dom.retryFailedBtn.classList.remove('hidden');
-            showToast(t('llm_retryPartial', [String(result.successCount), String(result.failCount)]));
+            showToast(t('llm_retryPartial', [String(result.successCount), String(result.failCount + result.fallbackCount)]));
         } else {
             showToast(t('llm_retryComplete', String(result.successCount)));
+        }
+
+        if (result.fallbackCount > 0) {
+            showToast(t('llm_batchFallbackNotice', String(result.fallbackCount)), 6000);
         }
 
         // 閾値プレビューを更新
@@ -340,6 +360,7 @@ export function updateBatchProgress(progress: LlmBatchProgress) {
 
     dom.batchSuccessCount.textContent = progress.succeeded.toString();
     dom.batchFailCount.textContent = progress.failed.toString();
+    dom.batchFallbackCount.textContent = progress.parseErrorFallback.toString();
 }
 
 /**
