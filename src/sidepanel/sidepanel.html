@@ -340,6 +340,7 @@
                 <div class="collapsible-content">
                     <div class="setting-row">
                         <label data-i18n="llm_modelLabel"></label>
+                        <span class="help-icon" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
                         <select id="llm-model-select">
                             <option value="gemini-3-flash-preview" selected data-i18n="llm_modelFlash3"></option>
                             <option value="gemini-2.5-flash-lite" data-i18n="llm_modelLite"></option>
@@ -347,6 +348,7 @@
                     </div>
                     <div class="setting-row">
                         <label data-i18n="llm_outputLanguage"></label>
+                        <span class="help-icon" data-i18n-tooltip="llm_tip_outputLanguage" tabindex="0">?</span>
                         <select id="llm-language-select">
                             <option value="ja" data-i18n="llm_langJa"></option>
                             <option value="en" data-i18n="llm_langEn"></option>
@@ -359,6 +361,7 @@
             <div id="api-key-card" class="llm-card collapsible">
                 <h4 class="collapsible-header">
                     <span data-i18n="llm_apiKeyTitle"></span>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_apiKey" tabindex="0">?</span>
                     <span id="api-key-summary" class="card-summary"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
@@ -371,6 +374,7 @@
                         <label class="checkbox-label">
                             <input type="checkbox" id="save-api-key-checkbox" checked>
                             <span data-i18n="llm_apiKeySaveToDevice"></span>
+                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
                         </label>
                     </div>
                     <div id="api-key-status" class="api-key-status"></div>
@@ -383,6 +387,7 @@
 
                 <div class="criteria-section">
                     <label data-i18n="llm_protocolInputLabel"></label>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_protocol" tabindex="0">?</span>
                     <textarea id="protocol-text-input" rows="6"
                         data-i18n-placeholder="llm_protocolPlaceholder"></textarea>
                 </div>
@@ -410,6 +415,7 @@
 
                 <div class="setting-row">
                     <label data-i18n="llm_batchSizeLabel"></label>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_batchSize" tabindex="0">?</span>
                     <input type="number" id="batch-save-size-input" value="5" min="1" max="500" style="width: 60px;">
                     <span class="setting-hint" data-i18n="llm_batchSizeHint"></span>
                 </div>
@@ -449,7 +455,7 @@
                 </div>
 
                 <div class="threshold-control">
-                    <label><span data-i18n="llm_thresholdLabel"></span> <span id="threshold-value-display">0.30</span></label>
+                    <label><span data-i18n="llm_thresholdLabel"></span> <span id="threshold-value-display">0.30</span><span class="help-icon" data-i18n-tooltip="llm_tip_threshold" tabindex="0">?</span></label>
                     <input type="range" id="threshold-slider" min="0" max="1" step="0.01" value="0.30">
                     <div class="threshold-range-labels">
                         <span>0.0</span>
@@ -527,7 +533,10 @@
 
                     <div class="stopping-rule-container">
                         <div class="stopping-header">
-                            <span class="label" data-i18n="ml_stoppingLabel"></span>
+                            <span class="stopping-label-group">
+                                <span class="label" data-i18n="ml_stoppingLabel"></span>
+                                <span class="help-icon" data-i18n-tooltip="ml_tip_stopping" tabindex="0">?</span>
+                            </span>
                             <button id="ml-stopping-settings-btn" class="btn-link" data-i18n="ml_stoppingNone"></button>
                         </div>
                         <div class="stopping-progress-bar hidden" id="ml-stopping-progress-container">

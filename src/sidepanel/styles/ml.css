@@ -168,6 +168,11 @@
     margin-bottom: 4px;
 }
 
+.stopping-label-group {
+    display: inline-flex;
+    align-items: center;
+}
+
 .progress-bar-bg {
     height: 8px;
     background: #e0e0e0;

@@ -1335,5 +1335,32 @@
         "content": "$2"
       }
     }
+  },
+  "common_helpIconLabel": {
+    "message": "ヘルプ"
+  },
+  "llm_tip_model": {
+    "message": "判定に使うGeminiモデルを選びます。\n• Gemini 3 Flash: 推奨。判定精度が高め。\n• Gemini 2.5 Flash Lite: 高速・低コスト。大量処理向け。\n迷ったらGemini 3 Flashを選んでください。"
+  },
+  "llm_tip_outputLanguage": {
+    "message": "AIが出力する判定理由(reason)の言語を切り替えます。\n推奨: 普段使う言語に合わせる。"
+  },
+  "llm_tip_apiKey": {
+    "message": "Google AI Studio で取得したGemini APIキーを入力します。\n無料版でも動作しますが、約13秒/件と低速です。\n大規模実行には有料版(Tier1以上)を推奨します。"
+  },
+  "llm_tip_apiKeySave": {
+    "message": "ONにすると、この端末の暗号化ストレージにAPIキーを保存します。\n共有PCではOFF推奨(その場合はセッション中のみ保持)。"
+  },
+  "llm_tip_protocol": {
+    "message": "プロトコルや申請書の組み入れ・除外基準をそのまま貼り付けてください。\n「基準を最適化」を押すと、AIが判定用プロンプトに整形します。"
+  },
+  "llm_tip_batchSize": {
+    "message": "1回のスプレッドシート保存単位の件数です。\n推奨:\n• 無料APIキー: 1〜5件\n• 有料 Tier1: 5〜20件\n• 有料 Tier2: 20〜50件\n大きいほど高速ですが、失敗時の再実行範囲も広くなります。"
+  },
+  "llm_tip_threshold": {
+    "message": "AIスコアがこの値以上ならInclude、未満ならExcludeとして保存します。\n推奨初期値: 0.30(取りこぼしを抑えたい場合)\n絞り込みたい場合: 0.50。\n下の分布グラフを見ながら調整してください。"
+  },
+  "ml_tip_stopping": {
+    "message": "スクリーニング終了の目安(停止基準)を設定します。\n推奨:\n• 「連続Exclude 50件」(シンプル基準)\n• 「目標リコール 95% / 信頼水準 95%」(統計基準)\nプロジェクト規模に応じて選んでください。"
   }
 }

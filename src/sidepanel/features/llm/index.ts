@@ -103,7 +103,11 @@ export function setupLlmEventListeners() {
 
     // 折りたたみセクション
     document.querySelectorAll('.llm-card.collapsible .collapsible-header').forEach(header => {
-        header.addEventListener('click', () => {
+        header.addEventListener('click', (e) => {
+            // ヘルプアイコンのクリックでは折りたたまない
+            if ((e.target as HTMLElement)?.closest('.help-icon')) {
+                return;
+            }
             const card = header.closest('.llm-card.collapsible');
             card?.classList.toggle('collapsed');
         });

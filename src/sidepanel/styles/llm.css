@@ -177,10 +177,15 @@
 }
 
 .criteria-section label {
-    display: block;
+    display: inline-block;
     font-size: 13px;
     font-weight: 500;
     color: #666;
+    margin-bottom: 6px;
+}
+
+/* ヘルプアイコンを伴うラベル行用 */
+.criteria-section > label + .help-icon {
     margin-bottom: 6px;
 }
 
