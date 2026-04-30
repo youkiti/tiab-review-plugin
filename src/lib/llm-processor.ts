@@ -59,6 +59,29 @@ export function createLlmDecisionNote(
 }
 
 /**
+ * LLM 出力解析失敗時のフォールバック note を生成
+ * - SR で組入候補の見逃しを防ぐため include_probability=1.0 で記録
+ * - parse_error フラグで通常の判定と区別
+ */
+export function createLlmFallbackDecisionNote(
+    executionId: string,
+    model: string,
+    errorMessage: string
+): LlmDecisionNote {
+    return {
+        type: 'llm',
+        execution_id: executionId,
+        model,
+        include_probability: 1.0,
+        reasons: [`LLM 出力が解析できませんでした (${errorMessage})`],
+        evidence: [],
+        prompt_version: PROMPT_VERSION,
+        parse_error: true,
+        error_message: errorMessage,
+    };
+}
+
+/**
  * noteフィールドからLlmDecisionNoteをパース
  */
 export function parseLlmDecisionNote(note: string): LlmDecisionNote | null {
@@ -117,15 +140,23 @@ export interface BatchProcessOptions {
 export interface BatchProcessResult {
     executionId: string;
     processedCount: number;
-    successCount: number;
-    failCount: number;
+    successCount: number;       // 通常の成功件数（フォールバックは含まない）
+    failCount: number;          // decision を作れなかった件数（abort 等）
+    fallbackCount: number;      // LLM 出力解析失敗で確率 1.0 として保存した件数
     decisions: Decision[];
-    failedRefIds: string[];  // リトライ後も失敗したref_id一覧
+    failedRefIds: string[];     // リトライ対象（完全失敗 + フォールバック保存）
+    fallbackRefIds: string[];   // フォールバック保存された ref_id（再判定したい場合の参照用）
 }
+
+type ProcessOutcome =
+    | { success: true; decision: Decision; refId: string; isFallback: boolean }
+    | { success: false; decision: null; refId: string };
 
 /**
  * 1件の文献を処理（リトライ付き）
  * 失敗時は指数バックオフで最大2回リトライ
+ * 全リトライ失敗時は include_probability=1.0 のフォールバック判定を返す
+ *  （SR で組入候補の見逃しを防ぐ安全側設計）
  */
 async function processWithRetry(
     ref: Reference,
@@ -136,7 +167,8 @@ async function processWithRetry(
     model: string,
     timestamp: Date,
     maxRetries: number = 2
-): Promise<{ success: boolean; decision: Decision | null; refId: string }> {
+): Promise<ProcessOutcome> {
+    let lastErrorMessage = 'Unknown error';
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
             const { output, usageMetadata } = await screenReference(
@@ -159,20 +191,33 @@ async function processWithRetry(
                 client_version: getClientVersion('-llm'),
             };
 
-            return { success: true, decision, refId: ref.ref_id };
+            return { success: true, decision, refId: ref.ref_id, isFallback: false };
         } catch (error) {
+            lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             if (attempt < maxRetries) {
                 // 指数バックオフ: 5秒, 10秒
                 const delay = 5000 * Math.pow(2, attempt);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms. Reason: ${errorMessage}`);
+                console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms. Reason: ${lastErrorMessage}`);
                 await sleep(delay);
             } else {
                 console.error(`[processWithRetry] Failed after ${maxRetries} retries for ${ref.ref_id}:`, error);
             }
         }
     }
-    return { success: false, decision: null, refId: ref.ref_id };
+
+    // フォールバック: include_probability=1.0 で記録（人間レビューに必ず残す）
+    const fallbackNote = createLlmFallbackDecisionNote(executionId, model, lastErrorMessage);
+    const fallbackDecision: Decision = {
+        decision_id: crypto.randomUUID(),
+        ref_id: ref.ref_id,
+        reviewer_id: executionId,
+        decision: 'pending',
+        reason: '',
+        note: JSON.stringify(fallbackNote),
+        decided_at: timestamp.toISOString(),
+        client_version: getClientVersion('-llm'),
+    };
+    return { success: true, decision: fallbackDecision, refId: ref.ref_id, isFallback: true };
 }
 
 /**
@@ -190,10 +235,12 @@ export async function processBatch(
         processed: 0,
         succeeded: 0,
         failed: 0,
+        parseErrorFallback: 0,
         isRunning: true,
     };
 
     const allDecisions: Decision[] = [];
+    const fallbackRefIds: string[] = [];
 
     const modelConfig: GeminiModelConfig = {
         model: options.model,
@@ -242,7 +289,12 @@ export async function processBatch(
 
                 progress.processed++;
                 if (result.success && result.decision) {
-                    progress.succeeded++;
+                    if (result.isFallback) {
+                        progress.parseErrorFallback++;
+                        fallbackRefIds.push(result.refId);
+                    } else {
+                        progress.succeeded++;
+                    }
                     batchDecisions.push(result.decision);
                     allDecisions.push(result.decision);
                 } else {
@@ -271,7 +323,12 @@ export async function processBatch(
 
                 progress.processed++;
                 if (result.success && result.decision) {
-                    progress.succeeded++;
+                    if (result.isFallback) {
+                        progress.parseErrorFallback++;
+                        fallbackRefIds.push(result.refId);
+                    } else {
+                        progress.succeeded++;
+                    }
                     batchDecisions.push(result.decision);
                     allDecisions.push(result.decision);
                 } else {
@@ -303,19 +360,24 @@ export async function processBatch(
     progress.currentRefId = undefined;
     options.onProgress?.(progress);
 
-    // 失敗したref_idを特定（成功したref_id以外）
-    const successRefIds = new Set(allDecisions.map(d => d.ref_id));
-    const failedRefIds = references
-        .filter(r => !successRefIds.has(r.ref_id))
+    // 完全に decision を作れなかった ref_id（abort 等）
+    const decisionRefIds = new Set(allDecisions.map(d => d.ref_id));
+    const noDecisionRefIds = references
+        .filter(r => !decisionRefIds.has(r.ref_id))
         .map(r => r.ref_id);
+
+    // リトライ対象: 完全失敗 + フォールバック保存（parse_error: true で保存されたもの）
+    const failedRefIds = [...noDecisionRefIds, ...fallbackRefIds];
 
     return {
         executionId,
         processedCount: progress.processed,
         successCount: progress.succeeded,
         failCount: progress.failed,
+        fallbackCount: progress.parseErrorFallback,
         decisions: allDecisions,
         failedRefIds,
+        fallbackRefIds,
     };
 }
 

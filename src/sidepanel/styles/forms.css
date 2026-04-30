@@ -191,3 +191,88 @@ input:focus+.slider {
 input:checked+.slider:before {
     transform: translateX(16px);
 }
+
+/* ヘルプアイコン + ツールチップ
+ * 使い方: <span class="help-icon" data-i18n-tooltip="key" tabindex="0">?</span>
+ * data-i18n-tooltip ハンドラが内部に <span class="help-tooltip"> を挿入する
+ */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #b0b8c1;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: help;
+    user-select: none;
+    position: relative;
+    flex-shrink: 0;
+    vertical-align: middle;
+    transition: background-color 0.15s;
+}
+
+.help-icon:hover,
+.help-icon:focus-visible {
+    background: #1a73e8;
+    outline: none;
+}
+
+.help-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(260px, calc(100vw - 32px));
+    padding: 8px 10px;
+    background: #2c3e50;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: pre-line;
+    text-align: left;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s, visibility 0.15s;
+    z-index: 1000;
+    cursor: default;
+}
+
+.help-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #2c3e50;
+}
+
+.help-icon:hover .help-tooltip,
+.help-icon:focus-visible .help-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 右端に近いアイコン用の位置調整修飾子 */
+.help-icon.help-icon--align-right .help-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.help-icon.help-icon--align-right .help-tooltip::after {
+    left: auto;
+    right: 5px;
+    transform: none;
+}

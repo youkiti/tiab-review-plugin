@@ -156,6 +156,9 @@ export interface LlmDecisionNote {
     evidence: LlmEvidence[];
     prompt_version: string;
     usageMetadata?: UsageMetadata;
+    // LLM 出力解析失敗時のフォールバック印（true なら include 1.0 で安全側に倒したケース）
+    parse_error?: boolean;
+    error_message?: string;
 }
 
 /**
@@ -166,6 +169,7 @@ export interface LlmBatchProgress {
     processed: number;
     succeeded: number;
     failed: number;
+    parseErrorFallback: number;  // LLM 出力解析失敗で確率 1.0 として保存した件数
     isRunning: boolean;
     currentRefId?: string;
 }
