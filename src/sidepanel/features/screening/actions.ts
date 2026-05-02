@@ -81,6 +81,14 @@ function getDisplayedReference(filtered = getFilteredReferences()): ReferenceWit
 async function persistDisplayedNote(ref: ReferenceWithStatus | undefined) {
     if (!ref) return;
 
+    // noteInputに残っている値が、ref と異なる文献を render したときに残ったものだった場合、
+    // その値を ref に保存してしまうと「過去の文献のメモを別文献の判定として保存」する
+    // 幽霊判定バグになる。lastRenderedRefId が ref と一致しないときは保存しない。
+    // （例: autoNavigate=OFF で判定後に「次へ」を押した直後の状態など）
+    if (state.lastRenderedRefId && state.lastRenderedRefId !== ref.ref_id) {
+        return;
+    }
+
     const currentNote = dom.noteInput.value || undefined;
     const savedNote = ref.myDecision?.note;
 

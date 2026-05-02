@@ -23,6 +23,9 @@ let _currentFilter: DecisionStatus | 'all' | 'fulltext_candidates' = 'pending';
 let _reviewHistoryRefIds: string[] = [];
 let _reviewHistoryCursor = -1;
 let _reviewHistoryReturnRefId: string | null = null;
+// noteInputに現在表示されているメモがどの文献のものかを追跡する。
+// 別文献にメモが流出して保存される事故（"幽霊pending判定"）を防ぐためのガード。
+let _lastRenderedRefId: string | null = null;
 
 
 let _spreadsheetId = '';
@@ -114,6 +117,10 @@ export const state = {
         _reviewHistoryCursor = -1;
         _reviewHistoryReturnRefId = null;
     },
+
+    // ----- Last Rendered Reference (note input ownership tracking) -----
+    get lastRenderedRefId() { return _lastRenderedRefId; },
+    setLastRenderedRefId(refId: string | null) { _lastRenderedRefId = refId; },
 
     // ----- Spreadsheet/User -----
     get spreadsheetId() { return _spreadsheetId; },

@@ -149,6 +149,8 @@ export function renderCurrentReference() {
 
         dom.conflictBanner.classList.add('hidden');
         dom.allDecisionsDiv.classList.add('hidden');
+        // 表示中の文献がない状態では noteInput の所有者も無効化する
+        state.setLastRenderedRefId(null);
         return;
     }
 
@@ -255,6 +257,9 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     // メモ欄（変更があるためここではなくナビゲーション時や判定時に同期をとるが、
     // 表示切替時には値をセットする必要がある）
     dom.noteInput.value = ref.myDecision?.note || '';
+    // noteInputの現所有者として記録する。persistDisplayedNote側で
+    // 別文献に対する誤保存（幽霊pending判定）を防ぐための照合用。
+    state.setLastRenderedRefId(ref.ref_id);
 }
 
 /**
