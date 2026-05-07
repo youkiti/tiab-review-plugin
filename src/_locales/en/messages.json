@@ -202,6 +202,25 @@
   "screening_historyPosition": {
     "message": "History $1 / $2"
   },
+  "screening_sourceBadgeLabel": {
+    "message": "Source: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_sourceBadgeIctrp": {
+    "message": "ICTRP - $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_trialRegistryNote": {
+    "message": "Note: This entry is from a trial registry, so the abstract is a concatenation of registration fields. Please consult the original registry for the full record."
+  },
   "nav_prev": {
     "message": "Prev (←)"
   },

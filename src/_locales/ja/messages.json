@@ -202,6 +202,25 @@
   "screening_historyPosition": {
     "message": "履歴 $1 / $2"
   },
+  "screening_sourceBadgeLabel": {
+    "message": "出典: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_sourceBadgeIctrp": {
+    "message": "ICTRP - $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_trialRegistryNote": {
+    "message": "※ Trial registry 由来のため、登録情報の各フィールドを連結したテキストです。完全な情報は元レジストリで確認してください。"
+  },
   "nav_prev": {
     "message": "前へ (←)"
   },
