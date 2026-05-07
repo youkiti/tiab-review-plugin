@@ -32,6 +32,7 @@ experiments/asreview/outputs/
 
 # TypeScript
 *.tsbuildinfo
+.tmp/
 
 # Chrome extension keys and packages (sensitive)
 *.pem

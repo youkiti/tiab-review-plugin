@@ -7,13 +7,45 @@ import { state } from '../../state';
 import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';
 import { getEffectiveApiKey } from '../../../lib/storage';
-import { convertCriteria, GeminiModelConfig } from '../../../lib/gemini-api';
+import { convertCriteria, GeminiModelConfig, getStandardCriteriaFields } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
 import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
+
+const CRITERIA_FIELD_LABELS: Record<string, { ja: string; en: string }> = {
+    P: { ja: '対象患者/集団', en: 'Population' },
+    I: { ja: '介入', en: 'Intervention' },
+    E: { ja: '曝露', en: 'Exposure' },
+    C: { ja: '比較対照', en: 'Comparator' },
+    O: { ja: 'アウトカム', en: 'Outcome' },
+    S: { ja: 'サンプル/セッティング', en: 'Sample/Setting' },
+    PI: { ja: '関心現象', en: 'Phenomenon of Interest' },
+    D: { ja: '研究デザイン', en: 'Design' },
+    R: { ja: '研究タイプ', en: 'Research Type' },
+};
+
+function isJapaneseOutput(): boolean {
+    return dom.llmLanguageSelect.value.toLowerCase().startsWith('ja');
+}
+
+function getFieldLabel(key: string): string {
+    const label = CRITERIA_FIELD_LABELS[key];
+    if (!label) return key;
+    return `${key} (${isJapaneseOutput() ? label.ja : label.en})`;
+}
+
+function getEmptyFieldText(): string {
+    return isJapaneseOutput() ? '指定なし' : 'Not specified';
+}
+
+function getRetryStatusText(attempt: number, maxRetries: number): string {
+    return isJapaneseOutput()
+        ? `再試行中 (${attempt}/${maxRetries})...`
+        : `Retrying (${attempt}/${maxRetries})...`;
+}
 
 /**
  * 基準を最適化
@@ -40,13 +72,21 @@ export async function handleOptimizeCriteria() {
         const modelConfig: GeminiModelConfig = {
             model: dom.llmModelSelect.value,
             temperature: 0,
-
+            maxOutputTokens: 4096,
         };
+        if (modelConfig.model === 'gemini-3-flash-preview') {
+            modelConfig.thinkingLevel = 'MINIMAL';
+        }
 
         const result = await convertCriteria(
             protocolText,
             modelConfig,
-            dom.llmLanguageSelect.value
+            dom.llmLanguageSelect.value,
+            {
+                onRetry: (attempt, maxRetries) => {
+                    dom.optimizeStatusDiv.textContent = getRetryStatusText(attempt, maxRetries);
+                },
+            }
         );
 
         // 結果を表示
@@ -96,10 +136,22 @@ export function renderOptimizedCriteria(criteria: LlmCriteria, screeningPrompt: 
     templateDiv.innerHTML = `<strong>${t('llm_templateLabel')}</strong> ${templateLabel}`;
     dom.optimizedCriteriaDisplay.appendChild(templateDiv);
 
+    const displayedKeys = new Set<string>();
+    const fieldEntries: Array<[string, string]> = [];
+    for (const key of getStandardCriteriaFields(criteria.template)) {
+        fieldEntries.push([key, criteria.fields[key] || '']);
+        displayedKeys.add(key);
+    }
     for (const [key, value] of Object.entries(criteria.fields)) {
+        if (!displayedKeys.has(key)) {
+            fieldEntries.push([key, value]);
+        }
+    }
+
+    for (const [key, value] of fieldEntries) {
         const fieldDiv = document.createElement('div');
         fieldDiv.className = 'criteria-field';
-        fieldDiv.innerHTML = `<strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}`;
+        fieldDiv.innerHTML = `<strong>${escapeHtml(getFieldLabel(key))}:</strong> ${escapeHtml(value || getEmptyFieldText())}`;
         dom.optimizedCriteriaDisplay.appendChild(fieldDiv);
     }
 
