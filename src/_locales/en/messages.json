@@ -819,6 +819,9 @@
   "llm_thresholdLabel": {
     "message": "Include threshold:"
   },
+  "llm_thresholdHelp": {
+    "message": "Choose how broadly AI should collect include candidates. If unsure, use 0.5. Guide: 0.3=broad / 0.5=standard / 0.7=strict"
+  },
   "llm_showDistribution": {
     "message": "📈 Show Distribution"
   },
@@ -1395,7 +1398,7 @@
     "message": "Number of references saved to the spreadsheet per batch.\nRecommended:\n• Free key: 1–5\n• Paid Tier 1: 5–20\n• Paid Tier 2: 20–50\nLarger is faster, but a failed batch must be retried as a whole."
   },
   "llm_tip_threshold": {
-    "message": "References scoring at or above this value are saved as Include, below as Exclude.\nRecommended initial value: 0.30 (minimize misses).\nUse 0.50 to be more selective.\nAdjust while watching the distribution chart below."
+    "message": "Choose how broadly AI should collect include candidates.\n0.3: broad\n0.5: standard. Use this if unsure\n0.7: strict\nYou can adjust while checking the distribution graph below."
   },
   "ml_tip_stopping": {
     "message": "Choose when screening should be considered finished.\nRecommended:\n• 50 consecutive Excludes (simple rule)\n• Target recall 95% / confidence 95% (statistical rule)\nPick based on the project size."

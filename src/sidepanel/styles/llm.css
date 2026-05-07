@@ -360,6 +360,13 @@
     margin-top: 4px;
 }
 
+.threshold-help {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+    margin: 8px 0 0;
+}
+
 /* 閾値プレビュー */
 .threshold-preview {
     display: flex;
