@@ -140,6 +140,8 @@ export function renderCurrentReference() {
             : t('screening_noFilterMatch');
         dom.refDoi.classList.add('hidden');
         dom.refPmid.classList.add('hidden');
+        dom.refSourceBadge.classList.add('hidden');
+        dom.refTrialRegistryNote.classList.add('hidden');
         dom.refDecisionStatusRow.classList.add('hidden');
         dom.navPosition.textContent = '0 / 0';
         dom.progressText.textContent = `0 / ${state.references.length}`;
@@ -227,12 +229,25 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
         dom.refDoi.classList.add('hidden');
     }
 
-    if (ref.pmid) {
+    // PubMed リンクは「真に PubMed 由来」のときのみ有効化:
+    // - pmid が純数値（NCT/JPRN 等の trial registry ID は文字を含むため除外）
+    // - source が PubMed 系 もしくは 後方互換のため source 未設定
+    const isPubmedRef =
+        !!ref.pmid &&
+        /^\d+$/.test(ref.pmid) &&
+        (!ref.source || /pubmed/i.test(ref.source));
+    if (isPubmedRef) {
         dom.refPmid.href = `https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}`;
         dom.refPmid.classList.remove('hidden');
     } else {
         dom.refPmid.classList.add('hidden');
     }
+
+    // 取り込み元 DB バッジ
+    renderSourceBadge(ref);
+
+    // Trial registry 由来の場合の注釈
+    renderTrialRegistryNote(ref);
 
     const myStatus = (ref.myDecision?.decision || 'pending') as DecisionStatus | 'pending';
     renderDecisionChip(dom.refDecisionChip, dom.refDecisionStatusRow, myStatus);
@@ -260,6 +275,50 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     // noteInputの現所有者として記録する。persistDisplayedNote側で
     // 別文献に対する誤保存（幽霊pending判定）を防ぐための照合用。
     state.setLastRenderedRefId(ref.ref_id);
+}
+
+/**
+ * 取り込み元 DB バッジの表示
+ *
+ * `source` フィールド（RIS の DB タグ / CTG 固定値 / ICTRP の Source_Register /
+ * EndNote の remote-database-name 等）を見やすいラベルに整形して表示する。
+ * ICTRP の場合は journal が固定値 "ICTRP" で source にレジストリ名（REBEC/JPRN 等）が
+ * 入るため、`ICTRP - <レジストリ名>` の形に複合表示する。
+ */
+function renderSourceBadge(ref: ReferenceWithStatus) {
+    const source = (ref.source || '').trim();
+    if (!source) {
+        dom.refSourceBadge.classList.add('hidden');
+        dom.refSourceBadge.textContent = '';
+        return;
+    }
+    const isIctrp = (ref.journal || '').trim().toLowerCase() === 'ictrp';
+    const label = isIctrp
+        ? t('screening_sourceBadgeIctrp', source)
+        : t('screening_sourceBadgeLabel', source);
+    dom.refSourceBadge.textContent = label;
+    dom.refSourceBadge.classList.remove('hidden');
+}
+
+/**
+ * Trial registry 由来文献の注釈表示
+ *
+ * ICTRP / ClinicalTrials.gov のインポートでは abstract が登録情報の各フィールドを
+ * `要素名: 値` 形式で `|` 区切り合成したテキストになるため、見慣れない長文に見える。
+ * 切れている訳ではない旨を注釈として表示する。
+ */
+function renderTrialRegistryNote(ref: ReferenceWithStatus) {
+    const source = (ref.source || '').trim();
+    const journal = (ref.journal || '').trim().toLowerCase();
+    const isTrialRegistry =
+        journal === 'ictrp' ||
+        journal === 'clinicaltrials.gov' ||
+        /clinicaltrials\.gov/i.test(source);
+    if (isTrialRegistry) {
+        dom.refTrialRegistryNote.classList.remove('hidden');
+    } else {
+        dom.refTrialRegistryNote.classList.add('hidden');
+    }
 }
 
 /**
