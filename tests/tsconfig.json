@@ -1,0 +1,20 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "rootDir": "..",
+        "outDir": "../.tmp/tests",
+        "types": [
+            "node",
+            "chrome"
+        ]
+    },
+    "include": [
+        "../src/lib/gemini-api.ts",
+        "../src/lib/storage.ts",
+        "../src/lib/i18n.ts",
+        "../src/lib/types.ts",
+        "./**/*.ts"
+    ]
+}

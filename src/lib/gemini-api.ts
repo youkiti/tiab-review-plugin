@@ -17,6 +17,32 @@ export interface GeminiModelConfig {
     thinkingLevel?: string; // 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH' - for Model B
 }
 
+interface GeminiApiErrorOptions {
+    status?: number;
+    code: string;
+    retryable: boolean;
+}
+
+class GeminiApiError extends Error {
+    status?: number;
+    code: string;
+    retryable: boolean;
+
+    constructor(message: string, options: GeminiApiErrorOptions) {
+        super(message);
+        this.name = 'GeminiApiError';
+        this.status = options.status;
+        this.code = options.code;
+        this.retryable = options.retryable;
+    }
+}
+
+export interface CriteriaConversionOptions {
+    maxRetries?: number;
+    retryDelayMs?: number;
+    onRetry?: (attempt: number, maxRetries: number, delayMs: number) => void;
+}
+
 /**
  * デフォルト設定
  */
@@ -105,6 +131,9 @@ const CRITERIA_CONVERSION_SCHEMA = {
                         C: { type: 'string', description: '比較対照' },
                         O: { type: 'string', description: 'アウトカム' },
                         S: { type: 'string', description: '研究デザイン/セッティング' },
+                        PI: { type: 'string', description: '関心現象' },
+                        D: { type: 'string', description: '研究デザイン' },
+                        R: { type: 'string', description: '研究タイプ' },
                     },
                 },
             },
@@ -130,7 +159,10 @@ async function callGeminiApi<T>(
 ): Promise<{ result: T; usageMetadata: UsageMetadata }> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
-        throw new Error(t('error_geminiApiKeyMissing'));
+        throw new GeminiApiError(t('error_geminiApiKeyMissing'), {
+            code: 'api_key_missing',
+            retryable: false,
+        });
     }
 
     // streamGenerateContentを使用
@@ -173,7 +205,11 @@ async function callGeminiApi<T>(
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const errorMessage = errorData.error?.message || response.statusText;
-            throw new Error(t('error_geminiApi', errorMessage));
+            throw new GeminiApiError(t('error_geminiApi', errorMessage), {
+                status: response.status,
+                code: 'api_error',
+                retryable: response.status === 429 || response.status >= 500,
+            });
         }
 
         // ストリーミング読み込み
@@ -211,11 +247,17 @@ async function callGeminiApi<T>(
             responses = JSON.parse(aggregatedText);
         } catch (e) {
             console.error('Failed to parse streaming response:', aggregatedText.substring(0, 200) + '...');
-            throw new Error(t('error_geminiParseFailed'));
+            throw new GeminiApiError(t('error_geminiParseFailed'), {
+                code: 'stream_parse_failed',
+                retryable: true,
+            });
         }
 
         if (!Array.isArray(responses) || responses.length === 0) {
-            throw new Error(t('error_geminiInvalidFormat'));
+            throw new GeminiApiError(t('error_geminiInvalidFormat'), {
+                code: 'invalid_stream_format',
+                retryable: true,
+            });
         }
 
         // usageMetadata を最後のチャンクから抽出
@@ -245,7 +287,10 @@ async function callGeminiApi<T>(
         }
 
         if (!fullText) {
-            throw new Error(t('error_geminiNoText'));
+            throw new GeminiApiError(t('error_geminiNoText'), {
+                code: 'no_text',
+                retryable: true,
+            });
         }
 
         // JSONパース
@@ -258,19 +303,77 @@ async function callGeminiApi<T>(
                 try {
                     return { result: JSON.parse(jsonMatch[0]) as T, usageMetadata };
                 } catch (e2) {
-                    throw new Error(t('error_geminiJsonParseFailed'));
+                    throw new GeminiApiError(t('error_geminiJsonParseFailed'), {
+                        code: 'json_parse_failed',
+                        retryable: true,
+                    });
                 }
             }
-            throw new Error(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100));
+            throw new GeminiApiError(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100), {
+                code: 'json_parse_failed',
+                retryable: true,
+            });
         }
 
     } catch (error) {
         clearTimeout(timeoutId);
         if (error instanceof Error && error.name === 'AbortError') {
-            throw new Error(t('error_geminiTimeout', String(timeoutMs)));
+            throw new GeminiApiError(t('error_geminiTimeout', String(timeoutMs)), {
+                code: 'timeout',
+                retryable: true,
+            });
         }
         throw error;
     }
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableGeminiError(error: unknown): boolean {
+    if (error instanceof GeminiApiError) {
+        return error.retryable;
+    }
+    if (error instanceof TypeError) {
+        return true;
+    }
+    return false;
+}
+
+const STANDARD_CRITERIA_FIELDS: Record<LlmCriteria['template'], string[]> = {
+    pico: ['P', 'I', 'C', 'O'],
+    peco: ['P', 'E', 'C', 'O'],
+    spider: ['S', 'PI', 'D', 'E', 'R'],
+    custom: [],
+};
+
+export function getStandardCriteriaFields(template: LlmCriteria['template']): string[] {
+    return STANDARD_CRITERIA_FIELDS[template] || [];
+}
+
+function normalizeCriteriaConversionResult(result: { criteria: LlmCriteria; screening_prompt: string }): { criteria: LlmCriteria; screening_prompt: string } {
+    const template = result.criteria.template;
+    const normalizedFields: Record<string, string> = {};
+
+    for (const key of getStandardCriteriaFields(template)) {
+        const value = result.criteria.fields?.[key];
+        normalizedFields[key] = typeof value === 'string' ? value : '';
+    }
+
+    for (const [key, value] of Object.entries(result.criteria.fields || {})) {
+        if (!(key in normalizedFields)) {
+            normalizedFields[key] = typeof value === 'string' ? value : String(value ?? '');
+        }
+    }
+
+    return {
+        ...result,
+        criteria: {
+            ...result.criteria,
+            fields: normalizedFields,
+        },
+    };
 }
 
 /**
@@ -314,7 +417,8 @@ ${abstract || '(抄録なし)'}
 export async function convertCriteria(
     protocolText: string,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
-    outputLanguage: string = 'ja'
+    outputLanguage: string = 'ja',
+    options: CriteriaConversionOptions = {}
 ): Promise<{ criteria: LlmCriteria; screening_prompt: string }> {
     const prompt = `以下のプロトコルの組み入れ・除外基準を解析し、システマティックレビューのタイトル・抄録スクリーニングに最適な形式に変換してください。
 
@@ -342,12 +446,29 @@ ${protocolText}
 - フルテキストでしか確認できない基準は緩めに解釈する
 - 明確に除外できる場合のみ低確率とする`;
 
-    const { result } = await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
-        prompt,
-        CRITERIA_CONVERSION_SCHEMA,
-        config
-    );
-    return result;
+    const maxRetries = options.maxRetries ?? 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const { result } = await callGeminiApi<{ criteria: LlmCriteria; screening_prompt: string }>(
+                prompt,
+                CRITERIA_CONVERSION_SCHEMA,
+                config
+            );
+            return normalizeCriteriaConversionResult(result);
+        } catch (error) {
+            if (attempt >= maxRetries || !isRetryableGeminiError(error)) {
+                throw error;
+            }
+
+            const delay = (options.retryDelayMs ?? 5000) * Math.pow(2, attempt);
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(`[convertCriteria] Retry ${attempt + 1}/${maxRetries} after ${delay}ms. Reason: ${message}`);
+            options.onRetry?.(attempt + 1, maxRetries, delay);
+            await sleep(delay);
+        }
+    }
+
+    throw new Error(t('error_geminiJsonParseFailed'));
 }
 
 /**
