@@ -736,7 +736,7 @@
     "message": "Batch size:"
   },
   "llm_batchSizeHint": {
-    "message": "items (parallel processing & saving)"
+    "message": "items per save (recommended: Free 1–5 / Tier 1 5–20 / Tier 2 20–50)"
   },
   "llm_batchPending": {
     "message": "Pending:"
@@ -1395,7 +1395,7 @@
     "message": "Paste your protocol's inclusion/exclusion criteria here as-is.\nClick 'Optimize criteria' and the AI will turn it into a screening prompt."
   },
   "llm_tip_batchSize": {
-    "message": "Number of references saved to the spreadsheet per batch.\nRecommended:\n• Free key: 1–5\n• Paid Tier 1: 5–20\n• Paid Tier 2: 20–50\nLarger is faster, but a failed batch must be retried as a whole."
+    "message": "Number of references saved to the spreadsheet per batch.\nThe parallel request count is controlled automatically by your API tier, so increasing this value will not speed up the API calls themselves.\nRecommended:\n• Free key: 1–5\n• Paid Tier 1: 5–20\n• Paid Tier 2: 20–50\nLarger values reduce save frequency but widen the retry scope if a save fails."
   },
   "llm_tip_threshold": {
     "message": "Choose how broadly AI should collect include candidates.\n0.3: broad\n0.5: standard. Use this if unsure\n0.7: strict\nYou can adjust while checking the distribution graph below."

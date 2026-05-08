@@ -221,7 +221,41 @@ async function processWithRetry(
 }
 
 /**
- * 複数の文献をバッチ処理（並列実行）
+ * 並列度を制限する軽量セマフォ
+ * - 外部依存を増やさず、tier毎の concurrency を実際に強制するために導入
+ * - acquire/release 方式。release 漏れを防ぐため、呼び出し側は try/finally で使う
+ */
+class Semaphore {
+    private active = 0;
+    private readonly waiters: (() => void)[] = [];
+
+    constructor(private readonly limit: number) {}
+
+    async acquire(): Promise<void> {
+        if (this.active < this.limit) {
+            this.active++;
+            return;
+        }
+        return new Promise<void>(resolve => {
+            this.waiters.push(() => {
+                this.active++;
+                resolve();
+            });
+        });
+    }
+
+    release(): void {
+        this.active--;
+        const next = this.waiters.shift();
+        if (next) next();
+    }
+}
+
+/**
+ * 複数の文献をバッチ処理
+ * - `concurrency`: 同時並列数（tier毎の上限を尊重）
+ * - `batchSize`: スプレッドシートへの保存単位（並列数とは独立）
+ * - `delayBetweenRequests`: 各スロットの最低滞在時間として作用させ、簡易的なRPM制御に使う
  */
 export async function processBatch(
     references: Reference[],
@@ -241,6 +275,7 @@ export async function processBatch(
 
     const allDecisions: Decision[] = [];
     const fallbackRefIds: string[] = [];
+    const pendingForSave: Decision[] = [];
 
     const modelConfig: GeminiModelConfig = {
         model: options.model,
@@ -250,117 +285,89 @@ export async function processBatch(
         maxOutputTokens: options.maxOutputTokens,
     };
 
-    // レート制限設定（デフォルトは有料版設定）
     const rateLimit = options.rateLimitConfig || RATE_LIMIT_PAID;
-    const isSequential = rateLimit.concurrency === 1;
+    const concurrency = Math.max(rateLimit.concurrency, 1);
+    const slotDwellMs = Math.max(rateLimit.delayBetweenRequests, 0);
+    const saveBatchSize = Math.max(options.batchSize, 1);
 
-    console.log(`[processBatch] Rate limit: concurrency=${rateLimit.concurrency}, delay=${rateLimit.delayBetweenRequests}ms`);
+    console.log(`[processBatch] concurrency=${concurrency}, slotDwell=${slotDwellMs}ms, saveBatchSize=${saveBatchSize}`);
 
-    // バッチサイズごとに処理
-    for (let batchStart = 0; batchStart < references.length; batchStart += options.batchSize) {
-        // アボートチェック
-        if (options.abortSignal?.aborted) {
-            progress.isRunning = false;
-            options.onProgress?.(progress);
-            break;
-        }
+    const sem = new Semaphore(concurrency);
 
-        const batchEnd = Math.min(batchStart + options.batchSize, references.length);
-        const batchRefs = references.slice(batchStart, batchEnd);
-        const batchDecisions: Decision[] = [];
+    // 保存処理は直列化（同時に複数の append が走らないようにする）
+    let saveChain: Promise<void> = Promise.resolve();
+    let firstSaveError: Error | null = null;
 
-        if (isSequential) {
-            // 無料版: 順次実行（1件ずつ処理し、間にwait）+ 自動リトライ
-            for (const ref of batchRefs) {
-                // アボートチェック
-                if (options.abortSignal?.aborted) {
-                    break;
-                }
-
-                const result = await processWithRetry(
-                    ref,
-                    options.screeningPrompt,
-                    modelConfig,
-                    options.outputLanguage,
-                    executionId,
-                    options.model,
-                    timestamp
-                );
-
-                progress.processed++;
-                if (result.success && result.decision) {
-                    if (result.isFallback) {
-                        progress.parseErrorFallback++;
-                        fallbackRefIds.push(result.refId);
-                    } else {
-                        progress.succeeded++;
-                    }
-                    batchDecisions.push(result.decision);
-                    allDecisions.push(result.decision);
-                } else {
-                    progress.failed++;
-                }
-
-                options.onProgress?.(progress);
-
-                // レート制限: リクエスト間でwait
-                if (rateLimit.delayBetweenRequests > 0) {
-                    await sleep(rateLimit.delayBetweenRequests);
-                }
+    function scheduleFlush(): void {
+        if (!options.onSaveBatch || pendingForSave.length === 0) return;
+        const toSave = pendingForSave.splice(0, pendingForSave.length);
+        saveChain = saveChain.then(() => options.onSaveBatch!(toSave)).catch(err => {
+            console.error('[processBatch] onSaveBatch error:', err);
+            if (!firstSaveError) {
+                firstSaveError = err instanceof Error ? err : new Error(String(err));
             }
-        } else {
-            // 有料版: 並列処理 + 自動リトライ
-            const batchPromises = batchRefs.map(async ref => {
-                const result = await processWithRetry(
-                    ref,
-                    options.screeningPrompt,
-                    modelConfig,
-                    options.outputLanguage,
-                    executionId,
-                    options.model,
-                    timestamp
-                );
-
-                progress.processed++;
-                if (result.success && result.decision) {
-                    if (result.isFallback) {
-                        progress.parseErrorFallback++;
-                        fallbackRefIds.push(result.refId);
-                    } else {
-                        progress.succeeded++;
-                    }
-                    batchDecisions.push(result.decision);
-                    allDecisions.push(result.decision);
-                } else {
-                    progress.failed++;
-                }
-
-                // 即時進捗更新
-                options.onProgress?.(progress);
-
-                return result;
-            });
-
-            await Promise.all(batchPromises);
-
-
-            // レート制限: バッチ間でwait
-            if (batchEnd < references.length && rateLimit.delayBetweenRequests > 0) {
-                await sleep(rateLimit.delayBetweenRequests);
-            }
-        }
-
-        // バッチを保存
-        if (batchDecisions.length > 0 && options.onSaveBatch) {
-            await options.onSaveBatch(batchDecisions);
-        }
+        });
     }
+
+    const tasks = references.map(async (ref) => {
+        if (options.abortSignal?.aborted) return;
+        await sem.acquire();
+        try {
+            if (options.abortSignal?.aborted) return;
+
+            const result = await processWithRetry(
+                ref,
+                options.screeningPrompt,
+                modelConfig,
+                options.outputLanguage,
+                executionId,
+                options.model,
+                timestamp
+            );
+
+            progress.processed++;
+            if (result.success && result.decision) {
+                if (result.isFallback) {
+                    progress.parseErrorFallback++;
+                    fallbackRefIds.push(result.refId);
+                } else {
+                    progress.succeeded++;
+                }
+                allDecisions.push(result.decision);
+                pendingForSave.push(result.decision);
+            } else {
+                progress.failed++;
+            }
+
+            options.onProgress?.(progress);
+
+            if (pendingForSave.length >= saveBatchSize) {
+                scheduleFlush();
+            }
+
+            // スロットを最低 slotDwellMs 確保することで、簡易的に RPM をクランプ
+            if (slotDwellMs > 0) {
+                await sleep(slotDwellMs);
+            }
+        } finally {
+            sem.release();
+        }
+    });
+
+    await Promise.all(tasks);
+
+    // 残件をフラッシュして直列保存チェーンの完了を待つ
+    scheduleFlush();
+    await saveChain;
 
     progress.isRunning = false;
     progress.currentRefId = undefined;
     options.onProgress?.(progress);
 
-    // 完全に decision を作れなかった ref_id（abort 等）
+    if (firstSaveError) {
+        throw firstSaveError;
+    }
+
     const decisionRefIds = new Set(allDecisions.map(d => d.ref_id));
     const noDecisionRefIds = references
         .filter(r => !decisionRefIds.has(r.ref_id))
