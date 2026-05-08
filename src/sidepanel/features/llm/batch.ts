@@ -5,8 +5,8 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision, RateLimitConfig } from '../../../lib/types';
-import { RATE_LIMIT_FREE, RATE_LIMIT_PAID } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, BatchProfile } from '../../../lib/types';
+import { BATCH_PROFILES } from '../../../lib/types';
 import {
     appendDecisions,
     getDecisionsByReviewerId,
@@ -16,7 +16,7 @@ import {
     updateLlmExecution,
     updateLlmConfig,
 } from '../../../lib/sheets-api';
-import { getEffectiveApiKey, getApiTier } from '../../../lib/storage';
+import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
 import {
     processBatch,
     calculateProbabilityDistribution,
@@ -35,6 +35,15 @@ let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
     _loadDataAndShowScreening = fn;
+}
+
+/**
+ * 現在の手動 tier 設定からバッチ実行プロファイルを取得
+ * 未設定の場合は安全側で tier1 を採用
+ */
+async function resolveBatchProfile(): Promise<BatchProfile> {
+    const manualTier = (await getManualTier()) || 'tier1';
+    return BATCH_PROFILES[manualTier];
 }
 
 function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getLlmExecutions>>): string | null {
@@ -145,15 +154,11 @@ export async function handleStartBatch() {
     state.setCurrentBatchDecisions([]);
 
     try {
-        const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
+        const profile = await resolveBatchProfile();
         const spreadsheetId = state.spreadsheetId;
         const llmConfig = state.llmConfig;
 
-        // API tierに基づいてレート制限を設定
-        const tier = await getApiTier();
-        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
-
-        if (tier === 'free') {
+        if (profile === BATCH_PROFILES.free) {
             showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
@@ -161,7 +166,7 @@ export async function handleStartBatch() {
         const modelConfig = getModelConfig(dom.llmModelSelect.value);
 
         const result = await processBatch(targetRefs, {
-            batchSize: saveBatchSize,
+            batchSize: profile.saveBatchSize,
             screeningPrompt,
             model: modelConfig.model,
             temperature: modelConfig.temperature,
@@ -169,7 +174,7 @@ export async function handleStartBatch() {
             thinkingLevel: modelConfig.thinkingLevel,
 
             outputLanguage: dom.llmLanguageSelect.value,
-            rateLimitConfig,
+            rateLimitConfig: profile.rate,
             abortSignal: abortController.signal,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
@@ -295,20 +300,17 @@ export async function handleRetryFailed() {
     state.setBatchAbortController(abortController);
 
     try {
-        const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
+        const profile = await resolveBatchProfile();
         const spreadsheetId = state.spreadsheetId;
 
-        const tier = await getApiTier();
-        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
-
         const result = await processBatch(targetRefs, {
-            batchSize: saveBatchSize,
+            batchSize: profile.saveBatchSize,
             screeningPrompt,
             model: dom.llmModelSelect.value,
             temperature: 0,
 
             outputLanguage: dom.llmLanguageSelect.value,
-            rateLimitConfig,
+            rateLimitConfig: profile.rate,
             abortSignal: abortController.signal,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {

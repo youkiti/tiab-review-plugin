@@ -14,10 +14,47 @@ import {
     saveApiTier,
     setSessionApiTier,
     clearApiTier,
+    getManualTier,
+    saveManualTier,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
+import type { ManualTier } from '../../../lib/types';
+
+/**
+ * Tier セレクタの表示を最新の manualTier に同期
+ */
+export async function refreshTierSelector(): Promise<void> {
+    const manualTier = await getManualTier();
+    if (!manualTier) {
+        dom.tierSection.classList.add('hidden');
+        return;
+    }
+
+    dom.tierSection.classList.remove('hidden');
+
+    if (manualTier === 'free') {
+        dom.tierFixedDisplay.textContent = t('llm_tierFree');
+        dom.tierFixedDisplay.classList.remove('hidden');
+        dom.tierSelect.classList.add('hidden');
+    } else {
+        dom.tierFixedDisplay.classList.add('hidden');
+        dom.tierSelect.classList.remove('hidden');
+        dom.tierSelect.value = manualTier;
+    }
+}
+
+/**
+ * Tier セレクタの変更を保存
+ */
+export async function handleTierChange(): Promise<void> {
+    const value = dom.tierSelect.value;
+    if (value === 'tier1' || value === 'tier2' || value === 'tier3') {
+        await saveManualTier(value as ManualTier);
+        showToast(t('llm_tierSaved', value));
+    }
+}
 
 /**
  * APIキーの状態を読み込み
@@ -47,6 +84,8 @@ export async function loadApiKeyStatus() {
         dom.apiKeyCard.classList.remove('confirmed', 'collapsed');
         dom.apiKeySummary.textContent = '';
     }
+
+    await refreshTierSelector();
 }
 
 /**
@@ -78,6 +117,7 @@ export async function handleApiKeyAutoSave() {
         await removeGeminiApiKey();
         setSessionApiKey('');
         await clearApiTier();
+        await refreshTierSelector();
         return;
     }
 
@@ -90,6 +130,18 @@ export async function handleApiKeyAutoSave() {
         dom.apiKeyStatus.textContent = t('llm_apiKeyInvalid');
         dom.apiKeyStatus.className = 'api-key-status error';
         return;
+    }
+
+    // 手動 tier を初期化:
+    // - free 検出 → 'free' に固定
+    // - paid 検出 → 既存の手動指定があれば維持、無ければ tier1 をデフォルト
+    const existingManual = await getManualTier();
+    if (result.tier === 'free') {
+        await saveManualTier('free');
+    } else if (result.tier === 'paid') {
+        if (!existingManual || existingManual === 'free') {
+            await saveManualTier('tier1');
+        }
     }
 
     // 保存設定に応じて保存
@@ -119,6 +171,8 @@ export async function handleApiKeyAutoSave() {
         showToast(t('llm_freeTierWarning'), 5000);
         console.log(`[handleApiKeyAutoSave] Free tier detected. Available models: ${result.availableModels.join(', ')}`);
     }
+
+    await refreshTierSelector();
 }
 
 /**

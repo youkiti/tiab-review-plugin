@@ -732,11 +732,23 @@
   "llm_batchTitle": {
     "message": "🚀 一括実行"
   },
-  "llm_batchSizeLabel": {
-    "message": "保存単位:"
+  "llm_tierLabel": {
+    "message": "プラン:"
   },
-  "llm_batchSizeHint": {
-    "message": "件ごとにスプレッドシートへ保存（推奨: 無料 1〜5 / Tier1 5〜20 / Tier2-3 20〜50）"
+  "llm_tierFree": {
+    "message": "無料プラン（自動判定）"
+  },
+  "llm_tierTier1": {
+    "message": "Tier 1（300 RPM）"
+  },
+  "llm_tierTier2": {
+    "message": "Tier 2（2,000 RPM）"
+  },
+  "llm_tierTier3": {
+    "message": "Tier 3（4,000+ RPM）"
+  },
+  "llm_tierSaved": {
+    "message": "プランを更新しました ($1)"
   },
   "llm_batchPending": {
     "message": "未判定:"
@@ -1394,8 +1406,8 @@
   "llm_tip_protocol": {
     "message": "プロトコルや申請書の組み入れ・除外基準をそのまま貼り付けてください。\n「基準を最適化」を押すと、AIが判定用プロンプトに整形します。"
   },
-  "llm_tip_batchSize": {
-    "message": "スプレッドシートへの保存単位（件）です。\n並列リクエスト数はAPI tierから自動決定されるため、ここを大きくしてもAPI呼び出しは速くなりません。\n推奨:\n• 無料APIキー: 1〜5件\n• 有料 Tier1: 5〜20件\n• 有料 Tier2: 20〜50件\n• 有料 Tier3: 30〜50件\n大きいほど保存回数が減って効率的ですが、保存前にエラーが起きた際の再実行範囲も広くなります。"
+  "llm_tip_tier": {
+    "message": "Gemini API の料金プラン（Tier）を選択します。並列実行数と保存単位は Tier から自動的に決まります。\n\n■ Tier の確認方法\n1. https://aistudio.google.com/usage を開く\n2. 「Billing」セクションで現在の Tier を確認\n\n■ Tier 概要\n• Tier 1: 課金有効化で即時取得（300 RPM）\n• Tier 2: 累計支払い $100 + 初回支払い後 3日経過（2,000 RPM）\n• Tier 3: 累計支払い $1,000 + 30日経過（4,000+ RPM）\n\n選択を間違えるとレート超過エラーが頻発します。不明な場合は Tier 1 を選んでください。"
   },
   "llm_tip_maxCount": {
     "message": "今回の実行で処理する未判定文献の最大件数です。\n未判定が10,000件あって100を選んだ場合、上から100件だけ判定し、残り9,900件は次回以降に持ち越されます。\n「すべて」を選ぶと未判定文献を全件処理します。"

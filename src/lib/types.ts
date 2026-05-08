@@ -177,9 +177,17 @@ export interface LlmBatchProgress {
 // API Tier関連の型定義
 
 /**
- * API Tier（無料版/有料版）
+ * API キーテスト時の自動分類結果（Free / Paid の二値）
+ * Gemini API は「Tier いくつか」を返さないため、可視モデル数で粗く分類する
  */
 export type ApiTier = 'free' | 'paid' | 'unknown';
+
+/**
+ * ユーザが手動で指定する詳細 tier
+ * - free: 自動判定で確定（変更不可）
+ * - tier1/tier2/tier3: paid 検出時にユーザが選択
+ */
+export type ManualTier = 'free' | 'tier1' | 'tier2' | 'tier3';
 
 /**
  * レート制限設定
@@ -187,6 +195,14 @@ export type ApiTier = 'free' | 'paid' | 'unknown';
 export interface RateLimitConfig {
     concurrency: number;          // 同時実行数
     delayBetweenRequests: number; // リクエスト間のwait (ms)
+}
+
+/**
+ * バッチ実行プロファイル（並列度・スロット滞在時間・保存単位）
+ */
+export interface BatchProfile {
+    rate: RateLimitConfig;
+    saveBatchSize: number;
 }
 
 /**
@@ -199,30 +215,33 @@ export interface ApiKeyTestResult {
 }
 
 /**
- * 無料版向けレート制限設定
- * RPM 5 = 12秒間隔の順次実行（マージン込みで13秒）
+ * Tier 別バッチ実行プロファイル
+ * 想定 API レイテンシ 3〜5秒/件、Gemini 公式の RPM 上限を基準に
+ * リトライバースト分のマージンを残して設定。
  */
-export const RATE_LIMIT_FREE: RateLimitConfig = {
-    concurrency: 1,
-    delayBetweenRequests: 13000, // 13秒（RPM 5対応、マージン込み）
+export const BATCH_PROFILES: Record<ManualTier, BatchProfile> = {
+    free: {
+        rate: { concurrency: 1, delayBetweenRequests: 13000 }, // RPM 5
+        saveBatchSize: 5,
+    },
+    tier1: {
+        rate: { concurrency: 10, delayBetweenRequests: 300 },  // 実効 ~180 RPM (cap 300)
+        saveBatchSize: 10,
+    },
+    tier2: {
+        rate: { concurrency: 20, delayBetweenRequests: 150 },  // 実効 ~370 RPM (cap 2000)
+        saveBatchSize: 25,
+    },
+    tier3: {
+        rate: { concurrency: 30, delayBetweenRequests: 100 },  // 実効 ~580 RPM (cap 4000+)
+        saveBatchSize: 40,
+    },
 };
 
 /**
- * 有料版（Tier 1）向けレート制限設定
- * Tier 1 cap = 300 RPM。API レイテンシ 3〜5秒/件 × concurrency=10 で
- * 実効 180〜200 RPM 程度（=ピークでも 60〜67% 利用率）。リトライバーストの余裕込み。
+ * 旧API（後方互換のため残置）
+ * 新規コードは BATCH_PROFILES を直接参照すること。
  */
-export const RATE_LIMIT_PAID: RateLimitConfig = {
-    concurrency: 10,
-    delayBetweenRequests: 300,
-};
-
-/**
- * Tier 2 向けレート制限設定
- * Tier 2 cap = 2,000 RPM。concurrency=20 でも実効 350〜400 RPM 程度で
- * Cap の 20% 以下に収まる。手動 Tier 指定機能を導入したらここを使う。
- */
-export const RATE_LIMIT_TIER2: RateLimitConfig = {
-    concurrency: 20,
-    delayBetweenRequests: 150,
-};
+export const RATE_LIMIT_FREE: RateLimitConfig = BATCH_PROFILES.free.rate;
+export const RATE_LIMIT_PAID: RateLimitConfig = BATCH_PROFILES.tier1.rate;
+export const RATE_LIMIT_TIER2: RateLimitConfig = BATCH_PROFILES.tier2.rate;

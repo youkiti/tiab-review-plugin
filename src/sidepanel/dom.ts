@@ -176,8 +176,12 @@ const domElements = {
     get screeningPromptInput() { return getElement<HTMLTextAreaElement>('screening-prompt-input'); },
     get saveCriteriaBtn() { return getElement<HTMLButtonElement>('save-criteria-btn'); },
 
+    // LLM Tier
+    get tierSection() { return getElement<HTMLElement>('tier-section'); },
+    get tierFixedDisplay() { return getElement<HTMLElement>('tier-fixed-display'); },
+    get tierSelect() { return getElement<HTMLSelectElement>('tier-select'); },
+
     // LLM Batch
-    get batchSaveSizeInput() { return getElement<HTMLInputElement>('batch-save-size-input'); },
     get batchMaxCountSelect() { return getElement<HTMLSelectElement>('batch-max-count-select'); },
     get batchTargetCount() { return getElement<HTMLElement>('batch-target-count'); },
     get batchPlannedCount() { return getElement<HTMLElement>('batch-planned-count'); },

@@ -14,6 +14,7 @@ import {
     toggleApiKeyVisibility,
     handleApiKeyAutoSave,
     handleSavePreferenceChange,
+    handleTierChange,
 } from './api-key';
 import {
     handleOptimizeCriteria,
@@ -86,6 +87,7 @@ export function setupLlmEventListeners() {
     dom.toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
     dom.geminiApiKeyInput?.addEventListener('change', handleApiKeyAutoSave);
     dom.saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
+    dom.tierSelect?.addEventListener('change', handleTierChange);
 
     // 基準最適化
     dom.optimizeCriteriaBtn?.addEventListener('click', handleOptimizeCriteria);
