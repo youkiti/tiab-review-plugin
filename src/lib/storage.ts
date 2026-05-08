@@ -202,14 +202,16 @@ export async function getEffectiveApiKey(): Promise<string | null> {
 
 // API Tier関連
 
-import type { ApiTier } from './types';
+import type { ApiTier, ManualTier } from './types';
 
 const GEMINI_API_TIER_KEY = 'gemini_api_tier';
+const GEMINI_MANUAL_TIER_KEY = 'gemini_manual_tier';
 
 /**
  * セッション用のAPI tier（メモリ保持）
  */
 let sessionApiTier: ApiTier | null = null;
+let sessionManualTier: ManualTier | null = null;
 
 /**
  * API tierを保存
@@ -251,4 +253,39 @@ export function getSessionApiTier(): ApiTier | null {
 export async function clearApiTier(): Promise<void> {
     await chrome.storage.local.remove([GEMINI_API_TIER_KEY]);
     sessionApiTier = null;
+    await clearManualTier();
+}
+
+/**
+ * 手動 tier 設定を保存
+ * - free: APIキー検証で free 判定された場合に固定
+ * - tier1/tier2/tier3: paid のときユーザが選択
+ */
+export async function saveManualTier(tier: ManualTier): Promise<void> {
+    await chrome.storage.local.set({ [GEMINI_MANUAL_TIER_KEY]: tier });
+    sessionManualTier = tier;
+}
+
+/**
+ * 手動 tier 設定を取得（未設定なら null）
+ */
+export async function getManualTier(): Promise<ManualTier | null> {
+    if (sessionManualTier) return sessionManualTier;
+    if (typeof chrome === 'undefined' || !chrome.storage) return null;
+    const result = await chrome.storage.local.get([GEMINI_MANUAL_TIER_KEY]);
+    const value = result[GEMINI_MANUAL_TIER_KEY];
+    if (value === 'free' || value === 'tier1' || value === 'tier2' || value === 'tier3') {
+        return value;
+    }
+    return null;
+}
+
+/**
+ * 手動 tier 設定をクリア
+ */
+export async function clearManualTier(): Promise<void> {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+        await chrome.storage.local.remove([GEMINI_MANUAL_TIER_KEY]);
+    }
+    sessionManualTier = null;
 }

@@ -58,6 +58,7 @@ export interface ReferenceWithStatus extends Reference {
     status: DecisionStatus;
     allDecisions?: Decision[];  // キーオープン後に全レビュアーの判定を保持
     hasConflict?: boolean;       // 不一致フラグ
+    hasAnyLlmDecision?: boolean; // LLM バッチで判定済みか（pending/confirmed/inactive を問わず）
 }
 
 export interface Config {
@@ -177,9 +178,17 @@ export interface LlmBatchProgress {
 // API Tier関連の型定義
 
 /**
- * API Tier（無料版/有料版）
+ * API キーテスト時の自動分類結果（Free / Paid の二値）
+ * Gemini API は「Tier いくつか」を返さないため、可視モデル数で粗く分類する
  */
 export type ApiTier = 'free' | 'paid' | 'unknown';
+
+/**
+ * ユーザが手動で指定する詳細 tier
+ * - free: 自動判定で確定（変更不可）
+ * - tier1/tier2/tier3: paid 検出時にユーザが選択
+ */
+export type ManualTier = 'free' | 'tier1' | 'tier2' | 'tier3';
 
 /**
  * レート制限設定
@@ -187,6 +196,14 @@ export type ApiTier = 'free' | 'paid' | 'unknown';
 export interface RateLimitConfig {
     concurrency: number;          // 同時実行数
     delayBetweenRequests: number; // リクエスト間のwait (ms)
+}
+
+/**
+ * バッチ実行プロファイル（並列度・スロット滞在時間・保存単位）
+ */
+export interface BatchProfile {
+    rate: RateLimitConfig;
+    saveBatchSize: number;
 }
 
 /**
@@ -199,28 +216,70 @@ export interface ApiKeyTestResult {
 }
 
 /**
- * 無料版向けレート制限設定
- * RPM 5 = 12秒間隔の順次実行（マージン込みで13秒）
+ * Tier 別バッチ実行プロファイル（デフォルト: Gemini 3 Flash 想定）
+ * 想定 API レイテンシ 3〜5秒/件、AI Studio 実測の RPM 上限
+ * (T1=1K / T2=2K / T3=20K) に対しブラウザ並列性とリトライバーストの
+ * マージンを残して設定。
  */
-export const RATE_LIMIT_FREE: RateLimitConfig = {
-    concurrency: 1,
-    delayBetweenRequests: 13000, // 13秒（RPM 5対応、マージン込み）
+export const BATCH_PROFILES: Record<ManualTier, BatchProfile> = {
+    free: {
+        rate: { concurrency: 1, delayBetweenRequests: 13000 }, // RPM 5
+        saveBatchSize: 5,
+    },
+    tier1: {
+        rate: { concurrency: 10, delayBetweenRequests: 300 },  // 実効 ~180 RPM (cap 1,000)
+        saveBatchSize: 10,
+    },
+    tier2: {
+        rate: { concurrency: 20, delayBetweenRequests: 150 },  // 実効 ~370 RPM (cap 2,000)
+        saveBatchSize: 25,
+    },
+    tier3: {
+        rate: { concurrency: 50, delayBetweenRequests: 60 },   // 実効 ~750 RPM (cap 20,000)
+        saveBatchSize: 50,
+    },
 };
 
 /**
- * 有料版向けレート制限設定
- * 並列実行可能
+ * モデル別プロファイル上書き
+ * AI Studio 実測値で flash-lite は他モデルより RPM 上限が大幅に高い
+ * (T1=4K / T2=10K / T3=30K) ため、選択時は高並列プロファイルを採用する。
+ *
+ * 対応していない (tier, model) の組み合わせは BATCH_PROFILES の値が使われる。
  */
-export const RATE_LIMIT_PAID: RateLimitConfig = {
-    concurrency: 5,
-    delayBetweenRequests: 200,
+export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, BatchProfile>>> = {
+    'gemini-2.5-flash-lite': {
+        tier1: {
+            rate: { concurrency: 30, delayBetweenRequests: 80 },   // 実効 ~450 RPM (cap 4,000)
+            saveBatchSize: 30,
+        },
+        tier2: {
+            rate: { concurrency: 60, delayBetweenRequests: 50 },   // 実効 ~900 RPM (cap 10,000)
+            saveBatchSize: 60,
+        },
+        tier3: {
+            rate: { concurrency: 100, delayBetweenRequests: 30 },  // 実効 ~1,500 RPM (cap 30,000)
+            saveBatchSize: 100,
+        },
+    },
 };
 
 /**
- * Tier 2向けレート制限設定
- * RPM 1000対応、ただし安定性のため控えめに設定
+ * モデルと tier からバッチ実行プロファイルを解決する
+ * モデル別の上書きがあればそちらを優先し、なければデフォルトを返す
  */
-export const RATE_LIMIT_TIER2: RateLimitConfig = {
-    concurrency: 10,
-    delayBetweenRequests: 100,
-};
+export function getBatchProfile(tier: ManualTier, modelId?: string): BatchProfile {
+    if (modelId) {
+        const override = BATCH_PROFILE_OVERRIDES[modelId]?.[tier];
+        if (override) return override;
+    }
+    return BATCH_PROFILES[tier];
+}
+
+/**
+ * 旧API（後方互換のため残置）
+ * 新規コードは BATCH_PROFILES を直接参照すること。
+ */
+export const RATE_LIMIT_FREE: RateLimitConfig = BATCH_PROFILES.free.rate;
+export const RATE_LIMIT_PAID: RateLimitConfig = BATCH_PROFILES.tier1.rate;
+export const RATE_LIMIT_TIER2: RateLimitConfig = BATCH_PROFILES.tier2.rate;

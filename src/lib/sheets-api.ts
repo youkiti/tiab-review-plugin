@@ -639,11 +639,13 @@ export async function getReferencesWithStatus(
         const myDecision = myDecisions.get(ref.ref_id);
         // decision='pending' の場合も未判定として扱う
         const status: DecisionStatus = (myDecision && myDecision.decision !== 'pending') ? myDecision.decision : 'pending';
+        const llmDecisions = llmDecisionsMap.get(ref.ref_id) || [];
         return {
             ...ref,
             myDecision,
             status,
-            allDecisions: llmDecisionsMap.get(ref.ref_id) || [],
+            allDecisions: llmDecisions,
+            hasAnyLlmDecision: llmDecisions.length > 0,
         };
     });
 }
@@ -699,6 +701,8 @@ export async function getReferencesWithAllDecisions(
 
     // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
+    // バッチ再判定の重複を避けるため、status/active を問わず LLM 判定の有無を別途記録
+    const refIdsWithAnyLlmDecision = new Set<string>();
     let skippedLlm = 0;
     let addedDecisions = 0;
     let addedHuman = 0;
@@ -713,6 +717,10 @@ export async function getReferencesWithAllDecisions(
         }
         if (refId !== decision.ref_id) {
             decision.ref_id = refId;
+        }
+
+        if (decision.reviewer_id.startsWith('llm:')) {
+            refIdsWithAnyLlmDecision.add(decision.ref_id);
         }
 
         // LLMの判定かつ、有効な実行IDに含まれていない場合はスキップ
@@ -778,6 +786,7 @@ export async function getReferencesWithAllDecisions(
             status,
             allDecisions,
             hasConflict,
+            hasAnyLlmDecision: refIdsWithAnyLlmDecision.has(ref.ref_id),
         };
     });
 }

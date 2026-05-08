@@ -5,8 +5,8 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision, RateLimitConfig } from '../../../lib/types';
-import { RATE_LIMIT_FREE, RATE_LIMIT_PAID } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, BatchProfile } from '../../../lib/types';
+import { BATCH_PROFILES, getBatchProfile } from '../../../lib/types';
 import {
     appendDecisions,
     getDecisionsByReviewerId,
@@ -15,8 +15,10 @@ import {
     getLlmExecutions,
     updateLlmExecution,
     updateLlmConfig,
+    getReferencesWithStatus,
+    getReferencesWithAllDecisions,
 } from '../../../lib/sheets-api';
-import { getEffectiveApiKey, getApiTier } from '../../../lib/storage';
+import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
 import {
     processBatch,
     calculateProbabilityDistribution,
@@ -28,13 +30,27 @@ import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
 import { getModelConfig } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
-import { setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds } from '../../store/compat';
+import {
+    setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds,
+    setReferences as syncSetReferences,
+} from '../../store/compat';
+import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
     _loadDataAndShowScreening = fn;
+}
+
+/**
+ * 現在の手動 tier 設定とモデル ID からバッチ実行プロファイルを取得
+ * 未設定の場合は安全側で tier1 を採用
+ * モデル別に上書きがある場合はそちら（例: gemini-2.5-flash-lite は高並列）を優先
+ */
+async function resolveBatchProfile(modelId?: string): Promise<BatchProfile> {
+    const manualTier = (await getManualTier()) || 'tier1';
+    return getBatchProfile(manualTier, modelId);
 }
 
 function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getLlmExecutions>>): string | null {
@@ -91,16 +107,56 @@ async function setSingleActiveExecution(spreadsheetId: string, selectedExecution
 }
 
 /**
+ * LLM バッチの対象となる文献かどうか判定
+ * - 自分が未判定 (status === 'pending')
+ * - かつ いずれの LLM 実行でもまだ判定されていない（pending/confirmed/inactive いずれも除外）
+ *   → 同一文献を別バッチで再処理してAPI呼び出しが無駄になるのを防ぐ
+ */
+function isBatchEligible(ref: { status: string; hasAnyLlmDecision?: boolean }): boolean {
+    return ref.status === 'pending' && !ref.hasAnyLlmDecision;
+}
+
+/**
+ * バッチ実行直後に references を再読込してUIカウントを最新化する
+ * - 画面遷移は行わず、データだけ更新する
+ * - 担当割当（assignment）のフィルタは初期読み込み時と同じ条件で適用する
+ */
+async function refreshReferencesAfterBatch(spreadsheetId: string): Promise<void> {
+    try {
+        const userEmail = state.userEmail;
+        const isKeyOpened = state.isKeyOpened;
+        const refs = isKeyOpened
+            ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
+            : await getReferencesWithStatus(spreadsheetId, userEmail);
+
+        // 管理者でなく担当割当が configured の場合のみ自分の担当セットで絞り込む
+        // （loadDataAndShowScreening の initializeAssignmentState と同じロジック）
+        const visibleRefs = (() => {
+            if (state.isAdmin) return refs;
+            const config = state.assignmentConfig;
+            if (config.status !== 'configured') return refs;
+            const assignedSets = getAssignedSetsForUser(config, userEmail);
+            return refs.filter((ref) => assignedSets.has(getReferenceAssignmentSet(ref)));
+        })();
+
+        syncSetReferences(visibleRefs);
+        updateBatchTargetCount();
+    } catch (error) {
+        console.error('[refreshReferencesAfterBatch] Failed to reload references:', error);
+    }
+}
+
+/**
  * バッチ対象件数を更新
  */
 export function updateBatchTargetCount() {
-    const pendingCount = state.references.filter((r) => r.status === 'pending').length;
-    dom.batchTargetCount.textContent = pendingCount.toString();
+    const eligibleCount = state.references.filter(isBatchEligible).length;
+    dom.batchTargetCount.textContent = eligibleCount.toString();
 
     const maxCountRaw = dom.batchMaxCountSelect.value;
     const plannedCount = maxCountRaw === 'all'
-        ? pendingCount
-        : Math.min(pendingCount, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+        ? eligibleCount
+        : Math.min(eligibleCount, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
     dom.batchPlannedCount.textContent = plannedCount.toString();
 }
 
@@ -120,12 +176,12 @@ export async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得（未判定のみ・件数上限を適用）
-    const pendingRefs = state.references.filter((r) => r.status === 'pending');
+    // 対象文献を取得（未判定 かつ LLM 未判定のみ・件数上限を適用）
+    const eligibleRefs = state.references.filter(isBatchEligible);
     const maxCountRaw = dom.batchMaxCountSelect.value;
     const targetRefs = maxCountRaw === 'all'
-        ? pendingRefs
-        : pendingRefs.slice(0, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+        ? eligibleRefs
+        : eligibleRefs.slice(0, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
 
     if (targetRefs.length === 0) {
         showToast(t('llm_batchNoTarget'));
@@ -145,23 +201,19 @@ export async function handleStartBatch() {
     state.setCurrentBatchDecisions([]);
 
     try {
-        const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
+        // 選択されたモデルの設定を取得（モデル ID はプロファイル解決にも使う）
+        const modelConfig = getModelConfig(dom.llmModelSelect.value);
+
+        const profile = await resolveBatchProfile(modelConfig.model);
         const spreadsheetId = state.spreadsheetId;
         const llmConfig = state.llmConfig;
 
-        // API tierに基づいてレート制限を設定
-        const tier = await getApiTier();
-        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
-
-        if (tier === 'free') {
+        if (profile === BATCH_PROFILES.free) {
             showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
-        // 選択されたモデルの設定を取得
-        const modelConfig = getModelConfig(dom.llmModelSelect.value);
-
         const result = await processBatch(targetRefs, {
-            batchSize: saveBatchSize,
+            batchSize: profile.saveBatchSize,
             screeningPrompt,
             model: modelConfig.model,
             temperature: modelConfig.temperature,
@@ -169,7 +221,7 @@ export async function handleStartBatch() {
             thinkingLevel: modelConfig.thinkingLevel,
 
             outputLanguage: dom.llmLanguageSelect.value,
-            rateLimitConfig,
+            rateLimitConfig: profile.rate,
             abortSignal: abortController.signal,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
@@ -237,6 +289,9 @@ export async function handleStartBatch() {
         dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
         state.setBatchAbortController(null);
+        // バッチで判定済みになった文献を「未判定」カウントから除外するため再読込
+        // （中断・エラー時も部分的に保存されている可能性があるので必ず実行）
+        await refreshReferencesAfterBatch(state.spreadsheetId);
     }
 }
 
@@ -295,20 +350,18 @@ export async function handleRetryFailed() {
     state.setBatchAbortController(abortController);
 
     try {
-        const saveBatchSize = Math.max(parseInt(dom.batchSaveSizeInput.value, 10) || 5, 1);
+        const modelId = dom.llmModelSelect.value;
+        const profile = await resolveBatchProfile(modelId);
         const spreadsheetId = state.spreadsheetId;
 
-        const tier = await getApiTier();
-        const rateLimitConfig: RateLimitConfig = tier === 'free' ? RATE_LIMIT_FREE : RATE_LIMIT_PAID;
-
         const result = await processBatch(targetRefs, {
-            batchSize: saveBatchSize,
+            batchSize: profile.saveBatchSize,
             screeningPrompt,
-            model: dom.llmModelSelect.value,
+            model: modelId,
             temperature: 0,
 
             outputLanguage: dom.llmLanguageSelect.value,
-            rateLimitConfig,
+            rateLimitConfig: profile.rate,
             abortSignal: abortController.signal,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
@@ -342,6 +395,7 @@ export async function handleRetryFailed() {
         dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
         state.setBatchAbortController(null);
+        await refreshReferencesAfterBatch(state.spreadsheetId);
     }
 }
 

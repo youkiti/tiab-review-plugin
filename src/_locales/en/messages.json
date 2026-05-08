@@ -732,11 +732,23 @@
   "llm_batchTitle": {
     "message": "🚀 Batch Processing"
   },
-  "llm_batchSizeLabel": {
-    "message": "Batch size:"
+  "llm_tierLabel": {
+    "message": "Plan:"
   },
-  "llm_batchSizeHint": {
-    "message": "items (parallel processing & saving)"
+  "llm_tierFree": {
+    "message": "Free plan (auto-detected)"
+  },
+  "llm_tierTier1": {
+    "message": "Tier 1 (300 RPM)"
+  },
+  "llm_tierTier2": {
+    "message": "Tier 2 (2,000 RPM)"
+  },
+  "llm_tierTier3": {
+    "message": "Tier 3 (4,000+ RPM)"
+  },
+  "llm_tierSaved": {
+    "message": "Plan updated ($1)"
   },
   "llm_batchPending": {
     "message": "Pending:"
@@ -772,7 +784,7 @@
     "message": "⚠️ $1 item(s) could not be parsed by the LLM and were saved as probability 1.0 (always reviewed). They are not filtered by the threshold."
   },
   "llm_batchMaxCountLabel": {
-    "message": "Run count:"
+    "message": "Run limit:"
   },
   "llm_batchMaxCountAll": {
     "message": "All"
@@ -1394,8 +1406,11 @@
   "llm_tip_protocol": {
     "message": "Paste your protocol's inclusion/exclusion criteria here as-is.\nClick 'Optimize criteria' and the AI will turn it into a screening prompt."
   },
-  "llm_tip_batchSize": {
-    "message": "Number of references saved to the spreadsheet per batch.\nRecommended:\n• Free key: 1–5\n• Paid Tier 1: 5–20\n• Paid Tier 2: 20–50\nLarger is faster, but a failed batch must be retried as a whole."
+  "llm_tip_tier": {
+    "message": "Select your Gemini API tier. Parallel requests and save batch size are derived automatically from this tier.\n\n■ How to check your tier\n1. Open https://aistudio.google.com/usage\n2. See the current tier under \"Billing\"\n\n■ Tier overview\n• Tier 1: instant after enabling billing (300 RPM)\n• Tier 2: cumulative $100 + 3 days after first payment (2,000 RPM)\n• Tier 3: cumulative $1,000 + 30 days (4,000+ RPM)\n\nA wrong selection causes frequent rate-limit errors. If unsure, choose Tier 1."
+  },
+  "llm_tip_maxCount": {
+    "message": "Maximum number of pending references to process in this run.\nFor example, if 10,000 references are pending and you choose 100, only the first 100 will be processed and the remaining 9,900 will be carried over to subsequent runs.\nChoose \"All\" to process every pending reference."
   },
   "llm_tip_threshold": {
     "message": "Choose how broadly AI should collect include candidates.\n0.3: broad\n0.5: standard. Use this if unsure\n0.7: strict\nYou can adjust while checking the distribution graph below."

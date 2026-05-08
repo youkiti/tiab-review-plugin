@@ -149,13 +149,15 @@ const CRITERIA_CONVERSION_SCHEMA = {
 
 /**
  * Gemini APIを呼び出す（タイムアウト付き）
- * thinkingモデル対応のため、デフォルト60秒
+ * timeoutMs はチャンク間の無音タイムアウト（リクエスト全体のタイムアウトではない）。
+ * `includeThoughts: true` を指定しているため reasoning 中も思考チャンクが流れ続ける前提で、
+ * 90秒無音 = 異常とみなして abort し、processWithRetry のリトライに回す設計。
  */
 async function callGeminiApi<T>(
     prompt: string,
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
-    timeoutMs: number = 300000
+    timeoutMs: number = 90000
 ): Promise<{ result: T; usageMetadata: UsageMetadata }> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {

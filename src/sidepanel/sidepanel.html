@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-04-30</span>
+                <span class="build-version">Build: 2026-05-08</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -382,6 +382,16 @@
                         </label>
                     </div>
                     <div id="api-key-status" class="api-key-status"></div>
+                    <div id="tier-section" class="setting-row tier-section hidden">
+                        <label data-i18n="llm_tierLabel"></label>
+                        <span class="help-icon" data-i18n-tooltip="llm_tip_tier" tabindex="0">?</span>
+                        <span id="tier-fixed-display" class="tier-fixed-display hidden"></span>
+                        <select id="tier-select" class="hidden">
+                            <option value="tier1" data-i18n="llm_tierTier1"></option>
+                            <option value="tier2" data-i18n="llm_tierTier2"></option>
+                            <option value="tier3" data-i18n="llm_tierTier3"></option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -418,14 +428,8 @@
                 <h4 data-i18n="llm_batchTitle"></h4>
 
                 <div class="setting-row">
-                    <label data-i18n="llm_batchSizeLabel"></label>
-                    <span class="help-icon" data-i18n-tooltip="llm_tip_batchSize" tabindex="0">?</span>
-                    <input type="number" id="batch-save-size-input" value="5" min="1" max="500" style="width: 60px;">
-                    <span class="setting-hint" data-i18n="llm_batchSizeHint"></span>
-                </div>
-
-                <div class="setting-row">
                     <label data-i18n="llm_batchMaxCountLabel"></label>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_maxCount" tabindex="0">?</span>
                     <select id="batch-max-count-select">
                         <option value="10">10</option>
                         <option value="50">50</option>
