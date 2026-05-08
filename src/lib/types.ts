@@ -208,19 +208,21 @@ export const RATE_LIMIT_FREE: RateLimitConfig = {
 };
 
 /**
- * 有料版向けレート制限設定
- * 並列実行可能
+ * 有料版（Tier 1）向けレート制限設定
+ * Tier 1 cap = 300 RPM。API レイテンシ 3〜5秒/件 × concurrency=10 で
+ * 実効 180〜200 RPM 程度（=ピークでも 60〜67% 利用率）。リトライバーストの余裕込み。
  */
 export const RATE_LIMIT_PAID: RateLimitConfig = {
-    concurrency: 5,
-    delayBetweenRequests: 200,
+    concurrency: 10,
+    delayBetweenRequests: 300,
 };
 
 /**
- * Tier 2向けレート制限設定
- * RPM 1000対応、ただし安定性のため控えめに設定
+ * Tier 2 向けレート制限設定
+ * Tier 2 cap = 2,000 RPM。concurrency=20 でも実効 350〜400 RPM 程度で
+ * Cap の 20% 以下に収まる。手動 Tier 指定機能を導入したらここを使う。
  */
 export const RATE_LIMIT_TIER2: RateLimitConfig = {
-    concurrency: 10,
-    delayBetweenRequests: 100,
+    concurrency: 20,
+    delayBetweenRequests: 150,
 };
