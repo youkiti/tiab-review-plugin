@@ -1315,11 +1315,28 @@
       }
     }
   },
+  "assignment_settingsReshuffle": {
+    "message": "Reshuffle assignments"
+  },
+  "assignment_reshuffleConfirm": {
+    "message": "Discard the current assignment sets and reshuffle all references.\n\n- Every reference's screening_set will be reassigned with a new random seed.\n- Each reviewer's set of references will change.\n- Existing decisions are preserved.\n\nProceed?"
+  },
+  "assignment_reshuffled": {
+    "message": "$1 references reserved for calibration, the rest reshuffled into $2 groups",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
   "assignment_wizardTitle": {
     "message": "Create Assignment Sets"
   },
   "assignment_wizardIntro": {
-    "message": "Would you like to split this review into sets for multiple reviewers?"
+    "message": "When splitting a review across reviewers, everyone first reviews the same set of references to align decision criteria (calibration). The remaining references are then divided across teams (typically 2 reviewers per team for independent dual screening). Set the counts below."
   },
   "assignment_wizardSummary": {
     "message": "Current references: $1",
@@ -1330,13 +1347,41 @@
     }
   },
   "assignment_wizardCalibrationLabel": {
-    "message": "Calibration references for everyone"
+    "message": "References everyone reviews together (calibration)"
   },
   "assignment_wizardGroupCountLabel": {
-    "message": "Number of groups"
+    "message": "Number of teams to split the rest into"
+  },
+  "assignment_wizardPreview": {
+    "message": "Everyone: $1 + remaining $2 split into $3 teams (~$4 per team)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      },
+      "3": {
+        "content": "$3"
+      },
+      "4": {
+        "content": "$4"
+      }
+    }
+  },
+  "assignment_wizardPreviewNoRest": {
+    "message": "Everyone: $1 (no remaining references; nothing to split across teams)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardPreviewInvalid": {
+    "message": "Enter the counts to see a preview here."
   },
   "assignment_wizardReviewerHelp": {
-    "message": "Enter reviewer emails for each group, separated by commas. You can edit them later from Settings."
+    "message": "Enter reviewer emails for each team, separated by commas (typically 2 for independent dual screening). You can edit them later from Settings."
   },
   "assignment_wizardReviewerLabel": {
     "message": "Reviewers for Group $1",

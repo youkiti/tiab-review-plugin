@@ -1315,11 +1315,28 @@
       }
     }
   },
+  "assignment_settingsReshuffle": {
+    "message": "再分割（やり直し）"
+  },
+  "assignment_reshuffleConfirm": {
+    "message": "現在の担当セットを破棄して全件を再シャッフルします。\n\n・全文献の screening_set が新しい乱数で振り直されます\n・各レビュアーが見る文献の組み合わせが変わります\n・既存の判定（Decisions）はそのまま保持されます\n\n続行しますか？"
+  },
+  "assignment_reshuffled": {
+    "message": "$1件を全員用、残りを $2 グループに再分割しました",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
   "assignment_wizardTitle": {
     "message": "担当セットの作成"
   },
   "assignment_wizardIntro": {
-    "message": "このレビューを複数人で分割するためのセットに分けますか？"
+    "message": "複数人で分担する場合、まず最初に「全員が同じ文献」を判定して判定基準を擦り合わせ（キャリブレーション）、その後の残りを「チーム（通常は1チーム2名で独立に判定）ごとに分担」します。下で件数とチーム数を決めてください。"
   },
   "assignment_wizardSummary": {
     "message": "現在の文献数: $1件",
@@ -1330,13 +1347,41 @@
     }
   },
   "assignment_wizardCalibrationLabel": {
-    "message": "全員用キャリブレーション件数"
+    "message": "全員で同じ文献を見る件数（キャリブレーション）"
   },
   "assignment_wizardGroupCountLabel": {
-    "message": "分割グループ数"
+    "message": "残りを分担するチーム数"
+  },
+  "assignment_wizardPreview": {
+    "message": "全員で $1 件 ＋ 残り $2 件 を $3 チームに分割（1 チームあたり 約 $4 件）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      },
+      "3": {
+        "content": "$3"
+      },
+      "4": {
+        "content": "$4"
+      }
+    }
+  },
+  "assignment_wizardPreviewNoRest": {
+    "message": "全員で $1 件（残りなし。チームごとの分担は発生しません）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_wizardPreviewInvalid": {
+    "message": "件数とチーム数を入力するとここにプレビューが表示されます。"
   },
   "assignment_wizardReviewerHelp": {
-    "message": "各グループの担当者メールをカンマ区切りで入力してください。あとから設定画面で変更できます。"
+    "message": "各チームの担当者メールをカンマ区切りで入力してください（独立2名スクリーニングなら通常2名）。あとから設定画面で変更できます。"
   },
   "assignment_wizardReviewerLabel": {
     "message": "グループ$1の担当者",

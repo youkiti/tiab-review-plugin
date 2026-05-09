@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.termFilterAndCheckbox?.addEventListener('change', settings.handleTermFilterAndChange);
     dom.treatMlAsManualCheckbox?.addEventListener('change', settings.handleTreatMlAsManualChange);
     dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
+    dom.assignmentReshuffleBtn?.addEventListener('click', () => { void settings.handleAssignmentReshuffle(); });
     dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
 
     // Import/Export

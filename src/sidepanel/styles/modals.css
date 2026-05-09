@@ -215,6 +215,24 @@
     border: 1px solid #d0d7de;
     border-radius: 6px;
     font-size: 13px;
+    margin-top: auto;
+}
+
+.assignment-preview {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #eef6ec;
+    border: 1px solid #cfe3c8;
+    color: #2f5d2a;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.assignment-preview--invalid {
+    background: #fdf2f2;
+    border-color: #f3c9c9;
+    color: #8a3a3a;
 }
 
 .assignment-group-grid {
