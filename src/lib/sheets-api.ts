@@ -694,21 +694,18 @@ export async function getReferencesWithAllDecisions(
         console.log('[getReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
     }
 
-    // 有効なLLM実行IDは最新の1件だけを採用
-    const activeBatchExecution = llmExecutions
-        .filter(e => e.execution_type === 'batch_screening' && e.status === 'confirmed' && e.is_active)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-
-    const validLlmExecutionIds = new Set(
-        activeBatchExecution ? [activeBatchExecution.execution_id] : []
-    );
+    // 有効な LLM 判定 = active Run 配下の Batch IDs に含まれる reviewer_id のもの
+    // Run/Batch 分離後、active 状態は LLM_Runs.is_active が正となる
+    const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions);
+    const validLlmExecutionIds = activeBatchIds;
 
     console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
         id: e.execution_id,
         status: e.status,
-        is_active: e.is_active
+        is_active: e.is_active,
+        run_id: e.run_id,
     })));
-    console.log('[getReferencesWithAllDecisions] validLlmExecutionIds:', Array.from(validLlmExecutionIds));
+    console.log('[getReferencesWithAllDecisions] activeBatchIds:', Array.from(validLlmExecutionIds));
 
     // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
@@ -2035,6 +2032,104 @@ export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
     } catch (error) {
         console.error('[getLlmRuns] Error:', error);
         return [];
+    }
+}
+
+// ============================================================
+// Run/Batch 結合・active 解決ヘルパー
+// ============================================================
+
+/**
+ * config_hash で Run を検索する。
+ * 複数ヒット時の優先順位: active confirmed > 最新 confirmed > 最新 created_at
+ */
+export async function findRunByConfigHash(
+    spreadsheetId: string,
+    configHash: string
+): Promise<LlmRun | null> {
+    const runs = await getLlmRuns(spreadsheetId);
+    const matched = runs.filter(r => r.config_hash === configHash);
+    if (matched.length === 0) return null;
+
+    const activeConfirmed = matched.find(r => r.is_active && r.status === 'confirmed');
+    if (activeConfirmed) return activeConfirmed;
+
+    const confirmed = matched
+        .filter(r => r.status === 'confirmed')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (confirmed.length > 0) return confirmed[0];
+
+    return matched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+}
+
+/**
+ * 現在の active Run（is_active=true かつ confirmed）を1件返す。
+ * 複数候補があれば created_at が新しい方を採用。
+ */
+export async function getActiveLlmRun(spreadsheetId: string): Promise<LlmRun | null> {
+    const runs = await getLlmRuns(spreadsheetId);
+    const candidates = runs
+        .filter(r => r.is_active && r.status === 'confirmed')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return candidates[0] ?? null;
+}
+
+/**
+ * Batch ID から所属する Run を逆引きする。
+ */
+export async function getRunForBatchId(
+    spreadsheetId: string,
+    batchId: string
+): Promise<LlmRun | null> {
+    const [runs, batches] = await Promise.all([
+        getLlmRuns(spreadsheetId),
+        getLlmExecutions(spreadsheetId),
+    ]);
+    const batch = batches.find(b => b.execution_id === batchId);
+    if (!batch || !batch.run_id) return null;
+    return runs.find(r => r.run_id === batch.run_id) ?? null;
+}
+
+/**
+ * 指定 Run に属する全 Batch ID（execution_id）を返す。
+ */
+export async function getBatchIdsForRun(
+    spreadsheetId: string,
+    runId: string,
+    batches?: LlmExecution[]
+): Promise<Set<string>> {
+    const all = batches ?? await getLlmExecutions(spreadsheetId);
+    return new Set(
+        all
+            .filter(b => b.execution_type === 'batch_screening' && b.run_id === runId)
+            .map(b => b.execution_id)
+    );
+}
+
+/**
+ * active Run 配下の全 Batch IDs を返す。Decisions の絞り込みに使う。
+ * batches を渡せば再フェッチを省略する。
+ */
+export async function getActiveBatchIdsForActiveRun(
+    spreadsheetId: string,
+    batches?: LlmExecution[]
+): Promise<Set<string>> {
+    const activeRun = await getActiveLlmRun(spreadsheetId);
+    if (!activeRun) return new Set();
+    return getBatchIdsForRun(spreadsheetId, activeRun.run_id, batches);
+}
+
+/**
+ * 指定 Run のみを active=true にし、他の Run は false に切り替える。
+ * 同一 spreadsheet 内で active な Run は常に高々1つの不変条件を保つ。
+ */
+export async function setSingleActiveRun(spreadsheetId: string, runId: string): Promise<void> {
+    const runs = await getLlmRuns(spreadsheetId);
+    for (const run of runs) {
+        const shouldBeActive = run.run_id === runId;
+        if (run.is_active !== shouldBeActive) {
+            await updateLlmRun(spreadsheetId, run.run_id, { is_active: shouldBeActive });
+        }
     }
 }
 

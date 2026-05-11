@@ -828,6 +828,9 @@
   "llm_thresholdCompleteWithFallback": {
     "message": "✓ Batch complete ($1 processed; $2 saved as probability 1.0 due to LLM output parse error)"
   },
+  "llm_thresholdAutoApplied": {
+    "message": "✓ Reused threshold from existing Run (include: $1, exclude: $2)"
+  },
   "llm_thresholdLabel": {
     "message": "Include threshold:"
   },

@@ -5,7 +5,7 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision, BatchProfile } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, BatchProfile, LlmRun } from '../../../lib/types';
 import { BATCH_PROFILES, getBatchProfile } from '../../../lib/types';
 import {
     appendDecisions,
@@ -17,7 +17,15 @@ import {
     updateLlmConfig,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
+    getLlmRuns,
+    saveLlmRun,
+    updateLlmRun,
+    setSingleActiveRun,
+    getRunForBatchId,
+    getBatchIdsForRun,
+    findRunByConfigHash,
 } from '../../../lib/sheets-api';
+import { computeConfigHash } from '../../../lib/llm-config-hash';
 import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
 import {
     processBatch,
@@ -53,17 +61,36 @@ async function resolveBatchProfile(modelId?: string): Promise<BatchProfile> {
     return getBatchProfile(manualTier, modelId);
 }
 
-function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getLlmExecutions>>): string | null {
-    const activeBatchExecutions = executions
-        .filter(exec => exec.execution_type === 'batch_screening' && exec.status === 'confirmed' && exec.is_active)
+/**
+ * 履歴 UI で「使用中」マークを付ける Batch ID を決める。
+ * Run/Batch 分離後は active Run 配下の最新 Batch を選ぶ。
+ * （Run 配下に複数 Batch がある場合、ラジオは1つしか checked にできないため）
+ */
+function getSelectedActiveExecutionId(
+    executions: Awaited<ReturnType<typeof getLlmExecutions>>,
+    runs: LlmRun[]
+): string | null {
+    const activeRun = runs.find(r => r.is_active && r.status === 'confirmed');
+    if (!activeRun) return null;
+
+    const activeBatches = executions
+        .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    return activeBatchExecutions[0]?.execution_id ?? null;
+    return activeBatches[0]?.execution_id ?? null;
 }
 
-function getThresholdForAdjustment(exec: Awaited<ReturnType<typeof getLlmExecutions>>[number]): number {
-    if (exec.status === 'confirmed') {
-        return exec.include_threshold;
+/**
+ * 閾値再調整 UI に表示する初期値を、Batch が属する Run から取得する。
+ * Run が confirmed なら Run の値を、なければ project の default を使う。
+ */
+function getThresholdForAdjustment(
+    exec: Awaited<ReturnType<typeof getLlmExecutions>>[number],
+    runs: LlmRun[]
+): number {
+    const run = exec.run_id ? runs.find(r => r.run_id === exec.run_id) : undefined;
+    if (run && run.status === 'confirmed') {
+        return run.include_threshold;
     }
 
     const configuredThreshold = state.llmConfig?.llm_include_threshold;
@@ -72,14 +99,30 @@ function getThresholdForAdjustment(exec: Awaited<ReturnType<typeof getLlmExecuti
 
 async function prepareThresholdAdjustment(executionId: string, threshold: number, targetCount: number): Promise<void> {
     const spreadsheetId = state.spreadsheetId;
-    const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
 
-    if (existingDecisions.length === 0) {
+    // Run/Batch 分離後、閾値は Run 単位で適用される。プレビューも Run 配下の
+    // 全 Batch を合算して表示する（confirm 時の挙動と整合させる）
+    const run = await getRunForBatchId(spreadsheetId, executionId);
+    let allDecisions: Decision[] = [];
+
+    if (run) {
+        const batchIds = await getBatchIdsForRun(spreadsheetId, run.run_id);
+        for (const batchId of batchIds) {
+            const data = await getDecisionsByReviewerId(spreadsheetId, batchId);
+            allDecisions.push(...data.map(d => d.decision));
+        }
+    } else {
+        // Run 不明（移行前データ等）の場合はクリックされた Batch のみ
+        const data = await getDecisionsByReviewerId(spreadsheetId, executionId);
+        allDecisions = data.map(d => d.decision);
+    }
+
+    if (allDecisions.length === 0) {
         throw new Error(t('llm_thresholdAdjustNoDecisions'));
     }
 
     state.setCurrentExecutionId(executionId);
-    state.setCurrentBatchDecisions(existingDecisions.map(({ decision }) => decision));
+    state.setCurrentBatchDecisions(allDecisions);
 
     dom.thresholdSlider.value = threshold.toFixed(2);
     dom.thresholdValueDisplay.textContent = threshold.toFixed(2);
@@ -90,20 +133,17 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
     dom.thresholdSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/**
+ * UI のラジオから受け取った Batch ID を、その Batch が属する Run の active 化に変換する。
+ * Run/Batch 分離後、active 状態は Run 単位でのみ管理される。
+ */
 async function setSingleActiveExecution(spreadsheetId: string, selectedExecutionId: string): Promise<void> {
-    const executions = await getLlmExecutions(spreadsheetId);
-    const targetExecutions = executions.filter(exec =>
-        exec.execution_type === 'batch_screening' && exec.status === 'confirmed'
-    );
-
-    for (const exec of targetExecutions) {
-        const shouldBeActive = exec.execution_id === selectedExecutionId;
-        if (exec.is_active !== shouldBeActive) {
-            await updateLlmExecution(spreadsheetId, exec.execution_id, {
-                is_active: shouldBeActive,
-            });
-        }
+    const run = await getRunForBatchId(spreadsheetId, selectedExecutionId);
+    if (!run) {
+        console.warn('[setSingleActiveExecution] Run not found for batch:', selectedExecutionId);
+        return;
     }
+    await setSingleActiveRun(spreadsheetId, run.run_id);
 }
 
 /**
@@ -212,6 +252,45 @@ export async function handleStartBatch() {
             showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
+        // Run 解決: 同一設定の既存 Run があれば再利用、なければ新規作成
+        // confirmed Run なら閾値を即時適用し、閾値確認 UI をスキップする
+        const configHash = await computeConfigHash({
+            model: modelConfig.model,
+            temperature: modelConfig.temperature,
+            topP: modelConfig.topP,
+            thinkingLevel: modelConfig.thinkingLevel,
+            criteria_snapshot: llmConfig.llm_criteria,
+            screening_prompt: screeningPrompt,
+        });
+
+        const matchedRun = await findRunByConfigHash(spreadsheetId, configHash);
+        const isImmediate = matchedRun?.status === 'confirmed';
+        const runThreshold = isImmediate ? matchedRun!.include_threshold : null;
+
+        let runId: string;
+        if (matchedRun) {
+            runId = matchedRun.run_id;
+        } else {
+            runId = crypto.randomUUID();
+            const newRun: LlmRun = {
+                run_id: runId,
+                config_hash: configHash,
+                created_at: new Date().toISOString(),
+                model: modelConfig.model,
+                temperature: modelConfig.temperature,
+                topP: modelConfig.topP,
+                thinkingLevel: modelConfig.thinkingLevel,
+                criteria_snapshot: llmConfig.llm_criteria,
+                screening_prompt: screeningPrompt,
+                include_threshold: typeof llmConfig.llm_include_threshold === 'number'
+                    ? llmConfig.llm_include_threshold
+                    : 0.3,
+                status: 'pending',
+                is_active: false,
+            };
+            await saveLlmRun(spreadsheetId, newRun);
+        }
+
         const result = await processBatch(targetRefs, {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
@@ -229,6 +308,8 @@ export async function handleStartBatch() {
                 const currentDecisions = state.currentBatchDecisions;
                 state.setCurrentBatchDecisions([...currentDecisions, ...decisions]);
             },
+            // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
+            applyThreshold: runThreshold ?? undefined,
         });
 
         state.setCurrentExecutionId(result.executionId);
@@ -246,41 +327,66 @@ export async function handleStartBatch() {
 
         // 完了後のUI更新
         if (!abortController.signal.aborted) {
-            // pending状態で実行履歴を保存
+            // Batch row を保存。
+            // Run/Batch 分離後は閾値・status・is_active は LLM_Runs 側を正とするため、
+            // LLM_Executions 側の値は固定値（threshold=0, status='pending', is_active=false）で
+            // 書き込み、読み取り時は無視される。
             const execution = createLlmExecution(
                 result.executionId,
                 'batch_screening',
                 modelConfig.model,
                 llmConfig.llm_criteria,
                 dom.screeningPromptInput.value,
-                0,  // 閾値は未確定
+                0,
                 result.processedCount,
-                0,  // include_countは未確定
-                0,  // exclude_countは未確定
-                'pending',  // status
-                true,       // is_active
-                // Model parameters
+                0,
+                0,
+                'pending',
+                false,
                 modelConfig.temperature,
                 modelConfig.topP,
                 modelConfig.thinkingLevel
             );
+            execution.run_id = runId;
             await saveLlmExecution(spreadsheetId, execution);
+
+            // confirmed Run なら、Run を active 化して閾値 UI を出さない
+            if (isImmediate && runThreshold !== null) {
+                const counts = previewThresholdCounts(state.currentBatchDecisions, runThreshold);
+                await setSingleActiveRun(spreadsheetId, runId);
+                showToast(
+                    t('llm_thresholdAutoApplied', [String(counts.includeCount), String(counts.excludeCount)]),
+                    4000
+                );
+                console.log('[handleStartBatch] Auto-applied confirmed Run threshold:', {
+                    runId,
+                    threshold: runThreshold,
+                    counts,
+                });
+            } else {
+                // pending Run: 従来通り閾値確認 UI を出す
+                // 既存 pending Run を再利用する場合は前回の閾値をスライダー初期値として復元
+                if (matchedRun) {
+                    const initial = matchedRun.include_threshold;
+                    if (typeof initial === 'number' && Number.isFinite(initial)) {
+                        dom.thresholdSlider.value = initial.toFixed(2);
+                        dom.thresholdValueDisplay.textContent = initial.toFixed(2);
+                    }
+                }
+                dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
+                    ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
+                    : t('llm_thresholdComplete', String(result.successCount));
+                dom.thresholdSection.classList.remove('hidden');
+                handleThresholdChange();
+            }
 
             // 履歴を再読み込み
             await loadExecutionHistory();
-
-            dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
-                ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
-                : t('llm_thresholdComplete', String(result.successCount));
-            dom.thresholdSection.classList.remove('hidden');
 
             // フォールバック発生時はトーストでも明示
             if (result.fallbackCount > 0) {
                 showToast(t('llm_batchFallbackNotice', String(result.fallbackCount)), 6000);
             }
-
-            // 閾値プレビューを更新
-            handleThresholdChange();
         }
     } catch (error) {
         console.error('[handleStartBatch] Error:', error);
@@ -491,15 +597,19 @@ export function renderDistributionChart() {
 
 /**
  * 閾値を確定して判断をGoogleスプレッドシートに保存
+ *
+ * Run/Batch 分離後:
+ * - 閾値は Run 単位で1つ。current Batch の所属 Run を解決し、Run 配下の
+ *   全 Batch の Decisions に対して閾値を適用する
+ * - Run 行の include_threshold / status / is_active を更新
+ * - LLM_Executions 側の冗長列は書き換えない
  */
 export async function handleConfirmThreshold() {
     const threshold = parseFloat(dom.thresholdSlider.value);
     const spreadsheetId = state.spreadsheetId;
-    const currentDecisions = state.currentBatchDecisions;
     const executionId = state.currentExecutionId;
 
     console.log('[handleConfirmThreshold] Starting with executionId:', executionId);
-    console.log('[handleConfirmThreshold] currentDecisions count:', currentDecisions.length);
 
     if (!executionId) {
         console.error('[handleConfirmThreshold] executionId is empty!');
@@ -511,51 +621,57 @@ export async function handleConfirmThreshold() {
         dom.confirmThresholdBtn.disabled = true;
         showToast(t('common_saving'));
 
-        // 閾値を適用してdecisionを確定
-        const updatedDecisions = applyThresholdToDecisions(currentDecisions, threshold);
+        // current Batch の所属 Run を解決
+        const run = await getRunForBatchId(spreadsheetId, executionId);
+        if (!run) {
+            throw new Error(`Run not found for batch ${executionId}`);
+        }
 
-        // Decisionsシートの行を取得して更新
-        const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
-        console.log('[handleConfirmThreshold] existingDecisions count:', existingDecisions.length);
+        // Run 配下の全 Batch を対象に Decisions を取得し、閾値を適用
+        const batchIds = await getBatchIdsForRun(spreadsheetId, run.run_id);
+        const allDecisionsWithRow: { rowIndex: number; decision: Decision }[] = [];
+        let aggregatedInclude = 0;
+        let aggregatedExclude = 0;
 
-        const updates: { rowIndex: number; decision: Decision }[] = [];
-        for (const updated of updatedDecisions) {
-            const existing = existingDecisions.find(e => e.decision.ref_id === updated.ref_id);
-            if (existing) {
-                updates.push({ rowIndex: existing.rowIndex, decision: updated });
+        for (const batchId of batchIds) {
+            const decisionsForBatch = await getDecisionsByReviewerId(spreadsheetId, batchId);
+            const decisionObjs = decisionsForBatch.map(d => d.decision);
+            const updated = applyThresholdToDecisions(decisionObjs, threshold);
+            const counts = previewThresholdCounts(decisionObjs, threshold);
+            aggregatedInclude += counts.includeCount;
+            aggregatedExclude += counts.excludeCount;
+
+            for (const updatedDecision of updated) {
+                const existing = decisionsForBatch.find(e => e.decision.ref_id === updatedDecision.ref_id);
+                if (existing) {
+                    allDecisionsWithRow.push({ rowIndex: existing.rowIndex, decision: updatedDecision });
+                }
             }
         }
 
-        console.log('[handleConfirmThreshold] updates count:', updates.length);
+        console.log('[handleConfirmThreshold] Run-level updates:', {
+            runId: run.run_id,
+            batchCount: batchIds.size,
+            updateCount: allDecisionsWithRow.length,
+            includeCount: aggregatedInclude,
+            excludeCount: aggregatedExclude,
+        });
 
-        if (updates.length > 0) {
-            await updateDecisionsBatch(spreadsheetId, updates);
+        if (allDecisionsWithRow.length > 0) {
+            await updateDecisionsBatch(spreadsheetId, allDecisionsWithRow);
         }
 
-        // 実行履歴を更新（pending → confirmed）
-        const counts = previewThresholdCounts(currentDecisions, threshold);
-        console.log('[handleConfirmThreshold] Calling updateLlmExecution with:', {
-            executionId,
-            threshold,
-            includeCount: counts.includeCount,
-            excludeCount: counts.excludeCount,
-            status: 'confirmed',
-            is_active: true
-        });
-
-        await updateLlmExecution(spreadsheetId, executionId, {
+        // Run を確定状態に更新（閾値・status・is_active）
+        await updateLlmRun(spreadsheetId, run.run_id, {
             include_threshold: threshold,
-            include_count: counts.includeCount,
-            exclude_count: counts.excludeCount,
             status: 'confirmed',
-            is_active: true,  // 閾値確定時に「判定に使用」を自動でオン
+            is_active: true,
         });
 
-        await setSingleActiveExecution(spreadsheetId, executionId);
+        // この Run のみを active に。他の Run は false に切り替える
+        await setSingleActiveRun(spreadsheetId, run.run_id);
 
-        console.log('[handleConfirmThreshold] updateLlmExecution completed successfully');
-
-        // LLM設定を更新
+        // LLM設定を更新（次回新規 Run のデフォルト閾値）
         await updateLlmConfig(spreadsheetId, {
             llm_include_threshold: threshold,
         });
@@ -599,18 +715,30 @@ export async function loadExecutionHistory() {
     const spreadsheetId = state.spreadsheetId;
 
     try {
-        const executions = await getLlmExecutions(spreadsheetId);
-        const selectedActiveExecutionId = getSelectedActiveExecutionId(executions);
+        const [executions, runs] = await Promise.all([
+            getLlmExecutions(spreadsheetId),
+            getLlmRuns(spreadsheetId),
+        ]);
+        const selectedActiveExecutionId = getSelectedActiveExecutionId(executions, runs);
 
         console.log('[loadExecutionHistory] executions:', executions.map(e => ({
             id: e.execution_id,
             status: e.status,
             is_active: e.is_active,
             type: e.execution_type,
+            run_id: e.run_id,
         })));
 
-        // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
-        syncSetActiveLlmExecutionIds(new Set(selectedActiveExecutionId ? [selectedActiveExecutionId] : []));
+        // active Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
+        const activeRun = runs.find(r => r.is_active && r.status === 'confirmed');
+        const activeBatchIds = activeRun
+            ? new Set(
+                executions
+                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
+                    .map(e => e.execution_id)
+              )
+            : new Set<string>();
+        syncSetActiveLlmExecutionIds(activeBatchIds);
 
         if (executions.length === 0) {
             dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
@@ -625,34 +753,46 @@ export async function loadExecutionHistory() {
         );
 
         for (const exec of sorted.slice(0, 10)) {
+            // batch_screening の場合は所属 Run のメタ情報を反映する。
+            // Run/Batch 分離後、status/include_threshold は Run 側を正とするため、
+            // Batch 行の同名フィールドは表示用にオーバーライドする。
+            const run = exec.run_id ? runs.find(r => r.run_id === exec.run_id) : undefined;
+            const effectiveStatus: 'pending' | 'confirmed' = exec.execution_type === 'batch_screening'
+                ? (run?.status ?? exec.status)
+                : exec.status;
+            const effectiveThreshold = run?.include_threshold ?? exec.include_threshold;
+            const hasLegacyCounts = (exec.include_count ?? 0) + (exec.exclude_count ?? 0) > 0;
+
             const item = document.createElement('div');
-            item.className = `execution-item ${exec.status === 'pending' ? 'pending' : 'confirmed'}`;
+            item.className = `execution-item ${effectiveStatus === 'pending' ? 'pending' : 'confirmed'}`;
 
             const date = new Date(exec.timestamp);
             const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 
             const typeLabel = exec.execution_type === 'batch_screening' ? t('llm_historyBatch') : t('llm_historyCriteria');
-            const statusLabel = exec.status === 'pending' ? `<span class="execution-status pending">${t('llm_historyPending')}</span>` : '';
+            const statusLabel = effectiveStatus === 'pending' ? `<span class="execution-status pending">${t('llm_historyPending')}</span>` : '';
 
             // pending状態では閾値・件数を非表示
-            const statsContent = exec.status === 'pending'
+            // confirmed でも Run 移行後の新規 Batch は件数を保持しないため、
+            // legacy データのみ件数を表示する
+            const statsContent = effectiveStatus === 'pending' || !hasLegacyCounts
                 ? t('llm_historyPendingStats', String(exec.target_count))
-                : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), exec.include_threshold.toFixed(2)]);
+                : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), effectiveThreshold.toFixed(2)]);
 
             // ラジオボタン（batch_screening かつ confirmed のみ、単一選択）
-            const radioHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
+            const radioHtml = effectiveStatus === 'confirmed' && exec.execution_type === 'batch_screening'
                 ? `<label class="execution-active-label">
                      <input type="radio" class="execution-active-checkbox"
                             name="active-llm-execution"
-                            data-execution-id="${exec.execution_id}" 
+                            data-execution-id="${exec.execution_id}"
                             ${exec.execution_id === selectedActiveExecutionId ? 'checked' : ''}>
                      ${t('llm_historyUseDecision')}
                    </label>`
                 : '';
 
             const canAdjustThreshold = exec.execution_type === 'batch_screening'
-                && (exec.status === 'pending' || exec.status === 'confirmed');
-            const adjustButtonLabel = exec.status === 'pending'
+                && (effectiveStatus === 'pending' || effectiveStatus === 'confirmed');
+            const adjustButtonLabel = effectiveStatus === 'pending'
                 ? t('llm_historySetThreshold')
                 : t('llm_historyAdjustThreshold');
             const adjustButtonHtml = canAdjustThreshold
@@ -677,6 +817,8 @@ export async function loadExecutionHistory() {
             `;
 
             // ラジオボタンのイベントリスナー
+            // クリック時は Batch の所属 Run を active 化し、同 Run 配下の全 Batch IDs を
+            // 「LLM 判定として有効」としてキャッシュに反映する
             const radio = item.querySelector('.execution-active-checkbox') as HTMLInputElement | null;
             if (radio) {
                 radio.addEventListener('change', async () => {
@@ -686,7 +828,15 @@ export async function loadExecutionHistory() {
 
                     try {
                         await setSingleActiveExecution(spreadsheetId, exec.execution_id);
-                        syncSetActiveLlmExecutionIds(new Set([exec.execution_id]));
+                        const newActiveRun = exec.run_id ? runs.find(r => r.run_id === exec.run_id) : undefined;
+                        const newActiveBatchIds = newActiveRun
+                            ? new Set(
+                                executions
+                                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === newActiveRun.run_id)
+                                    .map(e => e.execution_id)
+                              )
+                            : new Set([exec.execution_id]);
+                        syncSetActiveLlmExecutionIds(newActiveBatchIds);
                         showToast(t('llm_historyActivated'));
                         await loadExecutionHistory();
                     } catch (error) {
@@ -701,7 +851,7 @@ export async function loadExecutionHistory() {
             if (adjustButton) {
                 adjustButton.addEventListener('click', async () => {
                     try {
-                        await prepareThresholdAdjustment(exec.execution_id, getThresholdForAdjustment(exec), exec.target_count);
+                        await prepareThresholdAdjustment(exec.execution_id, getThresholdForAdjustment(exec, runs), exec.target_count);
                         showToast(t('llm_thresholdAdjustReady'));
                     } catch (error) {
                         console.error('[loadExecutionHistory] Failed to prepare threshold adjustment:', error);

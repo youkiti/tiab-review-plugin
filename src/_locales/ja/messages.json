@@ -828,6 +828,9 @@
   "llm_thresholdCompleteWithFallback": {
     "message": "✓ 一括実行完了 ($1件処理。うち$2件はLLM出力解析失敗のため確率1.0で保存)"
   },
+  "llm_thresholdAutoApplied": {
+    "message": "✓ 既存 Run の閾値を自動適用 (include $1件 / exclude $2件)"
+  },
   "llm_thresholdLabel": {
     "message": "Include閾値:"
   },
