@@ -897,6 +897,30 @@
   "llm_historyBatchDetail": {
     "message": "$1 - 文献$2件"
   },
+  "llm_historyShowPrompt": {
+    "message": "📋 プロンプトを表示"
+  },
+  "llm_historyPromptTitle": {
+    "message": "判定プロンプト"
+  },
+  "llm_historyPromptSectionPrompt": {
+    "message": "Screening Prompt"
+  },
+  "llm_historyPromptSectionCriteria": {
+    "message": "判定基準"
+  },
+  "llm_historyPromptCopyBtn": {
+    "message": "📄 プロンプトをコピー"
+  },
+  "llm_historyPromptCopied": {
+    "message": "プロンプトをコピーしました"
+  },
+  "llm_historyPromptCopyFailed": {
+    "message": "コピーに失敗しました"
+  },
+  "llm_historyPromptClose": {
+    "message": "閉じる"
+  },
   "llm_historyUseDecision": {
     "message": "判定に使用"
   },

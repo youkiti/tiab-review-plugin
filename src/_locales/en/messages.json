@@ -894,6 +894,30 @@
   "llm_historyBatchDetail": {
     "message": "$1 - $2 refs"
   },
+  "llm_historyShowPrompt": {
+    "message": "📋 Show Prompt"
+  },
+  "llm_historyPromptTitle": {
+    "message": "Screening Prompt"
+  },
+  "llm_historyPromptSectionPrompt": {
+    "message": "Screening Prompt"
+  },
+  "llm_historyPromptSectionCriteria": {
+    "message": "Criteria"
+  },
+  "llm_historyPromptCopyBtn": {
+    "message": "📄 Copy Prompt"
+  },
+  "llm_historyPromptCopied": {
+    "message": "Prompt copied to clipboard"
+  },
+  "llm_historyPromptCopyFailed": {
+    "message": "Failed to copy"
+  },
+  "llm_historyPromptClose": {
+    "message": "Close"
+  },
   "llm_historyConfirmedStats": {
     "message": "$1 processed → Include: $2, Exclude: $3 (threshold: $4)"
   },

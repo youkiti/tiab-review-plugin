@@ -26,6 +26,7 @@ import {
     findRunByConfigHash,
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
+import { showModal, hideModal } from '../ml/dialogs';
 import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
 import {
     processBatch,
@@ -669,6 +670,90 @@ function formatTimestamp(iso: string): string {
 }
 
 /**
+ * Run のプロンプトと判定基準をモーダルで表示する。
+ * プロンプト全文 + criteria_snapshot を表示し、コピーボタンを提供する。
+ */
+function openRunPromptModal(run: LlmRun): void {
+    const body = document.createElement('div');
+    body.className = 'run-prompt-modal';
+
+    // 判定基準 (criteria_snapshot) があれば構造化表示
+    if (run.criteria_snapshot) {
+        const criteriaSection = document.createElement('section');
+        criteriaSection.className = 'run-prompt-section';
+
+        const criteriaTitle = document.createElement('h4');
+        criteriaTitle.textContent = t('llm_historyPromptSectionCriteria');
+        criteriaSection.appendChild(criteriaTitle);
+
+        const templateLabel = document.createElement('div');
+        templateLabel.className = 'run-prompt-criteria-template';
+        templateLabel.textContent = run.criteria_snapshot.template;
+        criteriaSection.appendChild(templateLabel);
+
+        const fieldsTable = document.createElement('dl');
+        fieldsTable.className = 'run-prompt-criteria-fields';
+        const fields = run.criteria_snapshot.fields ?? {};
+        for (const [key, value] of Object.entries(fields)) {
+            const dt = document.createElement('dt');
+            dt.textContent = key;
+            const dd = document.createElement('dd');
+            dd.textContent = value;
+            fieldsTable.appendChild(dt);
+            fieldsTable.appendChild(dd);
+        }
+        criteriaSection.appendChild(fieldsTable);
+        body.appendChild(criteriaSection);
+    }
+
+    // プロンプト全文
+    const promptSection = document.createElement('section');
+    promptSection.className = 'run-prompt-section';
+
+    const promptTitle = document.createElement('h4');
+    promptTitle.textContent = t('llm_historyPromptSectionPrompt');
+    promptSection.appendChild(promptTitle);
+
+    const pre = document.createElement('pre');
+    pre.className = 'run-prompt-text';
+    pre.textContent = run.screening_prompt || '';
+    promptSection.appendChild(pre);
+    body.appendChild(promptSection);
+
+    // フッター: コピー + 閉じる
+    const footer = document.createElement('div');
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn-primary btn-small';
+    copyBtn.textContent = t('llm_historyPromptCopyBtn');
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(run.screening_prompt || '');
+            showToast(t('llm_historyPromptCopied'));
+        } catch (error) {
+            console.error('[openRunPromptModal] clipboard write failed:', error);
+            showToast(t('llm_historyPromptCopyFailed'));
+        }
+    });
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn btn-outline btn-small';
+    closeBtn.textContent = t('llm_historyPromptClose');
+    closeBtn.addEventListener('click', () => hideModal());
+
+    footer.appendChild(copyBtn);
+    footer.appendChild(closeBtn);
+
+    showModal({
+        title: t('llm_historyPromptTitle'),
+        body,
+        footer,
+    });
+}
+
+/**
  * Run カードを生成して履歴コンテナに append する
  */
 function appendRunCard(
@@ -718,6 +803,8 @@ function appendRunCard(
         : t('llm_historyAdjustThreshold');
     const adjustButtonHtml = `<button type="button" class="btn btn-outline btn-xsmall run-adjust-btn"
                                        data-run-id="${run.run_id}">${adjustButtonLabel}</button>`;
+    const promptButtonHtml = `<button type="button" class="btn btn-outline btn-xsmall run-prompt-btn"
+                                       data-run-id="${run.run_id}">${t('llm_historyShowPrompt')}</button>`;
 
     const batchesDetailHtml = sortedBatches.map(b =>
         `<div class="run-batch-row">${t('llm_historyBatchDetail', [formatTimestamp(b.timestamp), String(b.target_count ?? 0)])}</div>`
@@ -739,7 +826,10 @@ function appendRunCard(
         </div>
         ${modelHtml}
         <div class="run-stats">${statsContent}</div>
-        ${adjustButtonHtml}
+        <div class="run-actions">
+            ${adjustButtonHtml}
+            ${promptButtonHtml}
+        </div>
         <button type="button" class="run-batches-toggle"
                 data-show-label="${showBatchesLabel}"
                 data-hide-label="${hideBatchesLabel}">${showBatchesLabel}</button>
@@ -778,6 +868,12 @@ function appendRunCard(
                 showToast((error as Error).message || t('llm_historyUpdateFailed'));
             }
         });
+    }
+
+    // プロンプト表示ボタン: モーダルで Run の screening_prompt と criteria を表示
+    const promptButton = card.querySelector('.run-prompt-btn') as HTMLButtonElement | null;
+    if (promptButton) {
+        promptButton.addEventListener('click', () => openRunPromptModal(run));
     }
 
     // バッチ詳細トグル
