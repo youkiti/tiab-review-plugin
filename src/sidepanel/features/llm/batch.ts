@@ -726,6 +726,10 @@ function appendRunCard(
     const showBatchesLabel = t('llm_historyShowBatches', String(sortedBatches.length));
     const hideBatchesLabel = t('llm_historyHideBatches');
 
+    const modelHtml = run.model
+        ? `<div class="run-model"></div>`
+        : '';
+
     card.innerHTML = `
         <div class="run-header">
             <div class="run-date-range">
@@ -733,6 +737,7 @@ function appendRunCard(
             </div>
             ${radioHtml}
         </div>
+        ${modelHtml}
         <div class="run-stats">${statsContent}</div>
         ${adjustButtonHtml}
         <button type="button" class="run-batches-toggle"
@@ -740,6 +745,12 @@ function appendRunCard(
                 data-hide-label="${hideBatchesLabel}">${showBatchesLabel}</button>
         <div class="run-batches-detail hidden">${batchesDetailHtml}</div>
     `;
+
+    // モデル名は textContent で安全に流し込む
+    const modelEl = card.querySelector('.run-model') as HTMLElement | null;
+    if (modelEl) {
+        modelEl.textContent = run.model;
+    }
 
     // ラジオ: クリックで Run を active 化
     const radio = card.querySelector('.run-active-radio') as HTMLInputElement | null;

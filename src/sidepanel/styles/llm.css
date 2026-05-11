@@ -580,6 +580,17 @@
     margin-bottom: 4px;
 }
 
+.run-card .run-model {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    background: #eef3ff;
+    color: #3949ab;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+}
+
 .run-card .run-stats {
     color: #666;
     margin-bottom: 6px;
