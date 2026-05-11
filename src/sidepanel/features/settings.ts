@@ -7,7 +7,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
-import { handleAssignmentResetClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
+import { handleAssignmentResetClick, handleAssignmentReshuffleClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -262,6 +262,10 @@ export async function handleAbstractSubsectionHeadingsReset() {
 
 export async function handleAssignmentReset() {
     await handleAssignmentResetClick();
+}
+
+export async function handleAssignmentReshuffle() {
+    await handleAssignmentReshuffleClick();
 }
 
 export async function handleAssignmentSave() {

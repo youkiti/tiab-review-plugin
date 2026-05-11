@@ -132,6 +132,12 @@ export interface BatchProcessOptions {
     onProgress?: ProgressCallback;
     onSaveBatch?: (decisions: Decision[]) => Promise<void>;
     abortSignal?: AbortSignal;
+    /**
+     * 既に閾値が確定している Run に追加するバッチで指定する。
+     * 設定すると pending ではなく include/exclude として保存され、
+     * 閾値確認 UI を出さずに即時確定される。
+     */
+    applyThreshold?: number;
 }
 
 /**
@@ -301,7 +307,12 @@ export async function processBatch(
     function scheduleFlush(): void {
         if (!options.onSaveBatch || pendingForSave.length === 0) return;
         const toSave = pendingForSave.splice(0, pendingForSave.length);
-        saveChain = saveChain.then(() => options.onSaveBatch!(toSave)).catch(err => {
+        // applyThreshold が指定されていれば、保存直前に判定を確定させる
+        // （Run 単位で閾値が決まっているため、バッチ追加時の即時確定に使う）
+        const finalized = options.applyThreshold !== undefined
+            ? applyThresholdToDecisions(toSave, options.applyThreshold)
+            : toSave;
+        saveChain = saveChain.then(() => options.onSaveBatch!(finalized)).catch(err => {
             console.error('[processBatch] onSaveBatch error:', err);
             if (!firstSaveError) {
                 firstSaveError = err instanceof Error ? err : new Error(String(err));
