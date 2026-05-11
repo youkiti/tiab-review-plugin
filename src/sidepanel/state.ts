@@ -49,6 +49,8 @@ let _selectedAssignmentSets: Set<string> = new Set();
 let _autoNavigateAfterDecision = true;
 let _showRecordCountBelow = true;
 let _termFilterUseAnd = true;
+let _abstractSubsectionBreakEnabled = false;
+let _abstractSubsectionHeadings: string[] = [];
 
 // タームフィルター
 let _activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];
@@ -190,6 +192,12 @@ export const state = {
 
     get termFilterUseAnd() { return _termFilterUseAnd; },
     setTermFilterUseAnd(value: boolean) { _termFilterUseAnd = value; },
+
+    get abstractSubsectionBreakEnabled() { return _abstractSubsectionBreakEnabled; },
+    setAbstractSubsectionBreakEnabled(value: boolean) { _abstractSubsectionBreakEnabled = value; },
+
+    get abstractSubsectionHeadings() { return _abstractSubsectionHeadings; },
+    setAbstractSubsectionHeadings(value: string[]) { _abstractSubsectionHeadings = value; },
 
     // ----- Term Filters -----
     get activeTermFilters() { return _activeTermFilters; },

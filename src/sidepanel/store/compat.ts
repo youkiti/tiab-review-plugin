@@ -63,6 +63,8 @@ export function legacyToAppState(): AppState {
                 treatMlAsManual: legacyState.treatMlAsManual,
                 showAiHighlights: legacyState.showAiHighlights,
                 aiDecisionFilter: legacyState.aiDecisionFilter,
+                abstractSubsectionBreakEnabled: legacyState.abstractSubsectionBreakEnabled,
+                abstractSubsectionHeadings: legacyState.abstractSubsectionHeadings,
             },
             toast: null,
         },
@@ -105,6 +107,8 @@ export function syncToLegacyState(appState: AppState): void {
     legacyState.setTreatMlAsManual(appState.ui.settings.treatMlAsManual);
     legacyState.setShowAiHighlights(appState.ui.settings.showAiHighlights);
     legacyState.setAiDecisionFilter(appState.ui.settings.aiDecisionFilter);
+    legacyState.setAbstractSubsectionBreakEnabled(appState.ui.settings.abstractSubsectionBreakEnabled);
+    legacyState.setAbstractSubsectionHeadings(appState.ui.settings.abstractSubsectionHeadings);
 }
 
 // ========== ラッパー関数: 両方のstateに同期 ==========
@@ -409,7 +413,19 @@ export function updateSettings(key: string, value: boolean): void {
             legacyState.setTreatMlAsManual(value);
             dispatch({ type: 'settings/setTreatMlAsManual', value });
             break;
+        case 'abstractSubsectionBreakEnabled':
+            legacyState.setAbstractSubsectionBreakEnabled(value);
+            dispatch({ type: 'settings/setAbstractSubsectionBreakEnabled', value });
+            break;
     }
+}
+
+/**
+ * 抄録サブセクション見出しリストを更新（両方に同期）
+ */
+export function updateAbstractSubsectionHeadings(headings: string[]): void {
+    legacyState.setAbstractSubsectionHeadings(headings);
+    dispatch({ type: 'settings/setAbstractSubsectionHeadings', value: headings });
 }
 
 /**

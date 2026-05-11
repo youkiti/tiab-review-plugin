@@ -98,6 +98,8 @@ export interface AppState {
             treatMlAsManual: boolean;
             showAiHighlights: boolean;
             aiDecisionFilter: { include: boolean; exclude: boolean };
+            abstractSubsectionBreakEnabled: boolean;
+            abstractSubsectionHeadings: string[];
         };
 
         // トースト/フィードバック
@@ -176,6 +178,8 @@ export type Action =
     | { type: 'settings/setTreatMlAsManual'; value: boolean }
     | { type: 'settings/setShowAiHighlights'; value: boolean }
     | { type: 'settings/setAiDecisionFilter'; filter: { include: boolean; exclude: boolean } }
+    | { type: 'settings/setAbstractSubsectionBreakEnabled'; value: boolean }
+    | { type: 'settings/setAbstractSubsectionHeadings'; value: string[] }
 
     // リセット
     | { type: 'reset/logout' }

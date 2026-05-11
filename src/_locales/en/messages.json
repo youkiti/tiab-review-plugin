@@ -430,6 +430,30 @@
   "settings_treatMlAsManualOff": {
     "message": "ML and manual decisions are separate"
   },
+  "settings_abstractSubsectionBreak": {
+    "message": "Insert line breaks at abstract subsection headings"
+  },
+  "settings_abstractSubsectionBreakDesc": {
+    "message": "When on, insert a blank line before headings such as Methods:, Results: and bold the heading. The spreadsheet data is not modified."
+  },
+  "settings_abstractSubsectionBreakOn": {
+    "message": "Abstract subsection breaks enabled"
+  },
+  "settings_abstractSubsectionBreakOff": {
+    "message": "Abstract subsection breaks disabled"
+  },
+  "settings_abstractSubsectionHeadingsLabel": {
+    "message": "Headings to break on (one per line, case-sensitive)"
+  },
+  "settings_abstractSubsectionHeadingsPlaceholder": {
+    "message": "e.g.:\nMethods:\nResults:\nConclusions:"
+  },
+  "settings_abstractSubsectionHeadingsReset": {
+    "message": "Restore defaults"
+  },
+  "settings_abstractSubsectionHeadingsResetDone": {
+    "message": "Headings restored to defaults"
+  },
   "share_emailPlaceholder": {
     "message": "Google account (email)"
   },

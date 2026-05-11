@@ -97,3 +97,40 @@
 #assignment-save-btn {
     margin-top: 12px;
 }
+
+.abstract-subsection-headings-editor {
+    margin-top: 12px;
+    margin-left: 26px;
+}
+
+.setting-sublabel {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+#abstract-subsection-headings-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    line-height: 1.4;
+    resize: vertical;
+}
+
+#abstract-subsection-headings-textarea:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
+.abstract-subsection-headings-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}

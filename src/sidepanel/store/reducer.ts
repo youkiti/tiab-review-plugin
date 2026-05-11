@@ -60,6 +60,8 @@ export const initialState: AppState = {
             treatMlAsManual: true,
             showAiHighlights: false,
             aiDecisionFilter: { include: true, exclude: true },
+            abstractSubsectionBreakEnabled: false,
+            abstractSubsectionHeadings: [],
         },
         toast: null,
     },
@@ -654,6 +656,24 @@ export function reducer(state: AppState, action: Action): AppState {
                 ui: {
                     ...state.ui,
                     settings: { ...state.ui.settings, aiDecisionFilter: action.filter },
+                },
+            };
+
+        case 'settings/setAbstractSubsectionBreakEnabled':
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    settings: { ...state.ui.settings, abstractSubsectionBreakEnabled: action.value },
+                },
+            };
+
+        case 'settings/setAbstractSubsectionHeadings':
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    settings: { ...state.ui.settings, abstractSubsectionHeadings: action.value },
                 },
             };
 
