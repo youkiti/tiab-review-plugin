@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-05-08</span>
+                <span class="build-version">Build: 2026-05-11</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -310,6 +310,26 @@
                     </label>
                     <p class="setting-description" data-i18n="settings_treatMlAsManualDesc">
                     </p>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="abstract-subsection-break-checkbox">
+                        <span data-i18n="settings_abstractSubsectionBreak"></span>
+                    </label>
+                    <p class="setting-description" data-i18n="settings_abstractSubsectionBreakDesc">
+                    </p>
+                    <div class="abstract-subsection-headings-editor">
+                        <label class="setting-sublabel" for="abstract-subsection-headings-textarea"
+                            data-i18n="settings_abstractSubsectionHeadingsLabel"></label>
+                        <textarea id="abstract-subsection-headings-textarea" rows="6"
+                            data-i18n-placeholder="settings_abstractSubsectionHeadingsPlaceholder"></textarea>
+                        <div class="abstract-subsection-headings-actions">
+                            <button id="abstract-subsection-headings-reset-btn"
+                                class="btn btn-outline btn-xsmall"
+                                data-i18n="settings_abstractSubsectionHeadingsReset"></button>
+                        </div>
+                    </div>
                 </div>
                             <div id="assignment-settings-item" class="setting-item hidden">
                     <div class="setting-header-row">

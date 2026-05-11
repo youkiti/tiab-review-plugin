@@ -106,6 +106,60 @@ export function highlightText(text: string, searchKeyword: string | string[], ev
     return html;
 }
 
+// サブセクション加工用の Private Use Area マーカー。
+// escapeHtml / highlightText の処理を素通りさせて、最後に HTML へ変換する。
+const SUBSECTION_BREAK_MARK = '';
+const SUBSECTION_BOLD_START = '';
+const SUBSECTION_BOLD_END = '';
+
+/**
+ * 抄録テキストにサブセクション見出しの直前で改行を入れ、見出しを太字化する
+ * - 大文字小文字を区別した完全一致
+ * - 見出しは長い順にマッチ（"Materials and Methods:" を "Methods:" より優先）
+ * - 結果テキスト中のマーカーは highlightText 適用後に HTML へ置換する
+ */
+function applyAbstractSubsectionFormatting(rawText: string, headings: string[]): string {
+    if (!rawText || headings.length === 0) return rawText;
+
+    const sortedHeadings = [...headings]
+        .filter(h => h && h.length > 0)
+        .sort((a, b) => b.length - a.length);
+
+    let result = rawText;
+    for (const heading of sortedHeadings) {
+        const escaped = escapeRegex(heading);
+        const regex = new RegExp(escaped, 'g');
+        result = result.replace(regex, `${SUBSECTION_BREAK_MARK}${SUBSECTION_BOLD_START}${heading}${SUBSECTION_BOLD_END}`);
+    }
+
+    // 先頭の改行マーカーは不要なため除去（先頭空白も合わせて落とす）
+    result = result.replace(new RegExp(`^\\s*${SUBSECTION_BREAK_MARK}`), '');
+    return result;
+}
+
+/**
+ * highlightText 適用後の HTML に対し、サブセクション加工マーカーを実 HTML に変換する
+ */
+function finalizeAbstractSubsectionFormatting(html: string): string {
+    return html
+        .split(SUBSECTION_BREAK_MARK).join('<br><br>')
+        .split(SUBSECTION_BOLD_START).join('<strong>')
+        .split(SUBSECTION_BOLD_END).join('</strong>');
+}
+
+/**
+ * 抄録の表示用 HTML を生成
+ * - サブセクション改行設定が ON の場合のみマーカーを差し込んで太字化＋改行
+ */
+function renderAbstractHtml(rawAbstract: string, searchKeyword: string, evidenceList: string[]): string {
+    const enabled = state.abstractSubsectionBreakEnabled && state.abstractSubsectionHeadings.length > 0;
+    const source = enabled
+        ? applyAbstractSubsectionFormatting(rawAbstract, state.abstractSubsectionHeadings)
+        : rawAbstract;
+    const html = highlightText(source, searchKeyword, evidenceList);
+    return enabled ? finalizeAbstractSubsectionFormatting(html) : html;
+}
+
 /**
  * 現在の文献を表示
  */
@@ -219,7 +273,7 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     dom.refAuthors.textContent = ref.authors || '';
     dom.refYear.textContent = ref.year?.toString() || '';
     dom.refJournal.textContent = ref.journal || '';
-    dom.refAbstract.innerHTML = highlightText(ref.abstract || t('screening_noAbstract'), searchKeyword, evidenceList);
+    dom.refAbstract.innerHTML = renderAbstractHtml(ref.abstract || t('screening_noAbstract'), searchKeyword, evidenceList);
 
     // リンク
     if (ref.doi) {

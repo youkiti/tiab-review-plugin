@@ -146,6 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.showRecordCountCheckbox?.addEventListener('change', settings.handleShowRecordCountChange);
     dom.termFilterAndCheckbox?.addEventListener('change', settings.handleTermFilterAndChange);
     dom.treatMlAsManualCheckbox?.addEventListener('change', settings.handleTreatMlAsManualChange);
+    dom.abstractSubsectionBreakCheckbox?.addEventListener('change', settings.handleAbstractSubsectionBreakChange);
+    dom.abstractSubsectionHeadingsTextarea?.addEventListener('change', settings.handleAbstractSubsectionHeadingsChange);
+    dom.abstractSubsectionHeadingsResetBtn?.addEventListener('click', () => { void settings.handleAbstractSubsectionHeadingsReset(); });
     dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
     dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
 

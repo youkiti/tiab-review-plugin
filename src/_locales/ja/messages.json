@@ -430,6 +430,30 @@
   "settings_treatMlAsManualOff": {
     "message": "ML判定と手動判定を区別します"
   },
+  "settings_abstractSubsectionBreak": {
+    "message": "抄録のサブセクションごとに改行する"
+  },
+  "settings_abstractSubsectionBreakDesc": {
+    "message": "オンにすると、抄録中の見出し（例: Methods:、Results: など）の直前に改行を入れ、見出しを太字で表示します。スプレッドシート上のデータには影響しません。"
+  },
+  "settings_abstractSubsectionBreakOn": {
+    "message": "抄録のサブセクション改行を有効にしました"
+  },
+  "settings_abstractSubsectionBreakOff": {
+    "message": "抄録のサブセクション改行を無効にしました"
+  },
+  "settings_abstractSubsectionHeadingsLabel": {
+    "message": "改行対象の見出し（1行に1つ、大文字小文字を区別）"
+  },
+  "settings_abstractSubsectionHeadingsPlaceholder": {
+    "message": "例:\nMethods:\nResults:\nConclusions:"
+  },
+  "settings_abstractSubsectionHeadingsReset": {
+    "message": "デフォルトに戻す"
+  },
+  "settings_abstractSubsectionHeadingsResetDone": {
+    "message": "見出しリストをデフォルトに戻しました"
+  },
   "share_emailPlaceholder": {
     "message": "Googleアカウント（メール）"
   },

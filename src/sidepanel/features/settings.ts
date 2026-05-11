@@ -13,8 +13,38 @@ import { handleAssignmentResetClick, handleAssignmentSaveMap, renderAssignmentMa
 import {
     changeView,
     updateSettings,
+    updateAbstractSubsectionHeadings,
     setCurrentIndex as syncSetCurrentIndex,
 } from '../store/compat';
+
+// 抄録サブセクション見出しのデフォルト
+// 構造化抄録で見かける代表的な見出しを「コロン付き」の形でデフォルト提供。
+// 大文字小文字は区別するため、各バリアントを別エントリとして列挙する。
+export const DEFAULT_ABSTRACT_SUBSECTION_HEADINGS: string[] = [
+    'Background:', 'BACKGROUND:',
+    'Introduction:', 'INTRODUCTION:',
+    'Objective:', 'OBJECTIVE:',
+    'Objectives:', 'OBJECTIVES:',
+    'Aim:', 'AIM:',
+    'Aims:', 'AIMS:',
+    'Purpose:', 'PURPOSE:',
+    'Method:', 'METHOD:',
+    'Methods:', 'METHODS:',
+    'Materials and Methods:', 'MATERIALS AND METHODS:',
+    'Design:', 'DESIGN:',
+    'Setting:', 'SETTING:',
+    'Participants:', 'PARTICIPANTS:',
+    'Patients:', 'PATIENTS:',
+    'Intervention:', 'INTERVENTION:',
+    'Interventions:', 'INTERVENTIONS:',
+    'Main Outcome Measures:', 'MAIN OUTCOME MEASURES:',
+    'Outcomes:', 'OUTCOMES:',
+    'Results:', 'RESULTS:',
+    'Findings:', 'FINDINGS:',
+    'Discussion:', 'DISCUSSION:',
+    'Conclusion:', 'CONCLUSION:',
+    'Conclusions:', 'CONCLUSIONS:',
+];
 
 // 外部関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -67,13 +97,17 @@ export async function saveUserSettings() {
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
         termFilterUseAnd: state.termFilterUseAnd,
-        treatMlAsManual: state.treatMlAsManual
+        treatMlAsManual: state.treatMlAsManual,
+        abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
+        abstractSubsectionHeadings: state.abstractSubsectionHeadings,
     });
     await chrome.storage.local.set({
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
         termFilterUseAnd: state.termFilterUseAnd,
-        treatMlAsManual: state.treatMlAsManual
+        treatMlAsManual: state.treatMlAsManual,
+        abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
+        abstractSubsectionHeadings: state.abstractSubsectionHeadings,
     });
 }
 
@@ -81,24 +115,41 @@ export async function saveUserSettings() {
  * ユーザー設定を読み込み
  */
 export async function loadUserSettings() {
-    const result = await chrome.storage.local.get(['autoNavigateAfterDecision', 'showRecordCountBelow', 'termFilterUseAnd', 'treatMlAsManual']);
+    const result = await chrome.storage.local.get([
+        'autoNavigateAfterDecision',
+        'showRecordCountBelow',
+        'termFilterUseAnd',
+        'treatMlAsManual',
+        'abstractSubsectionBreakEnabled',
+        'abstractSubsectionHeadings',
+    ]);
     console.log('[loadUserSettings] 読み込み:', result);
 
     updateSettings('autoNavigateAfterDecision', result.autoNavigateAfterDecision ?? true);
     updateSettings('showRecordCountBelow', result.showRecordCountBelow ?? true);
     updateSettings('termFilterUseAnd', result.termFilterUseAnd ?? true);
     updateSettings('treatMlAsManual', result.treatMlAsManual ?? true);
+    updateSettings('abstractSubsectionBreakEnabled', result.abstractSubsectionBreakEnabled ?? false);
+
+    const savedHeadings = Array.isArray(result.abstractSubsectionHeadings)
+        ? result.abstractSubsectionHeadings as string[]
+        : DEFAULT_ABSTRACT_SUBSECTION_HEADINGS;
+    updateAbstractSubsectionHeadings(savedHeadings);
 
     dom.autoNavigateCheckbox.checked = state.autoNavigateAfterDecision;
     dom.showRecordCountCheckbox.checked = state.showRecordCountBelow;
     dom.termFilterAndCheckbox.checked = state.termFilterUseAnd;
     dom.treatMlAsManualCheckbox.checked = state.treatMlAsManual;
+    dom.abstractSubsectionBreakCheckbox.checked = state.abstractSubsectionBreakEnabled;
+    dom.abstractSubsectionHeadingsTextarea.value = state.abstractSubsectionHeadings.join('\n');
     renderAssignmentManager();
     console.log('[loadUserSettings] 設定完了:', {
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
         termFilterUseAnd: state.termFilterUseAnd,
-        treatMlAsManual: state.treatMlAsManual
+        treatMlAsManual: state.treatMlAsManual,
+        abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
+        abstractSubsectionHeadings: state.abstractSubsectionHeadings,
     });
 }
 
@@ -157,6 +208,56 @@ export async function handleTreatMlAsManualChange() {
     showToast(state.treatMlAsManual
         ? t('settings_treatMlAsManualOn')
         : t('settings_treatMlAsManualOff'));
+}
+
+/**
+ * 抄録サブセクション改行のON/OFF切替を処理
+ */
+export async function handleAbstractSubsectionBreakChange() {
+    updateSettings('abstractSubsectionBreakEnabled', dom.abstractSubsectionBreakCheckbox.checked);
+    console.log('[handleAbstractSubsectionBreakChange] 設定変更:', state.abstractSubsectionBreakEnabled);
+    await saveUserSettings();
+
+    if (state.spreadsheetId && _renderCurrentReference) {
+        _renderCurrentReference();
+    }
+
+    showToast(state.abstractSubsectionBreakEnabled
+        ? t('settings_abstractSubsectionBreakOn')
+        : t('settings_abstractSubsectionBreakOff'));
+}
+
+/**
+ * 抄録サブセクション見出しリストの編集を処理
+ */
+export async function handleAbstractSubsectionHeadingsChange() {
+    const headings = dom.abstractSubsectionHeadingsTextarea.value
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+    updateAbstractSubsectionHeadings(headings);
+    console.log('[handleAbstractSubsectionHeadingsChange] 件数:', headings.length);
+    await saveUserSettings();
+
+    if (state.spreadsheetId && state.abstractSubsectionBreakEnabled && _renderCurrentReference) {
+        _renderCurrentReference();
+    }
+}
+
+/**
+ * 抄録サブセクション見出しをデフォルトに戻す
+ */
+export async function handleAbstractSubsectionHeadingsReset() {
+    updateAbstractSubsectionHeadings([...DEFAULT_ABSTRACT_SUBSECTION_HEADINGS]);
+    dom.abstractSubsectionHeadingsTextarea.value = state.abstractSubsectionHeadings.join('\n');
+    await saveUserSettings();
+
+    if (state.spreadsheetId && state.abstractSubsectionBreakEnabled && _renderCurrentReference) {
+        _renderCurrentReference();
+    }
+
+    showToast(t('settings_abstractSubsectionHeadingsResetDone'));
 }
 
 export async function handleAssignmentReset() {
