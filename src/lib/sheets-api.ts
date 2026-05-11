@@ -1,7 +1,8 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, AssignmentConfig } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
 import { t } from './i18n';
+import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -10,14 +11,24 @@ const REFERENCES_SHEET = 'References';
 const DECISIONS_SHEET = 'Decisions';
 const CONFIG_SHEET = 'Config';
 const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
+const LLM_RUNS_SHEET = 'LLM_Runs';
 
 // LLM_Executionsシートのヘッダー
+// run_id は Run/Batch 分離後に追加された列。既存シートに無い場合は ensureLlmExecutionsSheet で末尾に追加される。
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
     'temperature', 'topP', 'thinkingLevel',  // Model parameters
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
     'target_count', 'include_count', 'exclude_count',
-    'status', 'is_active'
+    'status', 'is_active', 'run_id'
+];
+
+// LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
+const LLM_RUNS_HEADERS = [
+    'run_id', 'config_hash', 'created_at', 'model',
+    'temperature', 'topP', 'thinkingLevel',
+    'criteria_snapshot', 'screening_prompt',
+    'include_threshold', 'status', 'is_active'
 ];
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
@@ -1477,10 +1488,34 @@ async function tryUpdateLlmConfig(spreadsheetId: string, updates: Partial<LlmCon
 
 /**
  * LLM_Executionsシートを初期化（存在しない場合）
+ *
+ * 既存シートに新規列（run_id 等）が無い場合は、ヘッダー行を拡張する。
+ * 既存データ行は影響を受けない（run_id は空文字として読まれる）。
  */
 export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
     try {
-        await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A1:A1`);
+        const headerRow = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!1:1`);
+        const existingHeaders = headerRow[0] || [];
+
+        // ヘッダー行が空（シートはあるが初期化されていない）
+        if (existingHeaders.length === 0) {
+            await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [LLM_EXECUTIONS_HEADERS]);
+            return;
+        }
+
+        // 不足している列を末尾に追加（後方互換マイグレーション）
+        const missingHeaders = LLM_EXECUTIONS_HEADERS.filter(h => !existingHeaders.includes(h));
+        if (missingHeaders.length > 0) {
+            const newHeaders = [...existingHeaders, ...missingHeaders];
+            const startCol = columnNumberToLetter(existingHeaders.length);
+            const endCol = columnNumberToLetter(newHeaders.length - 1);
+            await updateRange(
+                spreadsheetId,
+                `${LLM_EXECUTIONS_SHEET}!${startCol}1:${endCol}1`,
+                [missingHeaders]
+            );
+            console.log(`[ensureLlmExecutionsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
+        }
     } catch (error) {
         if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
             console.log('[ensureLlmExecutionsSheet] Creating LLM_Executions sheet...');
@@ -1493,7 +1528,46 @@ export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<v
 }
 
 /**
+ * LLM_Runs シートを初期化（存在しない場合）
+ */
+export async function ensureLlmRunsSheet(spreadsheetId: string): Promise<void> {
+    try {
+        const headerRow = await getSheetValues(spreadsheetId, `${LLM_RUNS_SHEET}!1:1`);
+        const existingHeaders = headerRow[0] || [];
+
+        if (existingHeaders.length === 0) {
+            await appendRows(spreadsheetId, LLM_RUNS_SHEET, [LLM_RUNS_HEADERS]);
+            return;
+        }
+
+        const missingHeaders = LLM_RUNS_HEADERS.filter(h => !existingHeaders.includes(h));
+        if (missingHeaders.length > 0) {
+            const newHeaders = [...existingHeaders, ...missingHeaders];
+            const startCol = columnNumberToLetter(existingHeaders.length);
+            const endCol = columnNumberToLetter(newHeaders.length - 1);
+            await updateRange(
+                spreadsheetId,
+                `${LLM_RUNS_SHEET}!${startCol}1:${endCol}1`,
+                [missingHeaders]
+            );
+            console.log(`[ensureLlmRunsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
+        }
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[ensureLlmRunsSheet] Creating LLM_Runs sheet...');
+            await addSheet(spreadsheetId, LLM_RUNS_SHEET);
+            await appendRows(spreadsheetId, LLM_RUNS_SHEET, [LLM_RUNS_HEADERS]);
+        } else {
+            throw error;
+        }
+    }
+}
+
+/**
  * LLM実行履歴を保存
+ *
+ * run_id は呼び出し側で設定済みであることを期待する。
+ * 未設定の場合は空欄で保存され、次回 getLlmRuns 時の Lazy 移行で自動的に埋まる。
  */
 export async function saveLlmExecution(spreadsheetId: string, execution: LlmExecution): Promise<void> {
     await ensureLlmExecutionsSheet(spreadsheetId);
@@ -1514,6 +1588,7 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.exclude_count.toString(),
         execution.status,
         execution.is_active ? 'true' : 'false',
+        execution.run_id ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -1521,11 +1596,14 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
 
 /**
  * LLM実行履歴を取得
+ *
+ * 動的にヘッダーから列範囲を決めるため、シートに後から追加された列にも追従する。
  */
 export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
     try {
         await ensureLlmExecutionsSheet(spreadsheetId);
-        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:O`);
+        const endCol = columnNumberToLetter(LLM_EXECUTIONS_HEADERS.length - 1);
+        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:${endCol}`);
 
         if (values.length <= 1) {
             return [];
@@ -1560,6 +1638,9 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                     case 'status':
                         execution[header] = value === 'pending' ? 'pending' : 'confirmed';
                         break;
+                    case 'run_id':
+                        execution[header] = value || undefined;
+                        break;
                     default:
                         execution[header] = value || '';
                 }
@@ -1584,7 +1665,8 @@ export async function updateLlmExecution(
     console.log('[updateLlmExecution] Updates:', updates);
 
     await ensureLlmExecutionsSheet(spreadsheetId);
-    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:O`);
+    const endCol = columnNumberToLetter(LLM_EXECUTIONS_HEADERS.length - 1);
+    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:${endCol}`);
 
     console.log('[updateLlmExecution] Sheet rows count:', values.length);
 
@@ -1594,16 +1676,12 @@ export async function updateLlmExecution(
 
     // execution_idで行を検索
     let rowIndex = -1;
-    console.log('[updateLlmExecution] Searching for executionId in column A...');
     for (let i = 1; i < values.length; i++) {
-        console.log(`[updateLlmExecution] Row ${i + 1} execution_id:`, values[i][0]);
         if (values[i][0] === executionId) {
             rowIndex = i + 1; // 1-indexed
             break;
         }
     }
-
-    console.log('[updateLlmExecution] Found rowIndex:', rowIndex);
 
     if (rowIndex === -1) {
         throw new Error(`Execution not found: ${executionId}`);
@@ -1611,9 +1689,6 @@ export async function updateLlmExecution(
 
     const currentRow = values[rowIndex - 1];
     const headers = values[0];
-
-    console.log('[updateLlmExecution] Headers:', headers);
-    console.log('[updateLlmExecution] Current row:', currentRow);
 
     // 更新行を構築
     const newRow = headers.map((header, i) => {
@@ -1632,10 +1707,335 @@ export async function updateLlmExecution(
         return currentRow[i] || '';
     });
 
-    console.log('[updateLlmExecution] New row:', newRow);
+    await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:${endCol}${rowIndex}`, [newRow]);
+}
 
-    await updateRange(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A${rowIndex}:O${rowIndex}`, [newRow]);
-    console.log('[updateLlmExecution] Update completed');
+// ============================================================
+// LLM_Runs シート I/O (Run = config_hash 単位の論理実行)
+// ============================================================
+
+/**
+ * 行配列を LlmRun に変換
+ */
+function parseLlmRunRow(row: string[], headers: string[]): LlmRun {
+    const obj: Record<string, unknown> = {};
+    headers.forEach((header, i) => {
+        const value = row[i] || '';
+        switch (header) {
+            case 'include_threshold':
+                obj[header] = parseFloat(value) || 0;
+                break;
+            case 'temperature':
+            case 'topP':
+                obj[header] = value ? parseFloat(value) : undefined;
+                break;
+            case 'criteria_snapshot':
+                try {
+                    obj[header] = value ? JSON.parse(value) : null;
+                } catch {
+                    obj[header] = null;
+                }
+                break;
+            case 'is_active':
+                obj[header] = value.toLowerCase() === 'true';
+                break;
+            case 'status':
+                obj[header] = value === 'pending' ? 'pending' : 'confirmed';
+                break;
+            case 'thinkingLevel':
+                obj[header] = value || undefined;
+                break;
+            default:
+                obj[header] = value || '';
+        }
+    });
+    return obj as unknown as LlmRun;
+}
+
+/**
+ * LlmRun を行配列にシリアライズ（LLM_RUNS_HEADERS の順序に従う）
+ */
+function serializeLlmRunRow(run: LlmRun): string[] {
+    return LLM_RUNS_HEADERS.map(header => {
+        const value = (run as unknown as Record<string, unknown>)[header];
+        if (value === undefined || value === null) return '';
+        if (header === 'criteria_snapshot') {
+            return value ? JSON.stringify(value) : '';
+        }
+        if (header === 'is_active') {
+            return value ? 'true' : 'false';
+        }
+        if (typeof value === 'number') {
+            return value.toString();
+        }
+        return String(value);
+    });
+}
+
+/**
+ * LLM_Runs シートの全 Run 行を生データのまま取得（移行を起こさない内部関数）
+ */
+async function getLlmRunsRaw(spreadsheetId: string): Promise<LlmRun[]> {
+    await ensureLlmRunsSheet(spreadsheetId);
+    const endCol = columnNumberToLetter(LLM_RUNS_HEADERS.length - 1);
+    const values = await getSheetValues(spreadsheetId, `${LLM_RUNS_SHEET}!A:${endCol}`);
+    if (values.length <= 1) return [];
+    const headers = values[0];
+    return values.slice(1).map(row => parseLlmRunRow(row, headers));
+}
+
+/**
+ * LLM_Runs に新規 Run を追加
+ */
+export async function saveLlmRun(spreadsheetId: string, run: LlmRun): Promise<void> {
+    await ensureLlmRunsSheet(spreadsheetId);
+    await appendRows(spreadsheetId, LLM_RUNS_SHEET, [serializeLlmRunRow(run)]);
+}
+
+/**
+ * LLM_Runs の Run を更新
+ */
+export async function updateLlmRun(
+    spreadsheetId: string,
+    runId: string,
+    updates: Partial<LlmRun>
+): Promise<void> {
+    await ensureLlmRunsSheet(spreadsheetId);
+    const endCol = columnNumberToLetter(LLM_RUNS_HEADERS.length - 1);
+    const values = await getSheetValues(spreadsheetId, `${LLM_RUNS_SHEET}!A:${endCol}`);
+
+    if (values.length <= 1) {
+        throw new Error('Run not found');
+    }
+
+    let rowIndex = -1;
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][0] === runId) {
+            rowIndex = i + 1;
+            break;
+        }
+    }
+
+    if (rowIndex === -1) {
+        throw new Error(`Run not found: ${runId}`);
+    }
+
+    const headers = values[0];
+    const currentRow = values[rowIndex - 1];
+
+    const newRow = headers.map((header, i) => {
+        if (updates[header as keyof LlmRun] !== undefined) {
+            const value = updates[header as keyof LlmRun];
+            if (header === 'criteria_snapshot') {
+                return value ? JSON.stringify(value) : '';
+            }
+            if (header === 'is_active') {
+                return value ? 'true' : 'false';
+            }
+            if (typeof value === 'number') {
+                return value.toString();
+            }
+            return String(value);
+        }
+        return currentRow[i] || '';
+    });
+
+    await updateRange(spreadsheetId, `${LLM_RUNS_SHEET}!A${rowIndex}:${endCol}${rowIndex}`, [newRow]);
+}
+
+/**
+ * 複数 Batch row の run_id を一括更新（移行用）
+ */
+async function updateExecutionRunIds(
+    spreadsheetId: string,
+    assignments: Array<{ executionId: string; runId: string }>
+): Promise<void> {
+    if (assignments.length === 0) return;
+
+    await ensureLlmExecutionsSheet(spreadsheetId);
+    const endCol = columnNumberToLetter(LLM_EXECUTIONS_HEADERS.length - 1);
+    const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:${endCol}`);
+    if (values.length <= 1) return;
+
+    const headers = values[0];
+    const runIdColIndex = headers.indexOf('run_id');
+    if (runIdColIndex === -1) {
+        throw new Error('run_id column not found in LLM_Executions');
+    }
+
+    const rowIndexByExecutionId = new Map<string, number>();
+    values.slice(1).forEach((row, idx) => {
+        const id = (row[0] || '').trim();
+        if (id) rowIndexByExecutionId.set(id, idx + 2);
+    });
+
+    const runIdCol = columnNumberToLetter(runIdColIndex);
+    const updates = assignments
+        .map(({ executionId, runId }) => {
+            const rowIndex = rowIndexByExecutionId.get(executionId);
+            if (!rowIndex) return null;
+            return {
+                range: `${LLM_EXECUTIONS_SHEET}!${runIdCol}${rowIndex}`,
+                values: [[runId]],
+            };
+        })
+        .filter((u): u is { range: string; values: string[][] } => u !== null);
+
+    const batchSize = 500;
+    for (let i = 0; i < updates.length; i += batchSize) {
+        await batchUpdateRanges(spreadsheetId, updates.slice(i, i + batchSize));
+    }
+}
+
+/**
+ * 既存 LLM_Executions の Batch row のうち run_id が空のものを Run に集約する。
+ *
+ * 集約方針:
+ * - execution_type='batch_screening' のみを対象
+ * - config_hash でグループ化（criteria/prompt 欠損 row は legacy:<execution_id> で孤立）
+ * - 既存 LLM_Runs に同 config_hash がある → run_id 再利用
+ * - 無い → 新規 Run 作成。属性は配下バッチから優先順位で決定:
+ *     1. is_active=true かつ confirmed
+ *     2. 最新 confirmed
+ *     3. 最新 row（pending 扱い）
+ *
+ * 冪等性: run_id 空の row のみを処理するため、複数回呼んでも安全。
+ */
+async function migrateLegacyExecutionsToRuns(
+    spreadsheetId: string,
+    existingRuns: LlmRun[],
+    allBatches: LlmExecution[]
+): Promise<{ runs: LlmRun[]; newRuns: LlmRun[]; assignments: Array<{ executionId: string; runId: string }> }> {
+    const targets = allBatches.filter(
+        b => b.execution_type === 'batch_screening' && !b.run_id
+    );
+
+    if (targets.length === 0) {
+        return { runs: existingRuns, newRuns: [], assignments: [] };
+    }
+
+    // 各 Batch のハッシュを計算
+    const targetHashes = await Promise.all(
+        targets.map(async batch => {
+            if (!isHashable(batch)) {
+                return { batch, hash: legacyHash(batch.execution_id) };
+            }
+            const hash = await computeConfigHash({
+                model: batch.model,
+                temperature: batch.temperature,
+                topP: batch.topP,
+                thinkingLevel: batch.thinkingLevel,
+                criteria_snapshot: batch.criteria_snapshot,
+                screening_prompt: batch.screening_prompt,
+            });
+            return { batch, hash };
+        })
+    );
+
+    // config_hash ごとにグループ化
+    const groups = new Map<string, LlmExecution[]>();
+    for (const { batch, hash } of targetHashes) {
+        const list = groups.get(hash) ?? [];
+        list.push(batch);
+        groups.set(hash, list);
+    }
+
+    const runByHash = new Map<string, LlmRun>();
+    for (const run of existingRuns) {
+        runByHash.set(run.config_hash, run);
+    }
+
+    const newRuns: LlmRun[] = [];
+    const assignments: Array<{ executionId: string; runId: string }> = [];
+
+    for (const [hash, batches] of groups.entries()) {
+        let run = runByHash.get(hash);
+
+        if (!run) {
+            // 新規 Run を作成
+            const sorted = [...batches].sort(
+                (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+            const oldest = sorted[0];
+
+            // 属性決定: active confirmed > 最新 confirmed > 最新 row
+            const activeConfirmed = batches.find(b => b.is_active && b.status === 'confirmed');
+            const confirmedSorted = batches
+                .filter(b => b.status === 'confirmed')
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            const latestSorted = [...batches].sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+
+            const sourceForAttrs = activeConfirmed ?? confirmedSorted[0] ?? latestSorted[0];
+
+            run = {
+                run_id: crypto.randomUUID(),
+                config_hash: hash,
+                created_at: oldest.timestamp,
+                model: sourceForAttrs.model,
+                temperature: sourceForAttrs.temperature,
+                topP: sourceForAttrs.topP,
+                thinkingLevel: sourceForAttrs.thinkingLevel,
+                criteria_snapshot: sourceForAttrs.criteria_snapshot,
+                screening_prompt: sourceForAttrs.screening_prompt,
+                include_threshold: sourceForAttrs.include_threshold,
+                status: sourceForAttrs.status,
+                is_active: Boolean(activeConfirmed),
+            };
+            newRuns.push(run);
+            runByHash.set(hash, run);
+        }
+
+        for (const batch of batches) {
+            assignments.push({ executionId: batch.execution_id, runId: run.run_id });
+        }
+    }
+
+    // 永続化
+    if (newRuns.length > 0) {
+        const rows = newRuns.map(serializeLlmRunRow);
+        await appendRows(spreadsheetId, LLM_RUNS_SHEET, rows);
+    }
+    if (assignments.length > 0) {
+        await updateExecutionRunIds(spreadsheetId, assignments);
+    }
+
+    return {
+        runs: [...existingRuns, ...newRuns],
+        newRuns,
+        assignments,
+    };
+}
+
+/**
+ * LLM_Runs シートの全 Run を取得する。
+ *
+ * 呼び出し時に Lazy 移行を実行:
+ * - LLM_Executions に run_id 列が無ければ追加
+ * - run_id 空の Batch row を config_hash で集約して Run を生成
+ */
+export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
+    try {
+        await ensureLlmRunsSheet(spreadsheetId);
+        await ensureLlmExecutionsSheet(spreadsheetId);
+
+        const [existingRuns, allBatches] = await Promise.all([
+            getLlmRunsRaw(spreadsheetId),
+            getLlmExecutions(spreadsheetId),
+        ]);
+
+        const { runs } = await migrateLegacyExecutionsToRuns(
+            spreadsheetId,
+            existingRuns,
+            allBatches
+        );
+
+        return runs;
+    } catch (error) {
+        console.error('[getLlmRuns] Error:', error);
+        return [];
+    }
 }
 
 /**
