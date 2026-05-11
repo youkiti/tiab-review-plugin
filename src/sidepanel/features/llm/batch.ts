@@ -5,7 +5,7 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
-import type { LlmBatchProgress, Decision, BatchProfile } from '../../../lib/types';
+import type { LlmBatchProgress, Decision, BatchProfile, LlmRun } from '../../../lib/types';
 import { BATCH_PROFILES, getBatchProfile } from '../../../lib/types';
 import {
     appendDecisions,
@@ -17,7 +17,16 @@ import {
     updateLlmConfig,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
+    getLlmRuns,
+    saveLlmRun,
+    updateLlmRun,
+    setSingleActiveRun,
+    getRunForBatchId,
+    getBatchIdsForRun,
+    findRunByConfigHash,
 } from '../../../lib/sheets-api';
+import { computeConfigHash } from '../../../lib/llm-config-hash';
+import { showModal, hideModal } from '../ml/dialogs';
 import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
 import {
     processBatch,
@@ -53,33 +62,32 @@ async function resolveBatchProfile(modelId?: string): Promise<BatchProfile> {
     return getBatchProfile(manualTier, modelId);
 }
 
-function getSelectedActiveExecutionId(executions: Awaited<ReturnType<typeof getLlmExecutions>>): string | null {
-    const activeBatchExecutions = executions
-        .filter(exec => exec.execution_type === 'batch_screening' && exec.status === 'confirmed' && exec.is_active)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    return activeBatchExecutions[0]?.execution_id ?? null;
-}
-
-function getThresholdForAdjustment(exec: Awaited<ReturnType<typeof getLlmExecutions>>[number]): number {
-    if (exec.status === 'confirmed') {
-        return exec.include_threshold;
-    }
-
-    const configuredThreshold = state.llmConfig?.llm_include_threshold;
-    return typeof configuredThreshold === 'number' ? configuredThreshold : 0.3;
-}
-
 async function prepareThresholdAdjustment(executionId: string, threshold: number, targetCount: number): Promise<void> {
     const spreadsheetId = state.spreadsheetId;
-    const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
 
-    if (existingDecisions.length === 0) {
+    // Run/Batch 分離後、閾値は Run 単位で適用される。プレビューも Run 配下の
+    // 全 Batch を合算して表示する（confirm 時の挙動と整合させる）
+    const run = await getRunForBatchId(spreadsheetId, executionId);
+    let allDecisions: Decision[] = [];
+
+    if (run) {
+        const batchIds = await getBatchIdsForRun(spreadsheetId, run.run_id);
+        for (const batchId of batchIds) {
+            const data = await getDecisionsByReviewerId(spreadsheetId, batchId);
+            allDecisions.push(...data.map(d => d.decision));
+        }
+    } else {
+        // Run 不明（移行前データ等）の場合はクリックされた Batch のみ
+        const data = await getDecisionsByReviewerId(spreadsheetId, executionId);
+        allDecisions = data.map(d => d.decision);
+    }
+
+    if (allDecisions.length === 0) {
         throw new Error(t('llm_thresholdAdjustNoDecisions'));
     }
 
     state.setCurrentExecutionId(executionId);
-    state.setCurrentBatchDecisions(existingDecisions.map(({ decision }) => decision));
+    state.setCurrentBatchDecisions(allDecisions);
 
     dom.thresholdSlider.value = threshold.toFixed(2);
     dom.thresholdValueDisplay.textContent = threshold.toFixed(2);
@@ -90,21 +98,6 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
     dom.thresholdSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function setSingleActiveExecution(spreadsheetId: string, selectedExecutionId: string): Promise<void> {
-    const executions = await getLlmExecutions(spreadsheetId);
-    const targetExecutions = executions.filter(exec =>
-        exec.execution_type === 'batch_screening' && exec.status === 'confirmed'
-    );
-
-    for (const exec of targetExecutions) {
-        const shouldBeActive = exec.execution_id === selectedExecutionId;
-        if (exec.is_active !== shouldBeActive) {
-            await updateLlmExecution(spreadsheetId, exec.execution_id, {
-                is_active: shouldBeActive,
-            });
-        }
-    }
-}
 
 /**
  * LLM バッチの対象となる文献かどうか判定
@@ -212,6 +205,45 @@ export async function handleStartBatch() {
             showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
+        // Run 解決: 同一設定の既存 Run があれば再利用、なければ新規作成
+        // confirmed Run なら閾値を即時適用し、閾値確認 UI をスキップする
+        const configHash = await computeConfigHash({
+            model: modelConfig.model,
+            temperature: modelConfig.temperature,
+            topP: modelConfig.topP,
+            thinkingLevel: modelConfig.thinkingLevel,
+            criteria_snapshot: llmConfig.llm_criteria,
+            screening_prompt: screeningPrompt,
+        });
+
+        const matchedRun = await findRunByConfigHash(spreadsheetId, configHash);
+        const isImmediate = matchedRun?.status === 'confirmed';
+        const runThreshold = isImmediate ? matchedRun!.include_threshold : null;
+
+        let runId: string;
+        if (matchedRun) {
+            runId = matchedRun.run_id;
+        } else {
+            runId = crypto.randomUUID();
+            const newRun: LlmRun = {
+                run_id: runId,
+                config_hash: configHash,
+                created_at: new Date().toISOString(),
+                model: modelConfig.model,
+                temperature: modelConfig.temperature,
+                topP: modelConfig.topP,
+                thinkingLevel: modelConfig.thinkingLevel,
+                criteria_snapshot: llmConfig.llm_criteria,
+                screening_prompt: screeningPrompt,
+                include_threshold: typeof llmConfig.llm_include_threshold === 'number'
+                    ? llmConfig.llm_include_threshold
+                    : 0.3,
+                status: 'pending',
+                is_active: false,
+            };
+            await saveLlmRun(spreadsheetId, newRun);
+        }
+
         const result = await processBatch(targetRefs, {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
@@ -229,6 +261,8 @@ export async function handleStartBatch() {
                 const currentDecisions = state.currentBatchDecisions;
                 state.setCurrentBatchDecisions([...currentDecisions, ...decisions]);
             },
+            // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
+            applyThreshold: runThreshold ?? undefined,
         });
 
         state.setCurrentExecutionId(result.executionId);
@@ -246,41 +280,66 @@ export async function handleStartBatch() {
 
         // 完了後のUI更新
         if (!abortController.signal.aborted) {
-            // pending状態で実行履歴を保存
+            // Batch row を保存。
+            // Run/Batch 分離後は閾値・status・is_active は LLM_Runs 側を正とするため、
+            // LLM_Executions 側の値は固定値（threshold=0, status='pending', is_active=false）で
+            // 書き込み、読み取り時は無視される。
             const execution = createLlmExecution(
                 result.executionId,
                 'batch_screening',
                 modelConfig.model,
                 llmConfig.llm_criteria,
                 dom.screeningPromptInput.value,
-                0,  // 閾値は未確定
+                0,
                 result.processedCount,
-                0,  // include_countは未確定
-                0,  // exclude_countは未確定
-                'pending',  // status
-                true,       // is_active
-                // Model parameters
+                0,
+                0,
+                'pending',
+                false,
                 modelConfig.temperature,
                 modelConfig.topP,
                 modelConfig.thinkingLevel
             );
+            execution.run_id = runId;
             await saveLlmExecution(spreadsheetId, execution);
+
+            // confirmed Run なら、Run を active 化して閾値 UI を出さない
+            if (isImmediate && runThreshold !== null) {
+                const counts = previewThresholdCounts(state.currentBatchDecisions, runThreshold);
+                await setSingleActiveRun(spreadsheetId, runId);
+                showToast(
+                    t('llm_thresholdAutoApplied', [String(counts.includeCount), String(counts.excludeCount)]),
+                    4000
+                );
+                console.log('[handleStartBatch] Auto-applied confirmed Run threshold:', {
+                    runId,
+                    threshold: runThreshold,
+                    counts,
+                });
+            } else {
+                // pending Run: 従来通り閾値確認 UI を出す
+                // 既存 pending Run を再利用する場合は前回の閾値をスライダー初期値として復元
+                if (matchedRun) {
+                    const initial = matchedRun.include_threshold;
+                    if (typeof initial === 'number' && Number.isFinite(initial)) {
+                        dom.thresholdSlider.value = initial.toFixed(2);
+                        dom.thresholdValueDisplay.textContent = initial.toFixed(2);
+                    }
+                }
+                dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
+                    ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
+                    : t('llm_thresholdComplete', String(result.successCount));
+                dom.thresholdSection.classList.remove('hidden');
+                handleThresholdChange();
+            }
 
             // 履歴を再読み込み
             await loadExecutionHistory();
-
-            dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
-                ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
-                : t('llm_thresholdComplete', String(result.successCount));
-            dom.thresholdSection.classList.remove('hidden');
 
             // フォールバック発生時はトーストでも明示
             if (result.fallbackCount > 0) {
                 showToast(t('llm_batchFallbackNotice', String(result.fallbackCount)), 6000);
             }
-
-            // 閾値プレビューを更新
-            handleThresholdChange();
         }
     } catch (error) {
         console.error('[handleStartBatch] Error:', error);
@@ -491,15 +550,19 @@ export function renderDistributionChart() {
 
 /**
  * 閾値を確定して判断をGoogleスプレッドシートに保存
+ *
+ * Run/Batch 分離後:
+ * - 閾値は Run 単位で1つ。current Batch の所属 Run を解決し、Run 配下の
+ *   全 Batch の Decisions に対して閾値を適用する
+ * - Run 行の include_threshold / status / is_active を更新
+ * - LLM_Executions 側の冗長列は書き換えない
  */
 export async function handleConfirmThreshold() {
     const threshold = parseFloat(dom.thresholdSlider.value);
     const spreadsheetId = state.spreadsheetId;
-    const currentDecisions = state.currentBatchDecisions;
     const executionId = state.currentExecutionId;
 
     console.log('[handleConfirmThreshold] Starting with executionId:', executionId);
-    console.log('[handleConfirmThreshold] currentDecisions count:', currentDecisions.length);
 
     if (!executionId) {
         console.error('[handleConfirmThreshold] executionId is empty!');
@@ -511,51 +574,57 @@ export async function handleConfirmThreshold() {
         dom.confirmThresholdBtn.disabled = true;
         showToast(t('common_saving'));
 
-        // 閾値を適用してdecisionを確定
-        const updatedDecisions = applyThresholdToDecisions(currentDecisions, threshold);
+        // current Batch の所属 Run を解決
+        const run = await getRunForBatchId(spreadsheetId, executionId);
+        if (!run) {
+            throw new Error(`Run not found for batch ${executionId}`);
+        }
 
-        // Decisionsシートの行を取得して更新
-        const existingDecisions = await getDecisionsByReviewerId(spreadsheetId, executionId);
-        console.log('[handleConfirmThreshold] existingDecisions count:', existingDecisions.length);
+        // Run 配下の全 Batch を対象に Decisions を取得し、閾値を適用
+        const batchIds = await getBatchIdsForRun(spreadsheetId, run.run_id);
+        const allDecisionsWithRow: { rowIndex: number; decision: Decision }[] = [];
+        let aggregatedInclude = 0;
+        let aggregatedExclude = 0;
 
-        const updates: { rowIndex: number; decision: Decision }[] = [];
-        for (const updated of updatedDecisions) {
-            const existing = existingDecisions.find(e => e.decision.ref_id === updated.ref_id);
-            if (existing) {
-                updates.push({ rowIndex: existing.rowIndex, decision: updated });
+        for (const batchId of batchIds) {
+            const decisionsForBatch = await getDecisionsByReviewerId(spreadsheetId, batchId);
+            const decisionObjs = decisionsForBatch.map(d => d.decision);
+            const updated = applyThresholdToDecisions(decisionObjs, threshold);
+            const counts = previewThresholdCounts(decisionObjs, threshold);
+            aggregatedInclude += counts.includeCount;
+            aggregatedExclude += counts.excludeCount;
+
+            for (const updatedDecision of updated) {
+                const existing = decisionsForBatch.find(e => e.decision.ref_id === updatedDecision.ref_id);
+                if (existing) {
+                    allDecisionsWithRow.push({ rowIndex: existing.rowIndex, decision: updatedDecision });
+                }
             }
         }
 
-        console.log('[handleConfirmThreshold] updates count:', updates.length);
+        console.log('[handleConfirmThreshold] Run-level updates:', {
+            runId: run.run_id,
+            batchCount: batchIds.size,
+            updateCount: allDecisionsWithRow.length,
+            includeCount: aggregatedInclude,
+            excludeCount: aggregatedExclude,
+        });
 
-        if (updates.length > 0) {
-            await updateDecisionsBatch(spreadsheetId, updates);
+        if (allDecisionsWithRow.length > 0) {
+            await updateDecisionsBatch(spreadsheetId, allDecisionsWithRow);
         }
 
-        // 実行履歴を更新（pending → confirmed）
-        const counts = previewThresholdCounts(currentDecisions, threshold);
-        console.log('[handleConfirmThreshold] Calling updateLlmExecution with:', {
-            executionId,
-            threshold,
-            includeCount: counts.includeCount,
-            excludeCount: counts.excludeCount,
-            status: 'confirmed',
-            is_active: true
-        });
-
-        await updateLlmExecution(spreadsheetId, executionId, {
+        // Run を確定状態に更新（閾値・status・is_active）
+        await updateLlmRun(spreadsheetId, run.run_id, {
             include_threshold: threshold,
-            include_count: counts.includeCount,
-            exclude_count: counts.excludeCount,
             status: 'confirmed',
-            is_active: true,  // 閾値確定時に「判定に使用」を自動でオン
+            is_active: true,
         });
 
-        await setSingleActiveExecution(spreadsheetId, executionId);
+        // この Run のみを active に。他の Run は false に切り替える
+        await setSingleActiveRun(spreadsheetId, run.run_id);
 
-        console.log('[handleConfirmThreshold] updateLlmExecution completed successfully');
-
-        // LLM設定を更新
+        // LLM設定を更新（次回新規 Run のデフォルト閾値）
         await updateLlmConfig(spreadsheetId, {
             llm_include_threshold: threshold,
         });
@@ -593,124 +662,371 @@ export async function handleConfirmThreshold() {
 }
 
 /**
+ * 日時を yyyy/m/d H:MM 形式にフォーマット
+ */
+function formatTimestamp(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Run のプロンプトと判定基準をモーダルで表示する。
+ * プロンプト全文 + criteria_snapshot を表示し、コピーボタンを提供する。
+ */
+function openRunPromptModal(run: LlmRun): void {
+    const body = document.createElement('div');
+    body.className = 'run-prompt-modal';
+
+    // 判定基準 (criteria_snapshot) があれば構造化表示
+    if (run.criteria_snapshot) {
+        const criteriaSection = document.createElement('section');
+        criteriaSection.className = 'run-prompt-section';
+
+        const criteriaTitle = document.createElement('h4');
+        criteriaTitle.textContent = t('llm_historyPromptSectionCriteria');
+        criteriaSection.appendChild(criteriaTitle);
+
+        const templateLabel = document.createElement('div');
+        templateLabel.className = 'run-prompt-criteria-template';
+        templateLabel.textContent = run.criteria_snapshot.template;
+        criteriaSection.appendChild(templateLabel);
+
+        const fieldsTable = document.createElement('dl');
+        fieldsTable.className = 'run-prompt-criteria-fields';
+        const fields = run.criteria_snapshot.fields ?? {};
+        for (const [key, value] of Object.entries(fields)) {
+            const dt = document.createElement('dt');
+            dt.textContent = key;
+            const dd = document.createElement('dd');
+            dd.textContent = value;
+            fieldsTable.appendChild(dt);
+            fieldsTable.appendChild(dd);
+        }
+        criteriaSection.appendChild(fieldsTable);
+        body.appendChild(criteriaSection);
+    }
+
+    // プロンプト全文
+    const promptSection = document.createElement('section');
+    promptSection.className = 'run-prompt-section';
+
+    const promptTitle = document.createElement('h4');
+    promptTitle.textContent = t('llm_historyPromptSectionPrompt');
+    promptSection.appendChild(promptTitle);
+
+    const pre = document.createElement('pre');
+    pre.className = 'run-prompt-text';
+    pre.textContent = run.screening_prompt || '';
+    promptSection.appendChild(pre);
+    body.appendChild(promptSection);
+
+    // フッター: コピー + 閉じる
+    const footer = document.createElement('div');
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn-primary btn-small';
+    copyBtn.textContent = t('llm_historyPromptCopyBtn');
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(run.screening_prompt || '');
+            showToast(t('llm_historyPromptCopied'));
+        } catch (error) {
+            console.error('[openRunPromptModal] clipboard write failed:', error);
+            showToast(t('llm_historyPromptCopyFailed'));
+        }
+    });
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn btn-outline btn-small';
+    closeBtn.textContent = t('llm_historyPromptClose');
+    closeBtn.addEventListener('click', () => hideModal());
+
+    footer.appendChild(copyBtn);
+    footer.appendChild(closeBtn);
+
+    showModal({
+        title: t('llm_historyPromptTitle'),
+        body,
+        footer,
+    });
+}
+
+/**
+ * Run カードを生成して履歴コンテナに append する
+ */
+function appendRunCard(
+    container: HTMLElement,
+    spreadsheetId: string,
+    run: LlmRun,
+    batches: Awaited<ReturnType<typeof getLlmExecutions>>,
+    isSelectedActive: boolean,
+    onActivate: (runId: string) => Promise<void>
+): void {
+    // 配下バッチを timestamp 昇順に並べ、合計を集計
+    const sortedBatches = [...batches].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    const oldest = sortedBatches[0];
+    const latest = sortedBatches[sortedBatches.length - 1];
+    const totalRefs = sortedBatches.reduce((sum, b) => sum + (b.target_count ?? 0), 0);
+
+    const card = document.createElement('div');
+    card.className = `run-card ${run.status === 'pending' ? 'pending' : 'confirmed'}`;
+
+    const dateRange = oldest.timestamp === latest.timestamp
+        ? formatTimestamp(oldest.timestamp)
+        : t('llm_historyRunDateRange', [formatTimestamp(oldest.timestamp), formatTimestamp(latest.timestamp)]);
+
+    const typeBadge = `<span class="run-type-badge">${t('llm_historyRun')}</span>`;
+    const statusLabel = run.status === 'pending'
+        ? `<span class="execution-status pending">${t('llm_historyPending')}</span>`
+        : '';
+
+    const statsContent = run.status === 'pending'
+        ? t('llm_historyRunStatsPending', [String(sortedBatches.length), String(totalRefs)])
+        : t('llm_historyRunStatsConfirmed', [String(sortedBatches.length), String(totalRefs), run.include_threshold.toFixed(2)]);
+
+    const radioHtml = run.status === 'confirmed'
+        ? `<label class="execution-active-label">
+             <input type="radio" class="run-active-radio"
+                    name="active-llm-run"
+                    data-run-id="${run.run_id}"
+                    ${isSelectedActive ? 'checked' : ''}>
+             ${t('llm_historyUseDecision')}
+           </label>`
+        : '';
+
+    const adjustButtonLabel = run.status === 'pending'
+        ? t('llm_historySetThreshold')
+        : t('llm_historyAdjustThreshold');
+    const adjustButtonHtml = `<button type="button" class="btn btn-outline btn-xsmall run-adjust-btn"
+                                       data-run-id="${run.run_id}">${adjustButtonLabel}</button>`;
+    const promptButtonHtml = `<button type="button" class="btn btn-outline btn-xsmall run-prompt-btn"
+                                       data-run-id="${run.run_id}">${t('llm_historyShowPrompt')}</button>`;
+
+    const batchesDetailHtml = sortedBatches.map(b =>
+        `<div class="run-batch-row">${t('llm_historyBatchDetail', [formatTimestamp(b.timestamp), String(b.target_count ?? 0)])}</div>`
+    ).join('');
+
+    const showBatchesLabel = t('llm_historyShowBatches', String(sortedBatches.length));
+    const hideBatchesLabel = t('llm_historyHideBatches');
+
+    const modelHtml = run.model
+        ? `<div class="run-model"></div>`
+        : '';
+
+    card.innerHTML = `
+        <div class="run-header">
+            <div class="run-date-range">
+                ${typeBadge}${statusLabel}${dateRange}
+            </div>
+            ${radioHtml}
+        </div>
+        ${modelHtml}
+        <div class="run-stats">${statsContent}</div>
+        <div class="run-actions">
+            ${adjustButtonHtml}
+            ${promptButtonHtml}
+        </div>
+        <button type="button" class="run-batches-toggle"
+                data-show-label="${showBatchesLabel}"
+                data-hide-label="${hideBatchesLabel}">${showBatchesLabel}</button>
+        <div class="run-batches-detail hidden">${batchesDetailHtml}</div>
+    `;
+
+    // モデル名は textContent で安全に流し込む
+    const modelEl = card.querySelector('.run-model') as HTMLElement | null;
+    if (modelEl) {
+        modelEl.textContent = run.model;
+    }
+
+    // ラジオ: クリックで Run を active 化
+    const radio = card.querySelector('.run-active-radio') as HTMLInputElement | null;
+    if (radio) {
+        radio.addEventListener('change', async () => {
+            if (!radio.checked) return;
+            await onActivate(run.run_id);
+        });
+    }
+
+    // 閾値調整ボタン: Run の代表として最新 Batch ID で prepareThresholdAdjustment を呼ぶ
+    const adjustButton = card.querySelector('.run-adjust-btn') as HTMLButtonElement | null;
+    if (adjustButton) {
+        adjustButton.addEventListener('click', async () => {
+            try {
+                const initialThreshold = run.status === 'confirmed'
+                    ? run.include_threshold
+                    : (typeof state.llmConfig?.llm_include_threshold === 'number'
+                        ? state.llmConfig.llm_include_threshold
+                        : 0.3);
+                await prepareThresholdAdjustment(latest.execution_id, initialThreshold, totalRefs);
+                showToast(t('llm_thresholdAdjustReady'));
+            } catch (error) {
+                console.error('[appendRunCard] Failed to prepare threshold adjustment:', error);
+                showToast((error as Error).message || t('llm_historyUpdateFailed'));
+            }
+        });
+    }
+
+    // プロンプト表示ボタン: モーダルで Run の screening_prompt と criteria を表示
+    const promptButton = card.querySelector('.run-prompt-btn') as HTMLButtonElement | null;
+    if (promptButton) {
+        promptButton.addEventListener('click', () => openRunPromptModal(run));
+    }
+
+    // バッチ詳細トグル
+    const toggle = card.querySelector('.run-batches-toggle') as HTMLButtonElement | null;
+    const detail = card.querySelector('.run-batches-detail') as HTMLElement | null;
+    if (toggle && detail) {
+        toggle.addEventListener('click', () => {
+            const isHidden = detail.classList.toggle('hidden');
+            toggle.textContent = isHidden
+                ? toggle.dataset.showLabel || ''
+                : toggle.dataset.hideLabel || '';
+        });
+    }
+
+    container.appendChild(card);
+}
+
+/**
+ * prompt_generation 等、Run に紐付かない単独実行を従来形式のカードで描画
+ */
+function appendStandaloneItem(
+    container: HTMLElement,
+    exec: Awaited<ReturnType<typeof getLlmExecutions>>[number]
+): void {
+    const item = document.createElement('div');
+    item.className = `execution-item ${exec.status === 'pending' ? 'pending' : 'confirmed'}`;
+
+    const dateStr = formatTimestamp(exec.timestamp);
+    const typeLabel = exec.execution_type === 'batch_screening'
+        ? t('llm_historyBatch')
+        : t('llm_historyCriteria');
+    const statusLabel = exec.status === 'pending'
+        ? `<span class="execution-status pending">${t('llm_historyPending')}</span>`
+        : '';
+    const statsContent = t('llm_historyPendingStats', String(exec.target_count));
+
+    item.innerHTML = `
+        <div class="execution-header">
+            <div class="execution-date">
+                <span class="execution-type">${typeLabel}</span>
+                ${statusLabel}
+                ${dateStr}
+            </div>
+        </div>
+        <div class="execution-stats">${statsContent}</div>
+    `;
+
+    container.appendChild(item);
+}
+
+type HistoryItem =
+    | { kind: 'run'; run: LlmRun; batches: Awaited<ReturnType<typeof getLlmExecutions>>; sortDate: number }
+    | { kind: 'standalone'; exec: Awaited<ReturnType<typeof getLlmExecutions>>[number]; sortDate: number };
+
+/**
  * 実行履歴を読み込み
+ *
+ * Run/Batch 分離後の表示構造:
+ * - batch_screening は所属 Run でグループ化し、Run カード1枚として表示
+ * - prompt_generation など Run に紐付かない実行は従来形式の単独カード
+ * - すべての項目を最新活動順に並べ、上位 10 件を表示
  */
 export async function loadExecutionHistory() {
     const spreadsheetId = state.spreadsheetId;
 
     try {
-        const executions = await getLlmExecutions(spreadsheetId);
-        const selectedActiveExecutionId = getSelectedActiveExecutionId(executions);
+        const [executions, runs] = await Promise.all([
+            getLlmExecutions(spreadsheetId),
+            getLlmRuns(spreadsheetId),
+        ]);
 
-        console.log('[loadExecutionHistory] executions:', executions.map(e => ({
-            id: e.execution_id,
-            status: e.status,
-            is_active: e.is_active,
-            type: e.execution_type,
-        })));
+        // active Run 配下の Batch IDs をキャッシュへ反映
+        const activeRun = runs.find(r => r.is_active && r.status === 'confirmed');
+        const activeBatchIds = activeRun
+            ? new Set(
+                executions
+                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
+                    .map(e => e.execution_id)
+              )
+            : new Set<string>();
+        syncSetActiveLlmExecutionIds(activeBatchIds);
 
-        // 確定済みかつアクティブなLLM実行IDをキャッシュに保存
-        syncSetActiveLlmExecutionIds(new Set(selectedActiveExecutionId ? [selectedActiveExecutionId] : []));
-
-        if (executions.length === 0) {
+        if (executions.length === 0 && runs.length === 0) {
             dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
             return;
         }
 
+        // バッチを Run でグループ化（run_id が無いものは migration 待ちとしてスキップ）
+        const batchesByRunId = new Map<string, Awaited<ReturnType<typeof getLlmExecutions>>>();
+        const standaloneExecs: Awaited<ReturnType<typeof getLlmExecutions>> = [];
+
+        for (const exec of executions) {
+            if (exec.execution_type === 'batch_screening' && exec.run_id) {
+                const list = batchesByRunId.get(exec.run_id) ?? [];
+                list.push(exec);
+                batchesByRunId.set(exec.run_id, list);
+            } else {
+                standaloneExecs.push(exec);
+            }
+        }
+
+        // 統一リストを構築
+        const items: HistoryItem[] = [];
+
+        for (const run of runs) {
+            const batches = batchesByRunId.get(run.run_id);
+            if (!batches || batches.length === 0) continue;
+            const latestTs = Math.max(...batches.map(b => new Date(b.timestamp).getTime()));
+            items.push({ kind: 'run', run, batches, sortDate: latestTs });
+        }
+
+        for (const exec of standaloneExecs) {
+            items.push({ kind: 'standalone', exec, sortDate: new Date(exec.timestamp).getTime() });
+        }
+
+        // 最新活動順にソート、上位 10 件
+        items.sort((a, b) => b.sortDate - a.sortDate);
+        const visibleItems = items.slice(0, 10);
+
         dom.executionHistory.innerHTML = '';
 
-        // 新しい順にソート
-        const sorted = [...executions].sort((a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-
-        for (const exec of sorted.slice(0, 10)) {
-            const item = document.createElement('div');
-            item.className = `execution-item ${exec.status === 'pending' ? 'pending' : 'confirmed'}`;
-
-            const date = new Date(exec.timestamp);
-            const dateStr = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-            const typeLabel = exec.execution_type === 'batch_screening' ? t('llm_historyBatch') : t('llm_historyCriteria');
-            const statusLabel = exec.status === 'pending' ? `<span class="execution-status pending">${t('llm_historyPending')}</span>` : '';
-
-            // pending状態では閾値・件数を非表示
-            const statsContent = exec.status === 'pending'
-                ? t('llm_historyPendingStats', String(exec.target_count))
-                : t('llm_historyConfirmedStats', [String(exec.target_count), String(exec.include_count), String(exec.exclude_count), exec.include_threshold.toFixed(2)]);
-
-            // ラジオボタン（batch_screening かつ confirmed のみ、単一選択）
-            const radioHtml = exec.status === 'confirmed' && exec.execution_type === 'batch_screening'
-                ? `<label class="execution-active-label">
-                     <input type="radio" class="execution-active-checkbox"
-                            name="active-llm-execution"
-                            data-execution-id="${exec.execution_id}" 
-                            ${exec.execution_id === selectedActiveExecutionId ? 'checked' : ''}>
-                     ${t('llm_historyUseDecision')}
-                   </label>`
-                : '';
-
-            const canAdjustThreshold = exec.execution_type === 'batch_screening'
-                && (exec.status === 'pending' || exec.status === 'confirmed');
-            const adjustButtonLabel = exec.status === 'pending'
-                ? t('llm_historySetThreshold')
-                : t('llm_historyAdjustThreshold');
-            const adjustButtonHtml = canAdjustThreshold
-                ? `<button type="button" class="btn btn-outline btn-xsmall execution-adjust-btn" data-execution-id="${exec.execution_id}">
-                     ${adjustButtonLabel}
-                    </button>`
-                : '';
-
-            item.innerHTML = `
-                <div class="execution-header">
-                    <div class="execution-date">
-                        <span class="execution-type">${typeLabel}</span>
-                        ${statusLabel}
-                        ${dateStr}
-                    </div>
-                    ${radioHtml}
-                </div>
-                <div class="execution-stats">
-                    ${statsContent}
-                </div>
-                ${adjustButtonHtml}
-            `;
-
-            // ラジオボタンのイベントリスナー
-            const radio = item.querySelector('.execution-active-checkbox') as HTMLInputElement | null;
-            if (radio) {
-                radio.addEventListener('change', async () => {
-                    if (!radio.checked) {
-                        return;
-                    }
-
-                    try {
-                        await setSingleActiveExecution(spreadsheetId, exec.execution_id);
-                        syncSetActiveLlmExecutionIds(new Set([exec.execution_id]));
-                        showToast(t('llm_historyActivated'));
-                        await loadExecutionHistory();
-                    } catch (error) {
-                        console.error('[loadExecutionHistory] Failed to update is_active:', error);
-                        showToast(t('llm_historyUpdateFailed'));
-                        await loadExecutionHistory();
-                    }
-                });
+        const handleRunActivate = async (runId: string): Promise<void> => {
+            try {
+                await setSingleActiveRun(spreadsheetId, runId);
+                const targetBatchIds = new Set(
+                    executions
+                        .filter(e => e.execution_type === 'batch_screening' && e.run_id === runId)
+                        .map(e => e.execution_id)
+                );
+                syncSetActiveLlmExecutionIds(targetBatchIds);
+                showToast(t('llm_historyActivated'));
+                await loadExecutionHistory();
+            } catch (error) {
+                console.error('[loadExecutionHistory] Failed to activate run:', error);
+                showToast(t('llm_historyUpdateFailed'));
+                await loadExecutionHistory();
             }
+        };
 
-            const adjustButton = item.querySelector('.execution-adjust-btn') as HTMLButtonElement | null;
-            if (adjustButton) {
-                adjustButton.addEventListener('click', async () => {
-                    try {
-                        await prepareThresholdAdjustment(exec.execution_id, getThresholdForAdjustment(exec), exec.target_count);
-                        showToast(t('llm_thresholdAdjustReady'));
-                    } catch (error) {
-                        console.error('[loadExecutionHistory] Failed to prepare threshold adjustment:', error);
-                        showToast((error as Error).message || t('llm_historyUpdateFailed'));
-                    }
-                });
+        for (const item of visibleItems) {
+            if (item.kind === 'run') {
+                const isSelectedActive = item.run.run_id === activeRun?.run_id;
+                appendRunCard(
+                    dom.executionHistory,
+                    spreadsheetId,
+                    item.run,
+                    item.batches,
+                    isSelectedActive,
+                    handleRunActivate
+                );
+            } else {
+                appendStandaloneItem(dom.executionHistory, item.exec);
             }
-
-            dom.executionHistory.appendChild(item);
         }
     } catch (error) {
         console.error('[loadExecutionHistory] Error:', error);

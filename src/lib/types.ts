@@ -95,6 +95,13 @@ export interface LlmCriteria {
 
 /**
  * LLM実行履歴（LLM_Executionsシートに保存）
+ *
+ * Run/Batch 分離後の役割:
+ * - 1 row = 1 物理バッチ実行（API 呼び出し単位）
+ * - execution_id は Decisions.reviewer_id との結合キー（後方互換のため変更不可）
+ * - run_id は所属する Run（LLM_Runs）への外部キー
+ * - include_threshold / status / is_active は LLM_Runs 側を正とし、ここでは
+ *   既存データ・他ツール互換のため列のみ残す（書き込みは停止予定）
  */
 export interface LlmExecution {
     execution_id: string;
@@ -112,8 +119,32 @@ export interface LlmExecution {
     target_count: number;
     include_count: number;
     exclude_count: number;
-    status: 'pending' | 'confirmed';  // 確定状態
-    is_active: boolean;               // 判定に使用するか
+    status: 'pending' | 'confirmed';  // 確定状態（Run 側を正とする）
+    is_active: boolean;               // 判定に使用するか（Run 側を正とする）
+    run_id?: string;                  // 所属 Run の ID（移行前は空）
+}
+
+/**
+ * LLM 論理実行（LLM_Runs シートに保存）
+ *
+ * config_hash 単位で集約された「同一設定での実行」を表す。
+ * - 同じ config_hash のバッチは自動的に同じ Run に集約される
+ * - include_threshold は Run に1つだけ持ち、Run 配下の全バッチで共有
+ * - is_active は Run 単位の択一フラグ（同一 spreadsheet 内で is_active=true は1つのみ）
+ */
+export interface LlmRun {
+    run_id: string;                   // UUID
+    config_hash: string;              // "v1:sha256(...)" 形式
+    created_at: string;               // 配下バッチ最古の timestamp
+    model: string;
+    temperature?: number;
+    topP?: number;
+    thinkingLevel?: string;
+    criteria_snapshot: LlmCriteria | null;
+    screening_prompt: string;
+    include_threshold: number;
+    status: 'pending' | 'confirmed';
+    is_active: boolean;
 }
 
 /**

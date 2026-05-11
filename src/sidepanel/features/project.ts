@@ -17,6 +17,7 @@ import {
     getHighlightKeywords,
     getKeyOpenedStatus,
     getLlmExecutions,
+    getLlmRuns,
     isUserAdmin,
     forceReauth,
     ensureHeaders,
@@ -263,12 +264,14 @@ export async function loadDataAndShowScreening() {
         state.clearReviewHistory();
 
         // 管理者権限とキーオープン状態を確認
-        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig, llmExecutions] = await Promise.all([
+        // Run/Batch 分離後、active 判定は LLM_Runs を経由するため Runs も同時取得する
+        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig, llmExecutions, llmRuns] = await Promise.all([
             isUserAdmin(spreadsheetId, userEmail),
             getKeyOpenedStatus(spreadsheetId),
             getHighlightKeywords(spreadsheetId),
             getAssignmentConfig(spreadsheetId),
             getLlmExecutions(spreadsheetId),
+            getLlmRuns(spreadsheetId),
         ]);
 
         // Store経由で両方に同期
@@ -276,10 +279,18 @@ export async function loadDataAndShowScreening() {
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(keywords);
 
-        const activeBatchExecution = llmExecutions
-            .filter((execution) => execution.execution_type === 'batch_screening' && execution.status === 'confirmed' && execution.is_active)
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-        syncSetActiveLlmExecutionIds(new Set(activeBatchExecution ? [activeBatchExecution.execution_id] : []));
+        // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
+        const activeRun = llmRuns
+            .filter(r => r.is_active && r.status === 'confirmed')
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const activeBatchIds = activeRun
+            ? new Set(
+                llmExecutions
+                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
+                    .map(e => e.execution_id)
+              )
+            : new Set<string>();
+        syncSetActiveLlmExecutionIds(activeBatchIds);
 
         // キーオープン状態に応じてデータを読み込み
         const refs = keyOpenedStatus

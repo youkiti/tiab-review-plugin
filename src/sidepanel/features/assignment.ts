@@ -216,11 +216,18 @@ export function renderAssignmentManager() {
     dom.assignmentReviewerMap.classList.add('hidden');
     dom.assignmentSaveBtn.classList.add('hidden');
     dom.assignmentResetBtn.classList.add('hidden');
+    if (dom.assignmentReshuffleBtn) {
+        dom.assignmentReshuffleBtn.classList.add('hidden');
+    }
 
     if (config.status === 'configured') {
         dom.assignmentSettingsStatus.textContent = t('assignment_settingsConfigured', [String(config.calibrationSize), String(config.groupCount)]);
         dom.assignmentReviewerMap.classList.remove('hidden');
         dom.assignmentSaveBtn.classList.remove('hidden');
+        if (dom.assignmentReshuffleBtn) {
+            dom.assignmentReshuffleBtn.textContent = t('assignment_settingsReshuffle');
+            dom.assignmentReshuffleBtn.classList.remove('hidden');
+        }
         renderReviewerInputs(config);
         return;
     }
@@ -324,18 +331,33 @@ export async function handleAssignmentResetClick() {
     }
 }
 
-export async function maybeShowAssignmentWizard(_source: 'load' | 'import' | 'settings' = 'load') {
+export async function maybeShowAssignmentWizard(
+    _source: 'load' | 'import' | 'settings' | 'reshuffle' = 'load',
+    options: { force?: boolean } = {}
+) {
     if (_wizardOpen) return;
     if (!state.isAdmin || !state.spreadsheetId) return;
-    if (state.assignmentConfig.status !== 'none') return;
+    if (!options.force && state.assignmentConfig.status !== 'none') return;
     if (state.references.length === 0) return;
 
     showAssignmentWizard();
 }
 
+export async function handleAssignmentReshuffleClick() {
+    if (state.assignmentConfig.status !== 'configured') return;
+    if (state.references.length === 0) return;
+
+    if (!window.confirm(t('assignment_reshuffleConfirm'))) {
+        return;
+    }
+
+    await maybeShowAssignmentWizard('reshuffle', { force: true });
+}
+
 function showAssignmentWizard() {
     const totalCount = state.references.length;
-    const initialConfig = state.assignmentConfig.status === 'configured'
+    const isReshuffle = state.assignmentConfig.status === 'configured';
+    const initialConfig = isReshuffle
         ? state.assignmentConfig
         : createDefaultAssignmentConfig();
     const groupValues = new Map<string, string>();
@@ -382,6 +404,39 @@ function showAssignmentWizard() {
     groupCountRow.appendChild(groupCountLabel);
     groupCountRow.appendChild(groupCountInput);
 
+    const preview = document.createElement('p');
+    preview.className = 'assignment-preview';
+
+    const renderPreview = () => {
+        const calibrationRaw = parseInt(calibrationInput.value || '', 10);
+        const groupCountRaw = parseInt(groupCountInput.value || '', 10);
+
+        if (
+            Number.isNaN(calibrationRaw) || calibrationRaw < 0 || calibrationRaw > totalCount
+            || Number.isNaN(groupCountRaw) || groupCountRaw < 1
+        ) {
+            preview.textContent = t('assignment_wizardPreviewInvalid');
+            preview.classList.add('assignment-preview--invalid');
+            return;
+        }
+
+        preview.classList.remove('assignment-preview--invalid');
+        const remaining = totalCount - calibrationRaw;
+
+        if (remaining <= 0) {
+            preview.textContent = t('assignment_wizardPreviewNoRest', String(calibrationRaw));
+            return;
+        }
+
+        const perTeam = Math.ceil(remaining / groupCountRaw);
+        preview.textContent = t('assignment_wizardPreview', [
+            String(calibrationRaw),
+            String(remaining),
+            String(groupCountRaw),
+            String(perTeam),
+        ]);
+    };
+
     const reviewerHelp = document.createElement('p');
     reviewerHelp.className = 'assignment-help';
     reviewerHelp.textContent = t('assignment_wizardReviewerHelp');
@@ -419,7 +474,12 @@ function showAssignmentWizard() {
         }
     };
 
-    groupCountInput.addEventListener('input', renderReviewerGrid);
+    calibrationInput.addEventListener('input', renderPreview);
+    groupCountInput.addEventListener('input', () => {
+        renderPreview();
+        renderReviewerGrid();
+    });
+    renderPreview();
     renderReviewerGrid();
 
     form.appendChild(calibrationRow);
@@ -428,27 +488,32 @@ function showAssignmentWizard() {
     container.appendChild(intro);
     container.appendChild(total);
     container.appendChild(form);
+    container.appendChild(preview);
     container.appendChild(reviewerHelp);
     container.appendChild(reviewerGrid);
 
     const footer = document.createElement('div');
     footer.className = 'assignment-modal-actions';
 
-    const noButton = document.createElement('button');
-    noButton.className = 'btn btn-outline btn-small';
-    noButton.textContent = t('assignment_wizardNo');
-    noButton.addEventListener('click', () => {
-        void dismissAssignmentWizard();
-    });
+    if (!isReshuffle) {
+        const noButton = document.createElement('button');
+        noButton.className = 'btn btn-outline btn-small';
+        noButton.textContent = t('assignment_wizardNo');
+        noButton.addEventListener('click', () => {
+            void dismissAssignmentWizard();
+        });
+        footer.appendChild(noButton);
+    }
 
     const createButton = document.createElement('button');
     createButton.className = 'btn btn-primary btn-small';
-    createButton.textContent = t('assignment_wizardCreate');
+    createButton.textContent = isReshuffle
+        ? t('assignment_settingsReshuffle')
+        : t('assignment_wizardCreate');
     createButton.addEventListener('click', () => {
-        void saveAssignmentWizard(calibrationInput, groupCountInput, reviewerGrid);
+        void saveAssignmentWizard(calibrationInput, groupCountInput, reviewerGrid, isReshuffle);
     });
 
-    footer.appendChild(noButton);
     footer.appendChild(createButton);
 
     _wizardOpen = true;
@@ -486,7 +551,8 @@ async function dismissAssignmentWizard() {
 async function saveAssignmentWizard(
     calibrationInput: HTMLInputElement,
     groupCountInput: HTMLInputElement,
-    reviewerGrid: HTMLElement
+    reviewerGrid: HTMLElement,
+    isReshuffle: boolean = false
 ) {
     const calibrationSize = parseInt(calibrationInput.value || '0', 10);
     const groupCount = parseInt(groupCountInput.value || '0', 10);
@@ -520,7 +586,8 @@ async function saveAssignmentWizard(
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
         state.setAssignmentConfig(nextConfig);
         hideModal();
-        showToast(t('assignment_configured', [String(calibrationSize), String(groupCount)]), 3000);
+        const toastKey = isReshuffle ? 'assignment_reshuffled' : 'assignment_configured';
+        showToast(t(toastKey, [String(calibrationSize), String(groupCount)]), 3000);
         renderAssignmentManager();
         if (_loadDataAndShowScreening) {
             await _loadDataAndShowScreening();

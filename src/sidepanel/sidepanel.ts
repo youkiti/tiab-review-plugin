@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.abstractSubsectionHeadingsTextarea?.addEventListener('change', settings.handleAbstractSubsectionHeadingsChange);
     dom.abstractSubsectionHeadingsResetBtn?.addEventListener('click', () => { void settings.handleAbstractSubsectionHeadingsReset(); });
     dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
+    dom.assignmentReshuffleBtn?.addEventListener('click', () => { void settings.handleAssignmentReshuffle(); });
     dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
 
     // Import/Export

@@ -135,6 +135,7 @@ const domElements = {
     get assignmentSettingsItem() { return getElement<HTMLElement>('assignment-settings-item'); },
     get assignmentSettingsStatus() { return getElement<HTMLElement>('assignment-settings-status'); },
     get assignmentResetBtn() { return getElement<HTMLButtonElement>('assignment-reset-btn'); },
+    get assignmentReshuffleBtn() { return getElement<HTMLButtonElement>('assignment-reshuffle-btn'); },
     get assignmentReviewerMap() { return getElement<HTMLElement>('assignment-reviewer-map'); },
     get assignmentSaveBtn() { return getElement<HTMLButtonElement>('assignment-save-btn'); },
 

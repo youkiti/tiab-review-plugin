@@ -15,6 +15,7 @@
         "../src/lib/storage.ts",
         "../src/lib/i18n.ts",
         "../src/lib/types.ts",
+        "../src/lib/llm-config-hash.ts",
         "./**/*.ts"
     ]
 }
