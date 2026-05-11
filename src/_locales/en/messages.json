@@ -885,6 +885,49 @@
   "llm_historyEmpty": {
     "message": "No execution history"
   },
+  "llm_recoverOrphansBtn": {
+    "message": "🛟 Recover orphaned decisions"
+  },
+  "llm_recoverOrphansChecking": {
+    "message": "Searching for orphaned decisions..."
+  },
+  "llm_recoverOrphansNoneFound": {
+    "message": "No orphaned decisions found"
+  },
+  "llm_recoverOrphansDialogTitle": {
+    "message": "Recover orphaned decisions"
+  },
+  "llm_recoverOrphansDialogBody": {
+    "message": "Found $1 orphaned execution(s). Adding rows to LLM_Executions enables the threshold UI for these batches. Rows are written with is_active=false, so you must select them explicitly via the radio button.",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansListItem": {
+    "message": "$1 (decisions: $2)",
+    "placeholders": {
+      "1": { "content": "$1" },
+      "2": { "content": "$2" }
+    }
+  },
+  "llm_recoverOrphansConfirmBtn": {
+    "message": "Recover"
+  },
+  "llm_recoverOrphansCancelBtn": {
+    "message": "Cancel"
+  },
+  "llm_recoverOrphansSuccess": {
+    "message": "Recovered $1 history row(s). Open them in execution history to set the threshold.",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansError": {
+    "message": "Recovery error: $1",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
   "llm_historyBatch": {
     "message": "Batch"
   },

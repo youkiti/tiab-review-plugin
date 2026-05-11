@@ -138,6 +138,10 @@ export interface BatchProcessOptions {
      * 閾値確認 UI を出さずに即時確定される。
      */
     applyThreshold?: number;
+    // 呼び出し側で事前に execution_id を生成して LLM_Executions 行を先書きする運用のため、
+    // 同じ id/timestamp をバッチ内でも使えるように受け取れるようにする
+    executionId?: string;
+    timestamp?: Date;
 }
 
 /**
@@ -267,8 +271,8 @@ export async function processBatch(
     references: Reference[],
     options: BatchProcessOptions
 ): Promise<BatchProcessResult> {
-    const timestamp = new Date();
-    const executionId = generateLlmReviewerId(options.model, timestamp);
+    const timestamp = options.timestamp ?? new Date();
+    const executionId = options.executionId ?? generateLlmReviewerId(options.model, timestamp);
 
     const progress: LlmBatchProgress = {
         total: references.length,

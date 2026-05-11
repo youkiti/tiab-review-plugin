@@ -34,6 +34,7 @@ import {
     previewThresholdCounts,
     applyThresholdToDecisions,
     createLlmExecution,
+    generateLlmReviewerId,
 } from '../../../lib/llm-processor';
 import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
 import { getModelConfig } from '../../../lib/gemini-api';
@@ -193,12 +194,16 @@ export async function handleStartBatch() {
     state.setBatchAbortController(abortController);
     state.setCurrentBatchDecisions([]);
 
+    // 中断・エラー時にも finally で履歴行を実件数で更新するため、
+    // try 開始前に execution_id を保持する変数を用意しておく
+    let executionId: string | null = null;
+    const spreadsheetId = state.spreadsheetId;
+
     try {
         // 選択されたモデルの設定を取得（モデル ID はプロファイル解決にも使う）
         const modelConfig = getModelConfig(dom.llmModelSelect.value);
 
         const profile = await resolveBatchProfile(modelConfig.model);
-        const spreadsheetId = state.spreadsheetId;
         const llmConfig = state.llmConfig;
 
         if (profile === BATCH_PROFILES.free) {
@@ -244,6 +249,38 @@ export async function handleStartBatch() {
             await saveLlmRun(spreadsheetId, newRun);
         }
 
+        // バッチ開始前に execution_id を生成し、Batch 行（LLM_Executions）を先書きする。
+        // こうしておくと、最後の数件でリトライ失敗・Stop・サイドパネル閉鎖などが起きても
+        // Decisions シートに書かれた LLM 判定が「Batch 行のない孤立データ」になるのを防げる。
+        // Run/Batch 分離後は閾値・status・is_active は LLM_Runs 側が正なので、
+        // ここでは固定値（threshold=0, status='pending', is_active=false）で書き、後段で読み飛ばされる。
+        const timestamp = new Date();
+        executionId = generateLlmReviewerId(modelConfig.model, timestamp);
+        state.setCurrentExecutionId(executionId);
+
+        const initialExecution = createLlmExecution(
+            executionId,
+            'batch_screening',
+            modelConfig.model,
+            llmConfig.llm_criteria,
+            dom.screeningPromptInput.value,
+            0,
+            targetRefs.length,      // target_count は実件数で finally に再更新
+            0,
+            0,
+            'pending',
+            false,                  // Batch 行の is_active は Run 側が管理するため常に false
+            modelConfig.temperature,
+            modelConfig.topP,
+            modelConfig.thinkingLevel,
+        );
+        // execution_id 内の timestamp とシート上の timestamp 列を揃えておく
+        initialExecution.timestamp = timestamp.toISOString();
+        initialExecution.run_id = runId;
+        await saveLlmExecution(spreadsheetId, initialExecution);
+        // 履歴UIに「pending」として即時反映
+        await loadExecutionHistory();
+
         const result = await processBatch(targetRefs, {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
@@ -255,6 +292,10 @@ export async function handleStartBatch() {
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig: profile.rate,
             abortSignal: abortController.signal,
+            // 事前生成した execution_id / timestamp を共有させて、
+            // Decisions 側の reviewer_id と LLM_Executions 側の execution_id を一致させる
+            executionId,
+            timestamp,
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
                 await appendDecisions(spreadsheetId, decisions);
@@ -264,8 +305,6 @@ export async function handleStartBatch() {
             // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
             applyThreshold: runThreshold ?? undefined,
         });
-
-        state.setCurrentExecutionId(result.executionId);
 
         // 失敗したref_idを保存
         state.setFailedRefIds(result.failedRefIds);
@@ -280,28 +319,8 @@ export async function handleStartBatch() {
 
         // 完了後のUI更新
         if (!abortController.signal.aborted) {
-            // Batch row を保存。
-            // Run/Batch 分離後は閾値・status・is_active は LLM_Runs 側を正とするため、
-            // LLM_Executions 側の値は固定値（threshold=0, status='pending', is_active=false）で
-            // 書き込み、読み取り時は無視される。
-            const execution = createLlmExecution(
-                result.executionId,
-                'batch_screening',
-                modelConfig.model,
-                llmConfig.llm_criteria,
-                dom.screeningPromptInput.value,
-                0,
-                result.processedCount,
-                0,
-                0,
-                'pending',
-                false,
-                modelConfig.temperature,
-                modelConfig.topP,
-                modelConfig.thinkingLevel
-            );
-            execution.run_id = runId;
-            await saveLlmExecution(spreadsheetId, execution);
+            // Batch 行は pre-write 済みなのでここでの再保存は不要。
+            // Run/Batch 分離後、閾値・status・is_active は LLM_Runs 側を正とする。
 
             // confirmed Run なら、Run を active 化して閾値 UI を出さない
             if (isImmediate && runThreshold !== null) {
@@ -348,9 +367,25 @@ export async function handleStartBatch() {
         dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
         state.setBatchAbortController(null);
+
+        // pre-write した履歴行の target_count を、実際に保存できた判定件数で更新する。
+        // 中断・エラー・成功のいずれでもここに来るので、履歴行と Decisions シートの件数が
+        // 食い違わないようにする最後の保険。失敗しても黙って続行する。
+        if (executionId) {
+            try {
+                const savedCount = state.currentBatchDecisions.length;
+                await updateLlmExecution(spreadsheetId, executionId, {
+                    target_count: savedCount,
+                });
+                await loadExecutionHistory();
+            } catch (err) {
+                console.warn('[handleStartBatch] target_count update failed:', err);
+            }
+        }
+
         // バッチで判定済みになった文献を「未判定」カウントから除外するため再読込
         // （中断・エラー時も部分的に保存されている可能性があるので必ず実行）
-        await refreshReferencesAfterBatch(state.spreadsheetId);
+        await refreshReferencesAfterBatch(spreadsheetId);
     }
 }
 

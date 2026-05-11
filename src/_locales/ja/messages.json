@@ -885,6 +885,49 @@
   "llm_historyEmpty": {
     "message": "実行履歴がありません"
   },
+  "llm_recoverOrphansBtn": {
+    "message": "🛟 孤立判定を復旧"
+  },
+  "llm_recoverOrphansChecking": {
+    "message": "孤立した判定を検索中..."
+  },
+  "llm_recoverOrphansNoneFound": {
+    "message": "孤立した判定はありません"
+  },
+  "llm_recoverOrphansDialogTitle": {
+    "message": "孤立した判定の復旧"
+  },
+  "llm_recoverOrphansDialogBody": {
+    "message": "$1件の孤立した実行が見つかりました。LLM_Executions に履歴行を追加すると、閾値設定UIから操作できるようになります（is_active=false で書き込むので、ラジオで明示的に有効化する必要があります）。",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansListItem": {
+    "message": "$1 （判定行: $2件）",
+    "placeholders": {
+      "1": { "content": "$1" },
+      "2": { "content": "$2" }
+    }
+  },
+  "llm_recoverOrphansConfirmBtn": {
+    "message": "復旧する"
+  },
+  "llm_recoverOrphansCancelBtn": {
+    "message": "キャンセル"
+  },
+  "llm_recoverOrphansSuccess": {
+    "message": "$1件の履歴行を復旧しました。実行履歴で閾値を設定してください。",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansError": {
+    "message": "復旧中にエラーが発生しました: $1",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
   "llm_historyBatch": {
     "message": "バッチ"
   },
