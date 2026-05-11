@@ -158,6 +158,12 @@ export function updateBatchTargetCount() {
  * バッチ処理を開始
  */
 export async function handleStartBatch() {
+    // 直前バッチの post-batch refresh が走っている間は state.references が古いまま。
+    // ここで握っておかないと、同じ文献を次のバッチが重複して投げてしまう。
+    if (state.batchAbortController) {
+        return;
+    }
+
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         showToast(t('llm_apiKeyRequired'));
@@ -364,9 +370,7 @@ export async function handleStartBatch() {
         console.error('[handleStartBatch] Error:', error);
         showToast(t('llm_batchError', (error as Error).message));
     } finally {
-        dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
-        state.setBatchAbortController(null);
 
         // pre-write した履歴行の target_count を、実際に保存できた判定件数で更新する。
         // 中断・エラー・成功のいずれでもここに来るので、履歴行と Decisions シートの件数が
@@ -385,7 +389,12 @@ export async function handleStartBatch() {
 
         // バッチで判定済みになった文献を「未判定」カウントから除外するため再読込
         // （中断・エラー時も部分的に保存されている可能性があるので必ず実行）
+        // Start ボタンと AbortController の解放は refresh 完了後にまとめて行う。
+        // 先に解放すると state.references が古いまま連続クリックされて、
+        // 直前のバッチ対象を重複して投げてしまう競合が起きる（重複の入口は冒頭の guard で塞ぐ）。
         await refreshReferencesAfterBatch(spreadsheetId);
+        state.setBatchAbortController(null);
+        dom.startBatchBtn.classList.remove('hidden');
     }
 }
 
@@ -404,6 +413,11 @@ export function handleStopBatch() {
  * 失敗した件をリトライ
  */
 export async function handleRetryFailed() {
+    // 直前バッチの後始末（refresh）と被ると state.references が古いまま走るので block する
+    if (state.batchAbortController) {
+        return;
+    }
+
     const failedRefIds = state.failedRefIds;
     if (failedRefIds.length === 0) {
         showToast(t('llm_retryNoTarget'));
@@ -486,10 +500,11 @@ export async function handleRetryFailed() {
         console.error('[handleRetryFailed] Error:', error);
         showToast(t('llm_retryError', (error as Error).message));
     } finally {
-        dom.startBatchBtn.classList.remove('hidden');
         dom.stopBatchBtn.classList.add('hidden');
-        state.setBatchAbortController(null);
+        // refresh 完了後にまとめて解放（handleStartBatch 側の guard と対になっている）
         await refreshReferencesAfterBatch(state.spreadsheetId);
+        state.setBatchAbortController(null);
+        dom.startBatchBtn.classList.remove('hidden');
     }
 }
 
