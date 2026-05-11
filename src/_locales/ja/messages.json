@@ -898,7 +898,7 @@
     "message": "孤立した判定の復旧"
   },
   "llm_recoverOrphansDialogBody": {
-    "message": "$1件の孤立した実行が見つかりました。LLM_Executions に履歴行を追加すると、閾値設定UIから操作できるようになります（is_active=false で書き込むので、ラジオで明示的に有効化する必要があります）。",
+    "message": "$1件の孤立した実行が見つかりました。LLM_Executions に Batch 行を追加し、自動的に LLM_Runs にグループ化します。実行後は履歴UIから Run 単位で閾値設定が可能になります（Run は明示的に有効化するまで使用されません）。",
     "placeholders": {
       "1": { "content": "$1" }
     }

@@ -898,7 +898,7 @@
     "message": "Recover orphaned decisions"
   },
   "llm_recoverOrphansDialogBody": {
-    "message": "Found $1 orphaned execution(s). Adding rows to LLM_Executions enables the threshold UI for these batches. Rows are written with is_active=false, so you must select them explicitly via the radio button.",
+    "message": "Found $1 orphaned execution(s). Batch rows will be added to LLM_Executions and automatically grouped into LLM_Runs. After recovery, you can set thresholds per Run in the history UI (Runs remain inactive until explicitly enabled).",
     "placeholders": {
       "1": { "content": "$1" }
     }
