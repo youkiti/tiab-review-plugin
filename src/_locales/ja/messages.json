@@ -876,6 +876,27 @@
   "llm_historyConfirmedStats": {
     "message": "$1件処理 → Include: $2件, Exclude: $3件 (閾値: $4)"
   },
+  "llm_historyRun": {
+    "message": "Run"
+  },
+  "llm_historyRunDateRange": {
+    "message": "$1 〜 $2"
+  },
+  "llm_historyRunStatsPending": {
+    "message": "バッチ$1件 / 文献$2件 / 閾値: 未確定"
+  },
+  "llm_historyRunStatsConfirmed": {
+    "message": "バッチ$1件 / 文献$2件 / 閾値: $3"
+  },
+  "llm_historyShowBatches": {
+    "message": "▼ バッチ詳細を表示 ($1件)"
+  },
+  "llm_historyHideBatches": {
+    "message": "▲ バッチ詳細を隠す"
+  },
+  "llm_historyBatchDetail": {
+    "message": "$1 - 文献$2件"
+  },
   "llm_historyUseDecision": {
     "message": "判定に使用"
   },

@@ -873,6 +873,27 @@
   "llm_historyPendingStats": {
     "message": "$1 processed (threshold not set)"
   },
+  "llm_historyRun": {
+    "message": "Run"
+  },
+  "llm_historyRunDateRange": {
+    "message": "$1 - $2"
+  },
+  "llm_historyRunStatsPending": {
+    "message": "$1 batches / $2 refs / threshold: pending"
+  },
+  "llm_historyRunStatsConfirmed": {
+    "message": "$1 batches / $2 refs / threshold: $3"
+  },
+  "llm_historyShowBatches": {
+    "message": "▼ Show batch details ($1)"
+  },
+  "llm_historyHideBatches": {
+    "message": "▲ Hide batch details"
+  },
+  "llm_historyBatchDetail": {
+    "message": "$1 - $2 refs"
+  },
   "llm_historyConfirmedStats": {
     "message": "$1 processed → Include: $2, Exclude: $3 (threshold: $4)"
   },
