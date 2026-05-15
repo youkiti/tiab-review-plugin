@@ -120,11 +120,48 @@ npm run watch
 
 ## LLMモデル履歴
 
-- 既定のLLMモデルは `gemini-flash-lite-latest` です。
-- UIで選べるモデルは `gemini-flash-lite-latest` と `gemini-flash-latest` の2つです。
+- 既定のLLMモデルは `gemini-flash-latest` (Temp 1.0 / TopP 0.95 / Thinking LOW) です。下記ベンチマークで最も Recall が高かった構成を採用しています。
+- UIで選べるモデルは `gemini-flash-latest` (既定) と `gemini-flash-lite-latest` (廉価フォールバック) の2つです。
 - Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。
 - Gemini API応答に含まれる実モデルバージョンは、`model_version` として `LLM_Executions` / `LLM_Runs` / 判定noteに保存します。
 - latest系エイリアスの実体が更新されても、同じ呼び出し設定として扱い、実バージョン差は履歴ログで確認します。
+- 各モデルのスクリーニング精度比較は下の「LLMスクリーニング精度ベンチマーク」を参照してください。
+
+## LLMスクリーニング精度ベンチマーク
+
+`experiments/` 配下で複数モデルを 7 データセット (depression / cq1–cq5 / wilson、計約 22,000 件) で評価しています。threshold=0.5 固定、主指標は Recall (Sensitivity)。
+
+### depression データセットでの代表的結果 (n=1,993, 陽性 280 件)
+
+| モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 |
+|---|---|---|---|---|---|
+| **`gemini-flash-latest` (B4 = `gemini-3-flash-preview`)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 |
+| `gemini-3.1-flash-lite` (GA) | Temp 0 | 93.6% | 61.6% | 92.6% | 9 |
+| `gemini-3.1-flash-lite-preview` | Temp 0 | 92.9% | 62.4% | 92.0% | 15 |
+
+### 全データセット Recall (最良条件比較)
+
+| データセット | n | 陽性率 | `gemini-flash-latest` | `gemini-3.1-flash-lite` (GA) |
+|---|---|---|---|---|
+| depression | 1,993 | 14.1% | **96.1%** | 93.6% |
+| cq1 | 5,628 | 2.0% | **99.1%** | 83.2% |
+| cq2 | 3,400 | 0.5% | **100.0%** | 100.0% |
+| cq3 | 1,038 | 1.5% | **100.0%** | 87.5% |
+| cq4 | 4,326 | 1.7% | **100.0%** | 98.6% |
+| cq5 | 2,253 | 1.8% | **97.6%** | 97.6% |
+| wilson | 3,451 | 5.0% | N/A | 45.7% |
+
+**現時点の推奨**:
+- 既定モデル: 精度優先で `gemini-flash-latest` (上表 B4 構成)。
+- 速度・コスト優先のフォールバック枠: `gemini-flash-lite-latest`。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
+
+### 詳細レポート
+
+- 初期評価 (B1–B4 比較): [experiments/report.md](experiments/report.md)
+- Verification 実験: [experiments/report_verification.md](experiments/report_verification.md)
+- `gemini-3.1-flash-lite-preview`: [experiments/gemini-3.1-flash-lite/report.md](experiments/gemini-3.1-flash-lite/report.md)
+- `gemini-3.1-flash-lite` (GA): [experiments/gemini-3.1-flash-lite-ga/report.md](experiments/gemini-3.1-flash-lite-ga/report.md)
+- ASReview 比較: [experiments/asreview/REPORT.md](experiments/asreview/REPORT.md)
 
 ## 手動レビュー時の戻る挙動
 
@@ -145,7 +182,9 @@ tiab-review-plugin/
 │   ├── sidepanel/             # サイドパネルUI
 │   │   └── features/          # 機能モジュール (LLM, Screening等)
 │   └── lib/                   # 共通ライブラリ
-├── experiments/               # 実験用コード
+├── experiments/               # 実験用コード（LLM ベンチマーク結果含む）
+│   ├── gemini-3.1-flash-lite/        # Preview 版評価 (2026-03)
+│   └── gemini-3.1-flash-lite-ga/     # GA 版評価 (2026-05)
 ├── dist/                      # ビルド出力
 ├── package.json
 ├── tsconfig.json
