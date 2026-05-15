@@ -118,6 +118,14 @@ npm run watch
 - 判定保存に失敗した場合はキューに退避し、オンライン復帰時や次回保存時に再送します
 - 100件未満は `chrome.storage.local`、100件以上は IndexedDB に保存します
 
+## LLMモデル履歴
+
+- 既定のLLMモデルは `gemini-flash-lite-latest` です。
+- UIで選べるモデルは `gemini-flash-lite-latest` と `gemini-flash-latest` の2つです。
+- Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。
+- Gemini API応答に含まれる実モデルバージョンは、`model_version` として `LLM_Executions` / `LLM_Runs` / 判定noteに保存します。
+- latest系エイリアスの実体が更新されても、同じ呼び出し設定として扱い、実バージョン差は履歴ログで確認します。
+
 ## 手動レビュー時の戻る挙動
 
 - `未判定` フィルタで手動レビューしている間は、`戻る` / `←` で直近5件のレビュー履歴を新しい順にたどれます

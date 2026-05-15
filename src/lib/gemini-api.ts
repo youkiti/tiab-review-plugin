@@ -1,6 +1,6 @@
 // gemini-api.ts - Gemini API クライアント
 
-import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, UsageMetadata } from './types';
+import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { getEffectiveApiKey } from './storage';
 import { t } from './i18n';
 
@@ -47,18 +47,26 @@ export interface CriteriaConversionOptions {
  * デフォルト設定
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-3-flash-preview',
-    temperature: 1.0,
-    topP: 0.95,
-    thinkingLevel: 'LOW',
+    model: 'gemini-flash-lite-latest',
+    temperature: 0,
 };
 
 /**
- * コスト重視設定 (Flash Lite)
+ * 安定版 Flash-Lite 設定
  */
 export const LITE_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite',
     temperature: 0,
+};
+
+/**
+ * Flash latest 設定
+ */
+export const FLASH_MODEL_CONFIG: GeminiModelConfig = {
+    model: 'gemini-flash-latest',
+    temperature: 1.0,
+    topP: 0.95,
+    thinkingLevel: 'LOW',
 };
 
 /**
@@ -158,7 +166,7 @@ async function callGeminiApi<T>(
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     timeoutMs: number = 90000
-): Promise<{ result: T; usageMetadata: UsageMetadata }> {
+): Promise<{ result: T; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         throw new GeminiApiError(t('error_geminiApiKeyMissing'), {
@@ -271,6 +279,11 @@ async function callGeminiApi<T>(
             thoughtsTokenCount: rawUsage.thoughtsTokenCount || 0,
             totalTokenCount: rawUsage.totalTokenCount || 0,
         };
+        const metadataSource = [...responses].reverse().find(res => res?.modelVersion || res?.responseId) || {};
+        const responseMetadata: LlmModelResponseMetadata = {
+            modelVersion: metadataSource.modelVersion || lastResponse?.modelVersion,
+            responseId: metadataSource.responseId || lastResponse?.responseId,
+        };
 
         // 全レスポンスからテキストを結合（Thinking部分を除く）
         let fullText = '';
@@ -297,13 +310,13 @@ async function callGeminiApi<T>(
 
         // JSONパース
         try {
-            return { result: JSON.parse(fullText) as T, usageMetadata };
+            return { result: JSON.parse(fullText) as T, usageMetadata, responseMetadata };
         } catch (e) {
             // Thinking modelの場合、テキストにJSON以外の内容が混ざることがある
             const jsonMatch = fullText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
-                    return { result: JSON.parse(jsonMatch[0]) as T, usageMetadata };
+                    return { result: JSON.parse(jsonMatch[0]) as T, usageMetadata, responseMetadata };
                 } catch (e2) {
                     throw new GeminiApiError(t('error_geminiJsonParseFailed'), {
                         code: 'json_parse_failed',
@@ -387,7 +400,7 @@ export async function screenReference(
     screeningPrompt: string,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     outputLanguage: string = 'ja'
-): Promise<{ output: LlmScreeningOutput; usageMetadata: UsageMetadata }> {
+): Promise<{ output: LlmScreeningOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
     const prompt = `${screeningPrompt}
 
 ## 対象文献
@@ -405,12 +418,12 @@ ${abstract || '(抄録なし)'}
 
 注意: quoteはtitleまたはabstract内の正確な部分文字列でなければなりません。`;
 
-    const { result, usageMetadata } = await callGeminiApi<LlmScreeningOutput>(
+    const { result, usageMetadata, responseMetadata } = await callGeminiApi<LlmScreeningOutput>(
         prompt,
         SCREENING_OUTPUT_SCHEMA,
         config
     );
-    return { output: result, usageMetadata };
+    return { output: result, usageMetadata, responseMetadata };
 }
 
 /**
@@ -546,19 +559,19 @@ export interface ModelOption {
 
 /**
  * 利用可能なモデル一覧
- * 実験結果に基づき、Flash 3.0 (Thinking LOW) を推奨
+ * 既定は latest エイリアス。実応答の modelVersion は履歴ログへ保存する。
  * 各モデルに固有のパラメータを含む
  */
 export const AVAILABLE_MODELS: ModelOption[] = [
     {
-        id: 'gemini-3-flash-preview',
-        name: 'Gemini 3 Flash',
-        config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
+        id: 'gemini-flash-lite-latest',
+        name: 'Gemini Flash-Lite Latest',
+        config: { temperature: 0 }
     },
     {
-        id: 'gemini-2.5-flash-lite',
-        name: 'Gemini 2.5 Flash Lite',
-        config: { temperature: 0 }
+        id: 'gemini-flash-latest',
+        name: 'Gemini Flash Latest',
+        config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
     },
 ];
 

@@ -649,7 +649,7 @@
     "message": "モデル:"
   },
   "llm_modelFlash3": {
-    "message": "Gemini 3 Flash (推奨・高精度)"
+    "message": "Gemini 3 Flash"
   },
   "llm_modelLite": {
     "message": "Gemini 2.5 Flash Lite (コスト重視)"
@@ -1552,7 +1552,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うGeminiモデルを選びます。\n• Gemini 3 Flash: 推奨。判定精度が高め。\n• Gemini 2.5 Flash Lite: 高速・低コスト。大量処理向け。\n迷ったらGemini 3 Flashを選んでください。"
+    "message": "判定に使うGeminiモデルを選びます。\n• Gemini Flash-Lite Latest: 推奨。低コスト・高速なFlash-Lite系の最新モデルを呼び出します。\n• Gemini Flash Latest: 精度重視のFlash系最新モデルを呼び出します。\n実際に応答したモデルバージョンは履歴ログに保存されます。"
   },
   "llm_tip_outputLanguage": {
     "message": "AIが出力する判定理由(reason)の言語を切り替えます。\n推奨: 普段使う言語に合わせる。"

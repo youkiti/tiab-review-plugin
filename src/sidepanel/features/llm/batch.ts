@@ -203,6 +203,7 @@ export async function handleStartBatch() {
     // 中断・エラー時にも finally で履歴行を実件数で更新するため、
     // try 開始前に execution_id を保持する変数を用意しておく
     let executionId: string | null = null;
+    let batchResult: Awaited<ReturnType<typeof processBatch>> | null = null;
     const spreadsheetId = state.spreadsheetId;
 
     try {
@@ -241,6 +242,7 @@ export async function handleStartBatch() {
                 config_hash: configHash,
                 created_at: new Date().toISOString(),
                 model: modelConfig.model,
+                requested_model: modelConfig.model,
                 temperature: modelConfig.temperature,
                 topP: modelConfig.topP,
                 thinkingLevel: modelConfig.thinkingLevel,
@@ -311,6 +313,7 @@ export async function handleStartBatch() {
             // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
             applyThreshold: runThreshold ?? undefined,
         });
+        batchResult = result;
 
         // 失敗したref_idを保存
         state.setFailedRefIds(result.failedRefIds);
@@ -380,7 +383,19 @@ export async function handleStartBatch() {
                 const savedCount = state.currentBatchDecisions.length;
                 await updateLlmExecution(spreadsheetId, executionId, {
                     target_count: savedCount,
+                    model_version: batchResult?.resolvedModelVersion,
+                    response_id: batchResult?.latestResponseId,
                 });
+                const resolvedModelVersion = batchResult?.resolvedModelVersion;
+                if (resolvedModelVersion) {
+                    const run = await getRunForBatchId(spreadsheetId, executionId);
+                    if (run) {
+                        await updateLlmRun(spreadsheetId, run.run_id, {
+                            model_version: resolvedModelVersion,
+                            response_id: batchResult?.latestResponseId,
+                        });
+                    }
+                }
                 await loadExecutionHistory();
             } catch (err) {
                 console.warn('[handleStartBatch] target_count update failed:', err);
@@ -889,7 +904,9 @@ function appendRunCard(
     // モデル名は textContent で安全に流し込む
     const modelEl = card.querySelector('.run-model') as HTMLElement | null;
     if (modelEl) {
-        modelEl.textContent = run.model;
+        modelEl.textContent = run.model_version
+            ? `${run.model} / ${run.model_version}`
+            : run.model;
     }
 
     // ラジオ: クリックで Run を active 化
