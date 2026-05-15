@@ -32,6 +32,7 @@ import {
     loadExecutionHistory,
     setLoadDataAndShowScreening as setLoadDataAndShowScreeningForBatch,
 } from './batch';
+import { handleRecoverOrphans } from './recovery';
 
 // Store互換レイヤー（Phase 5）
 import {
@@ -103,6 +104,9 @@ export function setupLlmEventListeners() {
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);
     dom.toggleDistributionBtn?.addEventListener('click', toggleDistributionChart);
     dom.confirmThresholdBtn?.addEventListener('click', handleConfirmThreshold);
+
+    // 孤立判定の復旧
+    dom.recoverOrphansBtn?.addEventListener('click', handleRecoverOrphans);
 
     // 折りたたみセクション
     document.querySelectorAll('.llm-card.collapsible .collapsible-header').forEach(header => {

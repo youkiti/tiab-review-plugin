@@ -11,6 +11,7 @@ import type {
     LlmCriteria,
     RateLimitConfig,
     UsageMetadata,
+    LlmModelResponseMetadata,
 } from './types';
 import { RATE_LIMIT_PAID } from './types';
 import { screenReference, GeminiModelConfig } from './gemini-api';
@@ -44,12 +45,16 @@ export function createLlmDecisionNote(
     executionId: string,
     model: string,
     output: LlmScreeningOutput,
-    usageMetadata?: UsageMetadata
+    usageMetadata?: UsageMetadata,
+    responseMetadata?: LlmModelResponseMetadata
 ): LlmDecisionNote {
     return {
         type: 'llm',
         execution_id: executionId,
         model,
+        requested_model: model,
+        model_version: responseMetadata?.modelVersion,
+        response_id: responseMetadata?.responseId,
         include_probability: output.include_probability,
         reasons: output.reasons,
         evidence: output.evidence,
@@ -72,6 +77,7 @@ export function createLlmFallbackDecisionNote(
         type: 'llm',
         execution_id: executionId,
         model,
+        requested_model: model,
         include_probability: 1.0,
         reasons: [`LLM 出力が解析できませんでした (${errorMessage})`],
         evidence: [],
@@ -138,6 +144,10 @@ export interface BatchProcessOptions {
      * 閾値確認 UI を出さずに即時確定される。
      */
     applyThreshold?: number;
+    // 呼び出し側で事前に execution_id を生成して LLM_Executions 行を先書きする運用のため、
+    // 同じ id/timestamp をバッチ内でも使えるように受け取れるようにする
+    executionId?: string;
+    timestamp?: Date;
 }
 
 /**
@@ -149,13 +159,17 @@ export interface BatchProcessResult {
     successCount: number;       // 通常の成功件数（フォールバックは含まない）
     failCount: number;          // decision を作れなかった件数（abort 等）
     fallbackCount: number;      // LLM 出力解析失敗で確率 1.0 として保存した件数
+    modelVersions: string[];
+    responseIds: string[];
+    resolvedModelVersion?: string;
+    latestResponseId?: string;
     decisions: Decision[];
     failedRefIds: string[];     // リトライ対象（完全失敗 + フォールバック保存）
     fallbackRefIds: string[];   // フォールバック保存された ref_id（再判定したい場合の参照用）
 }
 
 type ProcessOutcome =
-    | { success: true; decision: Decision; refId: string; isFallback: boolean }
+    | { success: true; decision: Decision; refId: string; isFallback: boolean; responseMetadata?: LlmModelResponseMetadata }
     | { success: false; decision: null; refId: string };
 
 /**
@@ -177,7 +191,7 @@ async function processWithRetry(
     let lastErrorMessage = 'Unknown error';
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            const { output, usageMetadata } = await screenReference(
+            const { output, usageMetadata, responseMetadata } = await screenReference(
                 ref.title,
                 ref.abstract || '',
                 screeningPrompt,
@@ -185,7 +199,7 @@ async function processWithRetry(
                 outputLanguage
             );
 
-            const noteData = createLlmDecisionNote(executionId, model, output, usageMetadata);
+            const noteData = createLlmDecisionNote(executionId, model, output, usageMetadata, responseMetadata);
             const decision: Decision = {
                 decision_id: crypto.randomUUID(),
                 ref_id: ref.ref_id,
@@ -197,7 +211,7 @@ async function processWithRetry(
                 client_version: getClientVersion('-llm'),
             };
 
-            return { success: true, decision, refId: ref.ref_id, isFallback: false };
+            return { success: true, decision, refId: ref.ref_id, isFallback: false, responseMetadata };
         } catch (error) {
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             if (attempt < maxRetries) {
@@ -267,8 +281,8 @@ export async function processBatch(
     references: Reference[],
     options: BatchProcessOptions
 ): Promise<BatchProcessResult> {
-    const timestamp = new Date();
-    const executionId = generateLlmReviewerId(options.model, timestamp);
+    const timestamp = options.timestamp ?? new Date();
+    const executionId = options.executionId ?? generateLlmReviewerId(options.model, timestamp);
 
     const progress: LlmBatchProgress = {
         total: references.length,
@@ -282,6 +296,9 @@ export async function processBatch(
     const allDecisions: Decision[] = [];
     const fallbackRefIds: string[] = [];
     const pendingForSave: Decision[] = [];
+    const modelVersions = new Set<string>();
+    const responseIds = new Set<string>();
+    let latestResponseId: string | undefined;
 
     const modelConfig: GeminiModelConfig = {
         model: options.model,
@@ -346,6 +363,13 @@ export async function processBatch(
                 }
                 allDecisions.push(result.decision);
                 pendingForSave.push(result.decision);
+                if (result.responseMetadata?.modelVersion) {
+                    modelVersions.add(result.responseMetadata.modelVersion);
+                }
+                if (result.responseMetadata?.responseId) {
+                    responseIds.add(result.responseMetadata.responseId);
+                    latestResponseId = result.responseMetadata.responseId;
+                }
             } else {
                 progress.failed++;
             }
@@ -393,6 +417,10 @@ export async function processBatch(
         successCount: progress.succeeded,
         failCount: progress.failed,
         fallbackCount: progress.parseErrorFallback,
+        modelVersions: Array.from(modelVersions),
+        responseIds: Array.from(responseIds),
+        resolvedModelVersion: Array.from(modelVersions).join(', '),
+        latestResponseId,
         decisions: allDecisions,
         failedRefIds,
         fallbackRefIds,
@@ -505,6 +533,7 @@ export function createLlmExecution(
         execution_type: executionType,
         timestamp: new Date().toISOString(),
         model,
+        requested_model: model,
         temperature,
         topP,
         thinkingLevel,

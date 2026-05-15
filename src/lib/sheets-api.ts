@@ -20,7 +20,8 @@ const LLM_EXECUTIONS_HEADERS = [
     'temperature', 'topP', 'thinkingLevel',  // Model parameters
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
     'target_count', 'include_count', 'exclude_count',
-    'status', 'is_active', 'run_id'
+    'status', 'is_active', 'run_id',
+    'requested_model', 'model_version', 'response_id'
 ];
 
 // LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
@@ -28,7 +29,8 @@ const LLM_RUNS_HEADERS = [
     'run_id', 'config_hash', 'created_at', 'model',
     'temperature', 'topP', 'thinkingLevel',
     'criteria_snapshot', 'screening_prompt',
-    'include_threshold', 'status', 'is_active'
+    'include_threshold', 'status', 'is_active',
+    'requested_model', 'model_version', 'response_id'
 ];
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
@@ -1343,8 +1345,8 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
  */
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
     llm_enabled: false,
-    llm_model: 'gemini-3-flash-preview',
-    llm_temperature: 1.0,
+    llm_model: 'gemini-flash-lite-latest',
+    llm_temperature: 0,
     llm_thinking: 'low',
     llm_protocol_text: '',
     llm_criteria: null,
@@ -1586,6 +1588,9 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.status,
         execution.is_active ? 'true' : 'false',
         execution.run_id ?? '',
+        execution.requested_model ?? execution.model,
+        execution.model_version ?? '',
+        execution.response_id ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -1971,6 +1976,9 @@ async function migrateLegacyExecutionsToRuns(
                 config_hash: hash,
                 created_at: oldest.timestamp,
                 model: sourceForAttrs.model,
+                requested_model: sourceForAttrs.requested_model ?? sourceForAttrs.model,
+                model_version: sourceForAttrs.model_version,
+                response_id: sourceForAttrs.response_id,
                 temperature: sourceForAttrs.temperature,
                 topP: sourceForAttrs.topP,
                 thinkingLevel: sourceForAttrs.thinkingLevel,

@@ -108,6 +108,9 @@ export interface LlmExecution {
     execution_type: 'prompt_generation' | 'batch_screening';
     timestamp: string;
     model: string;
+    requested_model?: string;
+    model_version?: string;
+    response_id?: string;
     // Model parameters (for traceability)
     temperature?: number;
     topP?: number;
@@ -137,6 +140,9 @@ export interface LlmRun {
     config_hash: string;              // "v1:sha256(...)" 形式
     created_at: string;               // 配下バッチ最古の timestamp
     model: string;
+    requested_model?: string;
+    model_version?: string;
+    response_id?: string;
     temperature?: number;
     topP?: number;
     thinkingLevel?: string;
@@ -177,12 +183,23 @@ export interface UsageMetadata {
 }
 
 /**
+ * Gemini API response metadata
+ */
+export interface LlmModelResponseMetadata {
+    modelVersion?: string;
+    responseId?: string;
+}
+
+/**
  * LLM判定のnoteフィールドに保存する構造
  */
 export interface LlmDecisionNote {
     type: 'llm';
     execution_id: string;
     model: string;
+    requested_model?: string;
+    model_version?: string;
+    response_id?: string;
     include_probability: number;
     reasons: string[];
     evidence: LlmEvidence[];
@@ -279,6 +296,34 @@ export const BATCH_PROFILES: Record<ManualTier, BatchProfile> = {
  * 対応していない (tier, model) の組み合わせは BATCH_PROFILES の値が使われる。
  */
 export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, BatchProfile>>> = {
+    'gemini-flash-lite-latest': {
+        tier1: {
+            rate: { concurrency: 30, delayBetweenRequests: 80 },   // 実効 ~450 RPM (cap 4,000)
+            saveBatchSize: 30,
+        },
+        tier2: {
+            rate: { concurrency: 60, delayBetweenRequests: 50 },   // 実効 ~900 RPM (cap 10,000)
+            saveBatchSize: 60,
+        },
+        tier3: {
+            rate: { concurrency: 100, delayBetweenRequests: 30 },  // 実効 ~1,500 RPM (cap 30,000)
+            saveBatchSize: 100,
+        },
+    },
+    'gemini-3.1-flash-lite': {
+        tier1: {
+            rate: { concurrency: 30, delayBetweenRequests: 80 },   // 実効 ~450 RPM (cap 4,000)
+            saveBatchSize: 30,
+        },
+        tier2: {
+            rate: { concurrency: 60, delayBetweenRequests: 50 },   // 実効 ~900 RPM (cap 10,000)
+            saveBatchSize: 60,
+        },
+        tier3: {
+            rate: { concurrency: 100, delayBetweenRequests: 30 },  // 実効 ~1,500 RPM (cap 30,000)
+            saveBatchSize: 100,
+        },
+    },
     'gemini-2.5-flash-lite': {
         tier1: {
             rate: { concurrency: 30, delayBetweenRequests: 80 },   // 実効 ~450 RPM (cap 4,000)

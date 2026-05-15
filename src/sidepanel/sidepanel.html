@@ -367,8 +367,8 @@
                         <label data-i18n="llm_modelLabel"></label>
                         <span class="help-icon" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
                         <select id="llm-model-select">
-                            <option value="gemini-3-flash-preview" selected data-i18n="llm_modelFlash3"></option>
-                            <option value="gemini-2.5-flash-lite" data-i18n="llm_modelLite"></option>
+                            <option value="gemini-flash-lite-latest" selected>Gemini Flash-Lite Latest</option>
+                            <option value="gemini-flash-latest">Gemini Flash Latest</option>
                         </select>
                     </div>
                     <div class="setting-row">
@@ -537,6 +537,7 @@
                     <div id="execution-history" class="execution-history">
                         <p class="placeholder-text" data-i18n="llm_historyEmpty"></p>
                     </div>
+                    <button id="recover-orphans-btn" class="btn btn-outline btn-small" data-i18n="llm_recoverOrphansBtn"></button>
                 </div>
             </div>
         </section>

@@ -56,6 +56,10 @@ let _renderKeyStatus: (() => void) | null = null;
 let _renderReviewerFilter: (() => void) | null = null;
 let _renderAiHighlightToggle: (() => void) | null = null;
 
+// 最近使用したシート一覧の取得に成功したかどうか。
+// loadConfig で URL 入力欄にフォールバック表示するかの判定に使う。
+let _recentSheetsLoaded = false;
+
 export function setProjectDependencies(deps: {
     renderKeywords: () => void;
     renderSourceFilters: () => void;
@@ -74,13 +78,21 @@ export function setProjectDependencies(deps: {
 
 /**
  * 戻るボタン処理
+ *
+ * 初期画面に戻った際は URL 入力欄を空にし、最近使用したシート一覧を再取得して
+ * 直前に開いたスプレッドシートがドロップダウンから再選択されるようにする。
  */
-export function handleBack() {
+export async function handleBack() {
     // 状態をリセット（Store経由で両方に同期）
     syncResetForBack();
 
     // プロジェクト選択画面を表示（Store経由でrenderLayoutが自動更新）
     showProjectView();
+
+    // 最近一覧を再取得し、保存済み spreadsheetId をドロップダウン側に再選択させる
+    // 失敗時のフォールバック表示は loadConfig / loadRecentSheets 内で行う
+    await loadRecentSheets();
+    await loadConfig();
 }
 
 /**
@@ -147,6 +159,9 @@ export async function handleConnect() {
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: resolvedId });
 
+        // 戻った際に URL 入力欄が残らないよう、ここで明示的にクリアしておく
+        dom.spreadsheetInput.value = '';
+
         // データを読み込んで画面切り替え
         await loadDataAndShowScreening();
     } catch (error) {
@@ -161,6 +176,7 @@ export async function handleConnect() {
  * 最近使用したスプレッドシートをドロップダウンに読み込み
  */
 export async function loadRecentSheets() {
+    _recentSheetsLoaded = false;
     try {
         dom.recentSheetsSelect.innerHTML = `<option value="">${t('project_loading')}</option>`;
 
@@ -173,6 +189,7 @@ export async function loadRecentSheets() {
             opt.value = '';
             opt.textContent = t('project_noSheets');
             dom.recentSheetsSelect.appendChild(opt);
+            _recentSheetsLoaded = true;
             return;
         }
 
@@ -188,6 +205,8 @@ export async function loadRecentSheets() {
             opt.textContent = sheet.name;
             dom.recentSheetsSelect.appendChild(opt);
         }
+
+        _recentSheetsLoaded = true;
     } catch (error) {
         console.error('Failed to load recent sheets:', error);
 
@@ -241,6 +260,9 @@ export async function handleCreateNew() {
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: newId });
+
+        // 戻った際に URL 入力欄が残らないよう明示的にクリア
+        dom.spreadsheetInput.value = '';
 
         // 画面切り替え
         await loadDataAndShowScreening();
@@ -379,17 +401,30 @@ export async function loadDataAndShowScreening() {
 
 /**
  * 保存済み設定を読み込み
+ *
+ * 復元順序:
+ * 1. 最近使用したシート一覧にあればドロップダウンで選択
+ * 2. 一覧の取得に失敗している場合のみ、レアケース救済として URL 入力欄に表示
+ *    （成功取得時はドロップダウンを優先し、URL 入力欄は「手で入れる場所」として空のままにする）
  */
 export async function loadConfig() {
+    // 既存の値をクリアして毎回まっさらな状態から復元する
+    dom.spreadsheetInput.value = '';
+
     const result = await chrome.storage.local.get(['spreadsheetId']);
-    if (result.spreadsheetId) {
-        const hasOption = Array.from(dom.recentSheetsSelect.options)
-            .some((opt) => opt.value === result.spreadsheetId);
-        if (hasOption) {
-            dom.recentSheetsSelect.value = result.spreadsheetId;
-        } else {
-            dom.spreadsheetInput.value = result.spreadsheetId;
-        }
+    if (!result.spreadsheetId) {
+        dom.recentSheetsSelect.value = '';
+        return;
+    }
+
+    const hasOption = Array.from(dom.recentSheetsSelect.options)
+        .some((opt) => opt.value === result.spreadsheetId);
+
+    if (hasOption) {
+        dom.recentSheetsSelect.value = result.spreadsheetId;
+    } else if (!_recentSheetsLoaded) {
+        // 最近一覧の取得に失敗しているときだけ、URL 入力欄にフォールバック表示
+        dom.spreadsheetInput.value = result.spreadsheetId;
     }
 }
 

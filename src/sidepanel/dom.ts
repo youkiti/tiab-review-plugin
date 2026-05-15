@@ -214,6 +214,7 @@ const domElements = {
     get distributionChart() { return getElement<HTMLElement>('distribution-chart'); },
     get confirmThresholdBtn() { return getElement<HTMLButtonElement>('confirm-threshold-btn'); },
     get executionHistory() { return getElement<HTMLElement>('execution-history'); },
+    get recoverOrphansBtn() { return getElement<HTMLButtonElement>('recover-orphans-btn'); },
 
     // ========== Reference Detail (for event delegation) ==========
     get referenceDetail() { return document.getElementById('reference-detail'); },

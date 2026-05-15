@@ -649,7 +649,7 @@
     "message": "Model:"
   },
   "llm_modelFlash3": {
-    "message": "Gemini 3 Flash (Recommended, High Accuracy)"
+    "message": "Gemini 3 Flash"
   },
   "llm_modelLite": {
     "message": "Gemini 2.5 Flash Lite (Cost-effective)"
@@ -884,6 +884,49 @@
   },
   "llm_historyEmpty": {
     "message": "No execution history"
+  },
+  "llm_recoverOrphansBtn": {
+    "message": "🛟 Recover orphaned decisions"
+  },
+  "llm_recoverOrphansChecking": {
+    "message": "Searching for orphaned decisions..."
+  },
+  "llm_recoverOrphansNoneFound": {
+    "message": "No orphaned decisions found"
+  },
+  "llm_recoverOrphansDialogTitle": {
+    "message": "Recover orphaned decisions"
+  },
+  "llm_recoverOrphansDialogBody": {
+    "message": "Found $1 orphaned execution(s). Batch rows will be added to LLM_Executions and automatically grouped into LLM_Runs. After recovery, you can set thresholds per Run in the history UI (Runs remain inactive until explicitly enabled).",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansListItem": {
+    "message": "$1 (decisions: $2)",
+    "placeholders": {
+      "1": { "content": "$1" },
+      "2": { "content": "$2" }
+    }
+  },
+  "llm_recoverOrphansConfirmBtn": {
+    "message": "Recover"
+  },
+  "llm_recoverOrphansCancelBtn": {
+    "message": "Cancel"
+  },
+  "llm_recoverOrphansSuccess": {
+    "message": "Recovered $1 history row(s). Open them in execution history to set the threshold.",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
+  },
+  "llm_recoverOrphansError": {
+    "message": "Recovery error: $1",
+    "placeholders": {
+      "1": { "content": "$1" }
+    }
   },
   "llm_historyBatch": {
     "message": "Batch"
@@ -1509,7 +1552,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the Gemini model used for screening.\n• Gemini 3 Flash: recommended. Higher accuracy.\n• Gemini 2.5 Flash Lite: faster and cheaper, good for large batches.\nWhen in doubt, use Gemini 3 Flash."
+    "message": "Pick the Gemini model used for screening.\n• Gemini Flash-Lite Latest: recommended. Calls the latest low-cost, low-latency Flash-Lite endpoint.\n• Gemini Flash Latest: calls the latest Flash endpoint when accuracy matters more.\nThe model version that actually generated the response is saved in the history log."
   },
   "llm_tip_outputLanguage": {
     "message": "Sets the language of the AI's reasoning (reason) output.\nRecommended: match your everyday working language."
