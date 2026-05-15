@@ -1,0 +1,59 @@
+{
+  "experimentId": "2026-05-15T12-18-05",
+  "startTime": "2026-05-15T12:18:05.395Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "C4",
+      "model": "gemini-3.1-flash-lite",
+      "temperature": 1,
+      "topP": 0.95,
+      "thinkingLevel": "LOW"
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1993,
+    "failCount": 0,
+    "durationMs": 301357,
+    "avgTimePerItem": 151.2077270446563
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 255,
+    "falsePositives": 144,
+    "trueNegatives": 1569,
+    "falseNegatives": 25,
+    "sensitivity": 0.9107142857142857,
+    "specificity": 0.9159369527145359,
+    "precision": 0.6390977443609023,
+    "fBetaScore": 0.9030384588143637
+  },
+  "endTime": "2026-05-15T12:23:06.840Z",
+  "consoleLog": [
+    "[2026-05-15T12:18:05.395Z] === Starting Experiment 2026-05-15T12-18-05 ===",
+    "[2026-05-15T12:18:05.395Z] Dataset: depression, Condition: C4, Tier: tier_max",
+    "[2026-05-15T12:18:05.402Z] 1993件の文献をdepressionから読み込み",
+    "[2026-05-15T12:18:05.402Z] ラベル分布: 陽性=280, 陰性=1713",
+    "[2026-05-15T12:18:05.403Z] 条件: {\"id\":\"C4\",\"model\":\"gemini-3.1-flash-lite\",\"temperature\":1,\"topP\":0.95,\"thinkingLevel\":\"LOW\"}",
+    "[2026-05-15T12:18:05.403Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-05-15T12:23:06.763Z] 完了: 1993/1993 成功 (301.4秒)",
+    "[2026-05-15T12:23:06.763Z] 平均処理時間: 151ms/件",
+    "[2026-05-15T12:23:06.821Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite-ga\\results\\decisions_2026-05-15T12-18-05.json",
+    "[2026-05-15T12:23:06.840Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-05-15T12:23:06.840Z] TP: 255, FP: 144",
+    "[2026-05-15T12:23:06.840Z] TN: 1569, FN: 25",
+    "[2026-05-15T12:23:06.840Z] Sensitivity: 91.07%",
+    "[2026-05-15T12:23:06.840Z] Specificity: 91.59%",
+    "[2026-05-15T12:23:06.840Z] Precision: 63.91%",
+    "[2026-05-15T12:23:06.840Z] Fβ(β=7): 90.30%"
+  ]
+}

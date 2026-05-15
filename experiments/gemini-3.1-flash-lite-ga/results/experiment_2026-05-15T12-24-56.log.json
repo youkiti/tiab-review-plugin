@@ -1,0 +1,57 @@
+{
+  "experimentId": "2026-05-15T12-24-56",
+  "startTime": "2026-05-15T12:24:56.412Z",
+  "parameters": {
+    "dataset": "cq3",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\cq3_labeled.json",
+    "totalRecords": 1038,
+    "condition": {
+      "id": "C1",
+      "model": "gemini-3.1-flash-lite",
+      "temperature": 0
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating the use of Sodium Bicarbonate (重炭酸ナトリウム) for patients with metabolic acidosis (or other relevant conditions).\nExclude studies not related to Sodium Bicarbonate.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1038,
+    "successCount": 1038,
+    "failCount": 0,
+    "durationMs": 19144,
+    "avgTimePerItem": 18.443159922928707
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 14,
+    "falsePositives": 362,
+    "trueNegatives": 660,
+    "falseNegatives": 2,
+    "sensitivity": 0.875,
+    "specificity": 0.6457925636007827,
+    "precision": 0.03723404255319149,
+    "fBetaScore": 0.603448275862069
+  },
+  "endTime": "2026-05-15T12:25:15.615Z",
+  "consoleLog": [
+    "[2026-05-15T12:24:56.412Z] === Starting Experiment 2026-05-15T12-24-56 ===",
+    "[2026-05-15T12:24:56.412Z] Dataset: cq3, Condition: C1, Tier: tier_max",
+    "[2026-05-15T12:24:56.426Z] 1038件の文献をcq3から読み込み",
+    "[2026-05-15T12:24:56.426Z] ラベル分布: 陽性=16, 陰性=1022",
+    "[2026-05-15T12:24:56.427Z] 条件: {\"id\":\"C1\",\"model\":\"gemini-3.1-flash-lite\",\"temperature\":0}",
+    "[2026-05-15T12:24:56.427Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-05-15T12:25:15.574Z] 完了: 1038/1038 成功 (19.1秒)",
+    "[2026-05-15T12:25:15.574Z] 平均処理時間: 18ms/件",
+    "[2026-05-15T12:25:15.604Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite-ga\\results\\decisions_2026-05-15T12-24-56.json",
+    "[2026-05-15T12:25:15.615Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-05-15T12:25:15.615Z] TP: 14, FP: 362",
+    "[2026-05-15T12:25:15.615Z] TN: 660, FN: 2",
+    "[2026-05-15T12:25:15.615Z] Sensitivity: 87.50%",
+    "[2026-05-15T12:25:15.615Z] Specificity: 64.58%",
+    "[2026-05-15T12:25:15.615Z] Precision: 3.72%",
+    "[2026-05-15T12:25:15.615Z] Fβ(β=7): 60.34%"
+  ]
+}

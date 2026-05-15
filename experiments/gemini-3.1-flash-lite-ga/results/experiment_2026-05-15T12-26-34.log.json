@@ -1,0 +1,57 @@
+{
+  "experimentId": "2026-05-15T12-26-34",
+  "startTime": "2026-05-15T12:26:34.570Z",
+  "parameters": {
+    "dataset": "wilson",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\wilson_tiab_labeled.json",
+    "totalRecords": 3451,
+    "condition": {
+      "id": "C1",
+      "model": "gemini-3.1-flash-lite",
+      "temperature": 0
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude controlled studies (RCT or Observational with control group) investigating therapies for Wilson disease (D-penicillamine, Trientine, Tetrathiomolybdate, Zinc).\nExclude animal studies, case reports, and uncontrolled studies.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 3451,
+    "successCount": 3451,
+    "failCount": 0,
+    "durationMs": 23225,
+    "avgTimePerItem": 6.729933352651406
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 79,
+    "falsePositives": 439,
+    "trueNegatives": 2839,
+    "falseNegatives": 94,
+    "sensitivity": 0.45664739884393063,
+    "specificity": 0.8660768761439902,
+    "precision": 0.1525096525096525,
+    "fBetaScore": 0.43913285158421345
+  },
+  "endTime": "2026-05-15T12:26:57.888Z",
+  "consoleLog": [
+    "[2026-05-15T12:26:34.570Z] === Starting Experiment 2026-05-15T12-26-34 ===",
+    "[2026-05-15T12:26:34.570Z] Dataset: wilson, Condition: C1, Tier: tier_max",
+    "[2026-05-15T12:26:34.604Z] 3451件の文献をwilsonから読み込み",
+    "[2026-05-15T12:26:34.604Z] ラベル分布: 陽性=173, 陰性=3278",
+    "[2026-05-15T12:26:34.605Z] 条件: {\"id\":\"C1\",\"model\":\"gemini-3.1-flash-lite\",\"temperature\":0}",
+    "[2026-05-15T12:26:34.605Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-05-15T12:26:57.832Z] 完了: 3451/3451 成功 (23.2秒)",
+    "[2026-05-15T12:26:57.832Z] 平均処理時間: 7ms/件",
+    "[2026-05-15T12:26:57.875Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite-ga\\results\\decisions_2026-05-15T12-26-34.json",
+    "[2026-05-15T12:26:57.887Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-05-15T12:26:57.888Z] TP: 79, FP: 439",
+    "[2026-05-15T12:26:57.888Z] TN: 2839, FN: 94",
+    "[2026-05-15T12:26:57.888Z] Sensitivity: 45.66%",
+    "[2026-05-15T12:26:57.888Z] Specificity: 86.61%",
+    "[2026-05-15T12:26:57.888Z] Precision: 15.25%",
+    "[2026-05-15T12:26:57.888Z] Fβ(β=7): 43.91%"
+  ]
+}

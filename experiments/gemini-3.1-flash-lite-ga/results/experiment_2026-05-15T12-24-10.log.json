@@ -1,0 +1,57 @@
+{
+  "experimentId": "2026-05-15T12-24-10",
+  "startTime": "2026-05-15T12:24:10.717Z",
+  "parameters": {
+    "dataset": "cq2",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\cq2_labeled.json",
+    "totalRecords": 3400,
+    "condition": {
+      "id": "C1",
+      "model": "gemini-3.1-flash-lite",
+      "temperature": 0
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Target Blood Pressure (Mean Arterial Pressure targets) or vasopressor strategies for patients with sepsis or septic shock.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 3400,
+    "successCount": 3400,
+    "failCount": 0,
+    "durationMs": 43728,
+    "avgTimePerItem": 12.861176470588235
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 17,
+    "falsePositives": 1018,
+    "trueNegatives": 2365,
+    "falseNegatives": 0,
+    "sensitivity": 1,
+    "specificity": 0.6990836535619273,
+    "precision": 0.01642512077294686,
+    "fBetaScore": 0.45503211991434694
+  },
+  "endTime": "2026-05-15T12:24:54.611Z",
+  "consoleLog": [
+    "[2026-05-15T12:24:10.717Z] === Starting Experiment 2026-05-15T12-24-10 ===",
+    "[2026-05-15T12:24:10.718Z] Dataset: cq2, Condition: C1, Tier: tier_max",
+    "[2026-05-15T12:24:10.769Z] 3400件の文献をcq2から読み込み",
+    "[2026-05-15T12:24:10.769Z] ラベル分布: 陽性=17, 陰性=3383",
+    "[2026-05-15T12:24:10.770Z] 条件: {\"id\":\"C1\",\"model\":\"gemini-3.1-flash-lite\",\"temperature\":0}",
+    "[2026-05-15T12:24:10.770Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-05-15T12:24:54.501Z] 完了: 3400/3400 成功 (43.7秒)",
+    "[2026-05-15T12:24:54.501Z] 平均処理時間: 13ms/件",
+    "[2026-05-15T12:24:54.588Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite-ga\\results\\decisions_2026-05-15T12-24-10.json",
+    "[2026-05-15T12:24:54.610Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-05-15T12:24:54.611Z] TP: 17, FP: 1018",
+    "[2026-05-15T12:24:54.611Z] TN: 2365, FN: 0",
+    "[2026-05-15T12:24:54.611Z] Sensitivity: 100.00%",
+    "[2026-05-15T12:24:54.611Z] Specificity: 69.91%",
+    "[2026-05-15T12:24:54.611Z] Precision: 1.64%",
+    "[2026-05-15T12:24:54.611Z] Fβ(β=7): 45.50%"
+  ]
+}
