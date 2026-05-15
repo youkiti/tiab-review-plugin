@@ -1,0 +1,57 @@
+{
+  "experimentId": "2026-05-15T12-25-17",
+  "startTime": "2026-05-15T12:25:17.299Z",
+  "parameters": {
+    "dataset": "cq4",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\cq4_labeled.json",
+    "totalRecords": 4326,
+    "condition": {
+      "id": "C1",
+      "model": "gemini-3.1-flash-lite",
+      "temperature": 0
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Early Goal-Directed Therapy (EGDT) or protocolized hemodynamic management for patients with severe sepsis or septic shock.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 4326,
+    "successCount": 4326,
+    "failCount": 0,
+    "durationMs": 50875,
+    "avgTimePerItem": 11.760286638927415
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 71,
+    "falsePositives": 895,
+    "trueNegatives": 3359,
+    "falseNegatives": 1,
+    "sensitivity": 0.9861111111111112,
+    "specificity": 0.7896097790314998,
+    "precision": 0.07349896480331262,
+    "fBetaScore": 0.7899421450823321
+  },
+  "endTime": "2026-05-15T12:26:08.382Z",
+  "consoleLog": [
+    "[2026-05-15T12:25:17.299Z] === Starting Experiment 2026-05-15T12-25-17 ===",
+    "[2026-05-15T12:25:17.299Z] Dataset: cq4, Condition: C1, Tier: tier_max",
+    "[2026-05-15T12:25:17.393Z] 4326件の文献をcq4から読み込み",
+    "[2026-05-15T12:25:17.394Z] ラベル分布: 陽性=72, 陰性=4254",
+    "[2026-05-15T12:25:17.394Z] 条件: {\"id\":\"C1\",\"model\":\"gemini-3.1-flash-lite\",\"temperature\":0}",
+    "[2026-05-15T12:25:17.394Z] レート制限: concurrency=1000, delay=1ms",
+    "[2026-05-15T12:26:08.272Z] 完了: 4326/4326 成功 (50.9秒)",
+    "[2026-05-15T12:26:08.272Z] 平均処理時間: 12ms/件",
+    "[2026-05-15T12:26:08.353Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.1-flash-lite-ga\\results\\decisions_2026-05-15T12-25-17.json",
+    "[2026-05-15T12:26:08.381Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-05-15T12:26:08.381Z] TP: 71, FP: 895",
+    "[2026-05-15T12:26:08.381Z] TN: 3359, FN: 1",
+    "[2026-05-15T12:26:08.381Z] Sensitivity: 98.61%",
+    "[2026-05-15T12:26:08.381Z] Specificity: 78.96%",
+    "[2026-05-15T12:26:08.381Z] Precision: 7.35%",
+    "[2026-05-15T12:26:08.381Z] Fβ(β=7): 78.99%"
+  ]
+}

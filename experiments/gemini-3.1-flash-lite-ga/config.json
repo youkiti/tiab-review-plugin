@@ -1,0 +1,83 @@
+{
+    "description": "gemini-3.1-flash-lite (GA) 評価実験",
+    "version": "1.0",
+    "model": "gemini-3.1-flash-lite",
+    "datasets": {
+        "cq1": "scripts/asreview-baseline/datasets/cq1_labeled.json",
+        "cq2": "scripts/asreview-baseline/datasets/cq2_labeled.json",
+        "cq3": "scripts/asreview-baseline/datasets/cq3_labeled.json",
+        "cq4": "scripts/asreview-baseline/datasets/cq4_labeled.json",
+        "cq5": "scripts/asreview-baseline/datasets/cq5_labeled.json",
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
+        "wilson": "scripts/asreview-baseline/datasets/wilson_tiab_labeled.json"
+    },
+    "datasetConfigs": {
+        "cq1": {
+            "criteria": "Include studies investigating Fluid Therapy (resuscitation fluid type, rate, bolus strategy) for patients with sepsis, septic shock, or critical illness."
+        },
+        "cq2": {
+            "criteria": "Include studies investigating Target Blood Pressure (Mean Arterial Pressure targets) or vasopressor strategies for patients with sepsis or septic shock."
+        },
+        "cq3": {
+            "criteria": "Include studies investigating the use of Sodium Bicarbonate (重炭酸ナトリウム) for patients with metabolic acidosis (or other relevant conditions).\nExclude studies not related to Sodium Bicarbonate."
+        },
+        "cq4": {
+            "criteria": "Include studies investigating Early Goal-Directed Therapy (EGDT) or protocolized hemodynamic management for patients with severe sepsis or septic shock."
+        },
+        "cq5": {
+            "criteria": "Include studies investigating Restrictive Fluid Therapy strategies (fluid minimization, conservative fluid management) for patients with sepsis, septic shock, or ARDS."
+        },
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        },
+        "wilson": {
+            "criteria": "Include controlled studies (RCT or Observational with control group) investigating therapies for Wilson disease (D-penicillamine, Trientine, Tetrathiomolybdate, Zinc).\nExclude animal studies, case reports, and uncontrolled studies."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 1000,
+            "delayBetweenRequests": 1
+        },
+        "tier2": {
+            "concurrency": 50,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "C1",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 0.0
+        },
+        {
+            "id": "C2",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95
+        },
+        {
+            "id": "C3",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL"
+        },
+        {
+            "id": "C4",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW"
+        }
+    ],
+    "baselineResults": {
+        "depression": { "condition": "B4", "recall": 0.96, "precision": 0.53, "fBeta7": 0.95 },
+        "cq1": { "condition": "B4", "recall": 0.99, "precision": 0.04, "fBeta7": null },
+        "cq2": { "condition": "B4", "recall": 1.00, "precision": 0.02, "fBeta7": null },
+        "cq3": { "condition": "B4", "recall": 1.00, "precision": 0.04, "fBeta7": null },
+        "cq4": { "condition": "B4", "recall": 1.00, "precision": 0.05, "fBeta7": null },
+        "cq5": { "condition": "B4", "recall": 0.98, "precision": 0.15, "fBeta7": null }
+    }
+}
