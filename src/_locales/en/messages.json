@@ -649,7 +649,7 @@
     "message": "Model:"
   },
   "llm_modelFlash3": {
-    "message": "Gemini 3 Flash (Recommended, High Accuracy)"
+    "message": "Gemini 3 Flash"
   },
   "llm_modelLite": {
     "message": "Gemini 2.5 Flash Lite (Cost-effective)"
@@ -1552,7 +1552,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the Gemini model used for screening.\n• Gemini 3 Flash: recommended. Higher accuracy.\n• Gemini 2.5 Flash Lite: faster and cheaper, good for large batches.\nWhen in doubt, use Gemini 3 Flash."
+    "message": "Pick the Gemini model used for screening.\n• Gemini Flash-Lite Latest: recommended. Calls the latest low-cost, low-latency Flash-Lite endpoint.\n• Gemini Flash Latest: calls the latest Flash endpoint when accuracy matters more.\nThe model version that actually generated the response is saved in the history log."
   },
   "llm_tip_outputLanguage": {
     "message": "Sets the language of the AI's reasoning (reason) output.\nRecommended: match your everyday working language."
