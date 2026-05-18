@@ -166,7 +166,7 @@ export async function loadAssignmentConfig(spreadsheetId: string): Promise<Assig
 export function renderAssignmentFilters() {
     dom.assignmentSetListDiv.innerHTML = '';
 
-    if (!state.isAdmin || state.assignmentConfig.status !== 'configured' || state.assignmentSets.size === 0) {
+    if (state.assignmentConfig.status !== 'configured' || state.assignmentSets.size === 0) {
         dom.assignmentFiltersSection.classList.add('hidden');
         return;
     }
@@ -175,6 +175,9 @@ export function renderAssignmentFilters() {
 
     state.assignmentSets.forEach((setId) => {
         const count = state.references.filter((ref) => getReferenceAssignmentSet(ref) === setId).length;
+        if (!state.isAdmin && count === 0) {
+            return;
+        }
         const wrapper = document.createElement('div');
         wrapper.className = 'source-file-item';
 

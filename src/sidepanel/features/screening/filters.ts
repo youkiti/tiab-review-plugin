@@ -189,8 +189,8 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
         filtered = filtered.filter(r => r.source_file && state.selectedSourceFiles.has(r.source_file));
     }
 
-    // 担当セットフィルター（管理者のみ）
-    if (state.isAdmin && state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
+    // 担当セットフィルター
+    if (state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
         filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
     }
 
@@ -278,7 +278,7 @@ export function updateFilterCounts() {
         filtered = state.references.filter(r => r.source_file && state.selectedSourceFiles.has(r.source_file));
     }
 
-    if (state.isAdmin && state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
+    if (state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
         filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
     }
 
