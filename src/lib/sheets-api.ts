@@ -188,6 +188,56 @@ export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpre
 }
 
 /**
+ * ローカルに記録する「拡張機能で開いたシート」エントリ。
+ *
+ * OAuth スコープが drive.file のため、URL を貼り付けて開いたシートは Drive API の
+ * files.list には現れない。拡張機能内で接続/作成したシートはここに保存しておき、
+ * 初期画面のドロップダウンに合流させることで「最近開いた」一覧として再選択できる
+ * ようにする。
+ */
+export interface LocalRecentSheet {
+    id: string;
+    name: string;
+    lastUsedAt: string; // ISO 8601
+}
+
+const LOCAL_RECENT_SHEETS_KEY = 'localRecentSheets';
+const LOCAL_RECENT_SHEETS_MAX = 30;
+
+export async function getLocalRecentSheets(): Promise<LocalRecentSheet[]> {
+    try {
+        const result = await chrome.storage.local.get([LOCAL_RECENT_SHEETS_KEY]);
+        const raw = result[LOCAL_RECENT_SHEETS_KEY];
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .filter((entry): entry is LocalRecentSheet =>
+                entry &&
+                typeof entry.id === 'string' &&
+                typeof entry.name === 'string' &&
+                typeof entry.lastUsedAt === 'string'
+            )
+            .sort((a, b) => b.lastUsedAt.localeCompare(a.lastUsedAt));
+    } catch (error) {
+        console.error('[getLocalRecentSheets] Failed:', error);
+        return [];
+    }
+}
+
+export async function rememberLocalRecentSheet(id: string, name: string): Promise<void> {
+    if (!id || !name) return;
+    try {
+        const existing = await getLocalRecentSheets();
+        const next: LocalRecentSheet[] = [
+            { id, name, lastUsedAt: new Date().toISOString() },
+            ...existing.filter((entry) => entry.id !== id),
+        ].slice(0, LOCAL_RECENT_SHEETS_MAX);
+        await chrome.storage.local.set({ [LOCAL_RECENT_SHEETS_KEY]: next });
+    } catch (error) {
+        console.error('[rememberLocalRecentSheet] Failed:', error);
+    }
+}
+
+/**
  * シートのヘッダーを確認し、不足があれば更新する
  */
 export async function ensureHeaders(spreadsheetId: string): Promise<void> {

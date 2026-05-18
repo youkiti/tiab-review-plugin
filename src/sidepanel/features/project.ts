@@ -12,6 +12,8 @@ import {
     validateSpreadsheetFormat,
     createSpreadsheet,
     getRecentSpreadsheets,
+    getLocalRecentSheets,
+    rememberLocalRecentSheet,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
     getHighlightKeywords,
@@ -159,6 +161,10 @@ export async function handleConnect() {
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: resolvedId });
 
+        // URL 入力で開いたシートは Drive API (drive.file スコープ) の最近一覧に
+        // 現れないため、ローカル recent に記録してドロップダウンへ合流させる
+        await rememberLocalRecentSheet(resolvedId, info.title);
+
         // 戻った際に URL 入力欄が残らないよう、ここで明示的にクリアしておく
         dom.spreadsheetInput.value = '';
 
@@ -174,17 +180,39 @@ export async function handleConnect() {
 
 /**
  * 最近使用したスプレッドシートをドロップダウンに読み込み
+ *
+ * Drive API の最近一覧 (drive.file スコープでアプリが「触れた」ファイルのみ)
+ * と、拡張機能側のローカル recent (URL 貼り付け経由で開いたシートを含む) を
+ * マージしてドロップダウンに表示する。
  */
 export async function loadRecentSheets() {
     _recentSheetsLoaded = false;
     try {
         dom.recentSheetsSelect.innerHTML = `<option value="">${t('project_loading')}</option>`;
 
-        const sheets = await getRecentSpreadsheets(15);
+        // Drive API とローカル recent は独立に取得（片方失敗してももう一方は使う）
+        const [driveSheets, localSheets] = await Promise.all([
+            getRecentSpreadsheets(15),
+            getLocalRecentSheets(),
+        ]);
+
+        // Drive API の並び順 (recency 降順) を優先し、未収録のローカル recent を末尾に合流
+        const merged: { id: string; name: string }[] = [];
+        const seen = new Set<string>();
+        for (const sheet of driveSheets) {
+            if (seen.has(sheet.id)) continue;
+            seen.add(sheet.id);
+            merged.push({ id: sheet.id, name: sheet.name });
+        }
+        for (const sheet of localSheets) {
+            if (seen.has(sheet.id)) continue;
+            seen.add(sheet.id);
+            merged.push({ id: sheet.id, name: sheet.name });
+        }
 
         dom.recentSheetsSelect.innerHTML = '';
 
-        if (sheets.length === 0) {
+        if (merged.length === 0) {
             const opt = document.createElement('option');
             opt.value = '';
             opt.textContent = t('project_noSheets');
@@ -199,7 +227,7 @@ export async function loadRecentSheets() {
         emptyOpt.textContent = t('project_selectSheet');
         dom.recentSheetsSelect.appendChild(emptyOpt);
 
-        for (const sheet of sheets) {
+        for (const sheet of merged) {
             const opt = document.createElement('option');
             opt.value = sheet.id;
             opt.textContent = sheet.name;
@@ -210,11 +238,36 @@ export async function loadRecentSheets() {
     } catch (error) {
         console.error('Failed to load recent sheets:', error);
 
+        // Drive API 失敗時もローカル recent だけで一覧を構築できないか試す
+        let localFallback: { id: string; name: string }[] = [];
+        try {
+            const localSheets = await getLocalRecentSheets();
+            localFallback = localSheets.map((s) => ({ id: s.id, name: s.name }));
+        } catch (localError) {
+            console.error('Failed to load local recent sheets:', localError);
+        }
+
         dom.recentSheetsSelect.innerHTML = '';
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = t('project_loadFailed');
-        dom.recentSheetsSelect.appendChild(opt);
+
+        if (localFallback.length > 0) {
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = t('project_selectSheet');
+            dom.recentSheetsSelect.appendChild(emptyOpt);
+            for (const sheet of localFallback) {
+                const opt = document.createElement('option');
+                opt.value = sheet.id;
+                opt.textContent = sheet.name;
+                dom.recentSheetsSelect.appendChild(opt);
+            }
+            // ローカル分は復元できたが Drive API は失敗しているので _recentSheetsLoaded は
+            // false のままにし、loadConfig の URL 入力欄フォールバックを有効に保つ
+        } else {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = t('project_loadFailed');
+            dom.recentSheetsSelect.appendChild(opt);
+        }
 
         // 再認証ボタンを表示
         showStatus(t('project_sheetListFailed'), 'error');
@@ -260,6 +313,9 @@ export async function handleCreateNew() {
 
         // 設定を保存
         await chrome.storage.local.set({ spreadsheetId: newId });
+
+        // 新規作成シートはローカル recent にも記録し、戻った直後の一覧反映を保証する
+        await rememberLocalRecentSheet(newId, title);
 
         // 戻った際に URL 入力欄が残らないよう明示的にクリア
         dom.spreadsheetInput.value = '';
