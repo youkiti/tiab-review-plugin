@@ -171,6 +171,27 @@
     border-color: #1a73e8;
 }
 
+/* セカンダリ行 (ヘルプリンク等) */
+.setting-row-secondary {
+    margin-top: -4px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+    justify-content: flex-end;
+}
+
+.setting-row-secondary a,
+#llm-benchmark-link {
+    font-size: 12px;
+    color: #1a73e8;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.setting-row-secondary a:hover,
+#llm-benchmark-link:hover {
+    text-decoration: underline;
+}
+
 /* Tier セクション */
 .tier-section {
     margin-top: 10px;

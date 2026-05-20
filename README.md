@@ -120,11 +120,12 @@ npm run watch
 
 ## LLMモデル履歴
 
-- 既定のLLMモデルは `gemini-flash-lite-latest` (Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
-- UIで選べるモデルは `gemini-flash-lite-latest` (既定 / 速度・コスト優先) と `gemini-flash-latest` (Recall 最重視時の上位互換) の2つです。
+- 既定のLLMモデルは `gemini-3.1-flash-lite` (GA, Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
+- UIで選べるモデルは `gemini-3.1-flash-lite` (既定 / 速度・コスト優先, depression Recall 93.6%) と `gemini-3-flash-preview` (Recall 最重視時の上位互換, depression Recall 96.1%) の2つです。
+- **2026-05 以降は `latest` エイリアス (`gemini-flash-lite-latest` / `gemini-flash-latest`) ではなく、ベンチマーク済みの固定バージョン ID を採用しています**。Google がエイリアス実体を更新した際の挙動変化 (Recall・コスト) を防ぐためです。例として `gemini-3.5-flash` (depression Recall 93.2%) が将来 `gemini-flash-latest` の実体になった場合でも、UI 上のユーザー設定は影響を受けません。
+- 既存ユーザーの設定 (`llm_model = gemini-flash-lite-latest` 等) は、Config シート読み込み時に自動で固定 ID へマイグレーションされます ([src/lib/gemini-api.ts](src/lib/gemini-api.ts) の `MODEL_ID_MIGRATIONS`)。
 - Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。
 - Gemini API応答に含まれる実モデルバージョンは、`model_version` として `LLM_Executions` / `LLM_Runs` / 判定noteに保存します。
-- latest系エイリアスの実体が更新されても、同じ呼び出し設定として扱い、実バージョン差は履歴ログで確認します。
 - 各モデルのスクリーニング精度比較は下の「LLMスクリーニング精度ベンチマーク」を参照してください。
 
 ## LLMスクリーニング精度ベンチマーク

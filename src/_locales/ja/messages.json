@@ -1552,7 +1552,16 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うGeminiモデルを選びます。\n• Gemini Flash-Lite Latest: 推奨。低コスト・高速なFlash-Lite系の最新モデルを呼び出します。\n• Gemini Flash Latest: 精度重視のFlash系最新モデルを呼び出します。\n実際に応答したモデルバージョンは履歴ログに保存されます。"
+    "message": "判定に使うGeminiモデルを選びます。\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\nlatestエイリアスではなく固定バージョンを採用しています (Googleの実体更新で挙動が変わるのを防ぐため)。最新のベンチマーク結果は下のリンクを参照してください。"
+  },
+  "llm_benchmarkLinkLabel": {
+    "message": "📊 最新のベンチマーク結果を見る"
+  },
+  "llm_modelName_3_1_flash_lite": {
+    "message": "Gemini 3.1 Flash-Lite — Recall 93.6%, 低コスト"
+  },
+  "llm_modelName_3_flash_preview": {
+    "message": "Gemini 3 Flash Preview — Recall 96.1%, 高精度"
   },
   "llm_tip_outputLanguage": {
     "message": "AIが出力する判定理由(reason)の言語を切り替えます。\n推奨: 普段使う言語に合わせる。"

@@ -1552,7 +1552,16 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the Gemini model used for screening.\n• Gemini Flash-Lite Latest: recommended. Calls the latest low-cost, low-latency Flash-Lite endpoint.\n• Gemini Flash Latest: calls the latest Flash endpoint when accuracy matters more.\nThe model version that actually generated the response is saved in the history log."
+    "message": "Pick the Gemini model used for screening.\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\nWe use pinned versions rather than the `latest` alias to avoid silent behavior changes when Google updates the alias target. See the latest benchmark via the link below."
+  },
+  "llm_benchmarkLinkLabel": {
+    "message": "📊 View the latest benchmark results"
+  },
+  "llm_modelName_3_1_flash_lite": {
+    "message": "Gemini 3.1 Flash-Lite — Recall 93.6%, low cost"
+  },
+  "llm_modelName_3_flash_preview": {
+    "message": "Gemini 3 Flash Preview — Recall 96.1%, high accuracy"
   },
   "llm_tip_outputLanguage": {
     "message": "Sets the language of the AI's reasoning (reason) output.\nRecommended: match your everyday working language."

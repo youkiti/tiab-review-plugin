@@ -1,6 +1,7 @@
 // Google Sheets API ラッパー
 
 import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
+import { MODEL_ID_MIGRATIONS } from './gemini-api';
 import { t } from './i18n';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 
@@ -1395,7 +1396,7 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
  */
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
     llm_enabled: false,
-    llm_model: 'gemini-flash-lite-latest',
+    llm_model: 'gemini-3.1-flash-lite',
     llm_temperature: 0,
     llm_thinking: 'low',
     llm_protocol_text: '',
@@ -1442,7 +1443,9 @@ export async function getLlmConfig(spreadsheetId: string): Promise<LlmConfig> {
                     config.llm_enabled = value.toLowerCase() === 'true';
                     break;
                 case 'llm_model':
-                    config.llm_model = value;
+                    // latest エイリアスを固定バージョン ID へマイグレーション
+                    // (2026-05 以降の保存値は固定 ID。既存シートの latest 値はここで透過的に変換)
+                    config.llm_model = MODEL_ID_MIGRATIONS[value] || value;
                     break;
                 case 'llm_temperature':
                     config.llm_temperature = parseFloat(value) || 0;

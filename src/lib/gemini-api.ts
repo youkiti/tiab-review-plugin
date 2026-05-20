@@ -45,16 +45,19 @@ export interface CriteriaConversionOptions {
 
 /**
  * デフォルト設定
- * 速度・コスト優先で `gemini-flash-lite-latest` (Temp 0) を既定とする。
+ * 速度・コスト優先で `gemini-3.1-flash-lite` (GA, Temp 0) を既定とする。
  * 精度優先で動かしたい場合は `FLASH_MODEL_CONFIG` を選択する。
+ *
+ * `latest` エイリアスは Google 側の実体更新で挙動 (Recall・コスト) が変わるリスクが
+ * あるため、ベンチマーク済みの固定バージョン ID を採用する (2026-05 判断)。
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-flash-lite-latest',
+    model: 'gemini-3.1-flash-lite',
     temperature: 0,
 };
 
 /**
- * 安定版 Flash-Lite 設定
+ * 安定版 Flash-Lite 設定 (DEFAULT_MODEL_CONFIG と同一、後方互換のため残置)
  */
 export const LITE_MODEL_CONFIG: GeminiModelConfig = {
     model: 'gemini-3.1-flash-lite',
@@ -62,10 +65,13 @@ export const LITE_MODEL_CONFIG: GeminiModelConfig = {
 };
 
 /**
- * Flash latest 設定
+ * Flash (精度重視) 設定
+ * gemini-3-flash-preview を固定採用 (Recall 96.1%, depression データセット)。
+ * `gemini-flash-latest` エイリアスは将来 gemini-3.5-flash (Recall 93.2%) に
+ * 切り替わるリスクがあるため使用しない。
  */
 export const FLASH_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-flash-latest',
+    model: 'gemini-3-flash-preview',
     temperature: 1.0,
     topP: 0.95,
     thinkingLevel: 'LOW',
@@ -569,27 +575,42 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
  */
 export interface ModelOption {
     id: string;
-    name: string;
+    name: string;        // フォールバック表示 (i18n 未取得時)
+    nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
     config: Omit<GeminiModelConfig, 'model'>;
 }
 
 /**
  * 利用可能なモデル一覧
- * 既定は latest エイリアス。実応答の modelVersion は履歴ログへ保存する。
- * 各モデルに固有のパラメータを含む
+ * latest エイリアスではなく、ベンチマーク済みの固定バージョン ID を採用する。
+ * (2026-05 判断: `gemini-flash-latest` が `gemini-3.5-flash` に切り替わると
+ *  Recall が 96.1% → 93.2% に低下するリスクを回避するため)
+ * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
+ * 実応答の modelVersion は履歴ログへ保存。
  */
 export const AVAILABLE_MODELS: ModelOption[] = [
     {
-        id: 'gemini-flash-lite-latest',
-        name: 'Gemini Flash-Lite Latest',
+        id: 'gemini-3.1-flash-lite',
+        name: 'Gemini 3.1 Flash-Lite',
+        nameKey: 'llm_modelName_3_1_flash_lite',
         config: { temperature: 0 }
     },
     {
-        id: 'gemini-flash-latest',
-        name: 'Gemini Flash Latest',
+        id: 'gemini-3-flash-preview',
+        name: 'Gemini 3 Flash Preview',
+        nameKey: 'llm_modelName_3_flash_preview',
         config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
     },
 ];
+
+/**
+ * latest エイリアスから固定 ID へのマイグレーションマップ
+ * 既存ユーザーの保存済み model 設定を起動時に書き換える際に使用。
+ */
+export const MODEL_ID_MIGRATIONS: Record<string, string> = {
+    'gemini-flash-lite-latest': 'gemini-3.1-flash-lite',
+    'gemini-flash-latest': 'gemini-3-flash-preview',
+};
 
 /**
  * モデルIDから設定を取得

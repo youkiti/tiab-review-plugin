@@ -7,6 +7,7 @@ import { dom } from '../../dom';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
 import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG } from '../../../lib/gemini-api';
+import { t } from '../../../lib/i18n';
 import { showSettings } from '../settings';
 import { hideToast } from '../../ui/feedback';
 import {
@@ -51,7 +52,8 @@ function populateModelSelect(): void {
     for (const model of AVAILABLE_MODELS) {
         const option = document.createElement('option');
         option.value = model.id;
-        option.textContent = model.name;
+        // i18n キーがあれば翻訳結果を、なければフォールバック name を使用
+        option.textContent = model.nameKey ? t(model.nameKey) : model.name;
         if (model.id === DEFAULT_MODEL_CONFIG.model) {
             option.selected = true;
         }
