@@ -1,0 +1,102 @@
+[
+  {
+    "decision_id": "35833e2f-c299-42b5-85d9-50cdf237e5f5",
+    "ref_id": "Depression-SLIM-9",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNavrYFfCZ0-kPqeHSUQ\",\"include_probability\":0,\"reasons\":[\"動物モデルを用いた研究ではあるが、うつ病（Depression）に関する研究ではなく、無酸素状態における酵素活性の低下（depression of the GP activity）を扱っているため、除外対象に該当します。\"],\"evidence\":[{\"field\":\"abstract\",\"quote\":\"experimental anoxia (1-6 weeks) caused sustained depression of the GP activity in heart and gills.\",\"start_char\":435,\"end_char\":533}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":566,\"candidatesTokenCount\":96,\"thoughtsTokenCount\":0,\"totalTokenCount\":662}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "89a1091a-6b77-4d09-9857-19a24f73e63f",
+    "ref_id": "Depression-SLIM-6",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNasLEJKfOrfcP1_P4WA\",\"include_probability\":1,\"reasons\":[\"ラット（rats）を用いた慢性マイルドストレスモデル（CMS）といううつ病のin vivoモデル（動物実験）を対象としているため。\",\"ヒトを対象とした研究ではなく、除外基準にも該当しないため。\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"chronic mild stress model in rats\",\"start_char\":73,\"end_char\":106},{\"field\":\"abstract\",\"quote\":\"Chronic mild stress (CMS)-induced preference behaviour change has been used as a model to predict the clinical efficacy of many types of antidepressant treatment.\",\"start_char\":272,\"end_char\":435}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":593,\"candidatesTokenCount\":157,\"thoughtsTokenCount\":0,\"totalTokenCount\":750}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "b35a1d7e-e346-4339-abbc-d2edf66d3bfe",
+    "ref_id": "Depression-SLIM-8",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNau_EJKjKrfcP_pO42AU\",\"include_probability\":1,\"reasons\":[\"マウスを用いたin vivoのうつ病モデル（テールサスペンション試験および強制水泳試験）を評価しているため。\",\"抗うつ様活性（antidepressant-like activity）を評価しており、人間の研究ではなく動物実験であるため、基準に合致する。\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"aqueous extract of Boerhaavia diffusa Linn. in mice using tail suspension and forced swim tests\",\"start_char\":43,\"end_char\":138},{\"field\":\"abstract\",\"quote\":\"to evaluate the effect of aqueous extract of B. diffusa on depression in mice using behavioral models such as tail suspension test (TST) and forced swim test (FST).\",\"start_char\":34,\"end_char\":198}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":658,\"candidatesTokenCount\":214,\"thoughtsTokenCount\":0,\"totalTokenCount\":872}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "6afe5cca-5282-4bf5-aed3-1f58b85ee432",
+    "ref_id": "Depression-SLIM-4",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNaoGxJPGl2roP9f7COA\",\"include_probability\":1,\"reasons\":[\"実験対象がラット（動物モデル）であるため、動物研究に該当する\",\"「強制水泳試験（FST）」や「制御不能なストレス（うつ病モデル）」などのうつ病関連モデルが用いられている\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"inescapably-shocked rats\",\"start_char\":79,\"end_char\":103},{\"field\":\"abstract\",\"quote\":\"uncontrollable stress, a presumptive model of depression and/or traumatic disorder\",\"start_char\":121,\"end_char\":203},{\"field\":\"abstract\",\"quote\":\"forced-swimming test (FST)\",\"start_char\":341,\"end_char\":367}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":606,\"candidatesTokenCount\":152,\"thoughtsTokenCount\":0,\"totalTokenCount\":758}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "75ca18d0-f720-43d5-9856-ec6b6ff2a6a1",
+    "ref_id": "Depression-SLIM-1",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNat7EJKbX2roPl6nv8As\",\"include_probability\":0,\"reasons\":[\"うつ病（depression）に関する研究ではないため、除外基準に合致する。\",\"細胞の輸送プロセス（腎皮質や横隔膜における糖やアミノ酸の輸送）に関する基礎研究であり、うつ病のインビボモデルは対象外である。\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"Inhibition of cellular transport processes by 5-thio-D-glucopyranose\",\"start_char\":0,\"end_char\":68}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":652,\"candidatesTokenCount\":105,\"thoughtsTokenCount\":0,\"totalTokenCount\":757}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "d43ccd69-dd1a-4afc-9bca-0d838076de83",
+    "ref_id": "Depression-SLIM-10",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNatrOJOH_2roPl8bEgQ8\",\"include_probability\":0.05,\"reasons\":[\"イヌを対象とした研究であり、鉛毒性の影響を評価している。\",\"抄録中に'depression'という語が含まれるが、これは中毒症状（おそらく嗜眠や活動低下、あるいは中枢神経抑制）としての言及であり、うつ病のインビボモデル（精神疾患モデルとしてのうつ病）を対象とした研究ではないため、除外基準に合致する。\"],\"evidence\":[{\"field\":\"abstract\",\"quote\":\"The signed included emaciation, anorexia, muscular weakness, evidence of abdominal pain and depression.\",\"start_char\":551,\"end_char\":655}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":565,\"candidatesTokenCount\":160,\"thoughtsTokenCount\":0,\"totalTokenCount\":725}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "e93e68de-00d1-4102-8808-c045b8973d32",
+    "ref_id": "Depression-SLIM-5",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNaqrUJNGE0-kPjICq2AM\",\"include_probability\":0,\"reasons\":[\"動物研究ではあるが、うつ病（精神疾患）に関する研究ではないため。\",\"文献中の「depression」は「hepatocellular depression（肝細胞機能低下）」を指しており、除外基準である「呼吸抑制、心機能低下など」と同様の文脈であるため。\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"hepatocellular depression\",\"start_char\":19,\"end_char\":44},{\"field\":\"abstract\",\"quote\":\"hepatocellular function was depressed\",\"start_char\":1131,\"end_char\":1168}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":800,\"candidatesTokenCount\":121,\"thoughtsTokenCount\":0,\"totalTokenCount\":921}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "6be5f764-a462-403d-a772-f5f10145ec6f",
+    "ref_id": "Depression-SLIM-2",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNar_WJMje2roP7P7MQQ\",\"include_probability\":0.05,\"reasons\":[\"動物研究（ラット）ではあるが、うつ病（抑うつ状態）に関する研究ではないため。\",\"抄録中の「depression」は「生殖機能および内分泌機能の加齢に伴う低下（depression）」を指しており、精神疾患としてのうつ病とは無関係であるため。\"],\"evidence\":[{\"field\":\"abstract\",\"quote\":\"age-dependent depression of reproductive and endocrine functions\",\"start_char\":314,\"end_char\":378}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":393,\"candidatesTokenCount\":84,\"thoughtsTokenCount\":181,\"totalTokenCount\":658}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "36bd173f-569a-4695-ac05-924d6e078c22",
+    "ref_id": "Depression-SLIM-3",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNaszGJODLrfcPtuDusAY\",\"include_probability\":0.2,\"reasons\":[\"ヒトを対象とした研究またはレビューである可能性が高く、動物のうつ病モデルを用いたin vivo試験であるかどうかが不明確です。\",\"抄録中に実験動物（ラットやマウスなど）の記載がなく、ヒトの感情障害（affective disorders）に関する知見に基づいている可能性が高いです。\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"affective disorders\",\"start_char\":13,\"end_char\":32}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":324,\"candidatesTokenCount\":101,\"thoughtsTokenCount\":460,\"totalTokenCount\":885}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "c6cdb5f6-b033-4751-b366-04ead5918cff",
+    "ref_id": "Depression-SLIM-7",
+    "reviewer_id": "llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.5-flash@2026-05-20T01:11:02.800Z\",\"model\":\"gemini-3.5-flash\",\"requested_model\":\"gemini-3.5-flash\",\"model_version\":\"gemini-3.5-flash\",\"response_id\":\"KgoNatP0H_af2roP8J3z8QM\",\"include_probability\":1,\"reasons\":[\"ラットを用いた慢性予測不能ストレス（CUS）モデルという、うつ病のin vivo動物モデルを用いた研究であるため\",\"除外基準であるヒト対象研究や、呼吸・心臓抑制などの文脈でのうつ病（depression）の仕様には該当しないため\"],\"evidence\":[{\"field\":\"title\",\"quote\":\"chronic unpredictable stress model in rats\",\"start_char\":31,\"end_char\":73},{\"field\":\"abstract\",\"quote\":\"animal models of depression\",\"start_char\":178,\"end_char\":205}],\"prompt_version\":\"v1.0.0\",\"usageMetadata\":{\"promptTokenCount\":524,\"candidatesTokenCount\":170,\"thoughtsTokenCount\":1070,\"totalTokenCount\":1764}}",
+    "decided_at": "2026-05-20T01:11:02.800Z",
+    "client_version": "unknown-llm"
+  }
+]

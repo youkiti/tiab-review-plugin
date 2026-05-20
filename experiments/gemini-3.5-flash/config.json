@@ -1,0 +1,68 @@
+{
+    "description": "gemini-3.5-flash 評価実験 (thinking_level マトリクス: minimal/low/medium/high)",
+    "version": "1.0",
+    "model": "gemini-3.5-flash",
+    "pricing": {
+        "inputPerMTok": 1.50,
+        "outputPerMTok": 9.00,
+        "note": "出力料金は思考トークン (thoughtsTokenCount) を含む。2026-05 時点の有料階層 (Standard) 公表値。"
+    },
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 60,
+            "delayBetweenRequests": 50
+        },
+        "tier_smoke": {
+            "concurrency": 10,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "D1",
+            "model": "gemini-3.5-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "maxOutputTokens": 8192
+        },
+        {
+            "id": "D2",
+            "model": "gemini-3.5-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL",
+            "maxOutputTokens": 4096
+        },
+        {
+            "id": "D3",
+            "model": "gemini-3.5-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MEDIUM",
+            "maxOutputTokens": 16384
+        }
+    ],
+    "excludedConditions": [
+        {
+            "id": "D4",
+            "thinkingLevel": "HIGH",
+            "reason": "疎通確認で $104/データセット（B4比 ~60倍）と判明、コスト過大のため除外（2026-05-20 判断）"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11, "msPerItem": 300 },
+            "GA_C1": { "model": "gemini-3.1-flash-lite (GA)", "config": "Temp 0", "recall": 0.936, "precision": 0.616, "fBeta7": 0.926, "tp": 262, "fp": 163, "tn": 1550, "fn": 18, "msPerItem": 9 }
+        }
+    }
+}

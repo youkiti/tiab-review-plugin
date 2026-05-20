@@ -133,11 +133,12 @@ npm run watch
 
 ### depression データセットでの代表的結果 (n=1,993, 陽性 280 件)
 
-| モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 |
-|---|---|---|---|---|---|
-| **`gemini-flash-latest` (B4 = `gemini-3-flash-preview`)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 |
-| `gemini-3.1-flash-lite` (GA) | Temp 0 | 93.6% | 61.6% | 92.6% | 9 |
-| `gemini-3.1-flash-lite-preview` | Temp 0 | 92.9% | 62.4% | 92.0% | 15 |
+| モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 | $/1K件 (推定) |
+|---|---|---|---|---|---|---|
+| **`gemini-flash-latest` (B4 = `gemini-3-flash-preview`)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 | 約 $1.70 |
+| `gemini-3.1-flash-lite` (GA) | Temp 0 | 93.6% | 61.6% | 92.6% | 9 | 約 $0.30 |
+| `gemini-3.1-flash-lite-preview` | Temp 0 | 92.9% | 62.4% | 92.0% | 15 | 約 $0.30 |
+| `gemini-3.5-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MINIMAL | 93.2% | 54.6% | 91.9% | 31 | $1.93 |
 
 ### 全データセット Recall (最良条件比較)
 
@@ -151,9 +152,18 @@ npm run watch
 | cq5 | 2,253 | 1.8% | **97.6%** | 97.6% |
 | wilson | 3,451 | 5.0% | N/A | 45.7% |
 
+### コスト参考 (公式公表値, 2026-05 時点)
+
+| モデル | 入力 ($/1M tok) | 出力 ($/1M tok, 思考トークン含む) |
+|---|---|---|
+| `gemini-3.5-flash` | $1.50 | $9.00 |
+| `gemini-3-flash-preview` (B4) | 推定 (`gemini-flash-latest` エイリアス) | 推定 |
+| `gemini-3.1-flash-lite` | 低価格帯 | 低価格帯 |
+
 **現時点の推奨**:
 - 既定モデル: 速度・コスト優先で `gemini-flash-lite-latest` (Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
 - Recall を最重視したい場合のオプション: `gemini-flash-latest` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
+- `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 
 ### 詳細レポート
 
@@ -161,6 +171,7 @@ npm run watch
 - Verification 実験: [experiments/report_verification.md](experiments/report_verification.md)
 - `gemini-3.1-flash-lite-preview`: [experiments/gemini-3.1-flash-lite/report.md](experiments/gemini-3.1-flash-lite/report.md)
 - `gemini-3.1-flash-lite` (GA): [experiments/gemini-3.1-flash-lite-ga/report.md](experiments/gemini-3.1-flash-lite-ga/report.md)
+- `gemini-3.5-flash` (採用見送り): [experiments/gemini-3.5-flash/report.md](experiments/gemini-3.5-flash/report.md)
 - ASReview 比較: [experiments/asreview/REPORT.md](experiments/asreview/REPORT.md)
 
 ## 手動レビュー時の戻る挙動
