@@ -45,14 +45,12 @@ export interface CriteriaConversionOptions {
 
 /**
  * デフォルト設定
- * `experiments/gemini-3.1-flash-lite-ga/report.md` の Recall ベンチマークに基づき、
- * `gemini-flash-latest` (TopP 0.95, Thinking LOW) を既定とする。
+ * 速度・コスト優先で `gemini-flash-lite-latest` (Temp 0) を既定とする。
+ * 精度優先で動かしたい場合は `FLASH_MODEL_CONFIG` を選択する。
  */
 export const DEFAULT_MODEL_CONFIG: GeminiModelConfig = {
-    model: 'gemini-flash-latest',
-    temperature: 1.0,
-    topP: 0.95,
-    thinkingLevel: 'LOW',
+    model: 'gemini-flash-lite-latest',
+    temperature: 0,
 };
 
 /**

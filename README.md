@@ -120,8 +120,8 @@ npm run watch
 
 ## LLMモデル履歴
 
-- 既定のLLMモデルは `gemini-flash-latest` (Temp 1.0 / TopP 0.95 / Thinking LOW) です。下記ベンチマークで最も Recall が高かった構成を採用しています。
-- UIで選べるモデルは `gemini-flash-latest` (既定) と `gemini-flash-lite-latest` (廉価フォールバック) の2つです。
+- 既定のLLMモデルは `gemini-flash-lite-latest` (Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
+- UIで選べるモデルは `gemini-flash-lite-latest` (既定 / 速度・コスト優先) と `gemini-flash-latest` (Recall 最重視時の上位互換) の2つです。
 - Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。
 - Gemini API応答に含まれる実モデルバージョンは、`model_version` として `LLM_Executions` / `LLM_Runs` / 判定noteに保存します。
 - latest系エイリアスの実体が更新されても、同じ呼び出し設定として扱い、実バージョン差は履歴ログで確認します。
@@ -152,8 +152,8 @@ npm run watch
 | wilson | 3,451 | 5.0% | N/A | 45.7% |
 
 **現時点の推奨**:
-- 既定モデル: 精度優先で `gemini-flash-latest` (上表 B4 構成)。
-- 速度・コスト優先のフォールバック枠: `gemini-flash-lite-latest`。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
+- 既定モデル: 速度・コスト優先で `gemini-flash-lite-latest` (Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
+- Recall を最重視したい場合のオプション: `gemini-flash-latest` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
 
 ### 詳細レポート
 
