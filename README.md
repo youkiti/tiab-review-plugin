@@ -162,7 +162,7 @@ npm run watch
 | `gemini-3.1-flash-lite` | 低価格帯 | 低価格帯 |
 
 **現時点の推奨**:
-- 既定モデル: 速度・コスト優先で `gemini-flash-lite-latest` (Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
+- 既定モデル: 速度・コスト優先で `gemini-3.1-flash-lite` (GA, Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
 - Recall を最重視したい場合のオプション: `gemini-3-flash-preview` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 
