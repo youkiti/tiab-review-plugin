@@ -303,6 +303,20 @@ async function callGeminiApi<T>(
             }
         }
 
+        // finishReason を全レスポンスから抽出（最後の非空を採用）
+        const finishReason = responses
+            .map(res => res.candidates?.[0]?.finishReason)
+            .filter((r): r is string => Boolean(r))
+            .pop();
+
+        // MAX_TOKENS で打ち切られた場合は専用エラー（同条件リトライ無意味なので retryable=false）
+        if (finishReason === 'MAX_TOKENS') {
+            throw new GeminiApiError(`Output truncated by MAX_TOKENS (thoughts=${usageMetadata.thoughtsTokenCount}, candidates=${usageMetadata.candidatesTokenCount})`, {
+                code: 'max_tokens_truncated',
+                retryable: false,
+            });
+        }
+
         if (!fullText) {
             throw new GeminiApiError(t('error_geminiNoText'), {
                 code: 'no_text',

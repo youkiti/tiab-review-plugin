@@ -338,6 +338,21 @@ export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, 
             saveBatchSize: 100,
         },
     },
+    'gemini-3.5-flash': {
+        // Thinking 対応 Flash モデル: 1件あたり数秒〜数十秒、RPM 上限は Flash-Lite より低い前提
+        tier1: {
+            rate: { concurrency: 10, delayBetweenRequests: 300 },  // 実効 ~180 RPM (cap 1,000)
+            saveBatchSize: 10,
+        },
+        tier2: {
+            rate: { concurrency: 20, delayBetweenRequests: 150 },  // 実効 ~370 RPM (cap 2,000)
+            saveBatchSize: 25,
+        },
+        tier3: {
+            rate: { concurrency: 50, delayBetweenRequests: 60 },   // 実効 ~750 RPM (cap 20,000)
+            saveBatchSize: 50,
+        },
+    },
 };
 
 /**

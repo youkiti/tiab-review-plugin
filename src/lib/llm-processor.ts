@@ -214,6 +214,13 @@ async function processWithRetry(
             return { success: true, decision, refId: ref.ref_id, isFallback: false, responseMetadata };
         } catch (error) {
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
+            // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
+            const errorCode = (error as { code?: string } | null)?.code;
+            const nonRetryable = errorCode === 'max_tokens_truncated';
+            if (nonRetryable) {
+                console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);
+                break;
+            }
             if (attempt < maxRetries) {
                 // 指数バックオフ: 5秒, 10秒
                 const delay = 5000 * Math.pow(2, attempt);
