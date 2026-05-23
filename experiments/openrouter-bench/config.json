@@ -1,0 +1,76 @@
+{
+    "description": "OpenRouter (Kimi/Qwen) と Gemini を depression データセットで横並びベンチマーク",
+    "version": "1.0",
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "rateLimits": {
+        "gemini_tier_max": { "concurrency": 50, "delayBetweenRequests": 200 },
+        "openrouter_default": { "concurrency": 10, "delayBetweenRequests": 200 },
+        "openrouter_thinking": { "concurrency": 5, "delayBetweenRequests": 500 }
+    },
+    "conditions": [
+        {
+            "id": "REF-B",
+            "provider": "gemini",
+            "model": "gemini-3-flash-preview",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "rateLimit": "gemini_tier_max",
+            "note": "既存B4相当のベースライン。depression での既知値 Recall≈0.96 / Precision≈0.53"
+        },
+        {
+            "id": "OR-Q1",
+            "provider": "openrouter",
+            "model": "qwen/qwen3-235b-a22b-2507",
+            "temperature": 0,
+            "rateLimit": "openrouter_default",
+            "note": "非推論Instruct (2507)。Flash-Lite以下の超低価格ライン"
+        },
+        {
+            "id": "OR-Q2",
+            "provider": "openrouter",
+            "model": "qwen/qwen3-235b-a22b-thinking-2507",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "reasoningEffort": "medium",
+            "rateLimit": "openrouter_thinking",
+            "note": "Thinking。B4相当のreasoning付き高精度ライン"
+        },
+        {
+            "id": "OR-X1",
+            "provider": "openrouter",
+            "model": "x-ai/grok-4.3",
+            "temperature": 0,
+            "rateLimit": "openrouter_default",
+            "note": "Grok 4.3 (reasoning model)。reasoning effort 指定なし＝モデルデフォルト。xAI 直接 routing"
+        },
+        {
+            "id": "OR-D1",
+            "provider": "openrouter",
+            "model": "deepseek/deepseek-v4-flash",
+            "temperature": 0,
+            "rateLimit": "openrouter_default",
+            "note": "DeepSeek V4 Flash (2026-04-24)。1M ctx、7社が strict structured_outputs 対応。非Thinkingで動作可"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4_existing": { "recall": 0.96, "precision": 0.53, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11 }
+        }
+    },
+    "pricing": {
+        "gemini-3-flash-preview": { "inputPerMillion": 0.30, "outputPerMillion": 2.50, "note": "概算。Google公開価格に合わせて更新可" },
+        "qwen/qwen3-235b-a22b-2507": { "inputPerMillion": 0.071, "outputPerMillion": 0.10, "note": "OpenRouter公開価格(Instruct 2507)" },
+        "qwen/qwen3-235b-a22b-thinking-2507": { "inputPerMillion": 0.1495, "outputPerMillion": 1.495 },
+        "x-ai/grok-4.3": { "inputPerMillion": 1.25, "outputPerMillion": 2.50, "note": "OpenRouter公開価格(2026-04-30公開)" },
+        "deepseek/deepseek-v4-flash": { "inputPerMillion": 0.10, "outputPerMillion": 0.20, "note": "OpenRouter公開価格(2026-04-24公開)" }
+    }
+}

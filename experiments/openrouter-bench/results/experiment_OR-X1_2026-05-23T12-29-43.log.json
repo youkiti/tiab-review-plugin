@@ -1,0 +1,49 @@
+{
+  "experimentId": "OR-X1_2026-05-23T12-29-43",
+  "startTime": "2026-05-23T12:29:43.348Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "sampleSize": 300,
+    "condition": {
+      "id": "OR-X1",
+      "provider": "openrouter",
+      "model": "x-ai/grok-4.3",
+      "temperature": 0,
+      "rateLimit": "openrouter_default",
+      "note": "Grok 4.3 (reasoning model)。reasoning effort 指定なし＝モデルデフォルト。xAI 直接 routing"
+    },
+    "rateLimitName": "openrouter_default",
+    "rateLimitConfig": {
+      "concurrency": 10,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 300,
+    "successCount": 300,
+    "failCount": 0,
+    "durationMs": 167716,
+    "avgTimePerItem": 559.0533333333333,
+    "tokensTotal": {
+      "prompt": 217194,
+      "completion": 197715,
+      "reasoning": 154124
+    },
+    "estimatedCostUsd": 1.15109
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 32,
+    "falsePositives": 14,
+    "trueNegatives": 252,
+    "falseNegatives": 2,
+    "sensitivity": 0.9411764705882353,
+    "specificity": 0.9473684210526315,
+    "precision": 0.6956521739130435,
+    "fBetaScore": 0.9345794392523363
+  },
+  "endTime": "2026-05-23T12:32:31.075Z"
+}

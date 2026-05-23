@@ -1,0 +1,49 @@
+{
+  "experimentId": "OR-D1_2026-05-23T12-35-06",
+  "startTime": "2026-05-23T12:35:06.735Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "sampleSize": 300,
+    "condition": {
+      "id": "OR-D1",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-flash",
+      "temperature": 0,
+      "rateLimit": "openrouter_default",
+      "note": "DeepSeek V4 Flash (2026-04-24)。1M ctx、7社が strict structured_outputs 対応。非Thinkingで動作可"
+    },
+    "rateLimitName": "openrouter_default",
+    "rateLimitConfig": {
+      "concurrency": 10,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 300,
+    "successCount": 300,
+    "failCount": 0,
+    "durationMs": 510368,
+    "avgTimePerItem": 1701.2266666666667,
+    "tokensTotal": {
+      "prompt": 193260,
+      "completion": 216628,
+      "reasoning": 168698
+    },
+    "estimatedCostUsd": 0.0963912
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 32,
+    "falsePositives": 14,
+    "trueNegatives": 252,
+    "falseNegatives": 2,
+    "sensitivity": 0.9411764705882353,
+    "specificity": 0.9473684210526315,
+    "precision": 0.6956521739130435,
+    "fBetaScore": 0.9345794392523363
+  },
+  "endTime": "2026-05-23T12:43:37.106Z"
+}

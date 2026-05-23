@@ -1,0 +1,51 @@
+{
+  "experimentId": "REF-B_2026-05-23T12-29-46",
+  "startTime": "2026-05-23T12:29:46.672Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "sampleSize": 300,
+    "condition": {
+      "id": "REF-B",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "temperature": 1,
+      "topP": 0.95,
+      "thinkingLevel": "LOW",
+      "rateLimit": "gemini_tier_max",
+      "note": "既存B4相当のベースライン。depression での既知値 Recall≈0.96 / Precision≈0.53"
+    },
+    "rateLimitName": "gemini_tier_max",
+    "rateLimitConfig": {
+      "concurrency": 50,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 300,
+    "successCount": 300,
+    "failCount": 0,
+    "durationMs": 132324,
+    "avgTimePerItem": 441.08,
+    "tokensTotal": {
+      "prompt": 149832,
+      "completion": 52308,
+      "reasoning": 356100
+    },
+    "estimatedCostUsd": 1.0659696
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 33,
+    "falsePositives": 40,
+    "trueNegatives": 226,
+    "falseNegatives": 1,
+    "sensitivity": 0.9705882352941176,
+    "specificity": 0.849624060150376,
+    "precision": 0.4520547945205479,
+    "fBetaScore": 0.948821161587119
+  },
+  "endTime": "2026-05-23T12:31:59.006Z"
+}

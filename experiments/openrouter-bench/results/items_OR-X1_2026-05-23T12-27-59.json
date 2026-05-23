@@ -1,0 +1,795 @@
+[
+  {
+    "ref_id": "Depression-SLIM-10",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "「depression」は鉛中毒の臨床症状として言及されており、うつ病モデル研究ではない",
+      "対象はイヌの慢性鉛暴露による血液・骨髄パラメータの変化であり、うつ病関連のアウトカムを含まない"
+    ],
+    "durationMs": 4094,
+    "usage": {
+      "prompt": 795,
+      "completion": 484,
+      "reasoning": 365,
+      "total": 1279
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-8",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたin vivoうつ病モデル研究（TST/FST）であるため"
+    ],
+    "durationMs": 4133,
+    "usage": {
+      "prompt": 854,
+      "completion": 563,
+      "reasoning": 420,
+      "total": 1417
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-9",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病モデルに関する研究ではない",
+      "魚のグリコーゲン代謝と無酸素耐性に関する研究",
+      "「depression」はGP活性の低下を指す"
+    ],
+    "durationMs": 4319,
+    "usage": {
+      "prompt": 796,
+      "completion": 529,
+      "reasoning": 365,
+      "total": 1325
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-2",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデル研究ではなく、卵巣機能の加齢による低下を指す",
+      "depressionが精神疾患ではなく生殖内分泌機能の低下を意味する"
+    ],
+    "durationMs": 4545,
+    "usage": {
+      "prompt": 618,
+      "completion": 591,
+      "reasoning": 486,
+      "total": 1209
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-4",
+    "label_included": 1,
+    "include_probability": 0.95,
+    "reasons": [
+      "ラットを用いた動物実験である",
+      "抑うつモデルの行動試験を実施している"
+    ],
+    "durationMs": 4937,
+    "usage": {
+      "prompt": 826,
+      "completion": 620,
+      "reasoning": 447,
+      "total": 1446
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-3",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "動物実験・in vivoモデルに関する記述が一切ない",
+      "うつ病はヒトの感情障害として言及されており、動物モデル研究ではない"
+    ],
+    "durationMs": 5154,
+    "usage": {
+      "prompt": 560,
+      "completion": 573,
+      "reasoning": 435,
+      "total": 1133
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-1",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "本研究は糖輸送阻害に関する生化学的研究であり、うつ病モデルとは無関係",
+      "動物組織実験を含むが、うつ病や精神疾患のin vivoモデルではない"
+    ],
+    "durationMs": 6569,
+    "usage": {
+      "prompt": 846,
+      "completion": 660,
+      "reasoning": 407,
+      "total": 1506
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-5",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が肝細胞機能低下を指し、精神疾患のうつ病モデルではない。",
+      "うつ病のin vivo動物モデル研究に該当しない。"
+    ],
+    "durationMs": 7544,
+    "usage": {
+      "prompt": 1005,
+      "completion": 845,
+      "reasoning": 708,
+      "total": 1850
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-6",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "動物（ラット）を用いたin vivoうつ病モデル研究である",
+      "慢性軽度ストレス（CMS）モデルで抗うつ作用を評価している"
+    ],
+    "durationMs": 7902,
+    "usage": {
+      "prompt": 823,
+      "completion": 964,
+      "reasoning": 806,
+      "total": 1787
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-11",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "動物実験だがうつ病モデルではなく心筋収縮力(心臓抑制)を評価した研究",
+      "タイトル・抄録にうつ病(depression)の言及は一切なく心筋抑制効果を扱う"
+    ],
+    "durationMs": 4073,
+    "usage": {
+      "prompt": 952,
+      "completion": 436,
+      "reasoning": 285,
+      "total": 1388
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-13",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルにうつ病や動物モデルに関する言及がない",
+      "片頭痛治療に関する研究であり包含基準に合致しない"
+    ],
+    "durationMs": 3887,
+    "usage": {
+      "prompt": 477,
+      "completion": 499,
+      "reasoning": 406,
+      "total": 976
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-7",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたin vivo動物実験である",
+      "慢性予測不能ストレス(CUS)モデルはうつ病の動物モデルとして明記されている"
+    ],
+    "durationMs": 8422,
+    "usage": {
+      "prompt": 754,
+      "completion": 1193,
+      "reasoning": 1061,
+      "total": 1947
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-12",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "抑うつモデルの動物実験に関する記述が一切ない",
+      "幻覚剤の行動薬理学的効果を扱った総説であり抑うつとは無関係"
+    ],
+    "durationMs": 5432,
+    "usage": {
+      "prompt": 702,
+      "completion": 656,
+      "reasoning": 526,
+      "total": 1358
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-14",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制を指しており、うつ病モデルではない",
+      "in vivo動物実験だがうつ病に関する研究ではない"
+    ],
+    "durationMs": 5165,
+    "usage": {
+      "prompt": 655,
+      "completion": 746,
+      "reasoning": 620,
+      "total": 1401
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-17",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「inbreeding depression」は近交弱勢を指し、精神疾患としてのうつ病モデルではない",
+      "Tribolium castaneumの実験系統に関する遺伝学的研究であり、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 4497,
+    "usage": {
+      "prompt": 1178,
+      "completion": 543,
+      "reasoning": 387,
+      "total": 1721
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-15",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "心臓の低酸素灌流モデルに関する研究で、うつ病モデルではない",
+      "心拍数低下を意味するcardiac depressionを扱っており、精神疾患のうつ病ではない",
+      "in vivo動物モデルではなくex vivo実験である"
+    ],
+    "durationMs": 7153,
+    "usage": {
+      "prompt": 703,
+      "completion": 896,
+      "reasoning": 729,
+      "total": 1599
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-22",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病モデルに関する研究ではない",
+      "GABAを介した抑制性シナプス伝達の発達変化をマウス体性感覚野で検討した研究"
+    ],
+    "durationMs": 4105,
+    "usage": {
+      "prompt": 831,
+      "completion": 465,
+      "reasoning": 317,
+      "total": 1296
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-21",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病モデルに関する研究ではない",
+      "ラットのアミラーゼ活性への栄養因子の影響を調べた研究である"
+    ],
+    "durationMs": 4422,
+    "usage": {
+      "prompt": 751,
+      "completion": 536,
+      "reasoning": 351,
+      "total": 1287
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-18",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病モデルに関する研究ではない",
+      "新tの肢再生とカドミウム・亜鉛の影響のみを扱う"
+    ],
+    "durationMs": 5979,
+    "usage": {
+      "prompt": 727,
+      "completion": 471,
+      "reasoning": 292,
+      "total": 1198
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-20",
+    "label_included": 0,
+    "include_probability": 0.2,
+    "reasons": [
+      "タイトル・抄録にうつ病や抑うつモデルに関する記述が一切ない",
+      "ラットを用いたストレス誘発性HPA軸機能の薬理学的検討であり、うつ病モデル研究ではない"
+    ],
+    "durationMs": 5997,
+    "usage": {
+      "prompt": 579,
+      "completion": 781,
+      "reasoning": 600,
+      "total": 1360
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-16",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトル中の 'cortical spreading depression' は神経現象を指し、精神疾患としてのうつ病研究ではない。",
+      "in vivo うつ病モデル研究に該当しない。"
+    ],
+    "durationMs": 9800,
+    "usage": {
+      "prompt": 487,
+      "completion": 1285,
+      "reasoning": 1178,
+      "total": 1772
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-23",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "動物実験だがうつ病モデルではなく不安・ストレスモデル研究である",
+      "抄録でdepressionとanxietyを明確に区別しanxiety-like behaviourを評価"
+    ],
+    "durationMs": 5280,
+    "usage": {
+      "prompt": 766,
+      "completion": 654,
+      "reasoning": 466,
+      "total": 1420
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-25",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルがニワトリの周産期代謝に関する研究で、うつ病や動物モデルとは一切関連がない"
+    ],
+    "durationMs": 4604,
+    "usage": {
+      "prompt": 485,
+      "completion": 580,
+      "reasoning": 480,
+      "total": 1065
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-24",
+    "label_included": 1,
+    "include_probability": 0.25,
+    "reasons": [
+      "動物実験だがうつ病モデルを使用しておらず、抗うつ薬の作用機序を正常ラットで検討した研究"
+    ],
+    "durationMs": 6606,
+    "usage": {
+      "prompt": 851,
+      "completion": 834,
+      "reasoning": 628,
+      "total": 1685
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-26",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルにうつ病モデルに関する記述が一切ない",
+      "CCl4とアスコルビン酸に関する肝・尿の研究であり抑うつとは無関係"
+    ],
+    "durationMs": 4270,
+    "usage": {
+      "prompt": 493,
+      "completion": 525,
+      "reasoning": 407,
+      "total": 1018
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-19",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたin vivo動物モデル研究である",
+      "嗅球摘出によるうつ病モデルを扱っている"
+    ],
+    "durationMs": 9017,
+    "usage": {
+      "prompt": 704,
+      "completion": 892,
+      "reasoning": 749,
+      "total": 1596
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-27",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルがミトコンドリアの電子・エネルギー輸送に関する生化学的研究であり、うつ病の動物モデルとは一切関連しない。",
+      "抄録なしで判断材料がなく、包含基準に合致しない。"
+    ],
+    "durationMs": 4625,
+    "usage": {
+      "prompt": 487,
+      "completion": 532,
+      "reasoning": 460,
+      "total": 1019
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-32",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "動物モデルだがうつ病ではなく肺炎モデル",
+      "depressionは免疫抑制を指す用語で精神疾患のうつ病ではない"
+    ],
+    "durationMs": 3349,
+    "usage": {
+      "prompt": 644,
+      "completion": 399,
+      "reasoning": 302,
+      "total": 1043
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-28",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "動物（マウス）を用いたin vivoうつ病モデル研究である",
+      "強制水泳試験・尾懸垂試験で抑うつ抵抗性表現型を示す"
+    ],
+    "durationMs": 6574,
+    "usage": {
+      "prompt": 763,
+      "completion": 872,
+      "reasoning": 660,
+      "total": 1635
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-30",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は鳥の症状記述であり精神疾患モデルではない",
+      "うつ病のin vivo動物モデル研究ではない"
+    ],
+    "durationMs": 5071,
+    "usage": {
+      "prompt": 694,
+      "completion": 627,
+      "reasoning": 537,
+      "total": 1321
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-29",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルが腫瘍細胞の糖利用に関するもので、うつ病の動物モデルとは一切関連がない"
+    ],
+    "durationMs": 6117,
+    "usage": {
+      "prompt": 482,
+      "completion": 764,
+      "reasoning": 671,
+      "total": 1246
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-37",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "本研究は霊長類化石の形態と系統解析に関する古生物学的研究であり、うつ病の動物モデルとは一切関連しない。"
+    ],
+    "durationMs": 4022,
+    "usage": {
+      "prompt": 862,
+      "completion": 520,
+      "reasoning": 357,
+      "total": 1382
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-35",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が酵素活性の低下を意味し、精神疾患としてのうつ病モデル研究ではない",
+      "皮質損傷後の酵素変化を扱った研究で、うつ病とは無関係"
+    ],
+    "durationMs": 4966,
+    "usage": {
+      "prompt": 791,
+      "completion": 623,
+      "reasoning": 449,
+      "total": 1414
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-31",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "人間を対象とした研究であり、動物モデルではない",
+      "抑うつは患者の精神症状として記述されており、動物実験とは無関係"
+    ],
+    "durationMs": 6665,
+    "usage": {
+      "prompt": 644,
+      "completion": 778,
+      "reasoning": 673,
+      "total": 1422
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-33",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "「depression」はDNA合成活性の抑制を指し、うつ病モデルとは無関係",
+      "研究主題は肝再生と発がんであり、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 5814,
+    "usage": {
+      "prompt": 722,
+      "completion": 768,
+      "reasoning": 661,
+      "total": 1490
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-34",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "呼吸抑制に関する研究であり、うつ病の動物モデル研究ではない。"
+    ],
+    "durationMs": 6045,
+    "usage": {
+      "prompt": 728,
+      "completion": 784,
+      "reasoning": 702,
+      "total": 1512
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-36",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "人間の症例報告である",
+      "動物モデル研究ではない"
+    ],
+    "durationMs": 6300,
+    "usage": {
+      "prompt": 661,
+      "completion": 863,
+      "reasoning": 744,
+      "total": 1524
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-41",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "本研究は腎血流と麻酔の影響に関する動物実験であり、うつ病モデルではない",
+      "abstract中の「depression」は腎機能低下を指すため除外対象"
+    ],
+    "durationMs": 4109,
+    "usage": {
+      "prompt": 808,
+      "completion": 496,
+      "reasoning": 385,
+      "total": 1304
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-38",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラット嗅覚球摘出モデルによるin vivoうつ病研究である",
+      "動物実験で抗うつ薬スクリーニングに用いられるモデルを扱う"
+    ],
+    "durationMs": 5456,
+    "usage": {
+      "prompt": 798,
+      "completion": 576,
+      "reasoning": 412,
+      "total": 1374
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-45",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "本研究はリボソームのGTPase活性とricinの阻害に関するもので、うつ病や動物モデルとは一切関連がない。"
+    ],
+    "durationMs": 3533,
+    "usage": {
+      "prompt": 567,
+      "completion": 513,
+      "reasoning": 330,
+      "total": 1080
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-40",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "動物実験だが、うつ病モデルではなく運動量低下を「depression」と表現した研究",
+      "精神科的うつ病ではなく行動的抑制を扱っている"
+    ],
+    "durationMs": 5864,
+    "usage": {
+      "prompt": 631,
+      "completion": 451,
+      "reasoning": 347,
+      "total": 1082
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-42",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivoモデルではなく、くも膜下出血後のラット脳代謝変化を検討した研究である"
+    ],
+    "durationMs": 4140,
+    "usage": {
+      "prompt": 893,
+      "completion": 521,
+      "reasoning": 372,
+      "total": 1414
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-44",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデル研究ではなくシナプス可塑性(LTD)に関する研究である",
+      "抑うつ行動やうつ病モデルへの言及が一切ない"
+    ],
+    "durationMs": 4507,
+    "usage": {
+      "prompt": 765,
+      "completion": 528,
+      "reasoning": 387,
+      "total": 1293
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-47",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "in vivo動物モデルではなくヒト由来細胞株(SHSY5Y)を用いたin vitro研究であるため除外"
+    ],
+    "durationMs": 3293,
+    "usage": {
+      "prompt": 768,
+      "completion": 379,
+      "reasoning": 288,
+      "total": 1147
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-46",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "本研究はうつ病モデルではなくザリガニの神経応答 habituation を扱う。",
+      "タイトル・抄録に depression の言及は一切ない。"
+    ],
+    "durationMs": 5265,
+    "usage": {
+      "prompt": 820,
+      "completion": 627,
+      "reasoning": 478,
+      "total": 1447
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-49",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "心筋うつに関する研究であり、うつ病の動物モデルではない",
+      "敗血症ラットでの心機能・心筋障害を扱った研究"
+    ],
+    "durationMs": 3853,
+    "usage": {
+      "prompt": 851,
+      "completion": 471,
+      "reasoning": 366,
+      "total": 1322
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-48",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が精神疾患ではなくGVHR反応の抑制を指す",
+      "うつ病のin vivoモデル研究ではない"
+    ],
+    "durationMs": 6088,
+    "usage": {
+      "prompt": 564,
+      "completion": 666,
+      "reasoning": 572,
+      "total": 1230
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-39",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "'depression' はシナプス長期抑圧 (LTD) を指しており、うつ病の動物モデル研究ではない",
+      "in vitro の海馬スライス研究であり in vivo モデルではない"
+    ],
+    "durationMs": 11041,
+    "usage": {
+      "prompt": 819,
+      "completion": 1310,
+      "reasoning": 1129,
+      "total": 2129
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-43",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病モデルに関する研究ではない",
+      "パーキンソン病およびL-DOPA誘発ジスキネジアの動物モデル研究である"
+    ],
+    "durationMs": 9569,
+    "usage": {
+      "prompt": 722,
+      "completion": 665,
+      "reasoning": 502,
+      "total": 1387
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-50",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "動物を用いたin vivoうつ病モデル研究ではない",
+      "薬理学的レビューでモデル動物実験の記述なし"
+    ],
+    "durationMs": 6382,
+    "usage": {
+      "prompt": 665,
+      "completion": 715,
+      "reasoning": 568,
+      "total": 1380
+    }
+  }
+]
