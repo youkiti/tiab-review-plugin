@@ -16,11 +16,41 @@ import {
     clearApiTier,
     getManualTier,
     saveManualTier,
+    // OpenRouter
+    getOpenRouterApiKey,
+    saveOpenRouterApiKey,
+    removeOpenRouterApiKey,
+    hasOpenRouterApiKey,
+    setSessionOpenRouterApiKey,
+    getOpenRouterApiKeySavePreference,
+    setOpenRouterApiKeySavePreference,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
+import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
 import type { ManualTier } from '../../../lib/types';
+
+/**
+ * API キー変更時にモデル選択肢を再構築するためのコールバック。
+ * 循環 import を避けるため、index.ts 側から `setOnApiKeyChanged()` 経由で注入する。
+ */
+type ApiKeyChangedHandler = () => void | Promise<void>;
+let onApiKeyChanged: ApiKeyChangedHandler | null = null;
+
+export function setOnApiKeyChanged(handler: ApiKeyChangedHandler): void {
+    onApiKeyChanged = handler;
+}
+
+async function notifyApiKeyChanged(): Promise<void> {
+    if (onApiKeyChanged) {
+        try {
+            await onApiKeyChanged();
+        } catch (error) {
+            console.error('[notifyApiKeyChanged] Error:', error);
+        }
+    }
+}
 
 /**
  * Tier セレクタの表示を最新の manualTier に同期
@@ -118,6 +148,7 @@ export async function handleApiKeyAutoSave() {
         setSessionApiKey('');
         await clearApiTier();
         await refreshTierSelector();
+        await notifyApiKeyChanged();
         return;
     }
 
@@ -173,6 +204,7 @@ export async function handleApiKeyAutoSave() {
     }
 
     await refreshTierSelector();
+    await notifyApiKeyChanged();
 }
 
 /**
@@ -204,5 +236,135 @@ export async function handleSavePreferenceChange() {
         // セッション限りの場合：確定スタイルを適用
         dom.apiKeyCard.classList.add('confirmed');
         dom.apiKeySummary.textContent = t('llm_apiKeySummarySession');
+    }
+
+    await notifyApiKeyChanged();
+}
+
+// ========== OpenRouter API キー ==========
+// Gemini と同形のフローだが、tier 概念がない分シンプル。
+
+/**
+ * OpenRouter APIキーの状態を読み込み
+ */
+export async function loadOpenRouterApiKeyStatus() {
+    const hasKey = await hasOpenRouterApiKey();
+    const savePreference = await getOpenRouterApiKeySavePreference();
+
+    dom.saveOpenRouterApiKeyCheckbox.checked = savePreference;
+
+    if (hasKey) {
+        const key = await getOpenRouterApiKey();
+        if (key) {
+            dom.openRouterApiKeyInput.value = key;
+            dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySet');
+            dom.openRouterApiKeyStatus.className = 'api-key-status success';
+            dom.openRouterApiKeyCard.classList.add('confirmed', 'collapsed');
+            dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
+        }
+    } else {
+        dom.openRouterApiKeyStatus.textContent = '';
+        dom.openRouterApiKeyStatus.className = 'api-key-status';
+        dom.openRouterApiKeyCard.classList.remove('confirmed', 'collapsed');
+        dom.openRouterApiKeySummary.textContent = '';
+    }
+}
+
+/**
+ * OpenRouter APIキー表示/非表示切り替え
+ */
+export function toggleOpenRouterApiKeyVisibility() {
+    if (dom.openRouterApiKeyInput.type === 'password') {
+        dom.openRouterApiKeyInput.type = 'text';
+        dom.toggleOpenRouterApiKeyVisibilityBtn.textContent = '🙈';
+    } else {
+        dom.openRouterApiKeyInput.type = 'password';
+        dom.toggleOpenRouterApiKeyVisibilityBtn.textContent = '👁';
+    }
+}
+
+/**
+ * OpenRouter APIキー入力時の自動保存
+ */
+export async function handleOpenRouterApiKeyAutoSave() {
+    const apiKey = dom.openRouterApiKeyInput.value.trim();
+    if (!apiKey) {
+        dom.openRouterApiKeyStatus.textContent = '';
+        dom.openRouterApiKeyStatus.className = 'api-key-status';
+        dom.openRouterApiKeyCard.classList.remove('confirmed', 'collapsed');
+        dom.openRouterApiKeySummary.textContent = '';
+
+        await removeOpenRouterApiKey();
+        setSessionOpenRouterApiKey('');
+        await notifyApiKeyChanged();
+        return;
+    }
+
+    dom.openRouterApiKeyStatus.textContent = t('llm_apiKeyVerifying');
+    dom.openRouterApiKeyStatus.className = 'api-key-status';
+
+    const result = await testOpenRouterApiKey(apiKey);
+    if (!result.isValid) {
+        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeyInvalid');
+        dom.openRouterApiKeyStatus.className = 'api-key-status error';
+        return;
+    }
+
+    const shouldSave = dom.saveOpenRouterApiKeyCheckbox.checked;
+    if (shouldSave) {
+        await saveOpenRouterApiKey(apiKey);
+        await setOpenRouterApiKeySavePreference(true);
+        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySaved');
+        dom.openRouterApiKeyCard.classList.add('confirmed');
+        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
+    } else {
+        setSessionOpenRouterApiKey(apiKey);
+        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySessionOnly');
+        dom.openRouterApiKeyCard.classList.add('confirmed');
+        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySession');
+    }
+    dom.openRouterApiKeyStatus.className = 'api-key-status success';
+    await notifyApiKeyChanged();
+}
+
+/**
+ * OpenRouter 保存設定チェックボックスの変更処理
+ */
+export async function handleOpenRouterSavePreferenceChange() {
+    const shouldSave = dom.saveOpenRouterApiKeyCheckbox.checked;
+    await setOpenRouterApiKeySavePreference(shouldSave);
+
+    const apiKey = dom.openRouterApiKeyInput.value.trim();
+    if (!apiKey) return;
+
+    if (shouldSave) {
+        await saveOpenRouterApiKey(apiKey);
+        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySaved');
+        dom.openRouterApiKeyStatus.className = 'api-key-status success';
+        dom.openRouterApiKeyCard.classList.add('confirmed');
+        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
+    } else {
+        await removeOpenRouterApiKey();
+        setSessionOpenRouterApiKey(apiKey);
+        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySessionChanged');
+        dom.openRouterApiKeyStatus.className = 'api-key-status success';
+        dom.openRouterApiKeyCard.classList.add('confirmed');
+        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySession');
+    }
+
+    await notifyApiKeyChanged();
+}
+
+/**
+ * 選択中モデルの provider に応じて API キーカードの強調表示を切り替える。
+ * 関連カードを展開し、他方を折りたたむ。
+ */
+export function refreshApiKeyCardEmphasis(providerId: 'gemini' | 'openrouter'): void {
+    if (providerId === 'openrouter') {
+        dom.openRouterApiKeyCard.classList.add('emphasized');
+        dom.apiKeyCard.classList.remove('emphasized');
+    } else {
+        dom.apiKeyCard.classList.add('emphasized');
+        dom.openRouterApiKeyCard.classList.remove('emphasized');
     }
 }

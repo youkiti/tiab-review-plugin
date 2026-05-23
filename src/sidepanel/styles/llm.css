@@ -71,6 +71,13 @@
     color: #1e7e34;
 }
 
+/* 選択中モデルの provider に応じて該当 API キーカードを強調する。
+   confirmed と独立に効くようボーダーを強める。 */
+.llm-card.emphasized {
+    border-width: 2px;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
 /* 折りたたみカードのサマリー表示 */
 .card-summary {
     font-size: 12px;
@@ -489,6 +496,23 @@
     color: #999;
     font-style: italic;
     font-size: 13px;
+}
+
+.execution-history-error {
+    padding: 12px;
+    background: #fff4f4;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.execution-history-error .error-text {
+    color: #842029;
+    font-size: 13px;
+    margin: 0;
 }
 
 .execution-item {

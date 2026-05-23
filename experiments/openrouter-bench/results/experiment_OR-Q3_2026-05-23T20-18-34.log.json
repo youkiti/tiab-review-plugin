@@ -1,0 +1,23 @@
+{
+  "experimentId": "OR-Q3_2026-05-23T20-18-34",
+  "startTime": "2026-05-23T20:18:34.952Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "OR-Q3",
+      "provider": "openrouter",
+      "model": "qwen/qwen3-max",
+      "temperature": 0,
+      "rateLimit": "openrouter_low_rpm",
+      "note": "Qwen3 Max (Instruct, 非Thinking)。OR-Q1 (235B) の上位フラッグシップで Recall 改善期待。OpenRouter 20 req/min 制限"
+    },
+    "rateLimitName": "openrouter_low_rpm",
+    "rateLimitConfig": {
+      "concurrency": 1,
+      "delayBetweenRequests": 3300
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  }
+}

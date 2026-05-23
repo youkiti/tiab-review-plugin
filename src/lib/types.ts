@@ -353,6 +353,21 @@ export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, 
             saveBatchSize: 50,
         },
     },
+    // OpenRouter 系: tier の概念がないため、全 tier 値で同じ固定プロファイルを返す。
+    // 値は experiments/openrouter-bench/config.json の openrouter_default と揃える
+    // (concurrency 10 / delay 200ms / saveBatchSize 10)。
+    'qwen/qwen3-235b-a22b-2507': {
+        free: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier1: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier2: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier3: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+    },
+    'deepseek/deepseek-v4-flash': {
+        free: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier1: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier2: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+        tier3: { rate: { concurrency: 10, delayBetweenRequests: 200 }, saveBatchSize: 10 },
+    },
 };
 
 /**

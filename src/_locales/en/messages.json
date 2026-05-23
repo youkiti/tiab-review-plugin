@@ -645,6 +645,12 @@
   "llm_detailSettings": {
     "message": "⚙️ Advanced Settings"
   },
+  "llm_noProviderConfigured": {
+    "message": "Set an API key above to enable model selection. Only providers with a configured key are listed."
+  },
+  "llm_modelFallbackToast": {
+    "message": "Saved model is unavailable because its API key is not set. Switched to the default model."
+  },
   "llm_modelLabel": {
     "message": "Model:"
   },
@@ -884,6 +890,15 @@
   },
   "llm_historyEmpty": {
     "message": "No execution history"
+  },
+  "llm_historyErrorQuota": {
+    "message": "Could not fetch execution history because Google Sheets API quota was exceeded. Please wait about a minute and retry."
+  },
+  "llm_historyErrorGeneric": {
+    "message": "Failed to fetch execution history."
+  },
+  "llm_historyErrorRetry": {
+    "message": "Retry"
   },
   "llm_recoverOrphansBtn": {
     "message": "🛟 Recover orphaned decisions"
@@ -1552,7 +1567,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the Gemini model used for screening.\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\nWe use pinned versions rather than the `latest` alias to avoid silent behavior changes when Google updates the alias target. See the latest benchmark via the link below."
+    "message": "Pick the LLM model used for screening (Gemini / OpenRouter).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\nThe corresponding API key card is highlighted based on the selected provider. See the latest benchmark via the link below."
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 View the latest benchmark results"
@@ -1562,6 +1577,21 @@
   },
   "llm_modelName_3_flash_preview": {
     "message": "Gemini 3 Flash Preview — Recall 96.1%, high accuracy"
+  },
+  "llm_modelName_qwen3_235b_2507": {
+    "message": "Qwen3 235B Instruct (2507) — Recall 93.9% / Specificity 92.2%"
+  },
+  "llm_modelName_deepseek_v4_flash": {
+    "message": "DeepSeek V4 Flash — Recall 91.1% / Specificity 90.5%"
+  },
+  "llm_openRouterApiKeyTitle": {
+    "message": "🔑 OpenRouter API key"
+  },
+  "llm_openRouterApiKeyRequired": {
+    "message": "Please configure an OpenRouter API key"
+  },
+  "llm_tip_openRouterApiKey": {
+    "message": "Enter the OpenRouter API key from https://openrouter.ai/keys.\nRequired only when an OpenRouter model (Qwen3 / DeepSeek) is selected; not needed for Gemini models.\nYou must pre-fund credits on OpenRouter."
   },
   "llm_tip_outputLanguage": {
     "message": "Sets the language of the AI's reasoning (reason) output.\nRecommended: match your everyday working language."

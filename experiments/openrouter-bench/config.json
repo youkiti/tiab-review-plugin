@@ -13,7 +13,8 @@
     "rateLimits": {
         "gemini_tier_max": { "concurrency": 50, "delayBetweenRequests": 200 },
         "openrouter_default": { "concurrency": 10, "delayBetweenRequests": 200 },
-        "openrouter_thinking": { "concurrency": 5, "delayBetweenRequests": 500 }
+        "openrouter_thinking": { "concurrency": 5, "delayBetweenRequests": 500 },
+        "openrouter_low_rpm": { "concurrency": 1, "delayBetweenRequests": 3300 }
     },
     "conditions": [
         {
@@ -59,6 +60,14 @@
             "temperature": 0,
             "rateLimit": "openrouter_default",
             "note": "DeepSeek V4 Flash (2026-04-24)。1M ctx、7社が strict structured_outputs 対応。非Thinkingで動作可"
+        },
+        {
+            "id": "OR-Q3",
+            "provider": "openrouter",
+            "model": "qwen/qwen3-max",
+            "temperature": 0,
+            "rateLimit": "openrouter_low_rpm",
+            "note": "Qwen3 Max (Instruct, 非Thinking)。OR-Q1 (235B) の上位フラッグシップで Recall 改善期待。OpenRouter 20 req/min 制限"
         }
     ],
     "baselineResults": {
@@ -71,6 +80,7 @@
         "qwen/qwen3-235b-a22b-2507": { "inputPerMillion": 0.071, "outputPerMillion": 0.10, "note": "OpenRouter公開価格(Instruct 2507)" },
         "qwen/qwen3-235b-a22b-thinking-2507": { "inputPerMillion": 0.1495, "outputPerMillion": 1.495 },
         "x-ai/grok-4.3": { "inputPerMillion": 1.25, "outputPerMillion": 2.50, "note": "OpenRouter公開価格(2026-04-30公開)" },
-        "deepseek/deepseek-v4-flash": { "inputPerMillion": 0.10, "outputPerMillion": 0.20, "note": "OpenRouter公開価格(2026-04-24公開)" }
+        "deepseek/deepseek-v4-flash": { "inputPerMillion": 0.10, "outputPerMillion": 0.20, "note": "OpenRouter公開価格(2026-04-24公開)" },
+        "qwen/qwen3-max": { "inputPerMillion": 1.20, "outputPerMillion": 6.00, "note": "OpenRouter公開価格目安(要確認)。実コスト確定後に上書き予定" }
     }
 }

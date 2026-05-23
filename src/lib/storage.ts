@@ -4,6 +4,11 @@ const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
 const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
 
+// OpenRouter（追加プロバイダ）。暗号化ソルトは Gemini と同じ鍵を流用する
+// （chrome.runtime.id 由来でデバイス固有のため、鍵を分けるメリットがなく管理コストが増える）。
+const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter_api_key';
+const OPENROUTER_API_KEY_SAVE_PREFERENCE = 'openrouter_api_key_save_preference';
+
 function bytesToBase64(bytes: Uint8Array): string {
     let binary = '';
     for (const b of bytes) {
@@ -288,4 +293,75 @@ export async function clearManualTier(): Promise<void> {
         await chrome.storage.local.remove([GEMINI_MANUAL_TIER_KEY]);
     }
     sessionManualTier = null;
+}
+
+// ========== OpenRouter API キー ==========
+// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
+
+export async function saveOpenRouterApiKey(apiKey: string): Promise<void> {
+    const encoded = await encryptApiKey(apiKey);
+    await chrome.storage.local.set({ [OPENROUTER_API_KEY_STORAGE_KEY]: encoded });
+}
+
+export async function getOpenRouterApiKey(): Promise<string | null> {
+    const result = await chrome.storage.local.get([OPENROUTER_API_KEY_STORAGE_KEY]);
+    const encoded = result[OPENROUTER_API_KEY_STORAGE_KEY];
+    if (!encoded) return null;
+    try {
+        return await decryptApiKey(encoded);
+    } catch {
+        return null;
+    }
+}
+
+export async function removeOpenRouterApiKey(): Promise<void> {
+    await chrome.storage.local.remove([OPENROUTER_API_KEY_STORAGE_KEY]);
+}
+
+export async function hasOpenRouterApiKey(): Promise<boolean> {
+    const key = await getOpenRouterApiKey();
+    return key !== null && key.length > 0;
+}
+
+export async function setOpenRouterApiKeySavePreference(save: boolean): Promise<void> {
+    await chrome.storage.local.set({ [OPENROUTER_API_KEY_SAVE_PREFERENCE]: save });
+}
+
+export async function getOpenRouterApiKeySavePreference(): Promise<boolean> {
+    const result = await chrome.storage.local.get([OPENROUTER_API_KEY_SAVE_PREFERENCE]);
+    return result[OPENROUTER_API_KEY_SAVE_PREFERENCE] === true;
+}
+
+// セッション保持（保存しない設定時のメモリ保持）
+let sessionOpenRouterApiKey: string | null = null;
+
+export function setSessionOpenRouterApiKey(apiKey: string): void {
+    sessionOpenRouterApiKey = apiKey;
+}
+
+export function getSessionOpenRouterApiKey(): string | null {
+    return sessionOpenRouterApiKey;
+}
+
+export function clearSessionOpenRouterApiKey(): void {
+    sessionOpenRouterApiKey = null;
+}
+
+/**
+ * 有効な OpenRouter API キーを取得（セッション > 環境変数 > 保存値）
+ */
+export async function getEffectiveOpenRouterApiKey(): Promise<string | null> {
+    if (sessionOpenRouterApiKey) {
+        return sessionOpenRouterApiKey;
+    }
+    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
+    if (isNodeEnv) {
+        if (process.env.OPENROUTER_API_KEY) {
+            return process.env.OPENROUTER_API_KEY;
+        }
+    }
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return null;
+    }
+    return await getOpenRouterApiKey();
 }

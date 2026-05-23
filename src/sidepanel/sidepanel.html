@@ -356,41 +356,7 @@
                 <button id="llm-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
             </div>
 
-            <!-- 詳細設定 -->
-            <div class="llm-card collapsible">
-                <h4 class="collapsible-header">
-                    <span data-i18n="llm_detailSettings"></span>
-                    <span class="collapse-icon">▼</span>
-                </h4>
-                <div class="collapsible-content">
-                    <div class="setting-row">
-                        <label data-i18n="llm_modelLabel"></label>
-                        <span class="help-icon" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
-                        <select id="llm-model-select">
-                            <!-- populateModelSelect() で動的に置換される。これは JS 実行前のフォールバック -->
-                            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
-                            <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-                        </select>
-                    </div>
-                    <div class="setting-row setting-row-secondary">
-                        <a id="llm-benchmark-link"
-                           href="https://github.com/youkiti/tiab-review-plugin#llmスクリーニング精度ベンチマーク"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           data-i18n="llm_benchmarkLinkLabel">📊 最新のベンチマーク結果を見る</a>
-                    </div>
-                    <div class="setting-row">
-                        <label data-i18n="llm_outputLanguage"></label>
-                        <span class="help-icon" data-i18n-tooltip="llm_tip_outputLanguage" tabindex="0">?</span>
-                        <select id="llm-language-select">
-                            <option value="ja" data-i18n="llm_langJa"></option>
-                            <option value="en" data-i18n="llm_langEn"></option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- APIキー設定 -->
+            <!-- APIキー設定 (Gemini) -->
             <div id="api-key-card" class="llm-card collapsible">
                 <h4 class="collapsible-header">
                     <span data-i18n="llm_apiKeyTitle"></span>
@@ -419,6 +385,71 @@
                             <option value="tier1" data-i18n="llm_tierTier1"></option>
                             <option value="tier2" data-i18n="llm_tierTier2"></option>
                             <option value="tier3" data-i18n="llm_tierTier3"></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- APIキー設定 (OpenRouter) -->
+            <div id="openrouter-api-key-card" class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    <span data-i18n="llm_openRouterApiKeyTitle"></span>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_openRouterApiKey" tabindex="0">?</span>
+                    <span id="openrouter-api-key-summary" class="card-summary"></span>
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="api-key-input-group">
+                        <input type="password" id="openrouter-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
+                        <button id="toggle-openrouter-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                    </div>
+                    <div class="api-key-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="save-openrouter-api-key-checkbox" checked>
+                            <span data-i18n="llm_apiKeySaveToDevice"></span>
+                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
+                        </label>
+                    </div>
+                    <div id="openrouter-api-key-status" class="api-key-status"></div>
+                </div>
+            </div>
+
+            <!-- 詳細設定 -->
+            <div class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    <span data-i18n="llm_detailSettings"></span>
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="setting-row">
+                        <label data-i18n="llm_modelLabel"></label>
+                        <span class="help-icon" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
+                        <select id="llm-model-select">
+                            <!-- populateModelSelect() で動的に置換される。これは JS 実行前のフォールバック -->
+                            <optgroup label="Gemini">
+                                <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
+                                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                            </optgroup>
+                            <optgroup label="OpenRouter">
+                                <option value="qwen/qwen3-235b-a22b-2507">Qwen3 235B Instruct</option>
+                                <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <p id="llm-no-model-hint" class="help-text hidden" data-i18n="llm_noProviderConfigured"></p>
+                    <div class="setting-row setting-row-secondary">
+                        <a id="llm-benchmark-link"
+                           href="https://github.com/youkiti/tiab-review-plugin#llmスクリーニング精度ベンチマーク"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           data-i18n="llm_benchmarkLinkLabel">📊 最新のベンチマーク結果を見る</a>
+                    </div>
+                    <div class="setting-row">
+                        <label data-i18n="llm_outputLanguage"></label>
+                        <span class="help-icon" data-i18n-tooltip="llm_tip_outputLanguage" tabindex="0">?</span>
+                        <select id="llm-language-select">
+                            <option value="ja" data-i18n="llm_langJa"></option>
+                            <option value="en" data-i18n="llm_langEn"></option>
                         </select>
                     </div>
                 </div>

@@ -27,7 +27,8 @@ import {
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
 import { showModal, hideModal } from '../ml/dialogs';
-import { getEffectiveApiKey, getManualTier } from '../../../lib/storage';
+import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getManualTier } from '../../../lib/storage';
+import { resolveProviderId } from '../../../lib/llm-provider';
 import {
     processBatch,
     calculateProbabilityDistribution,
@@ -37,7 +38,7 @@ import {
     generateLlmReviewerId,
 } from '../../../lib/llm-processor';
 import { DEFAULT_SCREENING_PROMPT } from '../../../lib/prompt-templates';
-import { getModelConfig } from '../../../lib/gemini-api';
+import { getModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
 import {
@@ -164,9 +165,15 @@ export async function handleStartBatch() {
         return;
     }
 
-    const apiKey = await getEffectiveApiKey();
+    // 選択中モデルの provider に応じて該当 API キーを確認する
+    // (Gemini モデル選択中なのに OpenRouter キーしか無い、等のケースで誤ったエラーを出さない)
+    const selectedModelId = dom.llmModelSelect.value;
+    const providerId = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
+    const apiKey = providerId === 'openrouter'
+        ? await getEffectiveOpenRouterApiKey()
+        : await getEffectiveApiKey();
     if (!apiKey) {
-        showToast(t('llm_apiKeyRequired'));
+        showToast(t(providerId === 'openrouter' ? 'llm_openRouterApiKeyRequired' : 'llm_apiKeyRequired'));
         return;
     }
 
@@ -1097,5 +1104,18 @@ export async function loadExecutionHistory() {
         }
     } catch (error) {
         console.error('[loadExecutionHistory] Error:', error);
+        // クォータ超過などで読み込み失敗 → プレースホルダではなくエラー表示＋再試行ボタン
+        const message = (error as Error).message ?? '';
+        const isQuota = /quota|429|Too Many Requests/i.test(message);
+        const errorText = isQuota ? t('llm_historyErrorQuota') : t('llm_historyErrorGeneric');
+        const retryLabel = t('llm_historyErrorRetry');
+        dom.executionHistory.innerHTML = `
+            <div class="execution-history-error">
+                <p class="error-text">${errorText}</p>
+                <button type="button" class="btn btn-outline btn-small" id="execution-history-retry-btn">${retryLabel}</button>
+            </div>
+        `;
+        const retryBtn = document.getElementById('execution-history-retry-btn');
+        retryBtn?.addEventListener('click', () => { void loadExecutionHistory(); });
     }
 }

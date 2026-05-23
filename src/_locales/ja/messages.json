@@ -645,6 +645,12 @@
   "llm_detailSettings": {
     "message": "⚙️ 詳細設定"
   },
+  "llm_noProviderConfigured": {
+    "message": "先に上のAPIキーを設定してください。設定済みのプロバイダのモデルだけが選択できます。"
+  },
+  "llm_modelFallbackToast": {
+    "message": "保存済みモデルに対応するAPIキーが未設定のため、デフォルトモデルに切り替えました。"
+  },
   "llm_modelLabel": {
     "message": "モデル:"
   },
@@ -884,6 +890,15 @@
   },
   "llm_historyEmpty": {
     "message": "実行履歴がありません"
+  },
+  "llm_historyErrorQuota": {
+    "message": "Google Sheets APIのクォータ超過のため実行履歴を取得できませんでした。1分ほど待ってから再試行してください。"
+  },
+  "llm_historyErrorGeneric": {
+    "message": "実行履歴の取得に失敗しました。"
+  },
+  "llm_historyErrorRetry": {
+    "message": "再試行"
   },
   "llm_recoverOrphansBtn": {
     "message": "🛟 孤立判定を復旧"
@@ -1552,7 +1567,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うGeminiモデルを選びます。\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\nlatestエイリアスではなく固定バージョンを採用しています (Googleの実体更新で挙動が変わるのを防ぐため)。最新のベンチマーク結果は下のリンクを参照してください。"
+    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n選択した provider に応じて、上のどちらかの API キーカードが使われます。最新のベンチマーク結果は下のリンクを参照してください。"
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 最新のベンチマーク結果を見る"
@@ -1562,6 +1577,21 @@
   },
   "llm_modelName_3_flash_preview": {
     "message": "Gemini 3 Flash Preview — Recall 96.1%, 高精度"
+  },
+  "llm_modelName_qwen3_235b_2507": {
+    "message": "Qwen3 235B Instruct (2507) — Recall 93.9% / Specificity 92.2%"
+  },
+  "llm_modelName_deepseek_v4_flash": {
+    "message": "DeepSeek V4 Flash — Recall 91.1% / Specificity 90.5%"
+  },
+  "llm_openRouterApiKeyTitle": {
+    "message": "🔑 OpenRouter APIキー"
+  },
+  "llm_openRouterApiKeyRequired": {
+    "message": "OpenRouter APIキーを設定してください"
+  },
+  "llm_tip_openRouterApiKey": {
+    "message": "https://openrouter.ai/keys で取得した OpenRouter のAPIキーを入力します。\nGemini モデル選択中は不要、OpenRouter モデル（Qwen3 / DeepSeek 等）選択時のみ使われます。\nクレジットを事前にチャージしておく必要があります。"
   },
   "llm_tip_outputLanguage": {
     "message": "AIが出力する判定理由(reason)の言語を切り替えます。\n推奨: 普段使う言語に合わせる。"
