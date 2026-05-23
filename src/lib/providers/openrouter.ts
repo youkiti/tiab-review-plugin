@@ -77,12 +77,47 @@ function tryParseJson(text: string): LlmScreeningOutput | null {
     }
 }
 
+/**
+ * API キー文字列を HTTP ヘッダーで送れる形に正規化する。
+ *
+ * - 前後空白除去
+ * - 不可視 Unicode（zero-width space, BOM 等）を除去
+ * - ISO-8859-1 範囲外の文字が残れば例外（fetch がヘッダー構築で失敗する前にユーザー向けエラーへ）
+ *
+ * 想定ケース: ユーザーがブラウザの保存値や Markdown からコピペした際に
+ * U+200B (ZWSP) や U+FEFF (BOM)、全角文字などが混入し、fetch が
+ * "String contains non ISO-8859-1 code point." を投げる。
+ */
+// テスト用 export（プロダクションでは getApiKey/testOpenRouterApiKey 経由でのみ使用）
+export function _sanitizeApiKeyForTest(rawKey: string): string {
+    return sanitizeApiKey(rawKey);
+}
+
+function sanitizeApiKey(rawKey: string): string {
+    let out = '';
+    for (const ch of rawKey.trim()) {
+        const cp = ch.codePointAt(0);
+        if (cp === undefined) continue;
+        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
+        if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
+            cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
+        if (cp > 255) {
+            throw new Error(
+                'OpenRouter APIキーに ISO-8859-1 範囲外の文字が含まれています。'
+                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
+            );
+        }
+        out += ch;
+    }
+    return out;
+}
+
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenRouterApiKey();
     if (!key) {
         throw new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。');
     }
-    return key;
+    return sanitizeApiKey(key);
 }
 
 async function callOnce(
@@ -363,17 +398,59 @@ export async function convertCriteriaViaOpenRouter(
 }
 
 /**
+ * カスタム OpenRouter モデルの動作確認
+ *
+ * 極小スクリーニング用プロンプトを 1 回だけ投げ、JSON レスポンスがパースできるかを
+ * もって「実用可能」と判定する。リトライなし・短めタイムアウト。
+ *
+ * 成功条件: screenViaOpenRouter が例外なく完了し JSON 抽出に成功すること。
+ * これにより 404 (モデルID 不正)、認証エラー、provider routing 失敗、出力形式不一致を
+ * まとめて検出できる。
+ */
+export async function testOpenRouterModel(
+    modelId: string,
+    timeoutMs: number = 60000
+): Promise<{ ok: boolean; error?: string }> {
+    try {
+        await screenViaOpenRouter(
+            {
+                title: 'Test article on cardiovascular disease',
+                abstract: 'A randomized controlled trial evaluating treatment outcomes in adults.',
+                screeningPrompt:
+                    'You are evaluating whether to include this study in a systematic review. Respond strictly in the requested JSON format.',
+                model: modelId,
+                temperature: 0,
+                outputLanguage: 'en',
+                maxOutputTokens: 1024,
+            },
+            0,
+            timeoutMs
+        );
+        return { ok: true };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { ok: false, error: message };
+    }
+}
+
+/**
  * OpenRouter API キーの簡易検証
  *
  * Gemini の testApiKeyWithTier と異なり tier の概念がないため、
  * `/api/v1/key` エンドポイントで 200 が返るかだけ確認する。
  */
 export async function testOpenRouterApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
+    let cleanKey: string;
+    try {
+        cleanKey = sanitizeApiKey(apiKey);
+    } catch (err) {
+        return { isValid: false, reason: err instanceof Error ? err.message : String(err) };
+    }
     try {
         const response = await fetch('https://openrouter.ai/api/v1/key', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${cleanKey}`,
             },
         });
         if (response.ok) {

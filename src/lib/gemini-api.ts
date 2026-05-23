@@ -590,6 +590,8 @@ export interface ModelOption {
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
     provider: 'gemini' | 'openrouter';
     config: Omit<GeminiModelConfig, 'model'>;
+    /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
+    custom?: boolean;
 }
 
 /**
@@ -648,6 +650,12 @@ export const MODEL_ID_MIGRATIONS: Record<string, string> = {
 
 /**
  * モデルIDから設定を取得
+ *
+ * AVAILABLE_MODELS に登録されていない場合の優先順:
+ *  1. スラッシュ含む（`provider/model` 形式）→ OpenRouter カスタムモデルとみなし
+ *     `{ model: modelId, temperature: 0 }` を返す。ユーザー登録カスタムモデルでも
+ *     batch / criteria フローが正しく動くようにする。
+ *  2. それ以外 → Gemini の DEFAULT_MODEL_CONFIG。
  */
 export function getModelConfig(modelId: string): GeminiModelConfig {
     const modelOption = AVAILABLE_MODELS.find(m => m.id === modelId);
@@ -657,6 +665,38 @@ export function getModelConfig(modelId: string): GeminiModelConfig {
             ...modelOption.config,
         };
     }
-    // フォールバック: デフォルト設定
+    if (modelId.includes('/')) {
+        return { model: modelId, temperature: 0 };
+    }
     return DEFAULT_MODEL_CONFIG;
+}
+
+/**
+ * ビルトイン + ユーザー登録カスタム OpenRouter モデルを合成した一覧を返す。
+ *
+ * カスタムモデルは `chrome.storage.local` に保存されたものを読み込み、
+ * `provider: 'openrouter'`, `custom: true`, `config.temperature: 0` で展開する。
+ * 既存ビルトイン ID と重複するものは無視する（ビルトイン優先）。
+ *
+ * 動的 import は循環依存（storage → gemini-api）を避けるため。
+ */
+export async function getAllAvailableModels(): Promise<ReadonlyArray<ModelOption>> {
+    const { getCustomOpenRouterModels } = await import('./storage');
+    let customs: { id: string; label?: string }[] = [];
+    try {
+        customs = await getCustomOpenRouterModels();
+    } catch (err) {
+        console.warn('[getAllAvailableModels] Failed to load custom models:', err);
+    }
+    const builtInIds = new Set(AVAILABLE_MODELS.map(m => m.id));
+    const customModels: ModelOption[] = customs
+        .filter(c => !builtInIds.has(c.id))
+        .map(c => ({
+            id: c.id,
+            name: c.label && c.label.length > 0 ? `${c.label} (${c.id})` : c.id,
+            provider: 'openrouter' as const,
+            config: { temperature: 0 },
+            custom: true,
+        }));
+    return [...AVAILABLE_MODELS, ...customModels];
 }

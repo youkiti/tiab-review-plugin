@@ -6,7 +6,7 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
-import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG } from '../../../lib/gemini-api';
+import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG, getAllAvailableModels } from '../../../lib/gemini-api';
 import { t } from '../../../lib/i18n';
 import { showSettings } from '../settings';
 import { hideToast, showToast } from '../../ui/feedback';
@@ -23,6 +23,11 @@ import {
     refreshApiKeyCardEmphasis,
     setOnApiKeyChanged,
 } from './api-key';
+import {
+    handleTestSaveCustomModel,
+    loadCustomModelsList,
+    setOnCustomModelsChanged,
+} from './custom-models';
 import {
     resolveProviderId,
     filterModelsByConfiguredProviders,
@@ -75,8 +80,12 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
 
 /**
  * モデル選択のオプションを動的に生成
- * AVAILABLE_MODELSを参照し、設定済み API キーを持つ provider のモデルのみを表示する。
+ *
+ * ビルトイン AVAILABLE_MODELS + ユーザー登録カスタム OpenRouter モデルを合成 (getAllAvailableModels) し、
+ * 設定済み API キーを持つ provider のモデルのみを表示する。
  * 全 provider 未設定の場合はセレクト自体を隠してヒントを表示する。
+ *
+ * カスタムモデルは OpenRouter optgroup 末尾に「(カスタム)」バッジ付きで並ぶ。
  *
  * 戻り値: 現在選択中のモデルがフィルタで消えた等で別モデルに切り替わった場合 true。
  */
@@ -86,6 +95,7 @@ export async function populateModelSelect(): Promise<boolean> {
     select.innerHTML = '';
 
     const configured = await getConfiguredProviders();
+    const allModels = await getAllAvailableModels();
 
     const groups: Record<LlmProviderId, HTMLOptGroupElement> = {
         gemini: document.createElement('optgroup'),
@@ -94,12 +104,17 @@ export async function populateModelSelect(): Promise<boolean> {
     groups.gemini.label = 'Gemini';
     groups.openrouter.label = 'OpenRouter';
 
-    const visibleModels = filterModelsByConfiguredProviders(AVAILABLE_MODELS, configured);
+    const visibleModels = filterModelsByConfiguredProviders(allModels, configured);
     for (const model of visibleModels) {
         const option = document.createElement('option');
         option.value = model.id;
-        option.textContent = model.nameKey ? t(model.nameKey) : model.name;
+        const baseLabel = model.nameKey ? t(model.nameKey) : model.name;
+        // カスタムモデルは末尾にバッジ風サフィックスを付与（select 内では HTML 不可のためテキストで表現）
+        option.textContent = model.custom
+            ? `${baseLabel}  •  ${t('llm_customModelBadge')}`
+            : baseLabel;
         option.dataset.provider = model.provider;
+        if (model.custom) option.dataset.custom = 'true';
         if (model.id === DEFAULT_MODEL_CONFIG.model) {
             option.selected = true;
         }
@@ -170,6 +185,14 @@ export function setupLlmEventListeners() {
         }
     });
 
+    // カスタムモデル追加/削除時にもモデル選択肢を再構築
+    setOnCustomModelsChanged(async () => {
+        const switched = await populateModelSelect();
+        if (switched) {
+            handleModelSelectChange();
+        }
+    });
+
     // APIキー関連 (Gemini)
     dom.toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
     dom.geminiApiKeyInput?.addEventListener('change', handleApiKeyAutoSave);
@@ -180,6 +203,9 @@ export function setupLlmEventListeners() {
     dom.toggleOpenRouterApiKeyVisibilityBtn?.addEventListener('click', toggleOpenRouterApiKeyVisibility);
     dom.openRouterApiKeyInput?.addEventListener('change', handleOpenRouterApiKeyAutoSave);
     dom.saveOpenRouterApiKeyCheckbox?.addEventListener('change', handleOpenRouterSavePreferenceChange);
+
+    // OpenRouter カスタムモデル
+    dom.testSaveCustomModelBtn?.addEventListener('click', handleTestSaveCustomModel);
 
     // モデル選択: 選択 provider に応じて該当 API キーカードを強調
     dom.llmModelSelect?.addEventListener('change', handleModelSelectChange);
@@ -240,7 +266,10 @@ export async function initializeLlmSection() {
         await loadApiKeyStatus();
         await loadOpenRouterApiKeyStatus();
 
-        // モデル選択オプションを動的に生成（鍵が設定済みの provider のみ）
+        // OpenRouter カスタムモデル一覧を読み込み（モデルセレクト構築前に必要）
+        await loadCustomModelsList();
+
+        // モデル選択オプションを動的に生成（鍵が設定済みの provider のみ + 登録カスタムモデル）
         await populateModelSelect();
 
         // LLM設定を読み込み

@@ -128,6 +128,7 @@ npm run watch
   - **Gemini**: `gemini-3.1-flash-lite` (既定 / depression Recall 93.6%) / `gemini-3-flash-preview` (Recall 96.1%)
   - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
 - OpenRouter モデルは [experiments/openrouter-bench/](experiments/openrouter-bench/) の depression データセット全件 (N=1,993) ベンチで採用基準 (Recall ≥ 0.90) を満たした 2 モデルのみを同梱しています。
+- **OpenRouter カスタムモデル**: 上記同梱モデル以外の OpenRouter モデル（例: `anthropic/claude-3.7-sonnet`、`openai/gpt-4o-mini` 等）も、サイドパネルの「OpenRouter カスタムモデル」カードからモデル ID を手入力できます。「テストして保存」を押すと実 API を 1 回叩き、スクリーニング用 JSON 出力が返ったモデルだけがブラウザに保存され、以降モデル選択肢に出現します（最大 20 件）。カスタムモデルは当ツールのベンチマーク対象外のため、組入精度は各自で必ず検証してください。
 - **2026-05 以降は `latest` エイリアス (`gemini-flash-lite-latest` / `gemini-flash-latest`) ではなく、ベンチマーク済みの固定バージョン ID を採用しています**。Google がエイリアス実体を更新した際の挙動変化 (Recall・コスト) を防ぐためです。例として `gemini-3.5-flash` (depression Recall 93.2%) が将来 `gemini-flash-latest` の実体になった場合でも、UI 上のユーザー設定は影響を受けません。
 - 既存ユーザーの設定 (`llm_model = gemini-flash-lite-latest` 等) は、Config シート読み込み時に自動で固定 ID へマイグレーションされます ([src/lib/gemini-api.ts](src/lib/gemini-api.ts) の `MODEL_ID_MIGRATIONS`)。
 - Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。

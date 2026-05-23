@@ -414,6 +414,39 @@
                 </div>
             </div>
 
+            <!-- OpenRouter カスタムモデル -->
+            <div id="openrouter-custom-model-card" class="llm-card collapsible collapsed">
+                <h4 class="collapsible-header">
+                    <span data-i18n="llm_customModelTitle"></span>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_customModel" tabindex="0">?</span>
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <p class="help-text" data-i18n-html="llm_customModelDescription"></p>
+                    <div class="custom-model-input-row">
+                        <label for="custom-model-id-input" data-i18n="llm_customModelIdLabel"></label>
+                        <input type="text" id="custom-model-id-input"
+                               data-i18n-placeholder="llm_customModelIdPlaceholder"
+                               class="custom-model-input" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="custom-model-input-row">
+                        <label for="custom-model-label-input" data-i18n="llm_customModelLabelLabel"></label>
+                        <input type="text" id="custom-model-label-input"
+                               data-i18n-placeholder="llm_customModelLabelPlaceholder"
+                               class="custom-model-input" autocomplete="off">
+                    </div>
+                    <button id="test-save-custom-model-btn" class="btn btn-primary"
+                            data-i18n="llm_customModelTestSaveBtn"></button>
+                    <div id="custom-model-status" class="api-key-status"></div>
+                    <div class="custom-models-list-section">
+                        <h5 data-i18n="llm_customModelListTitle"></h5>
+                        <ul id="custom-models-list" class="custom-models-list"></ul>
+                        <p id="custom-models-empty" class="help-text hidden"
+                           data-i18n="llm_customModelListEmpty"></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- 詳細設定 -->
             <div class="llm-card collapsible">
                 <h4 class="collapsible-header">

@@ -1593,6 +1593,84 @@
   "llm_tip_openRouterApiKey": {
     "message": "Enter the OpenRouter API key from https://openrouter.ai/keys.\nRequired only when an OpenRouter model (Qwen3 / DeepSeek) is selected; not needed for Gemini models.\nYou must pre-fund credits on OpenRouter."
   },
+  "llm_customModelTitle": {
+    "message": "🧩 OpenRouter custom model"
+  },
+  "llm_tip_customModel": {
+    "message": "Enter any OpenRouter model ID (e.g., anthropic/claude-sonnet-4.6).\nOnly models that pass a live test are saved to your browser and added to the model list.\nThese models are not benchmarked—please verify screening accuracy yourself."
+  },
+  "llm_customModelDescription": {
+    "message": "Test <a href=\"https://openrouter.ai/models\" target=\"_blank\" rel=\"noopener noreferrer\">any OpenRouter model ID</a> and save it to your browser on success. Saved models appear in the model selector on subsequent sessions (not benchmarked by this tool)."
+  },
+  "llm_customModelIdLabel": {
+    "message": "Model ID"
+  },
+  "llm_customModelIdPlaceholder": {
+    "message": "anthropic/claude-sonnet-4.6"
+  },
+  "llm_customModelLabelLabel": {
+    "message": "Display name (optional)"
+  },
+  "llm_customModelLabelPlaceholder": {
+    "message": "Claude Sonnet 4.6"
+  },
+  "llm_customModelTestSaveBtn": {
+    "message": "Test and save"
+  },
+  "llm_customModelTesting": {
+    "message": "Testing the model..."
+  },
+  "llm_customModelTestSuccess": {
+    "message": "✅ Saved $ID$",
+    "placeholders": {
+      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+    }
+  },
+  "llm_customModelTestFailed": {
+    "message": "❌ Test failed: $ERROR$",
+    "placeholders": {
+      "error": { "content": "$1", "example": "HTTP 404" }
+    }
+  },
+  "llm_customModelIdRequired": {
+    "message": "Please enter a model ID"
+  },
+  "llm_customModelIdInvalid": {
+    "message": "Model ID must be in 'provider/model' form (e.g., anthropic/claude-sonnet-4.6)"
+  },
+  "llm_customModelDuplicate": {
+    "message": "This model is already registered"
+  },
+  "llm_customModelDuplicateBuiltIn": {
+    "message": "This model is already available as a built-in model"
+  },
+  "llm_customModelLimitReached": {
+    "message": "You can register up to $LIMIT$ custom models",
+    "placeholders": {
+      "limit": { "content": "$1", "example": "20" }
+    }
+  },
+  "llm_customModelRequiresApiKey": {
+    "message": "Please configure the OpenRouter API key before testing"
+  },
+  "llm_customModelListTitle": {
+    "message": "Registered custom models"
+  },
+  "llm_customModelListEmpty": {
+    "message": "No custom models registered"
+  },
+  "llm_customModelRemoveBtn": {
+    "message": "Remove"
+  },
+  "llm_customModelRemoveConfirm": {
+    "message": "Remove $ID$?",
+    "placeholders": {
+      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+    }
+  },
+  "llm_customModelBadge": {
+    "message": "Custom"
+  },
   "llm_tip_outputLanguage": {
     "message": "Sets the language of the AI's reasoning (reason) output.\nRecommended: match your everyday working language."
   },

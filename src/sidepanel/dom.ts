@@ -164,6 +164,15 @@ const domElements = {
     get saveOpenRouterApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openrouter-api-key-checkbox'); },
     get openRouterApiKeyStatus() { return getElement<HTMLElement>('openrouter-api-key-status'); },
 
+    // LLM カスタムモデル (OpenRouter)
+    get openRouterCustomModelCard() { return getElement<HTMLElement>('openrouter-custom-model-card'); },
+    get customModelIdInput() { return getElement<HTMLInputElement>('custom-model-id-input'); },
+    get customModelLabelInput() { return getElement<HTMLInputElement>('custom-model-label-input'); },
+    get testSaveCustomModelBtn() { return getElement<HTMLButtonElement>('test-save-custom-model-btn'); },
+    get customModelStatus() { return getElement<HTMLElement>('custom-model-status'); },
+    get customModelsList() { return getElement<HTMLUListElement>('custom-models-list'); },
+    get customModelsEmpty() { return getElement<HTMLElement>('custom-models-empty'); },
+
     // ========== ML Section ==========
     get mlSection() { return getElement<HTMLElement>('ml-section'); },
     get mlSettingsBtn() { return getElement<HTMLButtonElement>('ml-settings-btn'); },

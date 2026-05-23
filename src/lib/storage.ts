@@ -9,6 +9,11 @@ const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
 const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter_api_key';
 const OPENROUTER_API_KEY_SAVE_PREFERENCE = 'openrouter_api_key_save_preference';
 
+// ユーザーが手動追加した OpenRouter モデル ID 一覧。実 API 試行に成功したもののみ保存する
+const OPENROUTER_CUSTOM_MODELS_KEY = 'openrouter_custom_models';
+/** カスタム OpenRouter モデルの上限（chrome.storage.local 5MB 制限に余裕を持たせた値） */
+export const OPENROUTER_CUSTOM_MODELS_LIMIT = 20;
+
 function bytesToBase64(bytes: Uint8Array): string {
     let binary = '';
     for (const b of bytes) {
@@ -364,4 +369,65 @@ export async function getEffectiveOpenRouterApiKey(): Promise<string | null> {
         return null;
     }
     return await getOpenRouterApiKey();
+}
+
+// ========== OpenRouter カスタムモデル ==========
+// ユーザーが手入力し、API 試行成功で永続化された OpenRouter モデルの管理。
+// ビルトイン AVAILABLE_MODELS と合成して使うため、保存形式は最小限（id と任意のラベル）。
+
+export interface CustomOpenRouterModel {
+    id: string;
+    label?: string;
+    addedAt: string;
+}
+
+export type AddCustomOpenRouterModelResult =
+    | { added: true }
+    | { added: false; reason: 'invalid' | 'duplicate' | 'limit' };
+
+export async function getCustomOpenRouterModels(): Promise<CustomOpenRouterModel[]> {
+    if (typeof chrome === 'undefined' || !chrome.storage) return [];
+    const result = await chrome.storage.local.get([OPENROUTER_CUSTOM_MODELS_KEY]);
+    const raw = result[OPENROUTER_CUSTOM_MODELS_KEY];
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((entry): CustomOpenRouterModel[] => {
+        if (typeof entry !== 'object' || entry === null) return [];
+        const obj = entry as { id?: unknown; label?: unknown; addedAt?: unknown };
+        if (typeof obj.id !== 'string' || obj.id.length === 0) return [];
+        return [{
+            id: obj.id,
+            label: typeof obj.label === 'string' && obj.label.length > 0 ? obj.label : undefined,
+            addedAt: typeof obj.addedAt === 'string' ? obj.addedAt : new Date().toISOString(),
+        }];
+    });
+}
+
+/**
+ * カスタム OpenRouter モデルを追加する。
+ * - id 空 or 形式不正 → invalid
+ * - 既存と重複 → duplicate
+ * - 上限超過 → limit
+ */
+export async function addCustomOpenRouterModel(input: { id: string; label?: string }): Promise<AddCustomOpenRouterModelResult> {
+    const id = input.id.trim();
+    if (!id) return { added: false, reason: 'invalid' };
+    const existing = await getCustomOpenRouterModels();
+    if (existing.some(m => m.id === id)) return { added: false, reason: 'duplicate' };
+    if (existing.length >= OPENROUTER_CUSTOM_MODELS_LIMIT) return { added: false, reason: 'limit' };
+    const entry: CustomOpenRouterModel = {
+        id,
+        label: input.label?.trim() || undefined,
+        addedAt: new Date().toISOString(),
+    };
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+        await chrome.storage.local.set({ [OPENROUTER_CUSTOM_MODELS_KEY]: [...existing, entry] });
+    }
+    return { added: true };
+}
+
+export async function removeCustomOpenRouterModel(modelId: string): Promise<void> {
+    if (typeof chrome === 'undefined' || !chrome.storage) return;
+    const existing = await getCustomOpenRouterModels();
+    const next = existing.filter(m => m.id !== modelId);
+    await chrome.storage.local.set({ [OPENROUTER_CUSTOM_MODELS_KEY]: next });
 }
