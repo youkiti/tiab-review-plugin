@@ -6,8 +6,9 @@ import { dom } from '../../dom';
 import { state } from '../../state';
 import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';
-import { getEffectiveApiKey } from '../../../lib/storage';
-import { convertCriteria, GeminiModelConfig, getStandardCriteriaFields } from '../../../lib/gemini-api';
+import { getEffectiveApiKey, getEffectiveOpenRouterApiKey } from '../../../lib/storage';
+import { getStandardCriteriaFields, AVAILABLE_MODELS, getModelConfig } from '../../../lib/gemini-api';
+import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
@@ -57,9 +58,16 @@ export async function handleOptimizeCriteria() {
         return;
     }
 
-    const apiKey = await getEffectiveApiKey();
+    // 選択中のモデルから provider を判定し、必要な API キーを取得
+    const selectedModelId = dom.llmModelSelect.value;
+    const selectedProvider = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
+    const apiKey = selectedProvider === 'openrouter'
+        ? await getEffectiveOpenRouterApiKey()
+        : await getEffectiveApiKey();
     if (!apiKey) {
-        showToast(t('llm_apiKeyRequired'));
+        showToast(selectedProvider === 'openrouter'
+            ? t('llm_openRouterApiKeyRequired')
+            : t('llm_apiKeyRequired'));
         return;
     }
 
@@ -69,19 +77,22 @@ export async function handleOptimizeCriteria() {
         dom.optimizeStatusDiv.className = 'optimize-status loading';
         dom.optimizeStatusDiv.classList.remove('hidden');
 
-        const modelConfig: GeminiModelConfig = {
-            model: dom.llmModelSelect.value,
-            temperature: 0,
-            maxOutputTokens: 4096,
-        };
-        if (modelConfig.model === 'gemini-3-flash-preview') {
-            modelConfig.thinkingLevel = 'MINIMAL';
-        }
-
-        const result = await convertCriteria(
+        // 選択中モデルの既定設定を取得し、criteria 用に出力上限だけ上書きする
+        const baseConfig = getModelConfig(selectedModelId);
+        const params = {
             protocolText,
-            modelConfig,
-            dom.llmLanguageSelect.value,
+            model: baseConfig.model,
+            temperature: baseConfig.temperature,
+            topP: baseConfig.topP,
+            thinkingLevel: baseConfig.model === 'gemini-3-flash-preview' ? 'MINIMAL' : baseConfig.thinkingLevel,
+            reasoningEffort: baseConfig.reasoningEffort,
+            maxOutputTokens: 4096,
+            outputLanguage: dom.llmLanguageSelect.value,
+        };
+
+        const result = await convertCriteriaWithProvider(
+            selectedProvider,
+            params,
             {
                 onRetry: (attempt, maxRetries) => {
                     dom.optimizeStatusDiv.textContent = getRetryStatusText(attempt, maxRetries);

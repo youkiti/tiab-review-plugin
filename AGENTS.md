@@ -132,7 +132,9 @@ Google スプレッドシートを共有データベースとして使用し、�
    - 全体の対象件数（レビュー対象総数）
 7. **LLMスクリーニング支援**
 
-   - **APIキー設定**: Gemini APIキーの保存・管理
+   - **APIキー設定**: Gemini / OpenRouter APIキーの保存・管理 (provider 別に独立保管)
+   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
+   - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: 未判定文献に対するLLMによる自動判定（バッチ処理）
    - **結果表示**: LLMの判定結果・理由の表示

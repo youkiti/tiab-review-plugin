@@ -1,0 +1,50 @@
+{
+  "experimentId": "OR-K1_2026-05-23T12-07-36",
+  "startTime": "2026-05-23T12:07:36.994Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "sampleSize": 50,
+    "condition": {
+      "id": "OR-K1",
+      "provider": "openrouter",
+      "model": "moonshotai/kimi-k2-thinking",
+      "temperature": 1,
+      "reasoningEffort": "medium",
+      "rateLimit": "openrouter_thinking",
+      "note": "Kimi K2 Thinking。tool/reasoning志向。SR用途では未検証"
+    },
+    "rateLimitName": "openrouter_thinking",
+    "rateLimitConfig": {
+      "concurrency": 5,
+      "delayBetweenRequests": 500
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 50,
+    "successCount": 50,
+    "failCount": 0,
+    "durationMs": 2405549,
+    "avgTimePerItem": 48110.98,
+    "tokensTotal": {
+      "prompt": 26987,
+      "completion": 393224,
+      "reasoning": 356121
+    },
+    "estimatedCostUsd": 1.8895547000000001
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 8,
+    "falsePositives": 4,
+    "trueNegatives": 38,
+    "falseNegatives": 0,
+    "sensitivity": 1,
+    "specificity": 0.9047619047619048,
+    "precision": 0.6666666666666666,
+    "fBetaScore": 0.99009900990099
+  },
+  "endTime": "2026-05-23T12:47:42.548Z"
+}

@@ -14,7 +14,8 @@ import type {
     LlmModelResponseMetadata,
 } from './types';
 import { RATE_LIMIT_PAID } from './types';
-import { screenReference, GeminiModelConfig } from './gemini-api';
+import { GeminiModelConfig, AVAILABLE_MODELS } from './gemini-api';
+import { resolveProviderId, screenWithProvider } from './llm-provider';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
 
@@ -189,15 +190,21 @@ async function processWithRetry(
     maxRetries: number = 2
 ): Promise<ProcessOutcome> {
     let lastErrorMessage = 'Unknown error';
+    const providerId = resolveProviderId(modelConfig.model, AVAILABLE_MODELS);
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-            const { output, usageMetadata, responseMetadata } = await screenReference(
-                ref.title,
-                ref.abstract || '',
+            const { output, usageMetadata, responseMetadata } = await screenWithProvider(providerId, {
+                title: ref.title,
+                abstract: ref.abstract || '',
                 screeningPrompt,
-                modelConfig,
-                outputLanguage
-            );
+                model: modelConfig.model,
+                temperature: modelConfig.temperature,
+                topP: modelConfig.topP,
+                thinkingLevel: modelConfig.thinkingLevel,
+                reasoningEffort: modelConfig.reasoningEffort,
+                maxOutputTokens: modelConfig.maxOutputTokens,
+                outputLanguage,
+            });
 
             const noteData = createLlmDecisionNote(executionId, model, output, usageMetadata, responseMetadata);
             const decision: Decision = {

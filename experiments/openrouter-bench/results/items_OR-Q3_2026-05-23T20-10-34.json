@@ -1,0 +1,3446 @@
+[
+  {
+    "ref_id": "Depression-SLIM-1",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivo動物モデルに関する研究ではない。研究対象はグルコースアナログの細胞輸送過程への影響であり、うつ病とは無関係である。"
+    ],
+    "durationMs": 3357,
+    "usage": {
+      "prompt": 807,
+      "completion": 69,
+      "reasoning": 0,
+      "total": 876
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-3",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒト研究を対象としており、in vivo動物モデルに関する記述がない"
+    ],
+    "durationMs": 4840,
+    "usage": {
+      "prompt": 482,
+      "completion": 118,
+      "reasoning": 0,
+      "total": 600
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-2",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は生殖機能の低下を指しており、うつ病モデルではない",
+      "対象はラットであるが、うつ病のin vivoモデルに関する記述はない"
+    ],
+    "durationMs": 4958,
+    "usage": {
+      "prompt": 560,
+      "completion": 118,
+      "reasoning": 0,
+      "total": 678
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-7",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "慢性予測不能ストレス（CUS）ラットモデルはうつ病のin vivo動物モデルであり、研究対象が動物であるため"
+    ],
+    "durationMs": 5141,
+    "usage": {
+      "prompt": 688,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 810
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-9",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸性または代謝性の抑制（anoxiaによる酵素活性の低下）を指しており、うつ病モデルではない",
+      "対象は魚類だが、うつ病のin vivoモデルとしての記述は一切ない"
+    ],
+    "durationMs": 5627,
+    "usage": {
+      "prompt": 737,
+      "completion": 147,
+      "reasoning": 0,
+      "total": 884
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-5",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく、敗血症による肝細胞機能の抑制（hepatocellular depression）を指している",
+      "うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 6138,
+    "usage": {
+      "prompt": 1033,
+      "completion": 161,
+      "reasoning": 0,
+      "total": 1194
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-10",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒト以外の動物（犬）であるが、「depression」は中毒症状としての抑うつ状態を指しており、うつ病の動物モデルではないと判断される。研究目的は鉛中毒の生理学的影響の評価であり、うつ病の病態や治療の検討ではない。"
+    ],
+    "durationMs": 6359,
+    "usage": {
+      "prompt": 733,
+      "completion": 148,
+      "reasoning": 0,
+      "total": 881
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-6",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "慢性軽度ストレス（CMS）ラットモデルを用いたうつ病の動物実験であり、明確にin vivoモデルである"
+    ],
+    "durationMs": 6483,
+    "usage": {
+      "prompt": 755,
+      "completion": 168,
+      "reasoning": 0,
+      "total": 923
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-4",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "対象がラットを用いたうつ病モデルのin vivo研究であり、ヒト研究や呼吸・循環抑制などの他の意味での「depression」ではない"
+    ],
+    "durationMs": 6808,
+    "usage": {
+      "prompt": 759,
+      "completion": 182,
+      "reasoning": 0,
+      "total": 941
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-8",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたうつ病のin vivoモデル研究であり、行動試験（尾懸垂試験および強制水泳試験）で抗うつ様作用を評価している"
+    ],
+    "durationMs": 7090,
+    "usage": {
+      "prompt": 827,
+      "completion": 194,
+      "reasoning": 0,
+      "total": 1021
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-13",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「うつ病」や「depression」が含まれておらず、片頭痛に関する研究であるため動物モデルのうつ病研究とは無関係と判断される"
+    ],
+    "durationMs": 2827,
+    "usage": {
+      "prompt": 397,
+      "completion": 64,
+      "reasoning": 0,
+      "total": 461
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-18",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivoモデルに関する研究ではなく、四肢再生に関する両生類の研究である"
+    ],
+    "durationMs": 2601,
+    "usage": {
+      "prompt": 688,
+      "completion": 50,
+      "reasoning": 0,
+      "total": 738
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-14",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸性抑制（respiratory depression）を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4014,
+    "usage": {
+      "prompt": 588,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 687
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-11",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や心機能抑制（心筋収縮力低下）を指しており、うつ病（depression as a mental disorder）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 5964,
+    "usage": {
+      "prompt": 952,
+      "completion": 163,
+      "reasoning": 0,
+      "total": 1115
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-12",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒトを含む研究であり、うつ病のin vivo動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4642,
+    "usage": {
+      "prompt": 649,
+      "completion": 123,
+      "reasoning": 0,
+      "total": 772
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-16",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や皮質拡延性抑制など、うつ病以外の意味で使用されている可能性が高い"
+    ],
+    "durationMs": 3770,
+    "usage": {
+      "prompt": 407,
+      "completion": 95,
+      "reasoning": 0,
+      "total": 502
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-17",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく近親交配による劣勢（inbreeding depression）を指しており、精神疾患の動物モデルではない"
+    ],
+    "durationMs": 4056,
+    "usage": {
+      "prompt": 1159,
+      "completion": 103,
+      "reasoning": 0,
+      "total": 1262
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-15",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が心臓の機能低下（心拍数の抑制）を指しており、うつ病モデルではない",
+      "対象はラット心臓の虚血モデルであり、うつ病のin vivo動物モデルではない"
+    ],
+    "durationMs": 5019,
+    "usage": {
+      "prompt": 680,
+      "completion": 141,
+      "reasoning": 0,
+      "total": 821
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-20",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、視床下部-下垂体-副腎系の機能に関する研究である"
+    ],
+    "durationMs": 4399,
+    "usage": {
+      "prompt": 518,
+      "completion": 117,
+      "reasoning": 0,
+      "total": 635
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-19",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "うつ病のin vivo動物モデル（ラット）を用いた研究であり、人間の研究や呼吸・心臓の抑制とは無関係である"
+    ],
+    "durationMs": 6918,
+    "usage": {
+      "prompt": 647,
+      "completion": 178,
+      "reasoning": 0,
+      "total": 825
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-21",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15737
+  },
+  {
+    "ref_id": "Depression-SLIM-22",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15607
+  },
+  {
+    "ref_id": "Depression-SLIM-25",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究である可能性が極めて低い"
+    ],
+    "durationMs": 17980,
+    "usage": {
+      "prompt": 409,
+      "completion": 55,
+      "reasoning": 0,
+      "total": 464
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-27",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルおよび抄録にうつ病（depression）や動物モデルに関する記述がなく、ミトコンドリア呼吸に関する生化学的研究と推定されるため"
+    ],
+    "durationMs": 18533,
+    "usage": {
+      "prompt": 408,
+      "completion": 66,
+      "reasoning": 0,
+      "total": 474
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-32",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が免疫機能の低下（免疫抑制）を指しており、うつ病モデルではない",
+      "研究対象はマイコプラズマ肺炎感染ラットであり、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 4759,
+    "usage": {
+      "prompt": 584,
+      "completion": 127,
+      "reasoning": 0,
+      "total": 711
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-26",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、四塩化炭素による肝臓および尿中アスコルビン酸濃度への影響を調べた研究である"
+    ],
+    "durationMs": 20102,
+    "usage": {
+      "prompt": 419,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 550
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-23",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病の動物モデルではなく、不安様行動に焦点を当てた研究である"
+    ],
+    "durationMs": 20938,
+    "usage": {
+      "prompt": 717,
+      "completion": 142,
+      "reasoning": 0,
+      "total": 859
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-24",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "うつ病の動物モデル（ラット）を用いた研究であり、抗うつ薬の効果を評価しているため"
+    ],
+    "durationMs": 20879,
+    "usage": {
+      "prompt": 824,
+      "completion": 157,
+      "reasoning": 0,
+      "total": 981
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-28",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "in vivo動物モデル（NETノックアウトマウス）を用いたうつ病関連研究であり、明確に動物実験である"
+    ],
+    "durationMs": 19838,
+    "usage": {
+      "prompt": 717,
+      "completion": 116,
+      "reasoning": 0,
+      "total": 833
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-29",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルから動物モデルのうつ病研究であることを示す根拠がなく、むしろ腫瘍細胞に関する研究であると推測されるため"
+    ],
+    "durationMs": 19355,
+    "usage": {
+      "prompt": 405,
+      "completion": 105,
+      "reasoning": 0,
+      "total": 510
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-33",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」はDNA合成活性の抑制を指しており、うつ病モデルではない",
+      "研究は肝臓再生と発がんに関するもので、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 5120,
+    "usage": {
+      "prompt": 671,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 791
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-30",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」とは呼吸器疾患に伴う抑うつ状態を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 19348,
+    "usage": {
+      "prompt": 634,
+      "completion": 105,
+      "reasoning": 0,
+      "total": 739
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-37",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象が古生物学・霊長類の足首骨の形態に関する研究であり、うつ病のin vivo動物モデルを扱っていない"
+    ],
+    "durationMs": 2829,
+    "usage": {
+      "prompt": 824,
+      "completion": 63,
+      "reasoning": 0,
+      "total": 887
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-34",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制（respiratory depression）を指しており、うつ病モデルの動物研究ではない"
+    ],
+    "durationMs": 4389,
+    "usage": {
+      "prompt": 668,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 788
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-31",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒトを対象とした精神分析的ケーススタディであり、動物モデルのうつ病研究ではない"
+    ],
+    "durationMs": 10184,
+    "usage": {
+      "prompt": 577,
+      "completion": 112,
+      "reasoning": 0,
+      "total": 689
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-36",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒトを対象とした症例報告であり、動物モデルのうつ病研究ではない"
+    ],
+    "durationMs": 3921,
+    "usage": {
+      "prompt": 589,
+      "completion": 96,
+      "reasoning": 0,
+      "total": 685
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-40",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が運動抑制（locomotionの低下）を指しており、うつ病モデルではない"
+    ],
+    "durationMs": 3563,
+    "usage": {
+      "prompt": 572,
+      "completion": 96,
+      "reasoning": 0,
+      "total": 668
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-35",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が酵素活性の低下を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 5388,
+    "usage": {
+      "prompt": 733,
+      "completion": 148,
+      "reasoning": 0,
+      "total": 881
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-39",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が気分障害としてのうつ病ではなく、長期抑圧（long-term depression, LTD）という神経生理学的現象を指しているため、対象外である"
+    ],
+    "durationMs": 5745,
+    "usage": {
+      "prompt": 785,
+      "completion": 156,
+      "reasoning": 0,
+      "total": 941
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-38",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "嗅覚球摘出ラットを用いたうつ病のin vivo動物モデルに関する研究であり、ヒト研究ではなく、呼吸抑圧などの他の意味での「depression」ではない"
+    ],
+    "durationMs": 6231,
+    "usage": {
+      "prompt": 753,
+      "completion": 184,
+      "reasoning": 0,
+      "total": 937
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-41",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は呼吸器や循環器系の機能低下を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 3974,
+    "usage": {
+      "prompt": 790,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 898
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-42",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や代謝抑制などうつ病以外の文脈で使用されており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4453,
+    "usage": {
+      "prompt": 855,
+      "completion": 113,
+      "reasoning": 0,
+      "total": 968
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-43",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15693
+  },
+  {
+    "ref_id": "Depression-SLIM-44",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15577
+  },
+  {
+    "ref_id": "Depression-SLIM-45",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15583
+  },
+  {
+    "ref_id": "Depression-SLIM-46",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15570
+  },
+  {
+    "ref_id": "Depression-SLIM-47",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15573
+  },
+  {
+    "ref_id": "Depression-SLIM-48",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15685
+  },
+  {
+    "ref_id": "Depression-SLIM-49",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15581
+  },
+  {
+    "ref_id": "Depression-SLIM-50",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15625
+  },
+  {
+    "ref_id": "Depression-SLIM-51",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15578
+  },
+  {
+    "ref_id": "Depression-SLIM-52",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15587
+  },
+  {
+    "ref_id": "Depression-SLIM-53",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15718
+  },
+  {
+    "ref_id": "Depression-SLIM-54",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15652
+  },
+  {
+    "ref_id": "Depression-SLIM-55",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15600
+  },
+  {
+    "ref_id": "Depression-SLIM-56",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15603
+  },
+  {
+    "ref_id": "Depression-SLIM-57",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15614
+  },
+  {
+    "ref_id": "Depression-SLIM-58",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15928
+  },
+  {
+    "ref_id": "Depression-SLIM-59",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15583
+  },
+  {
+    "ref_id": "Depression-SLIM-60",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15591
+  },
+  {
+    "ref_id": "Depression-SLIM-61",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15624
+  },
+  {
+    "ref_id": "Depression-SLIM-62",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15561
+  },
+  {
+    "ref_id": "Depression-SLIM-63",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15675
+  },
+  {
+    "ref_id": "Depression-SLIM-64",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15643
+  },
+  {
+    "ref_id": "Depression-SLIM-65",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15591
+  },
+  {
+    "ref_id": "Depression-SLIM-66",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15604
+  },
+  {
+    "ref_id": "Depression-SLIM-67",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15968
+  },
+  {
+    "ref_id": "Depression-SLIM-68",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15565
+  },
+  {
+    "ref_id": "Depression-SLIM-69",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15571
+  },
+  {
+    "ref_id": "Depression-SLIM-70",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15576
+  },
+  {
+    "ref_id": "Depression-SLIM-71",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15612
+  },
+  {
+    "ref_id": "Depression-SLIM-81",
+    "label_included": 0,
+    "include_probability": 0.5,
+    "reasons": [
+      "タイトルに「rat brain」とあるため動物実験の可能性があるが、うつ病モデルかどうかは不明であり、抄録がないため判断できない"
+    ],
+    "durationMs": 3776,
+    "usage": {
+      "prompt": 413,
+      "completion": 101,
+      "reasoning": 0,
+      "total": 514
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-74",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がin vivoモデルではなく、in vitroのラット海馬スライスを用いた実験であるため"
+    ],
+    "durationMs": 9087,
+    "usage": {
+      "prompt": 842,
+      "completion": 104,
+      "reasoning": 0,
+      "total": 946
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-76",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が心筋収縮の抑制（cardiac depression）を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 9610,
+    "usage": {
+      "prompt": 762,
+      "completion": 110,
+      "reasoning": 0,
+      "total": 872
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-72",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivoモデルではなく、前庭眼反射に関する動物研究である"
+    ],
+    "durationMs": 21835,
+    "usage": {
+      "prompt": 770,
+      "completion": 184,
+      "reasoning": 0,
+      "total": 954
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-75",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒトではなくイヌであるが、うつ病モデルではなく麻酔下におけるフェンタニルによる呼吸抑制と鎮痛の研究であり、精神疾患としての「うつ病（depression）」を対象としていない"
+    ],
+    "durationMs": 11256,
+    "usage": {
+      "prompt": 1029,
+      "completion": 170,
+      "reasoning": 0,
+      "total": 1199
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-73",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は感覚活動の抑制（感覚抑圧）を指しており、うつ病モデルではない",
+      "対象はラットだが、うつ病のin vivoモデルではなく疼痛反応の研究"
+    ],
+    "durationMs": 12009,
+    "usage": {
+      "prompt": 808,
+      "completion": 196,
+      "reasoning": 0,
+      "total": 1004
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-78",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒトを対象とした研究であり、動物モデルではない"
+    ],
+    "durationMs": 9833,
+    "usage": {
+      "prompt": 563,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 684
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-79",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、ラット精巣におけるテストステロン生合成に関する研究である"
+    ],
+    "durationMs": 9475,
+    "usage": {
+      "prompt": 412,
+      "completion": 109,
+      "reasoning": 0,
+      "total": 521
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-77",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が気分障害としてのうつ病ではなく、長期抑圧（long-term depression, LTD）という神経科学の用語を指している",
+      "動物実験やin vivoモデルに関する記述が抄録に含まれていない"
+    ],
+    "durationMs": 11397,
+    "usage": {
+      "prompt": 649,
+      "completion": 183,
+      "reasoning": 0,
+      "total": 832
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-80",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、ニワトリ胚の心臓のコリン作動性反応に関する研究である。「depression」が呼吸抑制や心機能抑制などの文脈で使われている可能性があり、うつ病とは無関係である"
+    ],
+    "durationMs": 10713,
+    "usage": {
+      "prompt": 418,
+      "completion": 152,
+      "reasoning": 0,
+      "total": 570
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-82",
+    "label_included": 0,
+    "include_probability": 1,
+    "reasons": [
+      "うつ病の動物モデル（ラット）を用いた研究であり、in vivoでの行動および分子レベルの評価が含まれている。"
+    ],
+    "durationMs": 6980,
+    "usage": {
+      "prompt": 901,
+      "completion": 182,
+      "reasoning": 0,
+      "total": 1083
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-89",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究であることを示す根拠がない"
+    ],
+    "durationMs": 2407,
+    "usage": {
+      "prompt": 414,
+      "completion": 57,
+      "reasoning": 0,
+      "total": 471
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-84",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は呼吸・循環・消化などの生理的抑制（繊維消化率の低下）を指しており、うつ病モデルではない",
+      "対象はウシでありうつ病のin vivo動物モデル研究ではない"
+    ],
+    "durationMs": 4798,
+    "usage": {
+      "prompt": 616,
+      "completion": 126,
+      "reasoning": 0,
+      "total": 742
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-86",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が心筋収縮の抑制（cardiac depression）を指しており、うつ病の動物モデルではない"
+    ],
+    "durationMs": 4335,
+    "usage": {
+      "prompt": 918,
+      "completion": 118,
+      "reasoning": 0,
+      "total": 1036
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-85",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depresses」や「depression」は神経活動の抑制を指しており、うつ病（depression）の動物モデルではない。対象は脊髄切断猫であり、うつ病の研究ではない。"
+    ],
+    "durationMs": 5823,
+    "usage": {
+      "prompt": 615,
+      "completion": 161,
+      "reasoning": 0,
+      "total": 776
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-87",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が精神疾患としてのうつ病ではなく、一般的な症状（意気消沈、抑うつ状態）を指しており、対象が猫の臨床症例であるため動物モデル研究ではない"
+    ],
+    "durationMs": 4550,
+    "usage": {
+      "prompt": 506,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 628
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-83",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は免疫機能の抑制（immunosuppression）を指しており、うつ病モデルではない",
+      "対象は閉塞性黄疸による免疫抑制の動物モデルであり、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 7635,
+    "usage": {
+      "prompt": 736,
+      "completion": 227,
+      "reasoning": 0,
+      "total": 963
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-88",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が免疫反応の抑制（免疫抑制）を指しており、うつ病（depression）の動物モデルではない",
+      "対象がうつ病ではなく免疫系の機能に関する研究である"
+    ],
+    "durationMs": 4860,
+    "usage": {
+      "prompt": 682,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 806
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-90",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や代謝抑制を指しており、うつ病モデルではない",
+      "対象がラットであるが、うつ病のin vivoモデルに関する研究ではない"
+    ],
+    "durationMs": 5646,
+    "usage": {
+      "prompt": 666,
+      "completion": 164,
+      "reasoning": 0,
+      "total": 830
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-91",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivoモデルに関する研究ではなく、側坐核損傷ラットの浸透圧応答に関する研究である"
+    ],
+    "durationMs": 6282,
+    "usage": {
+      "prompt": 578,
+      "completion": 179,
+      "reasoning": 0,
+      "total": 757
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-92",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15669
+  },
+  {
+    "ref_id": "Depression-SLIM-93",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15640
+  },
+  {
+    "ref_id": "Depression-SLIM-94",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15642
+  },
+  {
+    "ref_id": "Depression-SLIM-95",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15583
+  },
+  {
+    "ref_id": "Depression-SLIM-96",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15588
+  },
+  {
+    "ref_id": "Depression-SLIM-97",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15600
+  },
+  {
+    "ref_id": "Depression-SLIM-99",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15599
+  },
+  {
+    "ref_id": "Depression-SLIM-98",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15667
+  },
+  {
+    "ref_id": "Depression-SLIM-100",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15934
+  },
+  {
+    "ref_id": "Depression-SLIM-101",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 16002
+  },
+  {
+    "ref_id": "Depression-SLIM-102",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15641
+  },
+  {
+    "ref_id": "Depression-SLIM-103",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15719
+  },
+  {
+    "ref_id": "Depression-SLIM-104",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15592
+  },
+  {
+    "ref_id": "Depression-SLIM-105",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15601
+  },
+  {
+    "ref_id": "Depression-SLIM-106",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15635
+  },
+  {
+    "ref_id": "Depression-SLIM-107",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15576
+  },
+  {
+    "ref_id": "Depression-SLIM-108",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15592
+  },
+  {
+    "ref_id": "Depression-SLIM-109",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15606
+  },
+  {
+    "ref_id": "Depression-SLIM-110",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15575
+  },
+  {
+    "ref_id": "Depression-SLIM-111",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15596
+  },
+  {
+    "ref_id": "Depression-SLIM-112",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15623
+  },
+  {
+    "ref_id": "Depression-SLIM-113",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15639
+  },
+  {
+    "ref_id": "Depression-SLIM-114",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15784
+  },
+  {
+    "ref_id": "Depression-SLIM-115",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15582
+  },
+  {
+    "ref_id": "Depression-SLIM-125",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivo動物モデルに関する研究ではなく、ラット脳由来の酵素（NOシンターゼ）に対する銅錯体の阻害作用を調べた生化学的研究である"
+    ],
+    "durationMs": 4431,
+    "usage": {
+      "prompt": 681,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 801
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-116",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたうつ病関連の行動試験（強制泳泳試験、オープンフィールド試験）が実施されており、in vivo動物モデルの研究であることが明確"
+    ],
+    "durationMs": 21814,
+    "usage": {
+      "prompt": 772,
+      "completion": 179,
+      "reasoning": 0,
+      "total": 951
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-118",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "in vivoマウスモデルを用いてうつ病様行動を評価しており、対象とする動物研究に該当する"
+    ],
+    "durationMs": 21482,
+    "usage": {
+      "prompt": 648,
+      "completion": 170,
+      "reasoning": 0,
+      "total": 818
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-117",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や循環抑制など生理学的な抑制（depressor反応）を指しており、うつ病モデルではない",
+      "対象はウサギだが、うつ病のin vivoモデルに関する研究ではない",
+      "うつ病（depression）の精神疾患としての文脈が全くない"
+    ],
+    "durationMs": 21888,
+    "usage": {
+      "prompt": 590,
+      "completion": 188,
+      "reasoning": 0,
+      "total": 778
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-119",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく心筋収縮抑制を指しており、うつ病のin vivo動物モデルに関する研究ではない"
+    ],
+    "durationMs": 21632,
+    "usage": {
+      "prompt": 998,
+      "completion": 181,
+      "reasoning": 0,
+      "total": 1179
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-122",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivo動物モデルではなく、てんかん活動の研究である"
+    ],
+    "durationMs": 10174,
+    "usage": {
+      "prompt": 763,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 898
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-120",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivo動物モデルではなく、てんかん様発作および拡張性抑制を調べたin vitro脳スライス実験である"
+    ],
+    "durationMs": 21980,
+    "usage": {
+      "prompt": 1061,
+      "completion": 177,
+      "reasoning": 0,
+      "total": 1238
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-124",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivo動物モデルではなく、海馬シナプスにおける長期抑圧（LTD）の分子メカニズムに関するin vitroまたは細胞レベルの研究である"
+    ],
+    "durationMs": 10028,
+    "usage": {
+      "prompt": 625,
+      "completion": 136,
+      "reasoning": 0,
+      "total": 761
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-126",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は呼吸抑制や心機能低下などの生理的抑制を指しており、うつ病モデルではない",
+      "研究はラットの胃を用いたin vitro実験であり、うつ病のin vivo動物モデルではない"
+    ],
+    "durationMs": 4785,
+    "usage": {
+      "prompt": 1011,
+      "completion": 132,
+      "reasoning": 0,
+      "total": 1143
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-128",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivo動物モデルに関する研究ではない",
+      "「depression」が呼吸抑制や心機能抑制などを指す可能性もなく、そもそもうつ病に関連しない内容"
+    ],
+    "durationMs": 3101,
+    "usage": {
+      "prompt": 737,
+      "completion": 68,
+      "reasoning": 0,
+      "total": 805
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-127",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制（respiratory depression）を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 3796,
+    "usage": {
+      "prompt": 401,
+      "completion": 97,
+      "reasoning": 0,
+      "total": 498
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-129",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が「cardiodepressant」（心機能抑制）を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4601,
+    "usage": {
+      "prompt": 717,
+      "completion": 117,
+      "reasoning": 0,
+      "total": 834
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-123",
+    "label_included": 0,
+    "include_probability": 1,
+    "reasons": [
+      "条件付き敗北(conditioned defeat)はうつ病の動物モデルとして用いられ、本研究はハムスターを用いたin vivo実験であるため、対象となる"
+    ],
+    "durationMs": 12556,
+    "usage": {
+      "prompt": 699,
+      "completion": 205,
+      "reasoning": 0,
+      "total": 904
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-121",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "慢性コルチコステロン処置によるうつ病様行動を評価したin vivo動物モデル研究であり、ヒト研究ではなく、呼吸抑制や心機能抑制などの「depression」とは無関係である"
+    ],
+    "durationMs": 23560,
+    "usage": {
+      "prompt": 745,
+      "completion": 247,
+      "reasoning": 0,
+      "total": 992
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-130",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒトの感情障害（affective illness）に関する議論であり、うつ病のin vivo動物モデルを用いた研究ではない。動物実験はアミグダラkindlingモデルのてんかん様現象に焦点を当てており、「うつ病」そのものの動物モデルではない。"
+    ],
+    "durationMs": 6235,
+    "usage": {
+      "prompt": 658,
+      "completion": 176,
+      "reasoning": 0,
+      "total": 834
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-133",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は神経生理学的な反射抑制を指しており、うつ病（depression as a mood disorder）の動物モデルではない"
+    ],
+    "durationMs": 4228,
+    "usage": {
+      "prompt": 719,
+      "completion": 116,
+      "reasoning": 0,
+      "total": 835
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-131",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、ヒスチジン血症の代謝研究である"
+    ],
+    "durationMs": 5930,
+    "usage": {
+      "prompt": 722,
+      "completion": 161,
+      "reasoning": 0,
+      "total": 883
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-132",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく皮質拡延性抑制（cortical spreading depression）を指しており、呼吸・循環器系の抑制とは異なるが、精神疾患としてのうつ病の動物モデルではない"
+    ],
+    "durationMs": 6006,
+    "usage": {
+      "prompt": 542,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 707
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-134",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」という用語が神経生理学的抑制（皮質応答の抑制）を指しており、うつ病モデルではない",
+      "うつ病（depression）のin vivo動物モデルに関する記述が全くない",
+      "対象がけいれんおよび神経伝達の抑制であり、精神疾患としてのうつ病とは無関係"
+    ],
+    "durationMs": 5927,
+    "usage": {
+      "prompt": 600,
+      "completion": 173,
+      "reasoning": 0,
+      "total": 773
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-135",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いた行動的絶望（泳ぎ）モデルによるうつ病の動物実験であり、ヒト研究ではなく、呼吸抑圧などの他の意味での「depression」ではない。"
+    ],
+    "durationMs": 5807,
+    "usage": {
+      "prompt": 579,
+      "completion": 160,
+      "reasoning": 0,
+      "total": 739
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-136",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15648
+  },
+  {
+    "ref_id": "Depression-SLIM-137",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15627
+  },
+  {
+    "ref_id": "Depression-SLIM-138",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15703
+  },
+  {
+    "ref_id": "Depression-SLIM-139",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15610
+  },
+  {
+    "ref_id": "Depression-SLIM-140",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15583
+  },
+  {
+    "ref_id": "Depression-SLIM-141",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15579
+  },
+  {
+    "ref_id": "Depression-SLIM-142",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15616
+  },
+  {
+    "ref_id": "Depression-SLIM-143",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15609
+  },
+  {
+    "ref_id": "Depression-SLIM-145",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15598
+  },
+  {
+    "ref_id": "Depression-SLIM-144",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 16667
+  },
+  {
+    "ref_id": "Depression-SLIM-146",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15599
+  },
+  {
+    "ref_id": "Depression-SLIM-147",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15615
+  },
+  {
+    "ref_id": "Depression-SLIM-148",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15592
+  },
+  {
+    "ref_id": "Depression-SLIM-149",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15641
+  },
+  {
+    "ref_id": "Depression-SLIM-150",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15618
+  },
+  {
+    "ref_id": "Depression-SLIM-151",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15620
+  },
+  {
+    "ref_id": "Depression-SLIM-152",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15601
+  },
+  {
+    "ref_id": "Depression-SLIM-153",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15605
+  },
+  {
+    "ref_id": "Depression-SLIM-154",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15605
+  },
+  {
+    "ref_id": "Depression-SLIM-155",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15626
+  },
+  {
+    "ref_id": "Depression-SLIM-156",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15591
+  },
+  {
+    "ref_id": "Depression-SLIM-157",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15735
+  },
+  {
+    "ref_id": "Depression-SLIM-158",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15653
+  },
+  {
+    "ref_id": "Depression-SLIM-159",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15581
+  },
+  {
+    "ref_id": "Depression-SLIM-161",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」やうつ病、動物モデルに関する記述がなく、抄録が存在しないため、対象外と判断できる"
+    ],
+    "durationMs": 18366,
+    "usage": {
+      "prompt": 402,
+      "completion": 64,
+      "reasoning": 0,
+      "total": 466
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-160",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が心機能低下（cardiac depression）を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 19297,
+    "usage": {
+      "prompt": 665,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 764
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-169",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく中枢神経抑制（central depressant effect）を指しており、呼吸抑制や心機能抑制と同様に精神疾患としてのうつ病とは無関係である"
+    ],
+    "durationMs": 5864,
+    "usage": {
+      "prompt": 797,
+      "completion": 161,
+      "reasoning": 0,
+      "total": 958
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-162",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルを対象とした研究ではなく、脳虚血後の行動変化を調べたものであり、「うつ病」は否定的に言及されている"
+    ],
+    "durationMs": 19808,
+    "usage": {
+      "prompt": 681,
+      "completion": 111,
+      "reasoning": 0,
+      "total": 792
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-163",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」はうつ病ではなく近親交配劣勢（inbreeding depression）を指しており、精神疾患モデルではない"
+    ],
+    "durationMs": 19364,
+    "usage": {
+      "prompt": 578,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 677
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-166",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒトを対象とした臨床研究であり、動物モデルを使用していない"
+    ],
+    "durationMs": 9628,
+    "usage": {
+      "prompt": 762,
+      "completion": 119,
+      "reasoning": 0,
+      "total": 881
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-168",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病（depression）に関する研究ではなく、ラット前立腺に対するプロラクチンの影響を調べた動物実験である。"
+    ],
+    "durationMs": 8172,
+    "usage": {
+      "prompt": 830,
+      "completion": 61,
+      "reasoning": 0,
+      "total": 891
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-167",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "タイトルに「ラットにおける行動性絶望試験」とあり、うつ病の動物モデル（in vivo）を用いた研究であることが明確"
+    ],
+    "durationMs": 9331,
+    "usage": {
+      "prompt": 413,
+      "completion": 109,
+      "reasoning": 0,
+      "total": 522
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-171",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "ヒトを対象とした研究であり、動物モデルではない"
+    ],
+    "durationMs": 4126,
+    "usage": {
+      "prompt": 742,
+      "completion": 104,
+      "reasoning": 0,
+      "total": 846
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-164",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いた強制水泳試験（FST）および尾懸垂試験（TST）といったうつ病のin vivo動物モデルを用いており、対象が動物実験であることが明確"
+    ],
+    "durationMs": 21066,
+    "usage": {
+      "prompt": 840,
+      "completion": 147,
+      "reasoning": 0,
+      "total": 987
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-165",
+    "label_included": 0,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたうつ病のin vivoモデルに関する動物実験であり、ヒト研究ではなく、呼吸抑制などの他の意味での「depression」でもない"
+    ],
+    "durationMs": 21884,
+    "usage": {
+      "prompt": 821,
+      "completion": 184,
+      "reasoning": 0,
+      "total": 1005
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-172",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病を指すのではなく、長期抑圧（long-term synaptic depression, LTD）という神経生理学的現象を指しており、うつ病のin vivo動物モデルに関する研究ではない。"
+    ],
+    "durationMs": 4772,
+    "usage": {
+      "prompt": 854,
+      "completion": 126,
+      "reasoning": 0,
+      "total": 980
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-170",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivoモデルではなく、神経栄養因子NT-3の末梢神経切断後の筋求心性線維への影響を調べた猫を用いた神経生理学的研究である。「depression」は高頻度刺激時のEPSPの抑制（生理学的抑制）を指しており、うつ病とは無関係である。"
+    ],
+    "durationMs": 6963,
+    "usage": {
+      "prompt": 773,
+      "completion": 202,
+      "reasoning": 0,
+      "total": 975
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-174",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "in vivoのうつ病モデルを用いた動物実験ではなく、ウサギ脳シナプトソーム画分を用いたin vitro試験であるため"
+    ],
+    "durationMs": 4946,
+    "usage": {
+      "prompt": 653,
+      "completion": 141,
+      "reasoning": 0,
+      "total": 794
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-173",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたうつ病モデルに関するin vivo研究であり、対象が動物であることが明確"
+    ],
+    "durationMs": 5119,
+    "usage": {
+      "prompt": 732,
+      "completion": 142,
+      "reasoning": 0,
+      "total": 874
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-175",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がウイルス血症の抑制を指しており、うつ病モデルではない"
+    ],
+    "durationMs": 4819,
+    "usage": {
+      "prompt": 608,
+      "completion": 103,
+      "reasoning": 0,
+      "total": 711
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-179",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく、酵素活性の「低下」を指しており、うつ病のin vivo動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4023,
+    "usage": {
+      "prompt": 912,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 1020
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-176",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が神経活動の抑制（depressant effects）を指しており、うつ病モデルではない"
+    ],
+    "durationMs": 5641,
+    "usage": {
+      "prompt": 623,
+      "completion": 150,
+      "reasoning": 0,
+      "total": 773
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-178",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は長期抑圧（LTD: long-term depression）を指しており、うつ病（depression）の動物モデルではない"
+    ],
+    "durationMs": 4524,
+    "usage": {
+      "prompt": 648,
+      "completion": 119,
+      "reasoning": 0,
+      "total": 767
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-177",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒツジであり、うつ病のin vivoモデルに関する研究ではなく、Tribulus terrestris中毒の臨床・病理学的所見を報告している。抄録中の「depression」は抑うつ症状ではなく、一般的な元気消失（抑うつ状態）を指しており、精神疾患モデルではない。"
+    ],
+    "durationMs": 8458,
+    "usage": {
+      "prompt": 730,
+      "completion": 168,
+      "reasoning": 0,
+      "total": 898
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-180",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15574
+  },
+  {
+    "ref_id": "Depression-SLIM-181",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15611
+  },
+  {
+    "ref_id": "Depression-SLIM-182",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15579
+  },
+  {
+    "ref_id": "Depression-SLIM-183",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15607
+  },
+  {
+    "ref_id": "Depression-SLIM-184",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15571
+  },
+  {
+    "ref_id": "Depression-SLIM-185",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15575
+  },
+  {
+    "ref_id": "Depression-SLIM-186",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15574
+  },
+  {
+    "ref_id": "Depression-SLIM-187",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15597
+  },
+  {
+    "ref_id": "Depression-SLIM-188",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15655
+  },
+  {
+    "ref_id": "Depression-SLIM-189",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15626
+  },
+  {
+    "ref_id": "Depression-SLIM-191",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15592
+  },
+  {
+    "ref_id": "Depression-SLIM-190",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 16165
+  },
+  {
+    "ref_id": "Depression-SLIM-192",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15587
+  },
+  {
+    "ref_id": "Depression-SLIM-193",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15561
+  },
+  {
+    "ref_id": "Depression-SLIM-194",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15600
+  },
+  {
+    "ref_id": "Depression-SLIM-195",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15655
+  },
+  {
+    "ref_id": "Depression-SLIM-196",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15606
+  },
+  {
+    "ref_id": "Depression-SLIM-197",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15576
+  },
+  {
+    "ref_id": "Depression-SLIM-198",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15572
+  },
+  {
+    "ref_id": "Depression-SLIM-199",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15590
+  },
+  {
+    "ref_id": "Depression-SLIM-200",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15584
+  },
+  {
+    "ref_id": "Depression-SLIM-201",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15666
+  },
+  {
+    "ref_id": "Depression-SLIM-202",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15587
+  },
+  {
+    "ref_id": "Depression-SLIM-203",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15601
+  },
+  {
+    "ref_id": "Depression-SLIM-204",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15594
+  },
+  {
+    "ref_id": "Depression-SLIM-207",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がヒト以外の動物（ゼブラフィンチ）であるが、うつ病モデルではなく、栄養不足後の補償的成長と認知機能の関係を調べた研究である。抄録中に「depression」が「growth depression」として使用されており、これは成長の抑制を意味し、精神疾患としてのうつ病を指していない。"
+    ],
+    "durationMs": 21413,
+    "usage": {
+      "prompt": 611,
+      "completion": 160,
+      "reasoning": 0,
+      "total": 771
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-206",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病のin vivoモデルに関する研究ではなく、アルコール摂取行動を対象とした動物実験である"
+    ],
+    "durationMs": 21851,
+    "usage": {
+      "prompt": 951,
+      "completion": 159,
+      "reasoning": 0,
+      "total": 1110
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-205",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がラットの脳組織における神経回路の発達的変化を調べた動物実験であるが、「うつ病（depression）」という用語は呼吸抑制や心機能抑制などを指す「depression（抑制）」として使われており、精神疾患としてのうつ病モデルではない"
+    ],
+    "durationMs": 22507,
+    "usage": {
+      "prompt": 829,
+      "completion": 200,
+      "reasoning": 0,
+      "total": 1029
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-208",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたうつ病モデル（強制水泳試験、慢性軽度ストレス試験）を使用しており、in vivo動物実験である"
+    ],
+    "durationMs": 21754,
+    "usage": {
+      "prompt": 794,
+      "completion": 173,
+      "reasoning": 0,
+      "total": 967
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-211",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は免疫反応の抑制（cytotoxic antibody responsesの低下）を指しており、うつ病モデルではない",
+      "対象はラットであるが、うつ病のin vivoモデルに関する研究ではない"
+    ],
+    "durationMs": 9757,
+    "usage": {
+      "prompt": 575,
+      "completion": 126,
+      "reasoning": 0,
+      "total": 701
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-213",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」やうつ病関連の用語が含まれておらず、代謝研究（糖新生）に関する内容であるため、うつ病のin vivoモデルの研究ではないと判断される"
+    ],
+    "durationMs": 9959,
+    "usage": {
+      "prompt": 399,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 521
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-214",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」という用語が「long-term depression」として神経科学におけるシナプス可塑性を指しており、うつ病（depression）の動物モデルではない。対象は細胞実験およびマウス脳組織だが、うつ病のモデルとしての記述は一切ない。"
+    ],
+    "durationMs": 10391,
+    "usage": {
+      "prompt": 671,
+      "completion": 144,
+      "reasoning": 0,
+      "total": 815
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-212",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は呼吸・循環系の抑制を指しており、うつ病モデルではない"
+    ],
+    "durationMs": 11855,
+    "usage": {
+      "prompt": 781,
+      "completion": 192,
+      "reasoning": 0,
+      "total": 973
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-210",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたうつ病モデル（慢性予測不能ストレス）に関するin vivo動物実験であり、うつ病の神経生物学的メカニズムおよび抗うつ薬の効果を評価している"
+    ],
+    "durationMs": 12330,
+    "usage": {
+      "prompt": 777,
+      "completion": 193,
+      "reasoning": 0,
+      "total": 970
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-209",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が免疫機能の抑制（cytotoxic activityやcytokine productionの低下）を指しており、うつ病モデルではない",
+      "研究は発がんモデルを用いており、うつ病のin vivoモデルではない"
+    ],
+    "durationMs": 22598,
+    "usage": {
+      "prompt": 660,
+      "completion": 209,
+      "reasoning": 0,
+      "total": 869
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-216",
+    "label_included": 0,
+    "include_probability": 1,
+    "reasons": [
+      "マウスを用いたin vivoうつ病モデル（レスペリン誘発鎮静の逆転）が報告されており、動物実験であるため"
+    ],
+    "durationMs": 4879,
+    "usage": {
+      "prompt": 649,
+      "completion": 129,
+      "reasoning": 0,
+      "total": 778
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-215",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病ではなく皮質拡延性抑制（cortical spreading depression）を指しており、これは神経生理学的現象であり、うつ病モデルではない"
+    ],
+    "durationMs": 5673,
+    "usage": {
+      "prompt": 673,
+      "completion": 157,
+      "reasoning": 0,
+      "total": 830
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-218",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "研究はマウスを用いた心臓毒性（cardiotoxicity）に関するものであり、うつ病（depression）のin vivoモデルではない。「depression」が呼吸抑制や心機能抑制などを指す場合は除外対象であり、本研究は心臓の収縮力低下（cardiac depression）を扱っている。"
+    ],
+    "durationMs": 6566,
+    "usage": {
+      "prompt": 798,
+      "completion": 197,
+      "reasoning": 0,
+      "total": 995
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-224",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究ではないと判断される"
+    ],
+    "durationMs": 2304,
+    "usage": {
+      "prompt": 404,
+      "completion": 49,
+      "reasoning": 0,
+      "total": 453
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-217",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたうつ病モデルに関する動物実験が含まれており、in vivo動物研究として明確に該当するため"
+    ],
+    "durationMs": 7155,
+    "usage": {
+      "prompt": 783,
+      "completion": 205,
+      "reasoning": 0,
+      "total": 988
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-221",
+    "label_included": 0,
+    "include_probability": 0.5,
+    "reasons": [
+      "タイトルに「depression」の明示的な言及がなく、うつ病モデルの使用が不明であるが、マウス脳を対象とした生体内研究であるため、関連性を排除できない"
+    ],
+    "durationMs": 4474,
+    "usage": {
+      "prompt": 420,
+      "completion": 117,
+      "reasoning": 0,
+      "total": 537
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-220",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」という用語が呼吸器疾患に関連する臨床症状（例：活動性の低下）として使用されており、うつ病（depression）の動物モデルではないと判断される。また、対象はヒトではなくヤギであるが、うつ病のin vivoモデルに関する研究ではない。"
+    ],
+    "durationMs": 5166,
+    "usage": {
+      "prompt": 760,
+      "completion": 145,
+      "reasoning": 0,
+      "total": 905
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-222",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「うつ病（depression）」に関する記述がなく、心臓の代謝研究であり、対象がうつ病のin vivo動物モデルではない"
+    ],
+    "durationMs": 4118,
+    "usage": {
+      "prompt": 411,
+      "completion": 68,
+      "reasoning": 0,
+      "total": 479
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-219",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が心筋虚血における収縮機能低下（心臓の抑制）を指しており、うつ病の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 6537,
+    "usage": {
+      "prompt": 1160,
+      "completion": 185,
+      "reasoning": 0,
+      "total": 1345
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-223",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "ラットを用いたうつ病様行動の動物モデルに関する研究であり、ヒト研究ではなく、呼吸抑制などの他の意味での「depression」でもない"
+    ],
+    "durationMs": 7418,
+    "usage": {
+      "prompt": 842,
+      "completion": 212,
+      "reasoning": 0,
+      "total": 1054
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-225",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15588
+  },
+  {
+    "ref_id": "Depression-SLIM-226",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15644
+  },
+  {
+    "ref_id": "Depression-SLIM-227",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15639
+  },
+  {
+    "ref_id": "Depression-SLIM-228",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15585
+  },
+  {
+    "ref_id": "Depression-SLIM-229",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15685
+  },
+  {
+    "ref_id": "Depression-SLIM-230",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15624
+  },
+  {
+    "ref_id": "Depression-SLIM-231",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15623
+  },
+  {
+    "ref_id": "Depression-SLIM-232",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15594
+  },
+  {
+    "ref_id": "Depression-SLIM-233",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15572
+  },
+  {
+    "ref_id": "Depression-SLIM-234",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15597
+  },
+  {
+    "ref_id": "Depression-SLIM-242",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルから、対象がラット腎臓のアミノ酸輸送であり、うつ病のin vivoモデルに関する研究ではないと判断される"
+    ],
+    "durationMs": 10762,
+    "usage": {
+      "prompt": 412,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 536
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-235",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15613
+  },
+  {
+    "ref_id": "Depression-SLIM-236",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15572
+  },
+  {
+    "ref_id": "Depression-SLIM-237",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15631
+  },
+  {
+    "ref_id": "Depression-SLIM-238",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15578
+  },
+  {
+    "ref_id": "Depression-SLIM-239",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15589
+  },
+  {
+    "ref_id": "Depression-SLIM-240",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15704
+  },
+  {
+    "ref_id": "Depression-SLIM-241",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15652
+  },
+  {
+    "ref_id": "Depression-SLIM-243",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15581
+  },
+  {
+    "ref_id": "Depression-SLIM-244",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15615
+  },
+  {
+    "ref_id": "Depression-SLIM-253",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "タイトルに「animal model」と明記されており、うつ病の動物モデルを用いた研究であることが明確である"
+    ],
+    "durationMs": 9604,
+    "usage": {
+      "prompt": 405,
+      "completion": 94,
+      "reasoning": 0,
+      "total": 499
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-252",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がin vitro（培養細胞）であり、in vivo動物モデルではないため"
+    ],
+    "durationMs": 10262,
+    "usage": {
+      "prompt": 784,
+      "completion": 105,
+      "reasoning": 0,
+      "total": 889
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-245",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15586
+  },
+  {
+    "ref_id": "Depression-SLIM-251",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、脳虚血後の血小板反応性に関する研究である。文中の「depression」は「eNOS depression」として用いられており、これは酵素活性の低下を指しており、うつ病とは無関係である。"
+    ],
+    "durationMs": 11307,
+    "usage": {
+      "prompt": 829,
+      "completion": 138,
+      "reasoning": 0,
+      "total": 967
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-246",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15606
+  },
+  {
+    "ref_id": "Depression-SLIM-256",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、サルマラリアに関する研究である"
+    ],
+    "durationMs": 4462,
+    "usage": {
+      "prompt": 615,
+      "completion": 87,
+      "reasoning": 0,
+      "total": 702
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-260",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究ではないと判断される"
+    ],
+    "durationMs": 2407,
+    "usage": {
+      "prompt": 414,
+      "completion": 53,
+      "reasoning": 0,
+      "total": 467
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-250",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究ではないと判断される"
+    ],
+    "durationMs": 18130,
+    "usage": {
+      "prompt": 409,
+      "completion": 53,
+      "reasoning": 0,
+      "total": 462
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-247",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸器系の機能低下（respiratory depression）を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 20072,
+    "usage": {
+      "prompt": 727,
+      "completion": 125,
+      "reasoning": 0,
+      "total": 852
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-255",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象がうつ病のin vivoモデルではなく、性機能およびホルモン作用に関する動物研究である"
+    ],
+    "durationMs": 7707,
+    "usage": {
+      "prompt": 889,
+      "completion": 54,
+      "reasoning": 0,
+      "total": 943
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-257",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、胎児発生とミトコンドリア機能に関する研究である"
+    ],
+    "durationMs": 7628,
+    "usage": {
+      "prompt": 759,
+      "completion": 52,
+      "reasoning": 0,
+      "total": 811
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-249",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルおよび抄録にうつ病のin vivo動物モデルに関する記述がなく、対象が生体外実験（アルブミンの熱変性阻害）である可能性が高い"
+    ],
+    "durationMs": 20481,
+    "usage": {
+      "prompt": 410,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 541
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-248",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」がうつ病を指しておらず、中枢神経抑制作用（central nervous system depressant activity）を評価している動物実験であるため、うつ病モデルではないと判断される"
+    ],
+    "durationMs": 20941,
+    "usage": {
+      "prompt": 640,
+      "completion": 162,
+      "reasoning": 0,
+      "total": 802
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-258",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」や「うつ」に関連する用語が含まれておらず、抄録が存在しないため動物モデルのうつ病研究かどうか判断できないが、タイトルから抗がん剤（embikhin, sarcolysin, asalin）の副作用比較と推測され、うつ病モデルの研究とは無関係と判断される"
+    ],
+    "durationMs": 9248,
+    "usage": {
+      "prompt": 408,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 516
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-262",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が「inbreeding depression（近交劣勢）」を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 4392,
+    "usage": {
+      "prompt": 710,
+      "completion": 116,
+      "reasoning": 0,
+      "total": 826
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-263",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が呼吸抑制や代謝抑制など精神疾患としてのうつ病を指していない",
+      "うつ病のin vivoモデルを用いた研究ではない"
+    ],
+    "durationMs": 4363,
+    "usage": {
+      "prompt": 876,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 996
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-254",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が免疫抑制（immune-depressive）を指しており、うつ病（depression）の動物モデルに関する研究ではない"
+    ],
+    "durationMs": 19252,
+    "usage": {
+      "prompt": 684,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 783
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-265",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が免疫抑制（immune depression）を指しており、うつ病（depression）の動物モデルではない"
+    ],
+    "durationMs": 4434,
+    "usage": {
+      "prompt": 722,
+      "completion": 102,
+      "reasoning": 0,
+      "total": 824
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-259",
+    "label_included": 0,
+    "include_probability": 1,
+    "reasons": [
+      "ラット（in vivo 動物モデル）を用いてうつ病治療薬の影響を調査しており、うつ病モデルに関する動物研究である"
+    ],
+    "durationMs": 10742,
+    "usage": {
+      "prompt": 755,
+      "completion": 159,
+      "reasoning": 0,
+      "total": 914
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-264",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "対象がラット（in vivo動物モデル）であり、うつ病モデルに関連する行動および神経化学的変化を評価している"
+    ],
+    "durationMs": 5692,
+    "usage": {
+      "prompt": 674,
+      "completion": 158,
+      "reasoning": 0,
+      "total": 832
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-261",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」は神経科学における長期抑圧（long-term depression, LTD）を指しており、うつ病（depression as a mood disorder）ではない",
+      "in vivoモデルではなく、ラット海馬スライス（in vitro）を用いた実験である"
+    ],
+    "durationMs": 6455,
+    "usage": {
+      "prompt": 656,
+      "completion": 187,
+      "reasoning": 0,
+      "total": 843
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-267",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "うつ病の動物モデルに関する研究ではなく、免疫応答と核酸代謝に関する研究である"
+    ],
+    "durationMs": 4438,
+    "usage": {
+      "prompt": 430,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 554
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-266",
+    "label_included": 0,
+    "include_probability": 0.5,
+    "reasons": [
+      "抄録に「遺伝子改変マウス」の使用が記載されており、in vivo動物モデルの可能性があるが、うつ病モデルかどうかは明記されていないため、フルテキスト確認が必要"
+    ],
+    "durationMs": 4716,
+    "usage": {
+      "prompt": 707,
+      "completion": 134,
+      "reasoning": 0,
+      "total": 841
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-270",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれておらず、うつ病の動物モデルに関する研究であることを示す証拠がない"
+    ],
+    "durationMs": 2477,
+    "usage": {
+      "prompt": 395,
+      "completion": 58,
+      "reasoning": 0,
+      "total": 453
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-269",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "タイトルに「depression」が含まれていないため、うつ病の動物モデルに関する研究である可能性が極めて低い"
+    ],
+    "durationMs": 2542,
+    "usage": {
+      "prompt": 398,
+      "completion": 50,
+      "reasoning": 0,
+      "total": 448
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-268",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "うつ病の動物モデルに関する記述がなく、ペニシリン投与による明るさ弁別学習障害の研究であり、うつ病との関連が不明である"
+    ],
+    "durationMs": 4415,
+    "usage": {
+      "prompt": 407,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 528
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-271",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "「depression」が神経生理学的な抑制（depressive effect）を指しており、うつ病モデルではない"
+    ],
+    "durationMs": 4062,
+    "usage": {
+      "prompt": 584,
+      "completion": 111,
+      "reasoning": 0,
+      "total": 695
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-272",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15618
+  },
+  {
+    "ref_id": "Depression-SLIM-273",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15581
+  },
+  {
+    "ref_id": "Depression-SLIM-274",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15573
+  },
+  {
+    "ref_id": "Depression-SLIM-275",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15600
+  },
+  {
+    "ref_id": "Depression-SLIM-276",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15593
+  },
+  {
+    "ref_id": "Depression-SLIM-277",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15636
+  },
+  {
+    "ref_id": "Depression-SLIM-278",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15588
+  },
+  {
+    "ref_id": "Depression-SLIM-279",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15620
+  },
+  {
+    "ref_id": "Depression-SLIM-280",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15670
+  },
+  {
+    "ref_id": "Depression-SLIM-281",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 16709
+  },
+  {
+    "ref_id": "Depression-SLIM-282",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15573
+  },
+  {
+    "ref_id": "Depression-SLIM-283",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15587
+  },
+  {
+    "ref_id": "Depression-SLIM-284",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15598
+  },
+  {
+    "ref_id": "Depression-SLIM-285",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15563
+  },
+  {
+    "ref_id": "Depression-SLIM-286",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15548
+  },
+  {
+    "ref_id": "Depression-SLIM-287",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15752
+  },
+  {
+    "ref_id": "Depression-SLIM-288",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15568
+  },
+  {
+    "ref_id": "Depression-SLIM-289",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15640
+  },
+  {
+    "ref_id": "Depression-SLIM-290",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15590
+  },
+  {
+    "ref_id": "Depression-SLIM-291",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15595
+  },
+  {
+    "ref_id": "Depression-SLIM-292",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15689
+  },
+  {
+    "ref_id": "Depression-SLIM-293",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15704
+  },
+  {
+    "ref_id": "Depression-SLIM-294",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15619
+  },
+  {
+    "ref_id": "Depression-SLIM-295",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15633
+  },
+  {
+    "ref_id": "Depression-SLIM-296",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15685
+  },
+  {
+    "ref_id": "Depression-SLIM-297",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15585
+  },
+  {
+    "ref_id": "Depression-SLIM-298",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15577
+  },
+  {
+    "ref_id": "Depression-SLIM-299",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15630
+  },
+  {
+    "ref_id": "Depression-SLIM-300",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 429: {\"error\":{\"message\":\"Rate limit exceeded: limit_rpm/qwen/qwen3-max/5e31ba3c-d5bf-4ced-a52d-96e2e6635f95. High demand for qwen/qwen3-max on OpenRouter - limited to 20 requests per minute. Please retry ",
+    "durationMs": 15607
+  }
+]

@@ -59,12 +59,15 @@ gcloud services enable drive.googleapis.com
 
 `.env.example` を `.env` にコピーして値を設定します。
 
-| 変数名                    | 用途                               | 必須          |
-| ------------------------- | ---------------------------------- | ------------- |
-| `OAUTH_CLIENT_ID`       | Chrome Web Store用 OAuth Client ID | 本番ビルド時  |
-| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID     | 開発ビルド時  |
-| `GEMINI_API_KEY`        | Gemini API キー                    | LLM機能使用時 |
-| `DIST_COPY_PATH`        | dist.zip のコピー先パス            | build:zip 時  |
+| 変数名                    | 用途                                 | 必須                            |
+| ------------------------- | ------------------------------------ | ------------------------------- |
+| `OAUTH_CLIENT_ID`       | Chrome Web Store用 OAuth Client ID   | 本番ビルド時                    |
+| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID       | 開発ビルド時                    |
+| `GEMINI_API_KEY`        | Gemini API キー                      | Gemini モデル使用時             |
+| `OPENROUTER_API_KEY`    | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時            |
+| `DIST_COPY_PATH`        | dist.zip のコピー先パス              | build:zip 時                    |
+
+> **LLM プロバイダ**: v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「OpenRouter APIキー」カードから登録します（環境変数は実験ランナー用途のみ）。
 
 > **ローカル開発とストア公開で異なる OAuth Client ID が必要です。**
 > ローカル開発用は `manifest.json` の `key` から決まる拡張機能IDに紐づけたクライアント、ストア用は公開後の拡張機能IDに紐づけたクライアントを使用します。
@@ -121,7 +124,11 @@ npm run watch
 ## LLMモデル履歴
 
 - 既定のLLMモデルは `gemini-3.1-flash-lite` (GA, Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
-- UIで選べるモデルは `gemini-3.1-flash-lite` (既定 / 速度・コスト優先, depression Recall 93.6%) と `gemini-3-flash-preview` (Recall 最重視時の上位互換, depression Recall 96.1%) の2つです。
+- UI で選べるモデルは以下の 4 つ。Gemini 系と OpenRouter 系で別の API キーが必要です:
+  - **Gemini**: `gemini-3.1-flash-lite` (既定 / depression Recall 93.6%) / `gemini-3-flash-preview` (Recall 96.1%)
+  - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
+- OpenRouter モデルは [experiments/openrouter-bench/](experiments/openrouter-bench/) の depression データセット全件 (N=1,993) ベンチで採用基準 (Recall ≥ 0.90) を満たした 2 モデルのみを同梱しています。
+- **OpenRouter カスタムモデル**: 上記同梱モデル以外の OpenRouter モデル（例: `anthropic/claude-3.7-sonnet`、`openai/gpt-4o-mini` 等）も、サイドパネルの「OpenRouter カスタムモデル」カードからモデル ID を手入力できます。「テストして保存」を押すと実 API を 1 回叩き、スクリーニング用 JSON 出力が返ったモデルだけがブラウザに保存され、以降モデル選択肢に出現します（最大 20 件）。カスタムモデルは当ツールのベンチマーク対象外のため、組入精度は各自で必ず検証してください。
 - **2026-05 以降は `latest` エイリアス (`gemini-flash-lite-latest` / `gemini-flash-latest`) ではなく、ベンチマーク済みの固定バージョン ID を採用しています**。Google がエイリアス実体を更新した際の挙動変化 (Recall・コスト) を防ぐためです。例として `gemini-3.5-flash` (depression Recall 93.2%) が将来 `gemini-flash-latest` の実体になった場合でも、UI 上のユーザー設定は影響を受けません。
 - 既存ユーザーの設定 (`llm_model = gemini-flash-lite-latest` 等) は、Config シート読み込み時に自動で固定 ID へマイグレーションされます ([src/lib/gemini-api.ts](src/lib/gemini-api.ts) の `MODEL_ID_MIGRATIONS`)。
 - Run の集約は、呼び出しに指定したモデルID（`requested_model` / 既存の `model`）で行います。
@@ -140,6 +147,22 @@ npm run watch
 | `gemini-3.1-flash-lite` (GA) | Temp 0 | 93.6% | 61.6% | 92.6% | 9 | 約 $0.30 |
 | `gemini-3.1-flash-lite-preview` | Temp 0 | 92.9% | 62.4% | 92.0% | 15 | 約 $0.30 |
 | `gemini-3.5-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MINIMAL | 93.2% | 54.6% | 91.9% | 31 | $1.93 |
+
+### OpenRouter モデル評価 (2026-05, depression 全1,993件)
+
+OpenRouter 経由で利用できる主要 LLM をベースラインと同一プロンプト・同一データセット (depression) で評価しました。`response_format: json_object` モードで JSON 出力を強制しています。
+
+| モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 | コスト ($/全1,993件) | 推定 $/1K件 |
+|---|---|---|---|---|---|---|---|
+| **`gemini-3-flash-preview` (B4, 既存記録)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 | - | 約 $1.70 |
+| `qwen/qwen3-235b-a22b-2507` (Instruct) | Temp 0 | 93.9% | 47.9% | 92.2% | 650 | $0.135 | 約 $0.07 |
+| `deepseek/deepseek-v4-flash` | Temp 0 (内部 reasoning あり) | 91.1% | 68.0% | 90.5% | 1,319 | $0.756 | 約 $0.38 |
+
+**所見**:
+- 2026-05 時点で OpenRouter 経由の最新 Kimi / Qwen / DeepSeek / Grok 系を試したが、**Recall ≥ 95% (採用基準) を全件 1,993 で満たすモデルは無し**。既存 B4 (`gemini-3-flash-preview`) を上回るモデルは確認できなかった。
+- `qwen3-235b-a22b-2507` (Instruct) は B4 比 **コスト約 1/24** で Recall 93.9%。Recall を 2pp 譲っても圧倒的な低コストで一次スクリーニングしたい場合の「予算オプション」として有望。
+- `deepseek-v4-flash` は Recall 91.1% で採用基準未達。内部 reasoning でレイテンシ・コストとも `qwen` Instruct の数倍。
+- Thinking 系 (`qwen3-thinking-2507`, `kimi-k2-thinking`, `grok-4.3`) は 50〜300件サンプルでは Recall 100% を出すが、レイテンシ 16〜48 秒/件・コスト数倍〜十数倍で本番スケール非現実的。詳細は [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)。
 
 ### 全データセット Recall (最良条件比較)
 
@@ -165,6 +188,7 @@ npm run watch
 - 既定モデル: 速度・コスト優先で `gemini-3.1-flash-lite` (GA, Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
 - Recall を最重視したい場合のオプション: `gemini-3-flash-preview` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
+- OpenRouter 系 (Kimi K2 / Qwen3 235B / DeepSeek V4 / Grok 4.3) は 2026-05 評価でいずれも depression 全件 Recall 95% 未満で、既定モデルの差し替え候補にはならず。`qwen3-235b-a22b-2507` のみ「コスト最重視の予算オプション」として `experiments/openrouter-bench/` で再現可能。
 
 ### 詳細レポート
 
@@ -173,6 +197,7 @@ npm run watch
 - `gemini-3.1-flash-lite-preview`: [experiments/gemini-3.1-flash-lite/report.md](experiments/gemini-3.1-flash-lite/report.md)
 - `gemini-3.1-flash-lite` (GA): [experiments/gemini-3.1-flash-lite-ga/report.md](experiments/gemini-3.1-flash-lite-ga/report.md)
 - `gemini-3.5-flash` (採用見送り): [experiments/gemini-3.5-flash/report.md](experiments/gemini-3.5-flash/report.md)
+- OpenRouter 比較 (Kimi/Qwen/DeepSeek/Grok, 2026-05): [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)
 - ASReview 比較: [experiments/asreview/REPORT.md](experiments/asreview/REPORT.md)
 
 ## 手動レビュー時の戻る挙動
@@ -196,7 +221,8 @@ tiab-review-plugin/
 │   └── lib/                   # 共通ライブラリ
 ├── experiments/               # 実験用コード（LLM ベンチマーク結果含む）
 │   ├── gemini-3.1-flash-lite/        # Preview 版評価 (2026-03)
-│   └── gemini-3.1-flash-lite-ga/     # GA 版評価 (2026-05)
+│   ├── gemini-3.1-flash-lite-ga/     # GA 版評価 (2026-05)
+│   └── openrouter-bench/             # Kimi/Qwen/DeepSeek/Grok 評価 (2026-05)
 ├── dist/                      # ビルド出力
 ├── package.json
 ├── tsconfig.json

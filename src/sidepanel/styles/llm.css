@@ -71,6 +71,13 @@
     color: #1e7e34;
 }
 
+/* 選択中モデルの provider に応じて該当 API キーカードを強調する。
+   confirmed と独立に効くようボーダーを強める。 */
+.llm-card.emphasized {
+    border-width: 2px;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
 /* 折りたたみカードのサマリー表示 */
 .card-summary {
     font-size: 12px;
@@ -491,6 +498,23 @@
     font-size: 13px;
 }
 
+.execution-history-error {
+    padding: 12px;
+    background: #fff4f4;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.execution-history-error .error-text {
+    color: #842029;
+    font-size: 13px;
+    margin: 0;
+}
+
 .execution-item {
     padding: 10px 12px;
     background: #f8f9fa;
@@ -735,4 +759,107 @@
     word-break: break-word;
     max-height: 320px;
     overflow-y: auto;
+}
+
+/* OpenRouter カスタムモデル */
+.custom-model-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.custom-model-input-row label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+.custom-model-input {
+    padding: 6px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: #202124;
+}
+
+.custom-model-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+#test-save-custom-model-btn {
+    margin-top: 6px;
+    margin-bottom: 10px;
+}
+
+.custom-models-list-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.custom-models-list-section h5 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #3c4043;
+}
+
+.custom-models-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.custom-models-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.custom-models-list .custom-model-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #202124;
+    word-break: break-all;
+}
+
+.custom-models-list .custom-model-label-text {
+    color: #5f6368;
+}
+
+.custom-models-list .btn-remove-custom-model {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    font-size: 12px;
+    background: transparent;
+    color: #d93025;
+    border: 1px solid #d93025;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.custom-models-list .btn-remove-custom-model:hover {
+    background: #fce8e6;
+}
+
+.custom-model-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    margin-left: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #1a73e8;
+    background: #e8f0fe;
+    border-radius: 3px;
+    vertical-align: middle;
 }

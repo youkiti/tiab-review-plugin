@@ -23,6 +23,7 @@ Thumbs.db
 npm-debug.log*
 development_log/
 experiments/asreview/outputs/
+experiments/openrouter-bench/results/*.txt
 
 # Environment
 .env

@@ -16,6 +16,8 @@
         "../src/lib/i18n.ts",
         "../src/lib/types.ts",
         "../src/lib/llm-config-hash.ts",
+        "../src/lib/llm-provider.ts",
+        "../src/lib/providers/openrouter.ts",
         "./**/*.ts"
     ]
 }

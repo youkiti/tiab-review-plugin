@@ -1,0 +1,402 @@
+[
+  {
+    "ref_id": "Depression-SLIM-2",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"cd4a0e51-ddd1-402a-a34c-dbb2bbecd952\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18533
+  },
+  {
+    "ref_id": "Depression-SLIM-1",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"031e6e92-a423-4bcf-8ddf-5ae3e63995ef\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18577
+  },
+  {
+    "ref_id": "Depression-SLIM-4",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"ba060da2-a6c6-46b8-88c0-b395ce76fb89\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18611
+  },
+  {
+    "ref_id": "Depression-SLIM-3",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"00ef43cc-41b3-4187-b0bd-6d92f74506a1\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18793
+  },
+  {
+    "ref_id": "Depression-SLIM-5",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"4a166d75-363b-407a-9792-25190aa3f4e5\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19030
+  },
+  {
+    "ref_id": "Depression-SLIM-6",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"6404313c-a8f0-4ba8-a52d-7b90e25bd865\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18938
+  },
+  {
+    "ref_id": "Depression-SLIM-8",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"14fe494a-b905-4c6b-8771-75d1e7c9d0ec\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18882
+  },
+  {
+    "ref_id": "Depression-SLIM-7",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"185a1a78-0674-4391-a168-c94ab6372406\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19235
+  },
+  {
+    "ref_id": "Depression-SLIM-9",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"44ce189a-123f-4be8-b30b-d090c4001c27\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19578
+  },
+  {
+    "ref_id": "Depression-SLIM-10",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"41ca89c1-f572-464c-a5c2-9aecc7421e96\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19619
+  },
+  {
+    "ref_id": "Depression-SLIM-11",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"e2baccc3-9267-47c1-b976-025d09e8afb0\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18593
+  },
+  {
+    "ref_id": "Depression-SLIM-13",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"eb0d41eb-815d-494f-a413-1ab7942693fb\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18478
+  },
+  {
+    "ref_id": "Depression-SLIM-12",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"7e67157a-4dce-47e8-b97b-c3dadcf58a92\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19728
+  },
+  {
+    "ref_id": "Depression-SLIM-15",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"0e768fd4-ccc9-4da6-8994-985cb479e549\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19104
+  },
+  {
+    "ref_id": "Depression-SLIM-14",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"99afe4d4-fa50-48cf-b917-aa9c32cdd688\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 20406
+  },
+  {
+    "ref_id": "Depression-SLIM-17",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"211dcb14-e5cc-4fd8-993a-f4c448f2f29e\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18415
+  },
+  {
+    "ref_id": "Depression-SLIM-16",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"f8f8a10f-4bca-40f3-a309-3b4d16dd3837\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18773
+  },
+  {
+    "ref_id": "Depression-SLIM-18",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"532df192-ef4c-4679-bfaf-fccfdb1934bb\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18133
+  },
+  {
+    "ref_id": "Depression-SLIM-19",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"820ed4d5-6271-9ab3-968a-0e7f05178454\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19088
+  },
+  {
+    "ref_id": "Depression-SLIM-20",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"0339491f-3c4d-4d69-93f0-533192a7d351\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19094
+  },
+  {
+    "ref_id": "Depression-SLIM-21",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"b95a81b2-3821-444d-907e-9a7c0fb3d334\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18680
+  },
+  {
+    "ref_id": "Depression-SLIM-22",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"6c179809-a39e-4aa8-8338-c592364d7b11\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18934
+  },
+  {
+    "ref_id": "Depression-SLIM-23",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"62d8655e-d9aa-4ff0-b5c3-fec7066c83bd\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19183
+  },
+  {
+    "ref_id": "Depression-SLIM-24",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"66e25ebf-62f2-4655-88b2-9477e2c561fb\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19362
+  },
+  {
+    "ref_id": "Depression-SLIM-25",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"5879507e-0356-4e2d-b2fb-83b806ff9427\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19150
+  },
+  {
+    "ref_id": "Depression-SLIM-26",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"26c2221a-9c78-413a-abfd-a79a978cb5ed\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18369
+  },
+  {
+    "ref_id": "Depression-SLIM-27",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"2b4b9280-4ff1-4bc1-8630-aff6f58dd0e8\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18753
+  },
+  {
+    "ref_id": "Depression-SLIM-28",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"6576f42d-677a-41e8-bcd9-2b55f203244c\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18558
+  },
+  {
+    "ref_id": "Depression-SLIM-29",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"08ffdb93-9c4c-45a5-a1a6-69c94e7c187b\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19126
+  },
+  {
+    "ref_id": "Depression-SLIM-30",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"6d17287f-9b01-4ba4-91d4-a0c0cff8ed7e\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18439
+  },
+  {
+    "ref_id": "Depression-SLIM-31",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"ecc52497-1495-4363-b354-9597852ebd26\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19066
+  },
+  {
+    "ref_id": "Depression-SLIM-33",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"9de0566c-12ca-4055-a814-5597047c0796\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18501
+  },
+  {
+    "ref_id": "Depression-SLIM-32",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"71a8dfb5-77d2-4d1a-af13-45ebbb538c19\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19320
+  },
+  {
+    "ref_id": "Depression-SLIM-34",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"359e6bc3-b4a8-4583-86d4-fc62c638bd56\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18304
+  },
+  {
+    "ref_id": "Depression-SLIM-35",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"1ffdb361-0e4c-4f01-ba07-995ac223dd78\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18563
+  },
+  {
+    "ref_id": "Depression-SLIM-36",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"72a3c4e7-3d86-4e09-81e1-28fcd49296ab\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18994
+  },
+  {
+    "ref_id": "Depression-SLIM-37",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"f19718d1-2a1e-4c06-83c1-1a2aeee20d1e\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18307
+  },
+  {
+    "ref_id": "Depression-SLIM-38",
+    "label_included": 1,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"a746742c-f37a-466c-b2d3-5a46ed201fe6\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18659
+  },
+  {
+    "ref_id": "Depression-SLIM-39",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"b1b1817f-1def-4b1f-a858-66151c252bca\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18679
+  },
+  {
+    "ref_id": "Depression-SLIM-40",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"131cac6d-4e19-4de5-9f6d-19ac0066b018\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18396
+  },
+  {
+    "ref_id": "Depression-SLIM-41",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"8dcdea4e-55e1-42df-aaf1-f7bbeaeb6996\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19111
+  },
+  {
+    "ref_id": "Depression-SLIM-42",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"e18d9139-3dc6-46a1-9ae6-be73f11dd617\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19233
+  },
+  {
+    "ref_id": "Depression-SLIM-43",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"be2164c6-cebb-4fcf-9fdd-5f1cf962c4c8\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19178
+  },
+  {
+    "ref_id": "Depression-SLIM-45",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"8b2bd9bd-6fa5-442e-b499-7381e42ab64e\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 18664
+  },
+  {
+    "ref_id": "Depression-SLIM-44",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"92d690dd-4083-4e17-bd7c-9e573f4bed8a\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19039
+  },
+  {
+    "ref_id": "Depression-SLIM-47",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"b1ef256d-e281-4f64-ac2c-ba4c2cecf9ab\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19083
+  },
+  {
+    "ref_id": "Depression-SLIM-46",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"01cf618f-0c60-414d-86f4-577bfdd4d3a7\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19653
+  },
+  {
+    "ref_id": "Depression-SLIM-48",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"b6bced5b-e319-4011-9543-5357811af226\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19038
+  },
+  {
+    "ref_id": "Depression-SLIM-49",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"f791cd2e-4e5b-4ed3-9fde-ad6649c19f78\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19091
+  },
+  {
+    "ref_id": "Depression-SLIM-50",
+    "label_included": 0,
+    "include_probability": null,
+    "reasons": [],
+    "error": "OpenRouter API error 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"code\\\":400,\\\"msg\\\":\\\"bad request\\\",\\\"request_id\\\":\\\"9bc63384-9545-4609-ab93-227d563a744f\\\"}\",\"provider_name\":\"AtlasCloud\"",
+    "durationMs": 19138
+  }
+]

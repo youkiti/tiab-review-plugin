@@ -373,19 +373,42 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
 }
 
 /**
+ * クォータ超過 (429) 用の指数バックオフリトライ。
+ * 初回 1s → 2s → 4s → 8s → 16s → 32s（最大）で 5 回までリトライする (AGENTS.md 準拠)。
+ * 429 以外のエラーは即座に throw する。
+ */
+async function fetchSheetValuesWithRetry(
+    spreadsheetId: string,
+    range: string,
+    token: string
+): Promise<Response> {
+    const maxRetries = 5;
+    let delayMs = 1000;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const response = await fetch(
+            `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+            {
+                headers: { 'Authorization': `Bearer ${token}` },
+            }
+        );
+        if (response.status !== 429 || attempt === maxRetries) {
+            return response;
+        }
+        console.warn(`[getSheetValues] 429 quota exceeded for ${range}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs = Math.min(delayMs * 2, 32000);
+    }
+    // ループ終端は到達不能（return か throw のいずれか）
+    throw new Error('fetchSheetValuesWithRetry: unreachable');
+}
+
+/**
  * シートからデータを取得
  */
 async function getSheetValues(spreadsheetId: string, range: string): Promise<string[][]> {
     const token = await getAuthToken();
 
-    const response = await fetch(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-        {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        }
-    );
+    const response = await fetchSheetValuesWithRetry(spreadsheetId, range, token);
 
     if (!response.ok) {
         const error = await response.json();

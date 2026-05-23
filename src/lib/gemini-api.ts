@@ -7,14 +7,20 @@ import { t } from './i18n';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
- * Gemini APIモデル設定
+ * LLM モデル設定（Gemini / OpenRouter 共通）
+ *
+ * 名前は歴史的経緯で `GeminiModelConfig` を維持しているが、
+ * OpenRouter モデル用フィールド (`reasoningEffort`) もここに同居させ、
+ * batch.ts などからは provider に関係なく同じ型で扱えるようにしている。
+ * Gemini 実装は `reasoningEffort` を無視し、OpenRouter 実装は `thinkingLevel` を無視する。
  */
 export interface GeminiModelConfig {
     model: string;
     temperature: number;
     maxOutputTokens?: number;
     topP?: number;
-    thinkingLevel?: string; // 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH' - for Model B
+    thinkingLevel?: string;                          // Gemini 専用: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH'
+    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter 専用
 }
 
 interface GeminiApiErrorOptions {
@@ -389,7 +395,7 @@ export function getStandardCriteriaFields(template: LlmCriteria['template']): st
     return STANDARD_CRITERIA_FIELDS[template] || [];
 }
 
-function normalizeCriteriaConversionResult(result: { criteria: LlmCriteria; screening_prompt: string }): { criteria: LlmCriteria; screening_prompt: string } {
+export function normalizeCriteriaConversionResult(result: { criteria: LlmCriteria; screening_prompt: string }): { criteria: LlmCriteria; screening_prompt: string } {
     const template = result.criteria.template;
     const normalizedFields: Record<string, string> = {};
 
@@ -572,12 +578,20 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
 
 /**
  * モデルオプション（UI表示 + パラメータ）
+ *
+ * `config` は Gemini / OpenRouter で共通のパラメータ集合。
+ * - Gemini 専用: `thinkingLevel`
+ * - OpenRouter 専用: `reasoningEffort`
+ * いずれもプロバイダ実装側でフィールド存在チェックして参照する。
  */
 export interface ModelOption {
     id: string;
     name: string;        // フォールバック表示 (i18n 未取得時)
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
+    provider: 'gemini' | 'openrouter';
     config: Omit<GeminiModelConfig, 'model'>;
+    /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
+    custom?: boolean;
 }
 
 /**
@@ -585,6 +599,12 @@ export interface ModelOption {
  * latest エイリアスではなく、ベンチマーク済みの固定バージョン ID を採用する。
  * (2026-05 判断: `gemini-flash-latest` が `gemini-3.5-flash` に切り替わると
  *  Recall が 96.1% → 93.2% に低下するリスクを回避するため)
+ *
+ * OpenRouter モデルは [experiments/openrouter-bench/results/](../../experiments/openrouter-bench/results/) の
+ * 全件ベンチ結果に基づき採用したもののみを載せる:
+ *  - qwen/qwen3-235b-a22b-2507 : Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件
+ *  - deepseek/deepseek-v4-flash : Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件
+ *
  * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
  * 実応答の modelVersion は履歴ログへ保存。
  */
@@ -593,13 +613,29 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         id: 'gemini-3.1-flash-lite',
         name: 'Gemini 3.1 Flash-Lite',
         nameKey: 'llm_modelName_3_1_flash_lite',
+        provider: 'gemini',
         config: { temperature: 0 }
     },
     {
         id: 'gemini-3-flash-preview',
         name: 'Gemini 3 Flash Preview',
         nameKey: 'llm_modelName_3_flash_preview',
+        provider: 'gemini',
         config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
+    },
+    {
+        id: 'qwen/qwen3-235b-a22b-2507',
+        name: 'Qwen3 235B Instruct (2507)',
+        nameKey: 'llm_modelName_qwen3_235b_2507',
+        provider: 'openrouter',
+        config: { temperature: 0 }
+    },
+    {
+        id: 'deepseek/deepseek-v4-flash',
+        name: 'DeepSeek V4 Flash',
+        nameKey: 'llm_modelName_deepseek_v4_flash',
+        provider: 'openrouter',
+        config: { temperature: 0 }
     },
 ];
 
@@ -614,6 +650,12 @@ export const MODEL_ID_MIGRATIONS: Record<string, string> = {
 
 /**
  * モデルIDから設定を取得
+ *
+ * AVAILABLE_MODELS に登録されていない場合の優先順:
+ *  1. スラッシュ含む（`provider/model` 形式）→ OpenRouter カスタムモデルとみなし
+ *     `{ model: modelId, temperature: 0 }` を返す。ユーザー登録カスタムモデルでも
+ *     batch / criteria フローが正しく動くようにする。
+ *  2. それ以外 → Gemini の DEFAULT_MODEL_CONFIG。
  */
 export function getModelConfig(modelId: string): GeminiModelConfig {
     const modelOption = AVAILABLE_MODELS.find(m => m.id === modelId);
@@ -623,6 +665,38 @@ export function getModelConfig(modelId: string): GeminiModelConfig {
             ...modelOption.config,
         };
     }
-    // フォールバック: デフォルト設定
+    if (modelId.includes('/')) {
+        return { model: modelId, temperature: 0 };
+    }
     return DEFAULT_MODEL_CONFIG;
+}
+
+/**
+ * ビルトイン + ユーザー登録カスタム OpenRouter モデルを合成した一覧を返す。
+ *
+ * カスタムモデルは `chrome.storage.local` に保存されたものを読み込み、
+ * `provider: 'openrouter'`, `custom: true`, `config.temperature: 0` で展開する。
+ * 既存ビルトイン ID と重複するものは無視する（ビルトイン優先）。
+ *
+ * 動的 import は循環依存（storage → gemini-api）を避けるため。
+ */
+export async function getAllAvailableModels(): Promise<ReadonlyArray<ModelOption>> {
+    const { getCustomOpenRouterModels } = await import('./storage');
+    let customs: { id: string; label?: string }[] = [];
+    try {
+        customs = await getCustomOpenRouterModels();
+    } catch (err) {
+        console.warn('[getAllAvailableModels] Failed to load custom models:', err);
+    }
+    const builtInIds = new Set(AVAILABLE_MODELS.map(m => m.id));
+    const customModels: ModelOption[] = customs
+        .filter(c => !builtInIds.has(c.id))
+        .map(c => ({
+            id: c.id,
+            name: c.label && c.label.length > 0 ? `${c.label} (${c.id})` : c.id,
+            provider: 'openrouter' as const,
+            config: { temperature: 0 },
+            custom: true,
+        }));
+    return [...AVAILABLE_MODELS, ...customModels];
 }

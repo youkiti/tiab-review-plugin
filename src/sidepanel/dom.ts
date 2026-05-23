@@ -148,13 +148,30 @@ const domElements = {
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 
-    // LLM API Key
+    // LLM API Key (Gemini)
     get apiKeyCard() { return getElement<HTMLElement>('api-key-card'); },
     get apiKeySummary() { return getElement<HTMLElement>('api-key-summary'); },
     get geminiApiKeyInput() { return getElement<HTMLInputElement>('gemini-api-key'); },
     get toggleApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-api-key-visibility'); },
     get saveApiKeyCheckbox() { return getElement<HTMLInputElement>('save-api-key-checkbox'); },
     get apiKeyStatus() { return getElement<HTMLElement>('api-key-status'); },
+
+    // LLM API Key (OpenRouter)
+    get openRouterApiKeyCard() { return getElement<HTMLElement>('openrouter-api-key-card'); },
+    get openRouterApiKeySummary() { return getElement<HTMLElement>('openrouter-api-key-summary'); },
+    get openRouterApiKeyInput() { return getElement<HTMLInputElement>('openrouter-api-key'); },
+    get toggleOpenRouterApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openrouter-api-key-visibility'); },
+    get saveOpenRouterApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openrouter-api-key-checkbox'); },
+    get openRouterApiKeyStatus() { return getElement<HTMLElement>('openrouter-api-key-status'); },
+
+    // LLM カスタムモデル (OpenRouter)
+    get openRouterCustomModelCard() { return getElement<HTMLElement>('openrouter-custom-model-card'); },
+    get customModelIdInput() { return getElement<HTMLInputElement>('custom-model-id-input'); },
+    get customModelLabelInput() { return getElement<HTMLInputElement>('custom-model-label-input'); },
+    get testSaveCustomModelBtn() { return getElement<HTMLButtonElement>('test-save-custom-model-btn'); },
+    get customModelStatus() { return getElement<HTMLElement>('custom-model-status'); },
+    get customModelsList() { return getElement<HTMLUListElement>('custom-models-list'); },
+    get customModelsEmpty() { return getElement<HTMLElement>('custom-models-empty'); },
 
     // ========== ML Section ==========
     get mlSection() { return getElement<HTMLElement>('ml-section'); },
@@ -172,6 +189,7 @@ const domElements = {
 
     // LLM Config
     get llmModelSelect() { return getElement<HTMLSelectElement>('llm-model-select'); },
+    get llmNoModelHint() { return getElement<HTMLElement>('llm-no-model-hint'); },
     get llmLanguageSelect() { return getElement<HTMLSelectElement>('llm-language-select'); },
     get protocolTextInput() { return getElement<HTMLTextAreaElement>('protocol-text-input'); },
     get optimizeCriteriaBtn() { return getElement<HTMLButtonElement>('optimize-criteria-btn'); },
