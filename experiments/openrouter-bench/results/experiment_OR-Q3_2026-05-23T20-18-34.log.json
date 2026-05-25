@@ -19,5 +19,30 @@
       "delayBetweenRequests": 3300
     },
     "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
-  }
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1992,
+    "failCount": 1,
+    "durationMs": 22971575,
+    "avgTimePerItem": 11526.128951329654,
+    "tokensTotal": {
+      "prompt": 1323965,
+      "completion": 268394,
+      "reasoning": 0
+    },
+    "estimatedCostUsd": 3.199122
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 262,
+    "falsePositives": 171,
+    "trueNegatives": 1541,
+    "falseNegatives": 18,
+    "sensitivity": 0.9357142857142857,
+    "specificity": 0.9001168224299065,
+    "precision": 0.605080831408776,
+    "fBetaScore": 0.9255988129725146
+  },
+  "endTime": "2026-05-24T02:41:26.569Z"
 }
