@@ -241,28 +241,21 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
         }
     }
 
-    // AI判定フィルター (Blind off時のみ、かつ少なくとも1つチェックが外れている場合)
-    if (state.isKeyOpened && (!state.aiDecisionFilter.include || !state.aiDecisionFilter.exclude)) {
-        filtered = filtered.filter(r => {
-            // AI判定を取得
-            const aiDecisions = r.allDecisions?.filter(d => d.reviewer_id.startsWith('llm:')) || [];
+    // AI判定フィルター (Blind off時のみ、AIレビュアーごとに独立して適用)
+    if (state.isKeyOpened) {
+        for (const [reviewerId, filter] of Object.entries(state.aiDecisionFilter)) {
+            const allowed = new Set<string>();
+            if (filter.include) allowed.add('include');
+            if (filter.exclude) allowed.add('exclude');
+            // 両方ON or 両方OFF はこのAIのフィルターを適用しない
+            if (allowed.size === 2 || allowed.size === 0) continue;
 
-            // AI判定がない場合は常に表示（フィルター対象外）
-            if (aiDecisions.length === 0) return true;
-
-            // AI判定がある場合、表示許可されている判定が1つでもあればOK
-            // Include許可 かつ Include判定がある -> OK
-            // Exclude許可 かつ Exclude判定がある -> OK
-            const hasAllowedDecision = aiDecisions.some(d => {
-                if (d.decision === 'include' && state.aiDecisionFilter.include) return true;
-                if (d.decision === 'exclude' && state.aiDecisionFilter.exclude) return true;
-                // maybe, pending, conflict等はフィルター対象外として表示
-                if (d.decision !== 'include' && d.decision !== 'exclude') return true;
-                return false;
+            filtered = filtered.filter(r => {
+                const aiDecision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
+                if (!aiDecision) return false; // 該当AIの判定が無いレコードは非表示
+                return allowed.has(aiDecision.decision);
             });
-
-            return hasAllowedDecision;
-        });
+        }
     }
 
     return filtered;
