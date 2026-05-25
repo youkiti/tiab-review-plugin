@@ -59,7 +59,7 @@ export const initialState: AppState = {
             termFilterUseAnd: true,
             treatMlAsManual: true,
             showAiHighlights: false,
-            aiDecisionFilter: { include: true, exclude: true },
+            aiDecisionFilter: {},
             abstractSubsectionBreakEnabled: false,
             abstractSubsectionHeadings: [],
         },

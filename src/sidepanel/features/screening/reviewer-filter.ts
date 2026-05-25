@@ -145,14 +145,17 @@ export function renderReviewerFilter() {
             includeLabel.style.gap = '2px';
             includeLabel.style.cursor = 'pointer';
 
+            const currentFilter = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
+
             const includeCheckbox = document.createElement('input');
             includeCheckbox.type = 'checkbox';
-            includeCheckbox.checked = state.aiDecisionFilter.include;
+            includeCheckbox.checked = currentFilter.include;
             includeCheckbox.addEventListener('change', (e) => {
                 e.stopPropagation();
+                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
                 state.setAiDecisionFilter({
                     ...state.aiDecisionFilter,
-                    include: includeCheckbox.checked
+                    [reviewerId]: { ...prev, include: includeCheckbox.checked }
                 });
                 // フィルター適用のためインデックスをリセットして再描画
                 state.setCurrentIndex(0);
@@ -175,12 +178,13 @@ export function renderReviewerFilter() {
 
             const excludeCheckbox = document.createElement('input');
             excludeCheckbox.type = 'checkbox';
-            excludeCheckbox.checked = state.aiDecisionFilter.exclude;
+            excludeCheckbox.checked = currentFilter.exclude;
             excludeCheckbox.addEventListener('change', (e) => {
                 e.stopPropagation();
+                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
                 state.setAiDecisionFilter({
                     ...state.aiDecisionFilter,
-                    exclude: excludeCheckbox.checked
+                    [reviewerId]: { ...prev, exclude: excludeCheckbox.checked }
                 });
                 // フィルター適用のためインデックスをリセットして再描画
                 state.setCurrentIndex(0);

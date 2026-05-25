@@ -97,7 +97,7 @@ export interface AppState {
             termFilterUseAnd: boolean;
             treatMlAsManual: boolean;
             showAiHighlights: boolean;
-            aiDecisionFilter: { include: boolean; exclude: boolean };
+            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }>;
             abstractSubsectionBreakEnabled: boolean;
             abstractSubsectionHeadings: string[];
         };
@@ -177,7 +177,7 @@ export type Action =
     | { type: 'settings/setTermFilterUseAnd'; value: boolean }
     | { type: 'settings/setTreatMlAsManual'; value: boolean }
     | { type: 'settings/setShowAiHighlights'; value: boolean }
-    | { type: 'settings/setAiDecisionFilter'; filter: { include: boolean; exclude: boolean } }
+    | { type: 'settings/setAiDecisionFilter'; filter: Record<string, { include: boolean; exclude: boolean }> }
     | { type: 'settings/setAbstractSubsectionBreakEnabled'; value: boolean }
     | { type: 'settings/setAbstractSubsectionHeadings'; value: string[] }
 
