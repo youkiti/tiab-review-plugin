@@ -8,6 +8,7 @@ import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/ty
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
+import { computeReviewerKey, detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
 import { t } from '../../lib/i18n';
 
 // ========== フィルタリング関連 ==========
@@ -50,13 +51,22 @@ export function getMyManualDecisionStatus(
 function isFulltextCandidate(
     ref: ReferenceWithStatus,
     userEmail: string,
-    treatMlAsManual: boolean
+    treatMlAsManual: boolean,
+    enabledReviewers: Set<string>,
+    isKeyOpened: boolean
 ): boolean {
     let includeCategories = 0;
 
+    // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
+    const isReviewerEnabled = (d: Decision): boolean => {
+        if (!isKeyOpened) return true;
+        const key = computeReviewerKey(d, treatMlAsManual);
+        return key !== '' && enabledReviewers.has(key);
+    };
+
     const hasInclude = (check: (d: Decision) => boolean) => {
-        return (ref.allDecisions?.some(d => check(d) && d.decision === 'include')) ||
-            (ref.myDecision && check(ref.myDecision) && ref.myDecision.decision === 'include');
+        return (ref.allDecisions?.some(d => isReviewerEnabled(d) && check(d) && d.decision === 'include')) ||
+            (ref.myDecision && isReviewerEnabled(ref.myDecision) && check(ref.myDecision) && ref.myDecision.decision === 'include');
     };
 
     // 1. 手動判定
@@ -79,7 +89,7 @@ function isFulltextCandidate(
 
     // 3. LLM判定
     const llmInclude = ref.allDecisions?.some(d =>
-        d.reviewer_id.startsWith('llm:') && d.decision === 'include'
+        d.reviewer_id.startsWith('llm:') && d.decision === 'include' && isReviewerEnabled(d)
     );
     if (llmInclude) includeCategories++;
 
@@ -97,10 +107,12 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
     // ステータスフィルター
     if (screening.currentFilter === 'fulltext_candidates') {
         filtered = filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, settings.treatMlAsManual)
+            isFulltextCandidate(r, data.userEmail, settings.treatMlAsManual, data.enabledReviewers, screening.isKeyOpened)
         );
     } else if (screening.currentFilter === 'conflict') {
-        filtered = filtered.filter(r => r.status === 'conflict');
+        filtered = filtered.filter(r =>
+            hasEffectiveConflict(r, data.enabledReviewers, screening.isKeyOpened, settings.treatMlAsManual)
+        );
     } else if (screening.currentFilter !== 'all') {
         filtered = filtered.filter(r =>
             getMyManualDecisionStatus(r, data.userEmail, settings.treatMlAsManual) === screening.currentFilter
@@ -158,19 +170,22 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
         }
     }
 
-    // AI判定フィルター (Blind off時のみ、AIレビュアーごとに独立して適用)
+    // 判定フィルター (Blind off時のみ、レビュアーごとに独立して適用)
     if (screening.isKeyOpened) {
         for (const [reviewerId, filter] of Object.entries(settings.aiDecisionFilter)) {
+            // 無効化されたレビュアーはフィルター対象外
+            if (!data.enabledReviewers.has(reviewerId)) continue;
+
             const allowed = new Set<string>();
             if (filter.include) allowed.add('include');
             if (filter.exclude) allowed.add('exclude');
-            // 両方ON or 両方OFF はこのAIのフィルターを適用しない
+            // 両方ON or 両方OFF はこのレビュアーのフィルターを適用しない
             if (allowed.size === 2 || allowed.size === 0) continue;
 
             filtered = filtered.filter(r => {
-                const aiDecision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
-                if (!aiDecision) return false; // 該当AIの判定が無いレコードは非表示
-                return allowed.has(aiDecision.decision);
+                const decision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
+                if (!decision) return false; // 該当レビュアーの判定が無いレコードは非表示
+                return allowed.has(decision.decision);
             });
         }
     }
@@ -238,9 +253,11 @@ export function getFilterCounts(state: AppState): {
         include: filtered.filter(r => getStatus(r) === 'include').length,
         exclude: filtered.filter(r => getStatus(r) === 'exclude').length,
         maybe: filtered.filter(r => getStatus(r) === 'maybe').length,
-        conflict: filtered.filter(r => r.status === 'conflict').length,
+        conflict: filtered.filter(r =>
+            hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)
+        ).length,
         fulltextCandidates: filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, ui.settings.treatMlAsManual)
+            isFulltextCandidate(r, data.userEmail, ui.settings.treatMlAsManual, data.enabledReviewers, ui.screening.isKeyOpened)
         ).length,
     };
 }

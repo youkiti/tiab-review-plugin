@@ -9,7 +9,7 @@ import { escapeHtml, escapeRegex } from '../../utils/text';
 import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
 import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
-import { detectConflictWithSettings } from '../../render/helpers';
+import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { t } from '../../../lib/i18n';
 import type { DecisionStatus } from '../../../lib/types';
@@ -225,9 +225,15 @@ export function renderSpecificReference(ref: ReferenceWithStatus) {
  * 特定の文献を描画（内部関数）
  */
 function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number, isHistoryView: boolean) {
-    // コンフリクト表示（treatMlAsManual設定を考慮して動的に計算）
-    const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
-        ? detectConflictWithSettings(ref.allDecisions, state.treatMlAsManual)
+    // コンフリクト表示（enabledReviewers と treatMlAsManual を反映して動的に計算）
+    const conflictDecisions = filterEnabledDecisions(
+        ref.allDecisions,
+        state.enabledReviewers,
+        state.isKeyOpened,
+        state.treatMlAsManual
+    );
+    const hasConflict = conflictDecisions.length > 0
+        ? detectConflictWithSettings(conflictDecisions, state.treatMlAsManual)
         : false;
     if (state.isKeyOpened && ref.allDecisions && ref.allDecisions.length > 0) {
         renderAllDecisions(ref);

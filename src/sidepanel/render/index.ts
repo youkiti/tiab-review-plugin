@@ -6,7 +6,7 @@
 import type { AppState } from '../store/types';
 import { renderLayout, renderTemporaryUI, renderFilterOptions } from './layout';
 import { getFilterCounts, getProgressStats, getFilteredReferences, getCurrentReference, getAiEvidenceList } from '../store/selectors';
-import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings } from './helpers';
+import { highlightText, getEncourageMessage, getReviewerLabel, getDecisionIcon, getMlBadgeHtml, detectConflictWithSettings, filterEnabledDecisions } from './helpers';
 import { dom } from '../dom';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { t } from '../../lib/i18n';
@@ -199,9 +199,15 @@ function renderReferenceDetails(
     dom.navPosition.textContent = `${state.ui.screening.currentIndex + 1} / ${totalFiltered}`;
     dom.filterResultCount.textContent = `${totalFiltered}件中 ${state.ui.screening.currentIndex + 1}件目`;
 
-    // コンフリクト表示（treatMlAsManual設定を考慮して動的に計算）
-    const hasConflict = ref.allDecisions && ref.allDecisions.length > 0
-        ? detectConflictWithSettings(ref.allDecisions, state.ui.settings.treatMlAsManual)
+    // コンフリクト表示（enabledReviewers と treatMlAsManual を反映して動的に計算）
+    const conflictDecisions = filterEnabledDecisions(
+        ref.allDecisions,
+        state.data.enabledReviewers,
+        state.ui.screening.isKeyOpened,
+        state.ui.settings.treatMlAsManual
+    );
+    const hasConflict = conflictDecisions.length > 0
+        ? detectConflictWithSettings(conflictDecisions, state.ui.settings.treatMlAsManual)
         : false;
     if (state.ui.screening.isKeyOpened && hasConflict) {
         dom.conflictBanner.classList.remove('hidden');

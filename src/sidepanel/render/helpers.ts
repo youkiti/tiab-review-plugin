@@ -145,6 +145,62 @@ export function getMlBadgeHtml(clientVersion?: string): string {
 }
 
 /**
+ * Decision から reviewer の集約キーを計算する。
+ * `availableReviewers` / `enabledReviewers` に格納されているキーと一致する。
+ * - LLM: `reviewer_id` をそのまま
+ * - 人間 manual: email
+ * - 人間 ML 確認済み: treatMlAsManual=true なら email、false なら `email::ml`
+ * - 人間 ML auto: `email::ml`
+ */
+export function computeReviewerKey(
+    decision: import('../../lib/types').Decision,
+    treatMlAsManual: boolean
+): string {
+    const reviewerId = (decision.reviewer_id || '').trim();
+    if (!reviewerId) return '';
+    if (reviewerId.startsWith('llm:')) return reviewerId;
+    if (treatMlAsManual && isConfirmedMlDecision(decision.client_version)) {
+        return reviewerId;
+    }
+    if (isMlDecision(decision.client_version)) return `${reviewerId}::ml`;
+    return reviewerId;
+}
+
+/**
+ * 有効なレビュアーの判定のみを返す。
+ * Blind ON（`isKeyOpened=false`）時は全件返す（reviewer フィルター無効化）。
+ * Blind OFF 時は `enabledReviewers` に含まれるキーの判定のみ返す。
+ */
+export function filterEnabledDecisions(
+    decisions: import('../../lib/types').Decision[] | undefined,
+    enabledReviewers: Set<string>,
+    isKeyOpened: boolean,
+    treatMlAsManual: boolean
+): import('../../lib/types').Decision[] {
+    if (!decisions || decisions.length === 0) return [];
+    if (!isKeyOpened) return decisions;
+    return decisions.filter(d => {
+        const key = computeReviewerKey(d, treatMlAsManual);
+        return key !== '' && enabledReviewers.has(key);
+    });
+}
+
+/**
+ * 有効なレビュアーのみで不一致を検出する（Reference 単位）。
+ * Blind ON 時は `enabledReviewers` を無視して全レビュアーで検出する。
+ */
+export function hasEffectiveConflict(
+    ref: { allDecisions?: import('../../lib/types').Decision[] } | undefined,
+    enabledReviewers: Set<string>,
+    isKeyOpened: boolean,
+    treatMlAsManual: boolean
+): boolean {
+    if (!ref?.allDecisions || ref.allDecisions.length === 0) return false;
+    const decisions = filterEnabledDecisions(ref.allDecisions, enabledReviewers, isKeyOpened, treatMlAsManual);
+    return detectConflictWithSettings(decisions, treatMlAsManual);
+}
+
+/**
  * 不一致を検出（treatMlAsManual設定を考慮）
  * - treatMlAsManualがONの場合、同一ユーザーのML判定と手動判定を同一視
  * - 2人以上のレビュアーが存在し、判定内容が異なる場合のみ不一致

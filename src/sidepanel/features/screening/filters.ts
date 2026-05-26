@@ -13,6 +13,7 @@ import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
 import { getReferenceAssignmentSet } from '../assignment';
+import { computeReviewerKey, hasEffectiveConflict } from '../../render/helpers';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -47,10 +48,17 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
 
     const userEmail = state.userEmail;
 
+    // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
+    const isReviewerEnabled = (d: Decision): boolean => {
+        if (!state.isKeyOpened) return true;
+        const key = computeReviewerKey(d, state.treatMlAsManual);
+        return key !== '' && state.enabledReviewers.has(key);
+    };
+
     // ヘルパー: 特定の条件でInclude判定があるか
     const hasInclude = (check: (d: Decision) => boolean) => {
-        return (r.allDecisions?.some(d => check(d) && d.decision === 'include')) ||
-            (r.myDecision && check(r.myDecision) && r.myDecision.decision === 'include');
+        return (r.allDecisions?.some(d => isReviewerEnabled(d) && check(d) && d.decision === 'include')) ||
+            (r.myDecision && isReviewerEnabled(r.myDecision) && check(r.myDecision) && r.myDecision.decision === 'include');
     };
 
     // 1. 手動判定（複数人対応）
@@ -112,7 +120,8 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
     // 3. LLM判定 - reviewer_idがllm:で始まる判定
     const llmInclude = r.allDecisions?.some(d =>
         d.reviewer_id.startsWith('llm:') &&
-        d.decision === 'include'
+        d.decision === 'include' &&
+        isReviewerEnabled(d)
     );
 
     if (llmInclude) includeCategories++;
@@ -177,8 +186,10 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
     if (state.currentFilter === 'fulltext_candidates') {
         filtered = filtered.filter(isFulltextCandidate);
     } else if (state.currentFilter === 'conflict') {
-        // 不一致は合成ステータスをそのまま使用
-        filtered = filtered.filter((r) => r.status === 'conflict');
+        // 不一致は enabledReviewers を反映して動的に計算
+        filtered = filtered.filter((r) =>
+            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
+        );
     } else if (state.currentFilter !== 'all') {
         // pending, include, exclude, maybe は自分の手動判定(0.1.0)でフィルタリング
         filtered = filtered.filter((r) => getMyManualDecisionStatus(r) === state.currentFilter);
@@ -241,19 +252,22 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
         }
     }
 
-    // AI判定フィルター (Blind off時のみ、AIレビュアーごとに独立して適用)
+    // 判定フィルター (Blind off時のみ、レビュアーごとに独立して適用)
     if (state.isKeyOpened) {
         for (const [reviewerId, filter] of Object.entries(state.aiDecisionFilter)) {
+            // 無効化されたレビュアーはフィルター対象外
+            if (!state.enabledReviewers.has(reviewerId)) continue;
+
             const allowed = new Set<string>();
             if (filter.include) allowed.add('include');
             if (filter.exclude) allowed.add('exclude');
-            // 両方ON or 両方OFF はこのAIのフィルターを適用しない
+            // 両方ON or 両方OFF はこのレビュアーのフィルターを適用しない
             if (allowed.size === 2 || allowed.size === 0) continue;
 
             filtered = filtered.filter(r => {
-                const aiDecision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
-                if (!aiDecision) return false; // 該当AIの判定が無いレコードは非表示
-                return allowed.has(aiDecision.decision);
+                const decision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
+                if (!decision) return false; // 該当レビュアーの判定が無いレコードは非表示
+                return allowed.has(decision.decision);
             });
         }
     }
@@ -281,7 +295,9 @@ export function updateFilterCounts() {
         include: filtered.filter(r => getMyManualDecisionStatus(r) === 'include').length,
         exclude: filtered.filter(r => getMyManualDecisionStatus(r) === 'exclude').length,
         maybe: filtered.filter(r => getMyManualDecisionStatus(r) === 'maybe').length,
-        conflict: filtered.filter(r => r.status === 'conflict').length,  // 不一致は合成ステータス
+        conflict: filtered.filter(r =>
+            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
+        ).length,
     };
 
     const options = dom.statusFilter.options;
