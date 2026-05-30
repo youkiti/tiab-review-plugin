@@ -107,7 +107,8 @@ export function renderReviewerFilter() {
         const mlKey = reviewerId + ML_REVIEWER_SUFFIX;
         const isEnabledBase = state.enabledReviewers.has(reviewerId);
         const isEnabledMl = state.treatMlAsManual && isMixed && state.enabledReviewers.has(mlKey);
-        checkbox.checked = isEnabledBase || isEnabledMl;
+        const isReviewerEnabled = isEnabledBase || isEnabledMl;
+        checkbox.checked = isReviewerEnabled;
         checkbox.dataset.reviewer = reviewerId;
 
         checkbox.addEventListener('change', () => {
@@ -120,102 +121,71 @@ export function renderReviewerFilter() {
             } else {
                 handleReviewerToggle(reviewerId, checkbox.checked);
             }
+            // disabled 表示を更新するため、レビュアーフィルター UI を再描画
+            renderReviewerFilter();
         });
 
         const nameSpan = document.createElement('span');
         // 混在情報を含むラベルを表示
         nameSpan.textContent = getReviewerLabel(reviewerId, state.userEmail, isMixed);
 
-        // AIの場合の装飾
         if (isLlmReviewerKey(reviewerId)) {
             nameSpan.classList.add('reviewer-llm');
-
-
-            // AI判定フィルター（AIレビュアーの右側に配置）
-            const filterContainer = document.createElement('div');
-            filterContainer.style.display = 'flex';
-            filterContainer.style.gap = '8px';
-            filterContainer.style.marginLeft = 'auto';
-            filterContainer.style.fontSize = '0.85em';
-
-            // Include filter
-            const includeLabel = document.createElement('label');
-            includeLabel.style.display = 'flex';
-            includeLabel.style.alignItems = 'center';
-            includeLabel.style.gap = '2px';
-            includeLabel.style.cursor = 'pointer';
-
-            const currentFilter = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
-
-            const includeCheckbox = document.createElement('input');
-            includeCheckbox.type = 'checkbox';
-            includeCheckbox.checked = currentFilter.include;
-            includeCheckbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
-                state.setAiDecisionFilter({
-                    ...state.aiDecisionFilter,
-                    [reviewerId]: { ...prev, include: includeCheckbox.checked }
-                });
-                // フィルター適用のためインデックスをリセットして再描画
-                state.setCurrentIndex(0);
-                if (_renderCurrentReference) _renderCurrentReference();
-            });
-
-            const includeSpan = document.createElement('span');
-            includeSpan.textContent = t('filter_includeDecision');
-            includeSpan.title = t('filter_includeLabel');
-
-            includeLabel.appendChild(includeCheckbox);
-            includeLabel.appendChild(includeSpan);
-
-            // Exclude filter
-            const excludeLabel = document.createElement('label');
-            excludeLabel.style.display = 'flex';
-            excludeLabel.style.alignItems = 'center';
-            excludeLabel.style.gap = '2px';
-            excludeLabel.style.cursor = 'pointer';
-
-            const excludeCheckbox = document.createElement('input');
-            excludeCheckbox.type = 'checkbox';
-            excludeCheckbox.checked = currentFilter.exclude;
-            excludeCheckbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
-                state.setAiDecisionFilter({
-                    ...state.aiDecisionFilter,
-                    [reviewerId]: { ...prev, exclude: excludeCheckbox.checked }
-                });
-                // フィルター適用のためインデックスをリセットして再描画
-                state.setCurrentIndex(0);
-                if (_renderCurrentReference) _renderCurrentReference();
-            });
-
-            const excludeSpan = document.createElement('span');
-            excludeSpan.textContent = t('filter_excludeDecision');
-            excludeSpan.title = t('filter_excludeLabel');
-
-            excludeLabel.appendChild(excludeCheckbox);
-            excludeLabel.appendChild(excludeSpan);
-
-            filterContainer.appendChild(includeLabel);
-            filterContainer.appendChild(excludeLabel);
-
-            // 先にラベルを追加（AI名）
-            label.appendChild(checkbox);
-            label.appendChild(nameSpan);
-            item.appendChild(label);
-
-            // その後にフィルターを右側に追加
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.appendChild(filterContainer);
-        } else {
-            // 人間のレビュアーは通常通り
-            label.appendChild(checkbox);
-            label.appendChild(nameSpan);
-            item.appendChild(label);
         }
+
+        // 判定フィルター（include / exclude）を AI / 人間ともに配置
+        const filterContainer = document.createElement('div');
+        filterContainer.style.display = 'flex';
+        filterContainer.style.gap = '8px';
+        filterContainer.style.marginLeft = 'auto';
+        filterContainer.style.fontSize = '0.85em';
+        if (!isReviewerEnabled) {
+            filterContainer.style.opacity = '0.4';
+        }
+
+        const currentFilter = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
+
+        const buildDecisionToggle = (kind: 'include' | 'exclude') => {
+            const wrapper = document.createElement('label');
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.gap = '2px';
+            wrapper.style.cursor = isReviewerEnabled ? 'pointer' : 'not-allowed';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = currentFilter[kind];
+            input.disabled = !isReviewerEnabled;
+            input.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
+                state.setAiDecisionFilter({
+                    ...state.aiDecisionFilter,
+                    [reviewerId]: { ...prev, [kind]: input.checked }
+                });
+                state.setCurrentIndex(0);
+                if (_renderCurrentReference) _renderCurrentReference();
+            });
+
+            const text = document.createElement('span');
+            text.textContent = kind === 'include' ? t('filter_includeDecision') : t('filter_excludeDecision');
+            text.title = kind === 'include' ? t('filter_includeLabel') : t('filter_excludeLabel');
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(text);
+            return wrapper;
+        };
+
+        filterContainer.appendChild(buildDecisionToggle('include'));
+        filterContainer.appendChild(buildDecisionToggle('exclude'));
+
+        label.appendChild(checkbox);
+        label.appendChild(nameSpan);
+        item.appendChild(label);
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.appendChild(filterContainer);
+
         list.appendChild(item);
     });
 }

@@ -65,7 +65,7 @@ let _activeLlmExecutionIds: Set<string> = new Set();
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
-let _showAiHighlights = false; // AIのEvidenceをハイライトするかどうか
+let _showAiHighlights = true; // AIのEvidenceをハイライトするかどうか（デフォルトON）
 let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
 let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 

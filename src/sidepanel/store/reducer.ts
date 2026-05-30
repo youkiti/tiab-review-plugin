@@ -58,7 +58,7 @@ export const initialState: AppState = {
             showRecordCountBelow: true,
             termFilterUseAnd: true,
             treatMlAsManual: true,
-            showAiHighlights: false,
+            showAiHighlights: true,
             aiDecisionFilter: {},
             abstractSubsectionBreakEnabled: false,
             abstractSubsectionHeadings: [],

@@ -421,8 +421,9 @@ export async function loadDataAndShowScreening() {
             console.log('[loadDataAndShowScreening] Admin mode');
             if (_renderKeyStatus) _renderKeyStatus();
             if (_renderReviewerFilter) _renderReviewerFilter();
-            if (_renderAiHighlightToggle) _renderAiHighlightToggle();
         }
+        // AIハイライトトグルは全ユーザーに表示（確定AI判定があれば表示される）
+        if (_renderAiHighlightToggle) _renderAiHighlightToggle();
         renderAssignmentManager();
 
         // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
