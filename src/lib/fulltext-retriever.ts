@@ -17,25 +17,29 @@ interface NcbiIds {
 }
 
 // NCBI ID コンバーター: 既知の PMID/DOI から PMCID 等を補完
-async function enrichNcbiIds(pmid?: string, doi?: string): Promise<NcbiIds> {
+// 旧 www.ncbi.nlm.nih.gov/pmc/utils/idconv は pmc.ncbi.nlm.nih.gov へ 301 移転済み
+async function enrichNcbiIds(pmid?: string, doi?: string, email?: string): Promise<NcbiIds> {
     const known = pmid || doi;
     if (!known) return {};
 
     const params = new URLSearchParams({ ids: known, format: 'json' });
+    params.set('tool', 'tiab-review-plugin');
+    if (email) params.set('email', email);
     try {
         const resp = await fetch(
-            `https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?${params}`
+            `https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?${params}`
         );
         if (!resp.ok) return {};
         const data = await resp.json() as {
-            records?: Array<{ pmcid?: string; pmid?: string; doi?: string; status?: string }>;
+            // pmid は数値で返ることがある
+            records?: Array<{ pmcid?: string; pmid?: string | number; doi?: string; status?: string }>;
         };
         const records = data.records ?? [];
         if (!records.length || records[0].status === 'error') return {};
         const rec = records[0];
         return {
             pmcid: rec.pmcid,
-            pmid: rec.pmid || pmid,
+            pmid: rec.pmid != null ? String(rec.pmid) : pmid,
             doi: rec.doi || doi,
         };
     } catch {
@@ -43,7 +47,9 @@ async function enrichNcbiIds(pmid?: string, doi?: string): Promise<NcbiIds> {
     }
 }
 
-// PMC OA Service: PMCID から直接 PDF URL を取得、失敗時は Europe PMC render URL にフォールバック
+// PMC OA Service: PMCID から直接 PDF URL を取得、失敗時は PMC の記事 PDF URL にフォールバック
+// OA Service は PMC 収載でも OA サブセット外の記事 (例: ハイブリッド誌 CC-BY) には
+// idDoesNotExist を返すため、その場合もブラウザで開ける PMC 記事 PDF URL を返す
 async function pmcOaUrl(pmcid: string): Promise<string> {
     try {
         const params = new URLSearchParams({ id: pmcid, format: 'pdf' });
@@ -67,7 +73,7 @@ async function pmcOaUrl(pmcid: string): Promise<string> {
     } catch {
         // フォールバックへ
     }
-    return `https://europepmc.org/backend/ptpmcrender.fcgi?accid=${pmcid}&blobtype=pdf`;
+    return `https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/pdf/`;
 }
 
 // Europe PMC: PMID で OA PDF URL を検索
@@ -182,9 +188,10 @@ export async function retrieveFulltextUrl(
 ): Promise<FulltextCandidate | null> {
     const { doi, pmid } = ref;
 
-    // NCBI ID コンバーターで PMCID / DOI を補完
-    const enriched = await enrichNcbiIds(pmid, doi);
+    // NCBI ID コンバーターで PMCID / PMID / DOI を補完
+    const enriched = await enrichNcbiIds(pmid, doi, email);
     const pmcid = enriched.pmcid;
+    const resolvedPmid = pmid || enriched.pmid;
     const resolvedDoi = doi || enriched.doi;
 
     const seen = new Set<string>();
@@ -198,9 +205,9 @@ export async function retrieveFulltextUrl(
         }
     }
 
-    // 2. Europe PMC (PMID が必要)
-    if (pmid) {
-        const url = await europePmcUrl(pmid);
+    // 2. Europe PMC (PMID が必要; DOI のみの文献も idconv で補完した PMID を使う)
+    if (resolvedPmid) {
+        const url = await europePmcUrl(resolvedPmid);
         if (url && !seen.has(url)) {
             seen.add(url);
             return { url, source: 'europe_pmc' };
