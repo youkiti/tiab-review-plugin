@@ -21,6 +21,7 @@ module.exports = (env, argv) => {
             'background/service-worker': './src/background/service-worker.ts',
             'popup/popup': './src/popup/popup.ts',
             'sidepanel/sidepanel': './src/sidepanel/sidepanel.ts',
+            'fulltext/fulltext': './src/fulltext/fulltext.ts',
         },
         output: {
             path: path.resolve(__dirname, 'dist'),
@@ -71,6 +72,8 @@ module.exports = (env, argv) => {
                     { from: 'src/sidepanel/sidepanel.html', to: 'sidepanel/sidepanel.html' },
                     { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel/sidepanel.css' },
                     { from: 'src/sidepanel/styles', to: 'sidepanel/styles' },
+                    { from: 'src/fulltext/fulltext.html', to: 'fulltext/fulltext.html' },
+                    { from: 'src/fulltext/fulltext.css', to: 'fulltext/fulltext.css' },
                     { from: 'src/icons', to: 'icons' },
                     { from: 'src/_locales', to: '_locales' },
                 ],

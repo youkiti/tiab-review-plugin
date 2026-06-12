@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiAb Review - Full-text Screening</title>
+    <link rel="stylesheet" href="fulltext.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- ヘッダー -->
+        <header class="ft-header">
+            <div class="ft-header-left">
+                <h1 class="ft-title">Full-text Screening</h1>
+                <span id="ft-ref-meta" class="ft-ref-meta"></span>
+            </div>
+            <div class="ft-header-right">
+                <span id="ft-progress" class="ft-progress"></span>
+            </div>
+        </header>
+
+        <main class="ft-main">
+            <!-- 左ペイン: PDFビュワー -->
+            <section class="ft-pdf-pane" id="ft-pdf-pane">
+                <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
+                    <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
+                    <button id="ft-attach-tab-btn" class="btn btn-secondary">現在のタブをアタッチ</button>
+                    <button id="ft-doi-resolve-btn" class="btn btn-secondary">DOI → URL解決</button>
+                </div>
+                <div id="ft-pdf-viewer" class="ft-pdf-viewer">
+                    <!-- PDF.js canvas がここに描画される -->
+                    <div id="ft-pdf-placeholder" class="ft-pdf-placeholder">
+                        PDFが取得されていません
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右ペイン: 決断 + アノテーション一覧 -->
+            <aside class="ft-decision-pane" id="ft-decision-pane">
+                <!-- 決断パネル -->
+                <section class="ft-panel ft-decision-panel">
+                    <h2 class="ft-panel-title">判定</h2>
+                    <div class="ft-decision-buttons">
+                        <button id="ft-btn-include" class="btn btn-include" data-decision="include">組み入れ</button>
+                        <button id="ft-btn-exclude" class="btn btn-exclude" data-decision="exclude">除外</button>
+                        <button id="ft-btn-maybe" class="btn btn-maybe" data-decision="maybe">保留</button>
+                    </div>
+                    <div id="ft-reason-area" class="ft-reason-area hidden">
+                        <label class="ft-reason-label">除外理由 (PRISMA)</label>
+                        <select id="ft-reason-select" class="ft-reason-select">
+                            <option value="">選択してください</option>
+                            <option value="population">Population 不適合</option>
+                            <option value="intervention">Intervention 不適合</option>
+                            <option value="comparator">Comparator 不適合</option>
+                            <option value="outcome">Outcome 不適合</option>
+                            <option value="study_design">Study design 不適合</option>
+                            <option value="duplicate">重複</option>
+                            <option value="other">その他</option>
+                        </select>
+                        <textarea id="ft-reason-note" class="ft-reason-note" placeholder="補足メモ（任意）" rows="3"></textarea>
+                    </div>
+                    <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>
+                </section>
+
+                <!-- アノテーション一覧 -->
+                <section class="ft-panel ft-annotations-panel">
+                    <h2 class="ft-panel-title">
+                        ハイライト
+                        <span class="ft-panel-mode-toggle">
+                            <button id="ft-mode-screening" class="ft-mode-btn active">スクリーニング</button>
+                            <button id="ft-mode-extraction" class="ft-mode-btn">データ抽出</button>
+                        </span>
+                    </h2>
+                    <div id="ft-annotations-list" class="ft-annotations-list">
+                        <!-- アノテーションカードがここに入る -->
+                    </div>
+                </section>
+
+                <!-- ナビゲーション -->
+                <div class="ft-nav">
+                    <button id="ft-prev-btn" class="btn btn-secondary">← 前</button>
+                    <button id="ft-next-btn" class="btn btn-secondary">次 →</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="fulltext.js"></script>
+</body>
+
+</html>

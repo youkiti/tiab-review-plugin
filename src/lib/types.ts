@@ -20,6 +20,8 @@ export interface Reference {
     imported_by?: string;     // email
     dedupe_key?: string;
     screening_set?: string;   // 担当セットID
+    fulltext_url?: string;    // フルテキストURL (OA / ブラウザアタッチ)
+    fulltext_status?: 'not_retrieved' | 'retrieved' | 'unavailable';
 }
 
 export interface AssignmentConfig {
@@ -42,6 +44,7 @@ export interface Decision {
     decided_at: string;       // ISO 8601
     client_version?: string;
     source_url?: string;
+    screening_phase?: 'tiab' | 'fulltext';  // 省略時は 'tiab' として扱う（後方互換）
 }
 
 export interface ReviewerState {
@@ -389,3 +392,44 @@ export function getBatchProfile(tier: ManualTier, modelId?: string): BatchProfil
 export const RATE_LIMIT_FREE: RateLimitConfig = BATCH_PROFILES.free.rate;
 export const RATE_LIMIT_PAID: RateLimitConfig = BATCH_PROFILES.tier1.rate;
 export const RATE_LIMIT_TIER2: RateLimitConfig = BATCH_PROFILES.tier2.rate;
+
+// ---------------------------------------------------------------------------
+// フルテキストスクリーニング / データ抽出 アノテーション
+// ---------------------------------------------------------------------------
+
+/**
+ * PDFハイライト位置（PDF.js の TextContent ベース）
+ * - offset: ページ内文字オフセット（主キー、再描画に使用）
+ * - context_before / context_after: 前後50文字（オフセット失敗時のフォールバック）
+ */
+export interface AnnotationPosition {
+    page: number;
+    offset_start: number;
+    offset_end: number;
+    context_before: string;
+    context_after: string;
+}
+
+/**
+ * PDFアノテーション（ハイライト1件 = 1行）
+ *
+ * フルテキストスクリーニングとデータ抽出を同じ型で扱う。
+ * - phase: 'fulltext_screening' のとき category は include_evidence / exclude_evidence
+ * - phase: 'data_extraction' のとき category は 'data_point'、label にフィールド名を入れる
+ *
+ * Google Sheets: Annotations タブに1行1アノテーションで保存する。
+ * position_json 列に AnnotationPosition を JSON 文字列として格納する。
+ */
+export interface Annotation {
+    annotation_id: string;   // UUID
+    ref_id: string;          // References への FK
+    reviewer_id: string;     // email
+    phase: 'fulltext_screening' | 'data_extraction';
+    category: 'include_evidence' | 'exclude_evidence' | 'data_point';
+    label?: string;          // data_extraction 時のフィールド名（例: 'sample_size'）
+    highlighted_text: string;
+    page_number: number;
+    position_json: string;   // JSON.stringify(AnnotationPosition)
+    pdf_url: string;         // アノテーション作成時に使ったPDFのURL
+    created_at: string;      // ISO 8601
+}

@@ -1,0 +1,286 @@
+/* fulltext.css - フルテキストスクリーニングページ */
+
+:root {
+    --ft-header-height: 48px;
+    --ft-pdf-pane-width: 65%;
+    --ft-decision-pane-width: 35%;
+    --color-include: #2ecc71;
+    --color-exclude: #e74c3c;
+    --color-maybe: #f39c12;
+    --color-include-evidence: rgba(46, 204, 113, 0.35);
+    --color-exclude-evidence: rgba(231, 76, 60, 0.35);
+    --color-data-point: rgba(52, 152, 219, 0.35);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+/* ヘッダー */
+.ft-header {
+    height: var(--ft-header-height);
+    background: #2c3e50;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+}
+
+.ft-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ft-ref-meta {
+    font-size: 12px;
+    color: #bdc3c7;
+    margin-left: 12px;
+}
+
+.ft-progress {
+    font-size: 12px;
+    color: #bdc3c7;
+}
+
+/* メインレイアウト */
+.ft-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* PDF ペイン */
+.ft-pdf-pane {
+    width: var(--ft-pdf-pane-width);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ddd;
+    background: #fff;
+}
+
+.ft-pdf-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #ecf0f1;
+    border-bottom: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+.ft-pdf-url-label {
+    flex: 1;
+    font-size: 11px;
+    color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ft-pdf-viewer {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+}
+
+.ft-pdf-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* 決断ペイン */
+.ft-decision-pane {
+    width: var(--ft-decision-pane-width);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+}
+
+.ft-panel {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.ft-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* 決断ボタン */
+.ft-decision-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.btn-include  { background: var(--color-include);  color: #fff; }
+.btn-exclude  { background: var(--color-exclude);  color: #fff; }
+.btn-maybe    { background: var(--color-maybe);    color: #fff; }
+
+.btn-include:hover  { filter: brightness(0.9); }
+.btn-exclude:hover  { filter: brightness(0.9); }
+.btn-maybe:hover    { filter: brightness(0.9); }
+
+/* 除外理由エリア */
+.ft-reason-area {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ft-reason-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.ft-reason-select,
+.ft-reason-note {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: 100%;
+}
+
+.ft-save-btn {
+    width: 100%;
+}
+
+/* アノテーション一覧 */
+.ft-annotations-panel {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ft-annotations-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
+}
+
+/* モード切替 */
+.ft-panel-mode-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.ft-mode-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+    cursor: pointer;
+    color: #555;
+}
+
+.ft-mode-btn.active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+
+/* アノテーションカード */
+.ft-annotation-card {
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ft-annotation-card:hover {
+    background: #f9f9f9;
+}
+
+.ft-annotation-card[data-category="include_evidence"] {
+    border-left: 3px solid var(--color-include);
+}
+
+.ft-annotation-card[data-category="exclude_evidence"] {
+    border-left: 3px solid var(--color-exclude);
+}
+
+.ft-annotation-card[data-category="data_point"] {
+    border-left: 3px solid #3498db;
+}
+
+.ft-annotation-text {
+    color: #333;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.ft-annotation-meta {
+    color: #999;
+    font-size: 11px;
+}
+
+/* PDFハイライトオーバーレイ */
+.ft-highlight {
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+    mix-blend-mode: multiply;
+}
+
+.ft-highlight[data-category="include_evidence"] { background: var(--color-include-evidence); }
+.ft-highlight[data-category="exclude_evidence"] { background: var(--color-exclude-evidence); }
+.ft-highlight[data-category="data_point"]       { background: var(--color-data-point); }
+
+/* ナビゲーション */
+.ft-nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-top: 1px solid #eee;
+    flex-shrink: 0;
+}
+
+/* 共通ボタン */
+.btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-primary   { background: #3498db; color: #fff; }
+.btn-secondary { background: #ecf0f1; color: #333; border: 1px solid #ccc; }
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.hidden { display: none !important; }
