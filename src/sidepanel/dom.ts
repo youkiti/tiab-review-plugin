@@ -53,6 +53,7 @@ const domElements = {
     get refAbstract() { return getElement<HTMLElement>('ref-abstract'); },
     get refDoi() { return getElement<HTMLAnchorElement>('ref-doi'); },
     get refPmid() { return getElement<HTMLAnchorElement>('ref-pmid'); },
+    get btnOpenFulltext() { return getElement<HTMLButtonElement>('btn-open-fulltext'); },
     get refSourceBadge() { return getElement<HTMLElement>('ref-source-badge'); },
     get refTrialRegistryNote() { return getElement<HTMLElement>('ref-trial-registry-note'); },
     get refDecisionStatusRow() { return getElement<HTMLElement>('ref-decision-status-row'); },

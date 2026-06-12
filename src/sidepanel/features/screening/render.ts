@@ -197,6 +197,7 @@ export function renderCurrentReference() {
         dom.refSourceBadge.classList.add('hidden');
         dom.refTrialRegistryNote.classList.add('hidden');
         dom.refDecisionStatusRow.classList.add('hidden');
+        dom.btnOpenFulltext.classList.add('hidden');
         dom.navPosition.textContent = '0 / 0';
         dom.progressText.textContent = `0 / ${state.references.length}`;
         dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
@@ -308,6 +309,15 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
 
     // Trial registry 由来の場合の注釈
     renderTrialRegistryNote(ref);
+
+    // フルテキストを開くボタン: 自分が TiAb で Include した文献にのみ表示
+    const myTiabDecision = ref.myDecision;
+    if (myTiabDecision?.decision === 'include' && (myTiabDecision.screening_phase ?? 'tiab') === 'tiab') {
+        dom.btnOpenFulltext.classList.remove('hidden');
+        dom.btnOpenFulltext.dataset['refId'] = ref.ref_id;
+    } else {
+        dom.btnOpenFulltext.classList.add('hidden');
+    }
 
     const myStatus = (ref.myDecision?.decision || 'pending') as DecisionStatus | 'pending';
     renderDecisionChip(dom.refDecisionChip, dom.refDecisionStatusRow, myStatus);

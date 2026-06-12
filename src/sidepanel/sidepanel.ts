@@ -211,6 +211,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.btnMaybe?.addEventListener('click', () => screeningActions.handleDecision('maybe'));
     dom.btnPrev?.addEventListener('click', () => screeningActions.navigate(-1));
     dom.btnNext?.addEventListener('click', () => screeningActions.navigate(1));
+
+    // フルテキストを開く
+    dom.btnOpenFulltext?.addEventListener('click', (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        const refId = btn.dataset['refId'];
+        if (!refId) return;
+        const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(refId)}`;
+        chrome.tabs.create({ url });
+    });
     document.addEventListener('keydown', screeningActions.handleKeydown);
 
     // Screening Filters

@@ -26,15 +26,15 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 SR ワークフローを以下の**2アプリ構成**で実現する。共有データ基盤は同一 Google Sheets。
 
-| レイヤー | 担当機能 | 形態 |
-|---|---|---|
-| **Chrome拡張（本リポジトリ）** | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF アノテーション（`fulltext.html`） | Chrome Extension (MV3) |
-| **Webアプリ（別リポジトリ、将来）** | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB2 / ROBINS-I 等） | Web アプリ（インストール不要） |
+| レイヤー                               | 担当機能                                                                                                  | 形態                           |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Chrome拡張（本リポジトリ）**         | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF アノテーション（`fulltext.html`） | Chrome Extension (MV3)         |
+| **別Webアプリ（別リポジトリ、将来）**  | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB2 / ROBINS-I 等）                                   | Web アプリ（インストール不要） |
 
 **Chrome拡張をフルテキスト以降に拡張しない理由：**
+
 - データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
 - PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
-- 複数施設のチームメンバーがインストール不要でアクセスできるよう、Webアプリの方が適切
 - RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
 
 ## 技術スタック
@@ -62,39 +62,39 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 
 #### References タブ（文献マスタ）
 
-| 列名             | 説明                                                      | 必須 |
-| ---------------- | --------------------------------------------------------- | ---- |
-| ref_id           | 文献主キー（UUID）                                        | ✓   |
-| title            | タイトル                                                  | ✓   |
-| abstract         | 抄録                                                      |      |
-| year             | 出版年                                                    |      |
-| authors          | 著者                                                      |      |
-| journal          | ジャーナル名                                              |      |
-| doi              | DOI                                                       |      |
-| pmid             | PubMed ID                                                 |      |
-| url              | URL                                                       |      |
-| source           | 取り込み元DB                                              |      |
-| imported_at      | 取り込み日時                                              |      |
-| imported_by      | 取り込み者                                                |      |
-| dedupe_key       | 重複検出キー（後述）                                      |      |
-| fulltext_url     | フルテキストURL（OA / ブラウザアタッチ）                  |      |
-| fulltext_status  | `not_retrieved` / `retrieved` / `unavailable`             |      |
+| 列名            | 説明                                                | 必須 |
+| --------------- | --------------------------------------------------- | ---- |
+| ref_id          | 文献主キー（UUID）                                  | ✓   |
+| title           | タイトル                                            | ✓   |
+| abstract        | 抄録                                                |      |
+| year            | 出版年                                              |      |
+| authors         | 著者                                                |      |
+| journal         | ジャーナル名                                        |      |
+| doi             | DOI                                                 |      |
+| pmid            | PubMed ID                                           |      |
+| url             | URL                                                 |      |
+| source          | 取り込み元DB                                        |      |
+| imported_at     | 取り込み日時                                        |      |
+| imported_by     | 取り込み者                                          |      |
+| dedupe_key      | 重複検出キー（後述）                                |      |
+| fulltext_url    | フルテキストURL（OA / ブラウザアタッチ）            |      |
+| fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 
 #### Decisions タブ（最新判定のみを有効にする判定ログ）
 
-| 列名             | 説明                                                   | 必須 |
-| ---------------- | ------------------------------------------------------ | ---- |
-| decision_id      | 判定ID（UUID）                                         | ✓   |
-| ref_id           | 文献ID（Referencesと結合）                             | ✓   |
-| reviewer_id      | 判定者（email）                                        | ✓   |
-| decision         | include / exclude / maybe                              | ✓   |
-| reason           | 除外理由（excludeの場合必須）                          |      |
-| labels           | (廃止)                                                 |      |
-| note             | メモ                                                   |      |
-| decided_at       | 判定日時（ISO 8601）                                   | ✓   |
-| client_version   | 拡張機能バージョン                                     |      |
-| source_url       | 判定時に見ていたURL                                    |      |
-| screening_phase  | `tiab`（省略時も同義）/ `fulltext`                     |      |
+| 列名            | 説明                                   | 必須 |
+| --------------- | -------------------------------------- | ---- |
+| decision_id     | 判定ID（UUID）                         | ✓   |
+| ref_id          | 文献ID（Referencesと結合）             | ✓   |
+| reviewer_id     | 判定者（email）                        | ✓   |
+| decision        | include / exclude / maybe              | ✓   |
+| reason          | 除外理由（excludeの場合必須）          |      |
+| labels          | (廃止)                                 |      |
+| note            | メモ                                   |      |
+| decided_at      | 判定日時（ISO 8601）                   | ✓   |
+| client_version  | 拡張機能バージョン                     |      |
+| source_url      | 判定時に見ていたURL                    |      |
+| screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
 
 **重要**:
 
@@ -113,21 +113,22 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 フルテキストスクリーニングおよびデータ抽出で使用するPDFハイライトを1行1件で保存する。
 `phase` と `category` の組み合わせで用途を区別し、将来のWebアプリ（データ抽出・RoB）からも参照できる。
 
-| 列名             | 説明                                                               | 必須 |
-| ---------------- | ------------------------------------------------------------------ | ---- |
-| annotation_id    | UUID                                                               | ✓   |
-| ref_id           | References への FK                                                 | ✓   |
-| reviewer_id      | email                                                              | ✓   |
-| phase            | `fulltext_screening` / `data_extraction`                           | ✓   |
-| category         | `include_evidence` / `exclude_evidence` / `data_point`             | ✓   |
-| label            | データ抽出時のフィールド名（例: `sample_size`）                     |      |
-| highlighted_text | ハイライトしたテキスト本体                                          | ✓   |
-| page_number      | PDFページ番号（1始まり）                                           | ✓   |
-| position_json    | `AnnotationPosition` を JSON 文字列化したもの（再描画用）           |      |
-| pdf_url          | アノテーション作成時のPDF URL                                      | ✓   |
-| created_at       | ISO 8601                                                           | ✓   |
+| 列名             | 説明                                                         | 必須 |
+| ---------------- | ------------------------------------------------------------ | ---- |
+| annotation_id    | UUID                                                         | ✓   |
+| ref_id           | References への FK                                           | ✓   |
+| reviewer_id      | email                                                        | ✓   |
+| phase            | `fulltext_screening` / `data_extraction`                 | ✓   |
+| category         | `include_evidence` / `exclude_evidence` / `data_point` | ✓   |
+| label            | データ抽出時のフィールド名（例:`sample_size`）             |      |
+| highlighted_text | ハイライトしたテキスト本体                                   | ✓   |
+| page_number      | PDFページ番号（1始まり）                                     | ✓   |
+| position_json    | `AnnotationPosition` を JSON 文字列化したもの（再描画用）  |      |
+| pdf_url          | アノテーション作成時のPDF URL                                | ✓   |
+| created_at       | ISO 8601                                                     | ✓   |
 
 `position_json` の構造（`AnnotationPosition` 型）:
+
 - `page` / `offset_start` / `offset_end`: PDF.js TextContent ベースの文字オフセット（主キー）
 - `context_before` / `context_after`: 前後50文字（オフセット失敗時のフォールバック）
 
@@ -238,48 +239,48 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 
 ### ClinicalTrials.gov CSV インポートフィールドマッピング
 
-| CSV カラム                  | References 列 | 備考                                     |
-| --------------------------- | ------------- | ---------------------------------------- |
-| Study Title                 | title         | 必須                                     |
-| NCT Number                  | pmid          | dedupe_key 生成に使用                    |
-| Study URL                   | url           |                                          |
-| Start Date                  | year          | 年部分のみ抽出                           |
-| ―                           | journal       | 固定値 "ClinicalTrials.gov"              |
-| ―                           | source        | 固定値 "ClinicalTrials.gov"              |
-| その他全カラム              | abstract      | `カラム名: 値` 形式で `\|` 区切り合成    |
+| CSV カラム     | References 列 | 備考                                     |
+| -------------- | ------------- | ---------------------------------------- |
+| Study Title    | title         | 必須                                     |
+| NCT Number     | pmid          | dedupe_key 生成に使用                    |
+| Study URL      | url           |                                          |
+| Start Date     | year          | 年部分のみ抽出                           |
+| ―             | journal       | 固定値 "ClinicalTrials.gov"              |
+| ―             | source        | 固定値 "ClinicalTrials.gov"              |
+| その他全カラム | abstract      | `カラム名: 値` 形式で `\|` 区切り合成 |
 
 ### ICTRP XML インポートフィールドマッピング
 
-| XML 要素                    | References 列 | 備考                                     |
-| --------------------------- | ------------- | ---------------------------------------- |
-| Scientific_title            | title         | 必須                                     |
-| TrialID                     | pmid          | dedupe_key 生成に使用                    |
-| web_address                 | url           |                                          |
-| Date_registration           | year          | 年部分のみ抽出                           |
-| Source_Register              | source        | レジストリ名（REBEC, JPRN 等）           |
-| ―                           | journal       | 固定値 "ICTRP"                           |
-| その他臨床情報要素          | abstract      | `要素名: 値` 形式で `\|` 区切り合成      |
+| XML 要素           | References 列 | 備考                                   |
+| ------------------ | ------------- | -------------------------------------- |
+| Scientific_title   | title         | 必須                                   |
+| TrialID            | pmid          | dedupe_key 生成に使用                  |
+| web_address        | url           |                                        |
+| Date_registration  | year          | 年部分のみ抽出                         |
+| Source_Register    | source        | レジストリ名（REBEC, JPRN 等）         |
+| ―                 | journal       | 固定値 "ICTRP"                         |
+| その他臨床情報要素 | abstract      | `要素名: 値` 形式で `\|` 区切り合成 |
 
 ### EndNote XML インポートフィールドマッピング
 
 EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。各テキスト値は `<style face="..." font="..." size="...">value</style>` でラップされているが `Element.textContent` で取得する。
 
-| XML 要素                                         | References 列 | 備考                                                                             |
-| ------------------------------------------------ | ------------- | -------------------------------------------------------------------------------- |
-| `titles > title`                                 | title         | 必須                                                                             |
-| `contributors > authors > author`                | authors       | セミコロン区切りで結合（10名超は `et al.` を付与）                               |
-| `dates > year`                                   | year          | 年部分のみ抽出                                                                   |
-| `periodical > full-title`                        | journal       | 第1優先                                                                          |
-| `titles > secondary-title`                       | journal       | `full-title` が無い場合のフォールバック                                          |
-| `volume`                                         | volume        | "6(2)" 形式の場合は volume="6", issue="2" に分離（Embase 経由のエクスポート対応） |
-| `number`                                         | issue         | 標準の EndNote エクスポートではこちらに号が入る。第1優先                         |
-| `pages`                                          | pages         |                                                                                  |
-| `isbn`                                           | issn          | EndNote DTD は ISSN 専用フィールドを持たないため `<isbn>` に格納される。ISSN形式（XXXX-XXXX）の場合のみ採用 |
-| `electronic-resource-num`                        | doi           | 末尾の `[doi]` 等のサフィックスは除去                                            |
-| `accession-num`                                  | pmid          | `remote-database-name` が PubMed の場合のみ。Embase 等の場合は誤マッチ防止のため未設定 |
-| `urls > related-urls > url`                      | url           | 最初の1件                                                                        |
-| `abstract`                                       | abstract      | 15,000 文字に制限                                                                |
-| `remote-database-name`                           | source        | 例: "Embase", "PubMed"。空なら "EndNote"                                         |
+| XML 要素                            | References 列 | 備考                                                                                                          |
+| ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| `titles > title`                  | title         | 必須                                                                                                          |
+| `contributors > authors > author` | authors       | セミコロン区切りで結合（10名超は `et al.` を付与）                                                          |
+| `dates > year`                    | year          | 年部分のみ抽出                                                                                                |
+| `periodical > full-title`         | journal       | 第1優先                                                                                                       |
+| `titles > secondary-title`        | journal       | `full-title` が無い場合のフォールバック                                                                     |
+| `volume`                          | volume        | "6(2)" 形式の場合は volume="6", issue="2" に分離（Embase 経由のエクスポート対応）                             |
+| `number`                          | issue         | 標準の EndNote エクスポートではこちらに号が入る。第1優先                                                      |
+| `pages`                           | pages         |                                                                                                               |
+| `isbn`                            | issn          | EndNote DTD は ISSN 専用フィールドを持たないため `<isbn>` に格納される。ISSN形式（XXXX-XXXX）の場合のみ採用 |
+| `electronic-resource-num`         | doi           | 末尾の `[doi]` 等のサフィックスは除去                                                                       |
+| `accession-num`                   | pmid          | `remote-database-name` が PubMed の場合のみ。Embase 等の場合は誤マッチ防止のため未設定                      |
+| `urls > related-urls > url`       | url           | 最初の1件                                                                                                     |
+| `abstract`                        | abstract      | 15,000 文字に制限                                                                                             |
+| `remote-database-name`            | source        | 例: "Embase", "PubMed"。空なら "EndNote"                                                                      |
 
 ### オフライン同期の方針
 

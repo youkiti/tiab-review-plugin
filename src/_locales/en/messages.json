@@ -221,6 +221,9 @@
   "screening_trialRegistryNote": {
     "message": "Note: This entry is from a trial registry, so the abstract is a concatenation of registration fields. Please consult the original registry for the full record."
   },
+  "screening_openFulltext": {
+    "message": "Open Full Text →"
+  },
   "nav_prev": {
     "message": "Prev (←)"
   },

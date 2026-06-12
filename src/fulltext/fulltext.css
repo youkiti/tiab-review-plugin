@@ -145,6 +145,10 @@ body {
 .btn-exclude:hover  { filter: brightness(0.9); }
 .btn-maybe:hover    { filter: brightness(0.9); }
 
+.btn-include.active { outline: 3px solid #27ae60; outline-offset: 2px; }
+.btn-exclude.active { outline: 3px solid #c0392b; outline-offset: 2px; }
+.btn-maybe.active   { outline: 3px solid #d68910; outline-offset: 2px; }
+
 /* 除外理由エリア */
 .ft-reason-area {
     display: flex;

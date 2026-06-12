@@ -221,6 +221,9 @@
   "screening_trialRegistryNote": {
     "message": "※ Trial registry 由来のため、登録情報の各フィールドを連結したテキストです。完全な情報は元レジストリで確認してください。"
   },
+  "screening_openFulltext": {
+    "message": "フルテキストを開く →"
+  },
   "nav_prev": {
     "message": "前へ (←)"
   },

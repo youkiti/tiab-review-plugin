@@ -76,15 +76,17 @@ const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
-    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set'
+    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
+    'fulltext_url', 'fulltext_status'
 ];
 
 
 // Decisions タブのヘッダー
 // 互換性のため labels 列は残すが、機能としては使用しない
+// screening_phase: 'tiab' | 'fulltext' (省略時は 'tiab' 扱い)
 const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
-    'labels', 'note', 'decided_at', 'client_version', 'source_url'
+    'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase'
 ];
 
 /**
@@ -261,6 +263,25 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
         }
     } catch (error) {
         console.error('[ensureHeaders] Error:', error);
+        // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
+    }
+
+    // Decisions タブも同様に移行する（screening_phase 列などの追加分）
+    // ヘッダーが欠けていると getDecisions がヘッダー基準で読むため、
+    // K列に保存した fulltext 判定が phase 不明 = tiab 扱いになってしまう
+    try {
+        const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A1:Z1`);
+        if (!values || values.length === 0) return;
+
+        const currentHeaders = values[0];
+
+        if (currentHeaders.length < DECISIONS_HEADERS.length) {
+            console.log('[ensureHeaders] Updating Decisions headers...', { current: currentHeaders.length, expected: DECISIONS_HEADERS.length });
+            await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A1:K1`, [DECISIONS_HEADERS]);
+            console.log('[ensureHeaders] Decisions headers updated');
+        }
+    } catch (error) {
+        console.error('[ensureHeaders] Decisions error:', error);
         // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
     }
 }
@@ -475,7 +496,7 @@ async function updateRange(spreadsheetId: string, range: string, values: (string
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:S`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:U`);
 
     if (values.length <= 1) {
         return []; // ヘッダーのみ or 空
@@ -529,6 +550,32 @@ export async function addReferences(spreadsheetId: string, references: Reference
     ]);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
+}
+
+/**
+ * 文献の fulltext_url と fulltext_status を更新する（OA URL 解決後に呼び出す）
+ *
+ * REFERENCES_HEADERS での列位置:
+ *   fulltext_url   = 20列目 (T列, 0-indexed: 19)
+ *   fulltext_status = 21列目 (U列, 0-indexed: 20)
+ */
+export async function updateReferenceFulltextUrl(
+    spreadsheetId: string,
+    refId: string,
+    fulltextUrl: string,
+    status: 'retrieved' | 'unavailable'
+): Promise<void> {
+    // ref_id 列 (A列) で行番号を特定
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
+    const rowIndex = values.findIndex((row, i) => i > 0 && row[0] === refId);
+    if (rowIndex === -1) return; // 見つからない場合は無視
+
+    const sheetRowIndex = rowIndex + 1; // 1-indexed (ヘッダー行=1, データ開始=2)
+    await updateRange(
+        spreadsheetId,
+        `${REFERENCES_SHEET}!T${sheetRowIndex}:U${sheetRowIndex}`,
+        [[fulltextUrl, status]]
+    );
 }
 
 /**
@@ -639,7 +686,7 @@ async function getSheetIdByName(spreadsheetId: string, sheetName: string): Promi
  * Decisions タブから判定一覧を取得
  */
 export async function getDecisions(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
-    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:J`);
+    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
 
     if (values.length <= 1) {
         return [];
@@ -680,6 +727,11 @@ export async function getReferencesWithStatus(
 
     console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
 
+    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
+    const tiabDecisionsData = decisionsData.filter(
+        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
+    );
+
     const normalizedReviewerEmail = (reviewerEmail || '').trim();
     references.forEach((ref) => {
         const refId = (ref.ref_id || '').trim();
@@ -692,7 +744,7 @@ export async function getReferencesWithStatus(
     const myDecisions = new Map<string, Decision>();
     // Blind ONでもAI Evidenceハイライトに必要なLLM判定だけ保持する
     const llmDecisionsMap = new Map<string, Decision[]>();
-    decisionsData.forEach(({ decision }) => {
+    tiabDecisionsData.forEach(({ decision }) => {
         // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
         const reviewerId = (decision.reviewer_id || '').trim();
         const refId = (decision.ref_id || '').trim();
@@ -754,6 +806,11 @@ export async function getReferencesWithAllDecisions(
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
 
+    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
+    const tiabDecisionsData = decisionsData.filter(
+        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
+    );
+
     const normalizedReviewerEmail = (reviewerEmail || '').trim();
     references.forEach((ref) => {
         const refId = (ref.ref_id || '').trim();
@@ -791,7 +848,7 @@ export async function getReferencesWithAllDecisions(
     let addedDecisions = 0;
     let addedHuman = 0;
     let addedLlm = 0;
-    decisionsData.forEach(({ decision }) => {
+    tiabDecisionsData.forEach(({ decision }) => {
         const refId = (decision.ref_id || '').trim();
         if (!refId) return;
         const reviewerIdRaw = (decision.reviewer_id || '').trim();
@@ -900,10 +957,14 @@ function detectConflict(decisions: Decision[]): boolean {
  * 判定を保存（新規追加 or 更新）
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
-    // 既存の判定を検索
+    // 既存の判定を検索（screening_phase ごとに分離して上書き）
     const decisionsData = await getDecisions(spreadsheetId);
+    const targetPhase = decision.screening_phase ?? 'tiab';
     const existing = decisionsData.find(
-        ({ decision: d }) => d.ref_id === decision.ref_id && d.reviewer_id === decision.reviewer_id
+        ({ decision: d }) =>
+            d.ref_id === decision.ref_id &&
+            d.reviewer_id === decision.reviewer_id &&
+            (d.screening_phase ?? 'tiab') === targetPhase
     );
 
     const row = [
@@ -917,11 +978,12 @@ export async function saveDecision(spreadsheetId: string, decision: Decision): P
         decision.decided_at,
         decision.client_version || '',
         decision.source_url || '',
+        decision.screening_phase || '',
     ];
 
     if (existing) {
         // 既存行を更新
-        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:J${existing.rowIndex}`, [row]);
+        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:K${existing.rowIndex}`, [row]);
     } else {
         // 新規追加
         await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
@@ -2234,6 +2296,7 @@ export async function appendDecisions(spreadsheetId: string, decisions: Decision
         decision.decided_at,
         decision.client_version || '',
         decision.source_url || '',
+        decision.screening_phase || '',
     ]);
 
     await appendRows(spreadsheetId, DECISIONS_SHEET, rows);
@@ -2261,7 +2324,7 @@ export async function updateDecisionsBatch(
     const token = await getAuthToken();
 
     const requests = updates.map(({ rowIndex, decision }) => ({
-        range: `${DECISIONS_SHEET}!A${rowIndex}:J${rowIndex}`,
+        range: `${DECISIONS_SHEET}!A${rowIndex}:K${rowIndex}`,
         values: [[
             decision.decision_id,
             decision.ref_id,
@@ -2273,6 +2336,7 @@ export async function updateDecisionsBatch(
             decision.decided_at,
             decision.client_version || '',
             decision.source_url || '',
+            decision.screening_phase || '',
         ]],
     }));
 
