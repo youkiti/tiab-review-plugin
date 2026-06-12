@@ -750,14 +750,47 @@
                 <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
             </div>
 
+            <!-- ① 候補ルール + 判定進捗 -->
             <div class="fulltext-summary">
+                <div class="fulltext-rule-row">
+                    <div id="fulltext-rule-line" class="fulltext-rule-line"></div>
+                    <button id="fulltext-rule-edit-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_ruleEdit"></button>
+                </div>
+                <div id="fulltext-rule-editor" class="fulltext-rule-editor hidden"></div>
                 <div id="fulltext-progress-line" class="fulltext-progress-line"></div>
-                <div id="fulltext-rule-line" class="fulltext-rule-line"></div>
             </div>
 
+            <!-- ② 全文の入手状況 + 一括OA検索 -->
+            <div class="fulltext-retrieval">
+                <div id="fulltext-obtained-line" class="fulltext-obtained-line"></div>
+                <div class="fulltext-status-bar">
+                    <div id="fulltext-status-bar-fill" class="fulltext-status-bar-fill"></div>
+                </div>
+                <div id="fulltext-status-breakdown" class="fulltext-status-breakdown"></div>
+                <div class="fulltext-fetch-row">
+                    <button id="fulltext-fetch-btn" class="btn btn-small btn-primary"></button>
+                    <button id="fulltext-fetch-cancel-btn" class="btn btn-small btn-secondary hidden" data-i18n="fulltext_fetchCancel"></button>
+                    <label class="fulltext-retry-label">
+                        <input type="checkbox" id="fulltext-retry-checkbox">
+                        <span data-i18n="fulltext_retryUnavailable"></span>
+                    </label>
+                </div>
+                <div id="fulltext-fetch-status" class="fulltext-fetch-status hidden"></div>
+            </div>
+
+            <!-- ③ フィルタ + 候補一覧 -->
+            <div class="fulltext-filter-row">
+                <select id="fulltext-view-filter">
+                    <option value="all"></option>
+                    <option value="missing"></option>
+                    <option value="obtained"></option>
+                    <option value="undecided"></option>
+                </select>
+            </div>
             <div id="fulltext-list" class="fulltext-list">
                 <!-- 候補カードがここに入る -->
             </div>
+            <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
         </section>
     </div>
 

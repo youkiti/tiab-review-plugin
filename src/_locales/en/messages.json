@@ -264,7 +264,145 @@
     "message": "Pool rule: ≥$1 of $2 votes to include"
   },
   "fulltext_ruleUnset": {
-    "message": "Pool rule: not set (showing your TiAb includes; configure on the full-text page)"
+    "message": "⚠ Pool rule: not set (provisionally showing your TiAb includes)"
+  },
+  "fulltext_ruleEdit": {
+    "message": "✎ Edit"
+  },
+  "fulltext_ruleSet": {
+    "message": "Set rule"
+  },
+  "fulltext_obtainedLine": {
+    "message": "Full texts obtained: $1 / $2"
+  },
+  "fulltext_statusBreakdown": {
+    "message": "Saved to Drive $1 · link only $2 · not retrieved $3 · unavailable $4"
+  },
+  "fulltext_fetchBtn": {
+    "message": "⬇ Fetch free full texts ($1)"
+  },
+  "fulltext_fetchCancel": {
+    "message": "Cancel"
+  },
+  "fulltext_retryUnavailable": {
+    "message": "Retry unavailable too"
+  },
+  "fulltext_fetchProgress": {
+    "message": "Searching $1 / $2… (PDFs found are saved to Drive)"
+  },
+  "fulltext_fetchDone": {
+    "message": "Done: saved to Drive $1 · link only $2 · not found $3"
+  },
+  "fulltext_fetchCancelled": {
+    "message": "Cancelled (partial results were saved)."
+  },
+  "fulltext_permissionHint": {
+    "message": "All-sites access was not granted; PDFs outside PMC may be recorded as link only"
+  },
+  "fulltext_sheetSaveError": {
+    "message": "Save error: $1"
+  },
+  "fulltext_badgeCached": {
+    "message": "🟢 Saved to Drive"
+  },
+  "fulltext_badgeLinked": {
+    "message": "🔗 Link only"
+  },
+  "fulltext_badgeMissing": {
+    "message": "⚪ Not retrieved"
+  },
+  "fulltext_badgeUnavailable": {
+    "message": "🔴 Unavailable"
+  },
+  "fulltext_actionFetch": {
+    "message": "🔍 Try fetch"
+  },
+  "fulltext_actionFetchTitle": {
+    "message": "Search free OA sources and save the PDF to Drive if found"
+  },
+  "fulltext_actionFetching": {
+    "message": "Fetching…"
+  },
+  "fulltext_actionUpload": {
+    "message": "📤 Upload PDF"
+  },
+  "fulltext_actionUploadTitle": {
+    "message": "Save a local PDF to Drive and link it to this reference"
+  },
+  "fulltext_actionDoi": {
+    "message": "🔗 DOI/PubMed"
+  },
+  "fulltext_actionDoiTitle": {
+    "message": "Open the publisher page (DOI/PubMed) to find the PDF"
+  },
+  "fulltext_uploading": {
+    "message": "Uploading PDF to Drive…"
+  },
+  "fulltext_uploadDone": {
+    "message": "PDF saved to Drive"
+  },
+  "fulltext_uploadError": {
+    "message": "Upload failed: $1"
+  },
+  "fulltext_uploadNotPdf": {
+    "message": "Please select a PDF file"
+  },
+  "fulltext_filterAll": {
+    "message": "All ($1)"
+  },
+  "fulltext_filterMissing": {
+    "message": "Not obtained ($1)"
+  },
+  "fulltext_filterObtained": {
+    "message": "Obtained ($1)"
+  },
+  "fulltext_filterUndecided": {
+    "message": "Undecided ($1)"
+  },
+  "ftRule_desc": {
+    "message": "Each checked reviewer's TiAb decision counts as a vote; references with at least the required number of Include votes become full-text candidates. This setting is shared project-wide. Configuring after TiAb screening is complete is recommended."
+  },
+  "ftRule_blocked": {
+    "message": "The pool rule can be configured after the key is opened (blinding lifted). Until then, your own TiAb includes are used as candidates."
+  },
+  "ftRule_noVoters": {
+    "message": "No TiAb decisions yet. Continue TiAb screening first."
+  },
+  "ftRule_thresholdLabel": {
+    "message": "Required Include votes:"
+  },
+  "ftRule_voterCount": {
+    "message": "(selected: $1 votes)"
+  },
+  "ftRule_includeCount": {
+    "message": "Include $1"
+  },
+  "ftRule_presetsLabel": {
+    "message": "Presets:"
+  },
+  "ftRule_presetHuman": {
+    "message": "Humans only · 1 vote"
+  },
+  "ftRule_presetMajority": {
+    "message": "All · majority"
+  },
+  "ftRule_selectVoter": {
+    "message": "Select at least one reviewer."
+  },
+  "ftRule_preview": {
+    "message": "→ Full-text candidates under this rule: $1 of $2"
+  },
+  "ftRule_save": {
+    "message": "Save this rule"
+  },
+  "ftRule_saving": {
+    "message": "Saving..."
+  },
+  "ftRule_close": {
+    "message": "Close"
+  },
+  "ftRule_saveFailed": {
+    "message": "Save failed: $1"
   },
   "fulltext_emptyList": {
     "message": "No full-text candidates yet. Continue TiAb screening first."

@@ -18,11 +18,11 @@ import { retrieveFulltextUrl } from '../lib/fulltext-retriever';
 import { getClientVersion } from '../lib/client-version';
 import {
     isInFulltextPool,
-    discoverVoters,
     describeRule,
     isTiabDecision,
 } from '../lib/fulltext-pool';
-import type { FulltextPoolRule, VoterInfo } from '../lib/fulltext-pool';
+import type { FulltextPoolRule } from '../lib/fulltext-pool';
+import { mountRuleEditor } from '../lib/fulltext-rule-editor';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision } from '../lib/types';
 
@@ -46,11 +46,6 @@ let allDecisions: Decision[] = [];
 // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
 let poolRule: FulltextPoolRule | null = null;
 let keyOpened = false;
-
-// ルール編集UIの一時状態
-let editorVoters = new Set<string>();
-let editorThreshold = 1;
-let discoveredVoters: VoterInfo[] = [];
 
 // フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
@@ -96,7 +91,6 @@ async function initFulltextPage(): Promise<void> {
     allDecisions = decisionsData.map(({ decision }) => decision);
     poolRule = config.fulltextPoolRule;
     keyOpened = config.keyOpened;
-    discoveredVoters = discoverVoters(allDecisions);
 
     const ref = refs.find(r => r.ref_id === refId) ?? null;
     if (!ref) {
@@ -134,8 +128,8 @@ async function initFulltextPage(): Promise<void> {
         openRulePanel();
     }
 
-    // PDF URL 表示
-    if (ref.fulltext_status === 'retrieved' && ref.fulltext_url) {
+    // PDF URL 表示（cached = Drive保存済み / retrieved = 外部リンクのみ）
+    if ((ref.fulltext_status === 'cached' || ref.fulltext_status === 'retrieved') && ref.fulltext_url) {
         showResolvedUrl(ref.fulltext_url, 'cached');
     } else {
         showPlaceholder('「DOI → URL解決」ボタンをクリックしてOAフルテキストを検索してください。');
@@ -201,187 +195,31 @@ function wireRulePanel(): void {
             openRulePanel();
         }
     });
-    document.getElementById('ft-rule-close-btn')?.addEventListener('click', () => {
-        document.getElementById('ft-rule-section')?.classList.add('hidden');
-    });
-    document.getElementById('ft-rule-save-btn')?.addEventListener('click', () => {
-        void handleRuleSave();
-    });
-    document.getElementById('ft-rule-preset-human')?.addEventListener('click', () => {
-        editorVoters = new Set(discoveredVoters.filter(v => v.kind === 'human').map(v => v.key));
-        editorThreshold = 1;
-        renderRuleForm();
-    });
-    document.getElementById('ft-rule-preset-majority')?.addEventListener('click', () => {
-        editorVoters = new Set(discoveredVoters.map(v => v.key));
-        editorThreshold = Math.floor(editorVoters.size / 2) + 1;
-        renderRuleForm();
-    });
-    document.getElementById('ft-rule-threshold')?.addEventListener('change', (e) => {
-        editorThreshold = Number((e.target as HTMLSelectElement).value) || 1;
-        renderRulePreview();
-    });
 }
 
 function openRulePanel(): void {
     const section = document.getElementById('ft-rule-section');
-    const blocked = document.getElementById('ft-rule-blocked');
-    const form = document.getElementById('ft-rule-form');
-    if (!section || !blocked || !form) return;
+    const container = document.getElementById('ft-rule-editor-container');
+    if (!section || !container) return;
 
     section.classList.remove('hidden');
 
-    // キー未開封時はルール編集をブロック（他レビュアーの判定が見えない状態で
-    // プロジェクト共有ルールを決めるべきではない）
-    if (!keyOpened) {
-        blocked.classList.remove('hidden');
-        form.classList.add('hidden');
-        return;
-    }
-
-    blocked.classList.add('hidden');
-    form.classList.remove('hidden');
-
-    // 編集状態を初期化: 既存ルール、なければ「人間のみ・1票」
-    if (poolRule) {
-        editorVoters = new Set(poolRule.voters);
-        editorThreshold = poolRule.threshold;
-    } else {
-        editorVoters = new Set(discoveredVoters.filter(v => v.kind === 'human').map(v => v.key));
-        editorThreshold = 1;
-    }
-    renderRuleForm();
-}
-
-function renderRuleForm(): void {
-    const votersDiv = document.getElementById('ft-rule-voters');
-    if (!votersDiv) return;
-
-    votersDiv.innerHTML = '';
-    if (discoveredVoters.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'ft-rule-voter-empty';
-        empty.textContent = 'TiAb判定がまだありません。先にTiAbスクリーニングを進めてください。';
-        votersDiv.appendChild(empty);
-    }
-
-    for (const voter of discoveredVoters) {
-        const row = document.createElement('label');
-        row.className = 'ft-rule-voter-row';
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = editorVoters.has(voter.key);
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                editorVoters.add(voter.key);
-            } else {
-                editorVoters.delete(voter.key);
-            }
-            renderThresholdSelect();
-            renderRulePreview();
-        });
-
-        const label = document.createElement('span');
-        label.textContent = voter.label;
-
-        const count = document.createElement('span');
-        count.className = 'ft-voter-count';
-        count.textContent = `Include ${voter.includeCount}件`;
-
-        row.appendChild(checkbox);
-        row.appendChild(label);
-        row.appendChild(count);
-        votersDiv.appendChild(row);
-    }
-
-    renderThresholdSelect();
-    renderRulePreview();
-}
-
-function renderThresholdSelect(): void {
-    const select = document.getElementById('ft-rule-threshold') as HTMLSelectElement | null;
-    const voterCount = document.getElementById('ft-rule-voter-count');
-    if (!select) return;
-
-    const max = Math.max(1, editorVoters.size);
-    if (editorThreshold > max) editorThreshold = max;
-
-    select.innerHTML = '';
-    for (let i = 1; i <= max; i++) {
-        const option = document.createElement('option');
-        option.value = String(i);
-        option.textContent = String(i);
-        if (i === editorThreshold) option.selected = true;
-        select.appendChild(option);
-    }
-
-    if (voterCount) {
-        voterCount.textContent = `（選択中: ${editorVoters.size}票）`;
-    }
-}
-
-function renderRulePreview(): void {
-    const preview = document.getElementById('ft-rule-preview');
-    if (!preview) return;
-
-    if (editorVoters.size === 0) {
-        preview.textContent = '判定者を1人以上選択してください。';
-        return;
-    }
-
-    const rule: FulltextPoolRule = {
-        version: 1,
-        voters: [...editorVoters],
-        threshold: editorThreshold,
-    };
-    const byRef = new Map<string, Decision[]>();
-    for (const d of allDecisions) {
-        const list = byRef.get(d.ref_id);
-        if (list) {
-            list.push(d);
-        } else {
-            byRef.set(d.ref_id, [d]);
-        }
-    }
-    const count = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule)).length;
-    preview.textContent = `→ この条件でのフルテキスト候補: ${count}件 / 全${allRefs.length}件`;
-}
-
-async function handleRuleSave(): Promise<void> {
-    if (editorVoters.size === 0) {
-        renderRulePreview();
-        return;
-    }
-
-    const saveBtn = document.getElementById('ft-rule-save-btn') as HTMLButtonElement | null;
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.textContent = '保存中...';
-    }
-
-    try {
-        const rule: FulltextPoolRule = {
-            version: 1,
-            voters: [...editorVoters],
-            threshold: editorThreshold,
-        };
-        await saveFulltextPoolRule(spreadsheetId, rule);
-        poolRule = rule;
-
-        recomputeCandidates();
-        renderProgress();
-        updateRuleButton();
-        document.getElementById('ft-rule-section')?.classList.add('hidden');
-    } catch (err) {
-        const preview = document.getElementById('ft-rule-preview');
-        if (preview) preview.textContent = `保存失敗: ${(err as Error).message}`;
-    } finally {
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'この設定で保存';
-        }
-    }
+    mountRuleEditor({
+        container,
+        references: allRefs,
+        decisions: allDecisions,
+        currentRule: poolRule,
+        keyOpened,
+        onSave: async (rule) => {
+            await saveFulltextPoolRule(spreadsheetId, rule);
+            poolRule = rule;
+            recomputeCandidates();
+            renderProgress();
+            updateRuleButton();
+            section.classList.add('hidden');
+        },
+        onClose: () => section.classList.add('hidden'),
+    });
 }
 
 // ---------------------------------------------------------------------------

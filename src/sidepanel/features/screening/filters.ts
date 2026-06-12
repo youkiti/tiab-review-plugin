@@ -11,10 +11,10 @@ import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
-import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
-import { isInFulltextPool } from '../../../lib/fulltext-pool';
+import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
+import { isInFulltextPool, isTiabDecision } from '../../../lib/fulltext-pool';
 import { getReferenceAssignmentSet } from '../assignment';
-import { computeReviewerKey, hasEffectiveConflict } from '../../render/helpers';
+import { hasEffectiveConflict } from '../../render/helpers';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -54,7 +54,8 @@ function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
 /**
  * フルテキスト候補の判定
  * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
- * - 未設定（レガシー）: 手動・ML・LLMの3カテゴリのうち2つ以上が「Include」
+ * - 未設定: 自分が TiAb で Include した文献（フルテキストページの
+ *   recomputeCandidates と同じフォールバック。表示文言とも一致させる）
  */
 function isFulltextCandidate(r: ReferenceWithStatus): boolean {
     const rule = state.fulltextPoolRule;
@@ -62,89 +63,12 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
         return isInFulltextPool(collectRefDecisions(r), rule);
     }
 
-    let includeCategories = 0;  // Includeと判定したカテゴリ数
-
     const userEmail = state.userEmail;
-
-    // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
-    const isReviewerEnabled = (d: Decision): boolean => {
-        if (!state.isKeyOpened) return true;
-        const key = computeReviewerKey(d, state.treatMlAsManual);
-        return key !== '' && state.enabledReviewers.has(key);
-    };
-
-    // ヘルパー: 特定の条件でInclude判定があるか
-    const hasInclude = (check: (d: Decision) => boolean) => {
-        return (r.allDecisions?.some(d => isReviewerEnabled(d) && check(d) && d.decision === 'include')) ||
-            (r.myDecision && isReviewerEnabled(r.myDecision) && check(r.myDecision) && r.myDecision.decision === 'include');
-    };
-
-    // 1. 手動判定（複数人対応）
-    // treatMlAsManualがONの場合、0.7.0-mlも手動判定（ただし自分のものに限る）として扱う
-    // ※ 他人の判定の場合は、その人がMLを使っていても手動扱いとするかどうかは議論の余地があるが、
-    //    ここではシンプルに「バージョン」で判断する。
-    //    ただしisFulltextCandidateは「カテゴリ」のカウントなので、
-    //    「手動」カテゴリにMLを含めるかどうかが重要。
-
-    // 手動カテゴリ判定条件:
-    // - client_version === '0.1.0' (純粋手動)
-    // - OR (treatMlAsManual && client_version startsWith '0.7.0-ml' && reviewer_id === me) (自分のML判定)
-    const isManual = (d: Decision) => {
-        if (isHumanDecision(d.client_version)) return true;
-        if (state.treatMlAsManual && d.reviewer_id === userEmail && isConfirmedMlDecision(d.client_version)) {
-            return true;
-        }
-        return false;
-    };
-
-    if (hasInclude(isManual)) includeCategories++;
-
-    // 2. ML判定
-    // treatMlAsManualがONの場合、ここでのカウントはどうするか？
-    // 「手動」でカウント済みなら「ML」ではカウントしないべきか？（二重計上防止）
-    // -> はい。ただし、「自分の手動(ML含む)」とは別に「純粋なシステムML推論」があるならそれをカウントすべき。
-    //    現状のシステム構成では '0.7.0-ml' はユーザーの確認済みアクション。
-    //    -ml を含む他の判定（自動判定など）があればここでカウント。
-    //    '0.7.0-ml' (確認済み) は isManual で拾われるので、ここでは
-    //    '0.7.0-ml' 以外で -ml を含むもの（例: -ml-auto）を対象にするのが適切かもしれないが、
-    //    現状の定義では -ml を含む判定はすべてMLカテゴリだった。
-
-    // 修正方針:
-    // treatMlAsManual = true の場合:
-    //   - 手動カテゴリ: 0.1.0 OR 0.7.0-ml
-    //   - MLカテゴリ: -mlを含むもの (ただし0.7.0-mlですでに手動カウントされた判定と重複してカテゴリ2を満たすのは避けたい)
-    //   
-    //   例: 0.7.0-ml で include した場合
-    //   -> 手動カテゴリ: OK
-    //   -> MLカテゴリ: OK (既存ロジックだと)
-    //   -> 合計2カテゴリ -> フルテキスト候補になってしまう。これは意図通りか？
-    //      「MDとML両方でInclude」=有力候補。
-    //      しかし、同一判定が両方に寄与するのはおかしい。
-    //      
-    //      したがって、MLカテゴリの判定では「手動カテゴリでカウントされた判定」を除外する必要がある。
-
-    const isMl = (d: Decision) => {
-        // ML系である
-        if (!isMlDecision(d.client_version)) return false;
-
-        // 手動とみなされたものは除外
-        if (isManual(d)) return false;
-
-        return true;
-    };
-
-    if (hasInclude(isMl)) includeCategories++;
-
-    // 3. LLM判定 - reviewer_idがllm:で始まる判定
-    const llmInclude = r.allDecisions?.some(d =>
-        d.reviewer_id.startsWith('llm:') &&
+    return collectRefDecisions(r).some(d =>
+        d.reviewer_id === userEmail &&
         d.decision === 'include' &&
-        isReviewerEnabled(d)
+        isTiabDecision(d)
     );
-
-    if (llmInclude) includeCategories++;
-
-    return includeCategories >= 2;
 }
 
 /**

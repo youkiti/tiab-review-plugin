@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
 import { MODEL_ID_MIGRATIONS } from './gemini-api';
 import { t } from './i18n';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
@@ -599,19 +599,52 @@ export async function updateReferenceFulltextUrl(
     spreadsheetId: string,
     refId: string,
     fulltextUrl: string,
-    status: 'retrieved' | 'unavailable'
+    status: FulltextStatus
 ): Promise<void> {
+    await updateReferenceFulltextUrls(spreadsheetId, [{ refId, fulltextUrl, status }]);
+}
+
+/**
+ * 複数文献の fulltext_url / fulltext_status をまとめて更新する（一括OA検索用）
+ * ref_id 列の読み取り1回 + values:batchUpdate 1回で済ませ、APIクォータを節約する。
+ */
+export async function updateReferenceFulltextUrls(
+    spreadsheetId: string,
+    updates: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }>
+): Promise<void> {
+    if (updates.length === 0) return;
+
     // ref_id 列 (A列) で行番号を特定
     const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
-    const rowIndex = values.findIndex((row, i) => i > 0 && row[0] === refId);
-    if (rowIndex === -1) return; // 見つからない場合は無視
+    const rowByRefId = new Map<string, number>();
+    values.forEach((row, i) => {
+        if (i > 0 && row[0]) rowByRefId.set(row[0], i + 1); // 1-indexed (ヘッダー行=1)
+    });
 
-    const sheetRowIndex = rowIndex + 1; // 1-indexed (ヘッダー行=1, データ開始=2)
-    await updateRange(
-        spreadsheetId,
-        `${REFERENCES_SHEET}!T${sheetRowIndex}:U${sheetRowIndex}`,
-        [[fulltextUrl, status]]
+    const data = updates
+        .filter(u => rowByRefId.has(u.refId))
+        .map(u => ({
+            range: `${REFERENCES_SHEET}!T${rowByRefId.get(u.refId)}:U${rowByRefId.get(u.refId)}`,
+            values: [[u.fulltextUrl, u.status]],
+        }));
+    if (data.length === 0) return;
+
+    const token = await getAuthToken();
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ valueInputOption: 'RAW', data }),
+        }
     );
+    if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(`Failed to update fulltext urls: ${error?.error?.message || response.statusText}`);
+    }
 }
 
 /**
@@ -1672,6 +1705,56 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
         await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${keyOpenedRowIndex}`, [[value]]);
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
+    }
+}
+
+/**
+ * フルテキストPDF保存用 Drive フォルダIDを取得（未設定は null）
+ */
+export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<string | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'fulltext_drive_folder' && row[1]) {
+                return row[1];
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
+        return null;
+    }
+}
+
+/**
+ * フルテキストPDF保存用 Drive フォルダIDを保存
+ */
+export async function saveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    try {
+        await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveFulltextDriveFolderId] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_drive_folder') rowIndex = index + 1;
+    });
+
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[folderId]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_drive_folder', folderId]]);
     }
 }
 

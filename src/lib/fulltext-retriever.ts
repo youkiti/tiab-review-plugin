@@ -3,6 +3,8 @@
 // fulltext-retriever (https://github.com/youkiti/fulltext-retriever) の
 // Tier 1 open-access 取得ロジックを TypeScript へ移植
 
+import { uploadPdfToDrive, buildPdfFileName } from './drive-api';
+
 export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex';
 
 export interface FulltextCandidate {
@@ -235,4 +237,67 @@ export async function retrieveFulltextUrl(
     }
 
     return null;
+}
+
+// ---------------------------------------------------------------------------
+// PDFダウンロード → Drive保存パイプライン
+// ---------------------------------------------------------------------------
+
+/**
+ * フルテキスト取得の結果
+ * - cached:  PDF を Drive に保存済み（url は Drive の閲覧リンク）
+ * - linked:  URL は見つかったが PDF を取得できなかった（外部直リンクを記録）
+ * - none:    どの無料OAソースにも見つからなかった
+ */
+export type FulltextFetchOutcome =
+    | { kind: 'cached'; url: string; source: OaSource }
+    | { kind: 'linked'; url: string; source: OaSource }
+    | { kind: 'none' };
+
+/**
+ * URLからPDFバイトを取得する。
+ * HTMLランディングページや権限不足（host permission未許可によるCORSエラー等）は
+ * null を返してリンクのみ記録にフォールバックさせる。
+ */
+export async function downloadPdf(url: string): Promise<Blob | null> {
+    try {
+        const resp = await fetch(url, { credentials: 'omit' });
+        if (!resp.ok) return null;
+        const blob = await resp.blob();
+        // マジックナンバーで PDF か検証（Content-Type は信用できないサーバが多い）
+        const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+        const sig = String.fromCharCode(...head);
+        if (!sig.startsWith('%PDF')) return null;
+        return blob;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * OA URL を解決し、可能なら PDF をダウンロードして Drive に保存する。
+ *
+ * Driveフォルダは PDF が実際に取得できた時に初めて作成したいので、
+ * 呼び出し側から ensureFolder（メモ化推奨）を受け取る。
+ * Drive保存に失敗した場合は外部URLのリンクのみ記録にフォールバックする。
+ */
+export async function retrieveAndCacheFulltext(
+    ref: { ref_id: string; title?: string; doi?: string; pmid?: string },
+    email: string,
+    ensureFolder: () => Promise<string>
+): Promise<FulltextFetchOutcome> {
+    const candidate = await retrieveFulltextUrl(ref, email);
+    if (!candidate) return { kind: 'none' };
+
+    const pdf = await downloadPdf(candidate.url);
+    if (pdf) {
+        try {
+            const folderId = await ensureFolder();
+            const file = await uploadPdfToDrive(folderId, buildPdfFileName(ref), pdf);
+            return { kind: 'cached', url: file.webViewLink, source: candidate.source };
+        } catch (err) {
+            console.warn('[fulltext-retriever] Drive保存に失敗、リンクのみ記録:', err);
+        }
+    }
+    return { kind: 'linked', url: candidate.url, source: candidate.source };
 }

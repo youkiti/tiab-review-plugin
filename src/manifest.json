@@ -20,6 +20,9 @@
         "https://api.unpaywall.org/*",
         "https://api.openalex.org/*"
     ],
+    "optional_host_permissions": [
+        "https://*/*"
+    ],
     "oauth2": {
         "client_id": "__OAUTH_CLIENT_ID__",
         "scopes": [

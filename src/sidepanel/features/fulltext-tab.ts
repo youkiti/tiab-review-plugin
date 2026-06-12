@@ -1,7 +1,10 @@
 /**
  * フルテキストタブ
- * 候補プール（共通ルール準拠）の一覧と自分のフルテキスト判定状況を表示し、
- * 各文献のフルテキストページ（新規タブ）への導線を提供する。
+ * 候補プール（共通ルール準拠）に対して以下を提供する:
+ *  - 候補ルールのインライン編集（fulltext-rule-editor 共通コンポーネント）
+ *  - 全文の入手状況サマリと一括OA検索（PDFはDriveに保存）
+ *  - 文献ごとの単発取得・PDF手動アップロード・DOI/PubMedへの導線
+ *  - 各文献のフルテキストページ（新規タブ）への導線
  */
 
 import { dom } from '../dom';
@@ -10,7 +13,18 @@ import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { getFulltextCandidateList } from './screening/filters';
 import { switchToTab } from './llm';
-import type { ReferenceWithStatus } from '../../lib/types';
+import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
+import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
+import type { FulltextFetchOutcome } from '../../lib/fulltext-retriever';
+import { ensureFulltextFolder, uploadPdfToDrive, buildPdfFileName } from '../../lib/drive-api';
+import {
+    saveFulltextPoolRule,
+    updateReferenceFulltextUrl,
+    updateReferenceFulltextUrls,
+} from '../../lib/sheets-api';
+import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
+import { showToast } from '../ui/feedback';
+import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
 
 const STATUS_META: Record<string, { icon: string; cls: string }> = {
     include: { icon: '✓', cls: 'include' },
@@ -18,6 +32,13 @@ const STATUS_META: Record<string, { icon: string; cls: string }> = {
     maybe: { icon: '?', cls: 'maybe' },
     pending: { icon: '・', cls: 'pending' },
 };
+
+type ViewFilter = 'all' | 'missing' | 'obtained' | 'undecided';
+
+// タブ内のローカルUI状態
+let viewFilter: ViewFilter = 'all';
+let bulkRun: { cancelled: boolean } | null = null;
+let uploadTargetRefId: string | null = null;
 
 /**
  * フルテキストタブを開く
@@ -33,27 +54,137 @@ function myFulltextStatus(ref: ReferenceWithStatus): string {
     return 'pending';
 }
 
+/** 入手状態（未記録は not_retrieved 扱い） */
+function retrievalStatus(ref: ReferenceWithStatus): FulltextStatus {
+    return ref.fulltext_status ?? 'not_retrieved';
+}
+
+function isObtained(ref: ReferenceWithStatus): boolean {
+    const s = retrievalStatus(ref);
+    return (s === 'cached' || s === 'retrieved') && !!ref.fulltext_url;
+}
+
+/**
+ * 全文献の判定をフラットに集める（ルールエディタのvoter発見・プレビュー用）
+ */
+function collectAllDecisions(): Decision[] {
+    const out: Decision[] = [];
+    const seen = new Set<string>();
+    for (const r of state.references) {
+        const list = [...(r.allDecisions ?? [])];
+        if (r.myDecision) list.push(r.myDecision);
+        for (const d of list) {
+            if (!seen.has(d.decision_id)) {
+                seen.add(d.decision_id);
+                out.push(d);
+            }
+        }
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------------------
+// 描画
+// ---------------------------------------------------------------------------
+
 /**
  * フルテキストタブの内容を描画
  */
 export function renderFulltextTab(): void {
     const candidates = getFulltextCandidateList();
-    const decided = candidates.filter(r => myFulltextStatus(r) !== 'pending').length;
 
-    // 進捗行
+    renderRuleAndProgress(candidates);
+    renderRetrievalSummary(candidates);
+    renderViewFilter(candidates);
+    renderList(candidates);
+}
+
+function renderRuleAndProgress(candidates: ReferenceWithStatus[]): void {
+    const decided = candidates.filter(r => myFulltextStatus(r) !== 'pending').length;
     dom.fulltextProgressLine.textContent = t('fulltext_progressLine', [String(decided), String(candidates.length)]);
 
-    // ルール行
     const rule = state.fulltextPoolRule;
     dom.fulltextRuleLine.textContent = rule
         ? t('fulltext_ruleLine', [String(rule.threshold), String(rule.voters.length)])
         : t('fulltext_ruleUnset');
+    dom.fulltextRuleLine.classList.toggle('rule-unset', !rule);
+    dom.fulltextRuleEditBtn.textContent = rule ? t('fulltext_ruleEdit') : t('fulltext_ruleSet');
+}
 
-    // 一覧
+function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
+    const total = candidates.length;
+    const cached = candidates.filter(r => retrievalStatus(r) === 'cached').length;
+    const linked = candidates.filter(r => retrievalStatus(r) === 'retrieved' && r.fulltext_url).length;
+    const unavailable = candidates.filter(r => retrievalStatus(r) === 'unavailable').length;
+    const missing = total - cached - linked - unavailable;
+    const obtained = cached + linked;
+
+    dom.fulltextObtainedLine.textContent = t('fulltext_obtainedLine', [String(obtained), String(total)]);
+    dom.fulltextStatusBarFill.style.width = total > 0 ? `${Math.round((obtained / total) * 100)}%` : '0%';
+    dom.fulltextStatusBreakdown.textContent = t('fulltext_statusBreakdown', [
+        String(cached), String(linked), String(missing), String(unavailable),
+    ]);
+
+    const retry = dom.fulltextRetryCheckbox.checked;
+    const targetCount = missing + (retry ? unavailable : 0);
+    dom.fulltextFetchBtn.textContent = t('fulltext_fetchBtn', String(targetCount));
+    dom.fulltextFetchBtn.disabled = targetCount === 0 || bulkRun !== null;
+    dom.fulltextFetchCancelBtn.classList.toggle('hidden', bulkRun === null);
+}
+
+function renderViewFilter(candidates: ReferenceWithStatus[]): void {
+    const counts: Record<ViewFilter, number> = {
+        all: candidates.length,
+        missing: candidates.filter(r => !isObtained(r)).length,
+        obtained: candidates.filter(isObtained).length,
+        undecided: candidates.filter(r => myFulltextStatus(r) === 'pending').length,
+    };
+    const labels: Record<ViewFilter, string> = {
+        all: t('fulltext_filterAll', String(counts.all)),
+        missing: t('fulltext_filterMissing', String(counts.missing)),
+        obtained: t('fulltext_filterObtained', String(counts.obtained)),
+        undecided: t('fulltext_filterUndecided', String(counts.undecided)),
+    };
+    for (const option of Array.from(dom.fulltextViewFilter.options)) {
+        option.textContent = labels[option.value as ViewFilter] ?? option.value;
+    }
+    dom.fulltextViewFilter.value = viewFilter;
+}
+
+function applyViewFilter(candidates: ReferenceWithStatus[]): ReferenceWithStatus[] {
+    switch (viewFilter) {
+        case 'missing': return candidates.filter(r => !isObtained(r));
+        case 'obtained': return candidates.filter(isObtained);
+        case 'undecided': return candidates.filter(r => myFulltextStatus(r) === 'pending');
+        default: return candidates;
+    }
+}
+
+function badgeFor(ref: ReferenceWithStatus): { cls: string; label: string } {
+    switch (retrievalStatus(ref)) {
+        case 'cached': return { cls: 'badge-cached', label: t('fulltext_badgeCached') };
+        case 'retrieved':
+            return ref.fulltext_url
+                ? { cls: 'badge-linked', label: t('fulltext_badgeLinked') }
+                : { cls: 'badge-missing', label: t('fulltext_badgeMissing') };
+        case 'unavailable': return { cls: 'badge-unavailable', label: t('fulltext_badgeUnavailable') };
+        default: return { cls: 'badge-missing', label: t('fulltext_badgeMissing') };
+    }
+}
+
+function recordPageUrl(ref: ReferenceWithStatus): string | null {
+    if (ref.doi) return `https://doi.org/${encodeURIComponent(ref.doi)}`;
+    if (ref.pmid) return `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(ref.pmid)}/`;
+    return null;
+}
+
+function renderList(candidates: ReferenceWithStatus[]): void {
     const listDiv = dom.fulltextListDiv;
     listDiv.innerHTML = '';
 
-    if (candidates.length === 0) {
+    const visible = applyViewFilter(candidates);
+
+    if (visible.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'fulltext-empty';
         empty.textContent = t('fulltext_emptyList');
@@ -61,34 +192,295 @@ export function renderFulltextTab(): void {
         return;
     }
 
-    for (const ref of candidates) {
-        const status = myFulltextStatus(ref);
-        const meta = STATUS_META[status] ?? STATUS_META['pending'];
-
-        const card = document.createElement('div');
-        card.className = `fulltext-card status-${meta.cls}`;
-        card.title = t('fulltext_openTitle');
-
-        const metaParts: string[] = [];
-        if (ref.year) metaParts.push(String(ref.year));
-        if (ref.journal) metaParts.push(ref.journal);
-
-        card.innerHTML = `
-            <span class="fulltext-card-status ${meta.cls}">${meta.icon}</span>
-            <span class="fulltext-card-body">
-                <span class="fulltext-card-title">${escapeHtml(ref.title || ref.ref_id)}</span>
-                <span class="fulltext-card-meta">${escapeHtml(metaParts.join(' · '))}</span>
-            </span>
-            <span class="fulltext-card-open">↗</span>
-        `;
-        card.addEventListener('click', () => {
-            const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(ref.ref_id)}`;
-            chrome.tabs.create({ url });
-        });
-
-        listDiv.appendChild(card);
+    for (const ref of visible) {
+        listDiv.appendChild(buildCard(ref));
     }
 }
+
+function buildCard(ref: ReferenceWithStatus): HTMLElement {
+    const status = myFulltextStatus(ref);
+    const meta = STATUS_META[status] ?? STATUS_META['pending'];
+    const badge = badgeFor(ref);
+
+    const card = document.createElement('div');
+    card.className = `fulltext-card status-${meta.cls}`;
+    card.title = t('fulltext_openTitle');
+
+    const metaParts: string[] = [];
+    if (ref.year) metaParts.push(String(ref.year));
+    if (ref.journal) metaParts.push(ref.journal);
+
+    card.innerHTML = `
+        <span class="fulltext-card-status ${meta.cls}">${meta.icon}</span>
+        <span class="fulltext-card-body">
+            <span class="fulltext-card-title">${escapeHtml(ref.title || ref.ref_id)}</span>
+            <span class="fulltext-card-meta">${escapeHtml(metaParts.join(' · '))}</span>
+            <span class="fulltext-card-footer">
+                <span class="fulltext-badge ${badge.cls}">${badge.label}</span>
+            </span>
+        </span>
+        <span class="fulltext-card-open">↗</span>
+    `;
+    card.addEventListener('click', () => {
+        const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(ref.ref_id)}`;
+        chrome.tabs.create({ url });
+    });
+
+    // 未入手の文献にはアクションボタンを付ける
+    const footer = card.querySelector('.fulltext-card-footer')!;
+    const rStatus = retrievalStatus(ref);
+
+    if (rStatus === 'not_retrieved') {
+        footer.appendChild(buildActionBtn(
+            t('fulltext_actionFetch'), t('fulltext_actionFetchTitle'),
+            (btn) => void handleSingleFetch(ref, btn)
+        ));
+    }
+    if (!isObtained(ref) || rStatus === 'retrieved') {
+        // 未入手 or リンクのみ（手元のPDFで置き換えたい場合）はアップロード可能
+        footer.appendChild(buildActionBtn(
+            t('fulltext_actionUpload'), t('fulltext_actionUploadTitle'),
+            () => handleUploadClick(ref)
+        ));
+    }
+    const recordUrl = recordPageUrl(ref);
+    if (!isObtained(ref) && recordUrl) {
+        footer.appendChild(buildActionBtn(
+            t('fulltext_actionDoi'), t('fulltext_actionDoiTitle'),
+            () => { chrome.tabs.create({ url: recordUrl }); }
+        ));
+    }
+
+    return card;
+}
+
+function buildActionBtn(
+    label: string,
+    title: string,
+    onClick: (btn: HTMLButtonElement) => void
+): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'fulltext-action-btn';
+    btn.textContent = label;
+    btn.title = title;
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // カードクリック（ページを開く）を抑止
+        onClick(btn);
+    });
+    return btn;
+}
+
+// ---------------------------------------------------------------------------
+// 候補ルールエディタ
+// ---------------------------------------------------------------------------
+
+function toggleRuleEditor(): void {
+    const div = dom.fulltextRuleEditorDiv;
+    if (!div.classList.contains('hidden')) {
+        div.classList.add('hidden');
+        return;
+    }
+    div.classList.remove('hidden');
+    mountRuleEditor({
+        container: div,
+        references: state.references,
+        decisions: collectAllDecisions(),
+        currentRule: state.fulltextPoolRule,
+        keyOpened: state.isKeyOpened,
+        onSave: async (rule) => {
+            await saveFulltextPoolRule(state.spreadsheetId, rule);
+            syncSetFulltextPoolRule(rule);
+            div.classList.add('hidden');
+            renderFulltextTab();
+        },
+        onClose: () => div.classList.add('hidden'),
+    });
+}
+
+// ---------------------------------------------------------------------------
+// OA検索（一括・単発）
+// ---------------------------------------------------------------------------
+
+// 任意サイトからのPDFダウンロード用に全HTTPSサイトの実行時権限を求める。
+// 拒否されても PMC / Europe PMC など既存 host_permissions 内のPDFは保存できる。
+function requestBroadHostPermission(): Promise<boolean> {
+    return new Promise(resolve => {
+        try {
+            chrome.permissions.contains({ origins: ['https://*/*'] }, has => {
+                if (has) {
+                    resolve(true);
+                    return;
+                }
+                chrome.permissions.request({ origins: ['https://*/*'] }, granted => resolve(!!granted));
+            });
+        } catch {
+            resolve(false);
+        }
+    });
+}
+
+function setFetchStatus(msg: string | null): void {
+    dom.fulltextFetchStatus.classList.toggle('hidden', !msg);
+    dom.fulltextFetchStatus.textContent = msg ?? '';
+}
+
+function applyOutcome(
+    ref: ReferenceWithStatus,
+    outcome: FulltextFetchOutcome
+): { fulltextUrl: string; status: FulltextStatus } {
+    if (outcome.kind === 'cached') {
+        ref.fulltext_url = outcome.url;
+        ref.fulltext_status = 'cached';
+        return { fulltextUrl: outcome.url, status: 'cached' };
+    }
+    if (outcome.kind === 'linked') {
+        ref.fulltext_url = outcome.url;
+        ref.fulltext_status = 'retrieved';
+        return { fulltextUrl: outcome.url, status: 'retrieved' };
+    }
+    ref.fulltext_url = undefined;
+    ref.fulltext_status = 'unavailable';
+    return { fulltextUrl: '', status: 'unavailable' };
+}
+
+async function handleBulkFetch(): Promise<void> {
+    if (bulkRun) return;
+
+    const retry = dom.fulltextRetryCheckbox.checked;
+    const targets = getFulltextCandidateList().filter(r => {
+        const s = retrievalStatus(r);
+        return s === 'not_retrieved' || (retry && s === 'unavailable');
+    });
+    if (targets.length === 0) return;
+
+    const broadGranted = await requestBroadHostPermission();
+    if (!broadGranted) {
+        showToast(t('fulltext_permissionHint'), 5000);
+    }
+
+    bulkRun = { cancelled: false };
+    renderFulltextTab();
+
+    // Driveフォルダは最初のPDF取得成功時に一度だけ作成
+    let folderPromise: Promise<string> | null = null;
+    const ensureFolder = () => (folderPromise ??= ensureFulltextFolder(state.spreadsheetId));
+
+    const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }> = [];
+    const flush = async () => {
+        if (pendingWrites.length === 0) return;
+        const batch = pendingWrites.splice(0);
+        try {
+            await updateReferenceFulltextUrls(state.spreadsheetId, batch);
+        } catch (err) {
+            console.warn('[fulltext-tab] シートへの保存に失敗:', err);
+            showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
+        }
+    };
+
+    let done = 0;
+    let cachedCount = 0;
+    let linkedCount = 0;
+    let noneCount = 0;
+
+    try {
+        for (const ref of targets) {
+            if (bulkRun.cancelled) break;
+            setFetchStatus(t('fulltext_fetchProgress', [String(done + 1), String(targets.length)]));
+
+            let outcome: FulltextFetchOutcome;
+            try {
+                outcome = await retrieveAndCacheFulltext(ref, state.userEmail, ensureFolder);
+            } catch (err) {
+                console.warn('[fulltext-tab] 取得エラー:', ref.ref_id, err);
+                outcome = { kind: 'none' };
+            }
+
+            const write = applyOutcome(ref, outcome);
+            pendingWrites.push({ refId: ref.ref_id, ...write });
+            if (outcome.kind === 'cached') cachedCount++;
+            else if (outcome.kind === 'linked') linkedCount++;
+            else noneCount++;
+
+            done++;
+            if (pendingWrites.length >= 5) await flush();
+            renderFulltextTab();
+
+            // 外部APIへの礼儀として間隔を空ける
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    } finally {
+        await flush();
+        const cancelled = bulkRun?.cancelled ?? false;
+        bulkRun = null;
+        renderFulltextTab();
+        const summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
+        setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+    }
+}
+
+async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElement): Promise<void> {
+    btn.disabled = true;
+    btn.textContent = t('fulltext_actionFetching');
+
+    await requestBroadHostPermission();
+
+    try {
+        const outcome = await retrieveAndCacheFulltext(
+            ref, state.userEmail,
+            () => ensureFulltextFolder(state.spreadsheetId)
+        );
+        const write = applyOutcome(ref, outcome);
+        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status);
+        renderFulltextTab();
+    } catch (err) {
+        showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
+        renderFulltextTab();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PDF手動アップロード
+// ---------------------------------------------------------------------------
+
+function handleUploadClick(ref: ReferenceWithStatus): void {
+    uploadTargetRefId = ref.ref_id;
+    dom.fulltextUploadInput.value = '';
+    dom.fulltextUploadInput.click();
+}
+
+async function handleUploadChange(): Promise<void> {
+    const file = dom.fulltextUploadInput.files?.[0];
+    const refId = uploadTargetRefId;
+    uploadTargetRefId = null;
+    if (!file || !refId) return;
+
+    const ref = state.references.find(r => r.ref_id === refId);
+    if (!ref) return;
+
+    // マジックナンバーでPDF検証
+    const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+    if (!String.fromCharCode(...head).startsWith('%PDF')) {
+        showToast(t('fulltext_uploadNotPdf'), 4000);
+        return;
+    }
+
+    showToast(t('fulltext_uploading'), 3000);
+    try {
+        const folderId = await ensureFulltextFolder(state.spreadsheetId);
+        const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
+        ref.fulltext_url = info.webViewLink;
+        ref.fulltext_status = 'cached';
+        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, info.webViewLink, 'cached');
+        renderFulltextTab();
+        showToast(t('fulltext_uploadDone'), 3000);
+    } catch (err) {
+        showToast(t('fulltext_uploadError', (err as Error).message), 5000);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// イベントリスナー
+// ---------------------------------------------------------------------------
 
 /**
  * イベントリスナーを設定（sidepanel.ts から呼ぶ）
@@ -96,4 +488,15 @@ export function renderFulltextTab(): void {
 export function setupFulltextTabListeners(): void {
     dom.tabFulltextBtn?.addEventListener('click', () => activateFulltextTab());
     dom.fulltextBackBtn?.addEventListener('click', () => switchToTab('screening'));
+    dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
+    dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
+    dom.fulltextFetchCancelBtn?.addEventListener('click', () => {
+        if (bulkRun) bulkRun.cancelled = true;
+    });
+    dom.fulltextRetryCheckbox?.addEventListener('change', () => renderFulltextTab());
+    dom.fulltextViewFilter?.addEventListener('change', () => {
+        viewFilter = dom.fulltextViewFilter.value as ViewFilter;
+        renderFulltextTab();
+    });
+    dom.fulltextUploadInput?.addEventListener('change', () => { void handleUploadChange(); });
 }

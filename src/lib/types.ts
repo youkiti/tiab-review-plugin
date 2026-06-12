@@ -1,5 +1,14 @@
 // types.ts - 型定義
 
+/**
+ * フルテキストの入手状態
+ * - not_retrieved: 未取得（省略時も同じ扱い）
+ * - cached:        Driveに PDF を保存済み（fulltext_url は Drive リンク）
+ * - retrieved:     外部URLのみ記録（PDFのキャッシュ不可・レガシー含む）
+ * - unavailable:   無料OAソースで見つからなかった
+ */
+export type FulltextStatus = 'not_retrieved' | 'cached' | 'retrieved' | 'unavailable';
+
 export interface Reference {
     ref_id: string;           // UUID
     title: string;
@@ -20,8 +29,8 @@ export interface Reference {
     imported_by?: string;     // email
     dedupe_key?: string;
     screening_set?: string;   // 担当セットID
-    fulltext_url?: string;    // フルテキストURL (OA / ブラウザアタッチ)
-    fulltext_status?: 'not_retrieved' | 'retrieved' | 'unavailable';
+    fulltext_url?: string;    // フルテキストURL (Driveキャッシュ / OA直リンク)
+    fulltext_status?: FulltextStatus;
 }
 
 export interface AssignmentConfig {
