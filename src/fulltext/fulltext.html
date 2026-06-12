@@ -18,8 +18,46 @@
             </div>
             <div class="ft-header-right">
                 <span id="ft-progress" class="ft-progress"></span>
+                <button id="ft-rule-btn" class="ft-rule-btn" title="フルテキスト候補ルールを設定">候補ルール: 未設定 ▾</button>
             </div>
         </header>
+
+        <!-- フルテキスト候補ルール設定 -->
+        <section id="ft-rule-section" class="ft-rule-section hidden">
+            <div class="ft-rule-card">
+                <h2 class="ft-rule-title">フルテキスト候補ルール</h2>
+                <div id="ft-rule-blocked" class="ft-rule-blocked hidden">
+                    候補ルールはキー開封（ブラインド解除）後に設定できます。<br>
+                    サイドパネルの管理者メニューからキーを開封してください。<br>
+                    それまでは「自分が TiAb で Include した文献」が候補になります。
+                </div>
+                <div id="ft-rule-form" class="ft-rule-form hidden">
+                    <p class="ft-rule-desc">
+                        チェックした判定者のTiAb判定を票として数え、Include票が必要票数以上の文献を
+                        フルテキスト候補とします。この設定はプロジェクト全体で共有されます。
+                        TiAbスクリーニング完了後の設定を推奨します。
+                    </p>
+                    <div id="ft-rule-voters" class="ft-rule-voters">
+                        <!-- voterチェックボックスがここに入る -->
+                    </div>
+                    <div class="ft-rule-threshold-row">
+                        <label for="ft-rule-threshold">必要Include票数:</label>
+                        <select id="ft-rule-threshold" class="ft-rule-threshold"></select>
+                        <span id="ft-rule-voter-count" class="ft-rule-voter-count"></span>
+                    </div>
+                    <div class="ft-rule-presets">
+                        <span>プリセット:</span>
+                        <button id="ft-rule-preset-human" class="btn btn-secondary">人間のみ・1票</button>
+                        <button id="ft-rule-preset-majority" class="btn btn-secondary">全部・過半数</button>
+                    </div>
+                    <div id="ft-rule-preview" class="ft-rule-preview"></div>
+                    <div class="ft-rule-actions">
+                        <button id="ft-rule-save-btn" class="btn btn-primary">この設定で保存</button>
+                        <button id="ft-rule-close-btn" class="btn btn-secondary">閉じる</button>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <main class="ft-main">
             <!-- 左ペイン: PDFビュワー -->

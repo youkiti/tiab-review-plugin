@@ -11,6 +11,7 @@ import type { ReferenceWithStatus } from '../../../lib/types';
 import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
+import { isInFulltextPool } from '../../../lib/fulltext-pool';
 import { t } from '../../../lib/i18n';
 import type { DecisionStatus } from '../../../lib/types';
 
@@ -310,9 +311,23 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     // Trial registry 由来の場合の注釈
     renderTrialRegistryNote(ref);
 
-    // フルテキストを開くボタン: 自分が TiAb で Include した文献にのみ表示
-    const myTiabDecision = ref.myDecision;
-    if (myTiabDecision?.decision === 'include' && (myTiabDecision.screening_phase ?? 'tiab') === 'tiab') {
+    // フルテキストを開くボタン:
+    // - 候補ルール設定済み: ルール上プールに入る文献に表示（フィルタと同条件）
+    // - 未設定: 自分が TiAb で Include した文献に表示（レガシー）
+    const rule = state.fulltextPoolRule;
+    let showFulltextBtn: boolean;
+    if (rule) {
+        const decisions = [...(ref.allDecisions ?? [])];
+        if (ref.myDecision && !decisions.some(d => d.decision_id === ref.myDecision!.decision_id)) {
+            decisions.push(ref.myDecision);
+        }
+        showFulltextBtn = isInFulltextPool(decisions, rule);
+    } else {
+        const myTiabDecision = ref.myDecision;
+        showFulltextBtn = myTiabDecision?.decision === 'include' &&
+            (myTiabDecision.screening_phase ?? 'tiab') === 'tiab';
+    }
+    if (showFulltextBtn) {
         dom.btnOpenFulltext.classList.remove('hidden');
         dom.btnOpenFulltext.dataset['refId'] = ref.ref_id;
     } else {

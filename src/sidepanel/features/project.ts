@@ -16,8 +16,7 @@ import {
     rememberLocalRecentSheet,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
-    getHighlightKeywords,
-    getKeyOpenedStatus,
+    getProjectConfigBundle,
     getLlmExecutions,
     getLlmRuns,
     isUserAdmin,
@@ -47,6 +46,7 @@ import {
     setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds,
     setCurrentIndex as syncSetCurrentIndex,
     setMlState as syncSetMlState,
+    setFulltextPoolRule as syncSetFulltextPoolRule,
 } from '../store/compat';
 import { createInitialMlState } from '../../lib/ml/types';
 
@@ -343,19 +343,22 @@ export async function loadDataAndShowScreening() {
 
         // 管理者権限とキーオープン状態を確認
         // Run/Batch 分離後、active 判定は LLM_Runs を経由するため Runs も同時取得する
-        const [adminStatus, keyOpenedStatus, keywords, assignmentConfig, llmExecutions, llmRuns] = await Promise.all([
+        // Config 由来の共有設定（キー開封・キーワード・フルテキスト候補ルール）は
+        // 1リクエストにまとめて取得する（429対策）
+        const [adminStatus, configBundle, assignmentConfig, llmExecutions, llmRuns] = await Promise.all([
             isUserAdmin(spreadsheetId, userEmail),
-            getKeyOpenedStatus(spreadsheetId),
-            getHighlightKeywords(spreadsheetId),
+            getProjectConfigBundle(spreadsheetId),
             getAssignmentConfig(spreadsheetId),
             getLlmExecutions(spreadsheetId),
             getLlmRuns(spreadsheetId),
         ]);
+        const keyOpenedStatus = configBundle.keyOpened;
 
         // Store経由で両方に同期
         syncSetIsAdmin(adminStatus);
         syncSetIsKeyOpened(keyOpenedStatus);
-        syncSetKeywords(keywords);
+        syncSetKeywords(configBundle.keywords);
+        syncSetFulltextPoolRule(configBundle.fulltextPoolRule);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
         const activeRun = llmRuns

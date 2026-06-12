@@ -9,13 +9,20 @@
 import {
     getAuthToken,
     getUserEmail,
-    getReferences,
-    getDecisions,
+    getFulltextPageData,
+    saveFulltextPoolRule,
     saveDecision,
     updateReferenceFulltextUrl,
 } from '../lib/sheets-api';
 import { retrieveFulltextUrl } from '../lib/fulltext-retriever';
 import { getClientVersion } from '../lib/client-version';
+import {
+    isInFulltextPool,
+    discoverVoters,
+    describeRule,
+    isTiabDecision,
+} from '../lib/fulltext-pool';
+import type { FulltextPoolRule, VoterInfo } from '../lib/fulltext-pool';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision } from '../lib/types';
 
@@ -32,7 +39,20 @@ let currentRef: Reference | null = null;
 let userEmail = '';
 let spreadsheetId = '';
 
-// フルテキスト候補リスト（TiAb Include 済みの文献）
+// 全文献・全判定（候補計算とルールUIで使用）
+let allRefs: Reference[] = [];
+let allDecisions: Decision[] = [];
+
+// フルテキスト候補ルール（Configシート共有設定、未設定はnull）
+let poolRule: FulltextPoolRule | null = null;
+let keyOpened = false;
+
+// ルール編集UIの一時状態
+let editorVoters = new Set<string>();
+let editorThreshold = 1;
+let discoveredVoters: VoterInfo[] = [];
+
+// フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
 let currentCandidateIndex = -1;
 
@@ -69,11 +89,14 @@ async function initFulltextPage(): Promise<void> {
         return;
     }
 
-    // 文献一覧と判定一覧を並行取得
-    const [refs, decisionsData] = await Promise.all([
-        getReferences(spreadsheetId),
-        getDecisions(spreadsheetId),
-    ]);
+    // 文献一覧・判定一覧・Config共有設定を1リクエストで取得（429対策）
+    const { references: refs, decisions: decisionsData, config } = await getFulltextPageData(spreadsheetId);
+
+    allRefs = refs;
+    allDecisions = decisionsData.map(({ decision }) => decision);
+    poolRule = config.fulltextPoolRule;
+    keyOpened = config.keyOpened;
+    discoveredVoters = discoverVoters(allDecisions);
 
     const ref = refs.find(r => r.ref_id === refId) ?? null;
     if (!ref) {
@@ -82,18 +105,8 @@ async function initFulltextPage(): Promise<void> {
     }
     currentRef = ref;
 
-    // フルテキスト候補: 自分が TiAb で Include した文献（screening_phase が tiab または省略）
-    const myTiabIncludes = new Set(
-        decisionsData
-            .filter(({ decision: d }) =>
-                d.reviewer_id === userEmail &&
-                d.decision === 'include' &&
-                (d.screening_phase ?? 'tiab') === 'tiab'
-            )
-            .map(({ decision: d }) => d.ref_id)
-    );
-    fulltextCandidates = refs.filter(r => myTiabIncludes.has(r.ref_id));
-    currentCandidateIndex = fulltextCandidates.findIndex(r => r.ref_id === refId);
+    // フルテキスト候補リストを計算
+    recomputeCandidates();
 
     // 既存のフルテキスト決断を取得
     existingDecision = decisionsData.find(
@@ -113,6 +126,13 @@ async function initFulltextPage(): Promise<void> {
     wireNavButtons();
     wireDecisionButtons();
     wireAttachTabButton();
+    wireRulePanel();
+    updateRuleButton();
+
+    // ルール未設定なら設定パネルを最初に表示（キー未開封時はブロックメッセージ）
+    if (!poolRule) {
+        openRulePanel();
+    }
 
     // PDF URL 表示
     if (ref.fulltext_status === 'retrieved' && ref.fulltext_url) {
@@ -123,6 +143,245 @@ async function initFulltextPage(): Promise<void> {
 
     document.getElementById('ft-doi-resolve-btn')
         ?.addEventListener('click', () => { void handleResolve(); });
+}
+
+// ---------------------------------------------------------------------------
+// フルテキスト候補ルール
+// ---------------------------------------------------------------------------
+
+/**
+ * 候補リストを再計算する
+ * - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
+ * - 未設定: 自分が TiAb で Include した文献（レガシー動作）
+ */
+function recomputeCandidates(): void {
+    if (poolRule) {
+        const rule = poolRule;
+        const byRef = new Map<string, Decision[]>();
+        for (const d of allDecisions) {
+            const list = byRef.get(d.ref_id);
+            if (list) {
+                list.push(d);
+            } else {
+                byRef.set(d.ref_id, [d]);
+            }
+        }
+        fulltextCandidates = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule));
+    } else {
+        const myTiabIncludes = new Set(
+            allDecisions
+                .filter(d =>
+                    d.reviewer_id === userEmail &&
+                    d.decision === 'include' &&
+                    isTiabDecision(d)
+                )
+                .map(d => d.ref_id)
+        );
+        fulltextCandidates = allRefs.filter(r => myTiabIncludes.has(r.ref_id));
+    }
+    currentCandidateIndex = currentRef
+        ? fulltextCandidates.findIndex(r => r.ref_id === currentRef!.ref_id)
+        : -1;
+}
+
+function updateRuleButton(): void {
+    const btn = document.getElementById('ft-rule-btn');
+    if (!btn) return;
+    btn.textContent = poolRule
+        ? `候補ルール: ${describeRule(poolRule)} ▾`
+        : '候補ルール: 未設定 ▾';
+}
+
+function wireRulePanel(): void {
+    document.getElementById('ft-rule-btn')?.addEventListener('click', () => {
+        const section = document.getElementById('ft-rule-section');
+        if (section && !section.classList.contains('hidden')) {
+            section.classList.add('hidden');
+        } else {
+            openRulePanel();
+        }
+    });
+    document.getElementById('ft-rule-close-btn')?.addEventListener('click', () => {
+        document.getElementById('ft-rule-section')?.classList.add('hidden');
+    });
+    document.getElementById('ft-rule-save-btn')?.addEventListener('click', () => {
+        void handleRuleSave();
+    });
+    document.getElementById('ft-rule-preset-human')?.addEventListener('click', () => {
+        editorVoters = new Set(discoveredVoters.filter(v => v.kind === 'human').map(v => v.key));
+        editorThreshold = 1;
+        renderRuleForm();
+    });
+    document.getElementById('ft-rule-preset-majority')?.addEventListener('click', () => {
+        editorVoters = new Set(discoveredVoters.map(v => v.key));
+        editorThreshold = Math.floor(editorVoters.size / 2) + 1;
+        renderRuleForm();
+    });
+    document.getElementById('ft-rule-threshold')?.addEventListener('change', (e) => {
+        editorThreshold = Number((e.target as HTMLSelectElement).value) || 1;
+        renderRulePreview();
+    });
+}
+
+function openRulePanel(): void {
+    const section = document.getElementById('ft-rule-section');
+    const blocked = document.getElementById('ft-rule-blocked');
+    const form = document.getElementById('ft-rule-form');
+    if (!section || !blocked || !form) return;
+
+    section.classList.remove('hidden');
+
+    // キー未開封時はルール編集をブロック（他レビュアーの判定が見えない状態で
+    // プロジェクト共有ルールを決めるべきではない）
+    if (!keyOpened) {
+        blocked.classList.remove('hidden');
+        form.classList.add('hidden');
+        return;
+    }
+
+    blocked.classList.add('hidden');
+    form.classList.remove('hidden');
+
+    // 編集状態を初期化: 既存ルール、なければ「人間のみ・1票」
+    if (poolRule) {
+        editorVoters = new Set(poolRule.voters);
+        editorThreshold = poolRule.threshold;
+    } else {
+        editorVoters = new Set(discoveredVoters.filter(v => v.kind === 'human').map(v => v.key));
+        editorThreshold = 1;
+    }
+    renderRuleForm();
+}
+
+function renderRuleForm(): void {
+    const votersDiv = document.getElementById('ft-rule-voters');
+    if (!votersDiv) return;
+
+    votersDiv.innerHTML = '';
+    if (discoveredVoters.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ft-rule-voter-empty';
+        empty.textContent = 'TiAb判定がまだありません。先にTiAbスクリーニングを進めてください。';
+        votersDiv.appendChild(empty);
+    }
+
+    for (const voter of discoveredVoters) {
+        const row = document.createElement('label');
+        row.className = 'ft-rule-voter-row';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = editorVoters.has(voter.key);
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                editorVoters.add(voter.key);
+            } else {
+                editorVoters.delete(voter.key);
+            }
+            renderThresholdSelect();
+            renderRulePreview();
+        });
+
+        const label = document.createElement('span');
+        label.textContent = voter.label;
+
+        const count = document.createElement('span');
+        count.className = 'ft-voter-count';
+        count.textContent = `Include ${voter.includeCount}件`;
+
+        row.appendChild(checkbox);
+        row.appendChild(label);
+        row.appendChild(count);
+        votersDiv.appendChild(row);
+    }
+
+    renderThresholdSelect();
+    renderRulePreview();
+}
+
+function renderThresholdSelect(): void {
+    const select = document.getElementById('ft-rule-threshold') as HTMLSelectElement | null;
+    const voterCount = document.getElementById('ft-rule-voter-count');
+    if (!select) return;
+
+    const max = Math.max(1, editorVoters.size);
+    if (editorThreshold > max) editorThreshold = max;
+
+    select.innerHTML = '';
+    for (let i = 1; i <= max; i++) {
+        const option = document.createElement('option');
+        option.value = String(i);
+        option.textContent = String(i);
+        if (i === editorThreshold) option.selected = true;
+        select.appendChild(option);
+    }
+
+    if (voterCount) {
+        voterCount.textContent = `（選択中: ${editorVoters.size}票）`;
+    }
+}
+
+function renderRulePreview(): void {
+    const preview = document.getElementById('ft-rule-preview');
+    if (!preview) return;
+
+    if (editorVoters.size === 0) {
+        preview.textContent = '判定者を1人以上選択してください。';
+        return;
+    }
+
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: [...editorVoters],
+        threshold: editorThreshold,
+    };
+    const byRef = new Map<string, Decision[]>();
+    for (const d of allDecisions) {
+        const list = byRef.get(d.ref_id);
+        if (list) {
+            list.push(d);
+        } else {
+            byRef.set(d.ref_id, [d]);
+        }
+    }
+    const count = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule)).length;
+    preview.textContent = `→ この条件でのフルテキスト候補: ${count}件 / 全${allRefs.length}件`;
+}
+
+async function handleRuleSave(): Promise<void> {
+    if (editorVoters.size === 0) {
+        renderRulePreview();
+        return;
+    }
+
+    const saveBtn = document.getElementById('ft-rule-save-btn') as HTMLButtonElement | null;
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+    }
+
+    try {
+        const rule: FulltextPoolRule = {
+            version: 1,
+            voters: [...editorVoters],
+            threshold: editorThreshold,
+        };
+        await saveFulltextPoolRule(spreadsheetId, rule);
+        poolRule = rule;
+
+        recomputeCandidates();
+        renderProgress();
+        updateRuleButton();
+        document.getElementById('ft-rule-section')?.classList.add('hidden');
+    } catch (err) {
+        const preview = document.getElementById('ft-rule-preview');
+        if (preview) preview.textContent = `保存失敗: ${(err as Error).message}`;
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'この設定で保存';
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -359,8 +618,13 @@ function renderRefMeta(ref: Reference): void {
 function renderProgress(): void {
     const el = document.getElementById('ft-progress');
     if (!el) return;
-    if (fulltextCandidates.length === 0 || currentCandidateIndex === -1) {
+    if (fulltextCandidates.length === 0) {
         el.textContent = '';
+        return;
+    }
+    if (currentCandidateIndex === -1) {
+        // この文献は現在の候補条件に含まれていない（判定・保存は可能）
+        el.textContent = `候補外（候補 ${fulltextCandidates.length}件）`;
         return;
     }
     el.textContent = `${currentCandidateIndex + 1} / ${fulltextCandidates.length}`;

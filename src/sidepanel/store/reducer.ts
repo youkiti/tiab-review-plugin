@@ -21,6 +21,7 @@ export const initialState: AppState = {
         mlState: createInitialMlState(),
         recentSheets: [],
         isAdmin: false,
+        fulltextPoolRule: null,
         sourceFiles: new Set(),
         selectedSourceFiles: new Set(),
         availableReviewers: new Set(),
@@ -193,6 +194,12 @@ export function reducer(state: AppState, action: Action): AppState {
             return {
                 ...state,
                 data: { ...state.data, isAdmin: action.isAdmin },
+            };
+
+        case 'data/setFulltextPoolRule':
+            return {
+                ...state,
+                data: { ...state.data, fulltextPoolRule: action.rule },
             };
 
         case 'data/setSourceFiles':
@@ -695,6 +702,7 @@ export function reducer(state: AppState, action: Action): AppState {
                     ...state.data,
                     spreadsheetId: '',
                     references: [],
+                    fulltextPoolRule: null,
                     sourceFiles: new Set(),
                     selectedSourceFiles: new Set(),
                     enabledReviewers: new Set(),

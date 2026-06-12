@@ -8,6 +8,8 @@ import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/ty
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
+import { isInFulltextPool } from '../../lib/fulltext-pool';
+import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 import { computeReviewerKey, detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
 import { t } from '../../lib/i18n';
 
@@ -45,16 +47,33 @@ export function getMyManualDecisionStatus(
 }
 
 /**
+ * 文献の全判定を集める（allDecisions + myDecision、重複排除）
+ */
+function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
+    const list = [...(ref.allDecisions ?? [])];
+    if (ref.myDecision && !list.some(d => d.decision_id === ref.myDecision!.decision_id)) {
+        list.push(ref.myDecision);
+    }
+    return list;
+}
+
+/**
  * フルテキスト候補の判定
- * 手動（複数人含む）、ML、LLMの3カテゴリのうち、2つ以上が「Include」であるかを判定
+ * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
+ * - 未設定（レガシー）: 手動・ML・LLMの3カテゴリのうち2つ以上が「Include」
  */
 function isFulltextCandidate(
     ref: ReferenceWithStatus,
     userEmail: string,
     treatMlAsManual: boolean,
     enabledReviewers: Set<string>,
-    isKeyOpened: boolean
+    isKeyOpened: boolean,
+    fulltextPoolRule: FulltextPoolRule | null
 ): boolean {
+    if (fulltextPoolRule) {
+        return isInFulltextPool(collectRefDecisions(ref), fulltextPoolRule);
+    }
+
     let includeCategories = 0;
 
     // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
@@ -107,7 +126,7 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
     // ステータスフィルター
     if (screening.currentFilter === 'fulltext_candidates') {
         filtered = filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, settings.treatMlAsManual, data.enabledReviewers, screening.isKeyOpened)
+            isFulltextCandidate(r, data.userEmail, settings.treatMlAsManual, data.enabledReviewers, screening.isKeyOpened, data.fulltextPoolRule)
         );
     } else if (screening.currentFilter === 'conflict') {
         filtered = filtered.filter(r =>
@@ -257,7 +276,7 @@ export function getFilterCounts(state: AppState): {
             hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)
         ).length,
         fulltextCandidates: filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, ui.settings.treatMlAsManual, data.enabledReviewers, ui.screening.isKeyOpened)
+            isFulltextCandidate(r, data.userEmail, ui.settings.treatMlAsManual, data.enabledReviewers, ui.screening.isKeyOpened, data.fulltextPoolRule)
         ).length,
     };
 }

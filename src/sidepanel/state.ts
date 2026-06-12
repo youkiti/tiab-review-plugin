@@ -5,6 +5,7 @@
 
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
+import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 
 // ========== Private State Variables ==========
@@ -35,6 +36,9 @@ let _userEmail = '';
 let _highlightKeywords: HighlightKeywords = { include: [], exclude: [] };
 let _isKeyOpened = false;
 let _isAdmin = false;
+
+// フルテキスト候補ルール（Configシート共有設定、未設定はnull）
+let _fulltextPoolRule: FulltextPoolRule | null = null;
 
 // ソースファイルフィルター
 let _sourceFiles: Set<string> = new Set();
@@ -157,6 +161,9 @@ export const state = {
     get isAdmin() { return _isAdmin; },
     setIsAdmin(admin: boolean) { _isAdmin = admin; },
 
+    get fulltextPoolRule() { return _fulltextPoolRule; },
+    setFulltextPoolRule(rule: FulltextPoolRule | null) { _fulltextPoolRule = rule; },
+
     // ----- Source File Filters -----
     get sourceFiles() { return _sourceFiles; },
     setSourceFiles(files: Set<string>) { _sourceFiles = files; },
@@ -270,6 +277,7 @@ export const state = {
         _references = [];
         _isKeyOpened = false;
         _isAdmin = false;
+        _fulltextPoolRule = null;
         _currentIndex = 0;
         _currentFilter = 'pending';
         _reviewHistoryRefIds = [];
@@ -294,6 +302,7 @@ export const state = {
     resetForBack() {
         _spreadsheetId = '';
         _references = [];
+        _fulltextPoolRule = null;
         _currentIndex = 0;
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;

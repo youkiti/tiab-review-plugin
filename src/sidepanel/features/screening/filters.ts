@@ -12,6 +12,7 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
+import { isInFulltextPool } from '../../../lib/fulltext-pool';
 import { getReferenceAssignmentSet } from '../assignment';
 import { computeReviewerKey, hasEffectiveConflict } from '../../render/helpers';
 
@@ -40,10 +41,27 @@ export function setFilterDependencies(deps: {
 }
 
 /**
+ * 文献の全判定を集める（allDecisions + myDecision、重複排除）
+ */
+function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
+    const list = [...(r.allDecisions ?? [])];
+    if (r.myDecision && !list.some(d => d.decision_id === r.myDecision!.decision_id)) {
+        list.push(r.myDecision);
+    }
+    return list;
+}
+
+/**
  * フルテキスト候補の判定
- * 手動（複数人含む）、ML、LLMの3カテゴリのうち、2つ以上が「Include」であるかを判定
+ * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
+ * - 未設定（レガシー）: 手動・ML・LLMの3カテゴリのうち2つ以上が「Include」
  */
 function isFulltextCandidate(r: ReferenceWithStatus): boolean {
+    const rule = state.fulltextPoolRule;
+    if (rule) {
+        return isInFulltextPool(collectRefDecisions(r), rule);
+    }
+
     let includeCategories = 0;  // Includeと判定したカテゴリ数
 
     const userEmail = state.userEmail;
