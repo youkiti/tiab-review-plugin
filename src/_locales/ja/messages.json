@@ -251,6 +251,27 @@
   "nav_tabAiTitle": {
     "message": "AIレビュー"
   },
+  "nav_tabFulltext": {
+    "message": "📄 全文"
+  },
+  "nav_tabFulltextTitle": {
+    "message": "フルテキストスクリーニング"
+  },
+  "fulltext_progressLine": {
+    "message": "フルテキスト判定済み: $1 / $2件"
+  },
+  "fulltext_ruleLine": {
+    "message": "候補ルール: $2票中$1票以上でInclude"
+  },
+  "fulltext_ruleUnset": {
+    "message": "候補ルール: 未設定（自分のTiAb Includeを表示中。フルテキストページで設定できます）"
+  },
+  "fulltext_emptyList": {
+    "message": "フルテキスト候補がまだありません。TiAbスクリーニングを進めてください。"
+  },
+  "fulltext_openTitle": {
+    "message": "フルテキストページを開く"
+  },
   "filter_pending": {
     "message": "未判定"
   },

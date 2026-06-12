@@ -251,6 +251,27 @@
   "nav_tabAiTitle": {
     "message": "AI Review"
   },
+  "nav_tabFulltext": {
+    "message": "📄 Full-text"
+  },
+  "nav_tabFulltextTitle": {
+    "message": "Full-text Screening"
+  },
+  "fulltext_progressLine": {
+    "message": "Full-text decided: $1 / $2"
+  },
+  "fulltext_ruleLine": {
+    "message": "Pool rule: ≥$1 of $2 votes to include"
+  },
+  "fulltext_ruleUnset": {
+    "message": "Pool rule: not set (showing your TiAb includes; configure on the full-text page)"
+  },
+  "fulltext_emptyList": {
+    "message": "No full-text candidates yet. Continue TiAb screening first."
+  },
+  "fulltext_openTitle": {
+    "message": "Open full-text page"
+  },
   "filter_pending": {
     "message": "Pending"
   },

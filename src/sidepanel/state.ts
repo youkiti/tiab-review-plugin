@@ -60,7 +60,7 @@ let _abstractSubsectionHeadings: string[] = [];
 let _activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];
 
 // LLM関連
-let _currentTab: 'screening' | 'llm' | 'ml' = 'screening';
+let _currentTab: 'screening' | 'llm' | 'ml' | 'fulltext' = 'screening';
 let _llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
 let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
@@ -223,7 +223,7 @@ export const state = {
 
     // ----- LLM State -----
     get currentTab() { return _currentTab; },
-    setCurrentTab(tab: 'screening' | 'llm' | 'ml') { _currentTab = tab; },
+    setCurrentTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') { _currentTab = tab; },
 
     get llmConfig() { return _llmConfig; },
     setLlmConfig(config: LlmConfig) { _llmConfig = config; },

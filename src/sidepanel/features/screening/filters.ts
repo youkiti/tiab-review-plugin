@@ -148,6 +148,13 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
 }
 
 /**
+ * フルテキスト候補の一覧を取得（フルテキストタブで使用）
+ */
+export function getFulltextCandidateList(): ReferenceWithStatus[] {
+    return state.references.filter(isFulltextCandidate);
+}
+
+/**
  * 自分の手動判定ステータスを取得
  * client_version === '0.1.0' の判定のみを手動判定として扱う
  */

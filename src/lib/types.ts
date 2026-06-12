@@ -62,6 +62,7 @@ export interface ReferenceWithStatus extends Reference {
     allDecisions?: Decision[];  // キーオープン後に全レビュアーの判定を保持
     hasConflict?: boolean;       // 不一致フラグ
     hasAnyLlmDecision?: boolean; // LLM バッチで判定済みか（pending/confirmed/inactive を問わず）
+    myFulltextDecision?: Decision; // 自分のフルテキストフェーズ判定（フルテキストタブで使用）
 }
 
 export interface Config {

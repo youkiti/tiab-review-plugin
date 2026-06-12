@@ -145,7 +145,15 @@ const domElements = {
     get tabScreeningBtn() { return getElement<HTMLButtonElement>('tab-screening'); },
     get tabLlmBtn() { return getElement<HTMLButtonElement>('tab-llm'); },
     get tabMlBtn() { return getElement<HTMLButtonElement>('tab-ml'); },
+    get tabFulltextBtn() { return getElement<HTMLButtonElement>('tab-fulltext'); },
     get headerTabs() { return querySelector<HTMLElement>('.header-tabs'); },
+
+    // ========== Fulltext Section ==========
+    get fulltextSection() { return getElement<HTMLElement>('fulltext-section'); },
+    get fulltextBackBtn() { return getElement<HTMLButtonElement>('fulltext-back-btn'); },
+    get fulltextProgressLine() { return getElement<HTMLElement>('fulltext-progress-line'); },
+    get fulltextRuleLine() { return getElement<HTMLElement>('fulltext-rule-line'); },
+    get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 

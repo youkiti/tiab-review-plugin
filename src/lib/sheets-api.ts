@@ -754,6 +754,29 @@ export async function getDecisions(spreadsheetId: string): Promise<{ decision: D
 }
 
 /**
+ * 自分のフルテキストフェーズ判定を ref_id 別にマップ化（最新優先）
+ * TiAb 画面の集計からは除外されるが、フルテキストタブの状態表示に使う
+ */
+function buildMyFulltextDecisionMap(
+    decisionsData: { decision: Decision; rowIndex: number }[],
+    normalizedReviewerEmail: string
+): Map<string, Decision> {
+    const map = new Map<string, Decision>();
+    if (!normalizedReviewerEmail) return map;
+    decisionsData.forEach(({ decision }) => {
+        if ((decision.screening_phase ?? 'tiab') !== 'fulltext') return;
+        const reviewerId = (decision.reviewer_id || '').trim();
+        const refId = (decision.ref_id || '').trim();
+        if (!refId || reviewerId !== normalizedReviewerEmail) return;
+        const existing = map.get(refId);
+        if (!existing || (decision.decided_at || '') > (existing.decided_at || '')) {
+            map.set(refId, decision);
+        }
+    });
+    return map;
+}
+
+/**
  * 文献一覧に判定状態をマージ（キーオープン前）
  */
 export async function getReferencesWithStatus(
@@ -781,6 +804,8 @@ export async function getReferencesWithStatus(
             ref.ref_id = refId;
         }
     });
+
+    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
 
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
@@ -827,6 +852,7 @@ export async function getReferencesWithStatus(
             status,
             allDecisions: llmDecisions,
             hasAnyLlmDecision: llmDecisions.length > 0,
+            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
         };
     });
 }
@@ -860,6 +886,8 @@ export async function getReferencesWithAllDecisions(
             ref.ref_id = refId;
         }
     });
+
+    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
 
     // デバッグ: ref_idのサンプルを表示
     if (decisionsData.length > 0) {
@@ -970,6 +998,7 @@ export async function getReferencesWithAllDecisions(
             allDecisions,
             hasConflict,
             hasAnyLlmDecision: refIdsWithAnyLlmDecision.has(ref.ref_id),
+            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
         };
     });
 }

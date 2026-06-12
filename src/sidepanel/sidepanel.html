@@ -20,6 +20,7 @@
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
                 <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
                 <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
+                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle" data-i18n="nav_tabFulltext"></button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -741,6 +742,22 @@
                 </div>
             </div>
 
+        </section>
+
+        <!-- フルテキストスクリーニングセクション -->
+        <section id="fulltext-section" class="section hidden">
+            <div class="llm-toolbar">
+                <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
+            </div>
+
+            <div class="fulltext-summary">
+                <div id="fulltext-progress-line" class="fulltext-progress-line"></div>
+                <div id="fulltext-rule-line" class="fulltext-rule-line"></div>
+            </div>
+
+            <div id="fulltext-list" class="fulltext-list">
+                <!-- 候補カードがここに入る -->
+            </div>
         </section>
     </div>
 

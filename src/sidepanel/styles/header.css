@@ -72,6 +72,23 @@
     font-style: italic;
 }
 
+/* フルテキストタブ: TiAbとはフェーズが違うことを示す差し色 */
+.tab-btn-fulltext {
+    border-color: #16a085;
+    color: #16a085;
+}
+
+.tab-btn-fulltext:hover {
+    background: #e8f6f3;
+    border-color: #16a085;
+}
+
+.tab-btn-fulltext.active {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+}
+
 /* ログインヘッダー */
 .login-header {
     display: flex;

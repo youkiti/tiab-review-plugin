@@ -16,8 +16,8 @@ import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 // ========== View型（画面遷移の真実） ==========
 export type View = 'login' | 'project' | 'screening' | 'llm' | 'ml' | 'settings';
 
-// ========== Tab型（screening/llm/ml内の切替） ==========
-export type Tab = 'screening' | 'llm' | 'ml';
+// ========== Tab型（screening/llm/ml/fulltext内の切替） ==========
+export type Tab = 'screening' | 'llm' | 'ml' | 'fulltext';
 
 // ========== SheetInfo型 ==========
 export interface SheetInfo {
