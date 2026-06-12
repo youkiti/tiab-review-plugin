@@ -18,9 +18,24 @@
 
 ## プロジェクト概要
 
-**Title & Abstract (TiAb) Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
+**TiAb Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
 
-Google スプレッドシートを共有データベースとして使用し、複数のレビュアーがタイトル・抄録レベルでの文献評価（include/exclude/maybe）を行えるツールを開発します。
+Google スプレッドシートを共有データベースとして使用し、複数のレビュアーが文献評価を行えるツールです。
+
+### アーキテクチャ方針（2026-06-12 確定）
+
+SR ワークフローを以下の**2アプリ構成**で実現する。共有データ基盤は同一 Google Sheets。
+
+| レイヤー | 担当機能 | 形態 |
+|---|---|---|
+| **Chrome拡張（本リポジトリ）** | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF アノテーション（`fulltext.html`） | Chrome Extension (MV3) |
+| **Webアプリ（別リポジトリ、将来）** | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB2 / ROBINS-I 等） | Web アプリ（インストール不要） |
+
+**Chrome拡張をフルテキスト以降に拡張しない理由：**
+- データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
+- PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
+- 複数施設のチームメンバーがインストール不要でアクセスできるよう、Webアプリの方が適切
+- RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
 
 ## 技術スタック
 
@@ -47,36 +62,39 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 #### References タブ（文献マスタ）
 
-| 列名        | 説明                 | 必須 |
-| ----------- | -------------------- | ---- |
-| ref_id      | 文献主キー（UUID）   | ✓   |
-| title       | タイトル             | ✓   |
-| abstract    | 抄録                 |      |
-| year        | 出版年               |      |
-| authors     | 著者                 |      |
-| journal     | ジャーナル名         |      |
-| doi         | DOI                  |      |
-| pmid        | PubMed ID            |      |
-| url         | URL                  |      |
-| source      | 取り込み元DB         |      |
-| imported_at | 取り込み日時         |      |
-| imported_by | 取り込み者           |      |
-| dedupe_key  | 重複検出キー（後述） |      |
+| 列名             | 説明                                                      | 必須 |
+| ---------------- | --------------------------------------------------------- | ---- |
+| ref_id           | 文献主キー（UUID）                                        | ✓   |
+| title            | タイトル                                                  | ✓   |
+| abstract         | 抄録                                                      |      |
+| year             | 出版年                                                    |      |
+| authors          | 著者                                                      |      |
+| journal          | ジャーナル名                                              |      |
+| doi              | DOI                                                       |      |
+| pmid             | PubMed ID                                                 |      |
+| url              | URL                                                       |      |
+| source           | 取り込み元DB                                              |      |
+| imported_at      | 取り込み日時                                              |      |
+| imported_by      | 取り込み者                                                |      |
+| dedupe_key       | 重複検出キー（後述）                                      |      |
+| fulltext_url     | フルテキストURL（OA / ブラウザアタッチ）                  |      |
+| fulltext_status  | `not_retrieved` / `retrieved` / `unavailable`             |      |
 
 #### Decisions タブ（最新判定のみを有効にする判定ログ）
 
-| 列名           | 説明                          | 必須 |
-| -------------- | ----------------------------- | ---- |
-| decision_id    | 判定ID（UUID）                | ✓   |
-| ref_id         | 文献ID（Referencesと結合）    | ✓   |
-| reviewer_id    | 判定者（email）               | ✓   |
-| decision       | include / exclude / maybe     | ✓   |
-| reason         | 除外理由（excludeの場合必須） |      |
-| labels         | (廃止)                        |      |
-| note           | メモ                          |      |
-| decided_at     | 判定日時（ISO 8601）          | ✓   |
-| client_version | 拡張機能バージョン            |      |
-| source_url     | 判定時に見ていたURL           |      |
+| 列名             | 説明                                                   | 必須 |
+| ---------------- | ------------------------------------------------------ | ---- |
+| decision_id      | 判定ID（UUID）                                         | ✓   |
+| ref_id           | 文献ID（Referencesと結合）                             | ✓   |
+| reviewer_id      | 判定者（email）                                        | ✓   |
+| decision         | include / exclude / maybe                              | ✓   |
+| reason           | 除外理由（excludeの場合必須）                          |      |
+| labels           | (廃止)                                                 |      |
+| note             | メモ                                                   |      |
+| decided_at       | 判定日時（ISO 8601）                                   | ✓   |
+| client_version   | 拡張機能バージョン                                     |      |
+| source_url       | 判定時に見ていたURL                                    |      |
+| screening_phase  | `tiab`（省略時も同義）/ `fulltext`                     |      |
 
 **重要**:
 
@@ -89,6 +107,29 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
+
+#### Annotations タブ（PDFアノテーション）
+
+フルテキストスクリーニングおよびデータ抽出で使用するPDFハイライトを1行1件で保存する。
+`phase` と `category` の組み合わせで用途を区別し、将来のWebアプリ（データ抽出・RoB）からも参照できる。
+
+| 列名             | 説明                                                               | 必須 |
+| ---------------- | ------------------------------------------------------------------ | ---- |
+| annotation_id    | UUID                                                               | ✓   |
+| ref_id           | References への FK                                                 | ✓   |
+| reviewer_id      | email                                                              | ✓   |
+| phase            | `fulltext_screening` / `data_extraction`                           | ✓   |
+| category         | `include_evidence` / `exclude_evidence` / `data_point`             | ✓   |
+| label            | データ抽出時のフィールド名（例: `sample_size`）                     |      |
+| highlighted_text | ハイライトしたテキスト本体                                          | ✓   |
+| page_number      | PDFページ番号（1始まり）                                           | ✓   |
+| position_json    | `AnnotationPosition` を JSON 文字列化したもの（再描画用）           |      |
+| pdf_url          | アノテーション作成時のPDF URL                                      | ✓   |
+| created_at       | ISO 8601                                                           | ✓   |
+
+`position_json` の構造（`AnnotationPosition` 型）:
+- `page` / `offset_start` / `offset_end`: PDF.js TextContent ベースの文字オフセット（主キー）
+- `context_before` / `context_after`: 前後50文字（オフセット失敗時のフォールバック）
 
 ## 機能要件
 
@@ -280,7 +321,7 @@ tiab-review-plugin/
 │   ├── manifest.json          # Chrome Extension Manifest V3
 │   ├── background/
 │   ├── popup/
-│   ├── sidepanel/             # サイドパネルUI
+│   ├── sidepanel/             # TiAb スクリーニング（サイドパネル）
 │   │   ├── features/          # 機能別モジュール
 │   │   │   ├── llm/           # LLM機能 (API, Batch, Criteria)
 │   │   │   ├── screening/     # スクリーニング機能
@@ -289,9 +330,14 @@ tiab-review-plugin/
 │   │   ├── ui/                # UIコンポーネント
 │   │   ├── sidepanel.html
 │   │   └── sidepanel.ts
+│   ├── fulltext/              # フルテキストスクリーニング（新規タブページ）
+│   │   ├── fulltext.html      # 2カラムレイアウト（PDF左 / 決断・アノテーション右）
+│   │   ├── fulltext.css
+│   │   └── fulltext.ts        # エントリポイント（URL param: ref_id）
 │   ├── lib/
 │   │   ├── gemini-api.ts      # Gemini API クライアント
-│   │   ├── sheets-api.ts
+│   │   ├── sheets-api.ts      # Sheets API (Annotations タブも扱う)
+│   │   ├── types.ts           # 共有型定義（Reference / Decision / Annotation 等）
 │   │   └── ...
 │   └── utils/
 ├── experiments/               # LLM実験・検証用 (TypeScript)
@@ -460,7 +506,8 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
 
 ## 注意事項
 
-- **フルテキスト対応は対象外**（PDFアップロード、PDFビューア等は実装しない）
+- **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別 Webアプリで実装する（アーキテクチャ方針セクション参照）
+- **後方互換の維持**: `Decision.screening_phase` は省略時 `'tiab'` 扱い。`Reference` の `fulltext_url` / `fulltext_status` は空でも既存機能に影響しない
 - **排他制御は不要**（追記型設計のため）
 - **重複解決は手動**（自動重複解決は将来拡張）
 
