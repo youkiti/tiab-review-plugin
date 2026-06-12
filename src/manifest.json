@@ -13,7 +13,11 @@
         "https://sheets.googleapis.com/*",
         "https://www.googleapis.com/drive/*",
         "https://generativelanguage.googleapis.com/*",
-        "https://openrouter.ai/*"
+        "https://openrouter.ai/*",
+        "https://www.ncbi.nlm.nih.gov/pmc/*",
+        "https://www.ebi.ac.uk/europepmc/*",
+        "https://api.unpaywall.org/*",
+        "https://api.openalex.org/*"
     ],
     "oauth2": {
         "client_id": "__OAUTH_CLIENT_ID__",
