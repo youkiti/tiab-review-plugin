@@ -64,6 +64,35 @@ body {
     color: #bdc3c7;
 }
 
+/* 候補プール全体の判定進捗（ヘッダー） */
+.ft-overall {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ft-overall-text {
+    font-size: 12px;
+    color: #ecf0f1;
+    white-space: nowrap;
+}
+
+.ft-overall-bar {
+    width: 90px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.ft-overall-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: #2ecc71;
+    transition: width 0.2s ease;
+}
+
 .ft-header-right {
     display: flex;
     align-items: center;
@@ -287,6 +316,33 @@ body {
     font-size: 14px;
 }
 
+/* リンクのみPDF: クリックでインライン表示する導線パネル */
+.ft-linked-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px;
+    max-width: 420px;
+    text-align: center;
+}
+
+.ft-linked-panel .ft-linked-lead {
+    color: #555;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.ft-linked-panel .ft-linked-open-btn {
+    cursor: pointer;
+}
+
+.ft-linked-panel .ft-linked-url {
+    font-size: 11px;
+    color: #888;
+    word-break: break-all;
+}
+
 /* Drive保存済みPDFを表示する iframe */
 .ft-pdf-frame {
     width: 100%;
@@ -393,6 +449,27 @@ body {
     padding: 6px 8px;
     font-size: 13px;
     width: 100%;
+}
+
+/* 除外理由はリストボックス表示にして、キーボードで上下に選べるようにする */
+.ft-reason-select {
+    padding: 4px;
+}
+
+.ft-reason-select option {
+    padding: 4px 6px;
+    border-radius: 3px;
+}
+
+.ft-reason-select:focus {
+    outline: 2px solid #3498db;
+    border-color: #3498db;
+}
+
+.ft-reason-hint {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.4;
 }
 
 .ft-save-btn {

@@ -165,6 +165,18 @@ const domElements = {
     get fulltextViewFilter() { return getElement<HTMLSelectElement>('fulltext-view-filter'); },
     get fulltextUploadInput() { return getElement<HTMLInputElement>('fulltext-upload-input'); },
     get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },
+    // 結果ビュー（ビュー切替・判定者選択・PRISMA・エクスポート）
+    get fulltextBlindRow() { return getElement<HTMLElement>('fulltext-blind-row'); },
+    get fulltextKeyToggle() { return getElement<HTMLInputElement>('fulltext-key-toggle'); },
+    get fulltextModeListBtn() { return getElement<HTMLButtonElement>('fulltext-mode-list'); },
+    get fulltextModeResultsBtn() { return getElement<HTMLButtonElement>('fulltext-mode-results'); },
+    get fulltextResultsDiv() { return getElement<HTMLElement>('fulltext-results'); },
+    get fulltextJudgeList() { return getElement<HTMLElement>('fulltext-judge-list'); },
+    get fulltextJudgeHint() { return getElement<HTMLElement>('fulltext-judge-hint'); },
+    get fulltextPrismaDiv() { return getElement<HTMLElement>('fulltext-prisma'); },
+    get fulltextResultsListDiv() { return getElement<HTMLElement>('fulltext-results-list'); },
+    get fulltextExportCsvBtn() { return getElement<HTMLButtonElement>('fulltext-export-csv-btn'); },
+    get fulltextExportRisBtn() { return getElement<HTMLButtonElement>('fulltext-export-ris-btn'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 

@@ -810,6 +810,34 @@ function buildMyFulltextDecisionMap(
 }
 
 /**
+ * 全レビュアー（および有効な LLM）のフルテキストフェーズ判定を ref_id 別にマップ化する。
+ * TiAb の allDecisions と同じ構造で、結果集計（判定者選択・OR合議・不一致検出）に使う。
+ * 無効な LLM 判定（active Run 配下でない reviewer_id）は除外する。
+ */
+function buildAllFulltextDecisionsMap(
+    decisionsData: { decision: Decision; rowIndex: number }[],
+    validLlmExecutionIds: Set<string>
+): Map<string, Decision[]> {
+    const map = new Map<string, Decision[]>();
+    decisionsData.forEach(({ decision }) => {
+        if ((decision.screening_phase ?? 'tiab') !== 'fulltext') return;
+        const refId = (decision.ref_id || '').trim();
+        if (!refId) return;
+        if (refId !== decision.ref_id) decision.ref_id = refId;
+        const reviewerId = (decision.reviewer_id || '').trim();
+        if (reviewerId && reviewerId !== decision.reviewer_id) decision.reviewer_id = reviewerId;
+        // 無効な LLM 判定（active Run 配下でない）は除外
+        if (decision.reviewer_id.startsWith('llm:') && !validLlmExecutionIds.has(decision.reviewer_id)) {
+            return;
+        }
+        const list = map.get(refId);
+        if (list) list.push(decision);
+        else map.set(refId, [decision]);
+    });
+    return map;
+}
+
+/**
  * 文献一覧に判定状態をマージ（キーオープン前）
  */
 export async function getReferencesWithStatus(
@@ -935,6 +963,9 @@ export async function getReferencesWithAllDecisions(
     const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions);
     const validLlmExecutionIds = activeBatchIds;
 
+    // 全レビュアー（+有効LLM）のフルテキスト判定マップ（結果集計用）
+    const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, validLlmExecutionIds);
+
     console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
         id: e.execution_id,
         status: e.status,
@@ -1032,6 +1063,7 @@ export async function getReferencesWithAllDecisions(
             hasConflict,
             hasAnyLlmDecision: refIdsWithAnyLlmDecision.has(ref.ref_id),
             myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
+            allFulltextDecisions: allFulltextDecisionsMap.get(ref.ref_id) || [],
         };
     });
 }

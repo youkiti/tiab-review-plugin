@@ -12,6 +12,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { getFulltextCandidateList } from './screening/filters';
+import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
@@ -97,6 +98,8 @@ export function renderFulltextTab(): void {
     renderRetrievalSummary(candidates);
     renderViewFilter(candidates);
     renderList(candidates);
+    // 結果モード表示中はサマリ・テーブルも最新化（モード外なら no-op）
+    renderFulltextResults();
 }
 
 function renderRuleAndProgress(candidates: ReferenceWithStatus[]): void {
@@ -507,6 +510,8 @@ async function handleUploadChange(): Promise<void> {
 export function setupFulltextTabListeners(): void {
     dom.tabFulltextBtn?.addEventListener('click', () => activateFulltextTab());
     dom.fulltextBackBtn?.addEventListener('click', () => switchToTab('screening'));
+    setFulltextResultsDeps({ rerenderTab: renderFulltextTab });
+    setupFulltextResultsListeners();
     dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {

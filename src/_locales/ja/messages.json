@@ -371,6 +371,78 @@
   "fulltext_filterUndecided": {
     "message": "未判定 ($1)"
   },
+  "fulltext_modeList": {
+    "message": "候補リスト"
+  },
+  "fulltext_modeResults": {
+    "message": "結果"
+  },
+  "fulltext_resultsJudgesHead": {
+    "message": "集計に使う判定者（最小1人・組み入れはOR）"
+  },
+  "fulltext_resultsJudgesHint": {
+    "message": "判定者を1人以上選択してください。"
+  },
+  "fulltext_resultsJudgesBlind": {
+    "message": "キー開封（ブラインド解除）後に全レビュアーの判定で集計できます。現在は自分の判定のみ表示しています。"
+  },
+  "fulltext_blindNote": {
+    "message": "ONで全レビュアー＋AIの判定を集計（管理者のみ）"
+  },
+  "fulltext_exportCsv": {
+    "message": "CSVエクスポート"
+  },
+  "fulltext_exportRis": {
+    "message": "RISエクスポート"
+  },
+  "fulltext_prismaTitle": {
+    "message": "結果サマリ（PRISMA フルテキスト相）"
+  },
+  "fulltext_prismaCandidates": {
+    "message": "候補: $1件"
+  },
+  "fulltext_prismaObtained": {
+    "message": "全文入手済: $1件"
+  },
+  "fulltext_prismaInclude": {
+    "message": "組み入れ: $1件"
+  },
+  "fulltext_prismaExclude": {
+    "message": "除外: $1件"
+  },
+  "fulltext_prismaMaybe": {
+    "message": "保留: $1件"
+  },
+  "fulltext_prismaPending": {
+    "message": "未判定: $1件"
+  },
+  "fulltext_prismaConflict": {
+    "message": "うち不一致: $1件"
+  },
+  "fulltext_prismaExclReasons": {
+    "message": "除外理由の内訳"
+  },
+  "fulltext_resultEmpty": {
+    "message": "候補がありません。"
+  },
+  "fulltext_resultConflictBadge": {
+    "message": "不一致"
+  },
+  "fulltext_exportNoData": {
+    "message": "エクスポートする候補がありません。"
+  },
+  "fulltext_exportNoJudge": {
+    "message": "判定者を1人以上選択してください。"
+  },
+  "fulltext_exportConflictConfirm": {
+    "message": "$1件で判定者間の不一致があります。組み入れはOR（誰か1人でもIncludeなら組み入れ）で処理されます。このままエクスポートしますか？"
+  },
+  "fulltext_exportCsvDone": {
+    "message": "$1件をCSVエクスポートしました。"
+  },
+  "fulltext_exportRisDone": {
+    "message": "$1件をRISエクスポートしました。"
+  },
   "ftRule_desc": {
     "message": "チェックした判定者のTiAb判定を票として数え、Include票が必要票数以上の文献をフルテキスト候補とします。この設定はプロジェクト全体で共有されます。TiAbスクリーニング完了後の設定を推奨します。"
   },

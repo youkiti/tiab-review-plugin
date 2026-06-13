@@ -17,6 +17,10 @@
                 <span id="ft-ref-meta" class="ft-ref-meta"></span>
             </div>
             <div class="ft-header-right">
+                <span id="ft-overall" class="ft-overall" title="候補プール全体の判定進捗">
+                    <span id="ft-overall-text" class="ft-overall-text"></span>
+                    <span class="ft-overall-bar"><span id="ft-overall-fill" class="ft-overall-fill"></span></span>
+                </span>
                 <span id="ft-progress" class="ft-progress"></span>
                 <button id="ft-rule-btn" class="ft-rule-btn" title="フルテキスト候補ルールを設定">候補ルール: 未設定 ▾</button>
             </div>
@@ -41,9 +45,8 @@
                 </div>
                 <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
                     <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
-                    <!-- PDF未取得時のみ表示: 取得導線 -->
-                    <button id="ft-attach-tab-btn" class="btn btn-secondary">現在のタブをアタッチ</button>
-                    <button id="ft-doi-resolve-btn" class="btn btn-secondary">DOI → URL解決</button>
+                    <!-- リンクのみPDFをインライン表示できたが自動保存できなかった時の手動保存導線 -->
+                    <button id="ft-save-pdf-btn" class="btn btn-secondary hidden">このPDFを保存</button>
                     <!-- PDF保存済み時のみ表示: 差し替え導線 -->
                     <button id="ft-replace-btn" class="btn btn-secondary hidden">別のPDFをアップロード</button>
                     <button id="ft-delete-btn" class="btn btn-secondary hidden">PDFを削除</button>
@@ -76,16 +79,16 @@
                     </div>
                     <div id="ft-reason-area" class="ft-reason-area hidden">
                         <label class="ft-reason-label">除外理由 (PRISMA)</label>
-                        <select id="ft-reason-select" class="ft-reason-select">
-                            <option value="">選択してください</option>
-                            <option value="population">Population 不適合</option>
-                            <option value="intervention">Intervention 不適合</option>
-                            <option value="comparator">Comparator 不適合</option>
-                            <option value="outcome">Outcome 不適合</option>
-                            <option value="study_design">Study design 不適合</option>
-                            <option value="duplicate">重複</option>
-                            <option value="other">その他</option>
+                        <select id="ft-reason-select" class="ft-reason-select" size="7">
+                            <option value="population">1. Population 不適合</option>
+                            <option value="intervention">2. Intervention 不適合</option>
+                            <option value="comparator">3. Comparator 不適合</option>
+                            <option value="outcome">4. Outcome 不適合</option>
+                            <option value="study_design">5. Study design 不適合</option>
+                            <option value="duplicate">6. 重複</option>
+                            <option value="other">7. その他</option>
                         </select>
+                        <div class="ft-reason-hint">数字 1〜7 で選択 ／ ↑↓ で移動 ／ Enter で確定して次へ</div>
                         <textarea id="ft-reason-note" class="ft-reason-note" placeholder="補足メモ（任意）" rows="3"></textarea>
                     </div>
                     <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>

@@ -371,6 +371,78 @@
   "fulltext_filterUndecided": {
     "message": "Undecided ($1)"
   },
+  "fulltext_modeList": {
+    "message": "Candidates"
+  },
+  "fulltext_modeResults": {
+    "message": "Results"
+  },
+  "fulltext_resultsJudgesHead": {
+    "message": "Judges to aggregate (min 1; include = OR)"
+  },
+  "fulltext_resultsJudgesHint": {
+    "message": "Select at least one judge."
+  },
+  "fulltext_resultsJudgesBlind": {
+    "message": "After the key is opened (unblinded), results aggregate across all reviewers. Currently showing your own decisions only."
+  },
+  "fulltext_blindNote": {
+    "message": "Turn ON to aggregate all reviewers + AI (admin only)"
+  },
+  "fulltext_exportCsv": {
+    "message": "Export CSV"
+  },
+  "fulltext_exportRis": {
+    "message": "Export RIS"
+  },
+  "fulltext_prismaTitle": {
+    "message": "Results summary (PRISMA full-text stage)"
+  },
+  "fulltext_prismaCandidates": {
+    "message": "Candidates: $1"
+  },
+  "fulltext_prismaObtained": {
+    "message": "Full text obtained: $1"
+  },
+  "fulltext_prismaInclude": {
+    "message": "Included: $1"
+  },
+  "fulltext_prismaExclude": {
+    "message": "Excluded: $1"
+  },
+  "fulltext_prismaMaybe": {
+    "message": "Maybe: $1"
+  },
+  "fulltext_prismaPending": {
+    "message": "Undecided: $1"
+  },
+  "fulltext_prismaConflict": {
+    "message": "Conflicts: $1"
+  },
+  "fulltext_prismaExclReasons": {
+    "message": "Exclusion reasons"
+  },
+  "fulltext_resultEmpty": {
+    "message": "No candidates."
+  },
+  "fulltext_resultConflictBadge": {
+    "message": "Conflict"
+  },
+  "fulltext_exportNoData": {
+    "message": "No candidates to export."
+  },
+  "fulltext_exportNoJudge": {
+    "message": "Select at least one judge."
+  },
+  "fulltext_exportConflictConfirm": {
+    "message": "$1 record(s) have disagreement between judges. Inclusion is resolved by OR (included if any judge says Include). Export anyway?"
+  },
+  "fulltext_exportCsvDone": {
+    "message": "Exported $1 record(s) to CSV."
+  },
+  "fulltext_exportRisDone": {
+    "message": "Exported $1 record(s) to RIS."
+  },
   "ftRule_desc": {
     "message": "Each checked reviewer's TiAb decision counts as a vote; references with at least the required number of Include votes become full-text candidates. This setting is shared project-wide. Configuring after TiAb screening is complete is recommended."
   },

@@ -750,6 +750,12 @@
                 <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
             </div>
 
+            <!-- ビュー切替: 候補リスト / 結果 -->
+            <div class="fulltext-viewmode-row" role="tablist">
+                <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-mode="list" data-i18n="fulltext_modeList"></button>
+                <button id="fulltext-mode-results" class="fulltext-mode-btn" data-mode="results" data-i18n="fulltext_modeResults"></button>
+            </div>
+
             <!-- ① 候補ルール + 判定進捗 -->
             <div class="fulltext-summary">
                 <div class="fulltext-rule-row">
@@ -791,6 +797,38 @@
                 <!-- 候補カードがここに入る -->
             </div>
             <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
+
+            <!-- ④ 結果まとめ + エクスポート（ビュー切替で表示） -->
+            <div id="fulltext-results" class="fulltext-results hidden">
+                <!-- キー開封（ブラインド解除）: admin のみ表示 -->
+                <div id="fulltext-blind-row" class="fulltext-blind-row hidden">
+                    <label class="switch">
+                        <input type="checkbox" id="fulltext-key-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Blind on/off</span>
+                    <span class="fulltext-blind-note" data-i18n="fulltext_blindNote"></span>
+                </div>
+
+                <!-- 判定者選択 -->
+                <div class="fulltext-results-judges">
+                    <div class="fulltext-results-judges-head" data-i18n="fulltext_resultsJudgesHead"></div>
+                    <div id="fulltext-judge-list" class="fulltext-judge-list"></div>
+                    <div id="fulltext-judge-hint" class="fulltext-judge-hint hidden" data-i18n="fulltext_resultsJudgesHint"></div>
+                </div>
+
+                <!-- PRISMA 集計 -->
+                <div id="fulltext-prisma" class="fulltext-prisma"></div>
+
+                <!-- エクスポート -->
+                <div class="fulltext-results-export">
+                    <button id="fulltext-export-csv-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportCsv"></button>
+                    <button id="fulltext-export-ris-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportRis"></button>
+                </div>
+
+                <!-- 結果テーブル -->
+                <div id="fulltext-results-list" class="fulltext-results-list"></div>
+            </div>
         </section>
     </div>
 

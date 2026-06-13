@@ -275,7 +275,7 @@ type PdfFetchResult =
     | { kind: 'openable' }
     | { kind: 'dead' };
 
-async function fetchPdfResult(url: string): Promise<PdfFetchResult> {
+export async function fetchPdfResult(url: string): Promise<PdfFetchResult> {
     let resp: Response;
     try {
         resp = await fetch(url, { credentials: 'omit' });

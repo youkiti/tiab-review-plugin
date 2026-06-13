@@ -14,7 +14,7 @@ import {
     saveDecision,
     updateReferenceFulltextUrl,
 } from '../lib/sheets-api';
-import { retrieveAndCacheFulltext } from '../lib/fulltext-retriever';
+import { retrieveAndCacheFulltext, fetchPdfResult } from '../lib/fulltext-retriever';
 import {
     ensureFulltextFolder,
     downloadDriveFile,
@@ -61,9 +61,29 @@ let keyOpened = false;
 let fulltextCandidates: Reference[] = [];
 let currentCandidateIndex = -1;
 
+// 先読みしたPDF（ref_id → Blob取得Promise）。隣接候補を事前取得し遷移を高速化する。
+const pdfPrefetch = new Map<string, Promise<Blob | null>>();
+// ページ内遷移トークン。非同期PDF取得中に別の文献へ移った場合の遅延描画（取り違え）を防ぐ。
+let loadToken = 0;
+function isStale(token: number): boolean {
+    return token !== loadToken;
+}
+
 // 現在の決断パネル状態
 let pendingDecision: 'include' | 'exclude' | 'maybe' | null = null;
 let existingDecision: { decision: Decision; rowIndex: number } | null = null;
+
+// 除外理由の選択肢（fulltext.html の <select> のオプション順と一致させる）。
+// 数字キー 1〜7 のショートカット割り当てに使う。
+const REASON_VALUES = [
+    'population',
+    'intervention',
+    'comparator',
+    'outcome',
+    'study_design',
+    'duplicate',
+    'other',
+] as const;
 
 // ハイライト表示状態（このアプリはスクリーニング用ハイライトのみ。デフォルトON）
 let highlightEnabled = true;
@@ -105,81 +125,151 @@ async function initFulltextPage(): Promise<void> {
     poolRule = config.fulltextPoolRule;
     keyOpened = config.keyOpened;
 
-    const ref = refs.find(r => r.ref_id === refId) ?? null;
-    if (!ref) {
+    currentRef = refs.find(r => r.ref_id === refId) ?? null;
+    if (!currentRef) {
         showPlaceholder(`ref_id "${refId}" が見つかりませんでした。`);
         return;
     }
-    currentRef = ref;
 
     // フルテキスト候補リストを計算
     recomputeCandidates();
 
-    // 既存のフルテキスト決断を取得
-    existingDecision = decisionsData.find(
-        ({ decision: d }) =>
-            d.ref_id === refId &&
-            d.reviewer_id === userEmail &&
-            (d.screening_phase ?? 'tiab') === 'fulltext'
-    ) ?? null;
-    if (existingDecision) {
-        pendingDecision = existingDecision.decision.decision as 'include' | 'exclude' | 'maybe';
-    }
-
-    // UI 初期化
-    renderRefMeta(ref);
-    renderBiblio(ref);
-    renderProgress();
-    renderDecisionPanel();
+    // イベントリスナーとルールボタンは一度だけ初期化する
+    // （ページ内遷移では再リロードしないため、ここで張った購読がそのまま使われる）。
     wireNavButtons();
     wireDecisionButtons();
-    wireAttachTabButton();
+    wireSavePdfButton();
     wireReplaceButtons();
     wireHighlightToggle();
     wireRulePanel();
     updateRuleButton();
-    updateToolbarMode();
     document.addEventListener('keydown', handleKeydown);
 
-    // PDF URL 表示（cached = Drive保存済みPDFを左ペインに表示 / retrieved = 外部リンクのみ）
-    const hasPdf = ref.fulltext_status === 'cached' && !!ref.fulltext_url;
-    if (hasPdf) {
-        void showCachedPdf(ref.fulltext_url!);
-    } else if (ref.fulltext_status === 'retrieved' && ref.fulltext_url) {
-        showResolvedUrl(ref.fulltext_url, 'linked');
-    } else if (ref.fulltext_status === 'unavailable') {
-        // 既に「入手不可」と記録済み → 論文ページを埋め込み表示
-        void showArticlePage();
-    } else {
-        showPlaceholder('「DOI → URL解決」ボタンをクリックしてOAフルテキストを検索してください。');
+    // 最初の文献を表示
+    await loadRef(refId);
+}
+
+/**
+ * 指定した文献を「ページ内で」表示する。
+ * ページ全体をリロードせずに状態とUIだけを差し替えることで、
+ * ナビゲーションのたびに Sheets を再取得するコストと描画のちらつきを無くす。
+ */
+async function loadRef(refId: string): Promise<void> {
+    const ref = allRefs.find(r => r.ref_id === refId) ?? null;
+    if (!ref) {
+        showPlaceholder(`ref_id "${refId}" が見つかりませんでした。`);
+        return;
     }
+    const token = ++loadToken;
+    currentRef = ref;
+    currentCandidateIndex = fulltextCandidates.findIndex(r => r.ref_id === refId);
+
+    // URL を現在の文献へ同期（リロード・ブックマーク・保存時の source_url 用）
+    const url = new URL(window.location.href);
+    url.searchParams.set('ref_id', refId);
+    history.replaceState(null, '', url.toString());
+
+    // この文献の既存フルテキスト判定を復元
+    existingDecision = findMyFulltextDecision(refId);
+    pendingDecision = existingDecision
+        ? (existingDecision.decision.decision as 'include' | 'exclude' | 'maybe')
+        : null;
+
+    // 直前のフィードバックやフォーカスを片付け（i/e/m が効くよう body にフォーカスを戻す）
+    document.getElementById('ft-feedback')?.remove();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
+    renderRefMeta(ref);
+    renderBiblio(ref);
+    renderProgress();
+    renderOverallProgress();
+    renderDecisionPanel();
+    updateToolbarMode();
+
+    // 隣接候補のPDFを先読み（現在文献は前回のうちに先読み済みなら即表示できる）
+    prefetchNeighbors();
+
+    // PDF 表示
+    await showPdfForRef(ref, token);
 
     // ルール未設定なら設定パネルを表示（キー未開封時はブロックメッセージ）。
     // ただし既にPDFがある＝判定作業中は縦スペースを優先し自動展開しない
     // （ヘッダーの「候補ルール ▾」からいつでも開ける）。
-    if (!poolRule && !hasPdf) {
+    if (!isStale(token) && !poolRule && ref.fulltext_status !== 'cached') {
         openRulePanel();
     }
+}
 
-    document.getElementById('ft-doi-resolve-btn')
-        ?.addEventListener('click', () => { void handleResolve(); });
+/** PDFの取得状態に応じて左ペインを描画する */
+async function showPdfForRef(ref: Reference, token: number): Promise<void> {
+    const hasPdf = ref.fulltext_status === 'cached' && !!ref.fulltext_url;
+    if (hasPdf) {
+        await showCachedPdf(ref.fulltext_url!, token);
+    } else if (ref.fulltext_status === 'retrieved' && ref.fulltext_url) {
+        showResolvedUrl(ref.fulltext_url, 'linked');
+    } else if (ref.fulltext_status === 'unavailable') {
+        // 既に「入手不可」と記録済み → 論文ページを埋め込み表示
+        await showArticlePage();
+    } else {
+        // 未取得 → 表示時に自動でOAフルテキストを検索する
+        await handleResolve(token);
+    }
+}
+
+/** 現在のユーザーによるこの文献のフルテキスト判定（最新）を返す */
+function findMyFulltextDecision(refId: string): { decision: Decision; rowIndex: number } | null {
+    const mine = allDecisions
+        .filter(d =>
+            d.ref_id === refId &&
+            d.reviewer_id === userEmail &&
+            (d.screening_phase ?? 'tiab') === 'fulltext'
+        )
+        .sort((a, b) => (b.decided_at || '').localeCompare(a.decided_at || ''));
+    return mine.length > 0 ? { decision: mine[0], rowIndex: -1 } : null;
+}
+
+/** この文献に（pending 以外の）自分のフルテキスト判定があるか */
+function isDecided(refId: string): boolean {
+    const d = findMyFulltextDecision(refId);
+    return !!d && d.decision.decision !== 'pending';
+}
+
+/**
+ * 現在地から先の候補PDF（最大2件）をメモリに先読みする。
+ * 先読みは Drive 保存済み(cached)PDFのみ対象。現在地から離れた古い先読みは破棄してメモリを節約する。
+ */
+function prefetchNeighbors(): void {
+    if (currentCandidateIndex < 0) return;
+    const keep = new Set<string>();
+    if (currentRef) keep.add(currentRef.ref_id);
+    for (let d = 1; d <= 2; d++) {
+        const ref = fulltextCandidates[currentCandidateIndex + d];
+        if (!ref || ref.fulltext_status !== 'cached' || !ref.fulltext_url) continue;
+        const fileId = extractDriveFileId(ref.fulltext_url);
+        if (!fileId) continue;
+        keep.add(ref.ref_id);
+        if (!pdfPrefetch.has(ref.ref_id)) {
+            pdfPrefetch.set(ref.ref_id, downloadDriveFile(fileId).catch(() => null));
+        }
+    }
+    for (const key of [...pdfPrefetch.keys()]) {
+        if (!keep.has(key)) pdfPrefetch.delete(key);
+    }
 }
 
 /**
  * PDFの取得状態に応じてツールバーのボタンを出し分ける。
- * - PDF保存済み(cached): 取得導線を隠し、差し替え（再アップロード/削除）導線を表示
- * - それ以外: 取得導線（タブアタッチ/DOI解決）を表示
+ * - PDF保存済み(cached): 差し替え（再アップロード/削除）導線を表示し、手動保存導線は隠す
+ * - それ以外: 差し替え導線を隠す（取得は自動検索／リンククリックで行う）
  */
 function updateToolbarMode(): void {
     const hasPdf = currentRef?.fulltext_status === 'cached' && !!currentRef.fulltext_url;
-    const attach = document.getElementById('ft-attach-tab-btn');
-    const resolve = document.getElementById('ft-doi-resolve-btn');
     const replace = document.getElementById('ft-replace-btn');
     const del = document.getElementById('ft-delete-btn');
-    attach?.classList.toggle('hidden', hasPdf);
-    resolve?.classList.toggle('hidden', hasPdf);
     replace?.classList.toggle('hidden', !hasPdf);
     del?.classList.toggle('hidden', !hasPdf);
+    // 保存済みになったら「このPDFを保存」導線は不要
+    if (hasPdf) hideSavePdfButton();
 }
 
 // ---------------------------------------------------------------------------
@@ -258,6 +348,7 @@ function openRulePanel(): void {
             poolRule = rule;
             recomputeCandidates();
             renderProgress();
+            renderOverallProgress();
             updateRuleButton();
             section.classList.add('hidden');
         },
@@ -295,13 +386,57 @@ function wireDecisionButtons(): void {
 
 /**
  * 判定を選択して即保存する（TiAbレビューと同じ即保存挙動）。
- * 除外の場合は理由エリアを表示し、理由は空のまま即保存する
- * （後から理由/メモを選ぶと change イベントで再保存される）。
+ * - 組み入れ: 保存してそのまま次の候補へ進む
+ * - 除外: 理由エリアを表示・フォーカスし、理由が確定（数字キー/Enter）したら次へ進む
+ * - 保留: 保存のみ（その場に留まる）
  */
 async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promise<void> {
     pendingDecision = decision;
     renderDecisionPanel();
+
+    if (decision === 'exclude') {
+        await handleSave();      // まず空理由で保存（後で理由を付けて再保存）
+        focusReasonSelect();     // キーボードで理由を選べるようフォーカス
+        return;                  // 理由確定で advanceToNext する
+    }
+
     await handleSave();
+    if (decision === 'include') advanceToNext();
+}
+
+/** 次の候補へ進む（末尾なら留まって通知）。判定後の自動送りに使う。 */
+function advanceToNext(): void {
+    if (currentCandidateIndex < 0) return;
+    if (currentCandidateIndex >= fulltextCandidates.length - 1) {
+        showFeedback('最後の候補です');
+        return;
+    }
+    void loadRef(fulltextCandidates[currentCandidateIndex + 1].ref_id);
+}
+
+/** 除外理由 select にフォーカスを移す（表示中のときだけ） */
+function focusReasonSelect(): void {
+    const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    const area = document.getElementById('ft-reason-area');
+    if (select && area && !area.classList.contains('hidden')) {
+        select.focus();
+    }
+}
+
+/** 数字キー（1〜7）で除外理由を選び、保存して次へ進む */
+function selectReasonByIndex(n: number): void {
+    const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    const value = REASON_VALUES[n - 1];
+    if (!select || value === undefined) return;
+    select.value = value;
+    void commitReasonAndAdvance();
+}
+
+/** 除外理由を確定して保存し、次の候補へ進む */
+async function commitReasonAndAdvance(): Promise<void> {
+    if (pendingDecision !== 'exclude') return;
+    await handleSave();
+    advanceToNext();
 }
 
 function updateDecisionButtons(): void {
@@ -374,14 +509,19 @@ async function handleSave(): Promise<void> {
             screening_phase: 'fulltext',
         };
 
-        await saveDecision(spreadsheetId, decisionObj);
-
-        // 保存成功: existingDecision を更新
+        // 送信前にメモリ状態を確定させる。除外→数字を高速連打した時に
+        // 同じ decision_id を再利用させ、重複行が生まれるのを防ぐ。
         if (existingDecision) {
             existingDecision.decision = decisionObj;
         } else {
             existingDecision = { decision: decisionObj, rowIndex: -1 };
         }
+        const idx = allDecisions.findIndex(d => d.decision_id === decisionObj.decision_id);
+        if (idx >= 0) allDecisions[idx] = decisionObj;
+        else allDecisions.push(decisionObj);
+        renderOverallProgress();
+
+        await saveDecision(spreadsheetId, decisionObj);
 
         showFeedback('保存しました');
     } catch (err) {
@@ -420,13 +560,10 @@ function wireNavButtons(): void {
 
 function navigate(delta: number): void {
     if (fulltextCandidates.length === 0) return;
-    const newIndex = (currentCandidateIndex + delta + fulltextCandidates.length) % fulltextCandidates.length;
+    const len = fulltextCandidates.length;
+    const newIndex = (currentCandidateIndex + delta + len) % len;
     const nextRef = fulltextCandidates[newIndex];
-    if (!nextRef) return;
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('ref_id', nextRef.ref_id);
-    window.location.href = url.toString();
+    if (nextRef) void loadRef(nextRef.ref_id);
 }
 
 // ---------------------------------------------------------------------------
@@ -448,67 +585,155 @@ function requestBroadHostPermission(): Promise<boolean> {
     });
 }
 
-async function handleResolve(): Promise<void> {
+async function handleResolve(token?: number): Promise<void> {
     if (!currentRef) return;
-
-    const btn = document.getElementById('ft-doi-resolve-btn') as HTMLButtonElement | null;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = '検索中...';
-    }
+    const ref = currentRef; // 取得中に遷移しても結果は元の文献へ反映する
 
     showPlaceholder('OAソースを順番に検証中...\nPMC OA → Europe PMC → 出版社 → Unpaywall → OpenAlex');
 
-    // ボタンクリック（ユーザージェスチャ）起点なので権限ダイアログを出せる
+    // 既知ホスト（PMC/Europe PMC/Unpaywall/OpenAlex/Springer）は host_permissions 済みで
+    // 追加権限は不要。それ以外の出版社PDF取得には全サイト権限が要るが、ページ表示時の
+    // 自動実行ではユーザージェスチャが無いため要求できない（既知ホスト分のみ取得を試みる）。
     await requestBroadHostPermission();
+
+    const stale = () => token !== undefined && isStale(token);
 
     try {
         // タブの一括取得と同じ検証付き経路。各候補を実際に検証し、
         // 実PDFが取れれば Drive に保存（cached）、ダメなら開けるURLをリンク記録（linked）。
         const outcome = await retrieveAndCacheFulltext(
-            currentRef, userEmail,
+            ref, userEmail,
             () => ensureFulltextFolder(spreadsheetId)
         );
 
         if (outcome.kind === 'cached') {
-            await showCachedPdf(outcome.url);
-            updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, outcome.url, 'cached')
+            ref.fulltext_url = outcome.url;
+            ref.fulltext_status = 'cached';
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'cached')
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
+            if (!stale()) { await showCachedPdf(outcome.url, token); updateToolbarMode(); }
         } else if (outcome.kind === 'linked') {
-            showResolvedUrl(outcome.url, outcome.source);
-            updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, outcome.url, 'retrieved')
+            ref.fulltext_url = outcome.url;
+            ref.fulltext_status = 'retrieved';
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'retrieved')
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
+            if (!stale()) showResolvedUrl(outcome.url, outcome.source);
         } else {
             // OA全文は無い → 論文ページ（出版社/PubMed）を枠内に埋め込み表示
-            await showArticlePage();
-            updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, '', 'unavailable')
+            ref.fulltext_status = 'unavailable';
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, '', 'unavailable')
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
+            if (!stale()) await showArticlePage();
         }
     } catch (err) {
-        showPlaceholder(`取得エラー: ${(err as Error).message}`);
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'DOI → URL解決';
-        }
+        if (!stale()) showPlaceholder(`取得エラー: ${(err as Error).message}`);
     }
 }
 
 // ---------------------------------------------------------------------------
-// タブアタッチ（URL手入力）
+// リンクのみPDF: クリックでインライン表示 → 可能ならDrive自動保存
 // ---------------------------------------------------------------------------
 
-function wireAttachTabButton(): void {
-    document.getElementById('ft-attach-tab-btn')?.addEventListener('click', () => {
-        const url = window.prompt('PDFのURLを入力してください（現在のタブのURLをコピーして貼り付けてください）:');
-        if (!url) return;
-        // Drive のリンクならそのままPDFを左ペインに表示、それ以外はリンク表示
-        void showCachedPdf(url);
-        if (currentRef) {
-            updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, url, 'retrieved')
-                .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
+/**
+ * 「リンクのみ」URLをクリックした時の処理。
+ * 1. PDFバイトを取得できれば Drive へ自動保存し、保存済みPDFとして左ペインに表示する
+ * 2. 取得できなければ（PMCのランディングページ等）URLを左ペインにインライン埋め込みし、
+ *    手動保存（このPDFを保存）導線を表示する
+ */
+async function openLinkedInline(url: string, source: OaSource | 'cached' | 'linked'): Promise<void> {
+    if (!currentRef) return;
+
+    showPlaceholder('PDFを取得中...');
+    // クリック（ユーザージェスチャ）起点。リダイレクト先（任意ホスト）のヘッダー除去と
+    // PDF取得を行うため、ここで全サイト権限ダイアログを出せる。
+    await requestBroadHostPermission();
+
+    // 1. バイト取得 → Drive 自動保存
+    const blob = await fetchLinkedPdfBlob(url);
+    if (blob) {
+        try {
+            const folderId = await ensureFulltextFolder(spreadsheetId);
+            const info = await uploadPdfToDrive(folderId, buildPdfFileName(currentRef), blob);
+            await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, info.webViewLink, 'cached');
+            currentRef.fulltext_url = info.webViewLink;
+            currentRef.fulltext_status = 'cached';
+            await showCachedPdf(info.webViewLink);
+            updateToolbarMode();
+            showFeedback('PDFをDriveに保存しました');
+            return;
+        } catch (err) {
+            console.warn('[fulltext] Drive保存に失敗、インライン表示にフォールバック:', err);
+        }
+    }
+
+    // 2. 自動保存できない → インライン埋め込み + 手動保存導線
+    await embedLinkedUrl(url, source);
+}
+
+/**
+ * リンクのみURLからPDFバイトを取得する。
+ * まず通常（credentials:omit）で試し、ダメなら認証付き（credentials:include）で再試行する。
+ * PMC等は素のfetchにanti-botのHTMLを返すことがあるが、ユーザーのセッションCookieを
+ * 伴うと実PDFを返すケースがあるため。
+ */
+async function fetchLinkedPdfBlob(url: string): Promise<Blob | null> {
+    try {
+        const res = await fetchPdfResult(url);
+        if (res.kind === 'pdf') return res.blob;
+    } catch { /* 認証付き再試行へ */ }
+
+    try {
+        const resp = await fetch(url, { credentials: 'include' });
+        if (resp.ok) {
+            const blob = await resp.blob();
+            const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+            if (String.fromCharCode(...head).startsWith('%PDF')) return blob;
+        }
+    } catch { /* 取得不可 */ }
+    return null;
+}
+
+/**
+ * リンクのみURLを左ペインの iframe へ埋め込み表示する。
+ * - 埋め込み禁止ヘッダー（X-Frame-Options / CSP）はこのタブ限定のDNRルールで除去する。
+ *   リダイレクト先が任意ホストでも効くよう全サイト権限が望ましい（呼び出し前に要求済み）。
+ * - PDFはChrome内蔵ビュワーで表示するため「非サンドボックス」のframeを使う。
+ *   サンドボックス付き article-frame ではPDFビュワーがChromeにブロックされ
+ *   「このページは Chrome によってブロックされています」になるため。
+ * バイト取得できなかった＝自動保存できなかったので手動保存導線も表示する。
+ */
+async function embedLinkedUrl(url: string, source: OaSource | 'cached' | 'linked'): Promise<void> {
+    const ruleOk = await enableFrameEmbeddingForThisTab();
+    if (!ruleOk) {
+        console.warn('[fulltext] frame埋め込みルール未設定。ヘッダー保護により表示がブロックされる場合があります');
+    }
+    // 非サンドボックスの ft-pdf-frame に表示（Chrome内蔵PDFビュワー対応）
+    showPdfFrame(url);
+    setUrlLabel(url, source);
+    // 自動保存できなかったので手動保存（ダウンロード→アップロード）導線を表示
+    showSavePdfButton();
+}
+
+// ---------------------------------------------------------------------------
+// リンクのみPDFの手動保存（自動保存に失敗した時の導線）
+// ---------------------------------------------------------------------------
+
+function wireSavePdfButton(): void {
+    document.getElementById('ft-save-pdf-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('ft-upload-input') as HTMLInputElement | null;
+        if (input) {
+            input.value = '';
+            input.click();
         }
     });
+}
+
+function showSavePdfButton(): void {
+    document.getElementById('ft-save-pdf-btn')?.classList.remove('hidden');
+}
+
+function hideSavePdfButton(): void {
+    document.getElementById('ft-save-pdf-btn')?.classList.add('hidden');
 }
 
 // ---------------------------------------------------------------------------
@@ -620,13 +845,27 @@ function applyHighlightVisibility(): void {
 // ---------------------------------------------------------------------------
 
 function handleKeydown(e: KeyboardEvent): void {
-    // 入力フォーム内では無効
+    // 除外理由 select にフォーカスがある時は専用処理（数字で確定・↑↓でネイティブ移動・Enterで次へ）
+    const reasonSelect = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    if (reasonSelect && e.target === reasonSelect) {
+        handleReasonKeydown(e, reasonSelect);
+        return;
+    }
+
+    // その他の入力フォーム内では無効
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
         || e.target instanceof HTMLSelectElement) {
         return;
     }
     // 修飾キー併用時は無効
     if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+    // 除外モード中は（selectからフォーカスが外れていても）数字キーで理由を選べる
+    if (pendingDecision === 'exclude' && /^[1-7]$/.test(e.key)) {
+        selectReasonByIndex(Number(e.key));
+        e.preventDefault();
+        return;
+    }
 
     switch (e.key.toLowerCase()) {
         case 'i': // Include
@@ -653,6 +892,32 @@ function handleKeydown(e: KeyboardEvent): void {
             e.preventDefault();
             break;
     }
+}
+
+/**
+ * 除外理由 select にフォーカスがある時のキー処理。
+ * - 数字 1〜7: その理由を選んで保存し、次の候補へ
+ * - ↑↓: ネイティブの select で理由を上下移動（change で随時保存。まだ次へは進まない）
+ * - Enter: 選択中の理由を確定して次の候補へ
+ * - Escape: select からフォーカスを外す
+ */
+function handleReasonKeydown(e: KeyboardEvent, select: HTMLSelectElement): void {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (/^[1-7]$/.test(e.key)) {
+        selectReasonByIndex(Number(e.key));
+        e.preventDefault();
+        return;
+    }
+    if (e.key === 'Enter') {
+        if (select.value) void commitReasonAndAdvance();
+        e.preventDefault();
+        return;
+    }
+    if (e.key === 'Escape') {
+        select.blur();
+        e.preventDefault();
+    }
+    // ArrowUp / ArrowDown はネイティブ select に委ねる（change ハンドラで保存される）
 }
 
 // ---------------------------------------------------------------------------
@@ -734,6 +999,18 @@ function renderProgress(): void {
     el.textContent = `${currentCandidateIndex + 1} / ${fulltextCandidates.length}`;
 }
 
+/** 候補プール全体で自分の判定がどれだけ終わったかを表示する */
+function renderOverallProgress(): void {
+    const text = document.getElementById('ft-overall-text');
+    const fill = document.getElementById('ft-overall-fill');
+    if (!text && !fill) return;
+    const total = fulltextCandidates.length;
+    const decided = fulltextCandidates.filter(r => isDecided(r.ref_id)).length;
+    const pct = total > 0 ? Math.round((decided / total) * 100) : 0;
+    if (text) text.textContent = total > 0 ? `判定済 ${decided}/${total} (${pct}%)` : '';
+    if (fill) fill.style.width = `${pct}%`;
+}
+
 function hideArticleFrame(): void {
     const frame = document.getElementById('ft-article-frame') as HTMLIFrameElement | null;
     if (frame) {
@@ -783,7 +1060,7 @@ function setUrlLabel(url: string, source: OaSource | 'cached' | 'linked'): void 
  *    Drive のプレビュー埋め込み (/preview) にフォールバック
  * 3. Drive 以外のURL（タブアタッチで手入力した直リンク等）は従来のリンク表示
  */
-async function showCachedPdf(url: string): Promise<void> {
+async function showCachedPdf(url: string, token?: number): Promise<void> {
     const fileId = extractDriveFileId(url);
     if (!fileId) {
         showResolvedUrl(url, 'cached');
@@ -793,21 +1070,41 @@ async function showCachedPdf(url: string): Promise<void> {
     showPlaceholder('Drive から PDF を読み込み中...');
     setUrlLabel(url, 'cached');
 
+    // 先読み済みなら即利用。無ければその場で取得。
+    const refId = currentRef?.ref_id;
+    const prefetched = refId ? pdfPrefetch.get(refId) : undefined;
+
+    let blob: Blob | null = null;
     try {
-        const blob = await downloadDriveFile(fileId);
-        hidePdfFrame(); // 旧 blob URL を解放
-        currentPdfObjectUrl = URL.createObjectURL(blob);
-        showPdfFrame(currentPdfObjectUrl);
+        blob = prefetched ? await prefetched : await downloadDriveFile(fileId);
+        if (!blob && prefetched) blob = await downloadDriveFile(fileId); // 先読みが失敗していた場合の再取得
     } catch (err) {
+        if (token !== undefined && isStale(token)) return;
         console.warn('[fulltext] Drive APIでのPDF取得に失敗、プレビュー埋め込みへフォールバック:', err);
         showPdfFrame(`https://drive.google.com/file/d/${fileId}/preview`);
+        setUrlLabel(url, 'cached');
+        return;
     }
+
+    // 取得中に別の文献へ移っていたら描画しない（取り違え防止）
+    if (token !== undefined && isStale(token)) return;
+
+    if (!blob) {
+        showPdfFrame(`https://drive.google.com/file/d/${fileId}/preview`);
+        setUrlLabel(url, 'cached');
+        return;
+    }
+
+    hidePdfFrame(); // 旧 blob URL を解放
+    currentPdfObjectUrl = URL.createObjectURL(blob);
+    showPdfFrame(currentPdfObjectUrl);
     setUrlLabel(url, 'cached');
 }
 
 function showPlaceholder(msg: string): void {
     hideArticleFrame();
     hidePdfFrame();
+    hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
         placeholder.style.display = '';
@@ -820,14 +1117,35 @@ function showPlaceholder(msg: string): void {
 function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): void {
     hideArticleFrame();
     hidePdfFrame();
+    hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
         const sourceLabel = OA_SOURCE_LABELS[source] ?? source;
-        placeholder.innerHTML =
-            `<span class="ft-source-badge">${sourceLabel}</span>` +
-            `フルテキストURLが見つかりました。<br>` +
-            `<a href="${url}" target="_blank" rel="noopener noreferrer" class="ft-pdf-link">${url}</a>`;
+        placeholder.innerHTML = '';
         placeholder.style.display = '';
+
+        const panel = document.createElement('div');
+        panel.className = 'ft-linked-panel';
+
+        const badge = document.createElement('span');
+        badge.className = 'ft-source-badge';
+        badge.textContent = sourceLabel;
+
+        const lead = document.createElement('div');
+        lead.className = 'ft-linked-lead';
+        lead.textContent = 'フルテキストURLが見つかりました。クリックで左ペインに表示し、可能ならDriveへ自動保存します。';
+
+        const openBtn = document.createElement('button');
+        openBtn.className = 'btn btn-primary ft-linked-open-btn';
+        openBtn.textContent = '▶ PDFを表示';
+        openBtn.addEventListener('click', () => { void openLinkedInline(url, source); });
+
+        const urlNote = document.createElement('div');
+        urlNote.className = 'ft-linked-url';
+        urlNote.textContent = url;
+
+        panel.append(badge, lead, openBtn, urlNote);
+        placeholder.append(panel);
     }
 
     setUrlLabel(url, source);
