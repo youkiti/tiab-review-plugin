@@ -362,18 +362,16 @@
 
 .fulltext-viewmode-row {
     display: flex;
-    gap: 0;
+    gap: 6px;
     margin: 8px 0;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    overflow: hidden;
 }
 
 .fulltext-mode-btn {
     flex: 1;
     padding: 6px 8px;
     font-size: 13px;
-    border: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
     background: #f4f6f6;
     color: #555;
     cursor: pointer;
@@ -381,6 +379,7 @@
 
 .fulltext-mode-btn.active {
     background: #16a085;
+    border-color: #16a085;
     color: #fff;
     font-weight: 600;
 }

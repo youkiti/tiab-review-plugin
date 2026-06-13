@@ -596,6 +596,23 @@ body {
     padding-top: 4px;
 }
 
+/* AI判定 開示トグル（管理者のみ表示） */
+.ft-ai-reveal-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #c9d8ef;
+    border-radius: 10px;
+    background: #fff;
+    color: #5b6b8c;
+    cursor: pointer;
+}
+
+.ft-ai-reveal-btn.active {
+    background: #5b8def;
+    border-color: #5b8def;
+    color: #fff;
+}
+
 /* ハイライト表示トグル */
 .ft-highlight-toggle {
     display: flex;

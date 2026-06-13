@@ -17,6 +17,7 @@ import {
     saveFulltextPoolRule,
     saveDecision,
     updateReferenceFulltextUrl,
+    isUserAdmin,
 } from '../lib/sheets-api';
 import { retrieveAndCacheFulltext, fetchPdfResult } from '../lib/fulltext-retriever';
 import {
@@ -62,6 +63,13 @@ let allDecisions: Decision[] = [];
 // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
 let poolRule: FulltextPoolRule | null = null;
 let keyOpened = false;
+
+// 現在ユーザーが管理者（編集権限）か。AI判定の開示トグルを出すかの判定に使う。
+let isAdmin = false;
+// AI判定（サマリ・evidenceハイライト・根拠カード）を開示するか。
+// ブラインド情報のため、ブラインド解除(keyOpened) かつ 管理者 のときのみ既定で開示。
+// 管理者は画面内トグルで切り替えられる。非管理者には一切表示しない。
+let aiReveal = false;
 
 // フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
@@ -137,6 +145,13 @@ async function initFulltextPage(): Promise<void> {
     poolRule = config.fulltextPoolRule;
     keyOpened = config.keyOpened;
 
+    // 管理者判定（権限API）。失敗時は安全側で非管理者扱い。
+    isAdmin = await isUserAdmin(spreadsheetId, userEmail).catch(() => false);
+    // AI「判断」サマリの既定開示: ブラインド解除済み(keyOpened)なら表示。
+    // ブラインド中は隠し、管理者だけが画面内トグルで開示できる。
+    // ※ evidence ハイライト・根拠カード（引用そのもの）は判断と別で常時表示する。
+    aiReveal = keyOpened;
+
     currentRef = refs.find(r => r.ref_id === refId) ?? null;
     if (!currentRef) {
         showPlaceholder(`ref_id "${refId}" が見つかりませんでした。`);
@@ -153,6 +168,7 @@ async function initFulltextPage(): Promise<void> {
     wireSavePdfButton();
     wireReplaceButtons();
     wireHighlightToggle();
+    setupAiRevealToggle();
     wireRulePanel();
     updateRuleButton();
     document.addEventListener('keydown', handleKeydown);
@@ -403,15 +419,45 @@ const AI_DECISION_LABELS: Record<string, string> = {
 };
 
 /**
+ * AI判定の開示トグル（管理者のみ）。
+ * AI判定はブラインド情報なので、非管理者には出さず、管理者にだけ表示/非表示ボタンを出す。
+ */
+function setupAiRevealToggle(): void {
+    if (!isAdmin) return;
+    const title = document.querySelector('.ft-annotations-panel .ft-panel-title');
+    if (!title || document.getElementById('ft-ai-reveal-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'ft-ai-reveal-btn';
+    btn.className = 'ft-ai-reveal-btn';
+    btn.addEventListener('click', () => {
+        aiReveal = !aiReveal;
+        syncAiRevealButton();
+        renderAiSummary();
+    });
+    title.appendChild(btn);
+    syncAiRevealButton();
+}
+
+function syncAiRevealButton(): void {
+    const btn = document.getElementById('ft-ai-reveal-btn');
+    if (!btn) return;
+    btn.textContent = aiReveal ? 'AI判断: 表示中' : 'AI判断: 非表示';
+    btn.title = 'AIの組入/除外の判断とその理由の表示を切り替えます（管理者のみ）';
+    btn.classList.toggle('active', aiReveal);
+}
+
+/**
  * AIフルテキスト判定のサマリを決断パネル上部に表示する。
  * 人間レビュアーが「AIが何をどう判定したか」を一目で確認できるようにする（票自体は別管理）。
+ * ブラインド情報のため、開示が許可（aiReveal）されている時のみ表示する。
  */
 function renderAiSummary(): void {
     const panel = document.querySelector('.ft-decision-panel');
     if (!panel) return;
     let banner = document.getElementById('ft-ai-summary');
 
-    const ai = currentRef ? findAiFulltext(currentRef.ref_id) : null;
+    const ai = aiReveal && currentRef ? findAiFulltext(currentRef.ref_id) : null;
     if (!ai) {
         banner?.remove();
         return;
@@ -1307,6 +1353,8 @@ function applyHighlightsForCurrentRef(): void {
     if (!pdfRenderer || !currentRef) return;
     pdfRenderer.clearHighlights();
 
+    // evidence ハイライト・根拠カードは引用そのものなので常時表示する
+    // （AIの「判断」サマリのみ blind/管理者トグルで制御する）。
     const note = findAiFulltextNote(currentRef.ref_id);
     const items: HighlightListItem[] = [];
 

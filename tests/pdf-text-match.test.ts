@@ -56,6 +56,32 @@ test('findQuoteItems: 記号差はラフマッチで吸収する', () => {
     assert.deepEqual(items, [0]);
 });
 
+test('findQuoteItems: 行末で単語が分割（改行）されてもマッチする', () => {
+    // PDFで "methodological" が "method" + 改行 + "ological" に分割されるケース
+    const { raw, charItemIndex } = buildIndex([
+        { str: 'highlights the method', eol: true },
+        { str: 'ological limitations' },
+    ]);
+    const items = findQuoteItems(raw, charItemIndex, 'highlights the methodological limitations');
+    assert.deepEqual(items, [0, 1]);
+});
+
+test('findQuoteItems: 行末ハイフネーション（ハイフン+改行）を吸収する', () => {
+    const { raw, charItemIndex } = buildIndex([
+        { str: 'educa-', eol: true },
+        { str: 'tional outcomes' },
+    ]);
+    const items = findQuoteItems(raw, charItemIndex, 'educational outcomes');
+    assert.deepEqual(items, [0, 1]);
+});
+
+test('findQuoteItems: 合字(ﬁ/ﬂ)を含むPDFテキストにマッチする', () => {
+    // 学術PDFでは "identifies" が "identiﬁes"(U+FB01) として抽出されることがある
+    const { raw, charItemIndex } = buildIndex([{ str: 'identiﬁes and synthesizes' }]);
+    const items = findQuoteItems(raw, charItemIndex, 'identifies and synthesizes');
+    assert.deepEqual(items, [0]);
+});
+
 test('findQuoteItems: 一致しない場合は null', () => {
     const { raw, charItemIndex } = buildIndex([{ str: 'placebo group' }]);
     assert.equal(findQuoteItems(raw, charItemIndex, 'surgical intervention'), null);
