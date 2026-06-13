@@ -14,7 +14,6 @@ import {
     getAuthToken,
     getUserEmail,
     getFulltextPageData,
-    saveFulltextPoolRule,
     saveDecision,
     updateReferenceFulltextUrl,
     isUserAdmin,
@@ -31,11 +30,9 @@ import {
 import { getClientVersion } from '../lib/client-version';
 import {
     isInFulltextPool,
-    describeRule,
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
-import { mountRuleEditor } from '../lib/fulltext-rule-editor';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types';
 import { PdfRenderer } from './pdf-renderer';
@@ -173,8 +170,6 @@ async function initFulltextPage(): Promise<void> {
     wireReplaceButtons();
     wireHighlightToggle();
     setupAiRevealToggle();
-    wireRulePanel();
-    updateRuleButton();
     document.addEventListener('keydown', handleKeydown);
 
     // 最初の文献を表示
@@ -222,13 +217,6 @@ async function loadRef(refId: string): Promise<void> {
 
     // PDF 表示
     await showPdfForRef(ref, token);
-
-    // ルール未設定なら設定パネルを表示（キー未開封時はブロックメッセージ）。
-    // ただし既にPDFがある＝判定作業中は縦スペースを優先し自動展開しない
-    // （ヘッダーの「候補ルール ▾」からいつでも開ける）。
-    if (!isStale(token) && !poolRule && ref.fulltext_status !== 'cached') {
-        openRulePanel();
-    }
 }
 
 /** PDFの取得状態に応じて左ペインを描画する */
@@ -344,51 +332,6 @@ function recomputeCandidates(): void {
     currentCandidateIndex = currentRef
         ? fulltextCandidates.findIndex(r => r.ref_id === currentRef!.ref_id)
         : -1;
-}
-
-function updateRuleButton(): void {
-    const btn = document.getElementById('ft-rule-btn');
-    if (!btn) return;
-    btn.textContent = poolRule
-        ? `候補ルール: ${describeRule(poolRule)} ▾`
-        : '候補ルール: 未設定 ▾';
-}
-
-function wireRulePanel(): void {
-    document.getElementById('ft-rule-btn')?.addEventListener('click', () => {
-        const section = document.getElementById('ft-rule-section');
-        if (section && !section.classList.contains('hidden')) {
-            section.classList.add('hidden');
-        } else {
-            openRulePanel();
-        }
-    });
-}
-
-function openRulePanel(): void {
-    const section = document.getElementById('ft-rule-section');
-    const container = document.getElementById('ft-rule-editor-container');
-    if (!section || !container) return;
-
-    section.classList.remove('hidden');
-
-    mountRuleEditor({
-        container,
-        references: allRefs,
-        decisions: allDecisions,
-        currentRule: poolRule,
-        keyOpened,
-        onSave: async (rule) => {
-            await saveFulltextPoolRule(spreadsheetId, rule);
-            poolRule = rule;
-            recomputeCandidates();
-            renderProgress();
-            renderOverallProgress();
-            updateRuleButton();
-            section.classList.add('hidden');
-        },
-        onClose: () => section.classList.add('hidden'),
-    });
 }
 
 // ---------------------------------------------------------------------------
