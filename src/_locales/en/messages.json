@@ -425,6 +425,33 @@
   "fulltext_aiErrNoDrive": {
     "message": "Could not resolve the Drive PDF file ID"
   },
+  "fulltext_aiRoundsHead": {
+    "message": "Judgment rounds (select which to adopt)"
+  },
+  "fulltext_aiRoundsEmpty": {
+    "message": "No AI judgment rounds yet. Run a batch AI judging above to create one."
+  },
+  "fulltext_aiRoundCounts": {
+    "message": "include $1 · exclude $2 · maybe $3 ($4 total)"
+  },
+  "fulltext_aiRoundAdopt": {
+    "message": "Adopt"
+  },
+  "fulltext_aiRoundDelete": {
+    "message": "Delete"
+  },
+  "fulltext_aiRoundDeleteConfirm": {
+    "message": "Delete all judgments in this AI round? This cannot be undone."
+  },
+  "fulltext_aiRoundDeleted": {
+    "message": "Round deleted ($1 items)"
+  },
+  "fulltext_aiRoundAdopted": {
+    "message": "Adopted this round"
+  },
+  "fulltext_aiRoundNone": {
+    "message": "None adopted"
+  },
   "fulltext_resultsJudgesHead": {
     "message": "Judges to aggregate (min 1; include = OR)"
   },

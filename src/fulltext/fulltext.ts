@@ -64,6 +64,9 @@ let allDecisions: Decision[] = [];
 let poolRule: FulltextPoolRule | null = null;
 let keyOpened = false;
 
+// 採用中のフルテキストAI判定ラウンド（reviewer_id）。サマリ/ハイライトはこのラウンドを優先する。
+let aiActiveRound: string | null = null;
+
 // 現在ユーザーが管理者（編集権限）か。AI判定の開示トグルを出すかの判定に使う。
 let isAdmin = false;
 // AI判定（サマリ・evidenceハイライト・根拠カード）を開示するか。
@@ -144,6 +147,7 @@ async function initFulltextPage(): Promise<void> {
     allDecisions = decisionsData.map(({ decision }) => decision);
     poolRule = config.fulltextPoolRule;
     keyOpened = config.keyOpened;
+    aiActiveRound = config.fulltextAiActiveRound;
 
     // 管理者判定（権限API）。失敗時は安全側で非管理者扱い。
     isAdmin = await isUserAdmin(spreadsheetId, userEmail).catch(() => false);
@@ -1386,16 +1390,24 @@ function applyHighlightsForCurrentRef(): void {
     pdfRenderer.setHighlightsVisible(highlightEnabled);
 }
 
-/** 現在の文献に対する最新のAIフルテキスト判定（Decision + パース済み note）を返す */
+/**
+ * 現在の文献に対するAIフルテキスト判定（Decision + パース済み note）を返す。
+ * 採用ラウンド(aiActiveRound)が設定されていればそれを優先し、無ければ最新を採る。
+ */
 function findAiFulltext(refId: string): { decision: Decision; note: FulltextLlmDecisionNote } | null {
-    const candidates = allDecisions
-        .filter(d =>
-            d.ref_id === refId &&
-            (d.reviewer_id || '').startsWith('llm:') &&
-            (d.screening_phase ?? 'tiab') === 'fulltext' &&
-            !!d.note && d.note.trim().startsWith('{')
-        )
-        .sort((a, b) => (b.decided_at || '').localeCompare(a.decided_at || ''));
+    const all = allDecisions.filter(d =>
+        d.ref_id === refId &&
+        (d.reviewer_id || '').startsWith('llm:') &&
+        (d.screening_phase ?? 'tiab') === 'fulltext' &&
+        !!d.note && d.note.trim().startsWith('{')
+    );
+    // 採用ラウンドのものを先頭に、その後は新しい順。
+    const candidates = all.sort((a, b) => {
+        const aActive = aiActiveRound && a.reviewer_id === aiActiveRound ? 1 : 0;
+        const bActive = aiActiveRound && b.reviewer_id === aiActiveRound ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+        return (b.decided_at || '').localeCompare(a.decided_at || '');
+    });
 
     for (const d of candidates) {
         try {

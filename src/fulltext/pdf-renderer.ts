@@ -170,6 +170,9 @@ export class PdfRenderer {
         pageDiv.dataset.page = String(pageNumber);
         pageDiv.style.width = `${Math.floor(viewport.width)}px`;
         pageDiv.style.height = `${Math.floor(viewport.height)}px`;
+        // PDF.js 4.x の TextLayer は span 位置を calc(var(--scale-factor)*…) で出力する。
+        // 未設定だと calc が無効化されテキストレイヤーがずれるため、viewport の scale を渡す。
+        pageDiv.style.setProperty('--scale-factor', String(scale));
 
         // --- canvas（描画） ---
         const canvas = document.createElement('canvas');

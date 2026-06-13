@@ -706,3 +706,95 @@
 .fulltext-ai-log-line.log-err  { color: #c0392b; white-space: normal; }
 .fulltext-ai-log-line.log-warn { color: #b9770e; }
 .fulltext-ai-log-line.log-done { color: #2471a3; font-weight: 600; }
+
+/* ===== AI判定: 判定ラウンド（採用・削除） ===== */
+.fulltext-ai-rounds-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.fulltext-ai-rounds-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-rounds-empty {
+    font-size: 11px;
+    color: #999;
+    padding: 4px 2px;
+}
+
+.fulltext-ai-round-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-row.active {
+    border-color: #16a085;
+    background: #effaf6;
+}
+
+.fulltext-ai-round-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fulltext-ai-round-title {
+    font-size: 12px;
+    color: #2c3e50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fulltext-ai-round-counts {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-none {
+    font-size: 12px;
+    color: #777;
+}
+
+.fulltext-ai-round-delete {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #e0b4b0;
+    border-radius: 8px;
+    background: #fff;
+    color: #c0392b;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-delete:hover {
+    background: #fdedec;
+}

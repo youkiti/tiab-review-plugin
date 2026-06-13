@@ -24,14 +24,21 @@ import {
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
     saveDecision,
+    getLlmConfig,
+    getDecisions,
+    getFulltextAiActiveRound,
+    setFulltextAiActiveRound,
+    deleteFulltextAiRound,
 } from '../../lib/sheets-api';
+import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
 import { extractDriveFileId, downloadDriveFile } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../lib/storage';
 import { getClientVersion } from '../../lib/client-version';
-import { DEFAULT_SCREENING_PROMPT } from '../../lib/prompt-templates';
+import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../lib/prompt-templates';
+import type { LlmConfig } from '../../lib/types';
 import type {
     ReferenceWithStatus,
     Decision,
@@ -68,22 +75,221 @@ function populateModelSelect(): void {
     }
 }
 
-/** プロンプトを TiAb の設定（criteria/screening_prompt）からプリフィルする */
-function prefillPrompt(): void {
+/**
+ * TiAb の設定から「実効スクリーニングプロンプト」を組む。
+ * TiAb バッチと同じ優先順:
+ *   1. 最適化済みプロンプト（llm_screening_prompt）
+ *   2. 判定基準（llm_criteria）から生成
+ *   3. 汎用デフォルト
+ */
+function buildEffectivePrompt(cfg: LlmConfig): string {
+    if (cfg.llm_screening_prompt && cfg.llm_screening_prompt.trim()) {
+        return cfg.llm_screening_prompt;
+    }
+    if (cfg.llm_criteria) {
+        return generateScreeningPromptFromCriteria(cfg.llm_criteria);
+    }
+    return DEFAULT_SCREENING_PROMPT;
+}
+
+/**
+ * プロンプトを TiAb の設定からプリフィルする。
+ * state.llmConfig は LLM タブを開くまでロードされないため、未ロードならシートから取得する。
+ */
+async function prefillPrompt(): Promise<void> {
     const input = dom.fulltextAiPromptInput;
+    if (input.value.trim()) return; // ユーザー入力済みなら尊重
+
+    let cfg = state.llmConfig;
+    // 未ロード（プロンプトも基準も空）ならシートから取得して state に反映
+    const looksUnloaded = !cfg || (!cfg.llm_screening_prompt && !cfg.llm_criteria);
+    if (looksUnloaded && state.spreadsheetId) {
+        try {
+            cfg = await getLlmConfig(state.spreadsheetId);
+            syncSetLlmConfig(cfg);
+        } catch (err) {
+            console.warn('[fulltext-ai] LLM設定の取得に失敗:', err);
+        }
+    }
+    // プリフィル前に再度ユーザー入力をチェック（await 中に入力された場合に上書きしない）
     if (input.value.trim()) return;
-    const stored = state.llmConfig?.llm_screening_prompt;
-    input.value = (stored && stored.trim()) ? stored : DEFAULT_SCREENING_PROMPT;
+    input.value = buildEffectivePrompt(cfg);
 }
 
 /** AI判定タブを描画する */
 export function renderFulltextAi(): void {
     populateModelSelect();
     if (!aiInitialized) {
-        prefillPrompt();
         aiInitialized = true;
+        void prefillPrompt();
     }
     updateAiTargetCount();
+    void renderRounds();
+}
+
+// ---------------------------------------------------------------------------
+// 判定ラウンド: 採用ラジオ + 削除（TiAb の Run 履歴に相当）
+// ---------------------------------------------------------------------------
+
+interface AiRound {
+    reviewerId: string;
+    model: string;
+    timestamp: string;
+    include: number;
+    exclude: number;
+    maybe: number;
+    total: number;
+}
+
+/** fulltext フェーズの llm: 判定を reviewer_id 単位のラウンドへ集約する */
+function deriveRounds(decisions: Decision[]): AiRound[] {
+    const map = new Map<string, AiRound>();
+    for (const d of decisions) {
+        if ((d.screening_phase ?? 'tiab') !== 'fulltext') continue;
+        const rid = (d.reviewer_id || '').trim();
+        if (!rid.startsWith('llm:')) continue;
+        let r = map.get(rid);
+        if (!r) {
+            const body = rid.slice('llm:'.length);
+            const at = body.lastIndexOf('@'); // ISO タイムスタンプに '@' は含まれない
+            r = {
+                reviewerId: rid,
+                model: at >= 0 ? body.slice(0, at) : body,
+                timestamp: at >= 0 ? body.slice(at + 1) : '',
+                include: 0, exclude: 0, maybe: 0, total: 0,
+            };
+            map.set(rid, r);
+        }
+        r.total++;
+        if (d.decision === 'include') r.include++;
+        else if (d.decision === 'exclude') r.exclude++;
+        else if (d.decision === 'maybe') r.maybe++;
+    }
+    return [...map.values()].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+}
+
+/** ISO 文字列を読みやすい日時へ（失敗時は原文） */
+function formatTimestamp(iso: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+/** ラウンド一覧（採用ラジオ＋削除）を再描画する */
+async function renderRounds(): Promise<void> {
+    const container = dom.fulltextAiRoundsDiv;
+    if (!container) return;
+
+    let decisions: Decision[] = [];
+    let active: string | null = null;
+    try {
+        const [dec, act] = await Promise.all([
+            getDecisions(state.spreadsheetId),
+            getFulltextAiActiveRound(state.spreadsheetId),
+        ]);
+        decisions = dec.map(x => x.decision);
+        active = act;
+    } catch (err) {
+        console.warn('[fulltext-ai] ラウンド取得に失敗:', err);
+        container.innerHTML = '';
+        return;
+    }
+
+    const rounds = deriveRounds(decisions);
+    container.innerHTML = '';
+
+    if (rounds.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'fulltext-ai-rounds-empty';
+        empty.textContent = t('fulltext_aiRoundsEmpty');
+        container.appendChild(empty);
+        return;
+    }
+
+    // 「採用なし」行
+    container.appendChild(buildNoneRow(active));
+    for (const r of rounds) {
+        container.appendChild(buildRoundRow(r, active));
+    }
+}
+
+/** 「採用なし」を選ぶラジオ行 */
+function buildNoneRow(active: string | null): HTMLElement {
+    const row = document.createElement('label');
+    row.className = 'fulltext-ai-round-row';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'ft-ai-round';
+    radio.checked = !active;
+    radio.addEventListener('change', () => { if (radio.checked) void adoptRound(null); });
+    const label = document.createElement('span');
+    label.className = 'fulltext-ai-round-none';
+    label.textContent = t('fulltext_aiRoundNone');
+    row.append(radio, label);
+    return row;
+}
+
+/** 1ラウンドの行（採用ラジオ・情報・削除ボタン） */
+function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'fulltext-ai-round-row';
+    if (r.reviewerId === active) row.classList.add('active');
+
+    const main = document.createElement('label');
+    main.className = 'fulltext-ai-round-main';
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'ft-ai-round';
+    radio.checked = r.reviewerId === active;
+    radio.addEventListener('change', () => { if (radio.checked) void adoptRound(r.reviewerId); });
+
+    const info = document.createElement('span');
+    info.className = 'fulltext-ai-round-info';
+    const title = document.createElement('span');
+    title.className = 'fulltext-ai-round-title';
+    title.textContent = `${r.model} · ${formatTimestamp(r.timestamp)}`;
+    const counts = document.createElement('span');
+    counts.className = 'fulltext-ai-round-counts';
+    counts.textContent = t('fulltext_aiRoundCounts', [String(r.include), String(r.exclude), String(r.maybe), String(r.total)]);
+    info.append(title, counts);
+
+    main.append(radio, info);
+
+    const del = document.createElement('button');
+    del.className = 'fulltext-ai-round-delete';
+    del.textContent = t('fulltext_aiRoundDelete');
+    del.addEventListener('click', () => { void deleteRound(r.reviewerId); });
+
+    row.append(main, del);
+    return row;
+}
+
+/** ラウンドを採用（null で採用解除）する */
+async function adoptRound(reviewerId: string | null): Promise<void> {
+    try {
+        await setFulltextAiActiveRound(state.spreadsheetId, reviewerId);
+        await reloadReferences(state.spreadsheetId);
+        showToast(reviewerId ? t('fulltext_aiRoundAdopted') : t('fulltext_aiRoundNone'), 2500);
+        void renderRounds();
+    } catch (err) {
+        showToast(`採用の保存に失敗しました: ${err instanceof Error ? err.message : String(err)}`, 4000);
+        void renderRounds();
+    }
+}
+
+/** ラウンドを削除する */
+async function deleteRound(reviewerId: string): Promise<void> {
+    if (!window.confirm(t('fulltext_aiRoundDeleteConfirm'))) return;
+    try {
+        const n = await deleteFulltextAiRound(state.spreadsheetId, reviewerId);
+        await reloadReferences(state.spreadsheetId);
+        showToast(t('fulltext_aiRoundDeleted', String(n)), 3000);
+        void renderRounds();
+        updateAiTargetCount();
+    } catch (err) {
+        showToast(`削除に失敗しました: ${err instanceof Error ? err.message : String(err)}`, 4000);
+    }
 }
 
 /** 対象件数の表示を更新する */
@@ -179,6 +385,7 @@ async function handleStartAiBatch(): Promise<void> {
         dom.fulltextAiModelSelect.disabled = false;
         dom.fulltextAiPromptInput.disabled = false;
         updateAiTargetCount();
+        void renderRounds();
         aiAbort = null;
         appendLog(t('fulltext_aiDone', [String(ok), String(ng)]), 'log-done');
         showToast(t('fulltext_aiDone', [String(ok), String(ng)]), 4000);

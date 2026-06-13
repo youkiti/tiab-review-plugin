@@ -425,6 +425,33 @@
   "fulltext_aiErrNoDrive": {
     "message": "DriveのPDFファイルIDを取得できませんでした"
   },
+  "fulltext_aiRoundsHead": {
+    "message": "判定ラウンド（採用するものを選択）"
+  },
+  "fulltext_aiRoundsEmpty": {
+    "message": "AI判定ラウンドはまだありません。上の「一括AI判定」を実行すると作成されます。"
+  },
+  "fulltext_aiRoundCounts": {
+    "message": "組入 $1 ・ 除外 $2 ・ 保留 $3（計 $4 件）"
+  },
+  "fulltext_aiRoundAdopt": {
+    "message": "採用"
+  },
+  "fulltext_aiRoundDelete": {
+    "message": "削除"
+  },
+  "fulltext_aiRoundDeleteConfirm": {
+    "message": "このAI判定ラウンドの判定をすべて削除します。元に戻せません。よろしいですか？"
+  },
+  "fulltext_aiRoundDeleted": {
+    "message": "ラウンドを削除しました（$1 件）"
+  },
+  "fulltext_aiRoundAdopted": {
+    "message": "このラウンドを採用しました"
+  },
+  "fulltext_aiRoundNone": {
+    "message": "採用なし"
+  },
   "fulltext_resultsJudgesHead": {
     "message": "集計に使う判定者（最小1人・組み入れはOR）"
   },

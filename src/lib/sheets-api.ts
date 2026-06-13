@@ -816,7 +816,7 @@ function buildMyFulltextDecisionMap(
  */
 function buildAllFulltextDecisionsMap(
     decisionsData: { decision: Decision; rowIndex: number }[],
-    validLlmExecutionIds: Set<string>
+    activeFulltextAiRound: string | null
 ): Map<string, Decision[]> {
     const map = new Map<string, Decision[]>();
     decisionsData.forEach(({ decision }) => {
@@ -826,9 +826,12 @@ function buildAllFulltextDecisionsMap(
         if (refId !== decision.ref_id) decision.ref_id = refId;
         const reviewerId = (decision.reviewer_id || '').trim();
         if (reviewerId && reviewerId !== decision.reviewer_id) decision.reviewer_id = reviewerId;
-        // 無効な LLM 判定（active Run 配下でない）は除外
-        if (decision.reviewer_id.startsWith('llm:') && !validLlmExecutionIds.has(decision.reviewer_id)) {
-            return;
+        // フルテキストAI判定(llm:)は「採用ラウンド」のものだけを有効にする。
+        // 採用ラウンド未設定、または別ラウンドの判定は集計から除外する。
+        if (decision.reviewer_id.startsWith('llm:')) {
+            if (!activeFulltextAiRound || decision.reviewer_id !== activeFulltextAiRound) {
+                return;
+            }
         }
         const list = map.get(refId);
         if (list) list.push(decision);
@@ -927,10 +930,11 @@ export async function getReferencesWithAllDecisions(
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
 
-    const [references, decisionsData, llmExecutions] = await Promise.all([
+    const [references, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
         getLlmExecutions(spreadsheetId),
+        getFulltextAiActiveRound(spreadsheetId),
     ]);
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
@@ -963,8 +967,8 @@ export async function getReferencesWithAllDecisions(
     const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions);
     const validLlmExecutionIds = activeBatchIds;
 
-    // 全レビュアー（+有効LLM）のフルテキスト判定マップ（結果集計用）
-    const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, validLlmExecutionIds);
+    // 全レビュアー（+採用ラウンドのAI）のフルテキスト判定マップ（結果集計用）
+    const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, activeFulltextAiRound);
 
     console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
         id: e.execution_id,
@@ -1330,12 +1334,15 @@ export interface ProjectConfigBundle {
     keyOpened: boolean;
     keywords: HighlightKeywords;
     fulltextPoolRule: FulltextPoolRule | null;
+    // 採用するフルテキストAI判定ラウンド（reviewer_id = `llm:{model}@{timestamp}`）。未設定は null。
+    fulltextAiActiveRound: string | null;
 }
 
 const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     keyOpened: false,
     keywords: { include: DEFAULT_INCLUDE_KEYWORDS, exclude: DEFAULT_EXCLUDE_KEYWORDS },
     fulltextPoolRule: null,
+    fulltextAiActiveRound: null,
 };
 
 /**
@@ -1346,6 +1353,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
     let excludeKeywords = DEFAULT_EXCLUDE_KEYWORDS;
     let keyOpened = false;
     let fulltextPoolRule: FulltextPoolRule | null = null;
+    let fulltextAiActiveRound: string | null = null;
 
     for (const row of values) {
         if (row[0] === 'include_keywords' && row[1]) {
@@ -1372,12 +1380,16 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         if (row[0] === 'fulltext_pool_rule' && row[1]) {
             fulltextPoolRule = parseFulltextPoolRule(row[1]);
         }
+        if (row[0] === 'fulltext_ai_active_round') {
+            fulltextAiActiveRound = row[1] ? row[1].trim() || null : null;
+        }
     }
 
     return {
         keyOpened,
         keywords: { include: includeKeywords, exclude: excludeKeywords },
         fulltextPoolRule,
+        fulltextAiActiveRound,
     };
 }
 
@@ -1687,6 +1699,102 @@ async function trySaveFulltextPoolRule(spreadsheetId: string, rule: FulltextPool
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_pool_rule', value]]);
     }
+}
+
+// ---------------------------------------------------------------------------
+// フルテキストAI判定の採用ラウンド（reviewer_id = `llm:{model}@{timestamp}`）
+// ---------------------------------------------------------------------------
+
+/** 採用中のフルテキストAI判定ラウンド（reviewer_id）を取得。未設定は null。 */
+export async function getFulltextAiActiveRound(spreadsheetId: string): Promise<string | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'fulltext_ai_active_round') {
+                const v = (row[1] || '').trim();
+                return v || null;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getFulltextAiActiveRound] Config not found:', error);
+        return null;
+    }
+}
+
+/** 採用するフルテキストAI判定ラウンドを設定する（null で採用解除）。 */
+export async function setFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
+    try {
+        await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySetFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_ai_active_round') rowIndex = index + 1;
+    });
+    const value = reviewerId ?? '';
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_ai_active_round', value]]);
+    }
+}
+
+/**
+ * フルテキストAI判定の1ラウンド（特定 reviewer_id・fulltext フェーズ）の判定行を全削除する。
+ * 採用中ラウンドを削除した場合は採用を解除する。
+ * @returns 削除した行数
+ */
+export async function deleteFulltextAiRound(spreadsheetId: string, reviewerId: string): Promise<number> {
+    const decisionsData = await getDecisions(spreadsheetId);
+    const targetRows = decisionsData
+        .filter(({ decision }) =>
+            decision.reviewer_id === reviewerId &&
+            (decision.screening_phase ?? 'tiab') === 'fulltext'
+        )
+        .map(({ rowIndex }) => rowIndex); // 1始まりのシート行番号
+
+    if (targetRows.length === 0) return 0;
+
+    const sheetId = await getSheetIdByName(spreadsheetId, DECISIONS_SHEET);
+    if (sheetId === null) throw new Error('Decisions sheet not found');
+
+    // deleteDimension は 0-indexed。後ろの行から削除してインデックスのズレを防ぐ。
+    const sorted = [...new Set(targetRows)].sort((a, b) => b - a);
+    const requests = sorted.map(r => ({
+        deleteDimension: {
+            range: { sheetId, dimension: 'ROWS', startIndex: r - 1, endIndex: r },
+        },
+    }));
+
+    const token = await getAuthToken();
+    const response = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests }),
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error?.message || response.statusText);
+    }
+
+    // 採用中ラウンドを消したら採用解除
+    const active = await getFulltextAiActiveRound(spreadsheetId);
+    if (active === reviewerId) {
+        await setFulltextAiActiveRound(spreadsheetId, null).catch(() => { /* 解除失敗は致命でない */ });
+    }
+
+    return targetRows.length;
 }
 
 /**

@@ -182,6 +182,7 @@ const domElements = {
     get fulltextAiProgressFill() { return getElement<HTMLElement>('fulltext-ai-progress-fill'); },
     get fulltextAiProgressText() { return getElement<HTMLElement>('fulltext-ai-progress-text'); },
     get fulltextAiLogDiv() { return getElement<HTMLElement>('fulltext-ai-log'); },
+    get fulltextAiRoundsDiv() { return getElement<HTMLElement>('fulltext-ai-rounds'); },
     get fulltextResultsDiv() { return getElement<HTMLElement>('fulltext-results'); },
     get fulltextJudgeList() { return getElement<HTMLElement>('fulltext-judge-list'); },
     get fulltextJudgeHint() { return getElement<HTMLElement>('fulltext-judge-hint'); },
