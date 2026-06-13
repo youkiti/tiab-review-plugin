@@ -179,7 +179,6 @@ async function loadRef(refId: string): Promise<void> {
     document.getElementById('ft-feedback')?.remove();
     (document.activeElement as HTMLElement | null)?.blur?.();
 
-    renderRefMeta(ref);
     renderBiblio(ref);
     renderProgress();
     renderOverallProgress();
@@ -996,18 +995,6 @@ function handleReasonKeydown(e: KeyboardEvent, select: HTMLSelectElement): void 
 // ---------------------------------------------------------------------------
 // 描画ヘルパー
 // ---------------------------------------------------------------------------
-
-function renderRefMeta(ref: Reference): void {
-    const el = document.getElementById('ft-ref-meta');
-    if (!el) return;
-    const parts: string[] = [];
-    if (ref.title) {
-        parts.push(ref.title.length > 80 ? ref.title.substring(0, 80) + '…' : ref.title);
-    }
-    if (ref.year) parts.push(String(ref.year));
-    if (ref.journal) parts.push(ref.journal);
-    el.textContent = parts.join(' · ');
-}
 
 const escapeHtml = (s: string): string =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
