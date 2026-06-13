@@ -35,10 +35,18 @@ module.exports = (env, argv) => {
                     use: 'ts-loader',
                     exclude: /node_modules/,
                 },
+                {
+                    // pdfjs-dist は ESM(.mjs)。完全指定(fullySpecified)を緩めないと
+                    // 内部の拡張子なし import を webpack が解決できずビルドが落ちる。
+                    test: /\.mjs$/,
+                    include: /node_modules/,
+                    type: 'javascript/auto',
+                    resolve: { fullySpecified: false },
+                },
             ],
         },
         resolve: {
-            extensions: ['.ts', '.js'],
+            extensions: ['.ts', '.js', '.mjs'],
             alias: {
                 '@': path.resolve(__dirname, 'src'),
             },
@@ -76,6 +84,12 @@ module.exports = (env, argv) => {
                     { from: 'src/fulltext/fulltext.css', to: 'fulltext/fulltext.css' },
                     { from: 'src/icons', to: 'icons' },
                     { from: 'src/_locales', to: '_locales' },
+                    // PDF.js: worker は remote script 禁止のためローカル同梱して dist 直下に置く。
+                    // pdf-renderer.ts が chrome.runtime.getURL('pdf.worker.min.mjs') で参照する。
+                    { from: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs', to: 'pdf.worker.min.mjs' },
+                    // 一部PDFの正しい描画に必要な CMap / 標準フォント（オンデマンド読込）。
+                    { from: 'node_modules/pdfjs-dist/cmaps', to: 'cmaps' },
+                    { from: 'node_modules/pdfjs-dist/standard_fonts', to: 'standard_fonts' },
                 ],
             }),
         ],

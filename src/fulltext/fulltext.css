@@ -363,6 +363,65 @@ body {
     pointer-events: none;
 }
 
+/* PDF.js 描画コンテナ（cached PDF をページ縦並びで表示） */
+.ft-pdf-canvas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #525659;
+    min-height: 100%;
+}
+
+/* 1ページ分のスタック（canvas / text layer / highlight layer を重ねる） */
+.ft-page {
+    position: relative;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.ft-page-canvas {
+    display: block;
+}
+
+/* 選択可能な透明テキストレイヤー（PDF.js TextLayer が span を敷く） */
+.ft-text-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 1;
+    line-height: 1;
+    text-align: initial;
+    z-index: 1;
+}
+
+.ft-text-layer span,
+.ft-text-layer br {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+.ft-text-layer ::selection {
+    background: rgba(52, 152, 219, 0.35);
+}
+
+/* ハイライトレイヤー（矩形オーバーレイをテキストの上に置く） */
+.ft-highlight-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.ft-highlight-layer .ft-highlight {
+    pointer-events: auto;
+}
+
 /* Drive保存済みPDFを表示する iframe */
 .ft-pdf-frame {
     width: 100%;
@@ -428,6 +487,30 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+/* AI判定サマリ（人間判定の上に提示。票自体は別管理） */
+.ft-ai-summary {
+    background: #eef3fb;
+    border: 1px solid #c9d8ef;
+    border-left: 3px solid #5b8def;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+}
+
+.ft-ai-summary-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c3e7a;
+}
+
+.ft-ai-summary-reason {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+    line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 /* 決断ボタン */
@@ -526,6 +609,24 @@ body {
 
 .ft-highlight-toggle input {
     cursor: pointer;
+}
+
+/* AI判定根拠が無い時の空表示 */
+.ft-annotation-empty {
+    font-size: 12px;
+    color: #999;
+    padding: 8px 4px;
+}
+
+/* スキャン画像PDFの注意表示 */
+.ft-annotation-imageonly {
+    font-size: 11px;
+    color: #7d6608;
+    background: #fcf3cf;
+    border: 1px solid #f7dc6f;
+    border-radius: 4px;
+    padding: 6px 8px;
+    line-height: 1.4;
 }
 
 /* アノテーションカード */

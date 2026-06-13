@@ -181,6 +181,18 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: 未判定文献に対するLLMによる自動判定（バッチ処理）
    - **結果表示**: LLMの判定結果・理由の表示
+8. **フルテキストAI判定（PDF全文）**
+
+   - **プロバイダ**: Gemini のみ（スキャン画像PDFもネイティブにOCR/読解。`gemini-fulltext.ts`）
+   - **UI**: フルテキストタブを3分割（候補リスト / **AI判定** / 判定後レビュー）。AI判定タブは**一括処理専用**
+   - **対象**: `fulltext_status='cached'`（Drive保存済み）かつ未AI判定の候補。PDFを inline_data で丸ごと送信
+   - **保存**: AIは独立した判定者として確定保存（`reviewer_id='llm:{model}@{timestamp}'`, `screening_phase='fulltext'`）。
+     `note` に `FulltextLlmDecisionNote`(JSON: decision根拠 evidence[quote/page/bbox] 等) を格納
+   - **PDFハイライト**（`fulltext.html` + `pdf-renderer.ts`）: cached PDF を PDF.js でテキストレイヤー付き描画し、
+     evidence を **経路A: quote文字列マッチ → 経路B: 正規化bbox → ページ送り** の順で段階的にハイライト。
+     スキャン画像PDFはテキストレイヤーが無いため bbox（AIの領域推定）を使う旨をUIに明示
+   - **依存**: `pdfjs-dist`（worker/cmaps/standard_fonts を dist 直下へ同梱）。
+     manifest に `content_security_policy.extension_pages`（`wasm-unsafe-eval`）を追加
 
 ### キーボードショートカット
 

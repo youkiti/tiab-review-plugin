@@ -13,6 +13,7 @@ import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { getFulltextCandidateList } from './screening/filters';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
+import { setupFulltextAiListeners } from './fulltext-ai';
 import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
@@ -512,6 +513,7 @@ export function setupFulltextTabListeners(): void {
     dom.fulltextBackBtn?.addEventListener('click', () => switchToTab('screening'));
     setFulltextResultsDeps({ rerenderTab: renderFulltextTab });
     setupFulltextResultsListeners();
+    setupFulltextAiListeners();
     dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {

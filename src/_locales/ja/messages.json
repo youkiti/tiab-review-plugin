@@ -375,7 +375,55 @@
     "message": "候補リスト"
   },
   "fulltext_modeResults": {
-    "message": "結果"
+    "message": "判定後レビュー"
+  },
+  "fulltext_modeAi": {
+    "message": "AI判定"
+  },
+  "fulltext_resultOpenHint": {
+    "message": "クリックで全文PDF（AIハイライト付き）を新規タブで開く"
+  },
+  "fulltext_aiIntro": {
+    "message": "全文を確保済み（Drive保存）かつ未AI判定の候補を、Geminiに全文PDFを渡して一括判定します。AIは独立した判定者として保存され、人間レビューとは別票になります。"
+  },
+  "fulltext_aiModel": {
+    "message": "モデル"
+  },
+  "fulltext_aiPrompt": {
+    "message": "判定基準プロンプト（TiAb設定を初期値に使用）"
+  },
+  "fulltext_aiStart": {
+    "message": "一括AI判定を開始"
+  },
+  "fulltext_aiStop": {
+    "message": "中断"
+  },
+  "fulltext_aiTarget": {
+    "message": "対象: $1 件（全文確保済み・AI未判定）"
+  },
+  "fulltext_aiTargetSub": {
+    "message": "全文確保済み合計: $1 件"
+  },
+  "fulltext_aiProgress": {
+    "message": "$1 / $2 完了（成功 $3 ・ 失敗 $4）"
+  },
+  "fulltext_aiStarted": {
+    "message": "$1 件のAI判定を開始しました"
+  },
+  "fulltext_aiCancelled": {
+    "message": "中断しました"
+  },
+  "fulltext_aiCancelling": {
+    "message": "中断しています…（実行中の1件が終わると停止します）"
+  },
+  "fulltext_aiDone": {
+    "message": "AI判定が完了しました（成功 $1 ・ 失敗 $2）"
+  },
+  "fulltext_aiNoTarget": {
+    "message": "対象がありません（全文確保済みで未AI判定の文献がありません）"
+  },
+  "fulltext_aiErrNoDrive": {
+    "message": "DriveのPDFファイルIDを取得できませんでした"
   },
   "fulltext_resultsJudgesHead": {
     "message": "集計に使う判定者（最小1人・組み入れはOR）"

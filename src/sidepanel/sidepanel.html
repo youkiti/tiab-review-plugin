@@ -750,9 +750,10 @@
                 <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
             </div>
 
-            <!-- ビュー切替: 候補リスト / 結果 -->
+            <!-- ビュー切替: 候補リスト / AI判定 / 判定後レビュー -->
             <div class="fulltext-viewmode-row" role="tablist">
                 <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-mode="list" data-i18n="fulltext_modeList"></button>
+                <button id="fulltext-mode-ai" class="fulltext-mode-btn" data-mode="ai" data-i18n="fulltext_modeAi"></button>
                 <button id="fulltext-mode-results" class="fulltext-mode-btn" data-mode="results" data-i18n="fulltext_modeResults"></button>
             </div>
 
@@ -797,6 +798,29 @@
                 <!-- 候補カードがここに入る -->
             </div>
             <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
+
+            <!-- ④' AI判定（ビュー切替で表示）: 全文確保済みの未AI判定文献を一括でGemini判定 -->
+            <div id="fulltext-ai" class="fulltext-ai hidden">
+                <div class="fulltext-ai-intro" data-i18n="fulltext_aiIntro"></div>
+                <div class="fulltext-ai-row">
+                    <label class="fulltext-ai-label" data-i18n="fulltext_aiModel"></label>
+                    <select id="fulltext-ai-model" class="fulltext-ai-model"></select>
+                </div>
+                <div class="fulltext-ai-prompt-row">
+                    <label class="fulltext-ai-label" data-i18n="fulltext_aiPrompt"></label>
+                    <textarea id="fulltext-ai-prompt" class="fulltext-ai-prompt" rows="6"></textarea>
+                </div>
+                <div id="fulltext-ai-target" class="fulltext-ai-target"></div>
+                <div class="fulltext-ai-actions">
+                    <button id="fulltext-ai-start-btn" class="btn btn-small btn-primary" data-i18n="fulltext_aiStart"></button>
+                    <button id="fulltext-ai-stop-btn" class="btn btn-small btn-secondary hidden" data-i18n="fulltext_aiStop"></button>
+                </div>
+                <div id="fulltext-ai-progress" class="fulltext-ai-progress hidden">
+                    <div class="fulltext-ai-progress-bar"><div id="fulltext-ai-progress-fill" class="fulltext-ai-progress-fill"></div></div>
+                    <div id="fulltext-ai-progress-text" class="fulltext-ai-progress-text"></div>
+                </div>
+                <div id="fulltext-ai-log" class="fulltext-ai-log"></div>
+            </div>
 
             <!-- ④ 結果まとめ + エクスポート（ビュー切替で表示） -->
             <div id="fulltext-results" class="fulltext-results hidden">

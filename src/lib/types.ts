@@ -225,6 +225,57 @@ export interface LlmDecisionNote {
 }
 
 /**
+ * フルテキストAI判定のエビデンス項目。
+ * テキストPDFでは quote（文字列マッチでハイライト）、
+ * 画像onlyのスキャンPDFでは bbox（正規化座標でハイライト）を使う。
+ */
+export interface FulltextEvidence {
+    quote: string;
+    /** PDFページ番号（1始まり） */
+    page: number;
+    /** 正規化bbox [left, top, right, bottom]（各0-1, ページ左上原点）。画像PDF時に使用。 */
+    bbox?: [number, number, number, number];
+    /** 組み入れ寄り(include) / 除外寄り(exclude) どちらの根拠か */
+    polarity?: 'include' | 'exclude';
+}
+
+/**
+ * フルテキストAI判定の出力（Gemini responseSchema に対応）
+ */
+export interface FulltextJudgeOutput {
+    decision: 'include' | 'exclude' | 'maybe';
+    include_probability: number;
+    /** 判定理由（除外時は具体的に） */
+    reason: string;
+    /** 除外時のPRISMA区分（population/intervention/comparator/outcome/study_design/duplicate/other） */
+    exclude_reason_category?: string;
+    evidence: FulltextEvidence[];
+}
+
+/**
+ * フルテキストLLM判定の note フィールドに保存する構造（Decisions タブ）。
+ * TiAb の LlmDecisionNote と区別するため type を 'llm_fulltext' とする。
+ */
+export interface FulltextLlmDecisionNote {
+    type: 'llm_fulltext';
+    execution_id: string;
+    model: string;
+    requested_model?: string;
+    model_version?: string;
+    response_id?: string;
+    include_probability: number;
+    reason: string;
+    exclude_reason_category?: string;
+    evidence: FulltextEvidence[];
+    /** スキャン(画像only)PDFだったか。ハイライト精度の注意表示に使う。 */
+    image_only?: boolean;
+    prompt_version: string;
+    usageMetadata?: UsageMetadata;
+    parse_error?: boolean;
+    error_message?: string;
+}
+
+/**
  * バッチ処理の進捗状態
  */
 export interface LlmBatchProgress {

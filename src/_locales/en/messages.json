@@ -375,7 +375,55 @@
     "message": "Candidates"
   },
   "fulltext_modeResults": {
-    "message": "Results"
+    "message": "Review"
+  },
+  "fulltext_modeAi": {
+    "message": "AI judge"
+  },
+  "fulltext_resultOpenHint": {
+    "message": "Click to open the full-text PDF (with AI highlights) in a new tab"
+  },
+  "fulltext_aiIntro": {
+    "message": "Batch-judge candidates whose full text is secured (saved to Drive) and not yet AI-judged by sending the whole PDF to Gemini. The AI is stored as an independent reviewer, separate from human review."
+  },
+  "fulltext_aiModel": {
+    "message": "Model"
+  },
+  "fulltext_aiPrompt": {
+    "message": "Screening prompt (prefilled from TiAb settings)"
+  },
+  "fulltext_aiStart": {
+    "message": "Start batch AI judging"
+  },
+  "fulltext_aiStop": {
+    "message": "Stop"
+  },
+  "fulltext_aiTarget": {
+    "message": "Targets: $1 (full text secured, not yet AI-judged)"
+  },
+  "fulltext_aiTargetSub": {
+    "message": "Full text secured total: $1"
+  },
+  "fulltext_aiProgress": {
+    "message": "$1 / $2 done (ok $3 / failed $4)"
+  },
+  "fulltext_aiStarted": {
+    "message": "Started AI judging of $1 item(s)"
+  },
+  "fulltext_aiCancelled": {
+    "message": "Cancelled"
+  },
+  "fulltext_aiCancelling": {
+    "message": "Cancelling… (stops after the current item finishes)"
+  },
+  "fulltext_aiDone": {
+    "message": "AI judging finished (ok $1 / failed $2)"
+  },
+  "fulltext_aiNoTarget": {
+    "message": "No targets (no full-text-secured, not-yet-AI-judged references)"
+  },
+  "fulltext_aiErrNoDrive": {
+    "message": "Could not resolve the Drive PDF file ID"
   },
   "fulltext_resultsJudgesHead": {
     "message": "Judges to aggregate (min 1; include = OR)"

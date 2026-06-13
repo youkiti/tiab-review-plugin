@@ -22,6 +22,7 @@ import { getFulltextCandidateList } from './screening/filters';
 import { getReviewerLabel } from './screening/reviewer-utils';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
+import { renderFulltextAi } from './fulltext-ai';
 import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
 
 type ConsensusDecision = 'include' | 'exclude' | 'maybe' | 'pending';
@@ -45,7 +46,9 @@ const DECISION_ICON: Record<ConsensusDecision, string> = {
 };
 
 // モジュールローカルUI状態
-let resultsMode = false;
+type FulltextViewMode = 'list' | 'ai' | 'results';
+let currentMode: FulltextViewMode = 'list';
+let resultsMode = false; // currentMode === 'results' のキャッシュ（既存呼び出し互換）
 // 選択中の判定者キー（null = 既定で全員）。空集合は「全解除」状態として保持しない（最小1人）。
 let enabledJudges: Set<string> | null = null;
 
@@ -337,6 +340,14 @@ function buildResultRow(ref: ReferenceWithStatus, orderedJudges: string[]): HTML
             <span class="fulltext-result-footer">${conflictBadge}${reasonLine}<span class="fulltext-result-chips">${chips}</span></span>
         </span>
     `;
+
+    // 行クリックでフルテキストページ（PDF＋AIハイライト）を新規タブで開く
+    row.classList.add('fulltext-result-clickable');
+    row.title = t('fulltext_resultOpenHint');
+    row.addEventListener('click', () => {
+        const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(ref.ref_id)}`;
+        chrome.tabs.create({ url });
+    });
     return row;
 }
 
@@ -467,24 +478,33 @@ function handleExportRis(): void {
 // ビュー切替・イベント
 // ---------------------------------------------------------------------------
 
-/** リスト関連ブロック ⇄ 結果ブロックの表示を切り替える */
+/** 候補リスト / AI判定 / 判定後レビュー の表示を切り替える */
 function applyModeVisibility(): void {
     const section = dom.fulltextSection;
     const retrieval = section.querySelector('.fulltext-retrieval');
     const filterRow = section.querySelector('.fulltext-filter-row');
-    retrieval?.classList.toggle('hidden', resultsMode);
-    filterRow?.classList.toggle('hidden', resultsMode);
-    dom.fulltextListDiv.classList.toggle('hidden', resultsMode);
-    dom.fulltextResultsDiv.classList.toggle('hidden', !resultsMode);
+    const isList = currentMode === 'list';
+    const isAi = currentMode === 'ai';
+    const isResults = currentMode === 'results';
 
-    dom.fulltextModeListBtn.classList.toggle('active', !resultsMode);
-    dom.fulltextModeResultsBtn.classList.toggle('active', resultsMode);
+    // 候補リスト系ブロック（取得・フィルタ・一覧）は list モードのみ表示
+    retrieval?.classList.toggle('hidden', !isList);
+    filterRow?.classList.toggle('hidden', !isList);
+    dom.fulltextListDiv.classList.toggle('hidden', !isList);
+    dom.fulltextAiDiv.classList.toggle('hidden', !isAi);
+    dom.fulltextResultsDiv.classList.toggle('hidden', !isResults);
+
+    dom.fulltextModeListBtn.classList.toggle('active', isList);
+    dom.fulltextModeAiBtn.classList.toggle('active', isAi);
+    dom.fulltextModeResultsBtn.classList.toggle('active', isResults);
 }
 
-export function setFulltextMode(mode: 'list' | 'results'): void {
+export function setFulltextMode(mode: FulltextViewMode): void {
+    currentMode = mode;
     resultsMode = mode === 'results';
     applyModeVisibility();
-    if (resultsMode) renderFulltextResults();
+    if (mode === 'results') renderFulltextResults();
+    else if (mode === 'ai') renderFulltextAi();
 }
 
 /**
@@ -506,6 +526,7 @@ async function handleBlindToggle(): Promise<void> {
 
 export function setupFulltextResultsListeners(): void {
     dom.fulltextModeListBtn?.addEventListener('click', () => setFulltextMode('list'));
+    dom.fulltextModeAiBtn?.addEventListener('click', () => setFulltextMode('ai'));
     dom.fulltextModeResultsBtn?.addEventListener('click', () => setFulltextMode('results'));
     dom.fulltextExportCsvBtn?.addEventListener('click', () => handleExportCsv());
     dom.fulltextExportRisBtn?.addEventListener('click', () => handleExportRis());

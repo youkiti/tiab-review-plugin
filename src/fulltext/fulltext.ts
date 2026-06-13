@@ -1,10 +1,14 @@
 // fulltext.ts - フルテキストスクリーニングページのエントリポイント
 //
-// Phase 2 (実装済み): DOI/PMID → OA PDF URL 取得
-// Phase 4 (本変更): 決断パネル (screening_phase: 'fulltext' で Decisions タブへ保存)
-//   + フルテキスト候補リストによる前後ナビゲーション
-// Phase 3 (TODO): PDF.js ビュワー + ハイライト保存 (Annotations タブ)
-// Phase 5 (TODO): データ抽出モード (label 付きアノテーション)
+// 実装済み:
+//   - DOI/PMID → OA PDF URL 取得、Drive保存(cached)
+//   - 決断パネル (screening_phase: 'fulltext' で Decisions タブへ保存) + 候補リストの前後ナビ
+//   - PDF.js ビュワー (pdf-renderer.ts): cached PDF をテキストレイヤー付きで描画
+//   - AIフルテキスト判定の evidence ハイライト表示（テキストマッチ→bbox→ページ送りの段階縮退）
+//     と、判定パネル上部の AI判定サマリ提示（AI票はサイドパネルの「AI判定」タブで一括生成）
+// TODO:
+//   - 人手アノテーションの作成・Annotations タブへの保存
+//   - データ抽出モード (label 付きアノテーション)
 
 import {
     getAuthToken,
@@ -32,7 +36,9 @@ import {
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { mountRuleEditor } from '../lib/fulltext-rule-editor';
 import type { OaSource } from '../lib/fulltext-retriever';
-import type { Reference, Decision } from '../lib/types';
+import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types';
+import { PdfRenderer } from './pdf-renderer';
+import type { LoadedPdf, HighlightCategory } from './pdf-renderer';
 
 const OA_SOURCE_LABELS: Record<OaSource | 'cached' | 'linked', string> = {
     pmc_oa: 'PMC OA',
@@ -87,6 +93,12 @@ const REASON_VALUES = [
 
 // ハイライト表示状態（このアプリはスクリーニング用ハイライトのみ。デフォルトON）
 let highlightEnabled = true;
+
+// PDF.js レンダラ（cached PDF をテキストレイヤー付きで描画する）。
+// 初回利用時に生成し、文献遷移ごとに loadPdf で描き直す。
+let pdfRenderer: PdfRenderer | null = null;
+// 現在表示中PDFのメタ（scanned判定など）。ハイライト戦略の出し分けに使う。
+let currentPdfInfo: LoadedPdf | null = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initFulltextPage().catch(err => {
@@ -364,12 +376,75 @@ function openRulePanel(): void {
 // ---------------------------------------------------------------------------
 
 function renderDecisionPanel(): void {
+    // AI判定サマリ（あれば）を提示。人間の判定は別票のためプリフィルはしない。
+    renderAiSummary();
     // 現在の決断状態をボタンに反映
     updateDecisionButtons();
     // 除外理由エリアの表示制御
     updateReasonArea();
     // 保存ボタンの表示
     updateSaveButton();
+}
+
+const EXCLUDE_REASON_LABELS: Record<string, string> = {
+    population: 'Population 不適合',
+    intervention: 'Intervention 不適合',
+    comparator: 'Comparator 不適合',
+    outcome: 'Outcome 不適合',
+    study_design: 'Study design 不適合',
+    duplicate: '重複',
+    other: 'その他',
+};
+
+const AI_DECISION_LABELS: Record<string, string> = {
+    include: '組み入れ',
+    exclude: '除外',
+    maybe: '保留',
+};
+
+/**
+ * AIフルテキスト判定のサマリを決断パネル上部に表示する。
+ * 人間レビュアーが「AIが何をどう判定したか」を一目で確認できるようにする（票自体は別管理）。
+ */
+function renderAiSummary(): void {
+    const panel = document.querySelector('.ft-decision-panel');
+    if (!panel) return;
+    let banner = document.getElementById('ft-ai-summary');
+
+    const ai = currentRef ? findAiFulltext(currentRef.ref_id) : null;
+    if (!ai) {
+        banner?.remove();
+        return;
+    }
+    const { decision, note } = ai;
+
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'ft-ai-summary';
+        banner.className = 'ft-ai-summary';
+        const title = panel.querySelector('.ft-panel-title');
+        if (title) title.insertAdjacentElement('afterend', banner);
+        else panel.prepend(banner);
+    }
+
+    const decLabel = AI_DECISION_LABELS[decision.decision] ?? decision.decision;
+    const pct = Math.round((note.include_probability ?? 0) * 100);
+    const reasonCat = note.exclude_reason_category
+        ? `（${EXCLUDE_REASON_LABELS[note.exclude_reason_category] ?? note.exclude_reason_category}）`
+        : '';
+
+    banner.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'ft-ai-summary-head';
+    head.textContent = `AI判定: ${decLabel}${reasonCat} ・ 組入確率 ${pct}%`;
+    banner.appendChild(head);
+
+    if (note.reason) {
+        const reason = document.createElement('div');
+        reason.className = 'ft-ai-summary-reason';
+        reason.textContent = note.reason;
+        banner.appendChild(reason);
+    }
 }
 
 function wireDecisionButtons(): void {
@@ -907,6 +982,8 @@ function wireHighlightToggle(): void {
 function applyHighlightVisibility(): void {
     const list = document.getElementById('ft-annotations-list');
     if (list) list.style.display = highlightEnabled ? '' : 'none';
+    // PDF.js 描画中はレンダラ側のハイライトレイヤーをまとめて制御する
+    pdfRenderer?.setHighlightsVisible(highlightEnabled);
     document.querySelectorAll('.ft-highlight').forEach(el => {
         (el as HTMLElement).style.display = highlightEnabled ? '' : 'none';
     });
@@ -1096,6 +1173,7 @@ function hidePdfFrame(): void {
 
 function showPdfFrame(src: string): void {
     hideArticleFrame();
+    hideCanvasContainer();
     const frame = document.getElementById('ft-pdf-frame') as HTMLIFrameElement | null;
     if (!frame) return;
     frame.src = src;
@@ -1155,15 +1233,204 @@ async function showCachedPdf(url: string, token?: number): Promise<void> {
         return;
     }
 
-    hidePdfFrame(); // 旧 blob URL を解放
-    currentPdfObjectUrl = URL.createObjectURL(blob);
-    showPdfFrame(currentPdfObjectUrl);
-    setUrlLabel(url, 'cached');
+    // PDF.js でテキストレイヤー付き描画（ハイライト可能）。
+    // 描画に失敗した場合のみ、従来の Chrome 内蔵ビュワー(iframe blob)へフォールバックする。
+    try {
+        await showRenderedPdf(blob, token);
+        setUrlLabel(url, 'cached');
+    } catch (err) {
+        if (token !== undefined && isStale(token)) return;
+        console.warn('[fulltext] PDF.js描画に失敗、iframeビュワーへフォールバック:', err);
+        hideCanvasContainer();
+        hidePdfFrame(); // 旧 blob URL を解放
+        currentPdfObjectUrl = URL.createObjectURL(blob);
+        showPdfFrame(currentPdfObjectUrl);
+        setUrlLabel(url, 'cached');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PDF.js 描画（cached PDF。テキストレイヤー + ハイライト対応）
+// ---------------------------------------------------------------------------
+
+/** PDF.js レンダラを取得（初回生成） */
+function getPdfRenderer(): PdfRenderer {
+    if (!pdfRenderer) {
+        const container = document.getElementById('ft-pdf-canvas-container');
+        if (!container) throw new Error('PDF描画コンテナが見つかりません');
+        pdfRenderer = new PdfRenderer(container);
+    }
+    return pdfRenderer;
+}
+
+/** PDF.js 描画コンテナを隠し、描画リソースを解放する（PDF以外を表示する時に呼ぶ） */
+function hideCanvasContainer(): void {
+    const container = document.getElementById('ft-pdf-canvas-container');
+    if (container) container.classList.add('hidden');
+    if (pdfRenderer) pdfRenderer.destroy();
+    currentPdfInfo = null;
+}
+
+/** PDFバイト列(blob)を PDF.js で全ページ描画する */
+async function showRenderedPdf(blob: Blob, token?: number): Promise<void> {
+    const buf = await blob.arrayBuffer();
+    if (token !== undefined && isStale(token)) return;
+
+    // iframe・プレースホルダを退避し、canvas コンテナを前面に出す
+    hideArticleFrame();
+    hidePdfFrame();
+    hideSavePdfButton();
+    const placeholder = document.getElementById('ft-pdf-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+    const container = document.getElementById('ft-pdf-canvas-container');
+    if (container) container.classList.remove('hidden');
+
+    const renderer = getPdfRenderer();
+    currentPdfInfo = await renderer.loadPdf(buf);
+    // loadPdf 自体が新しい描画で前の描画を上書きするため、stale でも destroy は不要。
+    if (token !== undefined && isStale(token)) return;
+
+    renderer.setHighlightsVisible(highlightEnabled);
+    // Phase 2/3: ここで AI evidence / 既存アノテーションのハイライトを適用する
+    applyHighlightsForCurrentRef();
+}
+
+/**
+ * 現在表示中PDFに対し、AIフルテキスト判定の evidence をハイライト描画し、
+ * 右ペインのアノテーション一覧を再構築する。
+ *
+ * - 経路A（quote文字列マッチ）→ 経路B（bbox）の順で renderer が解決を試みる。
+ * - どちらも解決できなかった evidence は「位置不明」として一覧に出し、
+ *   クリックでページ送りのみ行う（縮退フォールバック）。
+ */
+function applyHighlightsForCurrentRef(): void {
+    if (!pdfRenderer || !currentRef) return;
+    pdfRenderer.clearHighlights();
+
+    const note = findAiFulltextNote(currentRef.ref_id);
+    const items: HighlightListItem[] = [];
+
+    if (note && Array.isArray(note.evidence)) {
+        note.evidence.forEach((ev, idx) => {
+            const category: HighlightCategory =
+                ev.polarity === 'exclude' ? 'exclude_evidence' : 'include_evidence';
+            const id = `ai-ev-${idx}`;
+            const result = pdfRenderer!.highlight({
+                id,
+                category,
+                quote: ev.quote,
+                page: ev.page,
+                bbox: ev.bbox,
+                title: ev.quote,
+            });
+            items.push({
+                id,
+                category,
+                quote: ev.quote,
+                page: result.page ?? ev.page,
+                resolved: result.resolved,
+                via: result.via,
+            });
+        });
+    }
+
+    renderAnnotationsList(items, note?.image_only ?? currentPdfInfo?.isImageOnly ?? false);
+    pdfRenderer.setHighlightsVisible(highlightEnabled);
+}
+
+/** 現在の文献に対する最新のAIフルテキスト判定（Decision + パース済み note）を返す */
+function findAiFulltext(refId: string): { decision: Decision; note: FulltextLlmDecisionNote } | null {
+    const candidates = allDecisions
+        .filter(d =>
+            d.ref_id === refId &&
+            (d.reviewer_id || '').startsWith('llm:') &&
+            (d.screening_phase ?? 'tiab') === 'fulltext' &&
+            !!d.note && d.note.trim().startsWith('{')
+        )
+        .sort((a, b) => (b.decided_at || '').localeCompare(a.decided_at || ''));
+
+    for (const d of candidates) {
+        try {
+            const parsed = JSON.parse(d.note as string);
+            if (parsed && parsed.type === 'llm_fulltext') {
+                return { decision: d, note: parsed as FulltextLlmDecisionNote };
+            }
+        } catch { /* 次の候補へ */ }
+    }
+    return null;
+}
+
+/** 現在の文献に対する最新のAIフルテキスト判定 note を返す（無ければ null） */
+function findAiFulltextNote(refId: string): FulltextLlmDecisionNote | null {
+    return findAiFulltext(refId)?.note ?? null;
+}
+
+interface HighlightListItem {
+    id: string;
+    category: HighlightCategory;
+    quote: string;
+    page: number;
+    resolved: boolean;
+    via: 'text' | 'bbox' | 'none';
+}
+
+/** 右ペインのアノテーション一覧を再構築する */
+function renderAnnotationsList(items: HighlightListItem[], imageOnly: boolean): void {
+    const list = document.getElementById('ft-annotations-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ft-annotation-empty';
+        empty.textContent = 'このPDFのAI判定根拠はまだありません。';
+        list.appendChild(empty);
+        return;
+    }
+
+    if (imageOnly) {
+        const note = document.createElement('div');
+        note.className = 'ft-annotation-imageonly';
+        note.textContent = '⚠ スキャン画像PDFのため、ハイライト位置はAIの領域推定に基づきます（精度が落ちる場合があります）。';
+        list.appendChild(note);
+    }
+
+    for (const item of items) {
+        const card = document.createElement('div');
+        card.className = 'ft-annotation-card';
+        card.dataset.category = item.category;
+
+        const text = document.createElement('div');
+        text.className = 'ft-annotation-text';
+        text.textContent = item.quote;
+        card.appendChild(text);
+
+        const meta = document.createElement('div');
+        meta.className = 'ft-annotation-meta';
+        const polarityLabel = item.category === 'exclude_evidence' ? '除外根拠' : '組入根拠';
+        const locLabel = item.resolved
+            ? (item.via === 'bbox' ? `p.${item.page}（領域推定）` : `p.${item.page}`)
+            : `p.${item.page}（位置不明）`;
+        meta.textContent = `${polarityLabel} · ${locLabel}`;
+        card.appendChild(meta);
+
+        // クリックで該当ハイライト（解決済み）またはページ先頭（縮退）へスクロール
+        card.addEventListener('click', () => {
+            if (item.resolved) {
+                pdfRenderer?.scrollToHighlight(item.id);
+            } else {
+                pdfRenderer?.scrollToPage(item.page);
+            }
+        });
+
+        list.appendChild(card);
+    }
 }
 
 function showPlaceholder(msg: string): void {
     hideArticleFrame();
     hidePdfFrame();
+    hideCanvasContainer();
     hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
@@ -1177,6 +1444,7 @@ function showPlaceholder(msg: string): void {
 function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): void {
     hideArticleFrame();
     hidePdfFrame();
+    hideCanvasContainer();
     hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
@@ -1275,6 +1543,7 @@ async function showArticlePage(): Promise<void> {
     const hasBroad = await requestBroadHostPermission();
     const ruleOk = hasBroad && await enableFrameEmbeddingForThisTab();
 
+    hideCanvasContainer();
     const frame = document.getElementById('ft-article-frame') as HTMLIFrameElement | null;
     if (frame && ruleOk) {
         hidePdfFrame();

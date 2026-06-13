@@ -521,6 +521,9 @@
 .fulltext-result-row.consensus-maybe   { border-left: 4px solid #f39c12; }
 .fulltext-result-row.consensus-pending { border-left: 4px solid #d5dbdb; }
 
+.fulltext-result-clickable { cursor: pointer; transition: background 0.12s; }
+.fulltext-result-clickable:hover { background: #f5faff; }
+
 .fulltext-result-consensus {
     font-size: 16px;
     line-height: 1.2;
@@ -594,3 +597,113 @@
 .fulltext-judge-chip.chip-exclude { color: #b03a2e; background: #fdedec; }
 .fulltext-judge-chip.chip-maybe   { color: #b9770e; background: #fef9e7; }
 .fulltext-judge-chip.chip-pending { color: #aab7b8; background: #f2f4f4; }
+
+/* ===== AI判定タブ ===== */
+.fulltext-ai {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 2px;
+}
+
+.fulltext-ai-intro {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    background: #eef6fb;
+    border: 1px solid #d4e6f1;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.fulltext-ai-row,
+.fulltext-ai-prompt-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-model {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.fulltext-ai-prompt {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.fulltext-ai-target {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+}
+
+.fulltext-ai-target-main { font-weight: 600; color: #2471a3; }
+.fulltext-ai-target-sub  { font-size: 11px; color: #888; }
+
+.fulltext-ai-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.fulltext-ai-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e8eef2;
+    overflow: hidden;
+}
+
+.fulltext-ai-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #3498db;
+    transition: width 0.2s ease;
+}
+
+.fulltext-ai-progress-text {
+    font-size: 12px;
+    color: #555;
+}
+
+.fulltext-ai-log {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    background: #fbfcfd;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.fulltext-ai-log:empty { display: none; }
+
+.fulltext-ai-log-line { line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fulltext-ai-log-line.log-ok   { color: #1e8449; }
+.fulltext-ai-log-line.log-err  { color: #c0392b; white-space: normal; }
+.fulltext-ai-log-line.log-warn { color: #b9770e; }
+.fulltext-ai-log-line.log-done { color: #2471a3; font-weight: 600; }

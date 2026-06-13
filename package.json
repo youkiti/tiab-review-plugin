@@ -36,6 +36,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "jstat": "^1.9.6"
+        "jstat": "^1.9.6",
+        "pdfjs-dist": "^4.10.38"
     }
 }

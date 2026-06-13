@@ -55,7 +55,9 @@
                     <input type="file" id="ft-upload-input" accept="application/pdf,.pdf" class="hidden">
                 </div>
                 <div id="ft-pdf-viewer" class="ft-pdf-viewer">
-                    <!-- PDF.js canvas がここに描画される -->
+                    <!-- PDF.js が全ページの canvas + テキスト/ハイライトレイヤーを描画する。
+                         Drive保存済み(cached)PDFのバイト列が取得できた時のみ使用する。 -->
+                    <div id="ft-pdf-canvas-container" class="ft-pdf-canvas-container hidden"></div>
                     <div id="ft-pdf-placeholder" class="ft-pdf-placeholder">
                         PDFが取得されていません
                     </div>
