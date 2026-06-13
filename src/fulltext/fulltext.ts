@@ -1392,22 +1392,19 @@ function applyHighlightsForCurrentRef(): void {
 
 /**
  * 現在の文献に対するAIフルテキスト判定（Decision + パース済み note）を返す。
- * 採用ラウンド(aiActiveRound)が設定されていればそれを優先し、無ければ最新を採る。
+ * 採用ラウンド(aiActiveRound)の判定のみを対象とする。
+ * 採用ラウンド未設定、または当該ラウンドの判定が無ければ null（＝AI判定は一切表示しない）。
  */
 function findAiFulltext(refId: string): { decision: Decision; note: FulltextLlmDecisionNote } | null {
-    const all = allDecisions.filter(d =>
-        d.ref_id === refId &&
-        (d.reviewer_id || '').startsWith('llm:') &&
-        (d.screening_phase ?? 'tiab') === 'fulltext' &&
-        !!d.note && d.note.trim().startsWith('{')
-    );
-    // 採用ラウンドのものを先頭に、その後は新しい順。
-    const candidates = all.sort((a, b) => {
-        const aActive = aiActiveRound && a.reviewer_id === aiActiveRound ? 1 : 0;
-        const bActive = aiActiveRound && b.reviewer_id === aiActiveRound ? 1 : 0;
-        if (aActive !== bActive) return bActive - aActive;
-        return (b.decided_at || '').localeCompare(a.decided_at || '');
-    });
+    if (!aiActiveRound) return null;
+    const candidates = allDecisions
+        .filter(d =>
+            d.ref_id === refId &&
+            d.reviewer_id === aiActiveRound &&
+            (d.screening_phase ?? 'tiab') === 'fulltext' &&
+            !!d.note && d.note.trim().startsWith('{')
+        )
+        .sort((a, b) => (b.decided_at || '').localeCompare(a.decided_at || ''));
 
     for (const d of candidates) {
         try {
