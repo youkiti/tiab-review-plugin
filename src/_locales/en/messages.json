@@ -335,6 +335,18 @@
   "fulltext_actionDoiTitle": {
     "message": "Open the publisher page (DOI/PubMed) to find the PDF"
   },
+  "fulltext_actionOpenPdf": {
+    "message": "📄 Open PDF"
+  },
+  "fulltext_actionOpenPdfTitle": {
+    "message": "Open the PDF saved to Drive in a new tab"
+  },
+  "fulltext_actionOpenLink": {
+    "message": "🔗 Open full text"
+  },
+  "fulltext_actionOpenLinkTitle": {
+    "message": "Open the open-access full text in a new tab (if the PDF does not open directly, the publisher page is shown)"
+  },
   "fulltext_uploading": {
     "message": "Uploading PDF to Drive…"
   },

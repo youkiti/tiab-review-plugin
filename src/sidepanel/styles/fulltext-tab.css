@@ -339,6 +339,20 @@
     color: #16a085;
 }
 
+/* 全文/PDFを開く等の主導線は塗りつぶしで目立たせる */
+.fulltext-action-btn--primary {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+    font-weight: 600;
+}
+
+.fulltext-action-btn--primary:hover {
+    background: #128f76;
+    border-color: #128f76;
+    color: #fff;
+}
+
 .fulltext-action-btn:disabled {
     opacity: 0.5;
     cursor: default;

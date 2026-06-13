@@ -226,41 +226,60 @@ function buildCard(ref: ReferenceWithStatus): HTMLElement {
         chrome.tabs.create({ url });
     });
 
-    // 未入手の文献にはアクションボタンを付ける
+    // 状態に応じたアクションボタンを付ける
     const footer = card.querySelector('.fulltext-card-footer')!;
     const rStatus = retrievalStatus(ref);
+    const recordUrl = recordPageUrl(ref);
 
-    if (rStatus === 'not_retrieved') {
+    // ① 全文への直接導線を最優先で出す（リンクのみでも必ずワンクリックで開ける）
+    if (rStatus === 'cached' && ref.fulltext_url) {
+        const url = ref.fulltext_url;
+        footer.appendChild(buildLinkBtn(
+            t('fulltext_actionOpenPdf'), t('fulltext_actionOpenPdfTitle'), url
+        ));
+    } else if (rStatus === 'retrieved' && ref.fulltext_url) {
+        const url = ref.fulltext_url;
+        footer.appendChild(buildLinkBtn(
+            t('fulltext_actionOpenLink'), t('fulltext_actionOpenLinkTitle'), url
+        ));
+    } else if (rStatus === 'not_retrieved') {
         footer.appendChild(buildActionBtn(
             t('fulltext_actionFetch'), t('fulltext_actionFetchTitle'),
-            (btn) => void handleSingleFetch(ref, btn)
+            (btn) => void handleSingleFetch(ref, btn), true
         ));
     }
-    if (!isObtained(ref) || rStatus === 'retrieved') {
-        // 未入手 or リンクのみ（手元のPDFで置き換えたい場合）はアップロード可能
+
+    // ② DOI/PubMed は Drive保存済み以外で常に出す（OAリンクが当てにならない時の保険）
+    if (rStatus !== 'cached' && recordUrl) {
+        footer.appendChild(buildLinkBtn(
+            t('fulltext_actionDoi'), t('fulltext_actionDoiTitle'), recordUrl
+        ));
+    }
+
+    // ③ 手元PDFでの差し替えは Drive保存済み以外で可能
+    if (rStatus !== 'cached') {
         footer.appendChild(buildActionBtn(
             t('fulltext_actionUpload'), t('fulltext_actionUploadTitle'),
             () => handleUploadClick(ref)
-        ));
-    }
-    const recordUrl = recordPageUrl(ref);
-    if (!isObtained(ref) && recordUrl) {
-        footer.appendChild(buildActionBtn(
-            t('fulltext_actionDoi'), t('fulltext_actionDoiTitle'),
-            () => { chrome.tabs.create({ url: recordUrl }); }
         ));
     }
 
     return card;
 }
 
+/** URLを新規タブで開くだけのリンクボタン（全文・DOI/PubMed導線） */
+function buildLinkBtn(label: string, title: string, url: string): HTMLButtonElement {
+    return buildActionBtn(label, title, () => { chrome.tabs.create({ url }); }, true);
+}
+
 function buildActionBtn(
     label: string,
     title: string,
-    onClick: (btn: HTMLButtonElement) => void
+    onClick: (btn: HTMLButtonElement) => void,
+    primary = false
 ): HTMLButtonElement {
     const btn = document.createElement('button');
-    btn.className = 'fulltext-action-btn';
+    btn.className = primary ? 'fulltext-action-btn fulltext-action-btn--primary' : 'fulltext-action-btn';
     btn.textContent = label;
     btn.title = title;
     btn.addEventListener('click', (e) => {

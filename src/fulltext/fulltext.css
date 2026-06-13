@@ -208,11 +208,48 @@ body {
     background: #fff;
 }
 
+/* 書誌情報バー（PDF本文と照合して誤りPDFを判定する） */
+.ft-biblio {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    background: #fbfcfd;
+    border-bottom: 1px solid #e3e8ec;
+    line-height: 1.4;
+}
+
+.ft-biblio-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.ft-biblio-meta {
+    font-size: 12px;
+    color: #555;
+    margin-top: 2px;
+}
+
+.ft-biblio-ids {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.ft-biblio-ids a {
+    color: #2471a3;
+    text-decoration: none;
+    margin-right: 12px;
+}
+
+.ft-biblio-ids a:hover {
+    text-decoration: underline;
+}
+
 .ft-pdf-toolbar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 12px;
     background: #ecf0f1;
     border-bottom: 1px solid #ddd;
     flex-shrink: 0;
@@ -240,6 +277,49 @@ body {
     height: 100%;
     color: #aaa;
     font-size: 14px;
+}
+
+/* Drive保存済みPDFを表示する iframe */
+.ft-pdf-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #525659;
+}
+
+/* フルテキスト未発見時に論文ページを埋め込む iframe */
+.ft-article-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff;
+}
+
+/* 埋め込みが使えない（権限拒否等）時の論文ページ導線パネル */
+.ft-article-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 100%;
+    padding: 24px;
+    text-align: center;
+    color: #555;
+    font-size: 14px;
+}
+
+.ft-article-fallback .ft-fallback-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.ft-article-fallback a.btn {
+    text-decoration: none;
+    text-align: center;
 }
 
 /* 決断ペイン */
@@ -328,26 +408,19 @@ body {
     padding-top: 4px;
 }
 
-/* モード切替 */
-.ft-panel-mode-toggle {
+/* ハイライト表示トグル */
+.ft-highlight-toggle {
     display: flex;
+    align-items: center;
     gap: 4px;
-}
-
-.ft-mode-btn {
     font-size: 11px;
-    padding: 2px 8px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    background: #fff;
-    cursor: pointer;
+    font-weight: 400;
     color: #555;
+    cursor: pointer;
 }
 
-.ft-mode-btn.active {
-    background: #2c3e50;
-    color: #fff;
-    border-color: #2c3e50;
+.ft-highlight-toggle input {
+    cursor: pointer;
 }
 
 /* アノテーションカード */

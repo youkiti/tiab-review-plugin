@@ -5,7 +5,7 @@
 
 import { uploadPdfToDrive, buildPdfFileName } from './drive-api';
 
-export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex';
+export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex' | 'publisher';
 
 export interface FulltextCandidate {
     url: string;
@@ -175,19 +175,30 @@ async function* openalexCandidates(doi: string, email: string): AsyncGenerator<s
     }
 }
 
+// 出版社直リンク: Springer / BMC は content/pdf エンドポイントで
+// OA論文の実PDFを直接返す。NCBI/Europe PMC がまだPDFをミラーしていない
+// 新着論文でも出版社には実体があることが多いため、フォールバック候補に加える。
+// gold OA の BMC (DOI 10.1186/) のみ対象（ハイブリッド誌の有料記事を
+// 誤って候補化しないように）。スラッシュはパスとして扱うので encode しない。
+function springerDirectUrl(doi: string): string | null {
+    if (!doi.startsWith('10.1186/')) return null;
+    return `https://link.springer.com/content/pdf/${doi}.pdf`;
+}
+
 /**
- * 無料OAソースからフルテキストURLを取得する（ウォーターフォール）
+ * 無料OA/出版社ソースからフルテキスト候補URLを列挙する（ウォーターフォール）
  *
- * 取得順: PMC OA → Europe PMC → Unpaywall → OpenAlex
- * 各ステップで最初に見つかった URL を返す。すべて失敗した場合は null。
+ * 取得順: PMC OA → Europe PMC → 出版社直リンク → Unpaywall → OpenAlex
+ * 各ソースの候補を重複排除しつつ順に yield する。呼び出し側は
+ * 実際にPDFが取れるまで各候補を検証して進める（retrieveAndCacheFulltext 参照）。
  *
  * @param ref   doi / pmid を持つ文献情報
  * @param email Unpaywall / OpenAlex の polite pool 用メールアドレス
  */
-export async function retrieveFulltextUrl(
+export async function* iterateFulltextCandidates(
     ref: { doi?: string; pmid?: string },
     email: string
-): Promise<FulltextCandidate | null> {
+): AsyncGenerator<FulltextCandidate> {
     const { doi, pmid } = ref;
 
     // NCBI ID コンバーターで PMCID / PMID / DOI を補完
@@ -197,46 +208,43 @@ export async function retrieveFulltextUrl(
     const resolvedDoi = doi || enriched.doi;
 
     const seen = new Set<string>();
+    const emit = function* (url: string | null, source: OaSource): Generator<FulltextCandidate> {
+        if (url && !seen.has(url)) {
+            seen.add(url);
+            return yield { url, source };
+        }
+    };
 
     // 1. PMC OA Service (PMCID が必要)
     if (pmcid) {
-        const url = await pmcOaUrl(pmcid);
-        if (url && !seen.has(url)) {
-            seen.add(url);
-            return { url, source: 'pmc_oa' };
-        }
+        yield* emit(await pmcOaUrl(pmcid), 'pmc_oa');
+        // PMC記事PDFページ（実PDFが取れない時の人間向けフォールバック導線）
+        yield* emit(`https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/pdf/`, 'pmc_oa');
     }
 
     // 2. Europe PMC (PMID が必要; DOI のみの文献も idconv で補完した PMID を使う)
     if (resolvedPmid) {
-        const url = await europePmcUrl(resolvedPmid);
-        if (url && !seen.has(url)) {
-            seen.add(url);
-            return { url, source: 'europe_pmc' };
-        }
+        yield* emit(await europePmcUrl(resolvedPmid), 'europe_pmc');
     }
 
-    // 3. Unpaywall (DOI が必要)
+    // 3. 出版社直リンク (Springer / BMC)
+    if (resolvedDoi) {
+        yield* emit(springerDirectUrl(resolvedDoi), 'publisher');
+    }
+
+    // 4. Unpaywall (DOI が必要)
     if (resolvedDoi) {
         for await (const url of unpaywallCandidates(resolvedDoi, email)) {
-            if (!seen.has(url)) {
-                seen.add(url);
-                return { url, source: 'unpaywall' };
-            }
+            yield* emit(url, 'unpaywall');
         }
     }
 
-    // 4. OpenAlex (DOI が必要)
+    // 5. OpenAlex (DOI が必要)
     if (resolvedDoi) {
         for await (const url of openalexCandidates(resolvedDoi, email)) {
-            if (!seen.has(url)) {
-                seen.add(url);
-                return { url, source: 'openalex' };
-            }
+            yield* emit(url, 'openalex');
         }
     }
-
-    return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,49 +263,83 @@ export type FulltextFetchOutcome =
     | { kind: 'none' };
 
 /**
- * URLからPDFバイトを取得する。
- * HTMLランディングページや権限不足（host permission未許可によるCORSエラー等）は
- * null を返してリンクのみ記録にフォールバックさせる。
+ * URLへのPDF取得を試み、結果を分類する。
+ * - pdf:      実PDFバイトを取得できた（Drive保存対象）
+ * - openable: URLは生きているがPDFバイトは取れなかった
+ *             （HTMLランディングページ or host permission未許可によるCORS/ネットワークエラー）。
+ *             ブラウザ（ユーザーのセッション）なら開ける可能性が高いのでリンク記録の候補にする。
+ * - dead:     HTTPエラー（404/500等）。URL自体が無効なのでフォールバックに使わない。
  */
-export async function downloadPdf(url: string): Promise<Blob | null> {
+type PdfFetchResult =
+    | { kind: 'pdf'; blob: Blob }
+    | { kind: 'openable' }
+    | { kind: 'dead' };
+
+async function fetchPdfResult(url: string): Promise<PdfFetchResult> {
+    let resp: Response;
     try {
-        const resp = await fetch(url, { credentials: 'omit' });
-        if (!resp.ok) return null;
+        resp = await fetch(url, { credentials: 'omit' });
+    } catch {
+        // CORS / ネットワークエラー: 権限未許可でも実体は存在しうる
+        return { kind: 'openable' };
+    }
+    if (!resp.ok) return { kind: 'dead' };
+    try {
         const blob = await resp.blob();
         // マジックナンバーで PDF か検証（Content-Type は信用できないサーバが多い）
         const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
-        const sig = String.fromCharCode(...head);
-        if (!sig.startsWith('%PDF')) return null;
-        return blob;
+        if (String.fromCharCode(...head).startsWith('%PDF')) {
+            return { kind: 'pdf', blob };
+        }
     } catch {
-        return null;
+        // 読み取り失敗は openable 扱い
     }
+    return { kind: 'openable' };
 }
 
+// リンクのみフォールバック時、どのソースのURLを優先して人間に提示するか。
+// 出版社直リンクが最も「ブラウザで開けば実PDF」に近いので最優先。
+const FALLBACK_PRIORITY: OaSource[] = [
+    'publisher', 'unpaywall', 'openalex', 'europe_pmc', 'pmc_oa',
+];
+
 /**
- * OA URL を解決し、可能なら PDF をダウンロードして Drive に保存する。
+ * OA候補URLを順に検証し、PDFが取れたものをDriveに保存する。
  *
+ * 各候補を実際にダウンロード検証し、最初に実PDFが取れたものをキャッシュする。
+ * どれもPDFにならない場合は、ブラウザで開けそうなURL（openable）のうち
+ * 最も信頼できるソースのものを「リンクのみ」記録としてフォールバックする。
  * Driveフォルダは PDF が実際に取得できた時に初めて作成したいので、
  * 呼び出し側から ensureFolder（メモ化推奨）を受け取る。
- * Drive保存に失敗した場合は外部URLのリンクのみ記録にフォールバックする。
  */
 export async function retrieveAndCacheFulltext(
     ref: { ref_id: string; title?: string; doi?: string; pmid?: string },
     email: string,
     ensureFolder: () => Promise<string>
 ): Promise<FulltextFetchOutcome> {
-    const candidate = await retrieveFulltextUrl(ref, email);
-    if (!candidate) return { kind: 'none' };
+    const openables: FulltextCandidate[] = [];
 
-    const pdf = await downloadPdf(candidate.url);
-    if (pdf) {
-        try {
-            const folderId = await ensureFolder();
-            const file = await uploadPdfToDrive(folderId, buildPdfFileName(ref), pdf);
-            return { kind: 'cached', url: file.webViewLink, source: candidate.source };
-        } catch (err) {
-            console.warn('[fulltext-retriever] Drive保存に失敗、リンクのみ記録:', err);
+    for await (const cand of iterateFulltextCandidates(ref, email)) {
+        const res = await fetchPdfResult(cand.url);
+        if (res.kind === 'pdf') {
+            try {
+                const folderId = await ensureFolder();
+                const file = await uploadPdfToDrive(folderId, buildPdfFileName(ref), res.blob);
+                return { kind: 'cached', url: file.webViewLink, source: cand.source };
+            } catch (err) {
+                // Drive側の問題: 他候補も保存できない。実PDFが取れたURLが最良のリンク記録
+                console.warn('[fulltext-retriever] Drive保存に失敗、リンクのみ記録:', err);
+                return { kind: 'linked', url: cand.url, source: cand.source };
+            }
+        } else if (res.kind === 'openable') {
+            openables.push(cand);
         }
+        // dead はスキップ
     }
-    return { kind: 'linked', url: candidate.url, source: candidate.source };
+
+    if (openables.length === 0) return { kind: 'none' };
+    const best = openables.slice().sort(
+        (a, b) => FALLBACK_PRIORITY.indexOf(a.source) - FALLBACK_PRIORITY.indexOf(b.source)
+    )[0];
+    return { kind: 'linked', url: best.url, source: best.source };
 }

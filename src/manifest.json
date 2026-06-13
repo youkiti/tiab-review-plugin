@@ -7,7 +7,8 @@
     "description": "__MSG_extDescription__",
     "permissions": [
         "identity",
-        "storage"
+        "storage",
+        "declarativeNetRequestWithHostAccess"
     ],
     "host_permissions": [
         "https://sheets.googleapis.com/*",
@@ -18,7 +19,8 @@
         "https://pmc.ncbi.nlm.nih.gov/*",
         "https://www.ebi.ac.uk/europepmc/*",
         "https://api.unpaywall.org/*",
-        "https://api.openalex.org/*"
+        "https://api.openalex.org/*",
+        "https://link.springer.com/*"
     ],
     "optional_host_permissions": [
         "https://*/*"

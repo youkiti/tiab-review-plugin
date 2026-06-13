@@ -33,16 +33,34 @@
         <main class="ft-main">
             <!-- 左ペイン: PDFビュワー -->
             <section class="ft-pdf-pane" id="ft-pdf-pane">
+                <!-- 書誌情報バー: PDF本文と照合して誤りPDFでないか確認できる -->
+                <div id="ft-biblio" class="ft-biblio hidden">
+                    <div id="ft-biblio-title" class="ft-biblio-title"></div>
+                    <div id="ft-biblio-meta" class="ft-biblio-meta"></div>
+                    <div id="ft-biblio-ids" class="ft-biblio-ids"></div>
+                </div>
                 <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
                     <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
+                    <!-- PDF未取得時のみ表示: 取得導線 -->
                     <button id="ft-attach-tab-btn" class="btn btn-secondary">現在のタブをアタッチ</button>
                     <button id="ft-doi-resolve-btn" class="btn btn-secondary">DOI → URL解決</button>
+                    <!-- PDF保存済み時のみ表示: 差し替え導線 -->
+                    <button id="ft-replace-btn" class="btn btn-secondary hidden">別のPDFをアップロード</button>
+                    <button id="ft-delete-btn" class="btn btn-secondary hidden">PDFを削除</button>
+                    <input type="file" id="ft-upload-input" accept="application/pdf,.pdf" class="hidden">
                 </div>
                 <div id="ft-pdf-viewer" class="ft-pdf-viewer">
                     <!-- PDF.js canvas がここに描画される -->
                     <div id="ft-pdf-placeholder" class="ft-pdf-placeholder">
                         PDFが取得されていません
                     </div>
+                    <!-- Drive保存済みPDFの表示用（blob: または Drive プレビュー埋め込み）
+                         Chrome内蔵PDFビュワーを使うため sandbox は付けない -->
+                    <iframe id="ft-pdf-frame" class="ft-pdf-frame hidden" title="フルテキストPDF"></iframe>
+                    <!-- フルテキスト未発見時に論文ページを埋め込み表示 -->
+                    <iframe id="ft-article-frame" class="ft-article-frame hidden"
+                        referrerpolicy="no-referrer"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
                 </div>
             </section>
 
@@ -77,10 +95,10 @@
                 <section class="ft-panel ft-annotations-panel">
                     <h2 class="ft-panel-title">
                         ハイライト
-                        <span class="ft-panel-mode-toggle">
-                            <button id="ft-mode-screening" class="ft-mode-btn active">スクリーニング</button>
-                            <button id="ft-mode-extraction" class="ft-mode-btn">データ抽出</button>
-                        </span>
+                        <label class="ft-highlight-toggle">
+                            <input type="checkbox" id="ft-highlight-checkbox" checked>
+                            <span>表示</span>
+                        </label>
                     </h2>
                     <div id="ft-annotations-list" class="ft-annotations-list">
                         <!-- アノテーションカードがここに入る -->

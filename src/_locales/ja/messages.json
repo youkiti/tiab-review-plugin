@@ -335,6 +335,18 @@
   "fulltext_actionDoiTitle": {
     "message": "出版社ページ（DOI/PubMed）を開いてPDFを探します"
   },
+  "fulltext_actionOpenPdf": {
+    "message": "📄 PDFを開く"
+  },
+  "fulltext_actionOpenPdfTitle": {
+    "message": "Driveに保存済みのPDFを新しいタブで開きます"
+  },
+  "fulltext_actionOpenLink": {
+    "message": "🔗 全文を開く"
+  },
+  "fulltext_actionOpenLinkTitle": {
+    "message": "見つかったオープンアクセス全文を新しいタブで開きます（PDFが直接開かない場合は出版社ページが表示されます）"
+  },
   "fulltext_uploading": {
     "message": "PDFをDriveにアップロード中…"
   },

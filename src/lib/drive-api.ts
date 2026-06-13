@@ -24,6 +24,66 @@ export interface DriveFileInfo {
 }
 
 /**
+ * Drive の閲覧リンク（webViewLink / open?id= 形式）からファイルIDを取り出す。
+ * Drive 以外の URL は null を返す。
+ */
+export function extractDriveFileId(url: string): string | null {
+    try {
+        const u = new URL(url);
+        if (u.hostname !== 'drive.google.com' && u.hostname !== 'drive.usercontent.google.com') {
+            return null;
+        }
+        const pathMatch = /\/file\/d\/([\w-]+)/.exec(u.pathname);
+        if (pathMatch) return pathMatch[1];
+        const idParam = u.searchParams.get('id');
+        return idParam && /^[\w-]+$/.test(idParam) ? idParam : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Drive ファイルの実体（PDFバイト）をダウンロードする。
+ * drive.file スコープのため、本拡張で保存したファイル以外は 404 になりうる
+ * （その場合は呼び出し側で Drive プレビュー埋め込みへフォールバックする）。
+ */
+export async function downloadDriveFile(fileId: string): Promise<Blob> {
+    const token = await getAuthToken();
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) {
+        throw new Error(`DriveからのPDF取得に失敗しました (HTTP ${resp.status})`);
+    }
+    return resp.blob();
+}
+
+/**
+ * Drive ファイルをゴミ箱へ移動する（誤って保存したPDFの削除用）。
+ * 完全削除ではなくゴミ箱送りにすることで、誤操作からの復元余地を残す。
+ * drive.file スコープのため、本拡張が保存したファイルのみ対象にできる。
+ */
+export async function deleteDriveFile(fileId: string): Promise<void> {
+    const token = await getAuthToken();
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}`,
+        {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ trashed: true }),
+        }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`DriveのPDF削除に失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+}
+
+/**
  * フォルダが存在し、ゴミ箱に入っていないか確認する
  */
 async function folderExists(folderId: string): Promise<boolean> {
