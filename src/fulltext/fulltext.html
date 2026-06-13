@@ -45,6 +45,9 @@
                 </div>
                 <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
                     <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
+                    <!-- PDF未保存時に表示: ローカルPDFをアップロードする導線
+                         （論文ページ埋め込み中でも手元のPDFを保存できる） -->
+                    <button id="ft-upload-btn" class="btn btn-secondary hidden">⬆ PDFをアップロード</button>
                     <!-- リンクのみPDFをインライン表示できたが自動保存できなかった時の手動保存導線 -->
                     <button id="ft-save-pdf-btn" class="btn btn-secondary hidden">このPDFを保存</button>
                     <!-- PDF保存済み時のみ表示: 差し替え導線 -->
@@ -64,6 +67,11 @@
                     <iframe id="ft-article-frame" class="ft-article-frame hidden"
                         referrerpolicy="no-referrer"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                    <!-- PDFドラッグ&ドロップ用オーバーレイ。
+                         dragenter時に最前面へ出して iframe へのドロップを奪う。 -->
+                    <div id="ft-drop-overlay" class="ft-drop-overlay hidden">
+                        <div class="ft-drop-overlay-inner">PDFをここにドロップしてアップロード</div>
+                    </div>
                 </div>
             </section>
 

@@ -266,8 +266,12 @@ function updateToolbarMode(): void {
     const hasPdf = currentRef?.fulltext_status === 'cached' && !!currentRef.fulltext_url;
     const replace = document.getElementById('ft-replace-btn');
     const del = document.getElementById('ft-delete-btn');
+    const upload = document.getElementById('ft-upload-btn');
     replace?.classList.toggle('hidden', !hasPdf);
     del?.classList.toggle('hidden', !hasPdf);
+    // PDF未保存時は常に「⬆ PDFをアップロード」を出す。
+    // 論文ページ埋め込み中・リンクのみ表示中でも手元のPDFをDriveへ保存できるようにする。
+    upload?.classList.toggle('hidden', hasPdf);
     // 保存済みになったら「このPDFを保存」導線は不要
     if (hasPdf) hideSavePdfButton();
 }
@@ -741,18 +745,79 @@ function hideSavePdfButton(): void {
 // ---------------------------------------------------------------------------
 
 function wireReplaceButtons(): void {
-    document.getElementById('ft-replace-btn')?.addEventListener('click', () => {
+    const openPicker = () => {
         const input = document.getElementById('ft-upload-input') as HTMLInputElement | null;
         if (input) {
             input.value = '';
             input.click();
         }
-    });
+    };
+    // 「別のPDFをアップロード」(cached時の差し替え) と「⬆ PDFをアップロード」(未保存時) は
+    // どちらも同じファイル選択 → アップロード経路を使う
+    document.getElementById('ft-replace-btn')?.addEventListener('click', openPicker);
+    document.getElementById('ft-upload-btn')?.addEventListener('click', openPicker);
     document.getElementById('ft-upload-input')?.addEventListener('change', () => {
-        void handleUpload();
+        const input = document.getElementById('ft-upload-input') as HTMLInputElement | null;
+        const file = input?.files?.[0];
+        if (file) void uploadPdfFile(file);
     });
     document.getElementById('ft-delete-btn')?.addEventListener('click', () => {
         void handleDeletePdf();
+    });
+    wireDropZone();
+}
+
+/**
+ * PDFビュワー枠へのドラッグ&ドロップでローカルPDFをアップロードできるようにする。
+ *
+ * 論文ページや保存済みPDFが iframe で表示されている時、素の drop は iframe 自身に
+ * ファイルを開かせてしまう。これを防ぐため:
+ * - dragenter/over/leave を document レベルで監視する（ファイルがビューポートに入った
+ *   時点でオーバーレイを出す。ペインだけだとカーソルが先に iframe へ入って取りこぼす）。
+ * - オーバーレイ(z-index)を iframe の上に出し、drop をオーバーレイ側で受ける。
+ * - ペイン外への drop でもブラウザがファイルを開かないよう document の drop を握りつぶす。
+ */
+function wireDropZone(): void {
+    const viewer = document.getElementById('ft-pdf-viewer');
+    const overlay = document.getElementById('ft-drop-overlay');
+    if (!viewer || !overlay) return;
+
+    // ドラッグの入れ子要素ごとに発火する dragenter/leave をカウンタで正規化し、
+    // ビューポートから完全に出た時だけオーバーレイを隠す。
+    let dragDepth = 0;
+    const hasFiles = (e: DragEvent) =>
+        Array.from(e.dataTransfer?.types ?? []).includes('Files');
+    const hideOverlay = () => { dragDepth = 0; overlay.classList.add('hidden'); };
+
+    document.addEventListener('dragenter', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth++;
+        overlay.classList.remove('hidden');
+    });
+    document.addEventListener('dragover', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    });
+    document.addEventListener('dragleave', (e) => {
+        if (!hasFiles(e)) return;
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) overlay.classList.add('hidden');
+    });
+    // ペイン外への drop はファイルを開かせないよう握りつぶすだけ（アップロードしない）
+    document.addEventListener('drop', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        hideOverlay();
+    });
+    // ビューワ（オーバーレイ）上への drop だけアップロードする
+    viewer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        hideOverlay();
+        const file = e.dataTransfer?.files?.[0];
+        if (file) void uploadPdfFile(file);
     });
 }
 
@@ -774,7 +839,7 @@ async function handleDeletePdf(): Promise<void> {
         await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, '', 'not_retrieved');
         currentRef.fulltext_url = '';
         currentRef.fulltext_status = 'not_retrieved';
-        showPlaceholder('PDFを削除しました。\n「別のPDFをアップロード」または「DOI → URL解決」で再取得してください。');
+        showPlaceholder('PDFを削除しました。\n上の「⬆ PDFをアップロード」から再取得してください。');
         updateToolbarMode();
     } catch (err) {
         window.alert(`削除に失敗しました: ${(err as Error).message}`);
@@ -783,12 +848,15 @@ async function handleDeletePdf(): Promise<void> {
     }
 }
 
-/** 選択されたPDFファイルをDriveへアップロードして表示する */
-async function handleUpload(): Promise<void> {
-    if (!currentRef) return;
-    const input = document.getElementById('ft-upload-input') as HTMLInputElement | null;
-    const file = input?.files?.[0];
-    if (!file) return;
+// アップロード中の二重実行ガード（ボタン連打・ドロップ重複対策）
+let uploadInProgress = false;
+
+/**
+ * ローカルのPDFファイルをDriveへアップロードして表示する。
+ * ファイル選択（差し替え/⬆アップロード）とドラッグ&ドロップの共通経路。
+ */
+async function uploadPdfFile(file: File): Promise<void> {
+    if (!currentRef || uploadInProgress) return;
 
     // マジックナンバーでPDF検証
     const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
@@ -797,22 +865,27 @@ async function handleUpload(): Promise<void> {
         return;
     }
 
-    const replaceBtn = document.getElementById('ft-replace-btn') as HTMLButtonElement | null;
-    if (replaceBtn) { replaceBtn.disabled = true; replaceBtn.textContent = 'アップロード中...'; }
-
+    uploadInProgress = true;
+    const ref = currentRef; // アップロード中に遷移しても結果は元の文献へ反映する
     showPlaceholder('Drive へPDFをアップロード中...');
     try {
         const folderId = await ensureFulltextFolder(spreadsheetId);
-        const info = await uploadPdfToDrive(folderId, buildPdfFileName(currentRef), file);
-        await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, info.webViewLink, 'cached');
-        currentRef.fulltext_url = info.webViewLink;
-        currentRef.fulltext_status = 'cached';
-        await showCachedPdf(info.webViewLink);
-        updateToolbarMode();
+        const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
+        await updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, info.webViewLink, 'cached');
+        ref.fulltext_url = info.webViewLink;
+        ref.fulltext_status = 'cached';
+        // アップロード中に別文献へ移っていたら描画はせず、状態更新のみ
+        if (ref === currentRef) {
+            await showCachedPdf(info.webViewLink);
+            updateToolbarMode();
+            showFeedback('PDFをDriveに保存しました');
+        }
     } catch (err) {
-        showPlaceholder(`アップロードに失敗しました: ${(err as Error).message}`);
+        if (ref === currentRef) {
+            showPlaceholder(`アップロードに失敗しました: ${(err as Error).message}`);
+        }
     } finally {
-        if (replaceBtn) { replaceBtn.disabled = false; replaceBtn.textContent = '別のPDFをアップロード'; }
+        uploadInProgress = false;
     }
 }
 

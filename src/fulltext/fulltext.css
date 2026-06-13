@@ -343,6 +343,32 @@ body {
     word-break: break-all;
 }
 
+/* PDFドラッグ&ドロップ用オーバーレイ。
+   dragenter時に最前面（iframeの上）へ出して drop を奪う。 */
+.ft-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(52, 152, 219, 0.12);
+    backdrop-filter: blur(1px);
+}
+
+.ft-drop-overlay-inner {
+    border: 3px dashed #3498db;
+    border-radius: 12px;
+    padding: 32px 48px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #2471a3;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+
 /* Drive保存済みPDFを表示する iframe */
 .ft-pdf-frame {
     width: 100%;
