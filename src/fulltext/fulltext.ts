@@ -206,6 +206,12 @@ async function loadRef(refId: string): Promise<void> {
     document.getElementById('ft-feedback')?.remove();
     (document.activeElement as HTMLElement | null)?.blur?.();
 
+    // 前の文献のAI判定ハイライト・根拠カードを消す。
+    // applyHighlightsForCurrentRef は PDF.js 描画経路でしか呼ばれないため、
+    // リンクのみ表示・論文ページ埋め込み・プレビュー等の経路では一覧が前の文献のまま残る。
+    // ここで毎回リセットし、当該文献にAI判定が無ければ空表示にする。
+    clearAiHighlights();
+
     renderBiblio(ref);
     renderProgress();
     renderOverallProgress();
@@ -467,7 +473,7 @@ function wireDecisionButtons(): void {
  * 判定を選択して即保存する（TiAbレビューと同じ即保存挙動）。
  * - 組み入れ: 保存してそのまま次の候補へ進む
  * - 除外: 理由エリアを表示・フォーカスし、理由が確定（数字キー/Enter）したら次へ進む
- * - 保留: 保存のみ（その場に留まる）
+ * - 保留: 保存してそのまま次の候補へ進む
  */
 async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promise<void> {
     pendingDecision = decision;
@@ -480,7 +486,7 @@ async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promis
     }
 
     const saved = await handleSave();
-    if (saved && decision === 'include') advanceToNext();
+    if (saved) advanceToNext();   // 組み入れ・保留とも保存できたら次の候補へ
 }
 
 /** 次の候補へ進む（末尾なら留まって通知）。判定後の自動送りに使う。 */
@@ -1362,6 +1368,16 @@ async function showRenderedPdf(blob: Blob, token?: number): Promise<void> {
  * - どちらも解決できなかった evidence は「位置不明」として一覧に出し、
  *   クリックでページ送りのみ行う（縮退フォールバック）。
  */
+/**
+ * AI evidence ハイライト（canvas）と根拠カード一覧（右ペイン）を空にする。
+ * 文献遷移のたびに呼び、前の文献のハイライトが残らないようにする。
+ * AI判定のある cached PDF では、この後 applyHighlightsForCurrentRef が再構築する。
+ */
+function clearAiHighlights(): void {
+    pdfRenderer?.clearHighlights();
+    renderAnnotationsList([], false);
+}
+
 function applyHighlightsForCurrentRef(): void {
     if (!pdfRenderer || !currentRef) return;
     pdfRenderer.clearHighlights();

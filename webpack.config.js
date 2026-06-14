@@ -71,6 +71,15 @@ module.exports = (env, argv) => {
 
                             if (isProduction) {
                                 delete manifest.key;
+                            } else {
+                                // 開発ビルドは Chrome 設定画面・ツールバーで本番版と区別できるよう
+                                // 拡張機能名とツールチップ末尾に " (dev)" を付与する。
+                                // name は __MSG_extName__ プレースホルダを含むが、Chrome i18n は
+                                // 文字列中のプレースホルダを置換するため後ろに連結しても問題ない。
+                                manifest.name = `${manifest.name} (dev)`;
+                                if (manifest.action?.default_title) {
+                                    manifest.action.default_title = `${manifest.action.default_title} (dev)`;
+                                }
                             }
                             return JSON.stringify(manifest, null, 4);
                         },
