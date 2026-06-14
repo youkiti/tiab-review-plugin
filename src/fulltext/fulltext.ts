@@ -44,6 +44,7 @@ const OA_SOURCE_LABELS: Record<OaSource | 'cached' | 'linked', string> = {
     unpaywall: 'Unpaywall',
     openalex: 'OpenAlex',
     publisher: '出版社',
+    landing_meta: '出版社PDF',
     cached: 'Drive保存済み',
     linked: 'リンクのみ',
 };
@@ -690,7 +691,7 @@ async function handleResolve(token?: number): Promise<void> {
     if (!currentRef) return;
     const ref = currentRef; // 取得中に遷移しても結果は元の文献へ反映する
 
-    showPlaceholder('OAソースを順番に検証中...\nPMC OA → Europe PMC → 出版社 → Unpaywall → OpenAlex');
+    showPlaceholder('OAソースを順番に検証中...\nPMC OA → Europe PMC → 出版社 → Unpaywall → OpenAlex → 出版社PDF');
 
     // 既知ホスト（PMC/Europe PMC/Unpaywall/OpenAlex/Springer）は host_permissions 済みで
     // 追加権限は不要。それ以外の出版社PDF取得には全サイト権限が要るが、ページ表示時の

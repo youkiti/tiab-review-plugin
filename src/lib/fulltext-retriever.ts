@@ -5,7 +5,7 @@
 
 import { uploadPdfToDrive, buildPdfFileName } from './drive-api';
 
-export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex' | 'publisher';
+export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex' | 'publisher' | 'landing_meta';
 
 export interface FulltextCandidate {
     url: string;
@@ -175,14 +175,69 @@ async function* openalexCandidates(doi: string, email: string): AsyncGenerator<s
     }
 }
 
-// 出版社直リンク: Springer / BMC は content/pdf エンドポイントで
-// OA論文の実PDFを直接返す。NCBI/Europe PMC がまだPDFをミラーしていない
-// 新着論文でも出版社には実体があることが多いため、フォールバック候補に加える。
-// gold OA の BMC (DOI 10.1186/) のみ対象（ハイブリッド誌の有料記事を
-// 誤って候補化しないように）。スラッシュはパスとして扱うので encode しない。
+// 出版社直リンク: link.springer.com 配信の論文は content/pdf エンドポイントで
+// PDF を直接返す。NCBI/Europe PMC がまだPDFをミラーしていない新着論文でも
+// 出版社には実体があることが多いため、フォールバック候補に加える。
+// 対象は link.springer.com でホストされる Springer 本体 (10.1007/) と
+// BMC (10.1186/)。OA論文なら実PDFが取れて Drive キャッシュされ、購読/ハイブリッド
+// 誌の有料記事でも、ブラウザ（所属機関アクセスのCookie付き）で開けば記事HTMLページ
+// ではなく直接PDFが開く「publisher優先」リンクとして記録できる。実PDFか否かは
+// マジックバイト検証で判定するため、有料記事を誤ってPDFキャッシュする心配はない。
+// スラッシュはパスとして扱うので encode しない。
+const SPRINGER_LINK_PREFIXES = ['10.1007/', '10.1186/'];
 function springerDirectUrl(doi: string): string | null {
-    if (!doi.startsWith('10.1186/')) return null;
+    if (!SPRINGER_LINK_PREFIXES.some((p) => doi.startsWith(p))) return null;
     return `https://link.springer.com/content/pdf/${doi}.pdf`;
+}
+
+// 最小限のHTMLエンティティデコード（citation_pdf_url の content に現れる &amp; 等）
+function decodeHtmlEntities(s: string): string {
+    return s
+        .replace(/&amp;/gi, '&')
+        .replace(/&#38;/g, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/g, "'");
+}
+
+// ランディングページHTMLから <meta name="citation_pdf_url" content="..."> を抽出する。
+// Highwire互換のこのメタタグは Google Scholar 収載のためほぼ全ての主要出版社
+// （Springer / Wiley / Oxford / Taylor&Francis / SAGE / Elsevier 等）が埋め込むため、
+// 出版社ごとのURLパターンを個別に持たずに汎用的にPDF直リンクを得られる。
+// 属性順・引用符の有無のばらつきに対応するため <head> 内を正規表現で走査する
+// （DOMParserでの全文構築を避け軽量化）。
+function extractCitationPdfUrl(html: string): string | null {
+    const headEnd = html.search(/<\/head>/i);
+    const head = headEnd >= 0 ? html.slice(0, headEnd) : html;
+    const metaTags = head.match(/<meta\b[^>]*>/gi) ?? [];
+    for (const tag of metaTags) {
+        if (!/\bname\s*=\s*["']?citation_pdf_url["']?/i.test(tag)) continue;
+        const m = tag.match(/\bcontent\s*=\s*["']([^"']+)["']/i);
+        if (m && m[1].trim()) return decodeHtmlEntities(m[1].trim());
+    }
+    return null;
+}
+
+// 汎用フォールバック: ランディングページを取得し citation_pdf_url からPDF直リンクを得る。
+// doi.org から出版社ページへ解決し、HTMLに宣言されたPDF URLを抽出する。
+// 取得には任意HTTPSサイトへの実行時権限が要る（呼び出し側で要求済み）。
+// 未許可ホストはCORSで本文を読めず null を返すが、その場合も既存OAソースの
+// 結果は維持されるため副作用はない。
+async function landingPagePdfUrl(landingUrl: string): Promise<string | null> {
+    try {
+        const resp = await fetch(landingUrl, { credentials: 'omit' });
+        if (!resp.ok) return null;
+        const ct = resp.headers.get('content-type') ?? '';
+        if (ct && !/html|xml/i.test(ct)) return null;
+        const html = await resp.text();
+        const pdfUrl = extractCitationPdfUrl(html);
+        if (!pdfUrl) return null;
+        // 相対URLは最終到達URL（resp.url）基準で絶対化する
+        return new URL(pdfUrl, resp.url || landingUrl).href;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -245,6 +300,13 @@ export async function* iterateFulltextCandidates(
             yield* emit(url, 'openalex');
         }
     }
+
+    // 6. 汎用フォールバック: ランディングページの citation_pdf_url からPDF直リンクを抽出
+    //    （Springer以外の任意出版社にも対応）。上流のOAソースで実PDFが取れた場合は
+    //    ジェネレータがここまで進まないため、HTML取得は本当に必要な時だけ走る。
+    if (resolvedDoi) {
+        yield* emit(await landingPagePdfUrl(`https://doi.org/${resolvedDoi}`), 'landing_meta');
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -300,7 +362,9 @@ export async function fetchPdfResult(url: string): Promise<PdfFetchResult> {
 // リンクのみフォールバック時、どのソースのURLを優先して人間に提示するか。
 // 出版社直リンクが最も「ブラウザで開けば実PDF」に近いので最優先。
 const FALLBACK_PRIORITY: OaSource[] = [
-    'publisher', 'unpaywall', 'openalex', 'europe_pmc', 'pmc_oa',
+    // landing_meta と publisher は「ブラウザで開けば実PDF」に最も近い直リンク。
+    // citation_pdf_url は出版社が宣言した正規のPDF URLなので最優先。
+    'landing_meta', 'publisher', 'unpaywall', 'openalex', 'europe_pmc', 'pmc_oa',
 ];
 
 /**

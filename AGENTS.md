@@ -491,8 +491,20 @@ https://www.googleapis.com/auth/drive.file
 ### テスター向け配布
 
 ```bash
-npm run build:zip
+npm run build:zip:tester
 ```
+
+**重要（OAuth と `key`）**: zip 配布では `--env keepKey` で manifest の `key` を**保持**してビルドする（`build:zip:tester`）。`key` を残すと全テスターが同じ固定の拡張機能ID `ifnejjicfekmighagknaacliiiliodgf` になり、その ID 専用に登録した OAuth クライアント（`.env` の `ZIP_OAUTH_CLIENT_ID`）で認証が通る。`key` を削除する `build:zip` の zip を配布するとインストール先ごとに拡張機能IDがランダム化し、`bad client id` で Google ログインに失敗する（ストア提出時のみ `key` を削除する `build:zip` を使う）。
+
+**OAuth クライアントの対応表**（クライアントは拡張機能IDごとに登録が必要）:
+
+| ビルド | コマンド | 拡張機能ID | OAuth クライアント |
+| --- | --- | --- | --- |
+| dev | `npm run dev` | `ifnejji…`（key保持） | `LOCAL_OAUTH_CLIENT_ID` |
+| zip 配布 | `npm run build:zip:tester` | `ifnejji…`（key保持） | `ZIP_OAUTH_CLIENT_ID` |
+| ストア提出 | `npm run build` / `build:zip` | `alejln…`（ストア付与） | `OAUTH_CLIENT_ID` |
+
+> 前提: `ZIP_OAUTH_CLIENT_ID` は Google Cloud Console で「Chrome 拡張機能」タイプの OAuth クライアントを作成し、アイテムID `ifnejjicfekmighagknaacliiiliodgf` を登録して発行する。ストア版と同じプロジェクト（プロジェクト番号 `451307229828`）に作成すると OAuth 同意画面を共有でき、他アカウントでも弾かれない。zip 配布版はストア版とIDが別なので同一PCに同居可能。
 
 ### ローカル実験環境
 
