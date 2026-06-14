@@ -302,7 +302,9 @@ function updateToolbarMode(): void {
 /**
  * 候補リストを再計算する
  * - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
- * - 未設定: 自分が TiAb で Include した文献（レガシー動作）
+ * - 未設定:
+ *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *   - 非管理者: 自分が TiAb で Include した文献
  */
 function recomputeCandidates(): void {
     if (poolRule) {
@@ -318,16 +320,16 @@ function recomputeCandidates(): void {
         }
         fulltextCandidates = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule));
     } else {
-        const myTiabIncludes = new Set(
+        const tiabIncludes = new Set(
             allDecisions
                 .filter(d =>
-                    d.reviewer_id === userEmail &&
                     d.decision === 'include' &&
-                    isTiabDecision(d)
+                    isTiabDecision(d) &&
+                    (isAdmin || d.reviewer_id === userEmail)
                 )
                 .map(d => d.ref_id)
         );
-        fulltextCandidates = allRefs.filter(r => myTiabIncludes.has(r.ref_id));
+        fulltextCandidates = allRefs.filter(r => tiabIncludes.has(r.ref_id));
     }
     currentCandidateIndex = currentRef
         ? fulltextCandidates.findIndex(r => r.ref_id === currentRef!.ref_id)
@@ -446,12 +448,18 @@ function wireDecisionButtons(): void {
     document.getElementById('ft-btn-maybe')?.addEventListener('click', () => { void chooseDecision('maybe'); });
     document.getElementById('ft-save-btn')?.addEventListener('click', () => { void handleSave(); });
 
-    // 除外理由・メモの変更は（既に除外判定済みのとき）その場で再保存する
+    // 除外理由・メモの変更は、その場で再保存する。
+    // 新規除外は理由が選ばれてから初めて保存する。
     document.getElementById('ft-reason-select')?.addEventListener('change', () => {
         if (pendingDecision === 'exclude') void handleSave();
     });
     document.getElementById('ft-reason-note')?.addEventListener('change', () => {
-        if (pendingDecision) void handleSave();
+        if (pendingDecision === 'exclude') {
+            const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+            if (select?.value) void handleSave();
+        } else if (pendingDecision) {
+            void handleSave();
+        }
     });
 }
 
@@ -466,13 +474,13 @@ async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promis
     renderDecisionPanel();
 
     if (decision === 'exclude') {
-        await handleSave();      // まず空理由で保存（後で理由を付けて再保存）
         focusReasonSelect();     // キーボードで理由を選べるようフォーカス
-        return;                  // 理由確定で advanceToNext する
+        showFeedback('除外理由を選択すると保存されます');
+        return;                  // 理由確定で保存して advanceToNext する
     }
 
-    await handleSave();
-    if (decision === 'include') advanceToNext();
+    const saved = await handleSave();
+    if (saved && decision === 'include') advanceToNext();
 }
 
 /** 次の候補へ進む（末尾なら留まって通知）。判定後の自動送りに使う。 */
@@ -506,8 +514,8 @@ function selectReasonByIndex(n: number): void {
 /** 除外理由を確定して保存し、次の候補へ進む */
 async function commitReasonAndAdvance(): Promise<void> {
     if (pendingDecision !== 'exclude') return;
-    await handleSave();
-    advanceToNext();
+    const saved = await handleSave();
+    if (saved) advanceToNext();
 }
 
 function updateDecisionButtons(): void {
@@ -532,16 +540,23 @@ function updateReasonArea(): void {
     if (!area) return;
     if (pendingDecision === 'exclude') {
         area.classList.remove('hidden');
+        const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+        const note = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
         // 既存の理由を復元
         if (existingDecision?.decision.decision === 'exclude') {
-            const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
-            const note = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
             if (select && existingDecision.decision.reason) {
                 select.value = existingDecision.decision.reason;
+            } else if (select) {
+                select.selectedIndex = -1;
             }
             if (note && existingDecision.decision.note) {
                 note.value = existingDecision.decision.note;
+            } else if (note) {
+                note.value = '';
             }
+        } else {
+            if (select) select.selectedIndex = -1;
+            if (note) note.value = '';
         }
     } else {
         area.classList.add('hidden');
@@ -554,8 +569,8 @@ function updateSaveButton(): void {
     btn?.classList.add('hidden');
 }
 
-async function handleSave(): Promise<void> {
-    if (!currentRef || !pendingDecision) return;
+async function handleSave(): Promise<boolean> {
+    if (!currentRef || !pendingDecision) return false;
 
     const saveBtn = document.getElementById('ft-save-btn') as HTMLButtonElement | null;
     if (saveBtn) {
@@ -566,13 +581,20 @@ async function handleSave(): Promise<void> {
     try {
         const reasonSelect = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
         const reasonNote = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
+        const reason = reasonSelect?.value || '';
+
+        if (pendingDecision === 'exclude' && !reason) {
+            showFeedback('除外理由を選択してください', true);
+            focusReasonSelect();
+            return false;
+        }
 
         const decisionObj: Decision = {
             decision_id: existingDecision?.decision.decision_id ?? crypto.randomUUID(),
             ref_id: currentRef.ref_id,
             reviewer_id: userEmail,
             decision: pendingDecision,
-            reason: pendingDecision === 'exclude' ? (reasonSelect?.value || undefined) : undefined,
+            reason: pendingDecision === 'exclude' ? reason : undefined,
             note: reasonNote?.value || undefined,
             decided_at: new Date().toISOString(),
             client_version: getClientVersion('-human'),
@@ -595,8 +617,10 @@ async function handleSave(): Promise<void> {
         await saveDecision(spreadsheetId, decisionObj);
 
         showFeedback('保存しました');
+        return true;
     } catch (err) {
         showFeedback(`保存失敗: ${(err as Error).message}`, true);
+        return false;
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
@@ -1066,10 +1090,6 @@ function handleReasonKeydown(e: KeyboardEvent, select: HTMLSelectElement): void 
 // 描画ヘルパー
 // ---------------------------------------------------------------------------
 
-const escapeHtml = (s: string): string =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-
 /**
  * PDFペイン上部に書誌情報を表示する。
  * 表示中PDFの本文（タイトル・著者・誌名・年）と突き合わせて、
@@ -1099,17 +1119,24 @@ function renderBiblio(ref: Reference): void {
     metaEl.textContent = metaParts.join(' · ');
 
     // DOI / PMID リンク
-    const idLinks: string[] = [];
+    idsEl.replaceChildren();
     if (ref.doi) {
-        const doi = escapeHtml(ref.doi);
-        idLinks.push(`<a href="https://doi.org/${encodeURIComponent(ref.doi)}" target="_blank" rel="noopener noreferrer">DOI: ${doi}</a>`);
+        const link = document.createElement('a');
+        link.href = `https://doi.org/${encodeURIComponent(ref.doi)}`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = `DOI: ${ref.doi}`;
+        idsEl.appendChild(link);
     }
     if (ref.pmid) {
-        const pmid = escapeHtml(ref.pmid);
-        idLinks.push(`<a href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(ref.pmid)}/" target="_blank" rel="noopener noreferrer">PMID: ${pmid}</a>`);
+        const link = document.createElement('a');
+        link.href = `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(ref.pmid)}/`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = `PMID: ${ref.pmid}`;
+        idsEl.appendChild(link);
     }
-    idsEl.innerHTML = idLinks.join('');
-    idsEl.classList.toggle('hidden', idLinks.length === 0);
+    idsEl.classList.toggle('hidden', idsEl.children.length === 0);
 
     bar.classList.remove('hidden');
 }
@@ -1175,13 +1202,52 @@ function showPdfFrame(src: string): void {
     if (placeholder) placeholder.style.display = 'none';
 }
 
+function appendTextWithBreaks(parent: HTMLElement, text: string): void {
+    const lines = text.split('\n');
+    lines.forEach((line, idx) => {
+        if (idx > 0) parent.appendChild(document.createElement('br'));
+        parent.appendChild(document.createTextNode(line));
+    });
+}
+
+function isSafeLinkUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url, window.location.href);
+        return ['https:', 'http:', 'blob:', 'chrome-extension:'].includes(parsed.protocol);
+    } catch {
+        return false;
+    }
+}
+
+function buildExternalAnchor(url: string, label: string, className?: string): HTMLAnchorElement {
+    const anchor = document.createElement('a');
+    anchor.textContent = label;
+    if (className) anchor.className = className;
+    if (isSafeLinkUrl(url)) {
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.href = url;
+    } else {
+        anchor.removeAttribute('href');
+        anchor.title = '安全でないURL形式のためリンクを無効化しました';
+    }
+    return anchor;
+}
+
+function renderUrlLabel(label: HTMLElement, sourceLabel: string, url: string): void {
+    const badge = document.createElement('span');
+    badge.className = 'ft-source-badge';
+    badge.textContent = sourceLabel;
+
+    const link = buildExternalAnchor(url, url);
+    label.replaceChildren(badge, link);
+}
+
 function setUrlLabel(url: string, source: OaSource | 'cached' | 'linked'): void {
     const label = document.getElementById('ft-pdf-url-label');
     if (!label) return;
     const sourceLabel = OA_SOURCE_LABELS[source] ?? source;
-    label.innerHTML =
-        `<span class="ft-source-badge">${sourceLabel}</span>` +
-        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    renderUrlLabel(label, sourceLabel, url);
 }
 
 /**
@@ -1435,10 +1501,11 @@ function showPlaceholder(msg: string): void {
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
         placeholder.style.display = '';
-        placeholder.innerHTML = msg.replace(/\n/g, '<br>');
+        placeholder.replaceChildren();
+        appendTextWithBreaks(placeholder, msg);
     }
     const label = document.getElementById('ft-pdf-url-label');
-    if (label) label.innerHTML = '';
+    if (label) label.replaceChildren();
 }
 
 function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): void {
@@ -1449,7 +1516,7 @@ function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): v
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
         const sourceLabel = OA_SOURCE_LABELS[source] ?? source;
-        placeholder.innerHTML = '';
+        placeholder.replaceChildren();
         placeholder.style.display = '';
 
         const panel = document.createElement('div');
@@ -1553,9 +1620,7 @@ async function showArticlePage(): Promise<void> {
         frame.src = url;
         const label = document.getElementById('ft-pdf-url-label');
         if (label) {
-            label.innerHTML =
-                '<span class="ft-source-badge">論文ページ</span>' +
-                `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            renderUrlLabel(label, '論文ページ', url);
         }
     } else {
         showArticleFallback(url);
@@ -1568,17 +1633,24 @@ function showArticleFallback(url: string): void {
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (!placeholder) return;
     placeholder.style.display = '';
-    const pubmedLink = currentRef?.pmid
-        ? `<a class="btn btn-secondary" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(currentRef.pmid)}/" target="_blank" rel="noopener noreferrer">↗ PubMed で開く</a>`
-        : '';
-    placeholder.innerHTML = `
-        <div class="ft-article-fallback">
-            <div>フルテキストが見つかりませんでした。<br>論文ページで本文を確認してください。</div>
-            <div class="ft-fallback-links">
-                <a class="btn btn-secondary" href="${url}" target="_blank" rel="noopener noreferrer">↗ 論文ページを開く</a>
-                ${pubmedLink}
-            </div>
-        </div>`;
+    placeholder.replaceChildren();
+
+    const panel = document.createElement('div');
+    panel.className = 'ft-article-fallback';
+
+    const message = document.createElement('div');
+    appendTextWithBreaks(message, 'フルテキストが見つかりませんでした。\n論文ページで本文を確認してください。');
+
+    const links = document.createElement('div');
+    links.className = 'ft-fallback-links';
+    links.appendChild(buildExternalAnchor(url, '↗ 論文ページを開く', 'btn btn-secondary'));
+    if (currentRef?.pmid) {
+        const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(currentRef.pmid)}/`;
+        links.appendChild(buildExternalAnchor(pubmedUrl, '↗ PubMed で開く', 'btn btn-secondary'));
+    }
+
+    panel.append(message, links);
+    placeholder.appendChild(panel);
     const label = document.getElementById('ft-pdf-url-label');
-    if (label) label.innerHTML = '';
+    if (label) label.replaceChildren();
 }

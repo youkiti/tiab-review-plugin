@@ -313,19 +313,21 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
 
     // フルテキストを開くボタン:
     // - 候補ルール設定済み: ルール上プールに入る文献に表示（フィルタと同条件）
-    // - 未設定: 自分が TiAb で Include した文献に表示（レガシー）
+    // - 未設定: 管理者は全レビュアー、自分以外は自分の TiAb Include に表示
     const rule = state.fulltextPoolRule;
+    const decisions = [...(ref.allDecisions ?? [])];
+    if (ref.myDecision && !decisions.some(d => d.decision_id === ref.myDecision!.decision_id)) {
+        decisions.push(ref.myDecision);
+    }
     let showFulltextBtn: boolean;
     if (rule) {
-        const decisions = [...(ref.allDecisions ?? [])];
-        if (ref.myDecision && !decisions.some(d => d.decision_id === ref.myDecision!.decision_id)) {
-            decisions.push(ref.myDecision);
-        }
         showFulltextBtn = isInFulltextPool(decisions, rule);
     } else {
-        const myTiabDecision = ref.myDecision;
-        showFulltextBtn = myTiabDecision?.decision === 'include' &&
-            (myTiabDecision.screening_phase ?? 'tiab') === 'tiab';
+        showFulltextBtn = decisions.some(d =>
+            d.decision === 'include' &&
+            (d.screening_phase ?? 'tiab') === 'tiab' &&
+            (state.isAdmin || d.reviewer_id === state.userEmail)
+        );
     }
     if (showFulltextBtn) {
         dom.btnOpenFulltext.classList.remove('hidden');

@@ -107,7 +107,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
-- **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時はレガシー動作（サイドパネル: 2-of-3カテゴリ、フルテキストページ: 自分の TiAb Include）
+- **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時は、管理ユーザーは読み込まれている全レビュアーの TiAb Include が1件でもある文献を候補とし、非管理ユーザーは既存の割り振りで見える文献のうち自分が TiAb Include した文献だけを候補とする。
 
 #### Annotations タブ（PDFアノテーション）
 

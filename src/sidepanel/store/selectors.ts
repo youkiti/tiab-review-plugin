@@ -7,10 +7,10 @@ import type { AppState } from './types';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/types';
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
-import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../lib/client-version';
+import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { isInFulltextPool } from '../../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
-import { computeReviewerKey, detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
+import { detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
 import { t } from '../../lib/i18n';
 
 // ========== フィルタリング関連 ==========
@@ -60,59 +60,26 @@ function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
 /**
  * フルテキスト候補の判定
  * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
- * - 未設定（レガシー）: 手動・ML・LLMの3カテゴリのうち2つ以上が「Include」
+ * - 未設定:
+ *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *   - 非管理者: 自分が TiAb で Include した文献
  */
 function isFulltextCandidate(
     ref: ReferenceWithStatus,
     userEmail: string,
-    treatMlAsManual: boolean,
-    enabledReviewers: Set<string>,
-    isKeyOpened: boolean,
+    isAdmin: boolean,
     fulltextPoolRule: FulltextPoolRule | null
 ): boolean {
+    const decisions = collectRefDecisions(ref);
     if (fulltextPoolRule) {
-        return isInFulltextPool(collectRefDecisions(ref), fulltextPoolRule);
+        return isInFulltextPool(decisions, fulltextPoolRule);
     }
 
-    let includeCategories = 0;
-
-    // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
-    const isReviewerEnabled = (d: Decision): boolean => {
-        if (!isKeyOpened) return true;
-        const key = computeReviewerKey(d, treatMlAsManual);
-        return key !== '' && enabledReviewers.has(key);
-    };
-
-    const hasInclude = (check: (d: Decision) => boolean) => {
-        return (ref.allDecisions?.some(d => isReviewerEnabled(d) && check(d) && d.decision === 'include')) ||
-            (ref.myDecision && isReviewerEnabled(ref.myDecision) && check(ref.myDecision) && ref.myDecision.decision === 'include');
-    };
-
-    // 1. 手動判定
-    const isManual = (d: Decision) => {
-        if (isHumanDecision(d.client_version)) return true;
-        if (treatMlAsManual && d.reviewer_id === userEmail && isConfirmedMlDecision(d.client_version)) {
-            return true;
-        }
-        return false;
-    };
-    if (hasInclude(isManual)) includeCategories++;
-
-    // 2. ML判定（手動とみなされたものは除外）
-    const isMl = (d: Decision) => {
-        if (!isMlDecision(d.client_version)) return false;
-        if (isManual(d)) return false;
-        return true;
-    };
-    if (hasInclude(isMl)) includeCategories++;
-
-    // 3. LLM判定
-    const llmInclude = ref.allDecisions?.some(d =>
-        d.reviewer_id.startsWith('llm:') && d.decision === 'include' && isReviewerEnabled(d)
+    return decisions.some(d =>
+        d.decision === 'include' &&
+        (d.screening_phase ?? 'tiab') === 'tiab' &&
+        (isAdmin || d.reviewer_id === userEmail)
     );
-    if (llmInclude) includeCategories++;
-
-    return includeCategories >= 2;
 }
 
 /**
@@ -126,7 +93,7 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
     // ステータスフィルター
     if (screening.currentFilter === 'fulltext_candidates') {
         filtered = filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, settings.treatMlAsManual, data.enabledReviewers, screening.isKeyOpened, data.fulltextPoolRule)
+            isFulltextCandidate(r, data.userEmail, data.isAdmin, data.fulltextPoolRule)
         );
     } else if (screening.currentFilter === 'conflict') {
         filtered = filtered.filter(r =>
@@ -276,7 +243,7 @@ export function getFilterCounts(state: AppState): {
             hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)
         ).length,
         fulltextCandidates: filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, ui.settings.treatMlAsManual, data.enabledReviewers, ui.screening.isKeyOpened, data.fulltextPoolRule)
+            isFulltextCandidate(r, data.userEmail, data.isAdmin, data.fulltextPoolRule)
         ).length,
     };
 }

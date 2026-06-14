@@ -349,6 +349,7 @@ async function handleStartAiBatch(): Promise<void> {
     aiAbort = { cancelled: false };
     dom.fulltextAiStartBtn.classList.add('hidden');
     dom.fulltextAiStopBtn.classList.remove('hidden');
+    dom.fulltextAiStopBtn.disabled = false;
     dom.fulltextAiProgressDiv.classList.remove('hidden');
     dom.fulltextAiLogDiv.innerHTML = '';
     dom.fulltextAiModelSelect.disabled = true;
@@ -382,6 +383,7 @@ async function handleStartAiBatch(): Promise<void> {
         await reloadReferences(spreadsheetId);
         dom.fulltextAiStartBtn.classList.remove('hidden');
         dom.fulltextAiStopBtn.classList.add('hidden');
+        dom.fulltextAiStopBtn.disabled = false;
         dom.fulltextAiModelSelect.disabled = false;
         dom.fulltextAiPromptInput.disabled = false;
         updateAiTargetCount();

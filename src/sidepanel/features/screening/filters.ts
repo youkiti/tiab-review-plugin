@@ -54,20 +54,22 @@ function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
 /**
  * フルテキスト候補の判定
  * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
- * - 未設定: 自分が TiAb で Include した文献（フルテキストページの
- *   recomputeCandidates と同じフォールバック。表示文言とも一致させる）
+ * - 未設定:
+ *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *   - 非管理者: 自分が TiAb で Include した文献
  */
 function isFulltextCandidate(r: ReferenceWithStatus): boolean {
     const rule = state.fulltextPoolRule;
+    const decisions = collectRefDecisions(r);
     if (rule) {
-        return isInFulltextPool(collectRefDecisions(r), rule);
+        return isInFulltextPool(decisions, rule);
     }
 
     const userEmail = state.userEmail;
-    return collectRefDecisions(r).some(d =>
-        d.reviewer_id === userEmail &&
+    return decisions.some(d =>
         d.decision === 'include' &&
-        isTiabDecision(d)
+        isTiabDecision(d) &&
+        (state.isAdmin || d.reviewer_id === userEmail)
     );
 }
 
