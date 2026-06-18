@@ -165,8 +165,9 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
             const allowed = new Set<string>();
             if (filter.include) allowed.add('include');
             if (filter.exclude) allowed.add('exclude');
-            // 両方ON or 両方OFF はこのレビュアーのフィルターを適用しない
-            if (allowed.size === 2 || allowed.size === 0) continue;
+            if (filter.maybe ?? true) allowed.add('maybe');
+            // 全ON or 全OFF はこのレビュアーのフィルターを適用しない
+            if (allowed.size === 3 || allowed.size === 0) continue;
 
             filtered = filtered.filter(r => {
                 const decision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);

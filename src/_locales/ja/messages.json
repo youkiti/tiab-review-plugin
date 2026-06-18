@@ -626,11 +626,17 @@
   "filter_excludeDecision": {
     "message": "(❌除外判断)"
   },
+  "filter_maybeDecision": {
+    "message": "(🟡保留判断)"
+  },
   "filter_includeLabel": {
     "message": "組み入れ"
   },
   "filter_excludeLabel": {
     "message": "除外"
+  },
+  "filter_maybeLabel": {
+    "message": "保留"
   },
   "filter_sourceFiles": {
     "message": "インポート元ファイル"

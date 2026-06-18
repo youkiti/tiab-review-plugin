@@ -100,7 +100,7 @@ export interface AppState {
             termFilterUseAnd: boolean;
             treatMlAsManual: boolean;
             showAiHighlights: boolean;
-            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }>;
+            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>;
             abstractSubsectionBreakEnabled: boolean;
             abstractSubsectionHeadings: string[];
         };

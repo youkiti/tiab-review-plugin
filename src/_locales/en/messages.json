@@ -626,11 +626,17 @@
   "filter_excludeDecision": {
     "message": "(❌ Exclude)"
   },
+  "filter_maybeDecision": {
+    "message": "(🟡 Maybe)"
+  },
   "filter_includeLabel": {
     "message": "Include"
   },
   "filter_excludeLabel": {
     "message": "Exclude"
+  },
+  "filter_maybeLabel": {
+    "message": "Maybe"
   },
   "filter_sourceFiles": {
     "message": "Source Files"

@@ -70,7 +70,7 @@ let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 let _showAiHighlights = true; // AIのEvidenceをハイライトするかどうか（デフォルトON）
-let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
+let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
 let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 
 import { createInitialMlState, MlState } from '../lib/ml/types';
@@ -261,7 +261,7 @@ export const state = {
     setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
 
     get aiDecisionFilter() { return _aiDecisionFilter; },
-    setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean }>) { _aiDecisionFilter = filter; },
+    setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>) { _aiDecisionFilter = filter; },
 
     get treatMlAsManual() { return _treatMlAsManual; },
     setTreatMlAsManual(value: boolean) { _treatMlAsManual = value; },
