@@ -867,9 +867,6 @@
       }
     }
   },
-  "import_endnoteEnlpUnsupported": {
-    "message": "EndNote .enl / .enlp files cannot be imported directly. In EndNote, choose File → Export and select XML, then upload that .xml file."
-  },
   "export_noData": {
     "message": "No references to export"
   },

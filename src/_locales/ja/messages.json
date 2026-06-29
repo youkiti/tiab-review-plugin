@@ -867,9 +867,6 @@
       }
     }
   },
-  "import_endnoteEnlpUnsupported": {
-    "message": "EndNote の .enl / .enlp ファイルは直接読み込めません。EndNote で File → Export → XML 形式で書き出して、その .xml ファイルをアップロードしてください。"
-  },
   "export_noData": {
     "message": "エクスポートする文献がありません"
   },

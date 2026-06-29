@@ -5,22 +5,10 @@ import { parseRIS } from './ris-parser';
 import { parseCTG, isCTGFormat } from './ctg-parser';
 import { parseICTRP, isICTRPFormat } from './ictrp-parser';
 import { parseEndNoteXML, isEndNoteXMLFormat } from './endnote-xml-parser';
+import { parseEndNoteEnl, parseEndNoteEnlp, isEndNoteLibraryFile } from './endnote-enl-parser';
 
 /** サポートするインポート形式 */
 export type ImportFormat = 'ris' | 'ctg-csv' | 'ictrp-xml' | 'endnote-xml' | 'unknown';
-
-/**
- * インポート時に発生する非対応フォーマットエラー。
- * UI 側で `code` を見て専用メッセージを出す。
- */
-export class UnsupportedImportFormatError extends Error {
-    public readonly code: 'endnote-enlp';
-    constructor(code: 'endnote-enlp', message: string) {
-        super(message);
-        this.name = 'UnsupportedImportFormatError';
-        this.code = code;
-    }
-}
 
 /**
  * ファイル拡張子からフォーマットを判定
@@ -78,14 +66,13 @@ function parseContent(content: string, format: ImportFormat, sourceFile: string)
  * 拡張子でフォーマットを判定し、適切なパーサーにディスパッチ
  */
 export async function parseImportFile(file: File): Promise<Reference[]> {
-    // EndNote のライブラリ自体（.enl / .enlp）は直接読めないため、ファイル読み込み前に弾く。
-    // ピッカーから選択可能にしてあるが（accept に含めてある）、選んだ場合は専用エラーで誘導する。
-    const ext = file.name.toLowerCase().split('.').pop() || '';
-    if (ext === 'enl' || ext === 'enlp') {
-        throw new UnsupportedImportFormatError(
-            'endnote-enlp',
-            'EndNote .enl / .enlp files cannot be imported directly. Export as XML from EndNote and upload that file.'
-        );
+    // EndNote のライブラリ（.enl / .enlp）はバイナリ（SQLite / ZIP）なので専用パーサーで処理する。
+    const endnoteLib = isEndNoteLibraryFile(file.name);
+    if (endnoteLib) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return endnoteLib === 'enlp'
+            ? parseEndNoteEnlp(bytes, file.name)
+            : parseEndNoteEnl(bytes, file.name);
     }
 
     const content = await file.text();
