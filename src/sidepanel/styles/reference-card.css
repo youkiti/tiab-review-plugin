@@ -132,6 +132,21 @@
     text-decoration: underline;
 }
 
+.btn-open-fulltext {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border: 1px solid #a8c7fa;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-open-fulltext:hover {
+    background: #d2e3fc;
+}
+
 /* 不一致バナー */
 .conflict-banner {
     background-color: #fff3cd;

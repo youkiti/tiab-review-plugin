@@ -14,12 +14,13 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-05-30</span>
+                <span class="build-version">Build: 2026-06-14</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
                 <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
                 <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
+                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle" data-i18n="nav_tabFulltext"></button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -185,6 +186,7 @@
                 <div class="ref-links">
                     <a id="ref-doi" href="#" target="_blank" class="hidden">DOI</a>
                     <a id="ref-pmid" href="#" target="_blank" class="hidden">PubMed</a>
+                    <button id="btn-open-fulltext" class="btn btn-open-fulltext hidden" data-i18n="screening_openFulltext"></button>
                 </div>
             </article>
 
@@ -740,6 +742,123 @@
                 </div>
             </div>
 
+        </section>
+
+        <!-- フルテキストスクリーニングセクション -->
+        <section id="fulltext-section" class="section hidden">
+            <div class="llm-toolbar">
+                <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
+            </div>
+
+            <!-- ビュー切替: 候補リスト / AI判定 / 判定後レビュー -->
+            <div class="fulltext-viewmode-row" role="tablist">
+                <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-mode="list" data-i18n="fulltext_modeList"></button>
+                <button id="fulltext-mode-ai" class="fulltext-mode-btn" data-mode="ai" data-i18n="fulltext_modeAi"></button>
+                <button id="fulltext-mode-results" class="fulltext-mode-btn" data-mode="results" data-i18n="fulltext_modeResults"></button>
+            </div>
+
+            <!-- ① 候補ルール + 判定進捗 -->
+            <div class="fulltext-summary">
+                <div class="fulltext-rule-row">
+                    <div id="fulltext-rule-line" class="fulltext-rule-line"></div>
+                    <button id="fulltext-rule-edit-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_ruleEdit"></button>
+                </div>
+                <div id="fulltext-rule-editor" class="fulltext-rule-editor hidden"></div>
+                <div id="fulltext-progress-line" class="fulltext-progress-line"></div>
+            </div>
+
+            <!-- ② 全文の入手状況 + 一括OA検索 -->
+            <div class="fulltext-retrieval">
+                <div id="fulltext-obtained-line" class="fulltext-obtained-line"></div>
+                <div class="fulltext-status-bar">
+                    <div id="fulltext-status-bar-fill" class="fulltext-status-bar-fill"></div>
+                </div>
+                <div id="fulltext-status-breakdown" class="fulltext-status-breakdown"></div>
+                <div class="fulltext-fetch-row">
+                    <button id="fulltext-fetch-btn" class="btn btn-small btn-primary"></button>
+                    <button id="fulltext-fetch-cancel-btn" class="btn btn-small btn-secondary hidden" data-i18n="fulltext_fetchCancel"></button>
+                    <label class="fulltext-retry-label">
+                        <input type="checkbox" id="fulltext-retry-checkbox">
+                        <span data-i18n="fulltext_retryUnavailable"></span>
+                    </label>
+                </div>
+                <div id="fulltext-fetch-status" class="fulltext-fetch-status hidden"></div>
+            </div>
+
+            <!-- ③ フィルタ + 候補一覧 -->
+            <div class="fulltext-filter-row">
+                <select id="fulltext-view-filter">
+                    <option value="all"></option>
+                    <option value="missing"></option>
+                    <option value="obtained"></option>
+                    <option value="undecided"></option>
+                </select>
+            </div>
+            <div id="fulltext-list" class="fulltext-list">
+                <!-- 候補カードがここに入る -->
+            </div>
+            <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
+
+            <!-- ④' AI判定（ビュー切替で表示）: 全文確保済みの未AI判定文献を一括でGemini判定 -->
+            <div id="fulltext-ai" class="fulltext-ai hidden">
+                <div class="fulltext-ai-intro" data-i18n="fulltext_aiIntro"></div>
+                <div class="fulltext-ai-row">
+                    <label class="fulltext-ai-label" data-i18n="fulltext_aiModel"></label>
+                    <select id="fulltext-ai-model" class="fulltext-ai-model"></select>
+                </div>
+                <div class="fulltext-ai-prompt-row">
+                    <label class="fulltext-ai-label" data-i18n="fulltext_aiPrompt"></label>
+                    <textarea id="fulltext-ai-prompt" class="fulltext-ai-prompt" rows="6"></textarea>
+                </div>
+                <div id="fulltext-ai-target" class="fulltext-ai-target"></div>
+                <div class="fulltext-ai-actions">
+                    <button id="fulltext-ai-start-btn" class="btn btn-small btn-primary" data-i18n="fulltext_aiStart"></button>
+                    <button id="fulltext-ai-stop-btn" class="btn btn-small btn-secondary hidden" data-i18n="fulltext_aiStop"></button>
+                </div>
+                <div id="fulltext-ai-progress" class="fulltext-ai-progress hidden">
+                    <div class="fulltext-ai-progress-bar"><div id="fulltext-ai-progress-fill" class="fulltext-ai-progress-fill"></div></div>
+                    <div id="fulltext-ai-progress-text" class="fulltext-ai-progress-text"></div>
+                </div>
+                <div id="fulltext-ai-log" class="fulltext-ai-log"></div>
+
+                <!-- 判定ラウンド: 採用するラウンドをラジオで選択・削除 -->
+                <div class="fulltext-ai-rounds-section">
+                    <div class="fulltext-ai-rounds-head" data-i18n="fulltext_aiRoundsHead"></div>
+                    <div id="fulltext-ai-rounds" class="fulltext-ai-rounds"></div>
+                </div>
+            </div>
+
+            <!-- ④ 結果まとめ + エクスポート（ビュー切替で表示） -->
+            <div id="fulltext-results" class="fulltext-results hidden">
+                <!-- キー開封（ブラインド解除）: admin のみ表示 -->
+                <div id="fulltext-blind-row" class="fulltext-blind-row hidden">
+                    <label class="switch">
+                        <input type="checkbox" id="fulltext-key-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Blind on/off</span>
+                    <span class="fulltext-blind-note" data-i18n="fulltext_blindNote"></span>
+                </div>
+
+                <!-- 判定者選択 -->
+                <div class="fulltext-results-judges">
+                    <div class="fulltext-results-judges-head" data-i18n="fulltext_resultsJudgesHead"></div>
+                    <div id="fulltext-judge-list" class="fulltext-judge-list"></div>
+                    <div id="fulltext-judge-hint" class="fulltext-judge-hint hidden" data-i18n="fulltext_resultsJudgesHint"></div>
+                </div>
+
+                <!-- PRISMA 集計 -->
+                <div id="fulltext-prisma" class="fulltext-prisma"></div>
+
+                <!-- エクスポート -->
+                <div class="fulltext-results-export">
+                    <button id="fulltext-export-csv-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportCsv"></button>
+                    <button id="fulltext-export-ris-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportRis"></button>
+                </div>
+
+                <!-- 結果テーブル -->
+                <div id="fulltext-results-list" class="fulltext-results-list"></div>
+            </div>
         </section>
     </div>
 

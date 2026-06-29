@@ -1,5 +1,14 @@
 // types.ts - 型定義
 
+/**
+ * フルテキストの入手状態
+ * - not_retrieved: 未取得（省略時も同じ扱い）
+ * - cached:        Driveに PDF を保存済み（fulltext_url は Drive リンク）
+ * - retrieved:     外部URLのみ記録（PDFのキャッシュ不可・レガシー含む）
+ * - unavailable:   無料OAソースで見つからなかった
+ */
+export type FulltextStatus = 'not_retrieved' | 'cached' | 'retrieved' | 'unavailable';
+
 export interface Reference {
     ref_id: string;           // UUID
     title: string;
@@ -20,6 +29,8 @@ export interface Reference {
     imported_by?: string;     // email
     dedupe_key?: string;
     screening_set?: string;   // 担当セットID
+    fulltext_url?: string;    // フルテキストURL (Driveキャッシュ / OA直リンク)
+    fulltext_status?: FulltextStatus;
 }
 
 export interface AssignmentConfig {
@@ -42,6 +53,7 @@ export interface Decision {
     decided_at: string;       // ISO 8601
     client_version?: string;
     source_url?: string;
+    screening_phase?: 'tiab' | 'fulltext';  // 省略時は 'tiab' として扱う（後方互換）
 }
 
 export interface ReviewerState {
@@ -59,6 +71,8 @@ export interface ReferenceWithStatus extends Reference {
     allDecisions?: Decision[];  // キーオープン後に全レビュアーの判定を保持
     hasConflict?: boolean;       // 不一致フラグ
     hasAnyLlmDecision?: boolean; // LLM バッチで判定済みか（pending/confirmed/inactive を問わず）
+    myFulltextDecision?: Decision; // 自分のフルテキストフェーズ判定（フルテキストタブで使用）
+    allFulltextDecisions?: Decision[]; // キーオープン後に全レビュアー(+有効LLM)のフルテキスト判定を保持（結果集計で使用）
 }
 
 export interface Config {
@@ -206,6 +220,57 @@ export interface LlmDecisionNote {
     prompt_version: string;
     usageMetadata?: UsageMetadata;
     // LLM 出力解析失敗時のフォールバック印（true なら include 1.0 で安全側に倒したケース）
+    parse_error?: boolean;
+    error_message?: string;
+}
+
+/**
+ * フルテキストAI判定のエビデンス項目。
+ * テキストPDFでは quote（文字列マッチでハイライト）、
+ * 画像onlyのスキャンPDFでは bbox（正規化座標でハイライト）を使う。
+ */
+export interface FulltextEvidence {
+    quote: string;
+    /** PDFページ番号（1始まり） */
+    page: number;
+    /** 正規化bbox [left, top, right, bottom]（各0-1, ページ左上原点）。画像PDF時に使用。 */
+    bbox?: [number, number, number, number];
+    /** 組み入れ寄り(include) / 除外寄り(exclude) どちらの根拠か */
+    polarity?: 'include' | 'exclude';
+}
+
+/**
+ * フルテキストAI判定の出力（Gemini responseSchema に対応）
+ */
+export interface FulltextJudgeOutput {
+    decision: 'include' | 'exclude' | 'maybe';
+    include_probability: number;
+    /** 判定理由（除外時は具体的に） */
+    reason: string;
+    /** 除外時のPRISMA区分（population/intervention/comparator/outcome/study_design/duplicate/other） */
+    exclude_reason_category?: string;
+    evidence: FulltextEvidence[];
+}
+
+/**
+ * フルテキストLLM判定の note フィールドに保存する構造（Decisions タブ）。
+ * TiAb の LlmDecisionNote と区別するため type を 'llm_fulltext' とする。
+ */
+export interface FulltextLlmDecisionNote {
+    type: 'llm_fulltext';
+    execution_id: string;
+    model: string;
+    requested_model?: string;
+    model_version?: string;
+    response_id?: string;
+    include_probability: number;
+    reason: string;
+    exclude_reason_category?: string;
+    evidence: FulltextEvidence[];
+    /** スキャン(画像only)PDFだったか。ハイライト精度の注意表示に使う。 */
+    image_only?: boolean;
+    prompt_version: string;
+    usageMetadata?: UsageMetadata;
     parse_error?: boolean;
     error_message?: string;
 }
@@ -389,3 +454,44 @@ export function getBatchProfile(tier: ManualTier, modelId?: string): BatchProfil
 export const RATE_LIMIT_FREE: RateLimitConfig = BATCH_PROFILES.free.rate;
 export const RATE_LIMIT_PAID: RateLimitConfig = BATCH_PROFILES.tier1.rate;
 export const RATE_LIMIT_TIER2: RateLimitConfig = BATCH_PROFILES.tier2.rate;
+
+// ---------------------------------------------------------------------------
+// フルテキストスクリーニング / データ抽出 アノテーション
+// ---------------------------------------------------------------------------
+
+/**
+ * PDFハイライト位置（PDF.js の TextContent ベース）
+ * - offset: ページ内文字オフセット（主キー、再描画に使用）
+ * - context_before / context_after: 前後50文字（オフセット失敗時のフォールバック）
+ */
+export interface AnnotationPosition {
+    page: number;
+    offset_start: number;
+    offset_end: number;
+    context_before: string;
+    context_after: string;
+}
+
+/**
+ * PDFアノテーション（ハイライト1件 = 1行）
+ *
+ * フルテキストスクリーニングとデータ抽出を同じ型で扱う。
+ * - phase: 'fulltext_screening' のとき category は include_evidence / exclude_evidence
+ * - phase: 'data_extraction' のとき category は 'data_point'、label にフィールド名を入れる
+ *
+ * Google Sheets: Annotations タブに1行1アノテーションで保存する。
+ * position_json 列に AnnotationPosition を JSON 文字列として格納する。
+ */
+export interface Annotation {
+    annotation_id: string;   // UUID
+    ref_id: string;          // References への FK
+    reviewer_id: string;     // email
+    phase: 'fulltext_screening' | 'data_extraction';
+    category: 'include_evidence' | 'exclude_evidence' | 'data_point';
+    label?: string;          // data_extraction 時のフィールド名（例: 'sample_size'）
+    highlighted_text: string;
+    page_number: number;
+    position_json: string;   // JSON.stringify(AnnotationPosition)
+    pdf_url: string;         // アノテーション作成時に使ったPDFのURL
+    created_at: string;      // ISO 8601
+}

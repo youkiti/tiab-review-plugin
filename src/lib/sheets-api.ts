@@ -1,9 +1,11 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
 import { MODEL_ID_MIGRATIONS } from './gemini-api';
 import { t } from './i18n';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
+import { parseFulltextPoolRule } from './fulltext-pool';
+import type { FulltextPoolRule } from './fulltext-pool';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -76,15 +78,17 @@ const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
-    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set'
+    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
+    'fulltext_url', 'fulltext_status'
 ];
 
 
 // Decisions タブのヘッダー
 // 互換性のため labels 列は残すが、機能としては使用しない
+// screening_phase: 'tiab' | 'fulltext' (省略時は 'tiab' 扱い)
 const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
-    'labels', 'note', 'decided_at', 'client_version', 'source_url'
+    'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase'
 ];
 
 /**
@@ -263,6 +267,25 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
         console.error('[ensureHeaders] Error:', error);
         // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
     }
+
+    // Decisions タブも同様に移行する（screening_phase 列などの追加分）
+    // ヘッダーが欠けていると getDecisions がヘッダー基準で読むため、
+    // K列に保存した fulltext 判定が phase 不明 = tiab 扱いになってしまう
+    try {
+        const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A1:Z1`);
+        if (!values || values.length === 0) return;
+
+        const currentHeaders = values[0];
+
+        if (currentHeaders.length < DECISIONS_HEADERS.length) {
+            console.log('[ensureHeaders] Updating Decisions headers...', { current: currentHeaders.length, expected: DECISIONS_HEADERS.length });
+            await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A1:K1`, [DECISIONS_HEADERS]);
+            console.log('[ensureHeaders] Decisions headers updated');
+        }
+    } catch (error) {
+        console.error('[ensureHeaders] Decisions error:', error);
+        // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
+    }
 }
 
 /**
@@ -377,29 +400,34 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
  * 初回 1s → 2s → 4s → 8s → 16s → 32s（最大）で 5 回までリトライする (AGENTS.md 準拠)。
  * 429 以外のエラーは即座に throw する。
  */
+async function fetchGetWithQuotaRetry(url: string, token: string, label: string): Promise<Response> {
+    const maxRetries = 5;
+    let delayMs = 1000;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.status !== 429 || attempt === maxRetries) {
+            return response;
+        }
+        console.warn(`[getSheetValues] 429 quota exceeded for ${label}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs = Math.min(delayMs * 2, 32000);
+    }
+    // ループ終端は到達不能（return か throw のいずれか）
+    throw new Error('fetchGetWithQuotaRetry: unreachable');
+}
+
 async function fetchSheetValuesWithRetry(
     spreadsheetId: string,
     range: string,
     token: string
 ): Promise<Response> {
-    const maxRetries = 5;
-    let delayMs = 1000;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const response = await fetch(
-            `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-            {
-                headers: { 'Authorization': `Bearer ${token}` },
-            }
-        );
-        if (response.status !== 429 || attempt === maxRetries) {
-            return response;
-        }
-        console.warn(`[getSheetValues] 429 quota exceeded for ${range}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        delayMs = Math.min(delayMs * 2, 32000);
-    }
-    // ループ終端は到達不能（return か throw のいずれか）
-    throw new Error('fetchSheetValuesWithRetry: unreachable');
+    return fetchGetWithQuotaRetry(
+        `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+        token,
+        range
+    );
 }
 
 /**
@@ -417,6 +445,29 @@ async function getSheetValues(spreadsheetId: string, range: string): Promise<str
 
     const data = await response.json();
     return data.values || [];
+}
+
+/**
+ * 複数レンジを1リクエストで取得（values:batchGet）
+ * クォータは「リクエスト数」でカウントされるため、複数レンジが必要な場面では
+ * getSheetValues を並べるよりこちらを使うこと（429対策）。
+ * 戻り値は ranges と同じ順序。
+ */
+async function getSheetValuesBatch(spreadsheetId: string, ranges: string[]): Promise<string[][][]> {
+    const token = await getAuthToken();
+    const params = ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&');
+    const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${params}`;
+
+    const response = await fetchGetWithQuotaRetry(url, token, ranges.join(', '));
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to batch get sheet values: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const valueRanges = (data.valueRanges ?? []) as { values?: string[][] }[];
+    return ranges.map((_, i) => valueRanges[i]?.values ?? []);
 }
 
 /**
@@ -472,11 +523,9 @@ async function updateRange(spreadsheetId: string, range: string, values: (string
 }
 
 /**
- * References タブから文献一覧を取得
+ * References タブのシート値を Reference[] に変換
  */
-export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:S`);
-
+function parseReferenceValues(values: string[][]): Reference[] {
     if (values.length <= 1) {
         return []; // ヘッダーのみ or 空
     }
@@ -496,6 +545,14 @@ export async function getReferences(spreadsheetId: string): Promise<Reference[]>
         });
         return ref as unknown as Reference;
     });
+}
+
+/**
+ * References タブから文献一覧を取得
+ */
+export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:U`);
+    return parseReferenceValues(values);
 }
 
 // ...
@@ -529,6 +586,65 @@ export async function addReferences(spreadsheetId: string, references: Reference
     ]);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
+}
+
+/**
+ * 文献の fulltext_url と fulltext_status を更新する（OA URL 解決後に呼び出す）
+ *
+ * REFERENCES_HEADERS での列位置:
+ *   fulltext_url   = 20列目 (T列, 0-indexed: 19)
+ *   fulltext_status = 21列目 (U列, 0-indexed: 20)
+ */
+export async function updateReferenceFulltextUrl(
+    spreadsheetId: string,
+    refId: string,
+    fulltextUrl: string,
+    status: FulltextStatus
+): Promise<void> {
+    await updateReferenceFulltextUrls(spreadsheetId, [{ refId, fulltextUrl, status }]);
+}
+
+/**
+ * 複数文献の fulltext_url / fulltext_status をまとめて更新する（一括OA検索用）
+ * ref_id 列の読み取り1回 + values:batchUpdate 1回で済ませ、APIクォータを節約する。
+ */
+export async function updateReferenceFulltextUrls(
+    spreadsheetId: string,
+    updates: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }>
+): Promise<void> {
+    if (updates.length === 0) return;
+
+    // ref_id 列 (A列) で行番号を特定
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
+    const rowByRefId = new Map<string, number>();
+    values.forEach((row, i) => {
+        if (i > 0 && row[0]) rowByRefId.set(row[0], i + 1); // 1-indexed (ヘッダー行=1)
+    });
+
+    const data = updates
+        .filter(u => rowByRefId.has(u.refId))
+        .map(u => ({
+            range: `${REFERENCES_SHEET}!T${rowByRefId.get(u.refId)}:U${rowByRefId.get(u.refId)}`,
+            values: [[u.fulltextUrl, u.status]],
+        }));
+    if (data.length === 0) return;
+
+    const token = await getAuthToken();
+    const response = await fetch(
+        `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ valueInputOption: 'RAW', data }),
+        }
+    );
+    if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(`Failed to update fulltext urls: ${error?.error?.message || response.statusText}`);
+    }
 }
 
 /**
@@ -636,11 +752,9 @@ async function getSheetIdByName(spreadsheetId: string, sheetName: string): Promi
 }
 
 /**
- * Decisions タブから判定一覧を取得
+ * Decisions タブのシート値を判定一覧に変換
  */
-export async function getDecisions(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
-    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:J`);
-
+function parseDecisionValues(values: string[][]): { decision: Decision; rowIndex: number }[] {
     if (values.length <= 1) {
         return [];
     }
@@ -665,6 +779,68 @@ export async function getDecisions(spreadsheetId: string): Promise<{ decision: D
 }
 
 /**
+ * Decisions タブから判定一覧を取得
+ */
+export async function getDecisions(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
+    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
+    return parseDecisionValues(values);
+}
+
+/**
+ * 自分のフルテキストフェーズ判定を ref_id 別にマップ化（最新優先）
+ * TiAb 画面の集計からは除外されるが、フルテキストタブの状態表示に使う
+ */
+function buildMyFulltextDecisionMap(
+    decisionsData: { decision: Decision; rowIndex: number }[],
+    normalizedReviewerEmail: string
+): Map<string, Decision> {
+    const map = new Map<string, Decision>();
+    if (!normalizedReviewerEmail) return map;
+    decisionsData.forEach(({ decision }) => {
+        if ((decision.screening_phase ?? 'tiab') !== 'fulltext') return;
+        const reviewerId = (decision.reviewer_id || '').trim();
+        const refId = (decision.ref_id || '').trim();
+        if (!refId || reviewerId !== normalizedReviewerEmail) return;
+        const existing = map.get(refId);
+        if (!existing || (decision.decided_at || '') > (existing.decided_at || '')) {
+            map.set(refId, decision);
+        }
+    });
+    return map;
+}
+
+/**
+ * 全レビュアー（および有効な LLM）のフルテキストフェーズ判定を ref_id 別にマップ化する。
+ * TiAb の allDecisions と同じ構造で、結果集計（判定者選択・OR合議・不一致検出）に使う。
+ * 無効な LLM 判定（active Run 配下でない reviewer_id）は除外する。
+ */
+function buildAllFulltextDecisionsMap(
+    decisionsData: { decision: Decision; rowIndex: number }[],
+    activeFulltextAiRound: string | null
+): Map<string, Decision[]> {
+    const map = new Map<string, Decision[]>();
+    decisionsData.forEach(({ decision }) => {
+        if ((decision.screening_phase ?? 'tiab') !== 'fulltext') return;
+        const refId = (decision.ref_id || '').trim();
+        if (!refId) return;
+        if (refId !== decision.ref_id) decision.ref_id = refId;
+        const reviewerId = (decision.reviewer_id || '').trim();
+        if (reviewerId && reviewerId !== decision.reviewer_id) decision.reviewer_id = reviewerId;
+        // フルテキストAI判定(llm:)は「採用ラウンド」のものだけを有効にする。
+        // 採用ラウンド未設定、または別ラウンドの判定は集計から除外する。
+        if (decision.reviewer_id.startsWith('llm:')) {
+            if (!activeFulltextAiRound || decision.reviewer_id !== activeFulltextAiRound) {
+                return;
+            }
+        }
+        const list = map.get(refId);
+        if (list) list.push(decision);
+        else map.set(refId, [decision]);
+    });
+    return map;
+}
+
+/**
  * 文献一覧に判定状態をマージ（キーオープン前）
  */
 export async function getReferencesWithStatus(
@@ -680,6 +856,11 @@ export async function getReferencesWithStatus(
 
     console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
 
+    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
+    const tiabDecisionsData = decisionsData.filter(
+        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
+    );
+
     const normalizedReviewerEmail = (reviewerEmail || '').trim();
     references.forEach((ref) => {
         const refId = (ref.ref_id || '').trim();
@@ -688,11 +869,13 @@ export async function getReferencesWithStatus(
         }
     });
 
+    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
+
     // 自分の判定をマップ化
     const myDecisions = new Map<string, Decision>();
     // Blind ONでもAI Evidenceハイライトに必要なLLM判定だけ保持する
     const llmDecisionsMap = new Map<string, Decision[]>();
-    decisionsData.forEach(({ decision }) => {
+    tiabDecisionsData.forEach(({ decision }) => {
         // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
         const reviewerId = (decision.reviewer_id || '').trim();
         const refId = (decision.ref_id || '').trim();
@@ -733,6 +916,7 @@ export async function getReferencesWithStatus(
             status,
             allDecisions: llmDecisions,
             hasAnyLlmDecision: llmDecisions.length > 0,
+            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
         };
     });
 }
@@ -746,13 +930,19 @@ export async function getReferencesWithAllDecisions(
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
 
-    const [references, decisionsData, llmExecutions] = await Promise.all([
+    const [references, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
         getLlmExecutions(spreadsheetId),
+        getFulltextAiActiveRound(spreadsheetId),
     ]);
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
+
+    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
+    const tiabDecisionsData = decisionsData.filter(
+        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
+    );
 
     const normalizedReviewerEmail = (reviewerEmail || '').trim();
     references.forEach((ref) => {
@@ -761,6 +951,8 @@ export async function getReferencesWithAllDecisions(
             ref.ref_id = refId;
         }
     });
+
+    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
 
     // デバッグ: ref_idのサンプルを表示
     if (decisionsData.length > 0) {
@@ -774,6 +966,9 @@ export async function getReferencesWithAllDecisions(
     // Run/Batch 分離後、active 状態は LLM_Runs.is_active が正となる
     const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions);
     const validLlmExecutionIds = activeBatchIds;
+
+    // 全レビュアー（+採用ラウンドのAI）のフルテキスト判定マップ（結果集計用）
+    const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, activeFulltextAiRound);
 
     console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
         id: e.execution_id,
@@ -791,7 +986,7 @@ export async function getReferencesWithAllDecisions(
     let addedDecisions = 0;
     let addedHuman = 0;
     let addedLlm = 0;
-    decisionsData.forEach(({ decision }) => {
+    tiabDecisionsData.forEach(({ decision }) => {
         const refId = (decision.ref_id || '').trim();
         if (!refId) return;
         const reviewerIdRaw = (decision.reviewer_id || '').trim();
@@ -871,6 +1066,8 @@ export async function getReferencesWithAllDecisions(
             allDecisions,
             hasConflict,
             hasAnyLlmDecision: refIdsWithAnyLlmDecision.has(ref.ref_id),
+            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
+            allFulltextDecisions: allFulltextDecisionsMap.get(ref.ref_id) || [],
         };
     });
 }
@@ -900,10 +1097,14 @@ function detectConflict(decisions: Decision[]): boolean {
  * 判定を保存（新規追加 or 更新）
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
-    // 既存の判定を検索
+    // 既存の判定を検索（screening_phase ごとに分離して上書き）
     const decisionsData = await getDecisions(spreadsheetId);
+    const targetPhase = decision.screening_phase ?? 'tiab';
     const existing = decisionsData.find(
-        ({ decision: d }) => d.ref_id === decision.ref_id && d.reviewer_id === decision.reviewer_id
+        ({ decision: d }) =>
+            d.ref_id === decision.ref_id &&
+            d.reviewer_id === decision.reviewer_id &&
+            (d.screening_phase ?? 'tiab') === targetPhase
     );
 
     const row = [
@@ -917,11 +1118,12 @@ export async function saveDecision(spreadsheetId: string, decision: Decision): P
         decision.decided_at,
         decision.client_version || '',
         decision.source_url || '',
+        decision.screening_phase || '',
     ];
 
     if (existing) {
         // 既存行を更新
-        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:J${existing.rowIndex}`, [row]);
+        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:K${existing.rowIndex}`, [row]);
     } else {
         // 新規追加
         await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
@@ -1126,45 +1328,132 @@ export async function updateReferenceScreeningSets(
     }
 }
 /**
+ * Config タブの共有設定（キー開封・キーワード・フルテキスト候補ルール）
+ */
+export interface ProjectConfigBundle {
+    keyOpened: boolean;
+    keywords: HighlightKeywords;
+    fulltextPoolRule: FulltextPoolRule | null;
+    // 採用するフルテキストAI判定ラウンド（reviewer_id = `llm:{model}@{timestamp}`）。未設定は null。
+    fulltextAiActiveRound: string | null;
+}
+
+const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
+    keyOpened: false,
+    keywords: { include: DEFAULT_INCLUDE_KEYWORDS, exclude: DEFAULT_EXCLUDE_KEYWORDS },
+    fulltextPoolRule: null,
+    fulltextAiActiveRound: null,
+};
+
+/**
+ * Config タブ（Key-Value 形式: A列=キー、B列=値）のシート値を共有設定に変換
+ */
+function parseConfigBundle(values: string[][]): ProjectConfigBundle {
+    let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
+    let excludeKeywords = DEFAULT_EXCLUDE_KEYWORDS;
+    let keyOpened = false;
+    let fulltextPoolRule: FulltextPoolRule | null = null;
+    let fulltextAiActiveRound: string | null = null;
+
+    for (const row of values) {
+        if (row[0] === 'include_keywords' && row[1]) {
+            const keywords = row[1]
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            if (keywords.length > 0) {
+                includeKeywords = keywords;
+            }
+        }
+        if (row[0] === 'exclude_keywords' && row[1]) {
+            const keywords = row[1]
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            if (keywords.length > 0) {
+                excludeKeywords = keywords;
+            }
+        }
+        if (row[0] === 'key_opened') {
+            keyOpened = row[1]?.toLowerCase() === 'true';
+        }
+        if (row[0] === 'fulltext_pool_rule' && row[1]) {
+            fulltextPoolRule = parseFulltextPoolRule(row[1]);
+        }
+        if (row[0] === 'fulltext_ai_active_round') {
+            fulltextAiActiveRound = row[1] ? row[1].trim() || null : null;
+        }
+    }
+
+    return {
+        keyOpened,
+        keywords: { include: includeKeywords, exclude: excludeKeywords },
+        fulltextPoolRule,
+        fulltextAiActiveRound,
+    };
+}
+
+/**
+ * Config タブの共有設定をまとめて取得（1リクエスト）
+ * getKeyOpenedStatus + getHighlightKeywords + getFulltextPoolRule を
+ * 個別に呼ぶとConfigを3回読むため、初期ロードではこちらを使うこと（429対策）。
+ */
+export async function getProjectConfigBundle(spreadsheetId: string): Promise<ProjectConfigBundle> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        return parseConfigBundle(values);
+    } catch (error) {
+        console.log('[getProjectConfigBundle] Config not found, using defaults:', error);
+        return { ...DEFAULT_CONFIG_BUNDLE };
+    }
+}
+
+/**
+ * フルテキストページの初期データをまとめて取得（1リクエスト）
+ * References / Decisions / Config を values:batchGet で取得する。
+ */
+export async function getFulltextPageData(spreadsheetId: string): Promise<{
+    references: Reference[];
+    decisions: { decision: Decision; rowIndex: number }[];
+    config: ProjectConfigBundle;
+}> {
+    try {
+        const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
+            `${REFERENCES_SHEET}!A:U`,
+            `${DECISIONS_SHEET}!A:K`,
+            `${CONFIG_SHEET}!A:B`,
+        ]);
+        return {
+            references: parseReferenceValues(refValues),
+            decisions: parseDecisionValues(decValues),
+            config: parseConfigBundle(configValues),
+        };
+    } catch (error) {
+        // Config タブがない旧シートでは batchGet 全体が失敗するため、Config 抜きで再試行
+        if ((error as Error).message.includes('Unable to parse range')) {
+            console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
+            const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
+                `${REFERENCES_SHEET}!A:U`,
+                `${DECISIONS_SHEET}!A:K`,
+            ]);
+            return {
+                references: parseReferenceValues(refValues),
+                decisions: parseDecisionValues(decValues),
+                config: { ...DEFAULT_CONFIG_BUNDLE },
+            };
+        }
+        throw error;
+    }
+}
+
+/**
  * Config タブからハイライトキーワードを取得
  * Config タブは Key-Value 形式（A列=キー、B列=値）を想定
  * 見つからない場合はデフォルト値を返す
  */
 export async function getHighlightKeywords(spreadsheetId: string): Promise<HighlightKeywords> {
-    let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
-    let excludeKeywords = DEFAULT_EXCLUDE_KEYWORDS;
-
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-
-        for (const row of values) {
-            if (row[0] === 'include_keywords' && row[1]) {
-                const keywords = row[1]
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0);
-                if (keywords.length > 0) {
-                    includeKeywords = keywords;
-                }
-            }
-            if (row[0] === 'exclude_keywords' && row[1]) {
-                const keywords = row[1]
-                    .split(',')
-                    .map(s => s.trim())
-                    .filter(s => s.length > 0);
-                if (keywords.length > 0) {
-                    excludeKeywords = keywords;
-                }
-            }
-        }
-    } catch (error) {
-        console.log('[getHighlightKeywords] Config not found, using defaults:', error);
-    }
-
-    return {
-        include: includeKeywords,
-        exclude: excludeKeywords,
-    };
+    const bundle = await getProjectConfigBundle(spreadsheetId);
+    return bundle.keywords;
 }
 
 /**
@@ -1362,6 +1651,153 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
 }
 
 /**
+ * フルテキスト候補ルールを取得（未設定・不正値は null）
+ */
+export async function getFulltextPoolRule(spreadsheetId: string): Promise<FulltextPoolRule | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'fulltext_pool_rule' && row[1]) {
+                return parseFulltextPoolRule(row[1]);
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getFulltextPoolRule] Config not found, returning null:', error);
+        return null;
+    }
+}
+
+/**
+ * フルテキスト候補ルールを保存
+ */
+export async function saveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
+    try {
+        await trySaveFulltextPoolRule(spreadsheetId, rule);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveFulltextPoolRule] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveFulltextPoolRule(spreadsheetId, rule);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let ruleRowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_pool_rule') ruleRowIndex = index + 1;
+    });
+
+    const value = JSON.stringify(rule);
+    if (ruleRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${ruleRowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_pool_rule', value]]);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// フルテキストAI判定の採用ラウンド（reviewer_id = `llm:{model}@{timestamp}`）
+// ---------------------------------------------------------------------------
+
+/** 採用中のフルテキストAI判定ラウンド（reviewer_id）を取得。未設定は null。 */
+export async function getFulltextAiActiveRound(spreadsheetId: string): Promise<string | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'fulltext_ai_active_round') {
+                const v = (row[1] || '').trim();
+                return v || null;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getFulltextAiActiveRound] Config not found:', error);
+        return null;
+    }
+}
+
+/** 採用するフルテキストAI判定ラウンドを設定する（null で採用解除）。 */
+export async function setFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
+    try {
+        await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySetFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_ai_active_round') rowIndex = index + 1;
+    });
+    const value = reviewerId ?? '';
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_ai_active_round', value]]);
+    }
+}
+
+/**
+ * フルテキストAI判定の1ラウンド（特定 reviewer_id・fulltext フェーズ）の判定行を全削除する。
+ * 採用中ラウンドを削除した場合は採用を解除する。
+ * @returns 削除した行数
+ */
+export async function deleteFulltextAiRound(spreadsheetId: string, reviewerId: string): Promise<number> {
+    const decisionsData = await getDecisions(spreadsheetId);
+    const targetRows = decisionsData
+        .filter(({ decision }) =>
+            decision.reviewer_id === reviewerId &&
+            (decision.screening_phase ?? 'tiab') === 'fulltext'
+        )
+        .map(({ rowIndex }) => rowIndex); // 1始まりのシート行番号
+
+    if (targetRows.length === 0) return 0;
+
+    const sheetId = await getSheetIdByName(spreadsheetId, DECISIONS_SHEET);
+    if (sheetId === null) throw new Error('Decisions sheet not found');
+
+    // deleteDimension は 0-indexed。後ろの行から削除してインデックスのズレを防ぐ。
+    const sorted = [...new Set(targetRows)].sort((a, b) => b - a);
+    const requests = sorted.map(r => ({
+        deleteDimension: {
+            range: { sheetId, dimension: 'ROWS', startIndex: r - 1, endIndex: r },
+        },
+    }));
+
+    const token = await getAuthToken();
+    const response = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests }),
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error?.message || response.statusText);
+    }
+
+    // 採用中ラウンドを消したら採用解除
+    const active = await getFulltextAiActiveRound(spreadsheetId);
+    if (active === reviewerId) {
+        await setFulltextAiActiveRound(spreadsheetId, null).catch(() => { /* 解除失敗は致命でない */ });
+    }
+
+    return targetRows.length;
+}
+
+/**
  * キーオープン状態を取得
  */
 export async function getKeyOpenedStatus(spreadsheetId: string): Promise<boolean> {
@@ -1409,6 +1845,56 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
         await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${keyOpenedRowIndex}`, [[value]]);
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
+    }
+}
+
+/**
+ * フルテキストPDF保存用 Drive フォルダIDを取得（未設定は null）
+ */
+export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<string | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'fulltext_drive_folder' && row[1]) {
+                return row[1];
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
+        return null;
+    }
+}
+
+/**
+ * フルテキストPDF保存用 Drive フォルダIDを保存
+ */
+export async function saveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    try {
+        await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveFulltextDriveFolderId] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_drive_folder') rowIndex = index + 1;
+    });
+
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[folderId]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_drive_folder', folderId]]);
     }
 }
 
@@ -2234,6 +2720,7 @@ export async function appendDecisions(spreadsheetId: string, decisions: Decision
         decision.decided_at,
         decision.client_version || '',
         decision.source_url || '',
+        decision.screening_phase || '',
     ]);
 
     await appendRows(spreadsheetId, DECISIONS_SHEET, rows);
@@ -2261,7 +2748,7 @@ export async function updateDecisionsBatch(
     const token = await getAuthToken();
 
     const requests = updates.map(({ rowIndex, decision }) => ({
-        range: `${DECISIONS_SHEET}!A${rowIndex}:J${rowIndex}`,
+        range: `${DECISIONS_SHEET}!A${rowIndex}:K${rowIndex}`,
         values: [[
             decision.decision_id,
             decision.ref_id,
@@ -2273,6 +2760,7 @@ export async function updateDecisionsBatch(
             decision.decided_at,
             decision.client_version || '',
             decision.source_url || '',
+            decision.screening_phase || '',
         ]],
     }));
 

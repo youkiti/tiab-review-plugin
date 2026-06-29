@@ -36,12 +36,14 @@ export function renderLayout(state: AppState): void {
     // Fix: Ensure LLM/ML sections are hidden if not in their respective tabs/view
     dom.llmSection.classList.toggle('hidden', !(isScreeningView && currentTab === 'llm'));
     dom.mlSection.classList.toggle('hidden', !(isScreeningView && currentTab === 'ml'));
+    dom.fulltextSection.classList.toggle('hidden', !(isScreeningView && currentTab === 'fulltext'));
 
     if (isScreeningView) {
         // タブボタンのアクティブ状態
         dom.tabScreeningBtn.classList.toggle('active', currentTab === 'screening');
         dom.tabLlmBtn.classList.toggle('active', currentTab === 'llm');
         dom.tabMlBtn.classList.toggle('active', currentTab === 'ml');
+        dom.tabFulltextBtn.classList.toggle('active', currentTab === 'fulltext');
 
         // ヘッダータブの表示
         dom.headerTabs.classList.remove('hidden');

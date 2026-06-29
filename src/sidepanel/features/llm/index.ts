@@ -246,7 +246,7 @@ export function setupLlmEventListeners() {
  * 注意: renderLayoutでStore経由でセクション表示が制御されるため、
  * ここではStore更新とLLM初期化のみ行う
  */
-export function switchToTab(tab: 'screening' | 'llm' | 'ml') {
+export function switchToTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') {
     hideToast();
     // Store経由で両方に同期（renderLayoutで表示が更新される）
     syncChangeTab(tab);

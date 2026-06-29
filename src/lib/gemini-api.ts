@@ -170,13 +170,35 @@ const CRITERIA_CONVERSION_SCHEMA = {
 };
 
 /**
- * Gemini APIを呼び出す（タイムアウト付き）
- * timeoutMs はチャンク間の無音タイムアウト（リクエスト全体のタイムアウトではない）。
- * `includeThoughts: true` を指定しているため reasoning 中も思考チャンクが流れ続ける前提で、
- * 90秒無音 = 異常とみなして abort し、processWithRetry のリトライに回す設計。
+ * Gemini API へ渡す part。テキスト or インラインバイナリ（PDF画像等）。
+ * REST(v1beta) のフィールド名に合わせて snake_case を使う。
+ */
+export type GeminiPart =
+    | { text: string }
+    | { inline_data: { mime_type: string; data: string } };
+
+/**
+ * Gemini APIを呼び出す（タイムアウト付き）— テキストプロンプト版（後方互換ラッパー）。
  */
 async function callGeminiApi<T>(
     prompt: string,
+    responseSchema: object,
+    config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
+    timeoutMs: number = 90000
+): Promise<{ result: T; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
+    return callGeminiApiWithParts<T>([{ text: prompt }], responseSchema, config, timeoutMs);
+}
+
+/**
+ * Gemini APIを呼び出す（タイムアウト付き）— parts 版。
+ * テキストに加えて inline_data（PDF等）を同梱できる。フルテキスト判定で使用する。
+ *
+ * timeoutMs はチャンク間の無音タイムアウト（リクエスト全体のタイムアウトではない）。
+ * `includeThoughts: true` を指定しているため reasoning 中も思考チャンクが流れ続ける前提で、
+ * 既定90秒無音 = 異常とみなして abort し、リトライに回す設計。
+ */
+export async function callGeminiApiWithParts<T>(
+    parts: GeminiPart[],
     responseSchema: object,
     config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
     timeoutMs: number = 90000
@@ -195,7 +217,7 @@ async function callGeminiApi<T>(
     const requestBody = {
         contents: [
             {
-                parts: [{ text: prompt }],
+                parts,
             },
         ],
         generationConfig: {

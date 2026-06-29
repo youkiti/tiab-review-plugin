@@ -11,12 +11,13 @@ import type {
 } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
+import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 
 // ========== View型（画面遷移の真実） ==========
 export type View = 'login' | 'project' | 'screening' | 'llm' | 'ml' | 'settings';
 
-// ========== Tab型（screening/llm/ml内の切替） ==========
-export type Tab = 'screening' | 'llm' | 'ml';
+// ========== Tab型（screening/llm/ml/fulltext内の切替） ==========
+export type Tab = 'screening' | 'llm' | 'ml' | 'fulltext';
 
 // ========== SheetInfo型 ==========
 export interface SheetInfo {
@@ -43,6 +44,8 @@ export interface AppState {
         mlState: MlState;
         recentSheets: SheetInfo[];
         isAdmin: boolean;
+        // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
+        fulltextPoolRule: FulltextPoolRule | null;
         // ソースファイル
         sourceFiles: Set<string>;
         selectedSourceFiles: Set<string>;
@@ -97,7 +100,7 @@ export interface AppState {
             termFilterUseAnd: boolean;
             treatMlAsManual: boolean;
             showAiHighlights: boolean;
-            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }>;
+            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>;
             abstractSubsectionBreakEnabled: boolean;
             abstractSubsectionHeadings: string[];
         };
@@ -125,6 +128,7 @@ export type Action =
     | { type: 'data/setMlState'; mlState: MlState }
     | { type: 'data/setRecentSheets'; sheets: SheetInfo[] }
     | { type: 'data/setIsAdmin'; isAdmin: boolean }
+    | { type: 'data/setFulltextPoolRule'; rule: FulltextPoolRule | null }
     | { type: 'data/setSourceFiles'; files: Set<string> }
     | { type: 'data/setSelectedSourceFiles'; files: Set<string> }
     | { type: 'data/toggleSourceFile'; file: string }

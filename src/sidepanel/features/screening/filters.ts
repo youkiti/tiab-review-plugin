@@ -11,9 +11,10 @@ import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
-import { isHumanDecision, isConfirmedMlDecision, isMlDecision } from '../../../lib/client-version';
+import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
+import { isInFulltextPool, isTiabDecision } from '../../../lib/fulltext-pool';
 import { getReferenceAssignmentSet } from '../assignment';
-import { computeReviewerKey, hasEffectiveConflict } from '../../render/helpers';
+import { hasEffectiveConflict } from '../../render/helpers';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -40,93 +41,43 @@ export function setFilterDependencies(deps: {
 }
 
 /**
+ * 文献の全判定を集める（allDecisions + myDecision、重複排除）
+ */
+function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
+    const list = [...(r.allDecisions ?? [])];
+    if (r.myDecision && !list.some(d => d.decision_id === r.myDecision!.decision_id)) {
+        list.push(r.myDecision);
+    }
+    return list;
+}
+
+/**
  * フルテキスト候補の判定
- * 手動（複数人含む）、ML、LLMの3カテゴリのうち、2つ以上が「Include」であるかを判定
+ * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
+ * - 未設定:
+ *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *   - 非管理者: 自分が TiAb で Include した文献
  */
 function isFulltextCandidate(r: ReferenceWithStatus): boolean {
-    let includeCategories = 0;  // Includeと判定したカテゴリ数
+    const rule = state.fulltextPoolRule;
+    const decisions = collectRefDecisions(r);
+    if (rule) {
+        return isInFulltextPool(decisions, rule);
+    }
 
     const userEmail = state.userEmail;
-
-    // 無効化されたレビュアーの判定は無視（Blind OFF 時のみ）
-    const isReviewerEnabled = (d: Decision): boolean => {
-        if (!state.isKeyOpened) return true;
-        const key = computeReviewerKey(d, state.treatMlAsManual);
-        return key !== '' && state.enabledReviewers.has(key);
-    };
-
-    // ヘルパー: 特定の条件でInclude判定があるか
-    const hasInclude = (check: (d: Decision) => boolean) => {
-        return (r.allDecisions?.some(d => isReviewerEnabled(d) && check(d) && d.decision === 'include')) ||
-            (r.myDecision && isReviewerEnabled(r.myDecision) && check(r.myDecision) && r.myDecision.decision === 'include');
-    };
-
-    // 1. 手動判定（複数人対応）
-    // treatMlAsManualがONの場合、0.7.0-mlも手動判定（ただし自分のものに限る）として扱う
-    // ※ 他人の判定の場合は、その人がMLを使っていても手動扱いとするかどうかは議論の余地があるが、
-    //    ここではシンプルに「バージョン」で判断する。
-    //    ただしisFulltextCandidateは「カテゴリ」のカウントなので、
-    //    「手動」カテゴリにMLを含めるかどうかが重要。
-
-    // 手動カテゴリ判定条件:
-    // - client_version === '0.1.0' (純粋手動)
-    // - OR (treatMlAsManual && client_version startsWith '0.7.0-ml' && reviewer_id === me) (自分のML判定)
-    const isManual = (d: Decision) => {
-        if (isHumanDecision(d.client_version)) return true;
-        if (state.treatMlAsManual && d.reviewer_id === userEmail && isConfirmedMlDecision(d.client_version)) {
-            return true;
-        }
-        return false;
-    };
-
-    if (hasInclude(isManual)) includeCategories++;
-
-    // 2. ML判定
-    // treatMlAsManualがONの場合、ここでのカウントはどうするか？
-    // 「手動」でカウント済みなら「ML」ではカウントしないべきか？（二重計上防止）
-    // -> はい。ただし、「自分の手動(ML含む)」とは別に「純粋なシステムML推論」があるならそれをカウントすべき。
-    //    現状のシステム構成では '0.7.0-ml' はユーザーの確認済みアクション。
-    //    -ml を含む他の判定（自動判定など）があればここでカウント。
-    //    '0.7.0-ml' (確認済み) は isManual で拾われるので、ここでは
-    //    '0.7.0-ml' 以外で -ml を含むもの（例: -ml-auto）を対象にするのが適切かもしれないが、
-    //    現状の定義では -ml を含む判定はすべてMLカテゴリだった。
-
-    // 修正方針:
-    // treatMlAsManual = true の場合:
-    //   - 手動カテゴリ: 0.1.0 OR 0.7.0-ml
-    //   - MLカテゴリ: -mlを含むもの (ただし0.7.0-mlですでに手動カウントされた判定と重複してカテゴリ2を満たすのは避けたい)
-    //   
-    //   例: 0.7.0-ml で include した場合
-    //   -> 手動カテゴリ: OK
-    //   -> MLカテゴリ: OK (既存ロジックだと)
-    //   -> 合計2カテゴリ -> フルテキスト候補になってしまう。これは意図通りか？
-    //      「MDとML両方でInclude」=有力候補。
-    //      しかし、同一判定が両方に寄与するのはおかしい。
-    //      
-    //      したがって、MLカテゴリの判定では「手動カテゴリでカウントされた判定」を除外する必要がある。
-
-    const isMl = (d: Decision) => {
-        // ML系である
-        if (!isMlDecision(d.client_version)) return false;
-
-        // 手動とみなされたものは除外
-        if (isManual(d)) return false;
-
-        return true;
-    };
-
-    if (hasInclude(isMl)) includeCategories++;
-
-    // 3. LLM判定 - reviewer_idがllm:で始まる判定
-    const llmInclude = r.allDecisions?.some(d =>
-        d.reviewer_id.startsWith('llm:') &&
+    return decisions.some(d =>
         d.decision === 'include' &&
-        isReviewerEnabled(d)
+        isTiabDecision(d) &&
+        (state.isAdmin || d.reviewer_id === userEmail)
     );
+}
 
-    if (llmInclude) includeCategories++;
-
-    return includeCategories >= 2;
+/**
+ * フルテキスト候補の一覧を取得（フルテキストタブで使用）
+ */
+export function getFulltextCandidateList(): ReferenceWithStatus[] {
+    return state.references.filter(isFulltextCandidate);
 }
 
 /**
@@ -261,8 +212,9 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
             const allowed = new Set<string>();
             if (filter.include) allowed.add('include');
             if (filter.exclude) allowed.add('exclude');
-            // 両方ON or 両方OFF はこのレビュアーのフィルターを適用しない
-            if (allowed.size === 2 || allowed.size === 0) continue;
+            if (filter.maybe ?? true) allowed.add('maybe');
+            // 全ON or 全OFF はこのレビュアーのフィルターを適用しない
+            if (allowed.size === 3 || allowed.size === 0) continue;
 
             filtered = filtered.filter(r => {
                 const decision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);

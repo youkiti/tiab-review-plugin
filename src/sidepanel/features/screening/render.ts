@@ -11,6 +11,7 @@ import type { ReferenceWithStatus } from '../../../lib/types';
 import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
+import { isInFulltextPool } from '../../../lib/fulltext-pool';
 import { t } from '../../../lib/i18n';
 import type { DecisionStatus } from '../../../lib/types';
 
@@ -197,6 +198,7 @@ export function renderCurrentReference() {
         dom.refSourceBadge.classList.add('hidden');
         dom.refTrialRegistryNote.classList.add('hidden');
         dom.refDecisionStatusRow.classList.add('hidden');
+        dom.btnOpenFulltext.classList.add('hidden');
         dom.navPosition.textContent = '0 / 0';
         dom.progressText.textContent = `0 / ${state.references.length}`;
         dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
@@ -308,6 +310,31 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
 
     // Trial registry 由来の場合の注釈
     renderTrialRegistryNote(ref);
+
+    // フルテキストを開くボタン:
+    // - 候補ルール設定済み: ルール上プールに入る文献に表示（フィルタと同条件）
+    // - 未設定: 管理者は全レビュアー、自分以外は自分の TiAb Include に表示
+    const rule = state.fulltextPoolRule;
+    const decisions = [...(ref.allDecisions ?? [])];
+    if (ref.myDecision && !decisions.some(d => d.decision_id === ref.myDecision!.decision_id)) {
+        decisions.push(ref.myDecision);
+    }
+    let showFulltextBtn: boolean;
+    if (rule) {
+        showFulltextBtn = isInFulltextPool(decisions, rule);
+    } else {
+        showFulltextBtn = decisions.some(d =>
+            d.decision === 'include' &&
+            (d.screening_phase ?? 'tiab') === 'tiab' &&
+            (state.isAdmin || d.reviewer_id === state.userEmail)
+        );
+    }
+    if (showFulltextBtn) {
+        dom.btnOpenFulltext.classList.remove('hidden');
+        dom.btnOpenFulltext.dataset['refId'] = ref.ref_id;
+    } else {
+        dom.btnOpenFulltext.classList.add('hidden');
+    }
 
     const myStatus = (ref.myDecision?.decision || 'pending') as DecisionStatus | 'pending';
     renderDecisionChip(dom.refDecisionChip, dom.refDecisionStatusRow, myStatus);

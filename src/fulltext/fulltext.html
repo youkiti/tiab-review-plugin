@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiAb Review - Full-text Screening</title>
+    <link rel="stylesheet" href="fulltext.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- ヘッダー -->
+        <header class="ft-header">
+            <div class="ft-header-left">
+                <h1 class="ft-title">Full-text Screening</h1>
+            </div>
+            <div class="ft-header-right">
+                <span id="ft-overall" class="ft-overall" title="候補プール全体の判定進捗">
+                    <span id="ft-overall-text" class="ft-overall-text"></span>
+                    <span class="ft-overall-bar"><span id="ft-overall-fill" class="ft-overall-fill"></span></span>
+                </span>
+                <span id="ft-progress" class="ft-progress"></span>
+            </div>
+        </header>
+
+        <main class="ft-main">
+            <!-- 左ペイン: PDFビュワー -->
+            <section class="ft-pdf-pane" id="ft-pdf-pane">
+                <!-- 書誌情報バー: PDF本文と照合して誤りPDFでないか確認できる -->
+                <div id="ft-biblio" class="ft-biblio hidden">
+                    <div id="ft-biblio-title" class="ft-biblio-title"></div>
+                    <div id="ft-biblio-meta" class="ft-biblio-meta"></div>
+                    <div id="ft-biblio-ids" class="ft-biblio-ids"></div>
+                </div>
+                <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
+                    <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
+                    <!-- PDF未保存時に表示: ローカルPDFをアップロードする導線
+                         （論文ページ埋め込み中でも手元のPDFを保存できる） -->
+                    <button id="ft-upload-btn" class="btn btn-secondary hidden">⬆ PDFをアップロード</button>
+                    <!-- リンクのみPDFをインライン表示できたが自動保存できなかった時の手動保存導線 -->
+                    <button id="ft-save-pdf-btn" class="btn btn-secondary hidden">このPDFを保存</button>
+                    <!-- PDF保存済み時のみ表示: 差し替え導線 -->
+                    <button id="ft-replace-btn" class="btn btn-secondary hidden">別のPDFをアップロード</button>
+                    <button id="ft-delete-btn" class="btn btn-secondary hidden">PDFを削除</button>
+                    <input type="file" id="ft-upload-input" accept="application/pdf,.pdf" class="hidden">
+                </div>
+                <div id="ft-pdf-viewer" class="ft-pdf-viewer">
+                    <!-- PDF.js が全ページの canvas + テキスト/ハイライトレイヤーを描画する。
+                         Drive保存済み(cached)PDFのバイト列が取得できた時のみ使用する。 -->
+                    <div id="ft-pdf-canvas-container" class="ft-pdf-canvas-container hidden"></div>
+                    <div id="ft-pdf-placeholder" class="ft-pdf-placeholder">
+                        PDFが取得されていません
+                    </div>
+                    <!-- Drive保存済みPDFの表示用（blob: または Drive プレビュー埋め込み）
+                         Chrome内蔵PDFビュワーを使うため sandbox は付けない -->
+                    <iframe id="ft-pdf-frame" class="ft-pdf-frame hidden" title="フルテキストPDF"></iframe>
+                    <!-- フルテキスト未発見時に論文ページを埋め込み表示 -->
+                    <iframe id="ft-article-frame" class="ft-article-frame hidden"
+                        referrerpolicy="no-referrer"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                    <!-- PDFドラッグ&ドロップ用オーバーレイ。
+                         dragenter時に最前面へ出して iframe へのドロップを奪う。 -->
+                    <div id="ft-drop-overlay" class="ft-drop-overlay hidden">
+                        <div class="ft-drop-overlay-inner">PDFをここにドロップしてアップロード</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右ペイン: 決断 + アノテーション一覧 -->
+            <aside class="ft-decision-pane" id="ft-decision-pane">
+                <!-- 決断パネル -->
+                <section class="ft-panel ft-decision-panel">
+                    <h2 class="ft-panel-title">判定</h2>
+                    <div class="ft-decision-buttons">
+                        <button id="ft-btn-include" class="btn btn-include" data-decision="include" title="組み入れ (i)">組み入れ (i)</button>
+                        <button id="ft-btn-exclude" class="btn btn-exclude" data-decision="exclude" title="除外 (e)">除外 (e)</button>
+                        <button id="ft-btn-maybe" class="btn btn-maybe" data-decision="maybe" title="保留 (m)">保留 (m)</button>
+                    </div>
+                    <div id="ft-reason-area" class="ft-reason-area hidden">
+                        <label class="ft-reason-label">除外理由 (PRISMA)</label>
+                        <select id="ft-reason-select" class="ft-reason-select" size="7">
+                            <option value="population">1. Population 不適合</option>
+                            <option value="intervention">2. Intervention 不適合</option>
+                            <option value="comparator">3. Comparator 不適合</option>
+                            <option value="outcome">4. Outcome 不適合</option>
+                            <option value="study_design">5. Study design 不適合</option>
+                            <option value="duplicate">6. 重複</option>
+                            <option value="other">7. その他</option>
+                        </select>
+                        <div class="ft-reason-hint">数字 1〜7 で選択 ／ ↑↓ で移動 ／ Enter で確定して次へ</div>
+                        <textarea id="ft-reason-note" class="ft-reason-note" placeholder="補足メモ（任意）" rows="3"></textarea>
+                    </div>
+                    <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>
+                </section>
+
+                <!-- アノテーション一覧 -->
+                <section class="ft-panel ft-annotations-panel">
+                    <h2 class="ft-panel-title">
+                        ハイライト
+                        <label class="ft-highlight-toggle">
+                            <input type="checkbox" id="ft-highlight-checkbox" checked>
+                            <span>表示</span>
+                        </label>
+                    </h2>
+                    <div id="ft-annotations-list" class="ft-annotations-list">
+                        <!-- アノテーションカードがここに入る -->
+                    </div>
+                </section>
+
+                <!-- ナビゲーション -->
+                <div class="ft-nav">
+                    <button id="ft-prev-btn" class="btn btn-secondary">← 前</button>
+                    <button id="ft-next-btn" class="btn btn-secondary">次 →</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="fulltext.js"></script>
+</body>
+
+</html>

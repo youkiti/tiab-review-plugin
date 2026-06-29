@@ -221,6 +221,9 @@
   "screening_trialRegistryNote": {
     "message": "Note: This entry is from a trial registry, so the abstract is a concatenation of registration fields. Please consult the original registry for the full record."
   },
+  "screening_openFulltext": {
+    "message": "Open Full Text →"
+  },
   "nav_prev": {
     "message": "Prev (←)"
   },
@@ -247,6 +250,324 @@
   },
   "nav_tabAiTitle": {
     "message": "AI Review"
+  },
+  "nav_tabFulltext": {
+    "message": "📄 Full-text"
+  },
+  "nav_tabFulltextTitle": {
+    "message": "Full-text Screening"
+  },
+  "fulltext_progressLine": {
+    "message": "Full-text decided: $1 / $2"
+  },
+  "fulltext_ruleLine": {
+    "message": "Pool rule: ≥$1 of $2 votes to include"
+  },
+  "fulltext_ruleUnset": {
+    "message": "⚠ Pool rule: not set (provisionally showing your TiAb includes)"
+  },
+  "fulltext_ruleEdit": {
+    "message": "✎ Edit"
+  },
+  "fulltext_ruleSet": {
+    "message": "Set rule"
+  },
+  "fulltext_obtainedLine": {
+    "message": "Full texts obtained: $1 / $2"
+  },
+  "fulltext_statusBreakdown": {
+    "message": "Saved to Drive $1 · link only $2 · not retrieved $3 · unavailable $4"
+  },
+  "fulltext_fetchBtn": {
+    "message": "⬇ Fetch free full texts ($1)"
+  },
+  "fulltext_fetchCancel": {
+    "message": "Cancel"
+  },
+  "fulltext_retryUnavailable": {
+    "message": "Retry unavailable too"
+  },
+  "fulltext_fetchProgress": {
+    "message": "Searching $1 / $2… (PDFs found are saved to Drive)"
+  },
+  "fulltext_fetchDone": {
+    "message": "Done: saved to Drive $1 · link only $2 · not found $3"
+  },
+  "fulltext_fetchCancelled": {
+    "message": "Cancelled (partial results were saved)."
+  },
+  "fulltext_permissionHint": {
+    "message": "All-sites access was not granted; PDFs outside PMC may be recorded as link only"
+  },
+  "fulltext_sheetSaveError": {
+    "message": "Save error: $1"
+  },
+  "fulltext_badgeCached": {
+    "message": "🟢 Saved to Drive"
+  },
+  "fulltext_badgeLinked": {
+    "message": "🔗 Link only"
+  },
+  "fulltext_badgeMissing": {
+    "message": "⚪ Not retrieved"
+  },
+  "fulltext_badgeUnavailable": {
+    "message": "🔴 Unavailable"
+  },
+  "fulltext_actionFetch": {
+    "message": "🔍 Try fetch"
+  },
+  "fulltext_actionFetchTitle": {
+    "message": "Search free OA sources and save the PDF to Drive if found"
+  },
+  "fulltext_actionFetching": {
+    "message": "Fetching…"
+  },
+  "fulltext_actionUpload": {
+    "message": "📤 Upload PDF"
+  },
+  "fulltext_actionUploadTitle": {
+    "message": "Save a local PDF to Drive and link it to this reference"
+  },
+  "fulltext_actionDoi": {
+    "message": "🔗 DOI/PubMed"
+  },
+  "fulltext_actionDoiTitle": {
+    "message": "Open the publisher page (DOI/PubMed) to find the PDF"
+  },
+  "fulltext_actionOpenPdf": {
+    "message": "📄 Open PDF"
+  },
+  "fulltext_actionOpenPdfTitle": {
+    "message": "Open the PDF saved to Drive in a new tab"
+  },
+  "fulltext_actionOpenLink": {
+    "message": "🔗 Open full text"
+  },
+  "fulltext_actionOpenLinkTitle": {
+    "message": "Open the open-access full text in a new tab (if the PDF does not open directly, the publisher page is shown)"
+  },
+  "fulltext_uploading": {
+    "message": "Uploading PDF to Drive…"
+  },
+  "fulltext_uploadDone": {
+    "message": "PDF saved to Drive"
+  },
+  "fulltext_uploadError": {
+    "message": "Upload failed: $1"
+  },
+  "fulltext_uploadNotPdf": {
+    "message": "Please select a PDF file"
+  },
+  "fulltext_filterAll": {
+    "message": "All ($1)"
+  },
+  "fulltext_filterMissing": {
+    "message": "Not obtained ($1)"
+  },
+  "fulltext_filterObtained": {
+    "message": "Obtained ($1)"
+  },
+  "fulltext_filterUndecided": {
+    "message": "Undecided ($1)"
+  },
+  "fulltext_modeList": {
+    "message": "Candidates"
+  },
+  "fulltext_modeResults": {
+    "message": "Review"
+  },
+  "fulltext_modeAi": {
+    "message": "AI judge"
+  },
+  "fulltext_resultOpenHint": {
+    "message": "Click to open the full-text PDF (with AI highlights) in a new tab"
+  },
+  "fulltext_aiIntro": {
+    "message": "Batch-judge candidates whose full text is secured (saved to Drive) and not yet AI-judged by sending the whole PDF to Gemini. The AI is stored as an independent reviewer, separate from human review."
+  },
+  "fulltext_aiModel": {
+    "message": "Model"
+  },
+  "fulltext_aiPrompt": {
+    "message": "Screening prompt (prefilled from TiAb settings)"
+  },
+  "fulltext_aiStart": {
+    "message": "Start batch AI judging"
+  },
+  "fulltext_aiStop": {
+    "message": "Stop"
+  },
+  "fulltext_aiTarget": {
+    "message": "Targets: $1 (full text secured, not yet AI-judged)"
+  },
+  "fulltext_aiTargetSub": {
+    "message": "Full text secured total: $1"
+  },
+  "fulltext_aiProgress": {
+    "message": "$1 / $2 done (ok $3 / failed $4)"
+  },
+  "fulltext_aiStarted": {
+    "message": "Started AI judging of $1 item(s)"
+  },
+  "fulltext_aiCancelled": {
+    "message": "Cancelled"
+  },
+  "fulltext_aiCancelling": {
+    "message": "Cancelling… (stops after the current item finishes)"
+  },
+  "fulltext_aiDone": {
+    "message": "AI judging finished (ok $1 / failed $2)"
+  },
+  "fulltext_aiNoTarget": {
+    "message": "No targets (no full-text-secured, not-yet-AI-judged references)"
+  },
+  "fulltext_aiErrNoDrive": {
+    "message": "Could not resolve the Drive PDF file ID"
+  },
+  "fulltext_aiRoundsHead": {
+    "message": "Judgment rounds (select which to adopt)"
+  },
+  "fulltext_aiRoundsEmpty": {
+    "message": "No AI judgment rounds yet. Run a batch AI judging above to create one."
+  },
+  "fulltext_aiRoundCounts": {
+    "message": "include $1 · exclude $2 · maybe $3 ($4 total)"
+  },
+  "fulltext_aiRoundAdopt": {
+    "message": "Adopt"
+  },
+  "fulltext_aiRoundDelete": {
+    "message": "Delete"
+  },
+  "fulltext_aiRoundDeleteConfirm": {
+    "message": "Delete all judgments in this AI round? This cannot be undone."
+  },
+  "fulltext_aiRoundDeleted": {
+    "message": "Round deleted ($1 items)"
+  },
+  "fulltext_aiRoundAdopted": {
+    "message": "Adopted this round"
+  },
+  "fulltext_aiRoundNone": {
+    "message": "None adopted"
+  },
+  "fulltext_resultsJudgesHead": {
+    "message": "Judges to aggregate (min 1; include = OR)"
+  },
+  "fulltext_resultsJudgesHint": {
+    "message": "Select at least one judge."
+  },
+  "fulltext_resultsJudgesBlind": {
+    "message": "After the key is opened (unblinded), results aggregate across all reviewers. Currently showing your own decisions only."
+  },
+  "fulltext_blindNote": {
+    "message": "Turn ON to aggregate all reviewers + AI (admin only)"
+  },
+  "fulltext_exportCsv": {
+    "message": "Export CSV"
+  },
+  "fulltext_exportRis": {
+    "message": "Export RIS"
+  },
+  "fulltext_prismaTitle": {
+    "message": "Results summary (PRISMA full-text stage)"
+  },
+  "fulltext_prismaCandidates": {
+    "message": "Candidates: $1"
+  },
+  "fulltext_prismaObtained": {
+    "message": "Full text obtained: $1"
+  },
+  "fulltext_prismaInclude": {
+    "message": "Included: $1"
+  },
+  "fulltext_prismaExclude": {
+    "message": "Excluded: $1"
+  },
+  "fulltext_prismaMaybe": {
+    "message": "Maybe: $1"
+  },
+  "fulltext_prismaPending": {
+    "message": "Undecided: $1"
+  },
+  "fulltext_prismaConflict": {
+    "message": "Conflicts: $1"
+  },
+  "fulltext_prismaExclReasons": {
+    "message": "Exclusion reasons"
+  },
+  "fulltext_resultEmpty": {
+    "message": "No candidates."
+  },
+  "fulltext_resultConflictBadge": {
+    "message": "Conflict"
+  },
+  "fulltext_exportNoData": {
+    "message": "No candidates to export."
+  },
+  "fulltext_exportNoJudge": {
+    "message": "Select at least one judge."
+  },
+  "fulltext_exportConflictConfirm": {
+    "message": "$1 record(s) have disagreement between judges. Inclusion is resolved by OR (included if any judge says Include). Export anyway?"
+  },
+  "fulltext_exportCsvDone": {
+    "message": "Exported $1 record(s) to CSV."
+  },
+  "fulltext_exportRisDone": {
+    "message": "Exported $1 record(s) to RIS."
+  },
+  "ftRule_desc": {
+    "message": "Each checked reviewer's TiAb decision counts as a vote; references with at least the required number of Include votes become full-text candidates. This setting is shared project-wide. Configuring after TiAb screening is complete is recommended."
+  },
+  "ftRule_blocked": {
+    "message": "The pool rule can be configured after the key is opened (blinding lifted). Until then, your own TiAb includes are used as candidates."
+  },
+  "ftRule_noVoters": {
+    "message": "No TiAb decisions yet. Continue TiAb screening first."
+  },
+  "ftRule_thresholdLabel": {
+    "message": "Required Include votes:"
+  },
+  "ftRule_voterCount": {
+    "message": "(selected: $1 votes)"
+  },
+  "ftRule_includeCount": {
+    "message": "Include $1"
+  },
+  "ftRule_presetsLabel": {
+    "message": "Presets:"
+  },
+  "ftRule_presetHuman": {
+    "message": "Humans only · 1 vote"
+  },
+  "ftRule_presetMajority": {
+    "message": "All · majority"
+  },
+  "ftRule_selectVoter": {
+    "message": "Select at least one reviewer."
+  },
+  "ftRule_preview": {
+    "message": "→ Full-text candidates under this rule: $1 of $2"
+  },
+  "ftRule_save": {
+    "message": "Save this rule"
+  },
+  "ftRule_saving": {
+    "message": "Saving..."
+  },
+  "ftRule_close": {
+    "message": "Close"
+  },
+  "ftRule_saveFailed": {
+    "message": "Save failed: $1"
+  },
+  "fulltext_emptyList": {
+    "message": "No full-text candidates yet. Continue TiAb screening first."
+  },
+  "fulltext_openTitle": {
+    "message": "Open full-text page"
   },
   "filter_pending": {
     "message": "Pending"
@@ -305,11 +626,17 @@
   "filter_excludeDecision": {
     "message": "(❌ Exclude)"
   },
+  "filter_maybeDecision": {
+    "message": "(🟡 Maybe)"
+  },
   "filter_includeLabel": {
     "message": "Include"
   },
   "filter_excludeLabel": {
     "message": "Exclude"
+  },
+  "filter_maybeLabel": {
+    "message": "Maybe"
   },
   "filter_sourceFiles": {
     "message": "Source Files"
@@ -539,9 +866,6 @@
         "content": "$1"
       }
     }
-  },
-  "import_endnoteEnlpUnsupported": {
-    "message": "EndNote .enl / .enlp files cannot be imported directly. In EndNote, choose File → Export and select XML, then upload that .xml file."
   },
   "export_noData": {
     "message": "No references to export"

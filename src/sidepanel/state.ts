@@ -5,6 +5,7 @@
 
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
+import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 
 // ========== Private State Variables ==========
@@ -36,6 +37,9 @@ let _highlightKeywords: HighlightKeywords = { include: [], exclude: [] };
 let _isKeyOpened = false;
 let _isAdmin = false;
 
+// フルテキスト候補ルール（Configシート共有設定、未設定はnull）
+let _fulltextPoolRule: FulltextPoolRule | null = null;
+
 // ソースファイルフィルター
 let _sourceFiles: Set<string> = new Set();
 let _selectedSourceFiles: Set<string> = new Set();
@@ -56,7 +60,7 @@ let _abstractSubsectionHeadings: string[] = [];
 let _activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];
 
 // LLM関連
-let _currentTab: 'screening' | 'llm' | 'ml' = 'screening';
+let _currentTab: 'screening' | 'llm' | 'ml' | 'fulltext' = 'screening';
 let _llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
 let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
@@ -66,7 +70,7 @@ let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 let _showAiHighlights = true; // AIのEvidenceをハイライトするかどうか（デフォルトON）
-let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
+let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
 let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 
 import { createInitialMlState, MlState } from '../lib/ml/types';
@@ -157,6 +161,9 @@ export const state = {
     get isAdmin() { return _isAdmin; },
     setIsAdmin(admin: boolean) { _isAdmin = admin; },
 
+    get fulltextPoolRule() { return _fulltextPoolRule; },
+    setFulltextPoolRule(rule: FulltextPoolRule | null) { _fulltextPoolRule = rule; },
+
     // ----- Source File Filters -----
     get sourceFiles() { return _sourceFiles; },
     setSourceFiles(files: Set<string>) { _sourceFiles = files; },
@@ -216,7 +223,7 @@ export const state = {
 
     // ----- LLM State -----
     get currentTab() { return _currentTab; },
-    setCurrentTab(tab: 'screening' | 'llm' | 'ml') { _currentTab = tab; },
+    setCurrentTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') { _currentTab = tab; },
 
     get llmConfig() { return _llmConfig; },
     setLlmConfig(config: LlmConfig) { _llmConfig = config; },
@@ -254,7 +261,7 @@ export const state = {
     setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
 
     get aiDecisionFilter() { return _aiDecisionFilter; },
-    setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean }>) { _aiDecisionFilter = filter; },
+    setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>) { _aiDecisionFilter = filter; },
 
     get treatMlAsManual() { return _treatMlAsManual; },
     setTreatMlAsManual(value: boolean) { _treatMlAsManual = value; },
@@ -270,6 +277,7 @@ export const state = {
         _references = [];
         _isKeyOpened = false;
         _isAdmin = false;
+        _fulltextPoolRule = null;
         _currentIndex = 0;
         _currentFilter = 'pending';
         _reviewHistoryRefIds = [];
@@ -294,6 +302,7 @@ export const state = {
     resetForBack() {
         _spreadsheetId = '';
         _references = [];
+        _fulltextPoolRule = null;
         _currentIndex = 0;
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;

@@ -143,9 +143,15 @@ export function renderReviewerFilter() {
             filterContainer.style.opacity = '0.4';
         }
 
-        const currentFilter = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
+        const currentFilter = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true, maybe: true };
 
-        const buildDecisionToggle = (kind: 'include' | 'exclude') => {
+        const decisionLabels: Record<'include' | 'exclude' | 'maybe', { text: string; title: string }> = {
+            include: { text: t('filter_includeDecision'), title: t('filter_includeLabel') },
+            exclude: { text: t('filter_excludeDecision'), title: t('filter_excludeLabel') },
+            maybe: { text: t('filter_maybeDecision'), title: t('filter_maybeLabel') },
+        };
+
+        const buildDecisionToggle = (kind: 'include' | 'exclude' | 'maybe') => {
             const wrapper = document.createElement('label');
             wrapper.style.display = 'flex';
             wrapper.style.alignItems = 'center';
@@ -154,11 +160,11 @@ export function renderReviewerFilter() {
 
             const input = document.createElement('input');
             input.type = 'checkbox';
-            input.checked = currentFilter[kind];
+            input.checked = currentFilter[kind] ?? true;
             input.disabled = !isReviewerEnabled;
             input.addEventListener('change', (e) => {
                 e.stopPropagation();
-                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true };
+                const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true, maybe: true };
                 state.setAiDecisionFilter({
                     ...state.aiDecisionFilter,
                     [reviewerId]: { ...prev, [kind]: input.checked }
@@ -168,8 +174,8 @@ export function renderReviewerFilter() {
             });
 
             const text = document.createElement('span');
-            text.textContent = kind === 'include' ? t('filter_includeDecision') : t('filter_excludeDecision');
-            text.title = kind === 'include' ? t('filter_includeLabel') : t('filter_excludeLabel');
+            text.textContent = decisionLabels[kind].text;
+            text.title = decisionLabels[kind].title;
 
             wrapper.appendChild(input);
             wrapper.appendChild(text);
@@ -178,6 +184,7 @@ export function renderReviewerFilter() {
 
         filterContainer.appendChild(buildDecisionToggle('include'));
         filterContainer.appendChild(buildDecisionToggle('exclude'));
+        filterContainer.appendChild(buildDecisionToggle('maybe'));
 
         label.appendChild(checkbox);
         label.appendChild(nameSpan);

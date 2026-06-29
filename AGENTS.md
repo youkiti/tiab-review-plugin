@@ -18,9 +18,24 @@
 
 ## プロジェクト概要
 
-**Title & Abstract (TiAb) Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
+**TiAb Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
 
-Google スプレッドシートを共有データベースとして使用し、複数のレビュアーがタイトル・抄録レベルでの文献評価（include/exclude/maybe）を行えるツールを開発します。
+Google スプレッドシートを共有データベースとして使用し、複数のレビュアーが文献評価を行えるツールです。
+
+### アーキテクチャ方針（2026-06-12 確定）
+
+SR ワークフローを以下の**2アプリ構成**で実現する。共有データ基盤は同一 Google Sheets。
+
+| レイヤー                               | 担当機能                                                                                                  | 形態                           |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Chrome拡張（本リポジトリ）**         | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF アノテーション（`fulltext.html`） | Chrome Extension (MV3)         |
+| **別Webアプリ（別リポジトリ、将来）**  | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB2 / ROBINS-I 等）                                   | Web アプリ（インストール不要） |
+
+**Chrome拡張をフルテキスト以降に拡張しない理由：**
+
+- データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
+- PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
+- RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
 
 ## 技術スタック
 
@@ -47,36 +62,39 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 #### References タブ（文献マスタ）
 
-| 列名        | 説明                 | 必須 |
-| ----------- | -------------------- | ---- |
-| ref_id      | 文献主キー（UUID）   | ✓   |
-| title       | タイトル             | ✓   |
-| abstract    | 抄録                 |      |
-| year        | 出版年               |      |
-| authors     | 著者                 |      |
-| journal     | ジャーナル名         |      |
-| doi         | DOI                  |      |
-| pmid        | PubMed ID            |      |
-| url         | URL                  |      |
-| source      | 取り込み元DB         |      |
-| imported_at | 取り込み日時         |      |
-| imported_by | 取り込み者           |      |
-| dedupe_key  | 重複検出キー（後述） |      |
+| 列名            | 説明                                                | 必須 |
+| --------------- | --------------------------------------------------- | ---- |
+| ref_id          | 文献主キー（UUID）                                  | ✓   |
+| title           | タイトル                                            | ✓   |
+| abstract        | 抄録                                                |      |
+| year            | 出版年                                              |      |
+| authors         | 著者                                                |      |
+| journal         | ジャーナル名                                        |      |
+| doi             | DOI                                                 |      |
+| pmid            | PubMed ID                                           |      |
+| url             | URL                                                 |      |
+| source          | 取り込み元DB                                        |      |
+| imported_at     | 取り込み日時                                        |      |
+| imported_by     | 取り込み者                                          |      |
+| dedupe_key      | 重複検出キー（後述）                                |      |
+| fulltext_url    | フルテキストURL（OA / ブラウザアタッチ）            |      |
+| fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 
 #### Decisions タブ（最新判定のみを有効にする判定ログ）
 
-| 列名           | 説明                          | 必須 |
-| -------------- | ----------------------------- | ---- |
-| decision_id    | 判定ID（UUID）                | ✓   |
-| ref_id         | 文献ID（Referencesと結合）    | ✓   |
-| reviewer_id    | 判定者（email）               | ✓   |
-| decision       | include / exclude / maybe     | ✓   |
-| reason         | 除外理由（excludeの場合必須） |      |
-| labels         | (廃止)                        |      |
-| note           | メモ                          |      |
-| decided_at     | 判定日時（ISO 8601）          | ✓   |
-| client_version | 拡張機能バージョン            |      |
-| source_url     | 判定時に見ていたURL           |      |
+| 列名            | 説明                                   | 必須 |
+| --------------- | -------------------------------------- | ---- |
+| decision_id     | 判定ID（UUID）                         | ✓   |
+| ref_id          | 文献ID（Referencesと結合）             | ✓   |
+| reviewer_id     | 判定者（email）                        | ✓   |
+| decision        | include / exclude / maybe              | ✓   |
+| reason          | 除外理由（excludeの場合必須）          |      |
+| labels          | (廃止)                                 |      |
+| note            | メモ                                   |      |
+| decided_at      | 判定日時（ISO 8601）                   | ✓   |
+| client_version  | 拡張機能バージョン                     |      |
+| source_url      | 判定時に見ていたURL                    |      |
+| screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
 
 **重要**:
 
@@ -89,6 +107,31 @@ Google スプレッドシートを共有データベースとして使用し、�
 
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
+- **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時は、管理ユーザーは読み込まれている全レビュアーの TiAb Include が1件でもある文献を候補とし、非管理ユーザーは既存の割り振りで見える文献のうち自分が TiAb Include した文献だけを候補とする。
+
+#### Annotations タブ（PDFアノテーション）
+
+フルテキストスクリーニングおよびデータ抽出で使用するPDFハイライトを1行1件で保存する。
+`phase` と `category` の組み合わせで用途を区別し、将来のWebアプリ（データ抽出・RoB）からも参照できる。
+
+| 列名             | 説明                                                         | 必須 |
+| ---------------- | ------------------------------------------------------------ | ---- |
+| annotation_id    | UUID                                                         | ✓   |
+| ref_id           | References への FK                                           | ✓   |
+| reviewer_id      | email                                                        | ✓   |
+| phase            | `fulltext_screening` / `data_extraction`                 | ✓   |
+| category         | `include_evidence` / `exclude_evidence` / `data_point` | ✓   |
+| label            | データ抽出時のフィールド名（例:`sample_size`）             |      |
+| highlighted_text | ハイライトしたテキスト本体                                   | ✓   |
+| page_number      | PDFページ番号（1始まり）                                     | ✓   |
+| position_json    | `AnnotationPosition` を JSON 文字列化したもの（再描画用）  |      |
+| pdf_url          | アノテーション作成時のPDF URL                                | ✓   |
+| created_at       | ISO 8601                                                     | ✓   |
+
+`position_json` の構造（`AnnotationPosition` 型）:
+
+- `page` / `offset_start` / `offset_end`: PDF.js TextContent ベースの文字オフセット（主キー）
+- `context_before` / `context_after`: 前後50文字（オフセット失敗時のフォールバック）
 
 ## 機能要件
 
@@ -138,6 +181,18 @@ Google スプレッドシートを共有データベースとして使用し、�
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: 未判定文献に対するLLMによる自動判定（バッチ処理）
    - **結果表示**: LLMの判定結果・理由の表示
+8. **フルテキストAI判定（PDF全文）**
+
+   - **プロバイダ**: Gemini のみ（スキャン画像PDFもネイティブにOCR/読解。`gemini-fulltext.ts`）
+   - **UI**: フルテキストタブを3分割（候補リスト / **AI判定** / 判定後レビュー）。AI判定タブは**一括処理専用**
+   - **対象**: `fulltext_status='cached'`（Drive保存済み）かつ未AI判定の候補。PDFを inline_data で丸ごと送信
+   - **保存**: AIは独立した判定者として確定保存（`reviewer_id='llm:{model}@{timestamp}'`, `screening_phase='fulltext'`）。
+     `note` に `FulltextLlmDecisionNote`(JSON: decision根拠 evidence[quote/page/bbox] 等) を格納
+   - **PDFハイライト**（`fulltext.html` + `pdf-renderer.ts`）: cached PDF を PDF.js でテキストレイヤー付き描画し、
+     evidence を **経路A: quote文字列マッチ → 経路B: 正規化bbox → ページ送り** の順で段階的にハイライト。
+     スキャン画像PDFはテキストレイヤーが無いため bbox（AIの領域推定）を使う旨をUIに明示
+   - **依存**: `pdfjs-dist`（worker/cmaps/standard_fonts を dist 直下へ同梱）。
+     manifest に `content_security_policy.extension_pages`（`wasm-unsafe-eval`）を追加
 
 ### キーボードショートカット
 
@@ -197,48 +252,48 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 
 ### ClinicalTrials.gov CSV インポートフィールドマッピング
 
-| CSV カラム                  | References 列 | 備考                                     |
-| --------------------------- | ------------- | ---------------------------------------- |
-| Study Title                 | title         | 必須                                     |
-| NCT Number                  | pmid          | dedupe_key 生成に使用                    |
-| Study URL                   | url           |                                          |
-| Start Date                  | year          | 年部分のみ抽出                           |
-| ―                           | journal       | 固定値 "ClinicalTrials.gov"              |
-| ―                           | source        | 固定値 "ClinicalTrials.gov"              |
-| その他全カラム              | abstract      | `カラム名: 値` 形式で `\|` 区切り合成    |
+| CSV カラム     | References 列 | 備考                                     |
+| -------------- | ------------- | ---------------------------------------- |
+| Study Title    | title         | 必須                                     |
+| NCT Number     | pmid          | dedupe_key 生成に使用                    |
+| Study URL      | url           |                                          |
+| Start Date     | year          | 年部分のみ抽出                           |
+| ―             | journal       | 固定値 "ClinicalTrials.gov"              |
+| ―             | source        | 固定値 "ClinicalTrials.gov"              |
+| その他全カラム | abstract      | `カラム名: 値` 形式で `\|` 区切り合成 |
 
 ### ICTRP XML インポートフィールドマッピング
 
-| XML 要素                    | References 列 | 備考                                     |
-| --------------------------- | ------------- | ---------------------------------------- |
-| Scientific_title            | title         | 必須                                     |
-| TrialID                     | pmid          | dedupe_key 生成に使用                    |
-| web_address                 | url           |                                          |
-| Date_registration           | year          | 年部分のみ抽出                           |
-| Source_Register              | source        | レジストリ名（REBEC, JPRN 等）           |
-| ―                           | journal       | 固定値 "ICTRP"                           |
-| その他臨床情報要素          | abstract      | `要素名: 値` 形式で `\|` 区切り合成      |
+| XML 要素           | References 列 | 備考                                   |
+| ------------------ | ------------- | -------------------------------------- |
+| Scientific_title   | title         | 必須                                   |
+| TrialID            | pmid          | dedupe_key 生成に使用                  |
+| web_address        | url           |                                        |
+| Date_registration  | year          | 年部分のみ抽出                         |
+| Source_Register    | source        | レジストリ名（REBEC, JPRN 等）         |
+| ―                 | journal       | 固定値 "ICTRP"                         |
+| その他臨床情報要素 | abstract      | `要素名: 値` 形式で `\|` 区切り合成 |
 
 ### EndNote XML インポートフィールドマッピング
 
 EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。各テキスト値は `<style face="..." font="..." size="...">value</style>` でラップされているが `Element.textContent` で取得する。
 
-| XML 要素                                         | References 列 | 備考                                                                             |
-| ------------------------------------------------ | ------------- | -------------------------------------------------------------------------------- |
-| `titles > title`                                 | title         | 必須                                                                             |
-| `contributors > authors > author`                | authors       | セミコロン区切りで結合（10名超は `et al.` を付与）                               |
-| `dates > year`                                   | year          | 年部分のみ抽出                                                                   |
-| `periodical > full-title`                        | journal       | 第1優先                                                                          |
-| `titles > secondary-title`                       | journal       | `full-title` が無い場合のフォールバック                                          |
-| `volume`                                         | volume        | "6(2)" 形式の場合は volume="6", issue="2" に分離（Embase 経由のエクスポート対応） |
-| `number`                                         | issue         | 標準の EndNote エクスポートではこちらに号が入る。第1優先                         |
-| `pages`                                          | pages         |                                                                                  |
-| `isbn`                                           | issn          | EndNote DTD は ISSN 専用フィールドを持たないため `<isbn>` に格納される。ISSN形式（XXXX-XXXX）の場合のみ採用 |
-| `electronic-resource-num`                        | doi           | 末尾の `[doi]` 等のサフィックスは除去                                            |
-| `accession-num`                                  | pmid          | `remote-database-name` が PubMed の場合のみ。Embase 等の場合は誤マッチ防止のため未設定 |
-| `urls > related-urls > url`                      | url           | 最初の1件                                                                        |
-| `abstract`                                       | abstract      | 15,000 文字に制限                                                                |
-| `remote-database-name`                           | source        | 例: "Embase", "PubMed"。空なら "EndNote"                                         |
+| XML 要素                            | References 列 | 備考                                                                                                          |
+| ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| `titles > title`                  | title         | 必須                                                                                                          |
+| `contributors > authors > author` | authors       | セミコロン区切りで結合（10名超は `et al.` を付与）                                                          |
+| `dates > year`                    | year          | 年部分のみ抽出                                                                                                |
+| `periodical > full-title`         | journal       | 第1優先                                                                                                       |
+| `titles > secondary-title`        | journal       | `full-title` が無い場合のフォールバック                                                                     |
+| `volume`                          | volume        | "6(2)" 形式の場合は volume="6", issue="2" に分離（Embase 経由のエクスポート対応）                             |
+| `number`                          | issue         | 標準の EndNote エクスポートではこちらに号が入る。第1優先                                                      |
+| `pages`                           | pages         |                                                                                                               |
+| `isbn`                            | issn          | EndNote DTD は ISSN 専用フィールドを持たないため `<isbn>` に格納される。ISSN形式（XXXX-XXXX）の場合のみ採用 |
+| `electronic-resource-num`         | doi           | 末尾の `[doi]` 等のサフィックスは除去                                                                       |
+| `accession-num`                   | pmid          | `remote-database-name` が PubMed の場合のみ。Embase 等の場合は誤マッチ防止のため未設定                      |
+| `urls > related-urls > url`       | url           | 最初の1件                                                                                                     |
+| `abstract`                        | abstract      | 15,000 文字に制限                                                                                             |
+| `remote-database-name`            | source        | 例: "Embase", "PubMed"。空なら "EndNote"                                                                      |
 
 ### オフライン同期の方針
 
@@ -280,7 +335,7 @@ tiab-review-plugin/
 │   ├── manifest.json          # Chrome Extension Manifest V3
 │   ├── background/
 │   ├── popup/
-│   ├── sidepanel/             # サイドパネルUI
+│   ├── sidepanel/             # TiAb スクリーニング（サイドパネル）
 │   │   ├── features/          # 機能別モジュール
 │   │   │   ├── llm/           # LLM機能 (API, Batch, Criteria)
 │   │   │   ├── screening/     # スクリーニング機能
@@ -289,9 +344,14 @@ tiab-review-plugin/
 │   │   ├── ui/                # UIコンポーネント
 │   │   ├── sidepanel.html
 │   │   └── sidepanel.ts
+│   ├── fulltext/              # フルテキストスクリーニング（新規タブページ）
+│   │   ├── fulltext.html      # 2カラムレイアウト（PDF左 / 決断・アノテーション右）
+│   │   ├── fulltext.css
+│   │   └── fulltext.ts        # エントリポイント（URL param: ref_id）
 │   ├── lib/
 │   │   ├── gemini-api.ts      # Gemini API クライアント
-│   │   ├── sheets-api.ts
+│   │   ├── sheets-api.ts      # Sheets API (Annotations タブも扱う)
+│   │   ├── types.ts           # 共有型定義（Reference / Decision / Annotation 等）
 │   │   └── ...
 │   └── utils/
 ├── experiments/               # LLM実験・検証用 (TypeScript)
@@ -431,8 +491,20 @@ https://www.googleapis.com/auth/drive.file
 ### テスター向け配布
 
 ```bash
-npm run build:zip
+npm run build:zip:tester
 ```
+
+**重要（OAuth と `key`）**: zip 配布では `--env keepKey` で manifest の `key` を**保持**してビルドする（`build:zip:tester`）。`key` を残すと全テスターが同じ固定の拡張機能ID `ifnejjicfekmighagknaacliiiliodgf` になり、その ID 専用に登録した OAuth クライアント（`.env` の `ZIP_OAUTH_CLIENT_ID`）で認証が通る。`key` を削除する `build:zip` の zip を配布するとインストール先ごとに拡張機能IDがランダム化し、`bad client id` で Google ログインに失敗する（ストア提出時のみ `key` を削除する `build:zip` を使う）。
+
+**OAuth クライアントの対応表**（クライアントは拡張機能IDごとに登録が必要）:
+
+| ビルド | コマンド | 拡張機能ID | OAuth クライアント |
+| --- | --- | --- | --- |
+| dev | `npm run dev` | `ifnejji…`（key保持） | `LOCAL_OAUTH_CLIENT_ID` |
+| zip 配布 | `npm run build:zip:tester` | `ifnejji…`（key保持） | `ZIP_OAUTH_CLIENT_ID` |
+| ストア提出 | `npm run build` / `build:zip` | `alejln…`（ストア付与） | `OAUTH_CLIENT_ID` |
+
+> 前提: `ZIP_OAUTH_CLIENT_ID` は Google Cloud Console で「Chrome 拡張機能」タイプの OAuth クライアントを作成し、アイテムID `ifnejjicfekmighagknaacliiiliodgf` を登録して発行する。ストア版と同じプロジェクト（プロジェクト番号 `451307229828`）に作成すると OAuth 同意画面を共有でき、他アカウントでも弾かれない。zip 配布版はストア版とIDが別なので同一PCに同居可能。
 
 ### ローカル実験環境
 
@@ -460,7 +532,8 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
 
 ## 注意事項
 
-- **フルテキスト対応は対象外**（PDFアップロード、PDFビューア等は実装しない）
+- **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別 Webアプリで実装する（アーキテクチャ方針セクション参照）
+- **後方互換の維持**: `Decision.screening_phase` は省略時 `'tiab'` 扱い。`Reference` の `fulltext_url` / `fulltext_status` は空でも既存機能に影響しない
 - **排他制御は不要**（追記型設計のため）
 - **重複解決は手動**（自動重複解決は将来拡張）
 

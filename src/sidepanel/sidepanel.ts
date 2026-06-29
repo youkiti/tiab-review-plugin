@@ -19,6 +19,7 @@ import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
+import { setupFulltextTabListeners } from './features/fulltext-tab';
 import { initModal } from './features/ml/dialogs';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 import { flushDecisionQueue } from './utils/offline-queue';
@@ -211,6 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.btnMaybe?.addEventListener('click', () => screeningActions.handleDecision('maybe'));
     dom.btnPrev?.addEventListener('click', () => screeningActions.navigate(-1));
     dom.btnNext?.addEventListener('click', () => screeningActions.navigate(1));
+
+    // フルテキストを開く
+    dom.btnOpenFulltext?.addEventListener('click', (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        const refId = btn.dataset['refId'];
+        if (!refId) return;
+        const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(refId)}`;
+        chrome.tabs.create({ url });
+    });
     document.addEventListener('keydown', screeningActions.handleKeydown);
 
     // Screening Filters
@@ -299,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Switching
     dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
+    setupFulltextTabListeners();
     dom.tabMlBtn?.addEventListener('click', async () => {
         try {
             console.log('ML tab clicked');

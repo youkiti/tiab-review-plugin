@@ -9,6 +9,7 @@ import type { AppState, Action, View, Tab } from './types';
 import type { ReferenceWithStatus, Decision, LlmConfig, DecisionStatus } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
+import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 
 /**
  * 既存stateからAppStateへ変換
@@ -24,6 +25,7 @@ export function legacyToAppState(): AppState {
             mlState: legacyState.mlState,
             recentSheets: [], // 既存stateにはない
             isAdmin: legacyState.isAdmin,
+            fulltextPoolRule: legacyState.fulltextPoolRule,
             sourceFiles: legacyState.sourceFiles,
             selectedSourceFiles: legacyState.selectedSourceFiles,
             availableReviewers: legacyState.availableReviewers,
@@ -85,6 +87,7 @@ export function syncToLegacyState(appState: AppState): void {
     legacyState.setLlmConfig(appState.data.llmConfig);
     legacyState.setMlState(appState.data.mlState);
     legacyState.setIsAdmin(appState.data.isAdmin);
+    legacyState.setFulltextPoolRule(appState.data.fulltextPoolRule);
     legacyState.setSourceFiles(appState.data.sourceFiles);
     legacyState.setSelectedSourceFiles(appState.data.selectedSourceFiles);
     legacyState.setAvailableReviewers(appState.data.availableReviewers);
@@ -324,6 +327,14 @@ export function closeSettingsView(): void {
 export function setIsAdmin(isAdmin: boolean): void {
     legacyState.setIsAdmin(isAdmin);
     dispatch({ type: 'data/setIsAdmin', isAdmin });
+}
+
+/**
+ * フルテキスト候補ルールを設定（両方に同期）
+ */
+export function setFulltextPoolRule(rule: FulltextPoolRule | null): void {
+    legacyState.setFulltextPoolRule(rule);
+    dispatch({ type: 'data/setFulltextPoolRule', rule });
 }
 
 /**

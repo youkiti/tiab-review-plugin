@@ -1,0 +1,800 @@
+/**
+ * fulltext-tab.css - フルテキストタブ（候補一覧ビュー）
+ */
+
+.fulltext-summary {
+    background: #e8f6f3;
+    border: 1px solid #a3e4d7;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+/* ---------- ① 候補ルール ---------- */
+
+.fulltext-rule-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.fulltext-rule-line.rule-unset {
+    color: #b9770e;
+    font-weight: 600;
+}
+
+.fulltext-rule-editor {
+    margin-top: 8px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #d5d8dc;
+    border-radius: 6px;
+}
+
+/* ルールエディタ共通コンポーネント（fulltext.css の ft-rule-* と同名） */
+.fulltext-rule-editor .ft-rule-blocked {
+    font-size: 12px;
+    color: #8a6d3b;
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 4px;
+    padding: 8px 10px;
+}
+
+.fulltext-rule-editor .ft-rule-desc {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 8px;
+}
+
+.fulltext-rule-editor .ft-rule-voters {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 6px 8px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.fulltext-rule-editor .ft-rule-voter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fulltext-rule-editor .ft-rule-voter-row span:nth-of-type(1) {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fulltext-rule-editor .ft-voter-count {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 11px;
+}
+
+.fulltext-rule-editor .ft-rule-voter-empty {
+    font-size: 12px;
+    color: #999;
+}
+
+.fulltext-rule-editor .ft-rule-threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.fulltext-rule-editor .ft-rule-voter-count {
+    color: #777;
+    font-size: 11px;
+}
+
+.fulltext-rule-editor .ft-rule-presets {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.fulltext-rule-editor .ft-rule-preview {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c6fbb;
+    margin-bottom: 8px;
+}
+
+.fulltext-rule-editor .ft-rule-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* ---------- ② 入手状況 + 一括OA検索 ---------- */
+
+.fulltext-retrieval {
+    background: #fdfefe;
+    border: 1px solid #d5d8dc;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.fulltext-obtained-line {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.fulltext-status-bar {
+    height: 8px;
+    background: #eaecee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 6px 0;
+}
+
+.fulltext-status-bar-fill {
+    height: 100%;
+    background: #16a085;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.fulltext-status-breakdown {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 8px;
+}
+
+.fulltext-fetch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fulltext-retry-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #777;
+    cursor: pointer;
+}
+
+.fulltext-fetch-status {
+    font-size: 12px;
+    color: #2c6fbb;
+    margin-top: 6px;
+}
+
+/* ---------- ③ フィルタ ---------- */
+
+.fulltext-filter-row {
+    margin-bottom: 8px;
+}
+
+.fulltext-filter-row select {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.fulltext-progress-line {
+    font-size: 14px;
+    font-weight: 600;
+    color: #117a65;
+}
+
+.fulltext-rule-line {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+}
+
+.fulltext-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fulltext-empty {
+    font-size: 13px;
+    color: #999;
+    padding: 16px 8px;
+    text-align: center;
+}
+
+.fulltext-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    background: #fff;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.fulltext-card:hover {
+    background: #f8f9fa;
+    border-color: #16a085;
+}
+
+.fulltext-card.status-include { border-left: 4px solid #2ecc71; }
+.fulltext-card.status-exclude { border-left: 4px solid #e74c3c; }
+.fulltext-card.status-maybe   { border-left: 4px solid #f39c12; }
+.fulltext-card.status-pending { border-left: 4px solid #d5d8dc; }
+
+.fulltext-card-status {
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.fulltext-card-status.include { color: #2ecc71; }
+.fulltext-card-status.exclude { color: #e74c3c; }
+.fulltext-card-status.maybe   { color: #f39c12; }
+.fulltext-card-status.pending { color: #b2babb; }
+
+.fulltext-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fulltext-card-title {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fulltext-card-meta {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fulltext-card-open {
+    flex-shrink: 0;
+    color: #16a085;
+    font-size: 14px;
+}
+
+/* ---------- カード: 入手状態バッジ + アクション ---------- */
+
+.fulltext-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.fulltext-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.fulltext-badge.badge-cached {
+    background: #d5f5e3;
+    color: #1e8449;
+}
+
+.fulltext-badge.badge-linked {
+    background: #d6eaf8;
+    color: #2471a3;
+}
+
+.fulltext-badge.badge-missing {
+    background: #eaecee;
+    color: #707b7c;
+}
+
+.fulltext-badge.badge-unavailable {
+    background: #fadbd8;
+    color: #c0392b;
+}
+
+.fulltext-action-btn {
+    font-size: 10px;
+    padding: 1px 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.fulltext-action-btn:hover {
+    background: #f0f3f4;
+    border-color: #16a085;
+    color: #16a085;
+}
+
+/* 全文/PDFを開く等の主導線は塗りつぶしで目立たせる */
+.fulltext-action-btn--primary {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+    font-weight: 600;
+}
+
+.fulltext-action-btn--primary:hover {
+    background: #128f76;
+    border-color: #128f76;
+    color: #fff;
+}
+
+.fulltext-action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ---------- ④ 結果ビュー ---------- */
+
+.fulltext-viewmode-row {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.fulltext-mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f4f6f6;
+    color: #555;
+    cursor: pointer;
+}
+
+.fulltext-mode-btn.active {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+    font-weight: 600;
+}
+
+.fulltext-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fulltext-blind-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fbfcfc;
+}
+
+.fulltext-blind-row .toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.fulltext-blind-note {
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.fulltext-results-judges {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fbfcfc;
+}
+
+.fulltext-results-judges-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.fulltext-judge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+}
+
+.fulltext-judge-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.fulltext-judge-item .reviewer-llm {
+    color: #2471a3;
+}
+
+.fulltext-judge-hint {
+    font-size: 12px;
+    color: #b9770e;
+    margin-top: 6px;
+}
+
+/* PRISMA 集計 */
+.fulltext-prisma-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #117a65;
+    margin-bottom: 6px;
+}
+
+.fulltext-prisma-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.fulltext-prisma-cell {
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: #f4f6f6;
+    color: #333;
+}
+
+.fulltext-prisma-cell.include { background: #eafaf1; color: #1e8449; }
+.fulltext-prisma-cell.exclude { background: #fdedec; color: #b03a2e; }
+.fulltext-prisma-cell.maybe   { background: #fef9e7; color: #b9770e; }
+.fulltext-prisma-cell.pending { background: #f2f4f4; color: #7f8c8d; }
+.fulltext-prisma-cell.conflict { background: #f5eef8; color: #8e44ad; font-weight: 600; }
+
+.fulltext-prisma-reasons-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-top: 8px;
+}
+
+.fulltext-prisma-reasons {
+    list-style: disc;
+    margin: 4px 0 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: #555;
+}
+
+/* 結果エクスポート */
+.fulltext-results-export {
+    display: flex;
+    gap: 8px;
+}
+
+/* 結果テーブル */
+.fulltext-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fulltext-result-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fff;
+}
+
+.fulltext-result-row.consensus-include { border-left: 4px solid #2ecc71; }
+.fulltext-result-row.consensus-exclude { border-left: 4px solid #e74c3c; }
+.fulltext-result-row.consensus-maybe   { border-left: 4px solid #f39c12; }
+.fulltext-result-row.consensus-pending { border-left: 4px solid #d5dbdb; }
+
+.fulltext-result-clickable { cursor: pointer; transition: background 0.12s; }
+.fulltext-result-clickable:hover { background: #f5faff; }
+
+.fulltext-result-consensus {
+    font-size: 16px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.fulltext-result-consensus.include { color: #2ecc71; }
+.fulltext-result-consensus.exclude { color: #e74c3c; }
+.fulltext-result-consensus.maybe   { color: #f39c12; }
+.fulltext-result-consensus.pending { color: #b2babb; }
+
+.fulltext-result-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.fulltext-result-title {
+    font-size: 13px;
+    color: #2c3e50;
+    line-height: 1.3;
+}
+
+.fulltext-result-meta {
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.fulltext-result-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.fulltext-result-conflict {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8e44ad;
+    background: #f5eef8;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.fulltext-result-reason {
+    font-size: 11px;
+    color: #b03a2e;
+}
+
+.fulltext-result-chips {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+}
+
+.fulltext-judge-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 11px;
+    background: #f2f4f4;
+}
+
+.fulltext-judge-chip.chip-include { color: #1e8449; background: #eafaf1; }
+.fulltext-judge-chip.chip-exclude { color: #b03a2e; background: #fdedec; }
+.fulltext-judge-chip.chip-maybe   { color: #b9770e; background: #fef9e7; }
+.fulltext-judge-chip.chip-pending { color: #aab7b8; background: #f2f4f4; }
+
+/* ===== AI判定タブ ===== */
+.fulltext-ai {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 2px;
+}
+
+.fulltext-ai-intro {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    background: #eef6fb;
+    border: 1px solid #d4e6f1;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.fulltext-ai-row,
+.fulltext-ai-prompt-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-model {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.fulltext-ai-prompt {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.fulltext-ai-target {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+}
+
+.fulltext-ai-target-main { font-weight: 600; color: #2471a3; }
+.fulltext-ai-target-sub  { font-size: 11px; color: #888; }
+
+.fulltext-ai-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.fulltext-ai-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e8eef2;
+    overflow: hidden;
+}
+
+.fulltext-ai-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #3498db;
+    transition: width 0.2s ease;
+}
+
+.fulltext-ai-progress-text {
+    font-size: 12px;
+    color: #555;
+}
+
+.fulltext-ai-log {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    background: #fbfcfd;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.fulltext-ai-log:empty { display: none; }
+
+.fulltext-ai-log-line { line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fulltext-ai-log-line.log-ok   { color: #1e8449; }
+.fulltext-ai-log-line.log-err  { color: #c0392b; white-space: normal; }
+.fulltext-ai-log-line.log-warn { color: #b9770e; }
+.fulltext-ai-log-line.log-done { color: #2471a3; font-weight: 600; }
+
+/* ===== AI判定: 判定ラウンド（採用・削除） ===== */
+.fulltext-ai-rounds-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.fulltext-ai-rounds-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-rounds-empty {
+    font-size: 11px;
+    color: #999;
+    padding: 4px 2px;
+}
+
+.fulltext-ai-round-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-row.active {
+    border-color: #16a085;
+    background: #effaf6;
+}
+
+.fulltext-ai-round-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fulltext-ai-round-title {
+    font-size: 12px;
+    color: #2c3e50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fulltext-ai-round-counts {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-none {
+    font-size: 12px;
+    color: #777;
+}
+
+.fulltext-ai-round-delete {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #e0b4b0;
+    border-radius: 8px;
+    background: #fff;
+    color: #c0392b;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-delete:hover {
+    background: #fdedec;
+}

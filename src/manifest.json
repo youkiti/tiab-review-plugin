@@ -1,19 +1,32 @@
 {
     "manifest_version": 3,
     "name": "__MSG_extName__",
-    "version": "0.20.3",
+    "version": "0.21.0",
     "default_locale": "ja",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxleBKT1/T3XzlZhHEB2GjyDLIkQ8exz7ZfAx7IvDB6PMWnrwJ6Cv9SPqAJ9FxF3OSGcobjwQzYt+xBbXVZgBuvcj1mvIekDZ3jH0QeZH8HWVKAjHkGJdiAMocrR1TsOO9bAUyFiYv/R8/4/qk+b9jve0aosK2PPb80+p4GekjhDVXRVfg6Q7gKjbZitR2g/MGCQH+qHOAusyYrjoE62luQC9EfIPYxAJ4XFtxsfhOcDal990Ln9w8pchQGHjoWDc+D74LHhl2umc+9GbEXj78m5fO2CRJgTU+ETH/vIdmDi4QgmzLMkw2GWAXr/TSUenIigMAdexpDYPL+nqHk8LCwIDAQAB",
     "description": "__MSG_extDescription__",
     "permissions": [
         "identity",
-        "storage"
+        "storage",
+        "declarativeNetRequestWithHostAccess"
     ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    },
     "host_permissions": [
         "https://sheets.googleapis.com/*",
         "https://www.googleapis.com/drive/*",
         "https://generativelanguage.googleapis.com/*",
-        "https://openrouter.ai/*"
+        "https://openrouter.ai/*",
+        "https://www.ncbi.nlm.nih.gov/pmc/*",
+        "https://pmc.ncbi.nlm.nih.gov/*",
+        "https://www.ebi.ac.uk/europepmc/*",
+        "https://api.unpaywall.org/*",
+        "https://api.openalex.org/*",
+        "https://link.springer.com/*"
+    ],
+    "optional_host_permissions": [
+        "https://*/*"
     ],
     "oauth2": {
         "client_id": "__OAUTH_CLIENT_ID__",
