@@ -823,6 +823,24 @@
   "share_loadFailed": {
     "message": "Failed to load"
   },
+  "share_copyInvite": {
+    "message": "Copy invite message"
+  },
+  "share_copyInviteHint": {
+    "message": "Copies an invitation (install link, spreadsheet URL, and usage guide) to the clipboard to send to collaborators"
+  },
+  "share_inviteTemplate": {
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Launch the TiAb Review Plugin from the extensions button, then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+  },
+  "share_inviteCopied": {
+    "message": "Invite message copied"
+  },
+  "share_inviteCopyFailed": {
+    "message": "Failed to copy invite message"
+  },
+  "share_inviteNoProject": {
+    "message": "Please open a project first"
+  },
   "import_duplicate": {
     "message": "File \"$1\" has already been imported"
   },

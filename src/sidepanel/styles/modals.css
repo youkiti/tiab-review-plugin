@@ -108,6 +108,11 @@
     overflow-y: auto;
 }
 
+.share-copy-invite-btn {
+    margin-top: 8px;
+    width: 100%;
+}
+
 .shared-user-item {
     display: flex;
     justify-content: space-between;

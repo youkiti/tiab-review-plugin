@@ -1898,6 +1898,57 @@ async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: str
     }
 }
 
+/**
+ * プロジェクト用 Drive フォルダIDを取得（未設定は null）
+ * このフォルダ配下にスプレッドシート本体と fulltext サブフォルダを格納する。
+ */
+export async function getProjectDriveFolderId(spreadsheetId: string): Promise<string | null> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        for (const row of values) {
+            if (row[0] === 'project_drive_folder' && row[1]) {
+                return row[1];
+            }
+        }
+        return null;
+    } catch (error) {
+        console.log('[getProjectDriveFolderId] Config not found, returning null:', error);
+        return null;
+    }
+}
+
+/**
+ * プロジェクト用 Drive フォルダIDを保存
+ */
+export async function saveProjectDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    try {
+        await trySaveProjectDriveFolderId(spreadsheetId, folderId);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveProjectDriveFolderId] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveProjectDriveFolderId(spreadsheetId, folderId);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveProjectDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'project_drive_folder') rowIndex = index + 1;
+    });
+
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[folderId]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['project_drive_folder', folderId]]);
+    }
+}
+
 // ========== LLM関連の関数 ==========
 
 /**

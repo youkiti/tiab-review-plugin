@@ -6,7 +6,7 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
-import { addPermission, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
+import { addPermission, getProjectDriveFolderId, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 4）
@@ -29,7 +29,12 @@ export async function handleShare() {
         dom.shareSubmitBtn.disabled = true;
         dom.shareSubmitBtn.textContent = '...';
 
-        await addPermission(state.spreadsheetId, email, 'writer');
+        // プロジェクトフォルダがあればフォルダごと共有する。
+        // フォルダ権限は下方向に継承されるため、スプレッドシート・fulltext・全PDFを
+        // 一括で編集可能にできる（PDFは著作権物なので公開リンクは使わずメンバー限定）。
+        // フォルダを持たない既存プロジェクトは従来どおりスプレッドシート単体を共有する。
+        const folderId = await getProjectDriveFolderId(state.spreadsheetId);
+        await addPermission(folderId || state.spreadsheetId, email, 'writer');
 
         showToast(t('share_added', email));
         dom.shareEmailInput.value = '';
@@ -41,6 +46,45 @@ export async function handleShare() {
     } finally {
         dom.shareSubmitBtn.disabled = false;
         dom.shareSubmitBtn.textContent = t('share_add');
+    }
+}
+
+/**
+ * 招待文をクリップボードへコピー
+ *
+ * フォルダ共有しても共同研究者は「どこから入るか」が分かりづらいため、
+ * インストール先・スプレッドシートURL・操作ガイドをまとめた定型文を生成して
+ * クリップボードへコピーする。メール送信は行わない（OAuth不要）。
+ */
+export async function copyInviteTemplate() {
+    const spreadsheetId = state.spreadsheetId;
+    if (!spreadsheetId) {
+        showToast(t('share_inviteNoProject'));
+        return;
+    }
+
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+    const text = t('share_inviteTemplate', url);
+
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast(t('share_inviteCopied'));
+    } catch (error) {
+        // クリップボードAPIが使えない環境向けのフォールバック
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(t('share_inviteCopied'));
+        } catch (fallbackError) {
+            console.error('Copy invite error:', fallbackError);
+            showToast(t('share_inviteCopyFailed'));
+        }
     }
 }
 

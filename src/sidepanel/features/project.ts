@@ -25,6 +25,7 @@ import {
     getAssignmentConfig,
     saveDecision as apiSaveDecision,
 } from '../../lib/sheets-api';
+import { setupProjectFolder } from '../../lib/drive-api';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { flushDecisionQueue } from '../utils/offline-queue';
@@ -306,6 +307,15 @@ export async function handleCreateNew() {
         hideStatus();
 
         const newId = await createSpreadsheet(title);
+
+        // 新構成: tiab-reviewer-plugin/{プロジェクト名}/ 配下へスプレッドシートを移動。
+        // フォルダ整理に失敗してもプロジェクト自体は使えるため、警告に留めて続行する。
+        try {
+            await setupProjectFolder(newId, title);
+        } catch (folderError) {
+            console.warn('[handleCreateNew] プロジェクトフォルダの整理に失敗:', folderError);
+        }
+
         showStatus(t('project_createSuccess', title), 'success');
 
         // Store経由で両方に同期

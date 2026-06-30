@@ -101,6 +101,18 @@ npm run watch
 | `npm run lint`      | ESLint実行         |
 | `npm run typecheck` | 型チェック         |
 
+## Codex PR自動レビュー
+
+このリポジトリでは GitHub Actions の `Codex PRレビュー` ワークフローで、PR作成・更新・再オープン時に Codex が自動レビューコメントを投稿します。
+
+有効化に必要なリポジトリ設定:
+
+- GitHub Secrets に `OPENAI_API_KEY` を登録してください。
+- Actions の `GITHUB_TOKEN` に Pull requests と Issues への書き込み権限を許可してください。
+- fork 由来のPRでは Secrets 保護のため、このワークフローは実行されません。外部コントリビューターPRも自動レビューしたい場合は、OpenAI Codex のCode review設定側でAutomatic reviewsを有効化する運用を検討してください。
+
+レビュー指示は [.github/codex/prompts/pr-review.md](.github/codex/prompts/pr-review.md) にあります。
+
 ## Chrome Web Store への提出（初回公開向け）
 
 - 提出用ZIPは `npm run build:release` で生成される `dist.zip` をアップロードします。
