@@ -13,10 +13,20 @@ import {
     getSpreadsheetInfo,
     getFulltextDriveFolderId,
     saveFulltextDriveFolderId,
+    getProjectDriveFolderId,
+    saveProjectDriveFolderId,
 } from './sheets-api';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
+
+// 全プロジェクトを束ねるマイドライブ直下のルートフォルダ名。
+// 構成: TiAb Review Plugin / {プロジェクト名} / (スプレッドシート, fulltext/)
+const APP_ROOT_FOLDER_NAME = 'TiAb Review Plugin';
+const FULLTEXT_SUBFOLDER_NAME = 'fulltext';
+// ルートフォルダを Drive 上で見分けやすくするための色（青）。
+// folderColorRgb は Drive の既定パレットに丸められる。
+const APP_ROOT_FOLDER_COLOR = '#4986e7';
 
 export interface DriveFileInfo {
     id: string;
@@ -102,59 +112,142 @@ async function folderExists(folderId: string): Promise<boolean> {
 }
 
 /**
- * フォルダに「リンクを知っている全員（閲覧）」権限を付与する。
- * 失敗してもアップロード自体は valid なので警告に留める。
+ * Drive フォルダを作成する。
+ * parentId を指定するとそのフォルダ内に、省略するとマイドライブ直下に作る。
+ *
+ * 注: フォルダ自体には公開（anyone）権限を付けない。論文PDFは著作権物のため
+ * 「リンクを知っている全員が閲覧可」は使わず、プロジェクトフォルダを
+ * 特定メンバーに共有して下方向の継承でアクセスさせる方針とする。
  */
-async function shareFolderByLink(folderId: string): Promise<void> {
-    try {
-        const token = await getAuthToken();
-        const resp = await fetch(
-            `${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}/permissions`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ role: 'reader', type: 'anyone' }),
-            }
-        );
-        if (!resp.ok) {
-            console.warn('[drive-api] フォルダのリンク共有設定に失敗:', resp.status);
-        }
-    } catch (err) {
-        console.warn('[drive-api] フォルダのリンク共有設定に失敗:', err);
-    }
-}
-
-/**
- * プロジェクト用フルテキストフォルダを作成する
- */
-async function createFulltextFolder(name: string): Promise<string> {
+async function createFolder(name: string, parentId?: string, colorRgb?: string): Promise<string> {
     const token = await getAuthToken();
+    const metadata: { name: string; mimeType: string; parents?: string[]; folderColorRgb?: string } = {
+        name,
+        mimeType: 'application/vnd.google-apps.folder',
+    };
+    if (parentId) metadata.parents = [parentId];
+    if (colorRgb) metadata.folderColorRgb = colorRgb;
+
     const resp = await fetch(`${DRIVE_API_BASE}/files?fields=id`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            name,
-            mimeType: 'application/vnd.google-apps.folder',
-        }),
+        body: JSON.stringify(metadata),
     });
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
         throw new Error(`Driveフォルダの作成に失敗しました: ${error?.error?.message || resp.statusText}`);
     }
     const data = await resp.json() as { id: string };
-    await shareFolderByLink(data.id);
     return data.id;
 }
 
 /**
+ * マイドライブ直下の name に一致する（ゴミ箱外の）フォルダIDを探す。
+ * drive.file スコープでは本拡張が作成したファイルのみが対象になるため、
+ * 自分が作ったルートフォルダだけに正しく収束する。見つからなければ null。
+ */
+async function findFolderInRoot(name: string): Promise<string | null> {
+    try {
+        const token = await getAuthToken();
+        const q = [
+            `name='${name.replace(/'/g, "\\'")}'`,
+            "mimeType='application/vnd.google-apps.folder'",
+            "'root' in parents",
+            'trashed=false',
+        ].join(' and ');
+        const resp = await fetch(
+            `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (!resp.ok) return null;
+        const data = await resp.json() as { files?: Array<{ id: string }> };
+        return data.files && data.files.length > 0 ? data.files[0].id : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * 全プロジェクト共通のアプリルートフォルダ（tiab-reviewer-plugin）の ID を返す。
+ * 既存を検索→無ければ作成。アカウント切替に備えてIDはキャッシュせず都度確認する。
+ */
+export async function ensureAppRootFolder(): Promise<string> {
+    const existing = await findFolderInRoot(APP_ROOT_FOLDER_NAME);
+    if (existing) return existing;
+    return createFolder(APP_ROOT_FOLDER_NAME, undefined, APP_ROOT_FOLDER_COLOR);
+}
+
+/**
+ * ファイル（スプレッドシート等）を parentId フォルダ配下へ移動する。
+ * Sheets API の create は親フォルダを指定できないため、作成後にこれで移動する。
+ */
+async function moveFileToFolder(fileId: string, parentId: string): Promise<void> {
+    const token = await getAuthToken();
+    // 現在の親（通常は 'root'）を取得して removeParents に渡す
+    const getResp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=parents`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    let removeParents = '';
+    if (getResp.ok) {
+        const data = await getResp.json() as { parents?: string[] };
+        removeParents = (data.parents || []).join(',');
+    }
+
+    const params = new URLSearchParams({ addParents: parentId, fields: 'id,parents' });
+    if (removeParents) params.set('removeParents', removeParents);
+
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${params.toString()}`,
+        {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`Driveフォルダへの移動に失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+}
+
+/**
+ * 新規プロジェクト用のフォルダ階層を構築する。
+ *   tiab-reviewer-plugin / {title} / (スプレッドシート本体をここへ移動)
+ * 作成したプロジェクトフォルダIDを Config に保存し、そのIDを返す。
+ * 失敗してもプロジェクト作成自体は成立しているため、呼び出し側で警告に留めてよい。
+ */
+export async function setupProjectFolder(spreadsheetId: string, title: string): Promise<string> {
+    const rootId = await ensureAppRootFolder();
+    const projectFolderId = await createFolder(title, rootId);
+    await moveFileToFolder(spreadsheetId, projectFolderId);
+    await saveProjectDriveFolderId(spreadsheetId, projectFolderId);
+    return projectFolderId;
+}
+
+/**
+ * プロジェクトフォルダ（tiab-reviewer-plugin/{title}）のIDを返す。
+ * Config に記録済みで実在すればそれを再利用し、無ければ新構成で作成して記録する。
+ */
+async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
+    const saved = await getProjectDriveFolderId(spreadsheetId);
+    if (saved && await folderExists(saved)) {
+        return saved;
+    }
+    const { title } = await getSpreadsheetInfo(spreadsheetId);
+    return setupProjectFolder(spreadsheetId, title);
+}
+
+/**
  * プロジェクトのフルテキスト保存フォルダIDを返す。
- * Configシートに記録済みで実在すればそれを再利用し、なければ作成して記録する。
+ * Configシートに記録済みで実在すればそれを再利用し、なければ
+ * プロジェクトフォルダ配下に fulltext サブフォルダを作成して記録する。
  */
 export async function ensureFulltextFolder(spreadsheetId: string): Promise<string> {
     const saved = await getFulltextDriveFolderId(spreadsheetId);
@@ -162,8 +255,9 @@ export async function ensureFulltextFolder(spreadsheetId: string): Promise<strin
         return saved;
     }
 
-    const { title } = await getSpreadsheetInfo(spreadsheetId);
-    const folderId = await createFulltextFolder(`TiAb Fulltext - ${title}`);
+    const projectFolderId = await ensureProjectFolder(spreadsheetId);
+    // 公開共有はしない。アクセスは親プロジェクトフォルダの共有メンバーが継承する。
+    const folderId = await createFolder(FULLTEXT_SUBFOLDER_NAME, projectFolderId);
     await saveFulltextDriveFolderId(spreadsheetId, folderId);
     return folderId;
 }

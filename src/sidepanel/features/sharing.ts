@@ -6,7 +6,7 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
-import { addPermission, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
+import { addPermission, getProjectDriveFolderId, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
 // Store互換レイヤー（Phase 4）
@@ -29,7 +29,12 @@ export async function handleShare() {
         dom.shareSubmitBtn.disabled = true;
         dom.shareSubmitBtn.textContent = '...';
 
-        await addPermission(state.spreadsheetId, email, 'writer');
+        // プロジェクトフォルダがあればフォルダごと共有する。
+        // フォルダ権限は下方向に継承されるため、スプレッドシート・fulltext・全PDFを
+        // 一括で編集可能にできる（PDFは著作権物なので公開リンクは使わずメンバー限定）。
+        // フォルダを持たない既存プロジェクトは従来どおりスプレッドシート単体を共有する。
+        const folderId = await getProjectDriveFolderId(state.spreadsheetId);
+        await addPermission(folderId || state.spreadsheetId, email, 'writer');
 
         showToast(t('share_added', email));
         dom.shareEmailInput.value = '';
