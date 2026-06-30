@@ -205,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.shareEmailInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sharing.handleShare();
     });
+    dom.shareCopyInviteBtn?.addEventListener('click', sharing.copyInviteTemplate);
 
     // Screening Actions
     dom.btnInclude?.addEventListener('click', () => screeningActions.handleDecision('include'));

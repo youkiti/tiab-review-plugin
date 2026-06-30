@@ -119,6 +119,7 @@ const domElements = {
     get shareEmailInput() { return getElement<HTMLInputElement>('share-email-input'); },
     get shareSubmitBtn() { return getElement<HTMLButtonElement>('share-submit-btn'); },
     get shareCancelBtn() { return getElement<HTMLButtonElement>('share-cancel-btn'); },
+    get shareCopyInviteBtn() { return getElement<HTMLButtonElement>('share-copy-invite-btn'); },
     get sharedUsersList() { return getElement<HTMLElement>('shared-users-list'); },
 
     // ========== Settings ==========

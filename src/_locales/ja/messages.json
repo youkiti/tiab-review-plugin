@@ -823,6 +823,24 @@
   "share_loadFailed": {
     "message": "読み込み失敗"
   },
+  "share_copyInvite": {
+    "message": "招待文をコピー"
+  },
+  "share_copyInviteHint": {
+    "message": "共同研究者に送る案内文（インストール先・スプレッドシートURL・操作ガイド）をクリップボードへコピーします"
+  },
+  "share_inviteTemplate": {
+    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. 拡張機能ボタンから、TiAb Review Pluginを立ち上げ、プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
+  },
+  "share_inviteCopied": {
+    "message": "招待文をコピーしました"
+  },
+  "share_inviteCopyFailed": {
+    "message": "招待文のコピーに失敗しました"
+  },
+  "share_inviteNoProject": {
+    "message": "プロジェクトを開いてから実行してください"
+  },
   "import_duplicate": {
     "message": "ファイル \"$1\" は既にインポート済みです"
   },

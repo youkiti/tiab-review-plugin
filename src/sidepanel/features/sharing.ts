@@ -50,6 +50,45 @@ export async function handleShare() {
 }
 
 /**
+ * 招待文をクリップボードへコピー
+ *
+ * フォルダ共有しても共同研究者は「どこから入るか」が分かりづらいため、
+ * インストール先・スプレッドシートURL・操作ガイドをまとめた定型文を生成して
+ * クリップボードへコピーする。メール送信は行わない（OAuth不要）。
+ */
+export async function copyInviteTemplate() {
+    const spreadsheetId = state.spreadsheetId;
+    if (!spreadsheetId) {
+        showToast(t('share_inviteNoProject'));
+        return;
+    }
+
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+    const text = t('share_inviteTemplate', url);
+
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast(t('share_inviteCopied'));
+    } catch (error) {
+        // クリップボードAPIが使えない環境向けのフォールバック
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(t('share_inviteCopied'));
+        } catch (fallbackError) {
+            console.error('Copy invite error:', fallbackError);
+            showToast(t('share_inviteCopyFailed'));
+        }
+    }
+}
+
+/**
  * 共有ユーザーリストを読み込み
  */
 export async function loadSharedUsers() {
