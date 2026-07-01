@@ -1771,7 +1771,21 @@
     }
   },
   "assignment_settingsShowWizard": {
-    "message": "Open wizard"
+    "message": "Set up reference assignment"
+  },
+  "assignment_bannerTitle": {
+    "message": "References are not assigned yet"
+  },
+  "assignment_bannerDesc": {
+    "message": "When splitting the workload across reviewers, everyone first screens the same $1 references to align criteria (calibration), then the rest is divided across teams. Each reviewer then sees only their own assignment, making screening more efficient. Not needed if you are screening alone.",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_bannerOpen": {
+    "message": "Split references now"
   },
   "assignment_settingsSaveMap": {
     "message": "Save reviewer assignments"
@@ -1788,7 +1802,7 @@
     }
   },
   "assignment_settingsReshuffle": {
-    "message": "Reshuffle assignments"
+    "message": "Re-split (redo)"
   },
   "assignment_reshuffleConfirm": {
     "message": "Discard the current assignment sets and reshuffle all references.\n\n- Every reference's screening_set will be reassigned with a new random seed.\n- Each reviewer's set of references will change.\n- Existing decisions are preserved.\n\nProceed?"

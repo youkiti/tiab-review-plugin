@@ -82,6 +82,11 @@ const domElements = {
     get assignmentFiltersSection() { return getElement<HTMLElement>('assignment-filters-section'); },
     get assignmentSetListDiv() { return getElement<HTMLElement>('assignment-set-list'); },
 
+    // ========== Assignment Banner (settings screen, admin, not-configured) ==========
+    get assignmentBanner() { return getElement<HTMLElement>('assignment-banner'); },
+    get assignmentBannerDesc() { return getElement<HTMLElement>('assignment-banner-desc'); },
+    get assignmentBannerOpenBtn() { return getElement<HTMLButtonElement>('assignment-banner-open-btn'); },
+
     // ========== Import/Export ==========
     get risFileInput() { return getElement<HTMLInputElement>('ris-file'); },
     get importBtn() { return getElement<HTMLButtonElement>('import-btn'); },

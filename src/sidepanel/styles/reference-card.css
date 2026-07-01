@@ -160,6 +160,51 @@
     text-align: center;
 }
 
+/* 担当分け未設定の案内カード（設定画面・担当セット欄・管理者向け） */
+.assignment-banner {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background-color: #eef5ff;
+    border: 1px solid #b6d4fe;
+    border-left: 4px solid #0d6efd;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 10px 0 4px;
+}
+
+.assignment-banner-icon {
+    font-size: 22px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.assignment-banner-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.assignment-banner-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #084298;
+    margin-bottom: 4px;
+}
+
+.assignment-banner-desc {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #33475b;
+    margin: 0 0 10px 0;
+}
+
+.assignment-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 /* レコード件数表示（タイトル上） */
 .record-count-display {
     text-align: center;

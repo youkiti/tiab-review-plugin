@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
     dom.assignmentReshuffleBtn?.addEventListener('click', () => { void settings.handleAssignmentReshuffle(); });
     dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
+    dom.assignmentBannerOpenBtn?.addEventListener('click', () => { void assignment.handleAssignmentBannerOpen(); });
 
     // Import/Export
     dom.risFileInput?.addEventListener('change', importExport.handleRISImport);

@@ -219,6 +219,7 @@ export function renderAssignmentManager() {
     dom.assignmentReviewerMap.classList.add('hidden');
     dom.assignmentSaveBtn.classList.add('hidden');
     dom.assignmentResetBtn.classList.add('hidden');
+    dom.assignmentBanner.classList.add('hidden');
     if (dom.assignmentReshuffleBtn) {
         dom.assignmentReshuffleBtn.classList.add('hidden');
     }
@@ -235,14 +236,15 @@ export function renderAssignmentManager() {
         return;
     }
 
-    if (config.status === 'dismissed') {
-        dom.assignmentSettingsStatus.textContent = t('assignment_settingsDismissed');
-    } else {
-        dom.assignmentSettingsStatus.textContent = t('assignment_settingsPending');
-    }
+    // 未設定（none / dismissed）: 設定画面に目立つ案内カードを表示
+    dom.assignmentSettingsStatus.textContent = '';
+    dom.assignmentBannerDesc.textContent = t('assignment_bannerDesc', String(DEFAULT_ASSIGNMENT_CONFIG.calibrationSize));
+    dom.assignmentBanner.classList.remove('hidden');
+}
 
-    dom.assignmentResetBtn.textContent = t('assignment_settingsShowWizard');
-    dom.assignmentResetBtn.classList.remove('hidden');
+/** 案内カードの「今すぐ分割する」→ ウィザードを強制的に開く */
+export async function handleAssignmentBannerOpen() {
+    await maybeShowAssignmentWizard('settings', { force: true });
 }
 
 function renderReviewerInputs(config: AssignmentConfig) {

@@ -1771,7 +1771,21 @@
     }
   },
   "assignment_settingsShowWizard": {
-    "message": "ウィザードを開く"
+    "message": "文献の担当分けを設定する"
+  },
+  "assignment_bannerTitle": {
+    "message": "文献の担当分けが未設定です"
+  },
+  "assignment_bannerDesc": {
+    "message": "複数人で分担する場合は、最初に「全員で同じ $1 件」を判定して基準をそろえ（キャリブレーション）、残りをチームごとに分担します。各自の担当だけが表示され、効率的にスクリーニングできます。1人で行う場合は不要です。",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "assignment_bannerOpen": {
+    "message": "今すぐ文献を分割する"
   },
   "assignment_settingsSaveMap": {
     "message": "担当者設定を保存"
@@ -1788,7 +1802,7 @@
     }
   },
   "assignment_settingsReshuffle": {
-    "message": "再分割（やり直し）"
+    "message": "再分割してやり直す"
   },
   "assignment_reshuffleConfirm": {
     "message": "現在の担当セットを破棄して全件を再シャッフルします。\n\n・全文献の screening_set が新しい乱数で振り直されます\n・各レビュアーが見る文献の組み合わせが変わります\n・既存の判定（Decisions）はそのまま保持されます\n\n続行しますか？"
