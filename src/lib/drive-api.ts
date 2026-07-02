@@ -24,9 +24,10 @@ const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 // 構成: TiAb Review Plugin / {プロジェクト名} / (スプレッドシート, fulltext/)
 const APP_ROOT_FOLDER_NAME = 'TiAb Review Plugin';
 const FULLTEXT_SUBFOLDER_NAME = 'fulltext';
-// ルートフォルダを Drive 上で見分けやすくするための色（青）。
+// フォルダを Drive 上で見分けやすくするための色。
+// アプリアイコンの緑（#81BD3B〜#99CC44）に最も近い Drive 既定パレット色。
 // folderColorRgb は Drive の既定パレットに丸められる。
-const APP_ROOT_FOLDER_COLOR = '#4986e7';
+const APP_FOLDER_COLOR = '#7bd148';
 
 export interface DriveFileInfo {
     id: string;
@@ -177,7 +178,7 @@ async function findFolderInRoot(name: string): Promise<string | null> {
 export async function ensureAppRootFolder(): Promise<string> {
     const existing = await findFolderInRoot(APP_ROOT_FOLDER_NAME);
     if (existing) return existing;
-    return createFolder(APP_ROOT_FOLDER_NAME, undefined, APP_ROOT_FOLDER_COLOR);
+    return createFolder(APP_ROOT_FOLDER_NAME, undefined, APP_FOLDER_COLOR);
 }
 
 /**
@@ -225,7 +226,7 @@ async function moveFileToFolder(fileId: string, parentId: string): Promise<void>
  */
 export async function setupProjectFolder(spreadsheetId: string, title: string): Promise<string> {
     const rootId = await ensureAppRootFolder();
-    const projectFolderId = await createFolder(title, rootId);
+    const projectFolderId = await createFolder(title, rootId, APP_FOLDER_COLOR);
     await moveFileToFolder(spreadsheetId, projectFolderId);
     await saveProjectDriveFolderId(spreadsheetId, projectFolderId);
     return projectFolderId;
