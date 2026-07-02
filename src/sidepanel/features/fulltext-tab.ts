@@ -12,6 +12,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { getFulltextCandidateList } from './screening/filters';
+import { handleKeyToggle } from './screening/actions';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { setupFulltextAiListeners } from './fulltext-ai';
 import { switchToTab } from './llm';
@@ -304,12 +305,28 @@ function toggleRuleEditor(): void {
         return;
     }
     div.classList.remove('hidden');
+    openRuleEditor();
+}
+
+function openRuleEditor(): void {
+    const div = dom.fulltextRuleEditorDiv;
     mountRuleEditor({
         container: div,
         references: state.references,
         decisions: collectAllDecisions(),
         currentRule: state.fulltextPoolRule,
         keyOpened: state.isKeyOpened,
+        isAdmin: state.isAdmin,
+        onOpenKey: async () => {
+            // handleBlindToggle (fulltext-results.ts) と同じ委譲パターン:
+            // handleKeyToggle は dom.keyToggleInput.checked を正とする
+            dom.keyToggleInput.checked = true;
+            await handleKeyToggle();
+            dom.fulltextKeyToggle.checked = state.isKeyOpened;
+            renderFulltextTab();
+            // 開封成功なら編集フォーム、キャンセル/失敗なら再びブロック表示
+            openRuleEditor();
+        },
         onSave: async (rule) => {
             await saveFulltextPoolRule(state.spreadsheetId, rule);
             syncSetFulltextPoolRule(rule);

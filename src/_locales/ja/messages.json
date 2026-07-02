@@ -524,6 +524,12 @@
   "ftRule_blocked": {
     "message": "候補ルールはキー開封（ブラインド解除）後に設定できます。それまでは「自分が TiAb で Include した文献」が候補になります。"
   },
+  "ftRule_openKeyBtn": {
+    "message": "キー開封（ブラインド解除）を実行"
+  },
+  "ftRule_blockedAskAdmin": {
+    "message": "キー開封はプロジェクト管理者のみ実行できます。"
+  },
   "ftRule_noVoters": {
     "message": "TiAb判定がまだありません。先にTiAbスクリーニングを進めてください。"
   },

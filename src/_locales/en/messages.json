@@ -524,6 +524,12 @@
   "ftRule_blocked": {
     "message": "The pool rule can be configured after the key is opened (blinding lifted). Until then, your own TiAb includes are used as candidates."
   },
+  "ftRule_openKeyBtn": {
+    "message": "Open the key (lift blinding)"
+  },
+  "ftRule_blockedAskAdmin": {
+    "message": "Only the project admin can open the key."
+  },
   "ftRule_noVoters": {
     "message": "No TiAb decisions yet. Continue TiAb screening first."
   },

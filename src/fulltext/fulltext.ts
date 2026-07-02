@@ -559,6 +559,13 @@ async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promis
 /** 次の候補へ進む（末尾なら留まって通知）。判定後の自動送りに使う。 */
 function advanceToNext(): void {
     if (currentCandidateIndex < 0) return;
+    // 全候補が判定済みになったら、完了を通知してタブを閉じ元の画面へ戻る。
+    // 判定アクション後にしか通らないので、全件判定済みの状態で
+    // 開き直しただけでは発火しない（見直しはできる）。
+    if (fulltextCandidates.length > 0 && fulltextCandidates.every(r => isDecided(r.ref_id))) {
+        startAutoClose();
+        return;
+    }
     if (currentCandidateIndex >= fulltextCandidates.length - 1) {
         showFeedback('最後の候補です');
         return;
@@ -749,6 +756,42 @@ function wireNavButtons(): void {
     document.getElementById('ft-prev-btn')?.addEventListener('click', () => navigate(-1));
     document.getElementById('ft-next-btn')?.addEventListener('click', () => navigate(1));
     document.getElementById('ft-next-undecided-btn')?.addEventListener('click', () => jumpToNextUndecided());
+    document.getElementById('ft-close-btn')?.addEventListener('click', () => closeTab());
+}
+
+/** このタブを閉じて元の画面に戻る。chrome.tabs.create で開かれたタブは
+ *  window.close() が効かないことがあるため chrome.tabs API を優先する。 */
+function closeTab(): void {
+    chrome.tabs.getCurrent(tab => {
+        if (tab?.id !== undefined) {
+            chrome.tabs.remove(tab.id);
+        } else {
+            window.close();
+        }
+    });
+}
+
+let autoCloseTimer: number | undefined;
+
+/**
+ * 全件判定完了を通知し、少し待ってからタブを閉じる。
+ * 猶予中にキー入力・クリックがあれば自動クローズをキャンセルする
+ * （直前の判定を見直したい場合の逃げ道）。
+ */
+function startAutoClose(): void {
+    if (autoCloseTimer !== undefined) return;
+    showFeedback('全件の判定が完了しました 🎉 まもなくタブを閉じます（操作でキャンセル）');
+    const ac = new AbortController();
+    const cancel = (): void => {
+        ac.abort();
+        if (autoCloseTimer === undefined) return;
+        clearTimeout(autoCloseTimer);
+        autoCloseTimer = undefined;
+        showFeedback('自動クローズをキャンセルしました');
+    };
+    window.addEventListener('keydown', cancel, { capture: true, signal: ac.signal });
+    window.addEventListener('pointerdown', cancel, { capture: true, signal: ac.signal });
+    autoCloseTimer = window.setTimeout(() => closeTab(), 2000);
 }
 
 function navigate(delta: number): void {

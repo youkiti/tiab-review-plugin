@@ -21,6 +21,9 @@ export interface RuleEditorOptions {
     decisions: Decision[];
     currentRule: FulltextPoolRule | null;
     keyOpened: boolean;
+    isAdmin?: boolean;
+    /** 管理者がキー開封を実行。完了後の再マウントは呼び出し側が行う */
+    onOpenKey?: () => Promise<void>;
     /** ルールの永続化と後続のUI更新。throw するとエラー表示される */
     onSave: (rule: FulltextPoolRule) => Promise<void>;
     onClose: () => void;
@@ -38,7 +41,28 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
     if (!opts.keyOpened) {
         const blocked = document.createElement('div');
         blocked.className = 'ft-rule-blocked';
-        blocked.textContent = t('ftRule_blocked');
+        const message = document.createElement('div');
+        message.textContent = t('ftRule_blocked');
+        blocked.appendChild(message);
+        if (opts.isAdmin && opts.onOpenKey) {
+            const openKeyBtn = document.createElement('button');
+            openKeyBtn.className = 'btn btn-primary ft-rule-open-key-btn';
+            openKeyBtn.textContent = t('ftRule_openKeyBtn');
+            openKeyBtn.addEventListener('click', () => {
+                openKeyBtn.disabled = true;
+                opts.onOpenKey!()
+                    .finally(() => {
+                        // キャンセル時に再度押せるように戻す（成功時は再マウントで破棄される）
+                        openKeyBtn.disabled = false;
+                    });
+            });
+            blocked.appendChild(openKeyBtn);
+        } else {
+            const hint = document.createElement('div');
+            hint.className = 'ft-rule-blocked-hint';
+            hint.textContent = t('ftRule_blockedAskAdmin');
+            blocked.appendChild(hint);
+        }
         container.appendChild(blocked);
         return;
     }

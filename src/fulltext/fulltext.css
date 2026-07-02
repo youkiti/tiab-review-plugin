@@ -50,6 +50,28 @@ body {
     flex-shrink: 0;
 }
 
+.ft-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 暗色ヘッダー上に置く「閉じる」ボタン（タブを閉じて一覧へ戻る導線） */
+.ft-close-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #fff;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ft-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .ft-title {
     font-size: 16px;
     font-weight: 600;

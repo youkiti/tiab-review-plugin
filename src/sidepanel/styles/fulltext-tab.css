@@ -42,6 +42,16 @@
     padding: 8px 10px;
 }
 
+.fulltext-rule-editor .ft-rule-open-key-btn {
+    margin-top: 8px;
+}
+
+.fulltext-rule-editor .ft-rule-blocked-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #999;
+}
+
 .fulltext-rule-editor .ft-rule-desc {
     font-size: 12px;
     color: #555;
