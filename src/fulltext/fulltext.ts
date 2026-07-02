@@ -230,6 +230,7 @@ async function loadRef(refId: string): Promise<void> {
     clearAiHighlights();
 
     renderBiblio(ref);
+    renderContextPanel(ref);
     renderProgress();
     renderOverallProgress();
     renderDecisionPanel();
@@ -407,7 +408,7 @@ function setupAiRevealToggle(): void {
         syncAiRevealButton();
         renderAiSummary();
         // 開示状態で evidence の表示レベル（色分け・polarityラベル）も変わるため再描画する
-        applyHighlightsForCurrentRef();
+        refreshEvidenceDisplay();
     });
     title.appendChild(btn);
     syncAiRevealButton();
@@ -457,6 +458,15 @@ function renderAiSummary(): void {
     const head = document.createElement('div');
     head.className = 'ft-ai-summary-head';
     head.textContent = `AI判定: ${decLabel}${reasonCat} ・ 組入確率 ${pct}%`;
+    // 数字＋小バーの併記で、maybe（50%前後）と高確信判定を一目で区別できるようにする
+    const bar = document.createElement('span');
+    bar.className = 'ft-ai-prob-bar';
+    bar.title = `組入確率 ${pct}%`;
+    const fill = document.createElement('span');
+    fill.className = 'ft-ai-prob-fill';
+    fill.style.width = `${pct}%`;
+    bar.appendChild(fill);
+    head.appendChild(bar);
     banner.appendChild(head);
 
     if (note.reason) {
@@ -486,13 +496,42 @@ function wireDecisionButtons(): void {
             void handleSave();
         }
     });
+
+    // メモ欄で Enter（改行は Shift+Enter）: メモ込みで保存して次の候補へ。
+    // 保留メモの「任意入力 → Enter で次へ」フローに使う（除外でも同様に効く）。
+    document.getElementById('ft-reason-note')?.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            void commitNoteAndAdvance();
+        } else if (e.key === 'Escape') {
+            (e.target as HTMLElement).blur();
+            e.preventDefault();
+        }
+    });
+}
+
+/** メモ欄の Enter 確定: 保存して次の候補へ（除外は理由未選択なら保存しない） */
+async function commitNoteAndAdvance(): Promise<void> {
+    if (!pendingDecision) return;
+    if (pendingDecision === 'exclude') {
+        const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+        if (!select?.value) {
+            showFeedback('除外理由を選択してください', true);
+            focusReasonSelect();
+            return;
+        }
+    }
+    const saved = await handleSave();
+    if (saved) advanceToNext();
 }
 
 /**
  * 判定を選択して即保存する（TiAbレビューと同じ即保存挙動）。
  * - 組み入れ: 保存してそのまま次の候補へ進む
  * - 除外: 理由エリアを表示・フォーカスし、理由が確定（数字キー/Enter）したら次へ進む
- * - 保留: 保存してそのまま次の候補へ進む
+ * - 保留: 即保存しつつメモ欄（任意）を表示。第2レビュアー・adjudication で
+ *   「何が判断できなかったか」を共有できるようにする。Enter で次へ進む。
  */
 async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promise<void> {
     pendingDecision = decision;
@@ -504,8 +543,17 @@ async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promis
         return;                  // 理由確定で保存して advanceToNext する
     }
 
+    if (decision === 'maybe') {
+        const saved = await handleSave();
+        if (saved) {
+            showFeedback('保存しました。判断できなかった点をメモできます（Enterで次へ）');
+            focusReasonNote();
+        }
+        return;                  // Enter（またはボタン/キーで次へ）で advanceToNext する
+    }
+
     const saved = await handleSave();
-    if (saved) advanceToNext();   // 組み入れ・保留とも保存できたら次の候補へ
+    if (saved) advanceToNext();   // 組み入れは保存できたら次の候補へ
 }
 
 /** 次の候補へ進む（末尾なら留まって通知）。判定後の自動送りに使う。 */
@@ -524,6 +572,15 @@ function focusReasonSelect(): void {
     const area = document.getElementById('ft-reason-area');
     if (select && area && !area.classList.contains('hidden')) {
         select.focus();
+    }
+}
+
+/** メモ欄（textarea）にフォーカスを移す（表示中のときだけ）。保留メモの入力導線。 */
+function focusReasonNote(): void {
+    const note = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
+    const area = document.getElementById('ft-reason-area');
+    if (note && area && !area.classList.contains('hidden')) {
+        note.focus();
     }
 }
 
@@ -563,25 +620,40 @@ function updateDecisionButtons(): void {
 function updateReasonArea(): void {
     const area = document.getElementById('ft-reason-area');
     if (!area) return;
-    if (pendingDecision === 'exclude') {
+    const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    const note = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
+    const selectLabel = area.querySelector('.ft-reason-label') as HTMLElement | null;
+    const hint = area.querySelector('.ft-reason-hint') as HTMLElement | null;
+
+    // メモ欄は非表示中でも handleSave が値を参照するため、判定種によらず
+    // 「同じ判定種の既存メモ」を復元し、それ以外はクリアする。
+    // （旧実装は exclude 以外で復元もクリアもせず、include/maybe＋note の既存判定を
+    //   開いてもメモが見えない・前の文献のメモが残って保存される問題があった）
+    if (note) {
+        note.value = pendingDecision && existingDecision?.decision.decision === pendingDecision
+            ? existingDecision.decision.note ?? ''
+            : '';
+    }
+
+    if (pendingDecision === 'exclude' || pendingDecision === 'maybe') {
         area.classList.remove('hidden');
-        const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
-        const note = document.getElementById('ft-reason-note') as HTMLTextAreaElement | null;
-        // 既存の理由を復元
-        if (existingDecision?.decision.decision === 'exclude') {
-            if (select && existingDecision.decision.reason) {
+        const excludeMode = pendingDecision === 'exclude';
+        // 保留（maybe）ではPRISMA理由の選択は不要。メモ欄のみ出す。
+        selectLabel?.classList.toggle('hidden', !excludeMode);
+        select?.classList.toggle('hidden', !excludeMode);
+        hint?.classList.toggle('hidden', !excludeMode);
+        if (note) {
+            note.placeholder = excludeMode
+                ? '補足メモ（任意）'
+                : '判断できなかった点のメモ（任意・Enterで次へ）';
+        }
+        // 既存の除外理由を復元
+        if (select) {
+            if (excludeMode && existingDecision?.decision.decision === 'exclude' && existingDecision.decision.reason) {
                 select.value = existingDecision.decision.reason;
-            } else if (select) {
+            } else {
                 select.selectedIndex = -1;
             }
-            if (note && existingDecision.decision.note) {
-                note.value = existingDecision.decision.note;
-            } else if (note) {
-                note.value = '';
-            }
-        } else {
-            if (select) select.selectedIndex = -1;
-            if (note) note.value = '';
         }
     } else {
         area.classList.add('hidden');
@@ -676,6 +748,7 @@ function showFeedback(msg: string, isError = false): void {
 function wireNavButtons(): void {
     document.getElementById('ft-prev-btn')?.addEventListener('click', () => navigate(-1));
     document.getElementById('ft-next-btn')?.addEventListener('click', () => navigate(1));
+    document.getElementById('ft-next-undecided-btn')?.addEventListener('click', () => jumpToNextUndecided());
 }
 
 function navigate(delta: number): void {
@@ -684,6 +757,25 @@ function navigate(delta: number): void {
     const newIndex = (currentCandidateIndex + delta + len) % len;
     const nextRef = fulltextCandidates[newIndex];
     if (nextRef) void loadRef(nextRef.ref_id);
+}
+
+/**
+ * 次の未判定候補へジャンプする（u キー＋ボタン）。
+ * 現在位置から末尾方向へ探し、末尾まで無ければ先頭へ折り返す。
+ * 中断後の再開や、飛ばした文献の拾い直しを高速化する。
+ */
+function jumpToNextUndecided(): void {
+    const len = fulltextCandidates.length;
+    if (len === 0) return;
+    const start = currentCandidateIndex >= 0 ? currentCandidateIndex : -1;
+    for (let d = 1; d <= len; d++) {
+        const ref = fulltextCandidates[(start + d + len) % len];
+        if (ref && ref.ref_id !== currentRef?.ref_id && !isDecided(ref.ref_id)) {
+            void loadRef(ref.ref_id);
+            return;
+        }
+    }
+    showFeedback('未判定の候補はありません');
 }
 
 // ---------------------------------------------------------------------------
@@ -1020,10 +1112,12 @@ function wireHighlightToggle(): void {
     applyHighlightVisibility();
 }
 
-/** ハイライトオーバーレイ／アノテーション一覧の表示をトグル状態に同期する */
+/**
+ * PDF上のハイライトオーバーレイの表示をトグル状態に同期する。
+ * 根拠カード一覧は制御しない（原文を読みたくてオーバーレイをOFFにしても、
+ * カードから文脈を辿れるよう常に残す）。
+ */
 function applyHighlightVisibility(): void {
-    const list = document.getElementById('ft-annotations-list');
-    if (list) list.style.display = highlightEnabled ? '' : 'none';
     // PDF.js 描画中はレンダラ側のハイライトレイヤーをまとめて制御する
     pdfRenderer?.setHighlightsVisible(highlightEnabled);
     document.querySelectorAll('.ft-highlight').forEach(el => {
@@ -1080,6 +1174,18 @@ function handleKeydown(e: KeyboardEvent): void {
         case 'arrowleft': // Prev
         case 'k':
             navigate(-1);
+            e.preventDefault();
+            break;
+        case 'u': // 次の未判定候補へ
+            jumpToNextUndecided();
+            e.preventDefault();
+            break;
+        case 'n': // 次の evidence へ（カード強調＋PDFスクロール連動）
+            jumpToEvidence(1);
+            e.preventDefault();
+            break;
+        case 'p': // 前の evidence へ
+            jumpToEvidence(-1);
             e.preventDefault();
             break;
     }
@@ -1166,6 +1272,44 @@ function renderBiblio(ref: Reference): void {
     bar.classList.remove('hidden');
 }
 
+/** 現在のユーザーによるこの文献のTiAb判定（最新）を返す */
+function findMyTiabDecision(refId: string): Decision | null {
+    const mine = allDecisions
+        .filter(d => d.ref_id === refId && d.reviewer_id === userEmail && isTiabDecision(d))
+        .sort((a, b) => (b.decided_at || '').localeCompare(a.decided_at || ''));
+    return mine[0] ?? null;
+}
+
+/**
+ * 右ペインの「抄録・自分のTiAb判定」折りたたみを描画する。
+ * 表示中PDFと抄録の突き合わせ（取り違え確認）と、
+ * TiAb時に何を根拠に通したかの文脈想起を助ける。開閉状態は文献をまたいで維持する。
+ */
+function renderContextPanel(ref: Reference): void {
+    const body = document.getElementById('ft-context-body');
+    if (!body) return;
+    body.replaceChildren();
+
+    const tiab = findMyTiabDecision(ref.ref_id);
+    const tiabRow = document.createElement('div');
+    tiabRow.className = 'ft-context-tiab';
+    if (tiab) {
+        tiabRow.dataset.decision = tiab.decision;
+        const parts = [`自分のTiAb判定: ${AI_DECISION_LABELS[tiab.decision] ?? tiab.decision}`];
+        if (tiab.reason) parts.push(EXCLUDE_REASON_LABELS[tiab.reason] ?? tiab.reason);
+        if (tiab.note) parts.push(tiab.note);
+        tiabRow.textContent = parts.join(' · ');
+    } else {
+        tiabRow.textContent = '自分のTiAb判定: なし';
+    }
+    body.appendChild(tiabRow);
+
+    const abs = document.createElement('div');
+    abs.className = 'ft-context-abstract';
+    abs.textContent = ref.abstract || '（抄録なし）';
+    body.appendChild(abs);
+}
+
 function renderProgress(): void {
     const el = document.getElementById('ft-progress');
     if (!el) return;
@@ -1225,6 +1369,9 @@ function showPdfFrame(src: string): void {
     frame.classList.remove('hidden');
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) placeholder.style.display = 'none';
+    // iframe 経由（Driveプレビュー・Chrome内蔵ビュワー等）ではPDF.jsハイライトを
+    // 描けないが、根拠カード一覧だけは表示する（消失させない）
+    renderAiCardsFallback();
 }
 
 function appendTextWithBreaks(parent: HTMLElement, text: string): void {
@@ -1343,6 +1490,8 @@ function getPdfRenderer(): PdfRenderer {
         const container = document.getElementById('ft-pdf-canvas-container');
         if (!container) throw new Error('PDF描画コンテナが見つかりません');
         pdfRenderer = new PdfRenderer(container);
+        // PDF上のハイライトクリック → 右ペインの該当カードへスクロール＆強調
+        pdfRenderer.onHighlightClick = id => focusAnnotationCard(id);
     }
     return pdfRenderer;
 }
@@ -1397,6 +1546,68 @@ function clearAiHighlights(): void {
     renderAnnotationsList([], false);
 }
 
+/**
+ * 状態に応じた根拠一覧の空メッセージ。
+ * 表示レベル none の時は、採用ラウンドの有無等で文言を変えると
+ * 「AI判定が存在するか」が推測できてしまうため、常に既定文言に固定する。
+ */
+function evidenceEmptyMessage(): string {
+    if (effectiveEvidenceLevel() !== 'none' && !aiActiveRound) {
+        return 'AI判定の採用ラウンドが未設定です（Config タブ fulltext_ai_active_round）。';
+    }
+    return 'このPDFのAI判定根拠はまだありません。';
+}
+
+/**
+ * 現在の表示経路に応じて AI evidence 表示を再構築する。
+ * PDF.js 描画中はハイライト＋カード、それ以外（iframe埋め込み等）はカードのみ。
+ * 開示トグルや表示レベル変更時の再描画に使う。
+ */
+function refreshEvidenceDisplay(): void {
+    if (currentPdfInfo) {
+        applyHighlightsForCurrentRef();
+    } else {
+        renderAiCardsFallback();
+    }
+}
+
+/**
+ * PDF.js 以外の表示経路（Driveプレビュー埋め込み・Chrome内蔵ビュワー・
+ * 論文ページ埋め込み・リンクのみ表示）でも根拠カード一覧は表示する。
+ * 矩形ハイライトは描けないため、カードは quote＋AIの申告ページ番号のみで
+ * クリックでのスクロールは無効にする。
+ */
+function renderAiCardsFallback(): void {
+    if (!currentRef) return;
+
+    const level = effectiveEvidenceLevel();
+    if (level === 'none') {
+        renderAnnotationsList([], false, { emptyMessage: evidenceEmptyMessage() });
+        return;
+    }
+
+    const note = findAiFulltextNote(currentRef.ref_id);
+    if (!note || !Array.isArray(note.evidence) || note.evidence.length === 0) {
+        renderAnnotationsList([], false, { emptyMessage: evidenceEmptyMessage() });
+        return;
+    }
+
+    const items: HighlightListItem[] = note.evidence.map((ev, idx) => ({
+        id: `ai-ev-${idx}`,
+        category: (level !== 'full' ? 'ai_evidence'
+            : ev.polarity === 'exclude' ? 'exclude_evidence' : 'include_evidence') as HighlightCategory,
+        quote: ev.quote,
+        page: ev.page,
+        resolved: false,
+        via: 'none' as const,
+    }));
+
+    renderAnnotationsList(items, note.image_only ?? false, {
+        clickable: false,
+        notice: 'この表示モードではPDF上のハイライト表示はできません（根拠一覧のみ）。',
+    });
+}
+
 function applyHighlightsForCurrentRef(): void {
     if (!pdfRenderer || !currentRef || !currentPdfInfo) return;
     pdfRenderer.clearHighlights();
@@ -1408,7 +1619,7 @@ function applyHighlightsForCurrentRef(): void {
     const level = effectiveEvidenceLevel();
     if (level === 'none') {
         // 空表示は「AI判定根拠なし」と同文言にし、AI判定の有無自体を漏らさない
-        renderAnnotationsList([], false);
+        renderAnnotationsList([], false, { emptyMessage: evidenceEmptyMessage() });
         return;
     }
 
@@ -1441,7 +1652,9 @@ function applyHighlightsForCurrentRef(): void {
         });
     }
 
-    renderAnnotationsList(items, note?.image_only ?? currentPdfInfo?.isImageOnly ?? false);
+    renderAnnotationsList(items, note?.image_only ?? currentPdfInfo?.isImageOnly ?? false, {
+        emptyMessage: evidenceEmptyMessage(),
+    });
     pdfRenderer.setHighlightsVisible(highlightEnabled);
 }
 
@@ -1486,18 +1699,91 @@ interface HighlightListItem {
     via: 'text' | 'bbox' | 'none';
 }
 
+// 表示中の根拠カード一覧と n/p ジャンプ用のカーソル位置。
+// renderAnnotationsList のたびに一覧を差し替え、カーソルは先頭前（-1）へ戻す。
+let evidenceItems: HighlightListItem[] = [];
+let evidenceCursor = -1;
+
+/**
+ * 指定idの根拠カードへスクロールして一時強調する。
+ * PDF上のハイライトクリック・n/pジャンプからの連動に使う。
+ */
+function focusAnnotationCard(id: string): void {
+    const list = document.getElementById('ft-annotations-list');
+    const card = list?.querySelector(`.ft-annotation-card[data-hl-id="${CSS.escape(id)}"]`) as HTMLElement | null;
+    if (!card) return;
+    evidenceCursor = evidenceItems.findIndex(i => i.id === id);
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    flashElement(card, 'ft-card-flash');
+}
+
+/** 要素に flash クラスを付け直してアニメーションを再始動し、終了後に外す */
+function flashElement(el: HTMLElement, cls: string): void {
+    el.classList.remove(cls);
+    void el.offsetWidth; // reflow でアニメーションをリセット
+    el.classList.add(cls);
+    window.setTimeout(() => el.classList.remove(cls), 1300);
+}
+
+/**
+ * n / p キーで次/前の evidence へジャンプする。
+ * カードを強調し、PDF.js 描画中は該当ハイライト（または申告ページ）へもスクロールする。
+ */
+function jumpToEvidence(delta: number): void {
+    if (evidenceItems.length === 0) return;
+    if (evidenceCursor === -1) {
+        evidenceCursor = delta > 0 ? 0 : evidenceItems.length - 1;
+    } else {
+        evidenceCursor = (evidenceCursor + delta + evidenceItems.length) % evidenceItems.length;
+    }
+    const item = evidenceItems[evidenceCursor];
+    focusAnnotationCard(item.id);
+    // オーバーレイ非表示中は（不可視要素へは scrollIntoView が効かないため）ページ単位で送る
+    if (item.resolved && highlightEnabled) {
+        pdfRenderer?.scrollToHighlight(item.id);
+        pdfRenderer?.flashHighlight(item.id);
+    } else if (currentPdfInfo) {
+        pdfRenderer?.scrollToPage(item.page);
+    }
+}
+
+interface AnnotationListOptions {
+    /** カードクリックでのスクロールを有効にするか（PDF.js 描画時のみ true）。既定 true */
+    clickable?: boolean;
+    /** 一覧先頭に出す注意書き（フォールバック表示モードの説明など） */
+    notice?: string;
+    /** 空表示の文言（状態別の出し分け用）。省略時は既定文言 */
+    emptyMessage?: string;
+}
+
 /** 右ペインのアノテーション一覧を再構築する */
-function renderAnnotationsList(items: HighlightListItem[], imageOnly: boolean): void {
+function renderAnnotationsList(
+    items: HighlightListItem[],
+    imageOnly: boolean,
+    opts: AnnotationListOptions = {}
+): void {
     const list = document.getElementById('ft-annotations-list');
     if (!list) return;
     list.innerHTML = '';
+    const clickable = opts.clickable ?? true;
+
+    // n/p ジャンプ・ハイライト連動用の一覧を差し替え、カーソルをリセット
+    evidenceItems = items;
+    evidenceCursor = -1;
 
     if (items.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'ft-annotation-empty';
-        empty.textContent = 'このPDFのAI判定根拠はまだありません。';
+        empty.textContent = opts.emptyMessage ?? 'このPDFのAI判定根拠はまだありません。';
         list.appendChild(empty);
         return;
+    }
+
+    if (opts.notice) {
+        const notice = document.createElement('div');
+        notice.className = 'ft-annotation-notice';
+        notice.textContent = opts.notice;
+        list.appendChild(notice);
     }
 
     if (imageOnly) {
@@ -1511,6 +1797,7 @@ function renderAnnotationsList(items: HighlightListItem[], imageOnly: boolean): 
         const card = document.createElement('div');
         card.className = 'ft-annotation-card';
         card.dataset.category = item.category;
+        card.dataset.hlId = item.id;
 
         const text = document.createElement('div');
         text.className = 'ft-annotation-text';
@@ -1519,23 +1806,36 @@ function renderAnnotationsList(items: HighlightListItem[], imageOnly: boolean): 
 
         const meta = document.createElement('div');
         meta.className = 'ft-annotation-meta';
+        // ＋/－ は緑/赤（P/D型色覚で区別困難）の冗長コーディング
         const polarityLabel =
             item.category === 'ai_evidence' ? 'AI注目箇所'
-                : item.category === 'exclude_evidence' ? '除外根拠' : '組入根拠';
-        const locLabel = item.resolved
-            ? (item.via === 'bbox' ? `p.${item.page}（領域推定）` : `p.${item.page}`)
-            : `p.${item.page}（位置不明）`;
+                : item.category === 'exclude_evidence' ? '－ 除外根拠' : '＋ 組入根拠';
+        // フォールバック（クリック不可）時の位置はAIの申告ページ番号そのままなので
+        // 「位置不明」の注記は付けない
+        const locLabel = !clickable
+            ? `p.${item.page}`
+            : item.resolved
+                ? (item.via === 'bbox' ? `p.${item.page}（領域推定）` : `p.${item.page}`)
+                : `p.${item.page}（位置不明）`;
         meta.textContent = `${polarityLabel} · ${locLabel}`;
         card.appendChild(meta);
 
-        // クリックで該当ハイライト（解決済み）またはページ先頭（縮退）へスクロール
-        card.addEventListener('click', () => {
-            if (item.resolved) {
-                pdfRenderer?.scrollToHighlight(item.id);
-            } else {
-                pdfRenderer?.scrollToPage(item.page);
-            }
-        });
+        if (clickable) {
+            // クリックで該当ハイライト（解決済み）またはページ先頭（縮退）へスクロールし、
+            // スクロール先のハイライトを一時強調して見つけやすくする
+            card.addEventListener('click', () => {
+                evidenceCursor = evidenceItems.findIndex(i => i.id === item.id);
+                // オーバーレイ非表示中は（不可視要素へは scrollIntoView が効かないため）ページ単位で送る
+                if (item.resolved && highlightEnabled) {
+                    pdfRenderer?.scrollToHighlight(item.id);
+                    pdfRenderer?.flashHighlight(item.id);
+                } else {
+                    pdfRenderer?.scrollToPage(item.page);
+                }
+            });
+        } else {
+            card.classList.add('ft-annotation-static');
+        }
 
         list.appendChild(card);
     }
@@ -1592,6 +1892,8 @@ function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): v
     }
 
     setUrlLabel(url, source);
+    // PDF未表示でも根拠カード（quote＋ページ番号）は参照できるようにする
+    renderAiCardsFallback();
 }
 
 // ---------------------------------------------------------------------------
@@ -1670,6 +1972,8 @@ async function showArticlePage(): Promise<void> {
         if (label) {
             renderUrlLabel(label, '論文ページ', url);
         }
+        // 論文ページ埋め込みでもAI根拠カードは参照できるようにする
+        renderAiCardsFallback();
     } else {
         showArticleFallback(url);
     }
@@ -1701,4 +2005,5 @@ function showArticleFallback(url: string): void {
     placeholder.appendChild(panel);
     const label = document.getElementById('ft-pdf-url-label');
     if (label) label.replaceChildren();
+    renderAiCardsFallback();
 }

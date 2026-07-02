@@ -86,6 +86,12 @@ export class PdfRenderer {
     private pages: PageInfo[] = [];
     private renderToken = 0;
 
+    /**
+     * PDF上のハイライト矩形クリック時に呼ばれるコールバック（引数はハイライトid）。
+     * 右ペインの根拠カードへの連動スクロール・強調に使う。
+     */
+    onHighlightClick: ((id: string) => void) | null = null;
+
     constructor(container: HTMLElement) {
         this.container = container;
     }
@@ -289,6 +295,21 @@ export class PdfRenderer {
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    /**
+     * 特定ハイライト（id）を一時的に強調する（スクロール後の視線誘導用）。
+     * flash クラスを付け直してCSSアニメーションを再始動し、終了後に外す。
+     */
+    flashHighlight(id: string): void {
+        const els = this.container.querySelectorAll(`.ft-highlight[data-hl-id="${cssEscape(id)}"]`);
+        els.forEach(node => {
+            const el = node as HTMLElement;
+            el.classList.remove('ft-highlight-flash');
+            void el.offsetWidth; // reflow でアニメーションをリセット
+            el.classList.add('ft-highlight-flash');
+            window.setTimeout(() => el.classList.remove('ft-highlight-flash'), 1300);
+        });
+    }
+
     // -----------------------------------------------------------------------
 
     /** quote をテキストレイヤーにマッチさせ、該当アイテムの矩形群を返す */
@@ -323,6 +344,7 @@ export class PdfRenderer {
             el.style.top = `${r.top}px`;
             el.style.width = `${r.width}px`;
             el.style.height = `${r.height}px`;
+            el.addEventListener('click', () => this.onHighlightClick?.(req.id));
             page.highlightLayer.appendChild(el);
         }
     }

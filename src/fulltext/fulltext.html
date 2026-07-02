@@ -94,13 +94,21 @@
                     <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>
                 </section>
 
+                <!-- 文脈参照: 抄録と自分のTiAb判定（PDF取り違え確認・文脈想起の補助） -->
+                <section class="ft-panel ft-context-panel">
+                    <details id="ft-context-details">
+                        <summary class="ft-context-summary">抄録・自分のTiAb判定</summary>
+                        <div id="ft-context-body" class="ft-context-body"></div>
+                    </details>
+                </section>
+
                 <!-- アノテーション一覧 -->
                 <section class="ft-panel ft-annotations-panel">
                     <h2 class="ft-panel-title">
                         ハイライト
-                        <label class="ft-highlight-toggle">
+                        <label class="ft-highlight-toggle" title="PDF上のハイライトのみ切り替えます（根拠一覧は残ります）">
                             <input type="checkbox" id="ft-highlight-checkbox" checked>
-                            <span>表示</span>
+                            <span>PDF上に表示</span>
                         </label>
                     </h2>
                     <div id="ft-annotations-list" class="ft-annotations-list">
@@ -111,6 +119,8 @@
                 <!-- ナビゲーション -->
                 <div class="ft-nav">
                     <button id="ft-prev-btn" class="btn btn-secondary">← 前</button>
+                    <button id="ft-next-undecided-btn" class="btn btn-secondary"
+                        title="次の未判定候補へジャンプ (u)">未判定へ (u)</button>
                     <button id="ft-next-btn" class="btn btn-secondary">次 →</button>
                 </div>
             </aside>

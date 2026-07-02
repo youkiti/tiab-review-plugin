@@ -377,6 +377,25 @@ body {
     color: #2c3e7a;
 }
 
+/* 組入確率の小バー（数字併記の視覚補助） */
+.ft-ai-prob-bar {
+    display: inline-block;
+    vertical-align: middle;
+    width: 64px;
+    height: 6px;
+    margin-left: 6px;
+    background: #dfe6f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ft-ai-prob-fill {
+    display: block;
+    height: 100%;
+    background: #5b8def;
+    border-radius: 3px;
+}
+
 .ft-ai-summary-reason {
     font-size: 12px;
     color: #555;
@@ -451,6 +470,48 @@ body {
     width: 100%;
 }
 
+/* 抄録・自分のTiAb判定の折りたたみ（PDF取り違え確認・文脈想起用） */
+.ft-context-panel {
+    flex-shrink: 0;
+}
+
+.ft-context-summary {
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    user-select: none;
+}
+
+.ft-context-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.ft-context-tiab {
+    font-size: 12px;
+    color: #333;
+    background: #f4f6f8;
+    border-radius: 4px;
+    padding: 6px 8px;
+    line-height: 1.4;
+}
+
+.ft-context-tiab[data-decision="include"] { border-left: 3px solid var(--color-include); }
+.ft-context-tiab[data-decision="exclude"] { border-left: 3px solid var(--color-exclude); }
+.ft-context-tiab[data-decision="maybe"]   { border-left: 3px solid var(--color-maybe); }
+
+.ft-context-abstract {
+    font-size: 12px;
+    color: #444;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
 /* アノテーション一覧 */
 .ft-annotations-panel {
     flex: 1;
@@ -507,6 +568,17 @@ body {
     padding: 8px 4px;
 }
 
+/* 表示モードの注意書き（iframe表示中はハイライト不可、等） */
+.ft-annotation-notice {
+    font-size: 11px;
+    color: #5b6b8c;
+    background: #eef3fb;
+    border: 1px solid #c9d8ef;
+    border-radius: 4px;
+    padding: 6px 8px;
+    line-height: 1.4;
+}
+
 /* スキャン画像PDFの注意表示 */
 .ft-annotation-imageonly {
     font-size: 11px;
@@ -530,6 +602,15 @@ body {
 
 .ft-annotation-card:hover {
     background: #f9f9f9;
+}
+
+/* クリック不可カード（iframe表示中などスクロール連動できない時） */
+.ft-annotation-card.ft-annotation-static {
+    cursor: default;
+}
+
+.ft-annotation-card.ft-annotation-static:hover {
+    background: inherit;
 }
 
 .ft-annotation-card[data-category="include_evidence"] {
@@ -567,10 +648,34 @@ body {
     mix-blend-mode: multiply;
 }
 
-.ft-highlight[data-category="include_evidence"] { background: var(--color-include-evidence); }
-.ft-highlight[data-category="exclude_evidence"] { background: var(--color-exclude-evidence); }
+/* 下線の実線/破線は緑/赤（P/D型色覚で区別困難）の冗長コーディング */
+.ft-highlight[data-category="include_evidence"] {
+    background: var(--color-include-evidence);
+    border-bottom: 2px solid rgba(39, 174, 96, 0.9);
+}
+.ft-highlight[data-category="exclude_evidence"] {
+    background: var(--color-exclude-evidence);
+    border-bottom: 2px dashed rgba(192, 57, 43, 0.9);
+}
 .ft-highlight[data-category="data_point"]       { background: var(--color-data-point); }
 .ft-highlight[data-category="ai_evidence"]      { background: var(--color-ai-evidence); }
+
+/* カードクリック・n/pジャンプ直後の一時強調（1秒強でフェードアウト） */
+@keyframes ft-flash-fade {
+    0%   { outline-color: rgba(52, 152, 219, 0.95); }
+    70%  { outline-color: rgba(52, 152, 219, 0.95); }
+    100% { outline-color: rgba(52, 152, 219, 0); }
+}
+
+.ft-highlight.ft-highlight-flash {
+    outline: 3px solid rgba(52, 152, 219, 0.95);
+    animation: ft-flash-fade 1.2s ease-out forwards;
+}
+
+.ft-annotation-card.ft-card-flash {
+    outline: 2px solid rgba(52, 152, 219, 0.95);
+    animation: ft-flash-fade 1.2s ease-out forwards;
+}
 
 /* ナビゲーション */
 .ft-nav {
