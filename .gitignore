@@ -58,3 +58,6 @@ vendor/
 # Experiments
 experiments/results/
 experiments/local_data/
+
+# Internal planning docs
+plans/

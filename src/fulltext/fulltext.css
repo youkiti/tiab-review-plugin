@@ -10,6 +10,8 @@
     --color-include-evidence: rgba(46, 204, 113, 0.35);
     --color-exclude-evidence: rgba(231, 76, 60, 0.35);
     --color-data-point: rgba(52, 152, 219, 0.35);
+    /* ブラインド中のAI evidence（polarity非開示）。組入/除外を推測させない中立の黄色 */
+    --color-ai-evidence: rgba(241, 196, 15, 0.4);
 }
 
 * {
@@ -542,6 +544,10 @@ body {
     border-left: 3px solid #3498db;
 }
 
+.ft-annotation-card[data-category="ai_evidence"] {
+    border-left: 3px solid #f1c40f;
+}
+
 .ft-annotation-text {
     color: #333;
     margin-bottom: 4px;
@@ -564,6 +570,7 @@ body {
 .ft-highlight[data-category="include_evidence"] { background: var(--color-include-evidence); }
 .ft-highlight[data-category="exclude_evidence"] { background: var(--color-exclude-evidence); }
 .ft-highlight[data-category="data_point"]       { background: var(--color-data-point); }
+.ft-highlight[data-category="ai_evidence"]      { background: var(--color-ai-evidence); }
 
 /* ナビゲーション */
 .ft-nav {

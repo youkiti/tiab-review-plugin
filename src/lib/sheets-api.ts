@@ -1336,6 +1336,23 @@ export interface ProjectConfigBundle {
     fulltextPoolRule: FulltextPoolRule | null;
     // 採用するフルテキストAI判定ラウンド（reviewer_id = `llm:{model}@{timestamp}`）。未設定は null。
     fulltextAiActiveRound: string | null;
+    // ブラインド中（AI判断 非開示時）のAI evidence 表示レベル。実験条件（ヒト単独 vs AI支援）の制御に使う。
+    fulltextEvidenceDisplay: FulltextEvidenceDisplay;
+}
+
+/**
+ * ブラインド中のAI evidence（ハイライト・根拠カード）の表示レベル。
+ * Config タブのキー `fulltext_evidence_display` で共有設定する。
+ * - none:    evidence 自体を表示しない（AI判定なしの文献と見分けが付かない表示にする）
+ * - neutral: 単色ハイライト＋「AI注目箇所」ラベルのみ（polarity 非表示。既定値）
+ * - full:    ブラインド中でも組入/除外の色分け・ラベルまで表示する
+ * AI判断の開示時（keyOpened / 管理者トグル）は設定によらず full 相当で表示する。
+ */
+export type FulltextEvidenceDisplay = 'none' | 'neutral' | 'full';
+
+function parseFulltextEvidenceDisplay(value: string | undefined): FulltextEvidenceDisplay {
+    const v = (value ?? '').trim().toLowerCase();
+    return v === 'none' || v === 'neutral' || v === 'full' ? v : 'neutral';
 }
 
 const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
@@ -1343,6 +1360,7 @@ const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     keywords: { include: DEFAULT_INCLUDE_KEYWORDS, exclude: DEFAULT_EXCLUDE_KEYWORDS },
     fulltextPoolRule: null,
     fulltextAiActiveRound: null,
+    fulltextEvidenceDisplay: 'neutral',
 };
 
 /**
@@ -1354,6 +1372,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
     let keyOpened = false;
     let fulltextPoolRule: FulltextPoolRule | null = null;
     let fulltextAiActiveRound: string | null = null;
+    let fulltextEvidenceDisplay: FulltextEvidenceDisplay = 'neutral';
 
     for (const row of values) {
         if (row[0] === 'include_keywords' && row[1]) {
@@ -1383,6 +1402,9 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         if (row[0] === 'fulltext_ai_active_round') {
             fulltextAiActiveRound = row[1] ? row[1].trim() || null : null;
         }
+        if (row[0] === 'fulltext_evidence_display') {
+            fulltextEvidenceDisplay = parseFulltextEvidenceDisplay(row[1]);
+        }
     }
 
     return {
@@ -1390,6 +1412,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         keywords: { include: includeKeywords, exclude: excludeKeywords },
         fulltextPoolRule,
         fulltextAiActiveRound,
+        fulltextEvidenceDisplay,
     };
 }
 

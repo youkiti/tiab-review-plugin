@@ -28,7 +28,8 @@ const SCANNED_TEXT_THRESHOLD = 100;
 // 描画スケールの上限（高すぎるとメモリを圧迫するため）。
 const MAX_RENDER_SCALE = 2.0;
 
-export type HighlightCategory = 'include_evidence' | 'exclude_evidence' | 'data_point';
+// ai_evidence: polarity（組入/除外）を伏せた中立表示。ブラインド中のAI evidence に使う。
+export type HighlightCategory = 'include_evidence' | 'exclude_evidence' | 'data_point' | 'ai_evidence';
 
 interface PageInfo {
     pageNumber: number;

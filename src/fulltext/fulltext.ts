@@ -35,6 +35,7 @@ import {
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types';
+import type { FulltextEvidenceDisplay } from '../lib/sheets-api';
 import { PdfRenderer } from './pdf-renderer';
 import type { LoadedPdf, HighlightCategory } from './pdf-renderer';
 
@@ -71,6 +72,19 @@ let isAdmin = false;
 // ブラインド情報のため、ブラインド解除(keyOpened) かつ 管理者 のときのみ既定で開示。
 // 管理者は画面内トグルで切り替えられる。非管理者には一切表示しない。
 let aiReveal = false;
+// ブラインド中のAI evidence 表示レベル（Config共有設定 fulltext_evidence_display）。
+// none: evidence非表示 / neutral: 単色・polarityなし / full: 色分け・polarityあり
+let evidenceDisplay: FulltextEvidenceDisplay = 'neutral';
+
+/**
+ * 現在のAI evidence の実効表示レベル。
+ * 開示中（aiReveal）は常に full。ブラインド中はプロジェクト共有設定に従う。
+ * polarity（組入/除外の色・ラベル）の並びからAI判断が推測できてしまうため、
+ * ブラインド中は既定（neutral）で polarity を伏せる。
+ */
+function effectiveEvidenceLevel(): FulltextEvidenceDisplay {
+    return aiReveal ? 'full' : evidenceDisplay;
+}
 
 // フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
@@ -151,8 +165,10 @@ async function initFulltextPage(): Promise<void> {
     isAdmin = await isUserAdmin(spreadsheetId, userEmail).catch(() => false);
     // AI「判断」サマリの既定開示: ブラインド解除済み(keyOpened)なら表示。
     // ブラインド中は隠し、管理者だけが画面内トグルで開示できる。
-    // ※ evidence ハイライト・根拠カード（引用そのもの）は判断と別で常時表示する。
+    // ※ evidence ハイライト・根拠カードはブラインド中、共有設定 evidenceDisplay に従って
+    //   縮退表示する（既定 neutral: 単色・polarityなし）。開示時のみ色分け・polarityを出す。
     aiReveal = keyOpened;
+    evidenceDisplay = config.fulltextEvidenceDisplay;
 
     currentRef = refs.find(r => r.ref_id === refId) ?? null;
     if (!currentRef) {
@@ -390,6 +406,8 @@ function setupAiRevealToggle(): void {
         aiReveal = !aiReveal;
         syncAiRevealButton();
         renderAiSummary();
+        // 開示状態で evidence の表示レベル（色分け・polarityラベル）も変わるため再描画する
+        applyHighlightsForCurrentRef();
     });
     title.appendChild(btn);
     syncAiRevealButton();
@@ -1380,18 +1398,29 @@ function clearAiHighlights(): void {
 }
 
 function applyHighlightsForCurrentRef(): void {
-    if (!pdfRenderer || !currentRef) return;
+    if (!pdfRenderer || !currentRef || !currentPdfInfo) return;
     pdfRenderer.clearHighlights();
 
-    // evidence ハイライト・根拠カードは引用そのものなので常時表示する
-    // （AIの「判断」サマリのみ blind/管理者トグルで制御する）。
+    // evidence の表示レベル（ブラインディング制御）:
+    // - none:    evidence 自体を出さない（AI判定なしと同じ見た目）
+    // - neutral: 単色ハイライト＋「AI注目箇所」。polarity の並びからAI判断を推測させない
+    // - full:    組入/除外の色分け・polarityラベル（開示時は常にこれ）
+    const level = effectiveEvidenceLevel();
+    if (level === 'none') {
+        // 空表示は「AI判定根拠なし」と同文言にし、AI判定の有無自体を漏らさない
+        renderAnnotationsList([], false);
+        return;
+    }
+
     const note = findAiFulltextNote(currentRef.ref_id);
     const items: HighlightListItem[] = [];
 
     if (note && Array.isArray(note.evidence)) {
         note.evidence.forEach((ev, idx) => {
+            // neutral では DOM 属性からも polarity が読めないよう中立カテゴリに落とす
             const category: HighlightCategory =
-                ev.polarity === 'exclude' ? 'exclude_evidence' : 'include_evidence';
+                level !== 'full' ? 'ai_evidence'
+                    : ev.polarity === 'exclude' ? 'exclude_evidence' : 'include_evidence';
             const id = `ai-ev-${idx}`;
             const result = pdfRenderer!.highlight({
                 id,
@@ -1490,7 +1519,9 @@ function renderAnnotationsList(items: HighlightListItem[], imageOnly: boolean): 
 
         const meta = document.createElement('div');
         meta.className = 'ft-annotation-meta';
-        const polarityLabel = item.category === 'exclude_evidence' ? '除外根拠' : '組入根拠';
+        const polarityLabel =
+            item.category === 'ai_evidence' ? 'AI注目箇所'
+                : item.category === 'exclude_evidence' ? '除外根拠' : '組入根拠';
         const locLabel = item.resolved
             ? (item.via === 'bbox' ? `p.${item.page}（領域推定）` : `p.${item.page}`)
             : `p.${item.page}（位置不明）`;
