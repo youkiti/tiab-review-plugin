@@ -15,15 +15,13 @@
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
+// scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
+import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-image-only';
 
 // worker / リソースは webpack の CopyPlugin で dist 直下へ配置する。
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
 const CMAP_URL = chrome.runtime.getURL('cmaps/');
 const STANDARD_FONT_URL = chrome.runtime.getURL('standard_fonts/');
-
-// テキストレイヤーの抽出文字数がこの値未満なら scanned（画像only）とみなす。
-// 1文字も無いとは限らない（透明テキストの断片やページ番号のみ等）ため、ある程度の閾値を置く。
-const SCANNED_TEXT_THRESHOLD = 100;
 
 // 描画スケールの上限（高すぎるとメモリを圧迫するため）。
 const MAX_RENDER_SCALE = 2.0;

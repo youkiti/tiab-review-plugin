@@ -33,6 +33,7 @@ import {
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
 import { extractDriveFileId, downloadDriveFile } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
+import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../lib/storage';
@@ -410,6 +411,15 @@ async function judgeOne(
     const blob = await downloadDriveFile(fileId);
     const bytes = new Uint8Array(await blob.arrayBuffer());
 
+    // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
+    // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
+    let imageOnly: boolean | undefined;
+    try {
+        imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
+    } catch (err) {
+        console.warn('[fulltext-ai] image-only detection failed:', err);
+    }
+
     const { output, usageMetadata, responseMetadata } = await judgeFulltext(
         bytes, screeningPrompt, modelConfig
     );
@@ -425,6 +435,7 @@ async function judgeOne(
         reason: output.reason,
         exclude_reason_category: output.exclude_reason_category,
         evidence: output.evidence,
+        image_only: imageOnly,
         prompt_version: FULLTEXT_PROMPT_VERSION,
         usageMetadata,
     };
