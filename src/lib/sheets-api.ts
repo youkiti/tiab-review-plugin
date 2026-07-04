@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap } from './types';
 import { MODEL_ID_MIGRATIONS } from './gemini-api';
 import { t } from './i18n';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
@@ -1338,6 +1338,8 @@ export interface ProjectConfigBundle {
     fulltextAiActiveRound: string | null;
     // ブラインド中（AI判断 非開示時）のAI evidence 表示レベル。実験条件（ヒト単独 vs AI支援）の制御に使う。
     fulltextEvidenceDisplay: FulltextEvidenceDisplay;
+    // インポート統計（PRISMA識別件数・重複除去数の自動記入用）
+    importStats: ImportStatsMap;
 }
 
 /**
@@ -1361,7 +1363,35 @@ const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     fulltextPoolRule: null,
     fulltextAiActiveRound: null,
     fulltextEvidenceDisplay: 'neutral',
+    importStats: {},
 };
+
+/**
+ * Config タブの import_stats 値（JSON）をパースする。不正値は空として扱う。
+ */
+function parseImportStats(value: string | undefined): ImportStatsMap {
+    if (!value) return {};
+    try {
+        const parsed = JSON.parse(value);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        const stats: ImportStatsMap = {};
+        for (const [file, raw] of Object.entries(parsed as Record<string, unknown>)) {
+            if (!raw || typeof raw !== 'object') continue;
+            const entry = raw as Record<string, unknown>;
+            const identified = Number(entry.identified);
+            const duplicates = Number(entry.duplicates);
+            if (!Number.isFinite(identified) || !Number.isFinite(duplicates)) continue;
+            stats[file] = {
+                identified,
+                duplicates,
+                imported_at: typeof entry.imported_at === 'string' ? entry.imported_at : undefined,
+            };
+        }
+        return stats;
+    } catch {
+        return {};
+    }
+}
 
 /**
  * Config タブ（Key-Value 形式: A列=キー、B列=値）のシート値を共有設定に変換
@@ -1373,6 +1403,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
     let fulltextPoolRule: FulltextPoolRule | null = null;
     let fulltextAiActiveRound: string | null = null;
     let fulltextEvidenceDisplay: FulltextEvidenceDisplay = 'neutral';
+    let importStats: ImportStatsMap = {};
 
     for (const row of values) {
         if (row[0] === 'include_keywords' && row[1]) {
@@ -1405,6 +1436,9 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         if (row[0] === 'fulltext_evidence_display') {
             fulltextEvidenceDisplay = parseFulltextEvidenceDisplay(row[1]);
         }
+        if (row[0] === 'import_stats' && row[1]) {
+            importStats = parseImportStats(row[1]);
+        }
     }
 
     return {
@@ -1413,6 +1447,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         fulltextPoolRule,
         fulltextAiActiveRound,
         fulltextEvidenceDisplay,
+        importStats,
     };
 }
 
@@ -1721,6 +1756,39 @@ async function trySaveFulltextPoolRule(spreadsheetId: string, rule: FulltextPool
         await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${ruleRowIndex}`, [[value]]);
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_pool_rule', value]]);
+    }
+}
+
+/**
+ * インポート統計を Config タブの import_stats キーへ保存する
+ */
+export async function saveImportStats(spreadsheetId: string, stats: ImportStatsMap): Promise<void> {
+    try {
+        await trySaveImportStats(spreadsheetId, stats);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveImportStats] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveImportStats(spreadsheetId, stats);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveImportStats(spreadsheetId: string, stats: ImportStatsMap): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let statsRowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'import_stats') statsRowIndex = index + 1;
+    });
+
+    const value = JSON.stringify(stats);
+    if (statsRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${statsRowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['import_stats', value]]);
     }
 }
 

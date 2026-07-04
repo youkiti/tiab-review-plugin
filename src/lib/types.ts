@@ -33,6 +33,19 @@ export interface Reference {
     fulltext_status?: FulltextStatus;
 }
 
+/**
+ * インポート統計（ファイル単位）。Config シートの `import_stats` キーに
+ * JSON で保存し、PRISMA フロー図の識別件数・重複除去数の自動記入に使う。
+ */
+export interface ImportFileStats {
+    identified: number;    // ファイル内の解析済みレコード数（重複除去前）
+    duplicates: number;    // 取り込み時に重複としてスキップした件数
+    imported_at?: string;  // ISO 8601
+}
+
+/** source_file 名 → インポート統計 */
+export type ImportStatsMap = Record<string, ImportFileStats>;
+
 export interface AssignmentConfig {
     status: 'none' | 'dismissed' | 'configured';
     calibrationSize: number;

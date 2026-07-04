@@ -231,8 +231,21 @@ function handleJudgeToggle(allJudges: string[], key: string, checked: boolean): 
     renderFulltextResults();
 }
 
-function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): void {
-    const total = candidates.length;
+/** フルテキスト相の集計サマリ（結果ビューのPRISMA表示・論文用テキスト生成で共用） */
+export interface FulltextResultsSummary {
+    sought: number;        // 候補（Reports sought for retrieval）
+    obtained: number;      // 入手済（Reports assessed for eligibility）
+    notRetrieved: number;  // 未入手
+    include: number;
+    exclude: number;
+    maybe: number;
+    pending: number;
+    conflict: number;
+    reasons: Array<{ reason: string; count: number }>;  // 除外理由（件数降順、生キー）
+    judges: string[];      // 集計に使った判定者キー
+}
+
+function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): FulltextResultsSummary {
     const obtained = candidates.filter(isObtained).length;
 
     let inc = 0, exc = 0, maybe = 0, pend = 0, conflict = 0;
@@ -252,6 +265,35 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
         }
     }
 
+    return {
+        sought: candidates.length,
+        obtained,
+        notRetrieved: candidates.length - obtained,
+        include: inc,
+        exclude: exc,
+        maybe,
+        pending: pend,
+        conflict,
+        reasons: [...reasonCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(([reason, count]) => ({ reason, count })),
+        judges: [...judges],
+    };
+}
+
+/**
+ * 現在の判定者選択に基づくフルテキスト相サマリを返す（論文用テキスト生成で使用）
+ */
+export function getFulltextResultsSummary(): FulltextResultsSummary {
+    const candidates = getFulltextCandidateList();
+    const judges = effectiveJudges(collectJudges(candidates));
+    return summarize(candidates, judges);
+}
+
+function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): void {
+    const s = summarize(candidates, judges);
+    const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, conflict } = s;
+
     const lines: string[] = [];
     lines.push(`<div class="fulltext-prisma-title">${escapeHtml(t('fulltext_prismaTitle'))}</div>`);
     lines.push('<div class="fulltext-prisma-grid">');
@@ -264,10 +306,10 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
     if (conflict > 0) lines.push(prismaCell(t('fulltext_prismaConflict', String(conflict)), 'conflict'));
     lines.push('</div>');
 
-    if (reasonCounts.size > 0) {
+    if (s.reasons.length > 0) {
         lines.push(`<div class="fulltext-prisma-reasons-head">${escapeHtml(t('fulltext_prismaExclReasons'))}</div>`);
         lines.push('<ul class="fulltext-prisma-reasons">');
-        for (const [reason, count] of [...reasonCounts.entries()].sort((a, b) => b[1] - a[1])) {
+        for (const { reason, count } of s.reasons) {
             lines.push(`<li>${escapeHtml(reasonLabel(reason))}: ${count}</li>`);
         }
         lines.push('</ul>');

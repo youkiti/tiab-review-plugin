@@ -94,6 +94,7 @@ const domElements = {
     get exportMenu() { return getElement<HTMLElement>('export-menu'); },
     get exportCsvBtn() { return getElement<HTMLButtonElement>('export-csv-btn'); },
     get exportRisBtn() { return getElement<HTMLButtonElement>('export-ris-btn'); },
+    get exportManuscriptBtn() { return getElement<HTMLButtonElement>('export-manuscript-btn'); },
     get importStatus() { return getElement<HTMLElement>('import-status'); },
     get backBtn() { return getElement<HTMLButtonElement>('back-btn'); },
 
@@ -196,6 +197,7 @@ const domElements = {
     get fulltextResultsListDiv() { return getElement<HTMLElement>('fulltext-results-list'); },
     get fulltextExportCsvBtn() { return getElement<HTMLButtonElement>('fulltext-export-csv-btn'); },
     get fulltextExportRisBtn() { return getElement<HTMLButtonElement>('fulltext-export-ris-btn'); },
+    get fulltextManuscriptBtn() { return getElement<HTMLButtonElement>('fulltext-manuscript-btn'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 

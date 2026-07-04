@@ -9,7 +9,7 @@ import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
 import { createSmartRegex } from '../../utils/text';
 import { parseSearchQuery } from '../../utils/search';
-import { deleteReferencesBySourceFile } from '../../../lib/sheets-api';
+import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 import { isInFulltextPool, isTiabDecision } from '../../../lib/fulltext-pool';
@@ -334,6 +334,18 @@ export function renderSourceFilters() {
                     showToast(t('filter_deleting', file), 5000);
 
                     const deletedCount = await deleteReferencesBySourceFile(state.spreadsheetId, file);
+
+                    // 対応するインポート統計も削除（PRISMA自動記入の整合性維持）
+                    if (state.importStats[file]) {
+                        try {
+                            const stats = { ...state.importStats };
+                            delete stats[file];
+                            await saveImportStats(state.spreadsheetId, stats);
+                            state.setImportStats(stats);
+                        } catch (statsError) {
+                            console.log('[deleteSourceFile] Failed to update import stats:', statsError);
+                        }
+                    }
 
                     if (_loadDataAndShowScreening) {
                         await _loadDataAndShowScreening();

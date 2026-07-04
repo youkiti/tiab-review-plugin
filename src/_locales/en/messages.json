@@ -2056,5 +2056,41 @@
   },
   "ml_tip_stopping": {
     "message": "Choose when screening should be considered finished.\nRecommended:\n• 50 consecutive Excludes (simple rule)\n• Target recall 95% / confidence 95% (statistical rule)\nPick based on the project size."
+  },
+  "manuscript_menuItem": {
+    "message": "Methods / Results text"
+  },
+  "manuscript_modalTitle": {
+    "message": "Manuscript text (Methods / Results draft)"
+  },
+  "manuscript_sectionPrisma": {
+    "message": "PRISMA flow numbers"
+  },
+  "manuscript_copy": {
+    "message": "Copy"
+  },
+  "manuscript_copied": {
+    "message": "Copied to clipboard"
+  },
+  "manuscript_copyFailed": {
+    "message": "Failed to copy"
+  },
+  "manuscript_close": {
+    "message": "Close"
+  },
+  "manuscript_disclaimer": {
+    "message": "Auto-generated draft. Numbers reflect the current data and judge selection; items in [ ] must be edited manually. Review before submission."
+  },
+  "manuscript_warnUnscreened": {
+    "message": "$1 records have not been screened yet — these numbers are not final."
+  },
+  "manuscript_warnUnresolved": {
+    "message": "$1 pending / $2 maybe / $3 conflicting records remain — these numbers are not final."
+  },
+  "manuscript_warnNoStats": {
+    "message": "Some files were imported before import statistics were recorded; their identification counts (marked *) are post-deduplication and the duplicate count is unknown."
+  },
+  "manuscript_warnBlind": {
+    "message": "Blind mode is on — only your own decisions are reflected in the numbers."
   }
 }

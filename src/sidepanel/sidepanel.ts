@@ -11,6 +11,7 @@ import * as project from './features/project';
 import * as settings from './features/settings';
 import * as sharing from './features/sharing';
 import * as importExport from './features/import-export';
+import { showManuscriptModal } from './features/manuscript';
 import * as assignment from './features/assignment';
 import * as llm from './features/llm';
 import * as screeningFilters from './features/screening/filters';
@@ -180,6 +181,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Store経由で閉じる
         closeExportMenu();
         importExport.handleExportRIS();
+    });
+    // 論文用テキスト（Methods/Results/PRISMA数値）モーダル
+    dom.exportManuscriptBtn?.addEventListener('click', () => {
+        closeExportMenu();
+        void showManuscriptModal('tiab');
+    });
+    dom.fulltextManuscriptBtn?.addEventListener('click', () => {
+        void showManuscriptModal('fulltext');
     });
 
     // Sharing

@@ -2056,5 +2056,41 @@
   },
   "ml_tip_stopping": {
     "message": "スクリーニング終了の目安(停止基準)を設定します。\n推奨:\n• 「連続Exclude 50件」(シンプル基準)\n• 「目標リコール 95% / 信頼水準 95%」(統計基準)\nプロジェクト規模に応じて選んでください。"
+  },
+  "manuscript_menuItem": {
+    "message": "論文用テキスト（Methods/Results）"
+  },
+  "manuscript_modalTitle": {
+    "message": "論文用テキスト（Methods / Results 下書き）"
+  },
+  "manuscript_sectionPrisma": {
+    "message": "PRISMAフロー数値"
+  },
+  "manuscript_copy": {
+    "message": "コピー"
+  },
+  "manuscript_copied": {
+    "message": "クリップボードにコピーしました"
+  },
+  "manuscript_copyFailed": {
+    "message": "コピーに失敗しました"
+  },
+  "manuscript_close": {
+    "message": "閉じる"
+  },
+  "manuscript_disclaimer": {
+    "message": "自動生成の下書きです。数値は現在のデータ・判定者選択に基づきます。[ ] は手入力が必要です。投稿前に必ず確認してください。"
+  },
+  "manuscript_warnUnscreened": {
+    "message": "未判定の文献が $1 件あります。数値は最終値ではありません。"
+  },
+  "manuscript_warnUnresolved": {
+    "message": "未判定 $1 件・保留 $2 件・不一致 $3 件が残っています。数値は最終値ではありません。"
+  },
+  "manuscript_warnNoStats": {
+    "message": "インポート統計が記録されていないファイルがあります（* は重複除去後の件数）。重複除去数は不明です。"
+  },
+  "manuscript_warnBlind": {
+    "message": "ブラインド中のため、自分の判定のみが数値に反映されています。"
   }
 }
