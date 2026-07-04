@@ -169,14 +169,25 @@ function extensionVersion(): string {
     return v === 'unknown' ? '[version]' : v;
 }
 
+/** 英語の単数/複数形（不規則形は pluralForm で指定） */
+function plural(n: number, singular: string, pluralForm = `${singular}s`): string {
+    return n === 1 ? singular : pluralForm;
+}
+
+function wasWere(n: number): string {
+    return n === 1 ? 'was' : 'were';
+}
+
 function buildTiabMethods(id: IdentificationData): string {
     const fileList = id.files.map(f => f.file).join('; ');
     const nReviewers = countTiabHumanReviewers();
 
     const paragraphs: string[] = [];
+    // レビュアー1名のときは blinded 節が意味を成さないので省く
+    const blindClause = nReviewers > 1 ? ", blinded to each other's decisions" : '';
     paragraphs.push(
         `Records exported from each database (${fileList}) were imported into TiAb Review (version ${extensionVersion()}) and deduplicated automatically. ` +
-        `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} reviewer(s), blinded to each other's decisions.`
+        `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} ${plural(nReviewers, 'reviewer')}${blindClause}.`
     );
 
     if (wasMlUsedInTiab()) {
@@ -213,12 +224,13 @@ function buildTiabResults(id: IdentificationData, sought: number): string {
         .map(f => `${f.file}, n = ${f.identified}${f.hasStats ? '' : '*'}`)
         .join('; ');
     const duplicates = id.duplicatesTotal === null ? '[n]' : String(id.duplicatesTotal);
+    const dupNoun = id.duplicatesTotal === 1 ? 'duplicate' : 'duplicates';
     const excluded = id.screened - sought;
 
     let text =
-        `The searches identified ${id.identifiedTotal} records (${perFile}). ` +
-        `After removal of ${duplicates} duplicates, ${id.screened} records were screened, ` +
-        `${excluded} were excluded, and ${sought} were retained for full-text review.`;
+        `The searches identified ${id.identifiedTotal} ${plural(id.identifiedTotal, 'record')} (${perFile}). ` +
+        `After removal of ${duplicates} ${dupNoun}, ${id.screened} ${plural(id.screened, 'record')} ${wasWere(id.screened)} screened, ` +
+        `${excluded} ${wasWere(excluded)} excluded, and ${sought} ${wasWere(sought)} retained for full-text review.`;
 
     if (!id.statsComplete) {
         text += '\n\n* Import statistics were not recorded for this file; the count shown is after deduplication.';
@@ -235,10 +247,13 @@ function buildFulltextMethods(summary: FulltextResultsSummary): string {
     const paragraphs: string[] = [];
     // ヒト判定者が0（AI判定のみ採用）の場合はレビュアー数の記述を省く
     const reviewerClause = humanJudges.length > 0
-        ? ` by ${humanJudges.length} reviewer(s)`
+        ? ` by ${humanJudges.length} ${plural(humanJudges.length, 'reviewer')}`
         : '';
+    const retrievedIntro = summary.sought === 1
+        ? 'The full text of the single candidate report was'
+        : `Full texts of the ${summary.sought} candidate reports were`;
     paragraphs.push(
-        `Full texts of the ${summary.sought} candidate reports were retrieved and assessed for eligibility${reviewerClause} in TiAb Review (version ${extensionVersion()}), with reasons for exclusion recorded.`
+        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review (version ${extensionVersion()}), with reasons for exclusion recorded.`
     );
 
     if (aiModels.length > 0) {
@@ -258,14 +273,16 @@ function buildFulltextResults(summary: FulltextResultsSummary): string {
     const reasonText = summary.reasons
         .map(r => `${reasonLabelEn(r.reason)} (n = ${r.count})`)
         .join('; ');
+    const excludedPhrase =
+        `${summary.exclude} ${plural(summary.exclude, 'report')} ${wasWere(summary.exclude)} excluded`;
     const excludedPart = summary.exclude > 0 && reasonText
-        ? `${summary.exclude} reports were excluded: ${reasonText}.`
-        : `${summary.exclude} reports were excluded.`;
+        ? `${excludedPhrase}: ${reasonText}.`
+        : `${excludedPhrase}.`;
 
     return (
-        `Of the ${summary.sought} reports sought for retrieval, ${summary.notRetrieved} could not be obtained ` +
-        `and ${summary.obtained} were assessed for eligibility. ${excludedPart} ` +
-        `In total, ${summary.include} studies were included in the review.`
+        `Of the ${summary.sought} ${plural(summary.sought, 'report')} sought for retrieval, ${summary.notRetrieved} could not be obtained ` +
+        `and ${summary.obtained} ${wasWere(summary.obtained)} assessed for eligibility. ${excludedPart} ` +
+        `In total, ${summary.include} ${plural(summary.include, 'study', 'studies')} ${wasWere(summary.include)} included in the review.`
     );
 }
 
