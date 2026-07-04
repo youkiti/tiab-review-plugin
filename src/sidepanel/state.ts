@@ -3,7 +3,7 @@
  * getter/setter パターンで副作用を制御し、状態変更の影響範囲を限定
  */
 
-import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig } from '../lib/types';
+import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
@@ -43,6 +43,9 @@ let _fulltextPoolRule: FulltextPoolRule | null = null;
 // ソースファイルフィルター
 let _sourceFiles: Set<string> = new Set();
 let _selectedSourceFiles: Set<string> = new Set();
+
+// インポート統計（Configシート import_stats、PRISMA自動記入用）
+let _importStats: ImportStatsMap = {};
 
 // 担当セットフィルター
 let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
@@ -175,6 +178,10 @@ export const state = {
     addSelectedSourceFile(file: string) { _selectedSourceFiles.add(file); },
     removeSelectedSourceFile(file: string) { _selectedSourceFiles.delete(file); },
 
+    // ----- Import Stats (PRISMA自動記入用) -----
+    get importStats() { return _importStats; },
+    setImportStats(stats: ImportStatsMap) { _importStats = stats; },
+
     // ----- Assignment Filters -----
     get assignmentConfig() { return _assignmentConfig; },
     setAssignmentConfig(config: AssignmentConfig) { _assignmentConfig = config; },
@@ -285,6 +292,7 @@ export const state = {
         _reviewHistoryReturnRefId = null;
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
+        _importStats = {};
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();
@@ -309,6 +317,7 @@ export const state = {
         _reviewHistoryReturnRefId = null;
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
+        _importStats = {};
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();

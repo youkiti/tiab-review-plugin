@@ -258,3 +258,48 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* 論文用テキスト（Methods / Results / PRISMA数値）モーダル */
+.manuscript-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.manuscript-note {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.manuscript-warning {
+    font-size: 12px;
+    color: #b9770e;
+    background: #fef9e7;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.manuscript-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.manuscript-section-title {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.manuscript-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px;
+    border: 1px solid #d5dbdb;
+    border-radius: 4px;
+    resize: vertical;
+    background: #fbfcfc;
+    color: #2c3e50;
+}

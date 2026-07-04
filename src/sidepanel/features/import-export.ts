@@ -6,7 +6,7 @@ import { state } from '../state';
 import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences } from './screening/filters';
-import { getSpreadsheetInfo, addReferences, getReferences } from '../../lib/sheets-api';
+import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
 import { parseImportFile } from '../../lib/file-dispatcher';
@@ -100,6 +100,21 @@ export async function handleRISImport(e: Event) {
 
             dom.importStatus.textContent = t('import_uploading', [String(current), String(total)]);
             await addReferences(state.spreadsheetId, chunk);
+        }
+
+        // インポート統計を保存（PRISMAフロー図の識別件数・重複除去数の自動記入用）
+        try {
+            const stats = { ...state.importStats };
+            stats[file.name] = {
+                identified: newReferences.length,
+                duplicates: duplicateCount,
+                imported_at: new Date().toISOString(),
+            };
+            await saveImportStats(state.spreadsheetId, stats);
+            state.setImportStats(stats);
+        } catch (statsError) {
+            // 統計保存の失敗はインポート自体の成否に影響させない
+            console.log('[handleRISImport] Failed to save import stats:', statsError);
         }
 
         // 状態を更新

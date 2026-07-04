@@ -369,6 +369,7 @@ export async function loadDataAndShowScreening() {
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(configBundle.keywords);
         syncSetFulltextPoolRule(configBundle.fulltextPoolRule);
+        state.setImportStats(configBundle.importStats);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
         const activeRun = llmRuns
