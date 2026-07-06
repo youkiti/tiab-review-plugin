@@ -380,6 +380,15 @@ async function handleStartAiBatch(): Promise<void> {
             }
         }
     } finally {
+        // 1件以上成功していれば、今回のラウンドを自動採用する（中断時は採用しない）
+        if (ok > 0 && !aiAbort?.cancelled) {
+            try {
+                await setFulltextAiActiveRound(spreadsheetId, reviewerId);
+                showToast(t('fulltext_aiRoundAdopted'), 2500);
+            } catch (err) {
+                console.warn('[fulltext-ai] 自動採用に失敗:', err);
+            }
+        }
         // 判定結果を反映するため参照を再読込
         await reloadReferences(spreadsheetId);
         dom.fulltextAiStartBtn.classList.remove('hidden');
