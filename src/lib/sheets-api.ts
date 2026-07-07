@@ -95,10 +95,12 @@ const DECISIONS_HEADERS = [
 ];
 
 /**
- * OAuth トークンを取得
+ * OAuth トークンを取得。
+ * interactive=true のときのみユーザー操作起点の認可（Web版はポップアップ）を許可する。
+ * ログインボタン等の操作起点からの呼び出しでのみ true を渡すこと。
  */
-export async function getAuthToken(): Promise<string> {
-    return platform().getAuthToken();
+export async function getAuthToken(interactive = false): Promise<string> {
+    return platform().getAuthToken(interactive);
 }
 
 /**

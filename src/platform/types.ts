@@ -1,7 +1,11 @@
 /** 拡張機能版と Web 版で差し替えるプラットフォーム機能の抽象 */
 export interface PlatformAdapter {
-    /** OAuth アクセストークンを取得（必要ならサイレント再取得） */
-    getAuthToken(): Promise<string>;
+    /**
+     * OAuth アクセストークンを取得（必要ならサイレント再取得）。
+     * interactive=true のときのみユーザー操作を伴う認可（Web版はポップアップ）を許可する。
+     * ページ読み込み時のサイレント試行など操作起点の無い呼び出しは false のままにすること。
+     */
+    getAuthToken(interactive?: boolean): Promise<string>;
     /** トークンを破棄して再認可（スコープ変更・権限エラー時） */
     forceReauth(): Promise<string>;
     /** ログアウト（トークン破棄・キャッシュ削除） */

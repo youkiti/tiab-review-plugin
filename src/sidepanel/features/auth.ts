@@ -66,7 +66,9 @@ export async function initApp() {
 export async function handleLogin() {
     try {
         showLoading(true);
-        await getAuthToken();
+        // ログインボタンのクリック（ユーザー操作）起点なので interactive=true。
+        // Web版はここで初めて認可ポップアップを開く（読み込み時のサイレント試行では開かない）。
+        await getAuthToken(true);
         await showProjectSection();
     } catch (error) {
         console.error('Login error:', error);

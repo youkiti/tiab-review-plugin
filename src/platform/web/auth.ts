@@ -54,7 +54,11 @@ function ensureClient(): google.accounts.oauth2.TokenClient {
  */
 function requestToken(promptValue: '' | 'consent'): Promise<string> {
     return new Promise((resolve, reject) => {
-        if (pending) { reject(new Error('auth in progress')); return; }
+        // 進行中の要求が残っていても、それを破棄して新しい要求で上書きする。
+        // 前回のポップアップがブロック/放置されコールバック未達のまま pending が
+        // 残留しても、次のユーザー操作で確実にやり直せるようにするための自己修復。
+        // （旧実装は新しい要求を「auth in progress」で拒否しており、一度詰まると復旧不能だった）
+        if (pending) { pending.reject(new Error('auth superseded')); pending = null; }
         pending = { resolve, reject };
         ensureClient().requestAccessToken({ prompt: promptValue });
     });
@@ -62,11 +66,18 @@ function requestToken(promptValue: '' | 'consent'): Promise<string> {
 
 /**
  * OAuth アクセストークンを取得する。
- * メモリにキャッシュ済み（有効期限に余裕あり）ならそれを返し、
- * なければサイレント取得を試みる。
+ * メモリにキャッシュ済み（有効期限に余裕あり）ならそれを返す。
+ *
+ * Web(GIS) はトークンを永続化しないため、キャッシュが無い状態での取得には
+ * 必ずトークン取得ポップアップが要る。ポップアップはユーザー操作（クリック）起点で
+ * しか開けないので、interactive=false（ページ読み込み時のサイレント試行など）では
+ * ポップアップを試みず即座に失敗させる。
+ * ここでポップアップを試みると、ブラウザにブロックされてコールバックが来ず、
+ * pending が残留して以後のログインが弾かれる原因になっていた。
  */
-export async function getAuthToken(): Promise<string> {
+export async function getAuthToken(interactive = false): Promise<string> {
     if (accessToken && Date.now() < expiresAt - 60_000) return accessToken;
+    if (!interactive) throw new Error('interaction_required');
     return requestToken('');
 }
 
