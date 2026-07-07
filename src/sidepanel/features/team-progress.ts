@@ -114,6 +114,23 @@ async function fetchDecisions(spreadsheetId: string, baseRefs: TeamProgressRef[]
 }
 
 /**
+ * イベントリスナーを設定（sidepanel.ts から呼ぶ）
+ * フルテキストページ（別タブ）で保存された判定を受信し、パネルへ即時反映する。
+ * これによりフルテキストページから戻った時には最新の進捗が表示されている。
+ */
+export function setupTeamProgressListeners(): void {
+    chrome.runtime.onMessage.addListener((message) => {
+        if (
+            message?.type === 'team-progress:decision-saved' &&
+            message.decision &&
+            message.spreadsheetId === state.spreadsheetId
+        ) {
+            noteLocalTeamDecision(message.decision as Decision);
+        }
+    });
+}
+
+/**
  * 自分の判定保存をキャッシュへ反映する（サーバー再取得なしで自分の行を最新化）
  * 同一 ref_id + reviewer_id + フェーズの既存行は置き換える（最新判定のみ有効の設計に合わせる）
  */

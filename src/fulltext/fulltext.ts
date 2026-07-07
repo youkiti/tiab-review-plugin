@@ -720,6 +720,17 @@ async function handleSave(): Promise<boolean> {
 
         await saveDecision(spreadsheetId, decisionObj);
 
+        // サイドパネルのチーム進捗パネルへ即時反映を通知
+        // （サイドパネルが閉じていて受信側がいなくてもエラーにしない）
+        try {
+            chrome.runtime.sendMessage(
+                { type: 'team-progress:decision-saved', spreadsheetId, decision: decisionObj },
+                () => void chrome.runtime.lastError
+            );
+        } catch {
+            // noop
+        }
+
         showFeedback('保存しました');
         return true;
     } catch (err) {
