@@ -960,6 +960,60 @@
   "progress_count": {
     "message": "$1 / $2 ($3 remaining)"
   },
+  "teamProgress_title": {
+    "message": "Team progress"
+  },
+  "teamProgress_toggleTitle": {
+    "message": "Click to show/hide details"
+  },
+  "teamProgress_you": {
+    "message": "You"
+  },
+  "teamProgress_loading": {
+    "message": "Loading…"
+  },
+  "teamProgress_error": {
+    "message": "Failed to load progress"
+  },
+  "teamProgress_colReviewer": {
+    "message": "Reviewer"
+  },
+  "teamProgress_colFulltext": {
+    "message": "Full text"
+  },
+  "teamProgress_colLast": {
+    "message": "Last decision"
+  },
+  "teamProgress_poolUnset": {
+    "message": "Not available until the full-text candidate rule is set"
+  },
+  "teamProgress_never": {
+    "message": "No decisions yet"
+  },
+  "teamProgress_staleTitle": {
+    "message": "No decisions for $1+ days"
+  },
+  "teamProgress_relJustNow": {
+    "message": "just now"
+  },
+  "teamProgress_relMinutes": {
+    "message": "$1 min ago"
+  },
+  "teamProgress_relHours": {
+    "message": "$1 h ago"
+  },
+  "teamProgress_relDays": {
+    "message": "$1 d ago"
+  },
+  "teamProgress_updatedAt": {
+    "message": "Updated $1"
+  },
+  "teamProgress_refresh": {
+    "message": "Refresh"
+  },
+  "teamProgress_refreshing": {
+    "message": "Refreshing…"
+  },
   "reviewer_selfMl": {
     "message": "$1 (you/ML)"
   },

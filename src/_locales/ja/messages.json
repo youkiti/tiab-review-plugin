@@ -960,6 +960,60 @@
   "progress_count": {
     "message": "$1 / $2件（残り$3件）"
   },
+  "teamProgress_title": {
+    "message": "チーム進捗"
+  },
+  "teamProgress_toggleTitle": {
+    "message": "クリックで詳細を表示/非表示"
+  },
+  "teamProgress_you": {
+    "message": "自分"
+  },
+  "teamProgress_loading": {
+    "message": "読み込み中…"
+  },
+  "teamProgress_error": {
+    "message": "進捗の取得に失敗しました"
+  },
+  "teamProgress_colReviewer": {
+    "message": "レビュアー"
+  },
+  "teamProgress_colFulltext": {
+    "message": "Full text"
+  },
+  "teamProgress_colLast": {
+    "message": "最終判定"
+  },
+  "teamProgress_poolUnset": {
+    "message": "フルテキスト候補ルールが未設定のため表示できません"
+  },
+  "teamProgress_never": {
+    "message": "判定なし"
+  },
+  "teamProgress_staleTitle": {
+    "message": "$1日以上判定がありません"
+  },
+  "teamProgress_relJustNow": {
+    "message": "たった今"
+  },
+  "teamProgress_relMinutes": {
+    "message": "$1分前"
+  },
+  "teamProgress_relHours": {
+    "message": "$1時間前"
+  },
+  "teamProgress_relDays": {
+    "message": "$1日前"
+  },
+  "teamProgress_updatedAt": {
+    "message": "最終更新 $1"
+  },
+  "teamProgress_refresh": {
+    "message": "更新"
+  },
+  "teamProgress_refreshing": {
+    "message": "更新中…"
+  },
   "reviewer_selfMl": {
     "message": "$1 (自分/ML)"
   },

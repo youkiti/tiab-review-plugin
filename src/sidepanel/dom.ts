@@ -73,6 +73,10 @@ const domElements = {
     get navProgress() { return getElement<HTMLElement>('nav-progress'); },
     get recordCountAbove() { return getElement<HTMLElement>('record-count-above'); },
 
+    // ========== Team Progress ==========
+    get teamProgressHost() { return getElement<HTMLElement>('team-progress-host'); },
+    get fulltextTeamProgressHost() { return getElement<HTMLElement>('fulltext-team-progress-host'); },
+
     // ========== Source Filters ==========
     get sourceFileListDiv() { return getElement<HTMLElement>('source-file-list'); },
     get sourceFiltersSection() { return getElement<HTMLElement>('source-filters-section'); },

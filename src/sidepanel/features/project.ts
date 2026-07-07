@@ -28,6 +28,7 @@ import {
 import { setupProjectFolder } from '../../lib/drive-api';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
+import { initTeamProgress } from './team-progress';
 import { flushDecisionQueue } from '../utils/offline-queue';
 
 // Store互換レイヤー（Phase 3）
@@ -390,6 +391,9 @@ export async function loadDataAndShowScreening() {
             : await getReferencesWithStatus(spreadsheetId, userEmail);
         const visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
         syncSetReferences(visibleRefs);
+
+        // チーム進捗: 割り振り前の全文献を分母計算に使う（判定データは非同期取得）
+        initTeamProgress(refs);
 
         // MLの状態をリセット（前のプロジェクトのデータをクリア）
         syncSetMlState(createInitialMlState());

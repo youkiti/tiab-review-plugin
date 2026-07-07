@@ -46,3 +46,6 @@
 
 /* フルテキストタブ */
 @import url('./styles/fulltext-tab.css');
+
+/* チーム進捗パネル */
+@import url('./styles/team-progress.css');

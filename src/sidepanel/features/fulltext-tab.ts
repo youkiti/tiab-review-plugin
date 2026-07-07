@@ -15,6 +15,7 @@ import { getFulltextCandidateList } from './screening/filters';
 import { handleKeyToggle } from './screening/actions';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { setupFulltextAiListeners } from './fulltext-ai';
+import { renderTeamProgress } from './team-progress';
 import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
@@ -97,6 +98,7 @@ export function renderFulltextTab(): void {
     const candidates = getFulltextCandidateList();
 
     renderRuleAndProgress(candidates);
+    renderTeamProgress();
     renderRetrievalSummary(candidates);
     renderViewFilter(candidates);
     renderList(candidates);

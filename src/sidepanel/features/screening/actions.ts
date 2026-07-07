@@ -19,6 +19,7 @@ import { renderKeyStatus } from './render';
 import { renderReviewerFilter, renderAiHighlightToggle } from './reviewer-filter';
 import { getReviewerKey } from './reviewer-utils';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
+import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 3）
@@ -44,6 +45,9 @@ export function setActionDependencies(deps: {
 }
 
 async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolean) {
+    // チーム進捗パネルの自分の行を即時更新（オフラインキュー行きでも判定自体は有効）
+    noteLocalTeamDecision(decision);
+
     try {
         await apiSaveDecision(state.spreadsheetId, decision);
     } catch (error) {
