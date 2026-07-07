@@ -17,6 +17,9 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
 let _wizardOpen = false;
+// 割り振りの書き込みは複数リクエストに分かれるため、二重実行すると
+// 異なるシャッフル結果が混ざってシートが壊れる。実行中は再入を禁止する。
+let _assignmentSaving = false;
 
 export function setAssignmentDependencies(deps: {
     loadDataAndShowScreening: () => Promise<void>;
@@ -500,11 +503,13 @@ function showAssignmentWizard() {
     const footer = document.createElement('div');
     footer.className = 'assignment-modal-actions';
 
+    let noButton: HTMLButtonElement | null = null;
     if (!isReshuffle) {
-        const noButton = document.createElement('button');
+        noButton = document.createElement('button');
         noButton.className = 'btn btn-outline btn-small';
         noButton.textContent = t('assignment_wizardNo');
         noButton.addEventListener('click', () => {
+            if (_assignmentSaving) return;
             void dismissAssignmentWizard();
         });
         footer.appendChild(noButton);
@@ -516,7 +521,10 @@ function showAssignmentWizard() {
         ? t('assignment_settingsReshuffle')
         : t('assignment_wizardCreate');
     createButton.addEventListener('click', () => {
-        void saveAssignmentWizard(calibrationInput, groupCountInput, reviewerGrid, isReshuffle);
+        void saveAssignmentWizard(calibrationInput, groupCountInput, reviewerGrid, isReshuffle, {
+            createButton,
+            cancelButton: noButton,
+        });
     });
 
     footer.appendChild(createButton);
@@ -557,8 +565,13 @@ async function saveAssignmentWizard(
     calibrationInput: HTMLInputElement,
     groupCountInput: HTMLInputElement,
     reviewerGrid: HTMLElement,
-    isReshuffle: boolean = false
+    isReshuffle: boolean = false,
+    controls?: { createButton: HTMLButtonElement; cancelButton: HTMLButtonElement | null }
 ) {
+    if (_assignmentSaving) {
+        return;
+    }
+
     const calibrationSize = parseInt(calibrationInput.value || '0', 10);
     const groupCount = parseInt(groupCountInput.value || '0', 10);
     const totalCount = state.references.length;
@@ -571,6 +584,17 @@ async function saveAssignmentWizard(
     if (Number.isNaN(groupCount) || groupCount < 1) {
         showToast(t('assignment_wizardValidationGroupCount'));
         return;
+    }
+
+    _assignmentSaving = true;
+    const originalLabel = controls?.createButton.textContent ?? '';
+    if (controls) {
+        controls.createButton.disabled = true;
+        controls.createButton.classList.add('btn-loading');
+        controls.createButton.textContent = t('assignment_wizardCreating');
+        if (controls.cancelButton) {
+            controls.cancelButton.disabled = true;
+        }
     }
 
     try {
@@ -601,6 +625,15 @@ async function saveAssignmentWizard(
         console.error('Assignment save error:', error);
         showToast(t('assignment_wizardCreateError', (error as Error).message), 4000);
     } finally {
+        _assignmentSaving = false;
+        if (controls) {
+            controls.createButton.disabled = false;
+            controls.createButton.classList.remove('btn-loading');
+            controls.createButton.textContent = originalLabel;
+            if (controls.cancelButton) {
+                controls.cancelButton.disabled = false;
+            }
+        }
         showLoading(false);
     }
 }

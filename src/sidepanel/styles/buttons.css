@@ -33,6 +33,18 @@
     opacity: 0.8;
 }
 
+/* 実行中ボタン（担当割り振りなど、完了まで時間のかかる処理） */
+.btn.btn-loading {
+    background-color: #8ab4f8;
+    cursor: progress;
+    animation: btn-loading-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes btn-loading-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
 /* セカンダリボタン */
 .btn-secondary {
     background-color: #f1f3f4;

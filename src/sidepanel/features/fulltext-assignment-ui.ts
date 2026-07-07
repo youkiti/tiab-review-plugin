@@ -37,6 +37,23 @@ import type { ReferenceWithStatus } from '../../lib/types';
 
 let _rerenderTab: (() => void) | null = null;
 let _wizardOpen = false;
+// fulltext_set の書き込みは複数リクエストに分かれるため、二重実行すると
+// 異なるシャッフル結果が混ざってシートが壊れる。実行中は再入を禁止する。
+let _ftSaving = false;
+
+/** 実行中はボタンを無効化し「割り振り中…」表示にする。戻り値で元に戻す */
+function markButtonSaving(button: HTMLButtonElement | undefined): () => void {
+    if (!button) return () => {};
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.classList.add('btn-loading');
+    button.textContent = t('assignment_wizardCreating');
+    return () => {
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+        button.textContent = originalLabel;
+    };
+}
 
 export function setFulltextAssignmentDeps(deps: { rerenderTab: () => void }): void {
     _rerenderTab = deps.rerenderTab;
@@ -367,7 +384,7 @@ async function openFulltextAssignmentWizard(): Promise<void> {
             distributeBtn.className = 'btn btn-outline btn-small';
             distributeBtn.textContent = t('ftAssign_distributeBtn');
             distributeBtn.addEventListener('click', () => {
-                void handleDistributeUnassigned();
+                void handleDistributeUnassigned(distributeBtn);
             });
             row.appendChild(note);
             row.appendChild(distributeBtn);
@@ -404,13 +421,14 @@ async function openFulltextAssignmentWizard(): Promise<void> {
     createButton.className = 'btn btn-primary btn-small';
     createButton.textContent = isConfigured ? t('ftAssign_reshuffle') : t('ftAssign_create');
     createButton.addEventListener('click', () => {
+        if (_ftSaving) return;
         if (isConfigured && !window.confirm(t('ftAssign_reshuffleConfirm'))) return;
         const groupCount = parseInt(groupCountInput.value || '0', 10);
         if (Number.isNaN(groupCount) || groupCount < 1) {
             showToast(t('ftAssign_wizardPreviewInvalid'));
             return;
         }
-        void handleCreate(groupCount, buildReviewerMap(groupCount), pool);
+        void handleCreate(groupCount, buildReviewerMap(groupCount), pool, createButton);
     });
     footer.appendChild(createButton);
 
@@ -439,8 +457,12 @@ function applyLocalFulltextSets(assignments: Array<{ refId: string; fulltextSet:
 async function handleCreate(
     groupCount: number,
     reviewerMap: Record<string, string[]>,
-    pool: ReferenceWithStatus[]
+    pool: ReferenceWithStatus[],
+    button?: HTMLButtonElement
 ): Promise<void> {
+    if (_ftSaving) return;
+    _ftSaving = true;
+    const restoreButton = markButtonSaving(button);
     try {
         showLoading(true);
         const seed = String(Date.now());
@@ -464,14 +486,18 @@ async function handleCreate(
         console.error('Fulltext assignment create error:', error);
         showToast(t('ftAssign_error', (error as Error).message), 4000);
     } finally {
+        _ftSaving = false;
+        restoreButton();
         showLoading(false);
     }
 }
 
 async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise<void> {
+    if (_ftSaving) return;
     const config = state.fulltextAssignment;
     if (config.status !== 'configured') return;
 
+    _ftSaving = true;
     try {
         showLoading(true);
         const nextConfig: FulltextAssignmentConfig = {
@@ -487,17 +513,21 @@ async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise
         console.error('Fulltext assignment map save error:', error);
         showToast(t('ftAssign_error', (error as Error).message), 4000);
     } finally {
+        _ftSaving = false;
         showLoading(false);
     }
 }
 
-async function handleDistributeUnassigned(): Promise<void> {
+async function handleDistributeUnassigned(button?: HTMLButtonElement): Promise<void> {
+    if (_ftSaving) return;
     const config = state.fulltextAssignment;
     if (config.status !== 'configured') return;
 
     const unassigned = getUnassignedPoolRefs(config);
     if (unassigned.length === 0) return;
 
+    _ftSaving = true;
+    const restoreButton = markButtonSaving(button);
     try {
         showLoading(true);
         const assignments = distributeUnassigned(
@@ -515,13 +545,17 @@ async function handleDistributeUnassigned(): Promise<void> {
         console.error('Fulltext assignment distribute error:', error);
         showToast(t('ftAssign_error', (error as Error).message), 4000);
     } finally {
+        _ftSaving = false;
+        restoreButton();
         showLoading(false);
     }
 }
 
 async function handleReset(): Promise<void> {
+    if (_ftSaving) return;
     const config = state.fulltextAssignment;
 
+    _ftSaving = true;
     try {
         showLoading(true);
         const nextConfig: FulltextAssignmentConfig = {
@@ -537,6 +571,7 @@ async function handleReset(): Promise<void> {
         console.error('Fulltext assignment reset error:', error);
         showToast(t('ftAssign_error', (error as Error).message), 4000);
     } finally {
+        _ftSaving = false;
         showLoading(false);
     }
 }

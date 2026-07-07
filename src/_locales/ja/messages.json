@@ -2060,6 +2060,9 @@
   "assignment_wizardCreate": {
     "message": "セットを作成"
   },
+  "assignment_wizardCreating": {
+    "message": "割り振り中…"
+  },
   "assignment_wizardValidationCalibration": {
     "message": "キャリブレーション件数は 0 〜 $1 の範囲で入力してください",
     "placeholders": {
