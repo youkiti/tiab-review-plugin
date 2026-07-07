@@ -1,189 +1,78 @@
 /**
- * TiAb Review Plugin Sidepanel Scripts (Refactored)
+ * TiAb Review Plugin Sidepanel Scripts（拡張機能エントリ）
  *
- * Phase 2: Store基盤を統合し、段階的にrender一本化へ移行中
+ * 共有配線は bootstrap.ts の bootstrapCommon() に集約している。
+ * このファイルは拡張専用機能（LLM / ML / フルテキスト / インポート・エクスポート /
+ * 論文用テキスト）の依存注入と配線のみを担う。
  */
 
+// プラットフォームアダプタを最初に注入する（他モジュールが platform() を呼ぶため）
 import { setPlatform } from '../platform';
 import { chromePlatform } from '../platform/chrome';
 setPlatform(chromePlatform);
 
 import { dom } from './dom';
 import { state } from './state';
-import * as auth from './features/auth';
+import { bootstrapCommon } from './bootstrap';
+
+// 拡張専用モジュール
 import * as project from './features/project';
 import * as settings from './features/settings';
-import * as sharing from './features/sharing';
 import * as importExport from './features/import-export';
 import { showManuscriptModal } from './features/manuscript';
-import * as assignment from './features/assignment';
 import * as llm from './features/llm';
-import * as screeningFilters from './features/screening/filters';
 import * as screeningRender from './features/screening/render';
-import * as screeningActions from './features/screening/actions';
-import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { setupFulltextTabListeners } from './features/fulltext-tab';
-import { setupTeamProgressListeners } from './features/team-progress';
-import { initModal } from './features/ml/dialogs';
+import { initModal } from './ui/modal';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
-import { flushDecisionQueue } from './utils/offline-queue';
-import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
 import { showToast } from './ui/feedback';
-import { localizeHtml } from '../lib/i18n';
+import { toggleExportMenu, closeExportMenu } from './store/compat';
 
-// Store（Phase 2で導入）
-import { initializeStore, subscribe, getState } from './store';
-import { renderLayout, renderTemporaryUI } from './render/layout';
-
-// Store互換レイヤー（Phase 4）
-import {
-    toggleExportMenu,
-    closeExportMenu,
-    toggleShareInput,
-    closeShareInput,
-} from './store/compat';
-
-// Initialize Dependencies for all modules to resolve circular refs
-auth.setAuthDependencies({
-    loadRecentSheets: project.loadRecentSheets,
-    loadConfig: project.loadConfig,
-    loadUserSettings: settings.loadUserSettings
-});
-
-project.setProjectDependencies({
-    renderKeywords: screeningKeywords.renderKeywords,
-    renderSourceFilters: screeningFilters.renderSourceFilters,
-    renderCurrentReference: screeningRender.renderCurrentReference,
-    renderKeyStatus: screeningRender.renderKeyStatus,
-    renderReviewerFilter: reviewerFilter.renderReviewerFilter,
-    renderAiHighlightToggle: reviewerFilter.renderAiHighlightToggle
-});
-
-screeningFilters.setFilterDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference,
-    loadDataAndShowScreening: project.loadDataAndShowScreening
-});
-
-settings.setSettingsDependencies({
-    renderCurrentReference: () => {
-        if (state.currentTab === 'ml') {
-            renderMlSection();
-        } else {
-            screeningRender.renderCurrentReference();
-        }
-    },
-    renderReviewerFilter: reviewerFilter.renderReviewerFilter
-});
-
-importExport.setImportExportDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference,
-    loadDataAndShowScreening: project.loadDataAndShowScreening
-});
-
-screeningRender.setRenderDependencies({
-    navigate: screeningActions.navigate
-});
-
-screeningActions.setActionDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference,
-    renderSpecificReference: screeningRender.renderSpecificReference
-});
-
-screeningKeywords.setKeywordDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference
-});
-
-assignment.setAssignmentDependencies({
-    loadDataAndShowScreening: project.loadDataAndShowScreening,
-    renderCurrentReference: screeningRender.renderCurrentReference
-});
-
-reviewerFilter.setReviewerFilterDependencies({
-    renderCurrentReference: screeningRender.renderCurrentReference
-});
-
-llm.setHandleBack(project.handleBack);
-llm.setLoadDataAndShowScreening(project.loadDataAndShowScreening);
-
-
-// Global Event Listeners setup
 document.addEventListener('DOMContentLoaded', () => {
-    // i18n: HTMLの静的テキストを翻訳
-    localizeHtml();
-    const flushQueueIfReady = async () => {
-        if (!state.spreadsheetId || !state.userEmail) return;
-        try {
-            await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
-                apiSaveDecision(state.spreadsheetId, queued)
-            );
-        } catch (error) {
-            console.error('Queue flush error:', error);
-        }
-    };
+    // ========== 共有配線 ==========
+    bootstrapCommon();
 
-    window.addEventListener('online', () => {
-        void flushQueueIfReady();
+    // ========== 拡張専用の依存注入 ==========
+    // settings の renderCurrentReference を ML 対応版で上書き（共有版は screening のみ）
+    settings.setSettingsDependencies({
+        renderCurrentReference: () => {
+            if (state.currentTab === 'ml') {
+                renderMlSection();
+            } else {
+                screeningRender.renderCurrentReference();
+            }
+        },
+        renderReviewerFilter: reviewerFilter.renderReviewerFilter
     });
 
-    // Auth
-    dom.loginBtn?.addEventListener('click', auth.handleLogin);
-    dom.logoutBtn?.addEventListener('click', auth.handleLogout);
-
-    // Project
-    dom.createBtn?.addEventListener('click', project.handleCreateNew);
-    dom.connectBtn?.addEventListener('click', project.handleConnect);
-    dom.recentSheetsSelect?.addEventListener('change', () => {
-        if (dom.spreadsheetInput.value.trim()) {
-            dom.spreadsheetInput.value = '';
-        }
-        project.handleConnect();
-    });
-    dom.spreadsheetInput?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') project.handleConnect();
+    importExport.setImportExportDependencies({
+        renderCurrentReference: screeningRender.renderCurrentReference,
+        loadDataAndShowScreening: project.loadDataAndShowScreening
     });
 
-    // Settings
-    dom.settingsBtnProject?.addEventListener('click', settings.showSettings);
-    dom.settingsBtnScreening?.addEventListener('click', settings.showSettings);
-    dom.mlSettingsBtn?.addEventListener('click', settings.showSettings);
-    dom.closeSettingsBtn?.addEventListener('click', settings.hideSettings);
-    dom.autoNavigateCheckbox?.addEventListener('change', settings.handleAutoNavigateChange);
-    dom.showRecordCountCheckbox?.addEventListener('change', settings.handleShowRecordCountChange);
-    dom.termFilterAndCheckbox?.addEventListener('change', settings.handleTermFilterAndChange);
-    dom.treatMlAsManualCheckbox?.addEventListener('change', settings.handleTreatMlAsManualChange);
-    dom.abstractSubsectionBreakCheckbox?.addEventListener('change', settings.handleAbstractSubsectionBreakChange);
-    dom.abstractSubsectionHeadingsTextarea?.addEventListener('change', settings.handleAbstractSubsectionHeadingsChange);
-    dom.abstractSubsectionHeadingsResetBtn?.addEventListener('click', () => { void settings.handleAbstractSubsectionHeadingsReset(); });
-    dom.assignmentResetBtn?.addEventListener('click', () => { void settings.handleAssignmentReset(); });
-    dom.assignmentReshuffleBtn?.addEventListener('click', () => { void settings.handleAssignmentReshuffle(); });
-    dom.assignmentSaveBtn?.addEventListener('click', () => { void settings.handleAssignmentSave(); });
-    dom.assignmentBannerOpenBtn?.addEventListener('click', () => { void assignment.handleAssignmentBannerOpen(); });
+    llm.setHandleBack(project.handleBack);
+    llm.setLoadDataAndShowScreening(project.loadDataAndShowScreening);
 
-    // Import/Export
+    // ========== Import/Export ==========
     dom.risFileInput?.addEventListener('change', importExport.handleRISImport);
     dom.importBtn?.addEventListener('click', () => dom.risFileInput.click());
     dom.exportBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Store経由で開閉
         toggleExportMenu();
     });
     // Close export menu when clicking outside
     document.addEventListener('click', (e) => {
         if (dom.exportMenu && !dom.exportMenu.contains(e.target as Node) && e.target !== dom.exportBtn) {
-            // Store経由で閉じる
             closeExportMenu();
         }
     });
-
     dom.exportCsvBtn?.addEventListener('click', () => {
-        // Store経由で閉じる
         closeExportMenu();
         importExport.handleExportCSV();
     });
     dom.exportRisBtn?.addEventListener('click', () => {
-        // Store経由で閉じる
         closeExportMenu();
         importExport.handleExportRIS();
     });
@@ -196,40 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         void showManuscriptModal('fulltext');
     });
 
-    // Sharing
-    dom.shareBtn?.addEventListener('click', () => {
-        // Store経由で開閉
-        toggleShareInput();
-        // 開いた場合はフォーカスと共有ユーザー読み込み
-        // 注意: Store状態に基づく判定は次のrenderTemporaryUIで反映されるため、
-        // ここではgetState()で状態を確認
-        setTimeout(() => {
-            const appState = getState();
-            if (appState.ui.flags.shareInputOpen) {
-                dom.shareEmailInput.focus();
-                sharing.loadSharedUsers();
-            }
-        }, 0);
-    });
-    dom.shareCancelBtn?.addEventListener('click', () => {
-        // Store経由で閉じる
-        closeShareInput();
-        dom.shareEmailInput.value = '';
-    });
-    dom.shareSubmitBtn?.addEventListener('click', sharing.handleShare);
-    dom.shareEmailInput?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sharing.handleShare();
-    });
-    dom.shareCopyInviteBtn?.addEventListener('click', sharing.copyInviteTemplate);
-
-    // Screening Actions
-    dom.btnInclude?.addEventListener('click', () => screeningActions.handleDecision('include'));
-    dom.btnExclude?.addEventListener('click', () => screeningActions.handleDecision('exclude'));
-    dom.btnMaybe?.addEventListener('click', () => screeningActions.handleDecision('maybe'));
-    dom.btnPrev?.addEventListener('click', () => screeningActions.navigate(-1));
-    dom.btnNext?.addEventListener('click', () => screeningActions.navigate(1));
-
-    // フルテキストを開く
+    // ========== フルテキストを開く ==========
     dom.btnOpenFulltext?.addEventListener('click', (e) => {
         const btn = e.currentTarget as HTMLButtonElement;
         const refId = btn.dataset['refId'];
@@ -237,82 +93,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(refId)}`;
         chrome.tabs.create({ url });
     });
-    document.addEventListener('keydown', screeningActions.handleKeydown);
 
-    // Screening Filters
-    dom.statusFilter?.addEventListener('change', screeningFilters.handleStatusFilterChange);
-    dom.searchInput?.addEventListener('input', screeningFilters.handleSearchInput);
-
-    // Term Filters (Delegation & Removal)
-    dom.referenceDetail?.addEventListener('click', screeningFilters.handleTermClick);
-    dom.activeTermFiltersDiv?.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('remove-btn')) {
-            const term = target.dataset.term;
-            const type = target.dataset.type as 'include' | 'exclude';
-            if (term && type) {
-                screeningFilters.removeTermFilter(term, type);
-            }
-        }
-    });
-
-    // Screening Keywords
-    dom.presetRctBtn?.addEventListener('click', () => screeningKeywords.applyPreset('RCT'));
-    dom.presetSrBtn?.addEventListener('click', () => screeningKeywords.applyPreset('SR'));
-    dom.addIncludeBtn?.addEventListener('click', () => screeningKeywords.addKeyword('include'));
-    dom.addExcludeBtn?.addEventListener('click', () => screeningKeywords.addKeyword('exclude'));
-
-    dom.newIncludeInput?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') screeningKeywords.addKeyword('include');
-    });
-    dom.newExcludeInput?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') screeningKeywords.addKeyword('exclude');
-    });
-
-    // Key Toggle
-    dom.keyToggleInput?.addEventListener('change', screeningActions.handleKeyToggle);
-
-    // AI Evidenceハイライトチェックボックス（初期化時に1回だけ登録）
-    reviewerFilter.initAiHighlightListener();
-
-    // Back button
-    dom.backBtn?.addEventListener('click', project.handleBack);
-
-    // Header title click (go back to project selection)
-    document.getElementById('header-title')?.addEventListener('click', project.handleBack);
-
-    // ========== Store初期化（Phase 2） ==========
-    // Storeを初期化 - 他のハンドラより先に初期化する必要がある
-    initializeStore();
-
-    // Storeの状態変更を購読してレイアウトと一時UIを自動更新
-    // 注意: 現在は既存のレンダリング関数と並行して動作
-    // 完全移行後は renderApp() のみを呼び出す
-    subscribe((appState) => {
-        // レイアウト（セクション表示/非表示）を更新
-        renderLayout(appState);
-        // 一時UI（メニュー/トースト/ローディング）を更新
-        renderTemporaryUI(appState);
-    });
-
-    // 初期レイアウト描画
-    renderLayout(getState());
-    renderTemporaryUI(getState());
-
-    // LLM
+    // ========== LLM ==========
     llm.setupLlmEventListeners();
+    dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
 
-    // ML (Store初期化後に実行)
+    // ========== フルテキストタブ ==========
+    setupFulltextTabListeners();
+
+    // ========== ML ==========
     initMlHandlers();
     initModal();
-
-    // ML Keyboard Shortcuts (global listener)
     document.addEventListener('keydown', handleMlKeydown);
-
-    // ML Search
     document.getElementById('ml-search-input')?.addEventListener('input', handleMlSearchInput);
-
-    // ML Keywords
     document.getElementById('ml-add-include-btn')?.addEventListener('click', () => addMlKeyword('include'));
     document.getElementById('ml-add-exclude-btn')?.addEventListener('click', () => addMlKeyword('exclude'));
     document.getElementById('ml-new-include-input')?.addEventListener('keypress', (e) => {
@@ -321,12 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ml-new-exclude-input')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addMlKeyword('exclude');
     });
-
-    // Tab Switching
-    dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
-    dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
-    setupFulltextTabListeners();
-    setupTeamProgressListeners();
     dom.tabMlBtn?.addEventListener('click', async () => {
         try {
             console.log('ML tab clicked');
@@ -340,9 +127,4 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(`MLタブの起動に失敗しました: ${error instanceof Error ? error.message : String(error)}`, 5000);
         }
     });
-
-    // Start App
-    auth.initApp();
-    void flushQueueIfReady();
 });
-
