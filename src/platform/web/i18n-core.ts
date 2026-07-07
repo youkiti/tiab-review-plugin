@@ -18,11 +18,14 @@ export function resolveMessage(lang: Messages, fallback: Messages, key: string, 
     let msg = entry.message;
     if (entry.placeholders) {
         for (const [name, def] of Object.entries(entry.placeholders)) {
-            // content は "$1" 形式。プレースホルダ名は大文字小文字を区別しない。
-            const idx = parseInt(def.content.replace('$', ''), 10) - 1;
-            const value = substitutions[idx] ?? '';
-            msg = msg.replace(new RegExp(`\\$${name}\\$`, 'gi'), value);
+            // まず名前付きプレースホルダを content（"$1" 形式）へ展開する。
+            // プレースホルダ名は大文字小文字を区別しない。置換値の $ が特殊解釈
+            // されないよう関数形式で置換する。
+            msg = msg.replace(new RegExp(`\\$${name}\\$`, 'gi'), () => def.content);
         }
     }
-    return msg;
+    // chrome.i18n.getMessage は placeholders 定義が無い $1〜$9 も substitutions で
+    // 直接置換し、$$ はリテラル $ になる。同じ挙動を1パスで再現する。
+    return msg.replace(/\$(\$|[1-9])/g, (_match, d: string) =>
+        d === '$' ? '$' : (substitutions[Number(d) - 1] ?? ''));
 }
