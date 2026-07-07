@@ -1,5 +1,8 @@
 /**
- * モーダル操作ヘルパー
+ * モーダル操作ヘルパー（汎用 UI）
+ *
+ * ML 固有の処理は持たない汎用モーダル。共有コード（assignment など）からも使うため
+ * features/ml/ ではなく共有の ui/ 配下に置く。
  */
 export interface ModalOptions {
     title: string;

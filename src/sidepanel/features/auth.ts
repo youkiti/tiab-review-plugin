@@ -8,6 +8,7 @@ import { state } from '../state';
 import { showLoading, showStatus, showToast } from '../ui/feedback';
 import { getAuthToken, getUserEmail } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
+import { platform } from '../../platform';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -86,18 +87,9 @@ export async function handleLogout() {
     try {
         showLoading(true);
 
-        // Chrome storage をクリア
-        await chrome.storage.local.clear();
-
-        // 認証トークンをクリア
-        const token = await getAuthToken();
-        await new Promise<void>((resolve) => {
-            chrome.identity.removeCachedAuthToken({ token }, () => {
-                chrome.identity.clearAllCachedAuthTokens(() => {
-                    resolve();
-                });
-            });
-        });
+        // ストレージと認証トークンをクリア
+        await platform().storageClear();
+        await platform().clearAuth();
 
         // 状態をリセット（Store経由で両方に同期）
         syncResetForLogout();

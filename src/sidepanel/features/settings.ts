@@ -8,6 +8,7 @@ import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
 import { handleAssignmentResetClick, handleAssignmentReshuffleClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
+import { platform } from '../../platform';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -101,7 +102,7 @@ export async function saveUserSettings() {
         abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
         abstractSubsectionHeadings: state.abstractSubsectionHeadings,
     });
-    await chrome.storage.local.set({
+    await platform().storageSet({
         autoNavigateAfterDecision: state.autoNavigateAfterDecision,
         showRecordCountBelow: state.showRecordCountBelow,
         termFilterUseAnd: state.termFilterUseAnd,
@@ -115,7 +116,7 @@ export async function saveUserSettings() {
  * ユーザー設定を読み込み
  */
 export async function loadUserSettings() {
-    const result = await chrome.storage.local.get([
+    const result = await platform().storageGet([
         'autoNavigateAfterDecision',
         'showRecordCountBelow',
         'termFilterUseAnd',
@@ -125,11 +126,12 @@ export async function loadUserSettings() {
     ]);
     console.log('[loadUserSettings] 読み込み:', result);
 
-    updateSettings('autoNavigateAfterDecision', result.autoNavigateAfterDecision ?? true);
-    updateSettings('showRecordCountBelow', result.showRecordCountBelow ?? true);
-    updateSettings('termFilterUseAnd', result.termFilterUseAnd ?? true);
-    updateSettings('treatMlAsManual', result.treatMlAsManual ?? true);
-    updateSettings('abstractSubsectionBreakEnabled', result.abstractSubsectionBreakEnabled ?? false);
+    // platform().storageGet() は unknown 値を返すため、既存の型（boolean）にキャストする
+    updateSettings('autoNavigateAfterDecision', (result.autoNavigateAfterDecision as boolean | undefined) ?? true);
+    updateSettings('showRecordCountBelow', (result.showRecordCountBelow as boolean | undefined) ?? true);
+    updateSettings('termFilterUseAnd', (result.termFilterUseAnd as boolean | undefined) ?? true);
+    updateSettings('treatMlAsManual', (result.treatMlAsManual as boolean | undefined) ?? true);
+    updateSettings('abstractSubsectionBreakEnabled', (result.abstractSubsectionBreakEnabled as boolean | undefined) ?? false);
 
     const savedHeadings = Array.isArray(result.abstractSubsectionHeadings)
         ? result.abstractSubsectionHeadings as string[]

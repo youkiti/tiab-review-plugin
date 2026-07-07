@@ -2,7 +2,7 @@
  * ML 関連の型定義
  */
 
-import { CMH_DEFAULTS } from './cmh';
+import { CMH_DEFAULTS } from './cmh-defaults';
 
 /** ラベル: 1=include, 0=exclude, -1=unlabeled */
 export type Label = 1 | 0 | -1;

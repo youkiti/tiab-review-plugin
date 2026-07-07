@@ -13,6 +13,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { getDecisions } from '../../lib/sheets-api';
+import { platform } from '../../platform';
 import {
     computeTeamProgress,
     shortNameOf,
@@ -120,13 +121,14 @@ async function fetchDecisions(spreadsheetId: string, baseRefs: TeamProgressRef[]
  * これによりフルテキストページから戻った時には最新の進捗が表示されている。
  */
 export function setupTeamProgressListeners(): void {
-    chrome.runtime.onMessage.addListener((message) => {
+    platform().onMessage((message) => {
+        const msg = message as { type?: string; decision?: unknown; spreadsheetId?: string };
         if (
-            message?.type === 'team-progress:decision-saved' &&
-            message.decision &&
-            message.spreadsheetId === state.spreadsheetId
+            msg?.type === 'team-progress:decision-saved' &&
+            msg.decision &&
+            msg.spreadsheetId === state.spreadsheetId
         ) {
-            noteLocalTeamDecision(message.decision as Decision);
+            noteLocalTeamDecision(msg.decision as Decision);
         }
     });
 }

@@ -6,6 +6,9 @@ node_modules/
 dist/
 dist.zip
 dist-store-*.zip
+# Web アプリ版のビルド成果物。デプロイ時のみ `git add -f docs/app` で明示的にコミットする
+# （実装 PR に dev ビルド成果物が混入するのを防ぐ）。
+docs/app/
 
 # IDE
 .vscode/

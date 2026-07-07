@@ -661,14 +661,9 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
 ];
 
-/**
- * latest エイリアスから固定 ID へのマイグレーションマップ
- * 既存ユーザーの保存済み model 設定を起動時に書き換える際に使用。
- */
-export const MODEL_ID_MIGRATIONS: Record<string, string> = {
-    'gemini-flash-lite-latest': 'gemini-3.1-flash-lite',
-    'gemini-flash-latest': 'gemini-3-flash-preview',
-};
+// MODEL_ID_MIGRATIONS は共有コード（sheets-api）からも参照するため
+// chrome/LLM 非依存の model-migrations.ts へ分離。互換のため再エクスポートする。
+export { MODEL_ID_MIGRATIONS } from './model-migrations';
 
 /**
  * モデルIDから設定を取得

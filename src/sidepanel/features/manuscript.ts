@@ -14,7 +14,7 @@
 
 import { state } from '../state';
 import { t } from '../../lib/i18n';
-import { showModal, hideModal } from './ml/dialogs';
+import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
 import { getFulltextCandidateList } from './screening/filters';
 import { getFulltextResultsSummary } from './fulltext-results';

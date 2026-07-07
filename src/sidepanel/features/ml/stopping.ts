@@ -14,7 +14,7 @@ import {
     isCmhStoppingRule
 } from '../../../lib/ml/types';
 import { CMH_DEFAULTS } from '../../../lib/ml/cmh';
-import { showModal, hideModal } from './dialogs';
+import { showModal, hideModal } from '../../ui/modal';
 import { renderMlStats } from './render';
 import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
 import { saveStoppingRuleToStorage } from './actions';

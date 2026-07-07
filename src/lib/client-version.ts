@@ -2,6 +2,7 @@
  * client_version 共通ユーティリティ
  * manifest.jsonからバージョンを取得し、処理種別サフィックスを付与
  */
+import { platform } from '../platform';
 
 /**
  * manifest.jsonからバージョンを取得し、サフィックスを付与
@@ -14,11 +15,13 @@
  *   - '-llm': LLM判定
  */
 export function getClientVersion(suffix: string = ''): string {
-    // 非拡張環境対応: chrome グローバルの存在確認
-    const manifestVersion =
-        typeof chrome !== 'undefined' && chrome?.runtime?.getManifest
-            ? chrome.runtime.getManifest().version
-            : 'unknown';
+    let manifestVersion: string;
+    try {
+        manifestVersion = platform().getVersionString();
+    } catch {
+        // 非拡張環境(Node.js等) では platform() 未初期化のため 'unknown'
+        manifestVersion = 'unknown';
+    }
     return `${manifestVersion}${suffix}`;
 }
 

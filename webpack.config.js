@@ -1,10 +1,23 @@
 const path = require('path');
+const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 const dotenv = require('dotenv');
+const packageJson = require('./package.json');
 
 dotenv.config();
 
 module.exports = (env, argv) => {
+    // Web アプリ版ビルド（GitHub Pages 配信用）。既存の拡張機能ビルドとは完全に分岐する。
+    if (env && env.target === 'web') {
+        return buildWebConfig(argv);
+    }
+    return buildExtensionConfig(env, argv);
+};
+
+// =====================================================================
+// 拡張機能ビルド（既存設定。挙動は一切変更しない）
+// =====================================================================
+function buildExtensionConfig(env, argv) {
     const isProduction = argv.mode === 'production';
     // OAuth クライアントIDの選択（クライアントは拡張機能IDごとに登録が必要）:
     //   - dev ビルド        : LOCAL_OAUTH_CLIENT_ID（ID: ifnejji… に登録、無ければ OAUTH_CLIENT_ID にフォールバック）
@@ -132,4 +145,109 @@ module.exports = (env, argv) => {
         },
         devtool: 'source-map',
     };
-};
+}
+
+// =====================================================================
+// Web アプリビルド（GitHub Pages: docs/app/ へ出力）
+// =====================================================================
+function buildWebConfig(argv) {
+    const isProduction = argv.mode === 'production';
+    const webClientId = process.env.WEB_OAUTH_CLIENT_ID?.trim();
+    if (isProduction && !webClientId) {
+        throw new Error('WEB_OAUTH_CLIENT_ID が未設定です。.env に Web アプリ用 OAuth クライアントIDを設定してください。');
+    }
+    if (!webClientId) {
+        console.warn('[webpack] WEB_OAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
+    }
+    return {
+        entry: { app: './src/webapp/index.ts' },
+        output: {
+            path: path.resolve(__dirname, 'docs/app'),
+            filename: '[name].js',
+            // docs/app はビルド成果物専用ディレクトリとして全消去してよい。
+            clean: true,
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.ts$/,
+                    use: 'ts-loader',
+                    exclude: /node_modules/,
+                },
+                {
+                    test: /\.mjs$/,
+                    include: /node_modules/,
+                    type: 'javascript/auto',
+                    resolve: { fullySpecified: false },
+                },
+            ],
+        },
+        resolve: {
+            extensions: ['.ts', '.js', '.mjs'],
+            alias: {
+                '@': path.resolve(__dirname, 'src'),
+            },
+        },
+        plugins: [
+            new webpack.DefinePlugin({
+                __WEB_OAUTH_CLIENT_ID__: JSON.stringify(webClientId ?? ''),
+                __APP_VERSION__: JSON.stringify(packageJson.version),
+            }),
+            new CopyPlugin({
+                patterns: [
+                    {
+                        from: 'src/sidepanel/sidepanel.html',
+                        to: 'index.html',
+                        transform: transformSidepanelHtml,
+                    },
+                    { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel.css' },
+                    { from: 'src/sidepanel/styles', to: 'styles' },
+                    { from: 'src/webapp/webapp.css', to: 'webapp.css' },
+                    { from: 'src/icons/icon128.png', to: 'icon128.png' }, // favicon 用
+                ],
+            }),
+        ],
+        optimization: { splitChunks: false },
+        devtool: isProduction ? false : 'source-map',
+    };
+}
+
+/**
+ * 拡張用 sidepanel.html を Web 用 index.html へ機械変換する。
+ * HTML に新機能が追加されたとき Web 版へ自動反映させるため、複製ではなく変換で生成する。
+ * 変換対象の行が将来書き換わって見つからなくなった場合は、古い形式のまま出力されるのを
+ * 防ぐために例外を投げる。
+ */
+function transformSidepanelHtml(content) {
+    let html = content.toString('utf8');
+
+    const replaceOrThrow = (search, replacement, label) => {
+        if (!html.includes(search)) {
+            throw new Error(`[webpack] Web用HTML変換に失敗: "${label}" が sidepanel.html に見つかりません。変換ルールの更新が必要です。`);
+        }
+        html = html.replace(search, replacement);
+    };
+
+    // viewport: 既存の meta を置換（モバイル + セーフエリア対応）
+    replaceOrThrow(
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
+        'viewport meta'
+    );
+    // CSS: webapp.css と favicon を追加
+    replaceOrThrow(
+        '<link rel="stylesheet" href="sidepanel.css">',
+        '<link rel="stylesheet" href="sidepanel.css">\n    <link rel="stylesheet" href="webapp.css">\n    <link rel="icon" href="icon128.png">',
+        'stylesheet link'
+    );
+    // script: 拡張用 sidepanel.js を GIS + Web エントリ app.js に置換
+    replaceOrThrow(
+        '<script src="sidepanel.js"></script>',
+        '<script src="https://accounts.google.com/gsi/client" async defer></script>\n    <script src="app.js"></script>',
+        'entry script'
+    );
+    // body: FOUC 防止のため web-app クラスを付与（JS 側でも付与するが二重で問題ない）
+    replaceOrThrow('<body>', '<body class="web-app">', 'body tag');
+
+    return html;
+}

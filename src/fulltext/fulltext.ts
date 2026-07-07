@@ -10,6 +10,10 @@
 //   - 人手アノテーションの作成・Annotations タブへの保存
 //   - データ抽出モード (label 付きアノテーション)
 
+import { setPlatform } from '../platform';
+import { chromePlatform } from '../platform/chrome';
+setPlatform(chromePlatform);
+
 import {
     getAuthToken,
     getUserEmail,
@@ -18,6 +22,7 @@ import {
     updateReferenceFulltextUrl,
     isUserAdmin,
 } from '../lib/sheets-api';
+import { platform } from '../platform';
 import { retrieveAndCacheFulltext, fetchPdfResult } from '../lib/fulltext-retriever';
 import {
     ensureFulltextFolder,
@@ -733,14 +738,7 @@ async function handleSave(): Promise<boolean> {
 
         // サイドパネルのチーム進捗パネルへ即時反映を通知
         // （サイドパネルが閉じていて受信側がいなくてもエラーにしない）
-        try {
-            chrome.runtime.sendMessage(
-                { type: 'team-progress:decision-saved', spreadsheetId, decision: decisionObj },
-                () => void chrome.runtime.lastError
-            );
-        } catch {
-            // noop
-        }
+        platform().emitMessage({ type: 'team-progress:decision-saved', spreadsheetId, decision: decisionObj });
 
         showFeedback('保存しました');
         return true;

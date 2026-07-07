@@ -15,7 +15,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { showLoading, showToast } from '../ui/feedback';
-import { hideModal, showModal } from './ml/dialogs';
+import { hideModal, showModal } from '../ui/modal';
 import {
     getSpreadsheetPermissions,
     saveFulltextAssignmentConfig,

@@ -1,0 +1,25 @@
+name: build-check
+
+# PR ごとに拡張ビルドと Web ビルドの両方を実行し、どちらかが壊れたらマージ不可にする。
+# これにより「表示系の新機能はリリース時に自動で Web 版へ載る」状態を機械的に保証する（NFR-5）。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      # dev ビルドは OAuth クライアントID未設定でも警告のみで通る（本番のみ throw）。
+      - run: npm run dev        # 拡張ビルド
+      - run: npm run dev:web    # Web ビルド
