@@ -31,6 +31,7 @@ export interface Reference {
     screening_set?: string;   // 担当セットID
     fulltext_url?: string;    // フルテキストURL (Driveキャッシュ / OA直リンク)
     fulltext_status?: FulltextStatus;
+    fulltext_set?: string;    // フルテキスト担当セットID (ft-group-N)
 }
 
 /**

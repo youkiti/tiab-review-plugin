@@ -73,6 +73,10 @@ const domElements = {
     get navProgress() { return getElement<HTMLElement>('nav-progress'); },
     get recordCountAbove() { return getElement<HTMLElement>('record-count-above'); },
 
+    // ========== Team Progress ==========
+    get teamProgressHost() { return getElement<HTMLElement>('team-progress-host'); },
+    get fulltextTeamProgressHost() { return getElement<HTMLElement>('fulltext-team-progress-host'); },
+
     // ========== Source Filters ==========
     get sourceFileListDiv() { return getElement<HTMLElement>('source-file-list'); },
     get sourceFiltersSection() { return getElement<HTMLElement>('source-filters-section'); },
@@ -162,6 +166,8 @@ const domElements = {
     get fulltextRuleLine() { return getElement<HTMLElement>('fulltext-rule-line'); },
     get fulltextRuleEditBtn() { return getElement<HTMLButtonElement>('fulltext-rule-edit-btn'); },
     get fulltextRuleEditorDiv() { return getElement<HTMLElement>('fulltext-rule-editor'); },
+    get fulltextAssignmentLine() { return getElement<HTMLElement>('fulltext-assignment-line'); },
+    get fulltextAssignmentEditBtn() { return getElement<HTMLButtonElement>('fulltext-assignment-edit-btn'); },
     get fulltextObtainedLine() { return getElement<HTMLElement>('fulltext-obtained-line'); },
     get fulltextStatusBarFill() { return getElement<HTMLElement>('fulltext-status-bar-fill'); },
     get fulltextStatusBreakdown() { return getElement<HTMLElement>('fulltext-status-breakdown'); },

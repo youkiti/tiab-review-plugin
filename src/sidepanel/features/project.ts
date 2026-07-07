@@ -28,6 +28,7 @@ import {
 import { setupProjectFolder } from '../../lib/drive-api';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
+import { initTeamProgress } from './team-progress';
 import { flushDecisionQueue } from '../utils/offline-queue';
 
 // Store互換レイヤー（Phase 3）
@@ -48,7 +49,9 @@ import {
     setCurrentIndex as syncSetCurrentIndex,
     setMlState as syncSetMlState,
     setFulltextPoolRule as syncSetFulltextPoolRule,
+    setFulltextAssignment as syncSetFulltextAssignment,
 } from '../store/compat';
+import { getFulltextSetsForUser } from '../../lib/fulltext-assignment';
 import { createInitialMlState } from '../../lib/ml/types';
 
 // 外部関数への参照（循環依存回避）
@@ -369,6 +372,7 @@ export async function loadDataAndShowScreening() {
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(configBundle.keywords);
         syncSetFulltextPoolRule(configBundle.fulltextPoolRule);
+        syncSetFulltextAssignment(configBundle.fulltextAssignment);
         state.setImportStats(configBundle.importStats);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
@@ -388,8 +392,28 @@ export async function loadDataAndShowScreening() {
         const refs = keyOpenedStatus
             ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
             : await getReferencesWithStatus(spreadsheetId, userEmail);
-        const visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
+        let visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
+
+        // フルテキスト担当割り振りで自分に割り当てられた文献は、TiAb の担当セット外でも
+        // 読み込む（TiAb 分割とフルテキスト分割は独立のため、担当外グループの文献が
+        // フルテキスト担当になり得る）。TiAb 側の表示は担当セットフィルターで除外される。
+        const ftConfig = configBundle.fulltextAssignment;
+        if (!adminStatus && ftConfig.status === 'configured') {
+            const myFtSets = getFulltextSetsForUser(ftConfig, userEmail);
+            if (myFtSets.size > 0) {
+                const visibleIds = new Set(visibleRefs.map((r) => r.ref_id));
+                const extraRefs = refs.filter((r) =>
+                    !visibleIds.has(r.ref_id) && myFtSets.has((r.fulltext_set || '').trim())
+                );
+                if (extraRefs.length > 0) {
+                    visibleRefs = [...visibleRefs, ...extraRefs];
+                }
+            }
+        }
         syncSetReferences(visibleRefs);
+
+        // チーム進捗: 割り振り前の全文献を分母計算に使う（判定データは非同期取得）
+        initTeamProgress(refs);
 
         // MLの状態をリセット（前のプロジェクトのデータをクリア）
         syncSetMlState(createInitialMlState());

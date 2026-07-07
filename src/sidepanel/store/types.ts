@@ -12,6 +12,7 @@ import type {
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
+import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
 
 // ========== View型（画面遷移の真実） ==========
 export type View = 'login' | 'project' | 'screening' | 'llm' | 'ml' | 'settings';
@@ -46,6 +47,8 @@ export interface AppState {
         isAdmin: boolean;
         // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
         fulltextPoolRule: FulltextPoolRule | null;
+        // フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none'）
+        fulltextAssignment: FulltextAssignmentConfig;
         // ソースファイル
         sourceFiles: Set<string>;
         selectedSourceFiles: Set<string>;
@@ -129,6 +132,7 @@ export type Action =
     | { type: 'data/setRecentSheets'; sheets: SheetInfo[] }
     | { type: 'data/setIsAdmin'; isAdmin: boolean }
     | { type: 'data/setFulltextPoolRule'; rule: FulltextPoolRule | null }
+    | { type: 'data/setFulltextAssignment'; config: FulltextAssignmentConfig }
     | { type: 'data/setSourceFiles'; files: Set<string> }
     | { type: 'data/setSelectedSourceFiles'; files: Set<string> }
     | { type: 'data/toggleSourceFile'; file: string }

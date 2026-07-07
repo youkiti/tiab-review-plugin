@@ -272,6 +272,120 @@
   "fulltext_ruleSet": {
     "message": "Set rule"
   },
+  "ftAssign_lineNone": {
+    "message": "Assignment: none (everyone screens all candidates)"
+  },
+  "ftAssign_lineConfigured": {
+    "message": "Assignment: split into $1 groups"
+  },
+  "ftAssign_lineUnassigned": {
+    "message": "⚠ $1 unassigned"
+  },
+  "ftAssign_lineMyGroups": {
+    "message": "Your groups: $1"
+  },
+  "ftAssign_lineMyGroupsNone": {
+    "message": "No assigned group (showing unassigned records only)"
+  },
+  "ftAssign_set": {
+    "message": "Set up assignment"
+  },
+  "ftAssign_edit": {
+    "message": "✎ Edit"
+  },
+  "ftAssign_setGroup": {
+    "message": "Group $1"
+  },
+  "ftAssign_setUnassigned": {
+    "message": "Unassigned"
+  },
+  "ftAssign_needRule": {
+    "message": "Set the pool rule first to finalize the full-text candidate pool"
+  },
+  "ftAssign_emptyPool": {
+    "message": "No full-text candidates to assign"
+  },
+  "ftAssign_wizardTitle": {
+    "message": "Full-text reviewer assignment"
+  },
+  "ftAssign_wizardIntro": {
+    "message": "Split the candidate pool into groups and assign reviewers to each group. By default (no assignment) everyone screens all candidates."
+  },
+  "ftAssign_wizardSummary": {
+    "message": "Current full-text candidates: $1"
+  },
+  "ftAssign_wizardGroupCountLabel": {
+    "message": "Number of groups"
+  },
+  "ftAssign_wizardReviewerLabel": {
+    "message": "Reviewers for group $1"
+  },
+  "ftAssign_wizardReviewerHelp": {
+    "message": "Select reviewers for each group from the project members. Checking two or more reviewers in a group means dual screening for that group."
+  },
+  "ftAssign_noMembers": {
+    "message": "Could not load shared members. Add reviewers by email below."
+  },
+  "ftAssign_addMemberPlaceholder": {
+    "message": "new-reviewer@example.com"
+  },
+  "ftAssign_addMemberBtn": {
+    "message": "+ Add member"
+  },
+  "ftAssign_addMemberInvalid": {
+    "message": "Enter a valid email address"
+  },
+  "ftAssign_addMemberDone": {
+    "message": "Added $1 to the member list. Check their group and save."
+  },
+  "ftAssign_addMemberHelp": {
+    "message": "New reviewers not in the list can be added by email. If they don't have access to the project yet, invite them to the Drive folder from the sharing settings."
+  },
+  "ftAssign_wizardPreview": {
+    "message": "Splitting $1 records into $2 groups → about $3 per group"
+  },
+  "ftAssign_wizardPreviewInvalid": {
+    "message": "Invalid number of groups"
+  },
+  "ftAssign_create": {
+    "message": "Create assignment"
+  },
+  "ftAssign_reshuffle": {
+    "message": "Reshuffle and reassign"
+  },
+  "ftAssign_reshuffleConfirm": {
+    "message": "This reshuffles the whole candidate pool and overwrites the existing grouping (saved decisions are kept). Continue?"
+  },
+  "ftAssign_saveMapOnly": {
+    "message": "Save reviewers only"
+  },
+  "ftAssign_mapSaved": {
+    "message": "Reviewers saved (grouping unchanged)"
+  },
+  "ftAssign_reset": {
+    "message": "Remove assignment"
+  },
+  "ftAssign_resetConfirm": {
+    "message": "Remove the assignment so that everyone screens all candidates again. Continue?"
+  },
+  "ftAssign_resetDone": {
+    "message": "Assignment removed (everyone screens all candidates)"
+  },
+  "ftAssign_created": {
+    "message": "Assigned $1 records to $2 groups"
+  },
+  "ftAssign_unassignedNote": {
+    "message": "$1 records entered the pool after the assignment and are unassigned"
+  },
+  "ftAssign_distributeBtn": {
+    "message": "Distribute to existing groups"
+  },
+  "ftAssign_distributed": {
+    "message": "Distributed $1 unassigned records to existing groups"
+  },
+  "ftAssign_error": {
+    "message": "Failed to save assignment: $1"
+  },
   "fulltext_obtainedLine": {
     "message": "Full texts obtained: $1 / $2"
   },
@@ -959,6 +1073,60 @@
   },
   "progress_count": {
     "message": "$1 / $2 ($3 remaining)"
+  },
+  "teamProgress_title": {
+    "message": "Team progress"
+  },
+  "teamProgress_toggleTitle": {
+    "message": "Click to show/hide details"
+  },
+  "teamProgress_you": {
+    "message": "You"
+  },
+  "teamProgress_loading": {
+    "message": "Loading…"
+  },
+  "teamProgress_error": {
+    "message": "Failed to load progress"
+  },
+  "teamProgress_colReviewer": {
+    "message": "Reviewer"
+  },
+  "teamProgress_colFulltext": {
+    "message": "Full text"
+  },
+  "teamProgress_colLast": {
+    "message": "Last decision"
+  },
+  "teamProgress_poolUnset": {
+    "message": "Not available until the full-text candidate rule is set"
+  },
+  "teamProgress_never": {
+    "message": "No decisions yet"
+  },
+  "teamProgress_staleTitle": {
+    "message": "No decisions for $1+ days"
+  },
+  "teamProgress_relJustNow": {
+    "message": "just now"
+  },
+  "teamProgress_relMinutes": {
+    "message": "$1 min ago"
+  },
+  "teamProgress_relHours": {
+    "message": "$1 h ago"
+  },
+  "teamProgress_relDays": {
+    "message": "$1 d ago"
+  },
+  "teamProgress_updatedAt": {
+    "message": "Updated $1"
+  },
+  "teamProgress_refresh": {
+    "message": "Refresh"
+  },
+  "teamProgress_refreshing": {
+    "message": "Refreshing…"
   },
   "reviewer_selfMl": {
     "message": "$1 (you/ML)"

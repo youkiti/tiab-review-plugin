@@ -21,6 +21,7 @@ import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
 import { setupFulltextTabListeners } from './features/fulltext-tab';
+import { setupTeamProgressListeners } from './features/team-progress';
 import { initModal } from './features/ml/dialogs';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 import { flushDecisionQueue } from './utils/offline-queue';
@@ -321,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.tabScreeningBtn?.addEventListener('click', () => llm.switchToTab('screening'));
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
     setupFulltextTabListeners();
+    setupTeamProgressListeners();
     dom.tabMlBtn?.addEventListener('click', async () => {
         try {
             console.log('ML tab clicked');

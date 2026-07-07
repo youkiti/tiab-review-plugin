@@ -272,6 +272,120 @@
   "fulltext_ruleSet": {
     "message": "ルールを設定"
   },
+  "ftAssign_lineNone": {
+    "message": "担当割り振り: なし（全員が全候補を判定）"
+  },
+  "ftAssign_lineConfigured": {
+    "message": "担当割り振り: $1グループに分割"
+  },
+  "ftAssign_lineUnassigned": {
+    "message": "⚠ 未割り当て $1件"
+  },
+  "ftAssign_lineMyGroups": {
+    "message": "自分の担当: $1"
+  },
+  "ftAssign_lineMyGroupsNone": {
+    "message": "自分の担当グループなし（未割り当て分のみ表示）"
+  },
+  "ftAssign_set": {
+    "message": "分担を設定"
+  },
+  "ftAssign_edit": {
+    "message": "✎ 編集"
+  },
+  "ftAssign_setGroup": {
+    "message": "グループ$1"
+  },
+  "ftAssign_setUnassigned": {
+    "message": "未割り当て"
+  },
+  "ftAssign_needRule": {
+    "message": "先に候補ルールを設定して、フルテキスト対象を確定してください"
+  },
+  "ftAssign_emptyPool": {
+    "message": "フルテキスト候補が0件のため割り振りできません"
+  },
+  "ftAssign_wizardTitle": {
+    "message": "フルテキストの担当割り振り"
+  },
+  "ftAssign_wizardIntro": {
+    "message": "候補プールをグループに分割し、各グループの担当レビュアーを指定します。デフォルト（割り振りなし）では全員が全候補を判定します。"
+  },
+  "ftAssign_wizardSummary": {
+    "message": "現在のフルテキスト候補: $1件"
+  },
+  "ftAssign_wizardGroupCountLabel": {
+    "message": "グループ数"
+  },
+  "ftAssign_wizardReviewerLabel": {
+    "message": "グループ$1の担当者"
+  },
+  "ftAssign_wizardReviewerHelp": {
+    "message": "各グループの担当者を、プロジェクトの共有メンバーから選択します。同じグループに2人以上チェックすると、そのグループは二重スクリーニングになります。"
+  },
+  "ftAssign_noMembers": {
+    "message": "共有メンバーを取得できませんでした。下の欄からメールアドレスを追加してください。"
+  },
+  "ftAssign_addMemberPlaceholder": {
+    "message": "new-reviewer@example.com"
+  },
+  "ftAssign_addMemberBtn": {
+    "message": "＋ メンバーを追加"
+  },
+  "ftAssign_addMemberInvalid": {
+    "message": "有効なメールアドレスを入力してください"
+  },
+  "ftAssign_addMemberDone": {
+    "message": "$1 を選択肢に追加しました。担当グループにチェックを入れて保存してください"
+  },
+  "ftAssign_addMemberHelp": {
+    "message": "一覧にない新しいレビュアーはメールアドレスで追加できます。追加後、まだプロジェクトを共有していない場合は、設定の共有メニューからDriveフォルダへ招待してください。"
+  },
+  "ftAssign_wizardPreview": {
+    "message": "$1件を$2グループに分割 → 1グループあたり約$3件"
+  },
+  "ftAssign_wizardPreviewInvalid": {
+    "message": "グループ数が正しくありません"
+  },
+  "ftAssign_create": {
+    "message": "割り振りを作成"
+  },
+  "ftAssign_reshuffle": {
+    "message": "再シャッフルして割り振り直す"
+  },
+  "ftAssign_reshuffleConfirm": {
+    "message": "候補プール全体を再シャッフルして割り振り直します。既存のグループ分けは上書きされます（保存済みの判定は消えません）。よろしいですか？"
+  },
+  "ftAssign_saveMapOnly": {
+    "message": "担当者のみ保存"
+  },
+  "ftAssign_mapSaved": {
+    "message": "担当者を保存しました（グループ分けは変更していません）"
+  },
+  "ftAssign_reset": {
+    "message": "割り振りを解除"
+  },
+  "ftAssign_resetConfirm": {
+    "message": "担当割り振りを解除し、全員が全候補を判定する状態に戻します。よろしいですか？"
+  },
+  "ftAssign_resetDone": {
+    "message": "担当割り振りを解除しました（全員が全候補を判定）"
+  },
+  "ftAssign_created": {
+    "message": "$1件を$2グループに割り振りました"
+  },
+  "ftAssign_unassignedNote": {
+    "message": "割り振り後に候補入りした未割り当ての文献が$1件あります"
+  },
+  "ftAssign_distributeBtn": {
+    "message": "既存グループへ配分"
+  },
+  "ftAssign_distributed": {
+    "message": "未割り当ての$1件を既存グループへ配分しました"
+  },
+  "ftAssign_error": {
+    "message": "担当割り振りの保存に失敗しました: $1"
+  },
   "fulltext_obtainedLine": {
     "message": "全文入手済み: $1 / $2件"
   },
@@ -959,6 +1073,60 @@
   },
   "progress_count": {
     "message": "$1 / $2件（残り$3件）"
+  },
+  "teamProgress_title": {
+    "message": "チーム進捗"
+  },
+  "teamProgress_toggleTitle": {
+    "message": "クリックで詳細を表示/非表示"
+  },
+  "teamProgress_you": {
+    "message": "自分"
+  },
+  "teamProgress_loading": {
+    "message": "読み込み中…"
+  },
+  "teamProgress_error": {
+    "message": "進捗の取得に失敗しました"
+  },
+  "teamProgress_colReviewer": {
+    "message": "レビュアー"
+  },
+  "teamProgress_colFulltext": {
+    "message": "Full text"
+  },
+  "teamProgress_colLast": {
+    "message": "最終判定"
+  },
+  "teamProgress_poolUnset": {
+    "message": "フルテキスト候補ルールが未設定のため表示できません"
+  },
+  "teamProgress_never": {
+    "message": "判定なし"
+  },
+  "teamProgress_staleTitle": {
+    "message": "$1日以上判定がありません"
+  },
+  "teamProgress_relJustNow": {
+    "message": "たった今"
+  },
+  "teamProgress_relMinutes": {
+    "message": "$1分前"
+  },
+  "teamProgress_relHours": {
+    "message": "$1時間前"
+  },
+  "teamProgress_relDays": {
+    "message": "$1日前"
+  },
+  "teamProgress_updatedAt": {
+    "message": "最終更新 $1"
+  },
+  "teamProgress_refresh": {
+    "message": "更新"
+  },
+  "teamProgress_refreshing": {
+    "message": "更新中…"
   },
   "reviewer_selfMl": {
     "message": "$1 (自分/ML)"

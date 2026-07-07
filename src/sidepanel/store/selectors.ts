@@ -10,6 +10,7 @@ import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { isInFulltextPool } from '../../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
+import { canSeeFulltextRef } from '../../lib/fulltext-assignment';
 import { detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
 import { t } from '../../lib/i18n';
 
@@ -83,6 +84,15 @@ function isFulltextCandidate(
 }
 
 /**
+ * フルテキスト候補のうち自分の担当分か（担当割り振り適用後）
+ * features/screening/filters.ts の isMyFulltextCandidate と同じ規則
+ */
+function isMyFulltextCandidate(ref: ReferenceWithStatus, data: AppState['data']): boolean {
+    return isFulltextCandidate(ref, data.userEmail, data.isAdmin, data.fulltextPoolRule)
+        && canSeeFulltextRef(ref, data.fulltextAssignment, data.userEmail, data.isAdmin);
+}
+
+/**
  * フィルタリング済み文献リストを取得
  */
 export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
@@ -92,9 +102,7 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
 
     // ステータスフィルター
     if (screening.currentFilter === 'fulltext_candidates') {
-        filtered = filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, data.isAdmin, data.fulltextPoolRule)
-        );
+        filtered = filtered.filter(r => isMyFulltextCandidate(r, data));
     } else if (screening.currentFilter === 'conflict') {
         filtered = filtered.filter(r =>
             hasEffectiveConflict(r, data.enabledReviewers, screening.isKeyOpened, settings.treatMlAsManual)
@@ -243,9 +251,7 @@ export function getFilterCounts(state: AppState): {
         conflict: filtered.filter(r =>
             hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)
         ).length,
-        fulltextCandidates: filtered.filter(r =>
-            isFulltextCandidate(r, data.userEmail, data.isAdmin, data.fulltextPoolRule)
-        ).length,
+        fulltextCandidates: filtered.filter(r => isMyFulltextCandidate(r, data)).length,
     };
 }
 

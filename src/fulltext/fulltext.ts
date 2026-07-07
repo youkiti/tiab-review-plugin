@@ -33,6 +33,8 @@ import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
+import { canSeeFulltextRef, createDefaultFulltextAssignment } from '../lib/fulltext-assignment';
+import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types';
 import type { FulltextEvidenceDisplay } from '../lib/sheets-api';
@@ -61,6 +63,8 @@ let allDecisions: Decision[] = [];
 
 // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
 let poolRule: FulltextPoolRule | null = null;
+// フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none' = 全員が全候補）
+let ftAssignment: FulltextAssignmentConfig = createDefaultFulltextAssignment();
 let keyOpened = false;
 
 // 採用中のフルテキストAI判定ラウンド（reviewer_id）。サマリ/ハイライトはこのラウンドを優先する。
@@ -158,6 +162,7 @@ async function initFulltextPage(): Promise<void> {
     allRefs = refs;
     allDecisions = decisionsData.map(({ decision }) => decision);
     poolRule = config.fulltextPoolRule;
+    ftAssignment = config.fulltextAssignment;
     keyOpened = config.keyOpened;
     aiActiveRound = config.fulltextAiActiveRound;
 
@@ -355,6 +360,12 @@ function recomputeCandidates(): void {
         );
         fulltextCandidates = allRefs.filter(r => tiabIncludes.has(r.ref_id));
     }
+
+    // 担当割り振り設定済みなら自分の担当分（+未割り当て）へ絞り込む。管理者は全候補。
+    fulltextCandidates = fulltextCandidates.filter(r =>
+        canSeeFulltextRef(r, ftAssignment, userEmail, isAdmin)
+    );
+
     currentCandidateIndex = currentRef
         ? fulltextCandidates.findIndex(r => r.ref_id === currentRef!.ref_id)
         : -1;
@@ -719,6 +730,17 @@ async function handleSave(): Promise<boolean> {
         renderOverallProgress();
 
         await saveDecision(spreadsheetId, decisionObj);
+
+        // サイドパネルのチーム進捗パネルへ即時反映を通知
+        // （サイドパネルが閉じていて受信側がいなくてもエラーにしない）
+        try {
+            chrome.runtime.sendMessage(
+                { type: 'team-progress:decision-saved', spreadsheetId, decision: decisionObj },
+                () => void chrome.runtime.lastError
+            );
+        } catch {
+            // noop
+        }
 
         showFeedback('保存しました');
         return true;

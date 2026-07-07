@@ -65,7 +65,6 @@ gcloud services enable drive.googleapis.com
 | `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID       | 開発ビルド時                    |
 | `GEMINI_API_KEY`        | Gemini API キー                      | Gemini モデル使用時             |
 | `OPENROUTER_API_KEY`    | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時            |
-| `DIST_COPY_PATH`        | dist.zip のコピー先パス              | build:zip 時                    |
 
 > **LLM プロバイダ**: v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「OpenRouter APIキー」カードから登録します（環境変数は実験ランナー用途のみ）。
 
@@ -113,13 +112,13 @@ npm run watch
 
 レビュー指示は [.github/codex/prompts/pr-review.md](.github/codex/prompts/pr-review.md) にあります。
 
-## Chrome Web Store への提出（初回公開向け）
+## Chrome Web Store への提出（リリース手順）
 
-- 提出用ZIPは `npm run build:release` で生成される `dist.zip` をアップロードします。
+- リリースは `npm run release`（patch bump + ストア用ビルド）または `npm run release:minor`。生成される `dist-store-v<version>.zip` をデベロッパーダッシュボードにアップロードします。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
 - `chrome.identity` のOAuthを使う場合、公開後の「拡張機能ID」に紐づくOAuthクライアント（Chrome拡張機能）をGCP側で作成し、`.env` の `OAUTH_CLIENT_ID` に設定してください。
 - `OAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
-- テスター配布向けの Google Drive コピー付きZIPは `npm run build:zip` を使います。
+- 旧テスター配布（zip を Google Drive へコピーする `build:zip` / `build:zip:tester`）は正式リリースに伴い廃止しました（最終配布は v0.24.0）。
 
 ## 担当セット（複数人レビュー）
 
