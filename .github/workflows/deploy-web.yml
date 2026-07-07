@@ -1,0 +1,44 @@
+name: deploy-web
+
+# main へ push すると Web アプリ版を本番ビルドして GitHub Pages へ自動デプロイする。
+# これにより「ローカルで build:web → docs/app を手動コミット」という従来フローが不要になる。
+# dev / store 版のリリースはローカル手動のままで、この自動化は Web 版のみが対象。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # 手動再デプロイ用
+
+# Pages への同時デプロイを 1 本に絞る（古い実行はキャンセル）。
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # docs/app/ へ本番ビルド。OAuth クライアントID は公開情報のため repository variable で管理。
+      - run: npm run build:web
+        env:
+          WEB_OAUTH_CLIENT_ID: ${{ vars.WEB_OAUTH_CLIENT_ID }}
+      - uses: actions/configure-pages@v5
+      # docs/ 全体（静的ページ + ビルドした app/）をそのまま配信する。
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
