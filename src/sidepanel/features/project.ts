@@ -26,6 +26,7 @@ import {
     saveDecision as apiSaveDecision,
 } from '../../lib/sheets-api';
 import { setupProjectFolder } from '../../lib/drive-api';
+import { platform } from '../../platform';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { initTeamProgress } from './team-progress';
@@ -163,7 +164,7 @@ export async function handleConnect() {
         syncSetSpreadsheetId(resolvedId);
 
         // 設定を保存
-        await chrome.storage.local.set({ spreadsheetId: resolvedId });
+        await platform().storageSet({ spreadsheetId: resolvedId });
 
         // URL 入力で開いたシートは Drive API (drive.file スコープ) の最近一覧に
         // 現れないため、ローカル recent に記録してドロップダウンへ合流させる
@@ -325,7 +326,7 @@ export async function handleCreateNew() {
         syncSetSpreadsheetId(newId);
 
         // 設定を保存
-        await chrome.storage.local.set({ spreadsheetId: newId });
+        await platform().storageSet({ spreadsheetId: newId });
 
         // 新規作成シートはローカル recent にも記録し、戻った直後の一覧反映を保証する
         await rememberLocalRecentSheet(newId, title);
@@ -506,20 +507,22 @@ export async function loadConfig() {
     // 既存の値をクリアして毎回まっさらな状態から復元する
     dom.spreadsheetInput.value = '';
 
-    const result = await chrome.storage.local.get(['spreadsheetId']);
-    if (!result.spreadsheetId) {
+    const result = await platform().storageGet(['spreadsheetId']);
+    // platform().storageGet() は unknown 値を返すため、既存の型（string）にキャストする
+    const spreadsheetId = result.spreadsheetId as string | undefined;
+    if (!spreadsheetId) {
         dom.recentSheetsSelect.value = '';
         return;
     }
 
     const hasOption = Array.from(dom.recentSheetsSelect.options)
-        .some((opt) => opt.value === result.spreadsheetId);
+        .some((opt) => opt.value === spreadsheetId);
 
     if (hasOption) {
-        dom.recentSheetsSelect.value = result.spreadsheetId;
+        dom.recentSheetsSelect.value = spreadsheetId;
     } else if (!_recentSheetsLoaded) {
         // 最近一覧の取得に失敗しているときだけ、URL 入力欄にフォールバック表示
-        dom.spreadsheetInput.value = result.spreadsheetId;
+        dom.spreadsheetInput.value = spreadsheetId;
     }
 }
 

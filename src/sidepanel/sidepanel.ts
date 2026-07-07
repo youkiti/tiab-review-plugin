@@ -4,6 +4,10 @@
  * Phase 2: Store基盤を統合し、段階的にrender一本化へ移行中
  */
 
+import { setPlatform } from '../platform';
+import { chromePlatform } from '../platform/chrome';
+setPlatform(chromePlatform);
+
 import { dom } from './dom';
 import { state } from './state';
 import * as auth from './features/auth';

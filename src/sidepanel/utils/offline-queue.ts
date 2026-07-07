@@ -1,4 +1,5 @@
 import type { Decision } from '../../lib/types';
+import { platform } from '../../platform';
 
 const LOCAL_QUEUE_LIMIT = 100;
 const LOCAL_QUEUE_PREFIX = 'offlineQueue:';
@@ -91,7 +92,7 @@ async function deleteQueueFromDb(queueKey: string): Promise<void> {
 
 async function loadQueue(queueKey: string): Promise<Decision[]> {
     const localKey = buildLocalKey(queueKey);
-    const localResult = await chrome.storage.local.get([localKey]);
+    const localResult = await platform().storageGet([localKey]);
     const localItems = localResult[localKey] as Decision[] | undefined;
     if (localItems && localItems.length > 0) {
         return sortQueue(localItems);
@@ -107,12 +108,12 @@ async function loadQueue(queueKey: string): Promise<Decision[]> {
 async function saveQueue(queueKey: string, items: Decision[]): Promise<void> {
     const localKey = buildLocalKey(queueKey);
     if (items.length <= LOCAL_QUEUE_LIMIT) {
-        await chrome.storage.local.set({ [localKey]: items });
+        await platform().storageSet({ [localKey]: items });
         await deleteQueueFromDb(queueKey);
         return;
     }
 
-    await chrome.storage.local.remove(localKey);
+    await platform().storageRemove(localKey);
     await writeQueueToDb(queueKey, items);
 }
 

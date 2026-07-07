@@ -1,17 +1,25 @@
 /**
  * i18n ヘルパーモジュール
- * chrome.i18n API のラッパーとHTML翻訳ユーティリティ
+ * プラットフォームアダプタの i18n メッセージ取得のラッパーとHTML翻訳ユーティリティ
  */
+import { platform } from '../platform';
 
 /**
  * 翻訳キーからメッセージを取得する
- * chrome.i18n.getMessage のラッパー
+ * platform().getMessage のラッパー
  */
 export function t(key: string, substitutions?: string | string[]): string {
     const subs = substitutions
         ? (Array.isArray(substitutions) ? substitutions : [substitutions])
         : undefined;
-    const message = chrome.i18n.getMessage(key, subs);
+    let message: string;
+    try {
+        message = platform().getMessage(key, subs);
+    } catch {
+        // 非拡張環境(Node.js等) では platform 未初期化のため空扱いにし、
+        // キー名フォールバックへ委ねる（client-version.ts と同じ方針）
+        message = '';
+    }
     // キーが見つからない場合はキー名をそのまま返す（デバッグ用）
     return message || key;
 }

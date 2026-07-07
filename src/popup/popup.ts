@@ -1,4 +1,8 @@
 // Popup スクリプト
+import { setPlatform } from '../platform';
+import { chromePlatform } from '../platform/chrome';
+setPlatform(chromePlatform);
+
 import { localizeHtml } from '../lib/i18n';
 
 document.addEventListener('DOMContentLoaded', () => {

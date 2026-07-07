@@ -3,6 +3,7 @@
 import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap } from './types';
 import { MODEL_ID_MIGRATIONS } from './gemini-api';
 import { t } from './i18n';
+import { platform } from '../platform';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
@@ -97,17 +98,7 @@ const DECISIONS_HEADERS = [
  * OAuth トークンを取得
  */
 export async function getAuthToken(): Promise<string> {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'GET_AUTH_TOKEN' }, (response) => {
-            if (response?.error) {
-                reject(new Error(response.error));
-            } else if (response?.token) {
-                resolve(response.token);
-            } else {
-                reject(new Error('Failed to get auth token'));
-            }
-        });
-    });
+    return platform().getAuthToken();
 }
 
 /**
@@ -136,17 +127,7 @@ export async function getUserEmail(): Promise<string> {
  * トークンをクリアして再認証（スコープ変更時に使用）
  */
 export async function forceReauth(): Promise<string> {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'FORCE_REAUTH' }, (response) => {
-            if (response?.error) {
-                reject(new Error(response.error));
-            } else if (response?.token) {
-                resolve(response.token);
-            } else {
-                reject(new Error('Failed to reauth'));
-            }
-        });
-    });
+    return platform().forceReauth();
 }
 
 /**
@@ -213,7 +194,7 @@ const LOCAL_RECENT_SHEETS_MAX = 30;
 
 export async function getLocalRecentSheets(): Promise<LocalRecentSheet[]> {
     try {
-        const result = await chrome.storage.local.get([LOCAL_RECENT_SHEETS_KEY]);
+        const result = await platform().storageGet([LOCAL_RECENT_SHEETS_KEY]);
         const raw = result[LOCAL_RECENT_SHEETS_KEY];
         if (!Array.isArray(raw)) return [];
         return raw
@@ -238,7 +219,7 @@ export async function rememberLocalRecentSheet(id: string, name: string): Promis
             { id, name, lastUsedAt: new Date().toISOString() },
             ...existing.filter((entry) => entry.id !== id),
         ].slice(0, LOCAL_RECENT_SHEETS_MAX);
-        await chrome.storage.local.set({ [LOCAL_RECENT_SHEETS_KEY]: next });
+        await platform().storageSet({ [LOCAL_RECENT_SHEETS_KEY]: next });
     } catch (error) {
         console.error('[rememberLocalRecentSheet] Failed:', error);
     }
