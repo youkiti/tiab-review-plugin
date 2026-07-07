@@ -1,8 +1,10 @@
 /**
  * Web 版プラットフォームアダプタ本体。
  * chrome.* API に依存せず、GIS 認証・localStorage・EventTarget・バンドル i18n で構成する。
- * capabilities は拡張専用機能（LLM/ML/フルテキスト/インポートエクスポート/新規プロジェクト作成）を
- * すべて false にし、共有 UI 側で非表示にする。
+ * capabilities は拡張専用機能（LLM/ML/フルテキスト/インポートエクスポート）を
+ * false にし、共有 UI 側で非表示にする。
+ * 新規プロジェクト作成（createProject）は spreadsheets.create のみで実現でき、
+ * Web の GIS トークンも spreadsheets / drive.file スコープを持つため有効化する。
  */
 import type { PlatformAdapter } from '../types';
 import * as auth from './auth';
@@ -33,6 +35,6 @@ export const webPlatform: PlatformAdapter = {
     getVersionString: () => `web-${__APP_VERSION__}`,
 
     capabilities: {
-        llm: false, ml: false, fulltext: false, importExport: false, createProject: false,
+        llm: false, ml: false, fulltext: false, importExport: false, createProject: true,
     },
 };
