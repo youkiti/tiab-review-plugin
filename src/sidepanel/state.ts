@@ -6,6 +6,8 @@
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
+import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
+import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../lib/fulltext-assignment';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 
 // ========== Private State Variables ==========
@@ -39,6 +41,9 @@ let _isAdmin = false;
 
 // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
 let _fulltextPoolRule: FulltextPoolRule | null = null;
+
+// フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none'）
+let _fulltextAssignment: FulltextAssignmentConfig = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
 
 // ソースファイルフィルター
 let _sourceFiles: Set<string> = new Set();
@@ -167,6 +172,9 @@ export const state = {
     get fulltextPoolRule() { return _fulltextPoolRule; },
     setFulltextPoolRule(rule: FulltextPoolRule | null) { _fulltextPoolRule = rule; },
 
+    get fulltextAssignment() { return _fulltextAssignment; },
+    setFulltextAssignment(config: FulltextAssignmentConfig) { _fulltextAssignment = config; },
+
     // ----- Source File Filters -----
     get sourceFiles() { return _sourceFiles; },
     setSourceFiles(files: Set<string>) { _sourceFiles = files; },
@@ -285,6 +293,7 @@ export const state = {
         _isKeyOpened = false;
         _isAdmin = false;
         _fulltextPoolRule = null;
+        _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
         _currentIndex = 0;
         _currentFilter = 'pending';
         _reviewHistoryRefIds = [];
@@ -311,6 +320,7 @@ export const state = {
         _spreadsheetId = '';
         _references = [];
         _fulltextPoolRule = null;
+        _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
         _currentIndex = 0;
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;

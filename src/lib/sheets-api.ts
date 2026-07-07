@@ -6,6 +6,8 @@ import { t } from './i18n';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
+import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
+import type { FulltextAssignmentConfig } from './fulltext-assignment';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -79,7 +81,7 @@ const REFERENCES_HEADERS = [
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
-    'fulltext_url', 'fulltext_status'
+    'fulltext_url', 'fulltext_status', 'fulltext_set'
 ];
 
 
@@ -551,7 +553,7 @@ function parseReferenceValues(values: string[][]): Reference[] {
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:U`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:V`);
     return parseReferenceValues(values);
 }
 
@@ -1244,6 +1246,112 @@ async function trySaveAssignmentConfig(spreadsheetId: string, config: Assignment
     }
 }
 
+// ---------------------------------------------------------------------------
+// フルテキスト担当割り振り（Config シート fulltext_assignment_* キー）
+// ---------------------------------------------------------------------------
+
+const FT_ASSIGNMENT_CONFIG_KEYS = [
+    'fulltext_assignment_status',
+    'fulltext_assignment_group_count',
+    'fulltext_assignment_reviewer_map',
+    'fulltext_assignment_seed',
+    'fulltext_assignment_generated_at',
+];
+
+/** Config タブの A:B 行列から FulltextAssignmentConfig を組み立てる */
+function parseFulltextAssignmentRows(values: string[][]): FulltextAssignmentConfig {
+    const config: FulltextAssignmentConfig = { ...DEFAULT_FULLTEXT_ASSIGNMENT, reviewerMap: {} };
+
+    for (const row of values) {
+        const key = row[0];
+        const value = row[1];
+        if (!FT_ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
+
+        switch (key) {
+            case 'fulltext_assignment_status':
+                if (value === 'configured' || value === 'none') {
+                    config.status = value;
+                }
+                break;
+            case 'fulltext_assignment_group_count':
+                config.groupCount = parseInt(value, 10) || DEFAULT_FULLTEXT_ASSIGNMENT.groupCount;
+                break;
+            case 'fulltext_assignment_reviewer_map':
+                try {
+                    config.reviewerMap = normalizeFulltextReviewerMap(JSON.parse(value) || {});
+                } catch {
+                    config.reviewerMap = {};
+                }
+                break;
+            case 'fulltext_assignment_seed':
+                config.seed = value;
+                break;
+            case 'fulltext_assignment_generated_at':
+                config.generatedAt = value;
+                break;
+        }
+    }
+
+    return config;
+}
+
+export async function getFulltextAssignmentConfig(spreadsheetId: string): Promise<FulltextAssignmentConfig> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        return parseFulltextAssignmentRows(values);
+    } catch (error) {
+        console.log('[getFulltextAssignmentConfig] Config not found, using defaults:', error);
+        return { ...DEFAULT_FULLTEXT_ASSIGNMENT, reviewerMap: {} };
+    }
+}
+
+export async function saveFulltextAssignmentConfig(
+    spreadsheetId: string,
+    config: FulltextAssignmentConfig
+): Promise<void> {
+    try {
+        await trySaveFulltextAssignmentConfig(spreadsheetId, config);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveFulltextAssignmentConfig] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveFulltextAssignmentConfig(spreadsheetId, config);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveFulltextAssignmentConfig(
+    spreadsheetId: string,
+    config: FulltextAssignmentConfig
+): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    const rowIndices: Record<string, number> = {};
+
+    values.forEach((row, index) => {
+        if (FT_ASSIGNMENT_CONFIG_KEYS.includes(row[0])) {
+            rowIndices[row[0]] = index + 1;
+        }
+    });
+
+    const entries: Record<string, string> = {
+        fulltext_assignment_status: config.status,
+        fulltext_assignment_group_count: String(config.groupCount),
+        fulltext_assignment_reviewer_map: JSON.stringify(config.reviewerMap || {}),
+        fulltext_assignment_seed: config.seed || '',
+        fulltext_assignment_generated_at: config.generatedAt || '',
+    };
+
+    for (const [key, value] of Object.entries(entries)) {
+        if (rowIndices[key]) {
+            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[value]]);
+        } else {
+            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
+        }
+    }
+}
+
 function columnNumberToLetter(columnIndex: number): string {
     let result = '';
     let current = columnIndex + 1;
@@ -1287,19 +1395,48 @@ export async function updateReferenceScreeningSets(
     spreadsheetId: string,
     assignments: Array<{ refId: string; screeningSet: string }>
 ): Promise<void> {
-    if (assignments.length === 0) return;
+    await updateReferenceColumnByRefId(
+        spreadsheetId,
+        'screening_set',
+        assignments.map(({ refId, screeningSet }) => ({ refId, value: screeningSet }))
+    );
+}
+
+/**
+ * References タブの fulltext_set 列（フルテキスト担当セット）を一括更新する
+ */
+export async function updateReferenceFulltextSets(
+    spreadsheetId: string,
+    assignments: Array<{ refId: string; fulltextSet: string }>
+): Promise<void> {
+    await updateReferenceColumnByRefId(
+        spreadsheetId,
+        'fulltext_set',
+        assignments.map(({ refId, fulltextSet }) => ({ refId, value: fulltextSet }))
+    );
+}
+
+/**
+ * References タブの任意の1列を ref_id をキーに一括更新する共通処理
+ */
+async function updateReferenceColumnByRefId(
+    spreadsheetId: string,
+    columnName: string,
+    entries: Array<{ refId: string; value: string }>
+): Promise<void> {
+    if (entries.length === 0) return;
 
     await ensureHeaders(spreadsheetId);
 
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:S`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:V`);
     if (values.length <= 1) return;
 
     const headers = values[0];
     const refIdIndex = headers.indexOf('ref_id');
-    const screeningSetIndex = headers.indexOf('screening_set');
+    const columnIndex = headers.indexOf(columnName);
 
-    if (refIdIndex === -1 || screeningSetIndex === -1) {
-        throw new Error('screening_set column not found');
+    if (refIdIndex === -1 || columnIndex === -1) {
+        throw new Error(`${columnName} column not found`);
     }
 
     const rowIndexByRefId = new Map<string, number>();
@@ -1310,14 +1447,14 @@ export async function updateReferenceScreeningSets(
         }
     });
 
-    const column = columnNumberToLetter(screeningSetIndex);
-    const updates = assignments
-        .map(({ refId, screeningSet }) => {
+    const column = columnNumberToLetter(columnIndex);
+    const updates = entries
+        .map(({ refId, value }) => {
             const rowIndex = rowIndexByRefId.get(refId);
             if (!rowIndex) return null;
             return {
                 range: `${REFERENCES_SHEET}!${column}${rowIndex}`,
-                values: [[screeningSet]],
+                values: [[value]],
             };
         })
         .filter((update): update is { range: string; values: string[][] } => update !== null);
@@ -1340,6 +1477,8 @@ export interface ProjectConfigBundle {
     fulltextEvidenceDisplay: FulltextEvidenceDisplay;
     // インポート統計（PRISMA識別件数・重複除去数の自動記入用）
     importStats: ImportStatsMap;
+    // フルテキスト担当割り振り（未設定は status 'none' = 全員が全候補）
+    fulltextAssignment: FulltextAssignmentConfig;
 }
 
 /**
@@ -1364,6 +1503,7 @@ const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     fulltextAiActiveRound: null,
     fulltextEvidenceDisplay: 'neutral',
     importStats: {},
+    fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
 };
 
 /**
@@ -1448,6 +1588,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         fulltextAiActiveRound,
         fulltextEvidenceDisplay,
         importStats,
+        fulltextAssignment: parseFulltextAssignmentRows(values),
     };
 }
 
@@ -1477,7 +1618,7 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
 }> {
     try {
         const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
-            `${REFERENCES_SHEET}!A:U`,
+            `${REFERENCES_SHEET}!A:V`,
             `${DECISIONS_SHEET}!A:K`,
             `${CONFIG_SHEET}!A:B`,
         ]);
@@ -1491,7 +1632,7 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
         if ((error as Error).message.includes('Unable to parse range')) {
             console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
             const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
-                `${REFERENCES_SHEET}!A:U`,
+                `${REFERENCES_SHEET}!A:V`,
                 `${DECISIONS_SHEET}!A:K`,
             ]);
             return {

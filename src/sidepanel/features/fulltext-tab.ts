@@ -15,6 +15,11 @@ import { getFulltextCandidateList } from './screening/filters';
 import { handleKeyToggle } from './screening/actions';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { setupFulltextAiListeners } from './fulltext-ai';
+import {
+    renderFulltextAssignmentRow,
+    setupFulltextAssignmentListeners,
+    setFulltextAssignmentDeps,
+} from './fulltext-assignment-ui';
 import { renderTeamProgress } from './team-progress';
 import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
@@ -98,6 +103,7 @@ export function renderFulltextTab(): void {
     const candidates = getFulltextCandidateList();
 
     renderRuleAndProgress(candidates);
+    renderFulltextAssignmentRow();
     renderTeamProgress();
     renderRetrievalSummary(candidates);
     renderViewFilter(candidates);
@@ -533,6 +539,8 @@ export function setupFulltextTabListeners(): void {
     setFulltextResultsDeps({ rerenderTab: renderFulltextTab });
     setupFulltextResultsListeners();
     setupFulltextAiListeners();
+    setFulltextAssignmentDeps({ rerenderTab: renderFulltextTab });
+    setupFulltextAssignmentListeners();
     dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {

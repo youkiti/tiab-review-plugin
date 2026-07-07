@@ -15,11 +15,13 @@
 import type { Decision, AssignmentConfig } from './types';
 import { isMlAutoDecision } from './client-version';
 import { isInFulltextPool, isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
+import { getFulltextSetsForUser, type FulltextAssignmentConfig } from './fulltext-assignment';
 
 /** 集計に必要な文献情報の最小形 */
 export interface TeamProgressRef {
     ref_id: string;
     screening_set?: string;
+    fulltext_set?: string;
 }
 
 /** レビュアー1人分の進捗 */
@@ -40,6 +42,8 @@ export interface TeamProgressInput {
     decisions: Decision[];
     assignmentConfig: AssignmentConfig;
     poolRule: FulltextPoolRule | null;
+    /** フルテキスト担当割り振り。省略時は未設定（全員が全候補）として扱う */
+    fulltextAssignment?: FulltextAssignmentConfig;
     userEmail: string;
 }
 
@@ -82,13 +86,20 @@ function refSetOf(ref: TeamProgressRef): string {
  * 返り値は自分が先頭、以降はメールアドレス昇順
  */
 export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgress[] {
-    const { refs, decisions, assignmentConfig, poolRule } = input;
+    const { refs, decisions, assignmentConfig, poolRule, fulltextAssignment } = input;
     const userEmail = normalizeEmail(input.userEmail);
     const assignmentConfigured = assignmentConfig.status === 'configured';
+    const ftAssignmentConfigured = fulltextAssignment?.status === 'configured';
 
-    // ---- メンバー発見: 割り振り設定 + 判定実績 + 自分 ----
+    // ---- メンバー発見: 割り振り設定（TiAb + フルテキスト） + 判定実績 + 自分 ----
     const members = new Set<string>();
     for (const reviewers of Object.values(assignmentConfig.reviewerMap || {})) {
+        for (const r of reviewers || []) {
+            const email = normalizeEmail(r);
+            if (email) members.add(email);
+        }
+    }
+    for (const reviewers of Object.values(fulltextAssignment?.reviewerMap || {})) {
         for (const r of reviewers || []) {
             const email = normalizeEmail(r);
             if (email) members.add(email);
@@ -163,14 +174,29 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
             if (!tiabRefIds || tiabRefIds.has(refId)) tiabDone++;
         }
 
-        // フルテキスト: 共通プールがある場合のみ集計
+        // フルテキスト: 共通プールがある場合のみ集計。
+        // 担当割り振り設定済みなら、そのメンバーの分母 = プール ∩（担当セット + 未割り当て）
+        // （未割り当て = 割り振り後の新規流入分。全員に表示される仕様に合わせて全員の分母に含める）
         let fulltextDone: number | null = null;
         let fulltextTotal: number | null = null;
         if (poolRefIds) {
-            fulltextTotal = poolRefIds.size;
+            let memberPoolRefIds = poolRefIds;
+            if (ftAssignmentConfigured && fulltextAssignment) {
+                const ftSets = getFulltextSetsForUser(fulltextAssignment, email);
+                memberPoolRefIds = new Set(
+                    refs
+                        .filter((r) => {
+                            if (!poolRefIds.has(r.ref_id)) return false;
+                            const setId = (r.fulltext_set || '').trim();
+                            return !setId || ftSets.has(setId);
+                        })
+                        .map((r) => r.ref_id)
+                );
+            }
+            fulltextTotal = memberPoolRefIds.size;
             fulltextDone = 0;
             for (const refId of fulltextDoneByMember.get(email) ?? new Set<string>()) {
-                if (poolRefIds.has(refId)) fulltextDone++;
+                if (memberPoolRefIds.has(refId)) fulltextDone++;
             }
         }
 

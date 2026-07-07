@@ -78,6 +78,7 @@ export function initTeamProgress(fullRefs: ReferenceWithStatus[]): void {
     const baseRefs: TeamProgressRef[] = fullRefs.map((r) => ({
         ref_id: r.ref_id,
         screening_set: r.screening_set,
+        fulltext_set: r.fulltext_set,
     }));
     baseRefsStore = { spreadsheetId, refs: baseRefs };
 
@@ -175,6 +176,7 @@ function renderHost(kind: HostKind): void {
             decisions: cache.decisions,
             assignmentConfig: state.assignmentConfig,
             poolRule: state.fulltextPoolRule,
+            fulltextAssignment: state.fulltextAssignment,
             userEmail: state.userEmail,
         })
         : null;
@@ -368,7 +370,7 @@ function buildFooter(): HTMLElement {
         const baseRefs =
             (baseRefsStore?.spreadsheetId === state.spreadsheetId ? baseRefsStore.refs : null)
             ?? cache?.baseRefs
-            ?? state.references.map((r) => ({ ref_id: r.ref_id, screening_set: r.screening_set }));
+            ?? state.references.map((r) => ({ ref_id: r.ref_id, screening_set: r.screening_set, fulltext_set: r.fulltext_set }));
         void fetchDecisions(state.spreadsheetId, baseRefs);
     });
     footer.appendChild(refreshBtn);

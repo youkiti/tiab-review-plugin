@@ -4,6 +4,7 @@ import { getFilteredReferences, getFilterCounts } from '../src/sidepanel/store/s
 import type { AppState } from '../src/sidepanel/store/types';
 import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
+import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
 
 let seq = 0;
 function makeDecision(overrides: Partial<Decision>): Decision {
@@ -35,6 +36,7 @@ function makeState(params: {
     userEmail?: string;
     isAdmin?: boolean;
     fulltextPoolRule?: FulltextPoolRule | null;
+    fulltextAssignment?: FulltextAssignmentConfig;
 }): AppState {
     return {
         data: {
@@ -47,6 +49,8 @@ function makeState(params: {
             recentSheets: [],
             isAdmin: params.isAdmin ?? false,
             fulltextPoolRule: params.fulltextPoolRule ?? null,
+            fulltextAssignment: params.fulltextAssignment
+                ?? { status: 'none', groupCount: 2, reviewerMap: {} },
             sourceFiles: new Set(),
             selectedSourceFiles: new Set(),
             availableReviewers: new Set(),
@@ -152,4 +156,46 @@ test('フルテキスト候補ルール設定時: 管理者分岐よりルール
 
     assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-other']);
     assert.equal(getFilterCounts(state).fulltextCandidates, 1);
+});
+
+test('フルテキスト担当割り振り設定時: 非管理ユーザーは自分の担当グループ + 未割り当てのみ候補にする', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:alice@example.com'],
+        threshold: 1,
+    };
+    const assignment: FulltextAssignmentConfig = {
+        status: 'configured',
+        groupCount: 2,
+        reviewerMap: {
+            'ft-group-1': ['alice@example.com'],
+            'ft-group-2': ['bob@example.com'],
+        },
+    };
+    const inc = (refId: string) => makeDecision({ ref_id: refId, reviewer_id: 'alice@example.com' });
+
+    const mine = makeReference('ref-mine', [inc('ref-mine')]);
+    mine.fulltext_set = 'ft-group-1';
+    const others = makeReference('ref-others', [inc('ref-others')]);
+    others.fulltext_set = 'ft-group-2';
+    const unassigned = makeReference('ref-unassigned', [inc('ref-unassigned')]);
+
+    const state = makeState({
+        references: [mine, others, unassigned],
+        isAdmin: false,
+        fulltextPoolRule: rule,
+        fulltextAssignment: assignment,
+    });
+
+    assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-mine', 'ref-unassigned']);
+    assert.equal(getFilterCounts(state).fulltextCandidates, 2);
+
+    // 管理者は割り振りに関係なく全候補を見る
+    const adminState = makeState({
+        references: [mine, others, unassigned],
+        isAdmin: true,
+        fulltextPoolRule: rule,
+        fulltextAssignment: assignment,
+    });
+    assert.equal(getFilteredReferences(adminState).length, 3);
 });

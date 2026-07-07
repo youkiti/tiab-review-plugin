@@ -7,6 +7,7 @@ import type { AppState, Action } from './types';
 import { getFilteredReferences } from './selectors';
 import { createInitialMlState } from '../../lib/ml/types';
 import { DEFAULT_LLM_CONFIG } from '../../lib/sheets-api';
+import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../../lib/fulltext-assignment';
 
 /**
  * 初期状態
@@ -22,6 +23,7 @@ export const initialState: AppState = {
         recentSheets: [],
         isAdmin: false,
         fulltextPoolRule: null,
+        fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
         sourceFiles: new Set(),
         selectedSourceFiles: new Set(),
         availableReviewers: new Set(),
@@ -200,6 +202,12 @@ export function reducer(state: AppState, action: Action): AppState {
             return {
                 ...state,
                 data: { ...state.data, fulltextPoolRule: action.rule },
+            };
+
+        case 'data/setFulltextAssignment':
+            return {
+                ...state,
+                data: { ...state.data, fulltextAssignment: action.config },
             };
 
         case 'data/setSourceFiles':
@@ -703,6 +711,7 @@ export function reducer(state: AppState, action: Action): AppState {
                     spreadsheetId: '',
                     references: [],
                     fulltextPoolRule: null,
+                    fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
                     sourceFiles: new Set(),
                     selectedSourceFiles: new Set(),
                     enabledReviewers: new Set(),

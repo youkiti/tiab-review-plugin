@@ -13,6 +13,7 @@ import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/shee
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 import { isInFulltextPool, isTiabDecision } from '../../../lib/fulltext-pool';
+import { canSeeFulltextRef } from '../../../lib/fulltext-assignment';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 
@@ -74,9 +75,25 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
 }
 
 /**
- * フルテキスト候補の一覧を取得（フルテキストタブで使用）
+ * フルテキスト候補のうち自分の担当分か
+ * （担当割り振り未設定なら全候補、管理者は常に全候補、未割り当て文献は全員に表示）
+ */
+function isMyFulltextCandidate(r: ReferenceWithStatus): boolean {
+    return isFulltextCandidate(r)
+        && canSeeFulltextRef(r, state.fulltextAssignment, state.userEmail, state.isAdmin);
+}
+
+/**
+ * フルテキスト候補の一覧を取得（フルテキストタブで使用・自分の担当分のみ）
  */
 export function getFulltextCandidateList(): ReferenceWithStatus[] {
+    return state.references.filter(isMyFulltextCandidate);
+}
+
+/**
+ * 候補プール全体（担当割り振りを適用しない）。割り振りウィザードの分配対象に使う。
+ */
+export function getFulltextPoolList(): ReferenceWithStatus[] {
     return state.references.filter(isFulltextCandidate);
 }
 
@@ -135,7 +152,7 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
 
     // ステータスフィルター
     if (state.currentFilter === 'fulltext_candidates') {
-        filtered = filtered.filter(isFulltextCandidate);
+        filtered = filtered.filter(isMyFulltextCandidate);
     } else if (state.currentFilter === 'conflict') {
         // 不一致は enabledReviewers を反映して動的に計算
         filtered = filtered.filter((r) =>
@@ -260,8 +277,8 @@ export function updateFilterCounts() {
     options[4].textContent = t('filter_maybeCount', String(counts.maybe));
     options[5].textContent = t('filter_conflictCount', String(counts.conflict));
 
-    // フルテキスト候補（独立アルゴリズム）
-    const fulltextCount = filtered.filter(isFulltextCandidate).length;
+    // フルテキスト候補（独立アルゴリズム・自分の担当分のみ）
+    const fulltextCount = filtered.filter(isMyFulltextCandidate).length;
     if (options[6]) {
         options[6].textContent = t('filter_fulltextCount', String(fulltextCount));
     }
