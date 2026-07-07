@@ -41,6 +41,24 @@ let loading = false;
 let loadError = false;
 // 展開状態はホストごとに保持（デフォルトは折りたたみ）
 const expanded: Record<HostKind, boolean> = { tiab: false, fulltext: false };
+// TiAb側はツールバー内のドロップダウン表示のため、外側クリックで閉じる
+let outsideClickListenerAdded = false;
+
+function ensureOutsideClickListener(): void {
+    if (outsideClickListenerAdded) return;
+    outsideClickListenerAdded = true;
+    document.addEventListener('click', (e) => {
+        if (!expanded.tiab) return;
+        try {
+            if (!dom.teamProgressHost.contains(e.target as Node)) {
+                expanded.tiab = false;
+                renderHost('tiab');
+            }
+        } catch {
+            // ホスト要素がないページでは何もしない
+        }
+    });
+}
 
 function hostOf(kind: HostKind): HTMLElement {
     return kind === 'tiab' ? dom.teamProgressHost : dom.fulltextTeamProgressHost;
@@ -124,6 +142,9 @@ function renderHost(kind: HostKind): void {
     } catch {
         return; // ホスト要素がないページでは何もしない
     }
+    if (kind === 'tiab') {
+        ensureOutsideClickListener();
+    }
 
     if (!state.spreadsheetId) {
         host.classList.add('hidden');
@@ -167,7 +188,9 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
         <span class="team-progress-title">👥 ${escapeHtml(t('teamProgress_title'))}</span>
         <span class="team-progress-summary">${buildSummaryHtml(kind, members)}</span>
     `;
-    header.addEventListener('click', () => {
+    header.addEventListener('click', (e) => {
+        // 再描画で要素が差し替わると外側クリック判定が誤作動するため伝播を止める
+        e.stopPropagation();
         expanded[kind] = !expanded[kind];
         renderHost(kind);
     });

@@ -171,3 +171,45 @@
 .team-progress-error {
     color: #d32f2f;
 }
+
+/* ---------------------------------------------------------------------------
+ * ツールバー配置バリアント（TiAbタブ: ⚙️の右側のコンパクトなチップ + ドロップダウン）
+ * export-menu と同じ absolute ドロップダウンパターン
+ * ------------------------------------------------------------------------- */
+
+.team-progress-host--toolbar {
+    position: relative;
+    margin: 0;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.team-progress-host--toolbar .team-progress {
+    border-radius: 6px;
+    overflow: visible;
+}
+
+.team-progress-host--toolbar .team-progress-header {
+    padding: 5px 8px;
+    white-space: nowrap;
+}
+
+.team-progress-host--toolbar .team-progress-summary {
+    max-width: 260px;
+}
+
+.team-progress-host--toolbar .team-progress-body {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    z-index: 100;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 10px;
+}

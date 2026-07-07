@@ -133,6 +133,8 @@
                     <div class="reviewer-list"></div>
                 </div>
                 <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
+                <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
+                <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden"></div>
                 <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
                     class="btn btn-icon btn-help" data-i18n-title="common_help">❓</a>
                 <span id="import-status" class="import-status"></span>
@@ -215,9 +217,6 @@
                 </div>
                 <button id="btn-next" class="btn btn-nav" data-i18n="nav_next"></button>
             </div>
-
-            <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
-            <div id="team-progress-host" class="team-progress-host hidden"></div>
 
             <!-- ハイライト設定 -->
             <div id="config-settings" class="config-settings">
