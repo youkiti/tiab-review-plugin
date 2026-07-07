@@ -28,7 +28,7 @@ import {
 import { createLlmExecution, parseLlmDecisionNote } from '../../../lib/llm-processor';
 import type { LlmExecution } from '../../../lib/types';
 import { showToast } from '../../ui/feedback';
-import { showModal, hideModal } from '../ml/dialogs';
+import { showModal, hideModal } from '../../ui/modal';
 import { t } from '../../../lib/i18n';
 import { loadExecutionHistory } from './batch';
 

@@ -1,7 +1,7 @@
 // Google Sheets API ラッパー
 
 import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap } from './types';
-import { MODEL_ID_MIGRATIONS } from './gemini-api';
+import { MODEL_ID_MIGRATIONS } from './model-migrations';
 import { t } from './i18n';
 import { platform } from '../platform';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';

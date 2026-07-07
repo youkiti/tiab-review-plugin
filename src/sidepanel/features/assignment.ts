@@ -5,7 +5,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { showLoading, showToast } from '../ui/feedback';
 import { setCurrentIndex as syncSetCurrentIndex } from '../store/compat';
-import { hideModal, showModal } from './ml/dialogs';
+import { hideModal, showModal } from '../ui/modal';
 
 const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
     status: 'none',

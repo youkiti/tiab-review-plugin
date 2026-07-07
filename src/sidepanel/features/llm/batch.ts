@@ -26,7 +26,7 @@ import {
     findRunByConfigHash,
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
-import { showModal, hideModal } from '../ml/dialogs';
+import { showModal, hideModal } from '../../ui/modal';
 import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getManualTier } from '../../../lib/storage';
 import { resolveProviderId } from '../../../lib/llm-provider';
 import {

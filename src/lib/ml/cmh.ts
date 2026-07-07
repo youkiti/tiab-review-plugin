@@ -161,12 +161,6 @@ export function calculateCmhStopping(
     };
 }
 
-/** CMH 停止基準のデフォルト設定 */
-export const CMH_DEFAULTS = {
-    targetRecall: 0.99,
-    confidence: 0.95,
-    minRecords: 1000,
-    initialRandomSize: 500,
-    updateInterval: 15,
-    auditSampleSize: 200,
-} as const;
+// CMH_DEFAULTS は共有の状態型 lib/ml/types.ts からも参照するため、jstat 非依存の
+// cmh-defaults.ts へ分離。互換のため再エクスポートする。
+export { CMH_DEFAULTS } from './cmh-defaults';
