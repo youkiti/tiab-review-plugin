@@ -1,0 +1,51 @@
+/**
+ * sidepanel.css - メインエントリーポイント
+ *
+ * 各機能別のCSSモジュールを読み込みます。
+ * リファクタリング: 2025-12-31
+ */
+
+/* ベース・リセット・共通ユーティリティ */
+@import url('./styles/base.css');
+
+/* ヘッダー・タブ */
+@import url('./styles/header.css');
+
+/* ボタン */
+@import url('./styles/buttons.css');
+
+/* フォーム要素 */
+@import url('./styles/forms.css');
+
+/* フィルター・検索 */
+@import url('./styles/filters.css');
+
+/* 文献カード */
+@import url('./styles/reference-card.css');
+
+/* 判定ボタン・判定表示 */
+@import url('./styles/decisions.css');
+
+/* ナビゲーション */
+@import url('./styles/navigation.css');
+
+/* キーワード設定・ハイライト */
+@import url('./styles/keywords.css');
+
+/* モーダル・エクスポート・共有・トースト */
+@import url('./styles/modals.css');
+
+/* 設定画面 */
+@import url('./styles/settings.css');
+
+/* LLM処理タブ */
+@import url('./styles/llm.css');
+
+/* ML処理タブ */
+@import url('./styles/ml.css');
+
+/* フルテキストタブ */
+@import url('./styles/fulltext-tab.css');
+
+/* チーム進捗パネル */
+@import url('./styles/team-progress.css');

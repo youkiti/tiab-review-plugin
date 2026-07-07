@@ -1,0 +1,120 @@
+/**
+ * header.css - ヘッダー、タブ
+ */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1a73e8;
+}
+
+.header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a73e8;
+    margin: 0;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.build-version {
+    font-size: 10px;
+    color: #999;
+    font-weight: normal;
+}
+
+.progress {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* ヘッダータブ */
+.header-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tab-btn {
+    padding: 6px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f8f9fa;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    background: #e8eaed;
+    border-color: #ccc;
+}
+
+.tab-btn.active {
+    background: #1a73e8;
+    border-color: #1a73e8;
+    color: #fff;
+}
+
+.tab-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: #f1f3f4;
+    color: #666;
+    font-style: italic;
+}
+
+/* フルテキストタブ: TiAbとはフェーズが違うことを示す差し色 */
+.tab-btn-fulltext {
+    border-color: #16a085;
+    color: #16a085;
+}
+
+.tab-btn-fulltext:hover {
+    background: #e8f6f3;
+    border-color: #16a085;
+}
+
+.tab-btn-fulltext.active {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+}
+
+/* ログインヘッダー */
+.login-header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* ユーザー情報コンテナ */
+.user-info-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.user-info-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-info {
+    font-size: 13px;
+    color: #666;
+}

@@ -1,0 +1,227 @@
+/**
+ * reference-card.css - 文献カード
+ */
+
+.reference-card {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.reference-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.reference-status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #5f6368;
+}
+
+.reference-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+}
+
+.reference-status-chip.pending {
+    background: #f1f3f4;
+    color: #5f6368;
+    border-color: #dadce0;
+}
+
+.reference-status-chip.include {
+    background: #e6f4ea;
+    color: #137333;
+    border-color: #34a853;
+}
+
+.reference-status-chip.maybe {
+    background: #fef7e0;
+    color: #b06000;
+    border-color: #fbbc04;
+}
+
+.reference-status-chip.exclude {
+    background: #fce8e6;
+    color: #c5221f;
+    border-color: #ea4335;
+}
+
+.ref-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.ref-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.ref-meta span:not(:last-child)::after {
+    content: ' • ';
+}
+
+.ref-meta-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.ref-source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #eef1f5;
+    border: 1px solid #d2d6dc;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #4a5568;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.ref-trial-registry-note {
+    font-size: 12px;
+    color: #6b6f76;
+    background: #fff8e1;
+    border-left: 3px solid #f5b800;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    border-radius: 3px;
+    line-height: 1.5;
+}
+
+.ref-abstract {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.ref-links {
+    display: flex;
+    gap: 12px;
+}
+
+.ref-links a {
+    font-size: 13px;
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+.ref-links a:hover {
+    text-decoration: underline;
+}
+
+.btn-open-fulltext {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border: 1px solid #a8c7fa;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-open-fulltext:hover {
+    background: #d2e3fc;
+}
+
+/* 不一致バナー */
+.conflict-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #856404;
+    text-align: center;
+}
+
+/* 担当分け未設定の案内カード（設定画面・担当セット欄・管理者向け） */
+.assignment-banner {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background-color: #eef5ff;
+    border: 1px solid #b6d4fe;
+    border-left: 4px solid #0d6efd;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 10px 0 4px;
+}
+
+.assignment-banner-icon {
+    font-size: 22px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.assignment-banner-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.assignment-banner-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #084298;
+    margin-bottom: 4px;
+}
+
+.assignment-banner-desc {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #33475b;
+    margin: 0 0 10px 0;
+}
+
+.assignment-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* レコード件数表示（タイトル上） */
+.record-count-display {
+    text-align: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #e8f0fe;
+    border-radius: 6px;
+}
+
+.record-count-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a73e8;
+}
+
+.record-count-encourage {
+    font-size: 12px;
+    color: #5f6368;
+    margin-top: 4px;
+}
