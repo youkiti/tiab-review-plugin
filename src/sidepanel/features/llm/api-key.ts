@@ -24,9 +24,18 @@ import {
     setSessionOpenRouterApiKey,
     getOpenRouterApiKeySavePreference,
     setOpenRouterApiKeySavePreference,
+    // OpenAI
+    getOpenAiApiKey,
+    saveOpenAiApiKey,
+    removeOpenAiApiKey,
+    hasOpenAiApiKey,
+    setSessionOpenAiApiKey,
+    getOpenAiApiKeySavePreference,
+    setOpenAiApiKeySavePreference,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
+import { testOpenAiApiKey } from '../../../lib/providers/openai';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
 import type { ManualTier } from '../../../lib/types';
@@ -355,16 +364,126 @@ export async function handleOpenRouterSavePreferenceChange() {
     await notifyApiKeyChanged();
 }
 
+// ========== OpenAI API キー ==========
+// OpenRouter と同形のフローだが、tier 概念がない分シンプル。
+
+/**
+ * OpenAI APIキーの状態を読み込み
+ */
+export async function loadOpenAiApiKeyStatus() {
+    const hasKey = await hasOpenAiApiKey();
+    const savePreference = await getOpenAiApiKeySavePreference();
+
+    dom.saveOpenAiApiKeyCheckbox.checked = savePreference;
+
+    if (hasKey) {
+        const key = await getOpenAiApiKey();
+        if (key) {
+            dom.openAiApiKeyInput.value = key;
+            dom.openAiApiKeyStatus.textContent = t('llm_apiKeySet');
+            dom.openAiApiKeyStatus.className = 'api-key-status success';
+            dom.openAiApiKeyCard.classList.add('confirmed', 'collapsed');
+            dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
+        }
+    } else {
+        dom.openAiApiKeyStatus.textContent = '';
+        dom.openAiApiKeyStatus.className = 'api-key-status';
+        dom.openAiApiKeyCard.classList.remove('confirmed', 'collapsed');
+        dom.openAiApiKeySummary.textContent = '';
+    }
+}
+
+/**
+ * OpenAI APIキー表示/非表示切り替え
+ */
+export function toggleOpenAiApiKeyVisibility() {
+    if (dom.openAiApiKeyInput.type === 'password') {
+        dom.openAiApiKeyInput.type = 'text';
+        dom.toggleOpenAiApiKeyVisibilityBtn.textContent = '🙈';
+    } else {
+        dom.openAiApiKeyInput.type = 'password';
+        dom.toggleOpenAiApiKeyVisibilityBtn.textContent = '👁';
+    }
+}
+
+/**
+ * OpenAI APIキー入力時の自動保存
+ */
+export async function handleOpenAiApiKeyAutoSave() {
+    const apiKey = dom.openAiApiKeyInput.value.trim();
+    if (!apiKey) {
+        dom.openAiApiKeyStatus.textContent = '';
+        dom.openAiApiKeyStatus.className = 'api-key-status';
+        dom.openAiApiKeyCard.classList.remove('confirmed', 'collapsed');
+        dom.openAiApiKeySummary.textContent = '';
+
+        await removeOpenAiApiKey();
+        setSessionOpenAiApiKey('');
+        await notifyApiKeyChanged();
+        return;
+    }
+
+    dom.openAiApiKeyStatus.textContent = t('llm_apiKeyVerifying');
+    dom.openAiApiKeyStatus.className = 'api-key-status';
+
+    const result = await testOpenAiApiKey(apiKey);
+    if (!result.isValid) {
+        dom.openAiApiKeyStatus.textContent = t('llm_apiKeyInvalid');
+        dom.openAiApiKeyStatus.className = 'api-key-status error';
+        return;
+    }
+
+    const shouldSave = dom.saveOpenAiApiKeyCheckbox.checked;
+    if (shouldSave) {
+        await saveOpenAiApiKey(apiKey);
+        await setOpenAiApiKeySavePreference(true);
+        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySaved');
+        dom.openAiApiKeyCard.classList.add('confirmed');
+        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
+    } else {
+        setSessionOpenAiApiKey(apiKey);
+        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySessionOnly');
+        dom.openAiApiKeyCard.classList.add('confirmed');
+        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySession');
+    }
+    dom.openAiApiKeyStatus.className = 'api-key-status success';
+    await notifyApiKeyChanged();
+}
+
+/**
+ * OpenAI 保存設定チェックボックスの変更処理
+ */
+export async function handleOpenAiSavePreferenceChange() {
+    const shouldSave = dom.saveOpenAiApiKeyCheckbox.checked;
+    await setOpenAiApiKeySavePreference(shouldSave);
+
+    const apiKey = dom.openAiApiKeyInput.value.trim();
+    if (!apiKey) return;
+
+    if (shouldSave) {
+        await saveOpenAiApiKey(apiKey);
+        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySaved');
+        dom.openAiApiKeyStatus.className = 'api-key-status success';
+        dom.openAiApiKeyCard.classList.add('confirmed');
+        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
+    } else {
+        await removeOpenAiApiKey();
+        setSessionOpenAiApiKey(apiKey);
+        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySessionChanged');
+        dom.openAiApiKeyStatus.className = 'api-key-status success';
+        dom.openAiApiKeyCard.classList.add('confirmed');
+        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySession');
+    }
+
+    await notifyApiKeyChanged();
+}
+
 /**
  * 選択中モデルの provider に応じて API キーカードの強調表示を切り替える。
- * 関連カードを展開し、他方を折りたたむ。
+ * 該当カードを強調し、他の2つの強調を解除する。
  */
-export function refreshApiKeyCardEmphasis(providerId: 'gemini' | 'openrouter'): void {
-    if (providerId === 'openrouter') {
-        dom.openRouterApiKeyCard.classList.add('emphasized');
-        dom.apiKeyCard.classList.remove('emphasized');
-    } else {
-        dom.apiKeyCard.classList.add('emphasized');
-        dom.openRouterApiKeyCard.classList.remove('emphasized');
-    }
+export function refreshApiKeyCardEmphasis(providerId: 'gemini' | 'openrouter' | 'openai'): void {
+    dom.apiKeyCard.classList.toggle('emphasized', providerId === 'gemini');
+    dom.openRouterApiKeyCard.classList.toggle('emphasized', providerId === 'openrouter');
+    dom.openAiApiKeyCard.classList.toggle('emphasized', providerId === 'openai');
 }

@@ -1,15 +1,15 @@
 // llm-provider.ts - LLM プロバイダ抽象化
 //
-// Gemini / OpenRouter を共通インタフェースで呼び分ける薄いディスパッチ層。
+// Gemini / OpenRouter / OpenAI を共通インタフェースで呼び分ける薄いディスパッチ層。
 // llm-processor.ts はこのレイヤだけを叩き、プロバイダ実装の詳細を知らない。
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 
-export type LlmProviderId = 'gemini' | 'openrouter';
+export type LlmProviderId = 'gemini' | 'openrouter' | 'openai';
 
 /**
  * プロバイダ非依存のスクリーニング入力
- * （Gemini の thinkingLevel と OpenRouter の reasoningEffort はそれぞれ対応プロバイダのみで参照される）
+ * （Gemini の thinkingLevel と OpenRouter / OpenAI の reasoningEffort はそれぞれ対応プロバイダのみで参照される）
  */
 export interface LlmScreenParams {
     title: string;
@@ -32,7 +32,7 @@ export interface LlmScreenResult {
 
 /**
  * モデル ID から所属プロバイダを判定する。
- * AVAILABLE_MODELS に登録されていれば `provider` フィールドを優先し、
+ * AVAILABLE_MODELS に登録されていれば `provider` フィールド（gemini / openrouter / openai）を優先し、
  * 未登録ならスラッシュを含む ID（`qwen/...`, `deepseek/...` 等の OpenRouter 形式）を
  * openrouter として扱い、それ以外を gemini にフォールバックする。
  *
@@ -69,7 +69,7 @@ export interface ConvertCriteriaParams {
     temperature: number;
     topP?: number;
     thinkingLevel?: string;                          // Gemini 専用
-    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter 専用
+    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter / OpenAI 専用
     maxOutputTokens?: number;
     outputLanguage: string;
 }
@@ -100,6 +100,10 @@ export async function convertCriteriaWithProvider(
         const { convertCriteriaViaOpenRouter } = await import('./providers/openrouter');
         return convertCriteriaViaOpenRouter(params, options);
     }
+    if (providerId === 'openai') {
+        const { convertCriteriaViaOpenAi } = await import('./providers/openai');
+        return convertCriteriaViaOpenAi(params, options);
+    }
     const { convertCriteria } = await import('./gemini-api');
     return convertCriteria(
         params.protocolText,
@@ -118,7 +122,7 @@ export async function convertCriteriaWithProvider(
 /**
  * スクリーニング呼び出しのディスパッチ
  *
- * Gemini / OpenRouter の実装モジュールを動的 import することで、
+ * Gemini / OpenRouter / OpenAI の実装モジュールを動的 import することで、
  * Sidepanel ビルドサイズや循環依存を最小化する。
  */
 export async function screenWithProvider(
@@ -128,6 +132,10 @@ export async function screenWithProvider(
     if (providerId === 'openrouter') {
         const { screenViaOpenRouter } = await import('./providers/openrouter');
         return screenViaOpenRouter(params);
+    }
+    if (providerId === 'openai') {
+        const { screenViaOpenAi } = await import('./providers/openai');
+        return screenViaOpenAi(params);
     }
     // Gemini はデフォルト
     const { screenReference } = await import('./gemini-api');

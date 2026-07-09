@@ -223,6 +223,14 @@ const domElements = {
     get saveOpenRouterApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openrouter-api-key-checkbox'); },
     get openRouterApiKeyStatus() { return getElement<HTMLElement>('openrouter-api-key-status'); },
 
+    // LLM API Key (OpenAI)
+    get openAiApiKeyCard() { return getElement<HTMLElement>('openai-api-key-card'); },
+    get openAiApiKeySummary() { return getElement<HTMLElement>('openai-api-key-summary'); },
+    get openAiApiKeyInput() { return getElement<HTMLInputElement>('openai-api-key'); },
+    get toggleOpenAiApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openai-api-key-visibility'); },
+    get saveOpenAiApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openai-api-key-checkbox'); },
+    get openAiApiKeyStatus() { return getElement<HTMLElement>('openai-api-key-status'); },
+
     // LLM カスタムモデル (OpenRouter)
     get openRouterCustomModelCard() { return getElement<HTMLElement>('openrouter-custom-model-card'); },
     get customModelIdInput() { return getElement<HTMLInputElement>('custom-model-id-input'); },

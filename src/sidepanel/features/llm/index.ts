@@ -20,6 +20,10 @@ import {
     toggleOpenRouterApiKeyVisibility,
     handleOpenRouterApiKeyAutoSave,
     handleOpenRouterSavePreferenceChange,
+    loadOpenAiApiKeyStatus,
+    toggleOpenAiApiKeyVisibility,
+    handleOpenAiApiKeyAutoSave,
+    handleOpenAiSavePreferenceChange,
     refreshApiKeyCardEmphasis,
     setOnApiKeyChanged,
 } from './api-key';
@@ -36,8 +40,10 @@ import {
 import {
     hasGeminiApiKey,
     hasOpenRouterApiKey,
+    hasOpenAiApiKey,
     getSessionApiKey,
     getSessionOpenRouterApiKey,
+    getSessionOpenAiApiKey,
 } from '../../../lib/storage';
 import {
     handleOptimizeCriteria,
@@ -68,13 +74,15 @@ import {
  * 永続化された API キー（chrome.storage）に加え、セッション限定キー（保存しない設定）も「設定済み」として扱う。
  */
 async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
-    const [gemini, openRouter] = await Promise.all([
+    const [gemini, openRouter, openAi] = await Promise.all([
         hasGeminiApiKey(),
         hasOpenRouterApiKey(),
+        hasOpenAiApiKey(),
     ]);
     const configured = new Set<LlmProviderId>();
     if (gemini || (getSessionApiKey() ?? '').length > 0) configured.add('gemini');
     if (openRouter || (getSessionOpenRouterApiKey() ?? '').length > 0) configured.add('openrouter');
+    if (openAi || (getSessionOpenAiApiKey() ?? '').length > 0) configured.add('openai');
     return configured;
 }
 
@@ -100,9 +108,11 @@ export async function populateModelSelect(): Promise<boolean> {
     const groups: Record<LlmProviderId, HTMLOptGroupElement> = {
         gemini: document.createElement('optgroup'),
         openrouter: document.createElement('optgroup'),
+        openai: document.createElement('optgroup'),
     };
     groups.gemini.label = 'Gemini';
     groups.openrouter.label = 'OpenRouter';
+    groups.openai.label = 'OpenAI';
 
     const visibleModels = filterModelsByConfiguredProviders(allModels, configured);
     for (const model of visibleModels) {
@@ -123,6 +133,7 @@ export async function populateModelSelect(): Promise<boolean> {
 
     if (groups.gemini.childElementCount > 0) select.appendChild(groups.gemini);
     if (groups.openrouter.childElementCount > 0) select.appendChild(groups.openrouter);
+    if (groups.openai.childElementCount > 0) select.appendChild(groups.openai);
 
     const hasAnyOption = select.options.length > 0;
     dom.llmNoModelHint.classList.toggle('hidden', hasAnyOption);
@@ -204,6 +215,11 @@ export function setupLlmEventListeners() {
     dom.openRouterApiKeyInput?.addEventListener('change', handleOpenRouterApiKeyAutoSave);
     dom.saveOpenRouterApiKeyCheckbox?.addEventListener('change', handleOpenRouterSavePreferenceChange);
 
+    // APIキー関連 (OpenAI)
+    dom.toggleOpenAiApiKeyVisibilityBtn?.addEventListener('click', toggleOpenAiApiKeyVisibility);
+    dom.openAiApiKeyInput?.addEventListener('change', handleOpenAiApiKeyAutoSave);
+    dom.saveOpenAiApiKeyCheckbox?.addEventListener('change', handleOpenAiSavePreferenceChange);
+
     // OpenRouter カスタムモデル
     dom.testSaveCustomModelBtn?.addEventListener('click', handleTestSaveCustomModel);
 
@@ -262,9 +278,10 @@ export function switchToTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') {
  */
 export async function initializeLlmSection() {
     try {
-        // 先にAPIキーの状態を確認 (Gemini / OpenRouter)。モデル選択肢は鍵有無に依存するため。
+        // 先にAPIキーの状態を確認 (Gemini / OpenRouter / OpenAI)。モデル選択肢は鍵有無に依存するため。
         await loadApiKeyStatus();
         await loadOpenRouterApiKeyStatus();
+        await loadOpenAiApiKeyStatus();
 
         // OpenRouter カスタムモデル一覧を読み込み（モデルセレクト構築前に必要）
         await loadCustomModelsList();

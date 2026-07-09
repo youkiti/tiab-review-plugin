@@ -433,6 +433,30 @@
                 </div>
             </div>
 
+            <!-- APIキー設定 (OpenAI) -->
+            <div id="openai-api-key-card" class="llm-card collapsible">
+                <h4 class="collapsible-header">
+                    <span data-i18n="llm_openAiApiKeyTitle"></span>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_openAiApiKey" tabindex="0">?</span>
+                    <span id="openai-api-key-summary" class="card-summary"></span>
+                    <span class="collapse-icon">▼</span>
+                </h4>
+                <div class="collapsible-content">
+                    <div class="api-key-input-group">
+                        <input type="password" id="openai-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
+                        <button id="toggle-openai-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                    </div>
+                    <div class="api-key-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="save-openai-api-key-checkbox" checked>
+                            <span data-i18n="llm_apiKeySaveToDevice"></span>
+                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
+                        </label>
+                    </div>
+                    <div id="openai-api-key-status" class="api-key-status"></div>
+                </div>
+            </div>
+
             <!-- OpenRouter カスタムモデル -->
             <div id="openrouter-custom-model-card" class="llm-card collapsible collapsed">
                 <h4 class="collapsible-header">

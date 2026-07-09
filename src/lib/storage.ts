@@ -371,6 +371,80 @@ export async function getEffectiveOpenRouterApiKey(): Promise<string | null> {
     return await getOpenRouterApiKey();
 }
 
+// ========== OpenAI API キー ==========
+// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
+
+const OPENAI_API_KEY_STORAGE_KEY = 'openai_api_key';
+const OPENAI_API_KEY_SAVE_PREFERENCE = 'openai_api_key_save_preference';
+
+export async function saveOpenAiApiKey(apiKey: string): Promise<void> {
+    const encoded = await encryptApiKey(apiKey);
+    await chrome.storage.local.set({ [OPENAI_API_KEY_STORAGE_KEY]: encoded });
+}
+
+export async function getOpenAiApiKey(): Promise<string | null> {
+    const result = await chrome.storage.local.get([OPENAI_API_KEY_STORAGE_KEY]);
+    const encoded = result[OPENAI_API_KEY_STORAGE_KEY];
+    if (!encoded) return null;
+    try {
+        return await decryptApiKey(encoded);
+    } catch {
+        return null;
+    }
+}
+
+export async function removeOpenAiApiKey(): Promise<void> {
+    await chrome.storage.local.remove([OPENAI_API_KEY_STORAGE_KEY]);
+}
+
+export async function hasOpenAiApiKey(): Promise<boolean> {
+    const key = await getOpenAiApiKey();
+    return key !== null && key.length > 0;
+}
+
+export async function setOpenAiApiKeySavePreference(save: boolean): Promise<void> {
+    await chrome.storage.local.set({ [OPENAI_API_KEY_SAVE_PREFERENCE]: save });
+}
+
+export async function getOpenAiApiKeySavePreference(): Promise<boolean> {
+    const result = await chrome.storage.local.get([OPENAI_API_KEY_SAVE_PREFERENCE]);
+    return result[OPENAI_API_KEY_SAVE_PREFERENCE] === true;
+}
+
+// セッション保持（保存しない設定時のメモリ保持）
+let sessionOpenAiApiKey: string | null = null;
+
+export function setSessionOpenAiApiKey(apiKey: string): void {
+    sessionOpenAiApiKey = apiKey;
+}
+
+export function getSessionOpenAiApiKey(): string | null {
+    return sessionOpenAiApiKey;
+}
+
+export function clearSessionOpenAiApiKey(): void {
+    sessionOpenAiApiKey = null;
+}
+
+/**
+ * 有効な OpenAI API キーを取得（セッション > 環境変数 > 保存値）
+ */
+export async function getEffectiveOpenAiApiKey(): Promise<string | null> {
+    if (sessionOpenAiApiKey) {
+        return sessionOpenAiApiKey;
+    }
+    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
+    if (isNodeEnv) {
+        if (process.env.OPENAI_API_KEY) {
+            return process.env.OPENAI_API_KEY;
+        }
+    }
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return null;
+    }
+    return await getOpenAiApiKey();
+}
+
 // ========== OpenRouter カスタムモデル ==========
 // ユーザーが手入力し、API 試行成功で永続化された OpenRouter モデルの管理。
 // ビルトイン AVAILABLE_MODELS と合成して使うため、保存形式は最小限（id と任意のラベル）。

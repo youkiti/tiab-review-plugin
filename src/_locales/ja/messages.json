@@ -2117,6 +2117,12 @@
   "llm_modelName_deepseek_v4_flash": {
     "message": "DeepSeek V4 Flash — Recall 91.1% / Specificity 90.5%"
   },
+  "llm_modelName_gpt_5_6_terra": {
+    "message": "GPT-5.6 Terra"
+  },
+  "llm_modelName_gpt_5_6_luna": {
+    "message": "GPT-5.6 Luna"
+  },
   "llm_openRouterApiKeyTitle": {
     "message": "🔑 OpenRouter APIキー"
   },
@@ -2125,6 +2131,15 @@
   },
   "llm_tip_openRouterApiKey": {
     "message": "https://openrouter.ai/keys で取得した OpenRouter のAPIキーを入力します。\nGemini モデル選択中は不要、OpenRouter モデル（Qwen3 / DeepSeek 等）選択時のみ使われます。\nクレジットを事前にチャージしておく必要があります。"
+  },
+  "llm_openAiApiKeyTitle": {
+    "message": "🔑 OpenAI APIキー"
+  },
+  "llm_openAiApiKeyRequired": {
+    "message": "OpenAI APIキーを設定してください"
+  },
+  "llm_tip_openAiApiKey": {
+    "message": "https://platform.openai.com/api-keys で取得した OpenAI のAPIキーを入力します。\nGemini モデル選択中は不要、GPT モデル（GPT-5.6）選択時のみ使われます。"
   },
   "llm_customModelTitle": {
     "message": "🧩 OpenRouter カスタムモデル"

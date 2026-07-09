@@ -5,7 +5,7 @@
     "private": true,
     "scripts": {
         "build": "webpack --mode production",
-        "build:release": "webpack --mode production && powershell -Command \"$v=(Get-Content package.json -Raw | ConvertFrom-Json).version; Compress-Archive -Path ./dist/* -DestinationPath ./dist-store-v$v.zip -Force; Write-Host \\\"Created dist-store-v$v.zip (Chrome Web Store submission)\\\"\"",
+        "build:release": "webpack --mode production && powershell -Command \"$v=(Get-Content package.json -Raw | ConvertFrom-Json).version; Compress-Archive -Path ./dist/* -DestinationPath ./dist.zip -Force; Write-Host \\\"Created dist.zip (v$v, Chrome Web Store submission)\\\"\"",
         "bump": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1",
         "bump:minor": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -BumpType minor",
         "bump:major": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -BumpType major",

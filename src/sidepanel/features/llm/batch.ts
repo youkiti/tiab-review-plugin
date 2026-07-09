@@ -27,7 +27,7 @@ import {
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
 import { showModal, hideModal } from '../../ui/modal';
-import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getManualTier } from '../../../lib/storage';
+import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getEffectiveOpenAiApiKey, getManualTier } from '../../../lib/storage';
 import { resolveProviderId } from '../../../lib/llm-provider';
 import {
     processBatch,
@@ -171,9 +171,16 @@ export async function handleStartBatch() {
     const providerId = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
     const apiKey = providerId === 'openrouter'
         ? await getEffectiveOpenRouterApiKey()
-        : await getEffectiveApiKey();
+        : providerId === 'openai'
+            ? await getEffectiveOpenAiApiKey()
+            : await getEffectiveApiKey();
     if (!apiKey) {
-        showToast(t(providerId === 'openrouter' ? 'llm_openRouterApiKeyRequired' : 'llm_apiKeyRequired'));
+        const missingKeyMessageKey = providerId === 'openrouter'
+            ? 'llm_openRouterApiKeyRequired'
+            : providerId === 'openai'
+                ? 'llm_openAiApiKeyRequired'
+                : 'llm_apiKeyRequired';
+        showToast(t(missingKeyMessageKey));
         return;
     }
 

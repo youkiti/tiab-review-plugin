@@ -86,7 +86,7 @@ export const FLASH_MODEL_CONFIG: GeminiModelConfig = {
 /**
  * スクリーニング出力のJSONスキーマ
  */
-const SCREENING_OUTPUT_SCHEMA = {
+export const SCREENING_OUTPUT_SCHEMA = {
     type: 'object',
     properties: {
         include_probability: {
@@ -132,7 +132,7 @@ const SCREENING_OUTPUT_SCHEMA = {
 /**
  * 基準変換出力のJSONスキーマ
  */
-const CRITERIA_CONVERSION_SCHEMA = {
+export const CRITERIA_CONVERSION_SCHEMA = {
     type: 'object',
     properties: {
         criteria: {
@@ -610,7 +610,7 @@ export interface ModelOption {
     id: string;
     name: string;        // フォールバック表示 (i18n 未取得時)
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
-    provider: 'gemini' | 'openrouter';
+    provider: 'gemini' | 'openrouter' | 'openai';
     config: Omit<GeminiModelConfig, 'model'>;
     /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
     custom?: boolean;
@@ -658,6 +658,22 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         nameKey: 'llm_modelName_deepseek_v4_flash',
         provider: 'openrouter',
         config: { temperature: 0 }
+    },
+    {
+        id: 'gpt-5.6-terra',
+        name: 'GPT-5.6 Terra',
+        nameKey: 'llm_modelName_gpt_5_6_terra',
+        provider: 'openai',
+        // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
+        config: { temperature: 0, reasoningEffort: 'medium' }
+    },
+    {
+        id: 'gpt-5.6-luna',
+        name: 'GPT-5.6 Luna',
+        nameKey: 'llm_modelName_gpt_5_6_luna',
+        provider: 'openai',
+        // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
+        config: { temperature: 0, reasoningEffort: 'medium' }
     },
 ];
 

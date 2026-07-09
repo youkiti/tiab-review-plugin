@@ -6,7 +6,7 @@ import { dom } from '../../dom';
 import { state } from '../../state';
 import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';
-import { getEffectiveApiKey, getEffectiveOpenRouterApiKey } from '../../../lib/storage';
+import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getEffectiveOpenAiApiKey } from '../../../lib/storage';
 import { getStandardCriteriaFields, AVAILABLE_MODELS, getModelConfig } from '../../../lib/gemini-api';
 import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
 import { showToast } from '../../ui/feedback';
@@ -63,11 +63,16 @@ export async function handleOptimizeCriteria() {
     const selectedProvider = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
     const apiKey = selectedProvider === 'openrouter'
         ? await getEffectiveOpenRouterApiKey()
-        : await getEffectiveApiKey();
+        : selectedProvider === 'openai'
+            ? await getEffectiveOpenAiApiKey()
+            : await getEffectiveApiKey();
     if (!apiKey) {
-        showToast(selectedProvider === 'openrouter'
-            ? t('llm_openRouterApiKeyRequired')
-            : t('llm_apiKeyRequired'));
+        const missingKeyMessageKey = selectedProvider === 'openrouter'
+            ? 'llm_openRouterApiKeyRequired'
+            : selectedProvider === 'openai'
+                ? 'llm_openAiApiKeyRequired'
+                : 'llm_apiKeyRequired';
+        showToast(t(missingKeyMessageKey));
         return;
     }
 
