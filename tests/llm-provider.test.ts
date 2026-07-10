@@ -288,6 +288,7 @@ test('screenViaOpenAi は completed レスポンスをパースして usageMetad
         ],
         usage: {
             input_tokens: 50,
+            input_tokens_details: { cached_tokens: 20 },
             output_tokens: 80,
             output_tokens_details: { reasoning_tokens: 15 },
             total_tokens: 130,
@@ -310,6 +311,7 @@ test('screenViaOpenAi は completed レスポンスをパースして usageMetad
             candidatesTokenCount: 80,
             thoughtsTokenCount: 15,
             totalTokenCount: 130,
+            cachedInputTokens: 20,
         });
         assert.equal(result.responseMetadata.modelVersion, 'gpt-5.6-terra');
         assert.equal(result.responseMetadata.responseId, 'resp_2');

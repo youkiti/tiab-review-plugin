@@ -19,7 +19,7 @@ export interface LlmScreenParams {
     temperature: number;
     topP?: number;
     thinkingLevel?: string;
-    reasoningEffort?: 'low' | 'medium' | 'high';
+    reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
     maxOutputTokens?: number;
     outputLanguage: string;
 }
@@ -68,8 +68,8 @@ export interface ConvertCriteriaParams {
     model: string;
     temperature: number;
     topP?: number;
-    thinkingLevel?: string;                          // Gemini 専用
-    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter / OpenAI 専用
+    thinkingLevel?: string;                                  // Gemini 専用
+    reasoningEffort?: 'none' | 'low' | 'medium' | 'high';    // OpenRouter / OpenAI 専用
     maxOutputTokens?: number;
     outputLanguage: string;
 }

@@ -1,0 +1,50 @@
+{
+  "experimentId": "G56-none_2026-07-10T01-39-57",
+  "startTime": "2026-07-10T01:39:57.971Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "G56-none",
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "none",
+      "maxOutputTokens": 8192,
+      "rateLimit": "openai_default",
+      "note": "非推論ベースライン（最速・最安）。reasoning_effort=none で非推論モデルのように振る舞う。"
+    },
+    "rateLimitName": "openai_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1993,
+    "failCount": 0,
+    "durationMs": 514816,
+    "avgTimePerItem": 258.31209232313097,
+    "tokensTotal": {
+      "prompt": 1899202,
+      "cached": 3449,
+      "completion": 305905,
+      "reasoning": 0
+    },
+    "estimatedCostUsd": 3.7315278999999997
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 260,
+    "falsePositives": 269,
+    "trueNegatives": 1444,
+    "falseNegatives": 20,
+    "sensitivity": 0.9285714285714286,
+    "specificity": 0.8429655575014594,
+    "precision": 0.4914933837429111,
+    "fBetaScore": 0.9123447259456804
+  },
+  "endTime": "2026-07-10T01:48:32.837Z"
+}
