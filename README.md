@@ -175,6 +175,23 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `deepseek-v4-flash` は Recall 91.1% で採用基準未達。内部 reasoning でレイテンシ・コストとも `qwen` Instruct の数倍。
 - Thinking 系 (`qwen3-thinking-2507`, `kimi-k2-thinking`, `grok-4.3`) は 50〜300件サンプルでは Recall 100% を出すが、レイテンシ 16〜48 秒/件・コスト数倍〜十数倍で本番スケール非現実的。詳細は [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)。
 
+### OpenAI gpt-5.6 モデル評価 (2026-07, depression 全1,993件)
+
+`gpt-5.6-luna` (3 ティア中の高速・低コスト層) を reasoning_effort 別に評価しました。gpt-5.6 は temperature / top_p を送信できない (HTTP 400) ため探索軸は reasoning_effort のみ (verbosity=low 固定)。Responses API + strict json_schema で JSON 出力を強制しています。
+
+| モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 | コスト ($/全1,993件) | 推定 $/1K件 |
+|---|---|---|---|---|---|---|---|
+| **`gemini-3-flash-preview` (B4, 既存記録)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 | - | 約 $1.70 |
+| `gpt-5.6-luna` | reasoning=none | 92.9% | 49.1% | 91.2% | 258 | $3.73 | 約 $1.87 |
+| `gpt-5.6-luna` | reasoning=low | 91.4% | 58.0% | 90.4% | 323 | $4.55 | 約 $2.28 |
+| `gpt-5.6-luna` | reasoning=medium | 91.4% | 64.3% | 90.7% | 572 | $7.68 | 約 $3.85 |
+
+**所見**:
+- 全 reasoning_effort で **Recall < 95% (採用基準未達)**、B4 (96.1%) を下回る。**reasoning_effort を上げても Recall は改善せず** (none 92.9% → low/medium 91.4%)、Precision のみ改善 (49→64%)。reasoning は判断を除外方向に寄せるため、感度最優先のスクリーニングとは相性が悪い。
+- threshold を 0.05 まで下げれば none / low は Recall 95% を超える (95.7% / 95.4%) が、Precision が 38〜48% に低下し、同 Recall 帯の B4 に劣る。
+- `reasoning=high` は未実行 (疎通で全件換算 ≈ $22)。単調な傾向から Recall 改善は期待薄。
+- 詳細は [experiments/gpt-5.6/report.md](experiments/gpt-5.6/report.md)。
+
 ### 全データセット Recall (最良条件比較)
 
 | データセット | n | 陽性率 | `gemini-3-flash-preview` (B4) | `gemini-3.1-flash-lite` (GA) |
@@ -200,6 +217,7 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - Recall を最重視したい場合のオプション: `gemini-3-flash-preview` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 - OpenRouter 系 (Kimi K2 / Qwen3 235B / DeepSeek V4 / Grok 4.3) は 2026-05 評価でいずれも depression 全件 Recall 95% 未満で、既定モデルの差し替え候補にはならず。`qwen3-235b-a22b-2507` のみ「コスト最重視の予算オプション」として `experiments/openrouter-bench/` で再現可能。
+- OpenAI `gpt-5.6-luna` は 2026-07 評価で depression 全件 Recall 95% 未満 (none 92.9% / low・medium 91.4%)、B4 を上回らず差し替え候補にならず。詳細は `experiments/gpt-5.6/`。
 
 ### 詳細レポート
 
@@ -209,6 +227,7 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `gemini-3.1-flash-lite` (GA): [experiments/gemini-3.1-flash-lite-ga/report.md](experiments/gemini-3.1-flash-lite-ga/report.md)
 - `gemini-3.5-flash` (採用見送り): [experiments/gemini-3.5-flash/report.md](experiments/gemini-3.5-flash/report.md)
 - OpenRouter 比較 (Kimi/Qwen/DeepSeek/Grok, 2026-05): [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)
+- OpenAI `gpt-5.6-luna` (採用見送り, 2026-07): [experiments/gpt-5.6/report.md](experiments/gpt-5.6/report.md)
 - ASReview 比較: [experiments/asreview/REPORT.md](experiments/asreview/REPORT.md)
 
 ## 手動レビュー時の戻る挙動
