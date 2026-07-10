@@ -215,6 +215,7 @@ interface OpenAiResponseOutputItem {
 
 interface OpenAiResponseUsage {
     input_tokens?: number;
+    input_tokens_details?: { cached_tokens?: number };
     output_tokens?: number;
     output_tokens_details?: { reasoning_tokens?: number };
     total_tokens?: number;
@@ -317,6 +318,7 @@ function extractOutputText(data: OpenAiResponseBody): string {
 
 function toUsageMetadata(usage: OpenAiResponseUsage | undefined): UsageMetadata {
     const promptTokens = usage?.input_tokens ?? 0;
+    const cachedInputTokens = usage?.input_tokens_details?.cached_tokens ?? 0;
     const completionTokens = usage?.output_tokens ?? 0;
     const reasoningTokens = usage?.output_tokens_details?.reasoning_tokens ?? 0;
     const totalTokens = usage?.total_tokens ?? (promptTokens + completionTokens);
@@ -325,6 +327,7 @@ function toUsageMetadata(usage: OpenAiResponseUsage | undefined): UsageMetadata 
         candidatesTokenCount: completionTokens,
         thoughtsTokenCount: reasoningTokens,
         totalTokenCount: totalTokens,
+        cachedInputTokens,
     };
 }
 

@@ -1,0 +1,50 @@
+{
+  "experimentId": "G56-low_2026-07-10T01-48-36",
+  "startTime": "2026-07-10T01:48:36.180Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "G56-low",
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "low",
+      "maxOutputTokens": 8192,
+      "rateLimit": "openai_default",
+      "note": "低 reasoning。B4 相当のバランス点。"
+    },
+    "rateLimitName": "openai_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1993,
+    "failCount": 0,
+    "durationMs": 644382,
+    "avgTimePerItem": 323.32262920220774,
+    "tokensTotal": {
+      "prompt": 1900027,
+      "cached": 2398,
+      "completion": 441587,
+      "reasoning": 166837
+    },
+    "estimatedCostUsd": 4.5473908000000005
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 256,
+    "falsePositives": 185,
+    "trueNegatives": 1528,
+    "falseNegatives": 24,
+    "sensitivity": 0.9142857142857143,
+    "specificity": 0.8920023350846468,
+    "precision": 0.5804988662131519,
+    "fBetaScore": 0.9038909681519666
+  },
+  "endTime": "2026-07-10T01:59:20.585Z"
+}

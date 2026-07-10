@@ -1,0 +1,76 @@
+{
+    "description": "gpt-5.6-luna 評価実験 (reasoning_effort マトリクス: none/low/medium/high, verbosity=low 固定)。depression データセット全件。",
+    "version": "1.0",
+    "model": "gpt-5.6-luna",
+    "notes": [
+        "gpt-5.6 は temperature / top_p を HTTP 400 で拒否するため探索軸にできない。唯一の軸は reasoning_effort。",
+        "gpt-5.6 は minimal 非対応 (公式: none/low/medium/high/xhigh/max)。none を最小段として採用。",
+        "verbosity は gpt-5.6 ドキュメント未記載。provider は verbosity=low を送信する。疎通で 400 が出たら provider 側から外す。",
+        "モデルID gpt-5.6-luna / 価格は 2026-07 の developers.openai.com/api/docs/pricing 記載値 (confidence: medium)。疎通で実在確認する。"
+    ],
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "checkpointEvery": 50,
+    "rateLimits": {
+        "openai_default": { "concurrency": 8, "delayBetweenRequests": 200 },
+        "openai_smoke": { "concurrency": 3, "delayBetweenRequests": 300 }
+    },
+    "conditions": [
+        {
+            "id": "G56-none",
+            "provider": "openai",
+            "model": "gpt-5.6-luna",
+            "reasoningEffort": "none",
+            "maxOutputTokens": 8192,
+            "rateLimit": "openai_default",
+            "note": "非推論ベースライン（最速・最安）。reasoning_effort=none で非推論モデルのように振る舞う。"
+        },
+        {
+            "id": "G56-low",
+            "provider": "openai",
+            "model": "gpt-5.6-luna",
+            "reasoningEffort": "low",
+            "maxOutputTokens": 8192,
+            "rateLimit": "openai_default",
+            "note": "低 reasoning。B4 相当のバランス点。"
+        },
+        {
+            "id": "G56-med",
+            "provider": "openai",
+            "model": "gpt-5.6-luna",
+            "reasoningEffort": "medium",
+            "maxOutputTokens": 16384,
+            "rateLimit": "openai_default",
+            "note": "中 reasoning。精度上限側。reasoning トークン増でコスト注意。"
+        },
+        {
+            "id": "G56-high",
+            "provider": "openai",
+            "model": "gpt-5.6-luna",
+            "reasoningEffort": "high",
+            "maxOutputTokens": 32768,
+            "rateLimit": "openai_default",
+            "note": "高 reasoning。reasoning トークン最多。コスト・レイテンシ最大。疎通で1件コスト実測してから全件へ。"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.952, "tp": 269, "fp": 235, "tn": 1478, "fn": 11 }
+        }
+    },
+    "pricing": {
+        "gpt-5.6-luna": {
+            "inputPerMillion": 1.00,
+            "cachedInputPerMillion": 0.10,
+            "outputPerMillion": 6.00,
+            "note": "developers.openai.com/api/docs/pricing (2026-07, confidence: medium)。output は reasoning トークンを含む。cached 入力は割引単価。"
+        }
+    }
+}

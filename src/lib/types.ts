@@ -208,6 +208,12 @@ export interface UsageMetadata {
     candidatesTokenCount: number;
     thoughtsTokenCount: number;
     totalTokenCount: number;
+    /**
+     * キャッシュ済み入力トークン数（OpenAI Responses API の
+     * input_tokens_details.cached_tokens）。cached 入力は割引単価で課金されるため
+     * 正確なコスト算出に用いる。未対応プロバイダでは undefined。
+     */
+    cachedInputTokens?: number;
 }
 
 /**
