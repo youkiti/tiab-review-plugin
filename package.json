@@ -1,6 +1,6 @@
 {
     "name": "tiab-review-plugin",
-    "version": "0.25.0",
+    "version": "0.26.0",
     "description": "TiAb Review Plugin - Chrome Extension for Systematic Review Screening",
     "private": true,
     "scripts": {

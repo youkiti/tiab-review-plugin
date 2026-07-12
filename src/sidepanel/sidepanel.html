@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-07-08</span>
+                <span class="build-version">Build: 2026-07-12</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -143,14 +143,19 @@
             <!-- フィルター -->
             <div class="filters">
                 <select id="status-filter">
-                    <option value="pending" data-i18n="filter_pending"></option>
-                    <option value="all" data-i18n="filter_all"></option>
-                    <option value="include" data-i18n="filter_include"></option>
-                    <option value="exclude" data-i18n="filter_exclude"></option>
-                    <option value="maybe" data-i18n="filter_maybe"></option>
-                    <option value="conflict" data-i18n="filter_conflict"></option>
-                    <option value="fulltext_candidates" data-i18n="filter_fulltextCandidates"></option>
+                    <optgroup label="自分の判定" data-i18n-label="filter_group_my">
+                        <option value="pending" data-i18n="filter_pending"></option>
+                        <option value="include" data-i18n="filter_include"></option>
+                        <option value="exclude" data-i18n="filter_exclude"></option>
+                        <option value="maybe" data-i18n="filter_maybe"></option>
+                    </optgroup>
+                    <optgroup label="全体・チーム集計" data-i18n-label="filter_group_team">
+                        <option value="all" data-i18n="filter_all"></option>
+                        <option value="conflict" data-i18n="filter_conflict"></option>
+                        <option value="fulltext_candidates" data-i18n="filter_fulltextCandidates"></option>
+                    </optgroup>
                 </select>
+                <span class="help-icon" data-i18n-tooltip="filter_help_tooltip" tabindex="0">?</span>
                 <div class="search-container">
                     <div id="active-term-filters" class="active-term-filters"></div>
                     <input type="search" id="search-input" data-i18n-placeholder="screening_searchPlaceholder">
