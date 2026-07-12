@@ -42,15 +42,15 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **フロントエンド**: Chrome Extension (Manifest V3)
   - Popup / Side Panel UI
   - Content Scripts (ページからのメタデータ抽出用、将来拡張)
-- **認証**: Google OAuth 2.0 (`chrome.identity.getAuthToken`)
+- **認証**: Google OAuth 2.0（`chrome.identity.launchWebAuthFlow`。ウェブアプリ型クライアント + chromiumapp.org リダイレクト）
 - **バックエンド**: Google Sheets API (読み取り・追記)
 - **言語**: TypeScript, HTML, CSS, Python (データ分析・実験用)
 
 ## Manifest要件（要件抜粋）
 
-- `permissions`: `identity`, `storage`
+- `permissions`: `identity`（`launchWebAuthFlow` に必要）, `storage`
 - `host_permissions`: `https://sheets.googleapis.com/*`
-- `oauth2`: `client_id`, `scopes`（Sheets APIの最小スコープ）
+- OAuth: manifest に `oauth2` ブロックは持たない。クライアントIDはビルド時に `WEBAUTH_CLIENT_ID`（`.env`）を webpack DefinePlugin 経由でコード側に埋め込む（Sheets APIの最小スコープ）
 - `side_panel`: サイドパネル利用時に定義
 - `commands`: ショートカット定義（単一キーはUI内で処理）
 
@@ -229,7 +229,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 
 ## 運用ルール
 
-- **reviewer_id**: `chrome.identity.getProfileUserInfo()` で取得したemail固定。表示名/匿名IDは使用しない
+- **reviewer_id**: OAuth userinfo エンドポイントで取得したemail（認可時に選択したアカウント）固定。表示名/匿名IDは使用しない
   - 取得前提: ユーザーはGoogleアカウントにログイン済みで、拡張機能がOAuth同意済み
   - 取得できない場合は作業をブロックし、再ログインと同意を促す
     - UIメッセージ: 「Googleアカウントにログインしてください」
@@ -325,7 +325,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 
 ### エラーハンドリング
 
-- **OAuth失効**: 再ログイン促進（`chrome.identity.removeCachedAuthToken` 後に再取得）、作業続行不可の明示、オフラインキューへ退避
+- **OAuth失効**: `chrome.storage.session` のトークンキャッシュを破棄し revoke した上で、サイレント `launchWebAuthFlow`（`prompt=none`）による再取得を促す。再ログイン促進、作業続行不可の明示、オフラインキューへ退避
 - **権限不足**: 権限不足メッセージ＋シート共有設定への導線、読み取り専用モードへフォールバック
 - **クォータ超過**: 指数バックオフ（初回1秒、最大32秒）でリトライ、手動再試行ボタン
 
@@ -501,8 +501,8 @@ https://www.googleapis.com/auth/drive.file
 ## 開発ワークフロー
 
 1. `npm install` - 依存関係インストール
-2. `.env.example` を `.env` にコピーし、`LOCAL_OAUTH_CLIENT_ID`（ローカル開発用）と `OAUTH_CLIENT_ID`（ストア用）を設定
-3. `npm run dev` - 開発ビルド（`LOCAL_OAUTH_CLIENT_ID` + `key` 保持）
+2. `.env.example` を `.env` にコピーし、`WEBAUTH_CLIENT_ID`（拡張版 launchWebAuthFlow 用、dev/store共通）を設定
+3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定でもビルドは通り警告のみ）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
 6. リリースは `npm run release`（patch bump + ストア用ビルド + `dist-store-v<version>.zip` 作成）。minor は `npm run release:minor`
@@ -516,14 +516,9 @@ npm run release         # patch bump + ストア用ビルド + dist-store-v<vers
 npm run release:minor   # minor bump + 同上
 ```
 
-生成された `dist-store-v<version>.zip` を Chrome Web Store デベロッパーダッシュボードへアップロードする。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth は `.env` の `OAUTH_CLIENT_ID` を埋め込む。
+生成された `dist-store-v<version>.zip` を Chrome Web Store デベロッパーダッシュボードへアップロードする。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
 
-**OAuth クライアントの対応表**（クライアントは拡張機能IDごとに登録が必要）:
-
-| ビルド | コマンド | 拡張機能ID | OAuth クライアント |
-| --- | --- | --- | --- |
-| dev | `npm run dev` | `ifnejji…`（key保持） | `LOCAL_OAUTH_CLIENT_ID` |
-| ストア提出 | `npm run release` / `build` | `alejln…`（ストア付与） | `OAUTH_CLIENT_ID` |
+launchWebAuthFlow のリダイレクトURIは拡張機能IDから実行時に導出されるため、`WEBAUTH_CLIENT_ID` は dev/ストアの両ビルドで単一クライアントを共用する。ただし Google Cloud Console 側の「承認済みリダイレクトURI」には拡張機能IDごとに1件ずつ（`https://alejlnlfflogpnabpbplmnojgoeeabij.chromiumapp.org/` と `https://ifnejjicfekmighagknaacliiiliodgf.chromiumapp.org/`）登録しておく必要がある。
 
 > 廃止済み（履歴）: かつてテスター向けに `build:zip:tester`（`--env keepKey` + `ZIP_OAUTH_CLIENT_ID`、固定ID `ifnejji…`）で zip を Drive 配布していた。`key` を削除した zip を直接配布すると拡張機能IDがランダム化し `bad client id` になるため、zip 配布を再開する場合は key 保持ビルドが必須（git 履歴の `build:zip:tester` を参照）。
 

@@ -1,16 +1,15 @@
 /**
  * Chrome 拡張機能版プラットフォームアダプタ。
- * 既存コードにあったロジックをそのまま移設したものであり、新しい挙動は加えない。
+ * OAuth 系は service-worker（src/background/auth-flow.ts）にメッセージングで委譲する。
  */
 import type { PlatformAdapter } from '../types';
 
 /**
  * service-worker 経由で OAuth トークンを取得する。
- * （sheets-api.ts の getAuthToken / forceReauth から移設）
  */
-function requestToken(type: 'GET_AUTH_TOKEN' | 'FORCE_REAUTH'): Promise<string> {
+function requestToken(type: 'GET_AUTH_TOKEN' | 'FORCE_REAUTH', interactive?: boolean): Promise<string> {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ type }, (response) => {
+        chrome.runtime.sendMessage({ type, interactive }, (response) => {
             if (response?.error) {
                 reject(new Error(response.error));
             } else if (response?.token) {
@@ -23,16 +22,19 @@ function requestToken(type: 'GET_AUTH_TOKEN' | 'FORCE_REAUTH'): Promise<string> 
 }
 
 export const chromePlatform: PlatformAdapter = {
-    getAuthToken: () => requestToken('GET_AUTH_TOKEN'),
+    getAuthToken: (interactive = false) => requestToken('GET_AUTH_TOKEN', interactive),
     forceReauth: () => requestToken('FORCE_REAUTH'),
 
     async clearAuth(): Promise<void> {
-        // 認証トークンのクリア（auth.ts:93-100 から移設）。
-        // storage のクリアは storageClear() 側で行うため、ここではトークンのみ破棄する。
-        const token = await requestToken('GET_AUTH_TOKEN');
-        await new Promise<void>((resolve) => {
-            chrome.identity.removeCachedAuthToken({ token }, () => {
-                chrome.identity.clearAllCachedAuthTokens(() => resolve());
+        // service-worker 側でトークン破棄・revoke を行う。ここで GET_AUTH_TOKEN を呼ぶと
+        // 未ログイン時にログインプロンプトを開いてしまうため、CLEAR_AUTH 専用メッセージにする。
+        await new Promise<void>((resolve, reject) => {
+            chrome.runtime.sendMessage({ type: 'CLEAR_AUTH' }, (response) => {
+                if (response?.error) {
+                    reject(new Error(response.error));
+                } else {
+                    resolve();
+                }
             });
         });
     },

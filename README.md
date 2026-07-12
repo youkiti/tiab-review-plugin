@@ -49,35 +49,38 @@ gcloud services enable drive.googleapis.com
 
 ### 4. OAuth 2.0 クライアントIDの作成
 
+拡張機能は `chrome.identity.launchWebAuthFlow` でOAuth認可を行うため、クライアントの種類は「ウェブ アプリケーション」を使用します（「Chrome拡張機能」種別ではありません）。
+
 1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) を開く
 2. 「認証情報を作成」→「OAuthクライアントID」
-3. アプリケーションの種類: **Chrome拡張機能**
-4. 拡張機能ID: (後で `chrome://extensions`から取得)
-5. 作成されたクライアントIDを `.env` に設定（下記参照）
+3. アプリケーションの種類: **ウェブ アプリケーション**
+4. 承認済みリダイレクトURIに次の2件を登録（末尾スラッシュ必須）:
+   - `https://alejlnlfflogpnabpbplmnojgoeeabij.chromiumapp.org/`（ストア版）
+   - `https://ifnejjicfekmighagknaacliiiliodgf.chromiumapp.org/`（dev版、`manifest.json` の `key` 保持時のID）
+5. 作成されたクライアントIDを `.env` の `WEBAUTH_CLIENT_ID` に設定（下記参照）
 
 ### 5. 環境変数の設定
 
 `.env.example` を `.env` にコピーして値を設定します。
 
-| 変数名                    | 用途                                 | 必須                            |
-| ------------------------- | ------------------------------------ | ------------------------------- |
-| `OAUTH_CLIENT_ID`       | Chrome Web Store用 OAuth Client ID   | 本番ビルド時                    |
-| `LOCAL_OAUTH_CLIENT_ID` | ローカル開発用 OAuth Client ID       | 開発ビルド時                    |
-| `GEMINI_API_KEY`        | Gemini API キー                      | Gemini モデル使用時             |
-| `OPENROUTER_API_KEY`    | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時            |
+| 変数名                 | 用途                                 | 必須                  |
+| ---------------------- | ------------------------------------ | --------------------- |
+| `WEBAUTH_CLIENT_ID`    | 拡張版 launchWebAuthFlow用 OAuth Client ID | 本番ビルド時     |
+| `GEMINI_API_KEY`       | Gemini API キー                      | Gemini モデル使用時   |
+| `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 
 > **LLM プロバイダ**: v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「OpenRouter APIキー」カードから登録します（環境変数は実験ランナー用途のみ）。
 
-> **ローカル開発とストア公開で異なる OAuth Client ID が必要です。**
-> ローカル開発用は `manifest.json` の `key` から決まる拡張機能IDに紐づけたクライアント、ストア用は公開後の拡張機能IDに紐づけたクライアントを使用します。
+> **`WEBAUTH_CLIENT_ID` は dev/ストア共通の単一クライアントです。**
+> リダイレクトURIが拡張機能IDから実行時に導出されるため、同じクライアントIDのまま2件のリダイレクトURI（上記手順4）を登録しておけば dev ビルド・ストアビルドの双方で動作します。
 
 ### 6. ビルド
 
 ```bash
-# 開発ビルド（LOCAL_OAUTH_CLIENT_ID + key 保持）
+# 開発ビルド（key 保持。WEBAUTH_CLIENT_ID 未設定でも警告のみでビルド可）
 npm run dev
 
-# 本番ビルド（OAUTH_CLIENT_ID + key 削除）
+# 本番ビルド（WEBAUTH_CLIENT_ID 必須 + key 削除）
 npm run build
 
 # ウォッチモード（開発中）
@@ -116,8 +119,8 @@ npm run watch
 
 - リリースは `npm run release`（patch bump + ストア用ビルド）または `npm run release:minor`。生成される `dist-store-v<version>.zip` をデベロッパーダッシュボードにアップロードします。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
-- `chrome.identity` のOAuthを使う場合、公開後の「拡張機能ID」に紐づくOAuthクライアント（Chrome拡張機能）をGCP側で作成し、`.env` の `OAUTH_CLIENT_ID` に設定してください。
-- `OAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
+- `chrome.identity.launchWebAuthFlow` の認可には、ウェブ アプリケーション種別のOAuthクライアントをGCP側で作成し、承認済みリダイレクトURIにストア版・dev版それぞれの `https://<拡張機能ID>.chromiumapp.org/` を登録した上で、`.env` の `WEBAUTH_CLIENT_ID` に設定してください（詳細は上記「OAuth 2.0 クライアントIDの作成」参照）。
+- `WEBAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
 - 旧テスター配布（zip を Google Drive へコピーする `build:zip` / `build:zip:tester`）は正式リリースに伴い廃止しました（最終配布は v0.24.0）。
 
 ## 担当セット（複数人レビュー）

@@ -19,25 +19,15 @@ module.exports = (env, argv) => {
 // =====================================================================
 function buildExtensionConfig(env, argv) {
     const isProduction = argv.mode === 'production';
-    // OAuth クライアントIDの選択（クライアントは拡張機能IDごとに登録が必要）:
-    //   - dev ビルド        : LOCAL_OAUTH_CLIENT_ID（ID: ifnejji… に登録、無ければ OAUTH_CLIENT_ID にフォールバック）
-    //   - zip 配布(keepKey) : ZIP_OAUTH_CLIENT_ID（ID: ifnejji… に登録した専用クライアント）
-    //   - 本番/ストア提出    : OAUTH_CLIENT_ID（ストアID: alejln… に登録）
-    // zip 配布は key を保持するため ID が ifnejji… に固定される。ストア用 OAUTH_CLIENT_ID は
-    // alejln… に紐づくので使えず、ifnejji… 用の ZIP_OAUTH_CLIENT_ID が必要。
-    let oauthClientIdFromEnv;
-    if (isProduction && env.keepKey) {
-        oauthClientIdFromEnv = process.env.ZIP_OAUTH_CLIENT_ID?.trim();
-        if (!oauthClientIdFromEnv) {
-            throw new Error('ZIP_OAUTH_CLIENT_ID が未設定です。zip 配布版（拡張機能ID: ifnejjicfekmighagknaacliiiliodgf）用の OAuth クライアントIDを .env に設定してください。');
-        }
-    } else if (isProduction) {
-        oauthClientIdFromEnv = process.env.OAUTH_CLIENT_ID?.trim();
-        if (!oauthClientIdFromEnv) {
-            throw new Error('OAUTH_CLIENT_ID が未設定です。.env に OAUTH_CLIENT_ID を設定してから本番ビルドを実行してください。');
-        }
-    } else {
-        oauthClientIdFromEnv = process.env.LOCAL_OAUTH_CLIENT_ID?.trim() || process.env.OAUTH_CLIENT_ID?.trim();
+    // launchWebAuthFlow はリダイレクトURI（chromiumapp.org）を拡張機能IDから実行時に導出するため、
+    // getAuthToken 時代のような拡張機能IDごとのクライアント選択は不要。ウェブアプリ型クライアント
+    // 1つを全ビルド（dev/zip/store）で共用する。
+    const webauthClientId = process.env.WEBAUTH_CLIENT_ID?.trim();
+    if (isProduction && !webauthClientId) {
+        throw new Error('WEBAUTH_CLIENT_ID が未設定です。.env に WEBAUTH_CLIENT_ID を設定してから本番ビルドを実行してください。');
+    }
+    if (!webauthClientId) {
+        console.warn('[webpack] WEBAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
     }
 
     return {
@@ -76,6 +66,9 @@ function buildExtensionConfig(env, argv) {
             },
         },
         plugins: [
+            new webpack.DefinePlugin({
+                __EXTENSION_OAUTH_CLIENT_ID__: JSON.stringify(webauthClientId ?? ''),
+            }),
             new CopyPlugin({
                 patterns: [
                     {
@@ -84,21 +77,13 @@ function buildExtensionConfig(env, argv) {
                         transform(content) {
                             const manifest = JSON.parse(content.toString('utf8'));
 
-                            if (manifest.oauth2 && oauthClientIdFromEnv) {
-                                manifest.oauth2.client_id = oauthClientIdFromEnv;
-                            }
-
-                            const oauthClientId = manifest.oauth2?.client_id;
-                            if (!oauthClientId || oauthClientId === '__OAUTH_CLIENT_ID__') {
-                                console.warn('[webpack] OAUTH_CLIENT_ID が未設定です。Google認証は動作しません。');
-                            }
-
                             // 本番ビルドは原則 key を削除する（ストア提出ではストア側が ID を付与するため）。
                             // ただし zip 配布（テスター向け, --env keepKey）では src/manifest.json の key を
                             // 保持し、全テスターが同じ固定の拡張機能ID (ifnejjicfekmighagknaacliiiliodgf) になる
-                            // ようにする。key を消すとインストール先ごとにランダムIDになり、OAuthクライアントの
-                            // 登録IDと一致せず "bad client id" で失敗する。この ID 用の OAuth クライアントは
-                            // ZIP_OAUTH_CLIENT_ID（上で選択済み）を使う。
+                            // ようにする。launchWebAuthFlow のリダイレクトURI
+                            // （https://<拡張機能ID>.chromiumapp.org/）は拡張機能IDから実行時に導出されるため、
+                            // key を消してIDがランダム化すると WEBAUTH_CLIENT_ID に登録した承認済みリダイレクト
+                            // URIのどちらとも一致せず認可に失敗する。
                             // Chrome 設定画面・ツールバーでストア版と区別できるよう、名称末尾に
                             // " (dev)" を付与するヘルパー。name は __MSG_extName__ プレースホルダを
                             // 含むが、Chrome i18n は文字列中のプレースホルダを置換するため後ろに連結
