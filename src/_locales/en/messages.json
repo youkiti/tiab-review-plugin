@@ -696,19 +696,19 @@
     "message": "All (including decided)"
   },
   "filter_include": {
-    "message": "Include (editable)"
+    "message": "Include"
   },
   "filter_exclude": {
-    "message": "Exclude (editable)"
+    "message": "Exclude"
   },
   "filter_maybe": {
-    "message": "Maybe (editable)"
+    "message": "Maybe"
   },
   "filter_conflict": {
     "message": "Conflict"
   },
   "filter_fulltextCandidates": {
-    "message": "Full-text candidates (2+ include decisions)"
+    "message": "Full-text candidates"
   },
   "filter_pendingCount": {
     "message": "Pending ($1)"
@@ -717,19 +717,40 @@
     "message": "All (including decided) ($1)"
   },
   "filter_includeCount": {
-    "message": "Include (editable) ($1)"
+    "message": "Include ($1)"
   },
   "filter_excludeCount": {
-    "message": "Exclude (editable) ($1)"
+    "message": "Exclude ($1)"
   },
   "filter_maybeCount": {
-    "message": "Maybe (editable) ($1)"
+    "message": "Maybe ($1)"
   },
   "filter_conflictCount": {
     "message": "Conflict ($1)"
   },
   "filter_fulltextCount": {
     "message": "Full-text candidates ($1)"
+  },
+  "filter_fulltextCountAnnotated": {
+    "message": "Full-text candidates · $1 ($2)"
+  },
+  "filter_fulltextBasisAny": {
+    "message": "any 1 include"
+  },
+  "filter_fulltextBasisSelf": {
+    "message": "your includes"
+  },
+  "filter_fulltextRuleSummary": {
+    "message": "$2 of $1 votes"
+  },
+  "filter_group_my": {
+    "message": "My decisions"
+  },
+  "filter_group_team": {
+    "message": "Overall / Team"
+  },
+  "filter_help_tooltip": {
+    "message": "\"My decisions\" filters by your own TiAb decisions only.\n\"Full-text candidates\" is the set sent to full-text screening, decided across reviewers by the ⚙️ rule (which voters count and how many includes are required). When no rule is set, it is any paper included by at least one reviewer (the union of includes)."
   },
   "filter_resultCount": {
     "message": "$2 of $1"

@@ -90,7 +90,7 @@ function renderScreeningSection(state: AppState): void {
     const counts = getFilterCounts(state);
 
     // フィルター件数更新
-    renderFilterOptions(counts);
+    renderFilterOptions(counts, state);
 
     // 検索結果件数
     renderSearchResultCount(state, filtered.length);

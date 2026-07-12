@@ -7,6 +7,7 @@
 
 import type { Decision } from './types';
 import { isHumanDecision, isMlDecision } from './client-version';
+import { t } from './i18n';
 
 export type VoterKind = 'human' | 'ml' | 'llm';
 
@@ -169,8 +170,9 @@ export function parseFulltextPoolRule(json: string): FulltextPoolRule | null {
 }
 
 /**
- * ルール要約の表示文字列（例: "3票中2票でInclude"）
+ * ルール要約の表示文字列（i18n・例: ja "3票中2票" / en "2 of 3 votes"）
+ * $1 = 採用voter数, $2 = 必要Include票数
  */
 export function describeRule(rule: FulltextPoolRule): string {
-    return `${rule.voters.length}票中${rule.threshold}票`;
+    return t('filter_fulltextRuleSummary', [String(rule.voters.length), String(rule.threshold)]);
 }

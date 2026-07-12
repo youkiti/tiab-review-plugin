@@ -6,6 +6,7 @@
 import type { AppState } from '../store/types';
 import { dom } from '../dom';
 import { t } from '../../lib/i18n';
+import { describeRule } from '../../lib/fulltext-pool';
 
 /**
  * レイアウト描画
@@ -97,15 +98,26 @@ export function renderFilterOptions(counts: {
     maybe: number;
     conflict: number;
     fulltextCandidates: number;
-}): void {
-    const options = dom.statusFilter.options;
-    options[0].textContent = t('filter_pendingCount', String(counts.pending));
-    options[1].textContent = t('filter_allCount', String(counts.all));
-    options[2].textContent = t('filter_includeCount', String(counts.include));
-    options[3].textContent = t('filter_excludeCount', String(counts.exclude));
-    options[4].textContent = t('filter_maybeCount', String(counts.maybe));
-    options[5].textContent = t('filter_conflictCount', String(counts.conflict));
-    if (options[6]) {
-        options[6].textContent = t('filter_fulltextCount', String(counts.fulltextCandidates));
+}, state: AppState): void {
+    const rule = state.data.fulltextPoolRule;
+    const basis = rule
+        ? describeRule(rule)
+        : state.data.isAdmin
+            ? t('filter_fulltextBasisAny')
+            : t('filter_fulltextBasisSelf');
+
+    // option の value をキーにラベルを割り当てる（optgroup の並び順に依存しない）
+    const labels: Record<string, string> = {
+        pending: t('filter_pendingCount', String(counts.pending)),
+        all: t('filter_allCount', String(counts.all)),
+        include: t('filter_includeCount', String(counts.include)),
+        exclude: t('filter_excludeCount', String(counts.exclude)),
+        maybe: t('filter_maybeCount', String(counts.maybe)),
+        conflict: t('filter_conflictCount', String(counts.conflict)),
+        fulltext_candidates: t('filter_fulltextCountAnnotated', [basis, String(counts.fulltextCandidates)]),
+    };
+    for (const opt of Array.from(dom.statusFilter.options)) {
+        const label = labels[opt.value];
+        if (label !== undefined) opt.textContent = label;
     }
 }

@@ -696,19 +696,19 @@
     "message": "すべて（判定済みも含む）"
   },
   "filter_include": {
-    "message": "Include（修正可）"
+    "message": "Include"
   },
   "filter_exclude": {
-    "message": "Exclude（修正可）"
+    "message": "Exclude"
   },
   "filter_maybe": {
-    "message": "Maybe（修正可）"
+    "message": "Maybe"
   },
   "filter_conflict": {
     "message": "不一致"
   },
   "filter_fulltextCandidates": {
-    "message": "フルテキスト候補(2つ以上の組み入れ判断)"
+    "message": "フルテキスト候補"
   },
   "filter_pendingCount": {
     "message": "未判定 ($1)"
@@ -717,19 +717,40 @@
     "message": "すべて（判定済みも含む） ($1)"
   },
   "filter_includeCount": {
-    "message": "Include（修正可） ($1)"
+    "message": "Include ($1)"
   },
   "filter_excludeCount": {
-    "message": "Exclude（修正可） ($1)"
+    "message": "Exclude ($1)"
   },
   "filter_maybeCount": {
-    "message": "Maybe（修正可） ($1)"
+    "message": "Maybe ($1)"
   },
   "filter_conflictCount": {
     "message": "不一致 ($1)"
   },
   "filter_fulltextCount": {
     "message": "フルテキスト候補 ($1)"
+  },
+  "filter_fulltextCountAnnotated": {
+    "message": "フルテキスト候補・$1 ($2)"
+  },
+  "filter_fulltextBasisAny": {
+    "message": "誰か1人Include"
+  },
+  "filter_fulltextBasisSelf": {
+    "message": "自分のInclude"
+  },
+  "filter_fulltextRuleSummary": {
+    "message": "$1票中$2票"
+  },
+  "filter_group_my": {
+    "message": "自分の判定"
+  },
+  "filter_group_team": {
+    "message": "全体・チーム集計"
+  },
+  "filter_help_tooltip": {
+    "message": "「自分の判定」は自分のTiAb判定だけを絞り込みます。\n「フルテキスト候補」は判定者を横断して全文へ送る集合で、⚙️のルール（採用する判定者・必要Include票数）で決まります。ルール未設定のときは、誰か1人でもIncludeした文献（Includeの和集合）です。"
   },
   "filter_resultCount": {
     "message": "$1件中 $2件目"

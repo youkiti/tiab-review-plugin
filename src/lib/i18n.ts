@@ -57,6 +57,14 @@ export function localizeHtml(root: Document | HTMLElement = document): void {
         }
     });
 
+    // label 属性の翻訳（optgroup 等）
+    root.querySelectorAll('[data-i18n-label]').forEach(el => {
+        const key = el.getAttribute('data-i18n-label');
+        if (key) {
+            (el as HTMLElement).setAttribute('label', t(key));
+        }
+    });
+
     // innerHTML の翻訳
     root.querySelectorAll('[data-i18n-html]').forEach(el => {
         const key = el.getAttribute('data-i18n-html');

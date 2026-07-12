@@ -12,7 +12,7 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
-import { isInFulltextPool, isTiabDecision } from '../../../lib/fulltext-pool';
+import { isInFulltextPool, isTiabDecision, describeRule } from '../../../lib/fulltext-pool';
 import { canSeeFulltextRef } from '../../../lib/fulltext-assignment';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
@@ -269,19 +269,41 @@ export function updateFilterCounts() {
         ).length,
     };
 
-    const options = dom.statusFilter.options;
-    options[0].textContent = t('filter_pendingCount', String(counts.pending));
-    options[1].textContent = t('filter_allCount', String(counts.all));
-    options[2].textContent = t('filter_includeCount', String(counts.include));
-    options[3].textContent = t('filter_excludeCount', String(counts.exclude));
-    options[4].textContent = t('filter_maybeCount', String(counts.maybe));
-    options[5].textContent = t('filter_conflictCount', String(counts.conflict));
-
     // フルテキスト候補（独立アルゴリズム・自分の担当分のみ）
     const fulltextCount = filtered.filter(isMyFulltextCandidate).length;
-    if (options[6]) {
-        options[6].textContent = t('filter_fulltextCount', String(fulltextCount));
+
+    // option の value をキーにラベルを割り当てる。
+    // （optgroup で並び順を変えても壊れないよう index ではなく value で対応付ける）
+    const labels: Record<string, string> = {
+        pending: t('filter_pendingCount', String(counts.pending)),
+        all: t('filter_allCount', String(counts.all)),
+        include: t('filter_includeCount', String(counts.include)),
+        exclude: t('filter_excludeCount', String(counts.exclude)),
+        maybe: t('filter_maybeCount', String(counts.maybe)),
+        conflict: t('filter_conflictCount', String(counts.conflict)),
+        fulltext_candidates: fulltextCandidateOptionLabel(fulltextCount),
+    };
+    for (const opt of Array.from(dom.statusFilter.options)) {
+        const label = labels[opt.value];
+        if (label !== undefined) opt.textContent = label;
     }
+}
+
+/**
+ * フルテキスト候補オプションのラベル（件数に加えて候補判定の根拠を併記し、
+ * 「自分のInclude」との違いを画面上で判別できるようにする）
+ * - ルール設定済み: 「N票中M票」
+ * - 未設定（管理者）: 「誰か1人Include」（＝全レビュアーのIncludeの和集合）
+ * - 未設定（非管理者）: 「自分のInclude」
+ */
+function fulltextCandidateOptionLabel(count: number): string {
+    const rule = state.fulltextPoolRule;
+    const basis = rule
+        ? describeRule(rule)
+        : state.isAdmin
+            ? t('filter_fulltextBasisAny')
+            : t('filter_fulltextBasisSelf');
+    return t('filter_fulltextCountAnnotated', [basis, String(count)]);
 }
 
 /**
