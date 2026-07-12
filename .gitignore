@@ -65,3 +65,6 @@ experiments/local_data/
 
 # Internal planning docs
 plans/
+
+# Claude Code セッション実行時のロックファイル（セッションごとに書き換わるため追跡しない）
+.claude/scheduled_tasks.lock
