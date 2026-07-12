@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loginBtn.addEventListener('click', async () => {
         try {
-            const response = await chrome.runtime.sendMessage({ type: 'GET_AUTH_TOKEN' });
+            // ボタンクリック起点なので interactive=true（アカウント選択画面を開く）
+            const response = await chrome.runtime.sendMessage({ type: 'GET_AUTH_TOKEN', interactive: true });
             if (response.error) {
                 console.error('Auth error:', response.error);
                 const { t } = await import('../lib/i18n');
@@ -42,7 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function checkAuthStatus() {
         try {
-            const response = await chrome.runtime.sendMessage({ type: 'GET_USER_INFO' });
+            // GET_USER_INFO（Chromeプロファイルのメール）は使わない。未ログインでも
+            // プロファイルにログインしていれば「ログイン済み」と誤表示するバグがあったため、
+            // 実際に認可済みのアカウントのみを返す GET_CACHED_EMAIL に置き換えた。
+            const response = await chrome.runtime.sendMessage({ type: 'GET_CACHED_EMAIL' });
             if (response.email) {
                 loginSection.classList.add('hidden');
                 userSection.classList.remove('hidden');
