@@ -28,7 +28,7 @@ interface CachedToken {
 }
 
 /** 認可URLを組み立てる。prompt/login_hint は指定時のみ付与する。 */
-function buildAuthUrl(prompt?: 'none' | 'select_account' | 'consent', loginHint?: string): string {
+function buildAuthUrl(prompt?: 'none' | 'select_account' | 'consent' | 'select_account consent', loginHint?: string): string {
     const params = new URLSearchParams({
         client_id: __EXTENSION_OAUTH_CLIENT_ID__,
         response_type: 'token',
@@ -54,7 +54,7 @@ function parseTokenFromRedirect(redirectUrl: string): CachedToken {
 /** launchWebAuthFlow を実行し、成功したトークンを storage.session に保存する。 */
 async function launch(
     interactive: boolean,
-    prompt?: 'none' | 'select_account' | 'consent',
+    prompt?: 'none' | 'select_account' | 'consent' | 'select_account consent',
     loginHint?: string
 ): Promise<string> {
     const redirectUrl = await chrome.identity.launchWebAuthFlow({
@@ -138,8 +138,12 @@ export async function getAuthToken(interactive = false): Promise<string> {
             return token;
         } catch {
             if (!interactive) throw new Error('interaction_required');
-            // アカウント選択画面を必ず出す（プロファイル固定から離れることが今回の移行の目的）
-            const token = await launch(true, 'select_account');
+            // アカウント選択画面に加えて同意画面も必ず出す（プロファイル固定から離れることが
+            // 今回の移行の目的）。launchWebAuthFlow 移行でOAuthクライアントが変わり、
+            // 再同意が必要な既存ユーザーが select_account のみでは同意未済のまま
+            // 「このアプリはブロックされます」画面に落ちるため、consent を併記して
+            // 通常の承認画面へ確実に誘導する
+            const token = await launch(true, 'select_account consent');
             await cacheEmail(token, true); // アカウントが変わった可能性があるので必ず取り直す
             return token;
         }
