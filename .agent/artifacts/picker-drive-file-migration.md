@@ -1,6 +1,9 @@
 # Handoff: OAuthスコープ縮小（drive.file + Google Picker移行）
 
-作成: 2026-07-15 ／ 状態: **計画確定・未着手**（ユーザー承認済み方針、実装はこのドキュメントから開始する。2026-07-15 レビュー指摘6点を反映済み）
+作成: 2026-07-15 ／ 更新: 2026-07-16 ／ 状態: **実装済み・主要検証通過（PR #30、マージ待ち）**
+
+- 実装は PR #30（base: main）。Step 0〜6 完了、CI green。**最大リスクだった不確実点2（Picker付与のプロジェクト単位性）は 7b-5 で実測・成立を確認済み**。
+- 残: 7b の副次項目（下記チェックリスト参照）→ main マージ → ストアリリース → 同意画面のスコープ削除 → 審査返信。
 
 ## 経緯・意思決定
 
@@ -32,7 +35,15 @@
 
 ## 実装ステップ
 
-### Step 0: GCPコンソール作業（ユーザー手作業・実装と並行可、検証前に完了必須）
+### Step 0: GCPコンソール作業 ✅ **完了（2026-07-16）**
+
+実績: プロジェクト `tiab-review-plugin-2024`（番号 451307229828）で `picker.googleapis.com` を有効化。APIキー「TiAb Picker (web)」を発行し、リファラー（`https://youkiti.github.io/*` / `http://localhost:8080/*`）とAPI制限（Picker APIのみ）を**発行時に同時指定**（無制限キーが存在する隙を作らないため）。repository variables に `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を登録し、`.env` にも設定済み。
+
+- ⚠️ コンソールで探すと `photospicker.googleapis.com`（Google Photos Picker API）が並ぶ。**別物**。正しいのは `picker.googleapis.com`。
+- ⚠️ `PICKER_API_KEY` は **secret ではなく variable** に置く（`deploy-web.yml` が `${{ vars.PICKER_API_KEY }}` を参照）。picker.js にバンドルされ公開配信されるため構造上秘匿できず、リファラー＋API制限で守る前提。
+- 再現コマンドは README「Google Picker API の設定」を参照。
+
+（以下は当初の計画。参考用に残置）
 
 1. Google Picker API を有効化（プロジェクト 451307229828）
 2. API key 新規発行: HTTPリファラー制限 `https://youkiti.github.io/*`（+ ローカル検証用 `http://localhost:8080/*`）、API制限 = Picker API のみ
@@ -138,6 +149,7 @@ throw 箇所:
 
 ## ロールアウト順序
 
+0. **Step 0（GCP作業）を完了させる — マージの絶対前提**（2026-07-16 完了済み）。`PICKER_API_KEY` / `GCP_PROJECT_NUMBER` が repository variables に無いまま main へマージすると、CI green のままデプロイだけが落ちる（実測済み）。
 1. 実装 → 7a/7b 検証
 2. main マージ（Web版が先に自動デプロイされ新挙動に。drive.file付与は蓄積型なのでストア版フルスコープと併存しても壊れない）
 3. `npm run release` → **dist.zip** をストアへアップロード（ファイル名固定）
@@ -148,15 +160,32 @@ throw 箇所:
 
 → 検証リクエストがクローズし、100人上限・未確認アプリ警告が消滅。新規ユーザーのブロック解消はストア公開時点（手順3）から。
 
-## 不確実な点（検証で潰す）
+## 不確実な点
 
-1. フルスコープ時代のアプリ作成シートが drive.file で見え続けるか（7a-3。ダメでも誘導UIで救済）
-2. Picker付与のプロジェクト単位性（Webクライアントで選択→拡張クライアントのトークンで有効か。ドキュメント上はアプリ=プロジェクト単位、7b-5で実測必須）
-3. 403 vs 404 の実レスポンス（7a-4）
-4. Pickerページの `window.close()` が効くか（効かなくても成功メッセージで成立）
-5. `include_granted_scopes: false` で既許可ユーザーのトークンから spreadsheets が確実に外れるか（7b-2 で実測。拡張版 launchWebAuthFlow 側で同挙動が必要なら認可URLパラメータ `include_granted_scopes=false` の明示を検討）
+### 解決済み（2026-07-16 実測）
 
-※解決済み（レビューで確定、不確実リストから昇格）: `setFileIds` は「表示対象の限定」仕様（公式）／ GIS のパラメータ名は `login_hint`（`hint` は非推奨）／ TokenResponse にメールは含まれない → userinfo 照合が必要
+- **2. Picker付与のプロジェクト単位性 → 成立（最重要）**。dev拡張（クライアント `451307229828-803l…`）で共有シートURL貼付 → 誘導UI → Pickerページ（Webクライアント `451307229828-9t60…`）でシート選択 → **拡張側のポーリングが自動再接続に成功**。別クライアントでも同一GCPプロジェクト（451307229828）なら drive.file 付与が有効、が実機で確認できた。本移行の大前提であり、これが崩れていれば方針ごと再設計だった。
+- **4. Pickerページの `window.close()` → 効く**。選択後にタブが自動で閉じることを確認。
+- **3. 403 vs 404 の実レスポンス → 調査不要になった**。実装は `error.status` 文字列ではなく **HTTPステータス**（403/404）で分類する方式を採用（`isSheetsAccessDeniedStatus`）。ボディ形式に依存しないため事前実測が不要になった。
+- `setFileIds` は「表示対象の限定」仕様どおり動作（対象シートが表示されることを確認）。
+- （レビューで確定）GIS のパラメータ名は `login_hint`（`hint` は非推奨）／ TokenResponse にメールは含まれない → userinfo 照合が必要。
+
+### 未解決（残りの検証で潰す）
+
+1. フルスコープ時代のアプリ作成シートが drive.file で見え続けるか（7a-3。ダメでも誘導UIで救済されるため致命傷ではない）
+5. `include_granted_scopes: false` で既許可ユーザーのトークンから spreadsheets が確実に外れるか（7b-2）。**ビルド成果物レベルでは3経路すべてで確認済み**（拡張の認可URL `include_granted_scopes=false`／Web GIS・Pickerページの `include_granted_scopes: false`）。残るは実トークンでの挙動確認のみ。
+
+## 検証記録（2026-07-16）
+
+**静的検証（すべて通過）**: typecheck / lint / 118テスト / 拡張・Web両ビルド。ビルド成果物を grep して、3つの認証経路（拡張 service-worker.js・Web app.js・Pickerページ picker.js）すべてが **`userinfo.email` + `drive.file` の2スコープのみ**を要求し、`auth/spreadsheets` が完全に消滅していること、`include_granted_scopes=false` が全経路に入っていることを確認。
+
+**実機検証（通過）**: 7b-5 の全ループ（URL貼付 → 誘導UI → Picker → 選択 → 自動再接続）、setFileIds による対象シート表示、`window.close()`。
+
+**実装中に判明した落とし穴**:
+
+- **CIは本番デプロイの失敗を検知できない**。`build-check.yml` は `dev` / `dev:web`（開発モード＝未設定でも警告のみ）しか回さないのに対し、`deploy-web.yml` は本番モードの `build:web` を回す。`PICKER_API_KEY` 未登録のまま main へマージすると **PRがCI greenでもデプロイだけが落ちる**（実測: exit 2）。Step 0 はマージの絶対前提。
+- **`PICKER_PAGE_URL` の鶏卵問題**。本番URL固定のため、Pages へデプロイするまで拡張から Picker 導線を検証できない（未マージ時は本番URLが404）。dev ビルド限定の上書き（環境変数 `PICKER_PAGE_URL`）を追加して解消。**本番ビルドでは環境変数を無視する**設計にして、localhost を成果物へ焼き込む事故を構造的に防いでいる。
+- `src/lib/picker-url.ts` は `node --test` から import されるが DefinePlugin を通らないため、注入定数は **`typeof` ガード必須**（素の参照だと ReferenceError でテストが落ちる）。
 
 ## 見積り
 
