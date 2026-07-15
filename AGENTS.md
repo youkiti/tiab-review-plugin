@@ -483,19 +483,16 @@ async function saveDecision(decision: Decision): Promise<void> {
 ### OAuth スコープ
 
 ```
-# 読み書き（必須）
-https://www.googleapis.com/auth/spreadsheets
-
 # ユーザー情報取得（reviewer_id 用）
 https://www.googleapis.com/auth/userinfo.email
 
-# Drive/Pickers を使う場合（必須）
+# Drive/Pickers と、アプリが作成またはユーザーがPickerで選択したスプレッドシートの読み書き（必須）
 https://www.googleapis.com/auth/drive.file
 ```
 
 > **Note**:
 >
-> - スプレッドシート新規作成は `spreadsheets.create` を使用（Drive API 不要）。
+> - スプレッドシート新規作成と読み書きは、`drive.file` によりアプリ作成・Picker選択済みファイルに限定して行う。
 > - Google Drive上のファイル選択UIは Picker/Drive API と `drive.file` が必須。
 
 ## 開発ワークフロー

@@ -18,6 +18,8 @@
         "../src/lib/llm-config-hash.ts",
         "../src/lib/llm-provider.ts",
         "../src/lib/providers/openrouter.ts",
-        "./**/*.ts"
+        "./**/*.ts",
+        "../src/lib/picker-url.ts",
+        "../src/lib/sheets-api.ts"
     ]
 }

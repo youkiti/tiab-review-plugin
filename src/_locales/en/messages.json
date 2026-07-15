@@ -1452,14 +1452,20 @@
   "llm_recoverOrphansDialogBody": {
     "message": "Found $1 orphaned execution(s). Batch rows will be added to LLM_Executions and automatically grouped into LLM_Runs. After recovery, you can set thresholds per Run in the history UI (Runs remain inactive until explicitly enabled).",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_recoverOrphansListItem": {
     "message": "$1 (decisions: $2)",
     "placeholders": {
-      "1": { "content": "$1" },
-      "2": { "content": "$2" }
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
     }
   },
   "llm_recoverOrphansConfirmBtn": {
@@ -1471,13 +1477,17 @@
   "llm_recoverOrphansSuccess": {
     "message": "Recovered $1 history row(s). Open them in execution history to set the threshold.",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_recoverOrphansError": {
     "message": "Recovery error: $1",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_historyBatch": {
@@ -2192,13 +2202,19 @@
   "llm_customModelTestSuccess": {
     "message": "✅ Saved $ID$",
     "placeholders": {
-      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+      "id": {
+        "content": "$1",
+        "example": "anthropic/claude-sonnet-4.6"
+      }
     }
   },
   "llm_customModelTestFailed": {
     "message": "❌ Test failed: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1", "example": "HTTP 404" }
+      "error": {
+        "content": "$1",
+        "example": "HTTP 404"
+      }
     }
   },
   "llm_customModelIdRequired": {
@@ -2216,7 +2232,10 @@
   "llm_customModelLimitReached": {
     "message": "You can register up to $LIMIT$ custom models",
     "placeholders": {
-      "limit": { "content": "$1", "example": "20" }
+      "limit": {
+        "content": "$1",
+        "example": "20"
+      }
     }
   },
   "llm_customModelRequiresApiKey": {
@@ -2234,7 +2253,10 @@
   "llm_customModelRemoveConfirm": {
     "message": "Remove $ID$?",
     "placeholders": {
-      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+      "id": {
+        "content": "$1",
+        "example": "anthropic/claude-sonnet-4.6"
+      }
     }
   },
   "llm_customModelBadge": {
@@ -2299,5 +2321,44 @@
   },
   "manuscript_warnBlind": {
     "message": "Blind mode is on — only your own decisions are reflected in the numbers."
+  },
+  "picker_accessNeeded": {
+    "message": "Google permission is required to open this sheet. Select this sheet on the page that opens (first time only). The sheet may also have been deleted, or the URL/ID may be incorrect."
+  },
+  "picker_accessStillDenied": {
+    "message": "The sheet still could not be opened after Google Picker selection. The sheet may have been deleted, the URL/ID may be incorrect, or it may not be shared with your Google Drive account."
+  },
+  "picker_openBtn": {
+    "message": "Allow with Google"
+  },
+  "picker_retryBtn": {
+    "message": "Retry"
+  },
+  "picker_pageTitle": {
+    "message": "Allow a sheet with Google Picker"
+  },
+  "picker_pageIntro": {
+    "message": "Select the spreadsheet you want to open from the extension and allow this app to access it."
+  },
+  "picker_shareHint": {
+    "message": "If the target sheet is not shown, first confirm in Google Drive that the sheet is shared with your account."
+  },
+  "picker_startBtn": {
+    "message": "Open Google Picker"
+  },
+  "picker_success": {
+    "message": "Selection completed. Return to the extension panel; it will reconnect automatically."
+  },
+  "picker_cancelled": {
+    "message": "Selection was cancelled. Open Google Picker again if needed."
+  },
+  "picker_error": {
+    "message": "An error occurred: $1"
+  },
+  "picker_wrongAccount": {
+    "message": "A different Google account was selected. Please allow access again with the account currently signed in to the extension ($1)."
+  },
+  "picker_openAllSheets": {
+    "message": "Choose from all sheets"
   }
 }

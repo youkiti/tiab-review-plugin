@@ -10,9 +10,8 @@
 // webpack DefinePlugin によりビルド時に文字列リテラルへ置換されるグローバル定数。
 declare const __EXTENSION_OAUTH_CLIENT_ID__: string;
 
-// このアプリが要求する OAuth スコープ（スプレッドシート・ユーザーメール・Drive のアプリ作成ファイルのみ）
+// このアプリが要求する OAuth スコープ（ユーザーメール・Drive のアプリ作成/ユーザー選択ファイルのみ）
 const SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
@@ -34,6 +33,7 @@ function buildAuthUrl(prompt?: 'none' | 'select_account' | 'consent' | 'select_a
         response_type: 'token',
         redirect_uri: chrome.identity.getRedirectURL(),
         scope: SCOPES,
+        include_granted_scopes: 'false',
     });
     if (prompt) params.set('prompt', prompt);
     if (loginHint) params.set('login_hint', loginHint);

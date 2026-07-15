@@ -66,6 +66,9 @@ gcloud services enable drive.googleapis.com
 | 変数名                 | 用途                                 | 必須                  |
 | ---------------------- | ------------------------------------ | --------------------- |
 | `WEBAUTH_CLIENT_ID`    | 拡張版 launchWebAuthFlow用 OAuth Client ID | 本番ビルド時     |
+| `WEB_OAUTH_CLIENT_ID`  | GitHub Pages Web版 / Pickerページ用 OAuth Client ID | `build:web` 本番ビルド時 |
+| `PICKER_API_KEY`      | Google Picker API key（HTTPリファラーとPicker APIに制限） | `build:web` 本番ビルド時 |
+| `GCP_PROJECT_NUMBER`  | Picker `setAppId` に渡すGCPプロジェクト番号 | `build:web` 本番ビルド時 |
 | `GEMINI_API_KEY`       | Gemini API キー                      | Gemini モデル使用時   |
 | `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 
@@ -73,6 +76,17 @@ gcloud services enable drive.googleapis.com
 
 > **`WEBAUTH_CLIENT_ID` は dev/ストア共通の単一クライアントです。**
 > リダイレクトURIが拡張機能IDから実行時に導出されるため、同じクライアントIDのまま2件のリダイレクトURI（上記手順4）を登録しておけば dev ビルド・ストアビルドの双方で動作します。
+
+### Google Picker API の設定
+
+共有された既存スプレッドシートは、最小権限の `drive.file` スコープで扱うため、ユーザーが Google Picker で明示的に選択したファイルのみアクセス対象になります。
+
+1. Google Cloud Console で **Google Picker API** を有効化します。
+2. API key を発行し、HTTPリファラーを `https://youkiti.github.io/*`（ローカル検証時は `http://localhost:8080/*` も追加）に制限します。
+3. API制限は **Google Picker API のみ** にします。
+4. GitHub Pages のWebビルド用に repository variables へ `PICKER_API_KEY` と `GCP_PROJECT_NUMBER` を設定します。
+5. ローカル `.env` にも同じ値を設定します。
+
 
 ### 6. ビルド
 

@@ -12,6 +12,32 @@ import type { FulltextAssignmentConfig } from './fulltext-assignment';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
+
+export class SheetsAccessDeniedError extends Error {
+    constructor(
+        public readonly spreadsheetId: string,
+        public readonly status: number,
+        message = 'Spreadsheet access is not granted or the spreadsheet was not found'
+    ) {
+        super(message);
+        this.name = 'SheetsAccessDeniedError';
+    }
+}
+
+export function isSheetsAccessDeniedStatus(status: number): boolean {
+    return status === 403 || status === 404;
+}
+
+async function readSheetsErrorMessage(response: Response): Promise<string> {
+    try {
+        const error = await response.json();
+        return error.error?.message || response.statusText;
+    } catch {
+        return response.statusText;
+    }
+}
+
+
 // シート名定数
 const REFERENCES_SHEET = 'References';
 const DECISIONS_SHEET = 'Decisions';
@@ -370,10 +396,11 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
     });
 
     if (!response.ok) {
-        if (response.status === 404) {
-            throw new Error('Spreadsheet not found');
+        const message = await readSheetsErrorMessage(response);
+        if (isSheetsAccessDeniedStatus(response.status)) {
+            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
         }
-        throw new Error(`Failed to get spreadsheet info: ${response.statusText}`);
+        throw new Error(`Failed to get spreadsheet info: ${message}`);
     }
 
     const data = await response.json();
@@ -424,8 +451,11 @@ async function getSheetValues(spreadsheetId: string, range: string): Promise<str
     const response = await fetchSheetValuesWithRetry(spreadsheetId, range, token);
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to get sheet values: ${error.error?.message || response.statusText}`);
+        const message = await readSheetsErrorMessage(response);
+        if (isSheetsAccessDeniedStatus(response.status)) {
+            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
+        }
+        throw new Error(`Failed to get sheet values: ${message}`);
     }
 
     const data = await response.json();
@@ -446,8 +476,11 @@ async function getSheetValuesBatch(spreadsheetId: string, ranges: string[]): Pro
     const response = await fetchGetWithQuotaRetry(url, token, ranges.join(', '));
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to batch get sheet values: ${error.error?.message || response.statusText}`);
+        const message = await readSheetsErrorMessage(response);
+        if (isSheetsAccessDeniedStatus(response.status)) {
+            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
+        }
+        throw new Error(`Failed to batch get sheet values: ${message}`);
     }
 
     const data = await response.json();

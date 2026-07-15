@@ -35,6 +35,8 @@ jobs:
       - run: npm run build:web
         env:
           WEB_OAUTH_CLIENT_ID: ${{ vars.WEB_OAUTH_CLIENT_ID }}
+          PICKER_API_KEY: ${{ vars.PICKER_API_KEY }}
+          GCP_PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }}
       - uses: actions/configure-pages@v5
       # docs/ 全体（静的ページ + ビルドした app/）をそのまま配信する。
       - uses: actions/upload-pages-artifact@v3

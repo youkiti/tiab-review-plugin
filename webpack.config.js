@@ -14,6 +14,20 @@ module.exports = (env, argv) => {
     return buildExtensionConfig(env, argv);
 };
 
+/**
+ * Picker ページのURLを上書きする（dev ビルド限定）。
+ * ローカル配信（例: http://localhost:8080/picker.html）で Picker 導線を検証するための口。
+ * 本番ビルドでは環境変数があっても無視し、localhost が焼き込まれる事故を構造的に防ぐ。
+ * 空文字を返した場合は src/lib/picker-url.ts が本番URLへフォールバックする。
+ */
+function resolvePickerPageUrlOverride(isProduction) {
+    if (isProduction) return '';
+    const override = process.env.PICKER_PAGE_URL?.trim();
+    if (!override) return '';
+    console.warn(`[webpack] Picker ページURLを上書きします（dev ビルド限定）: ${override}`);
+    return override;
+}
+
 // =====================================================================
 // 拡張機能ビルド（既存設定。挙動は一切変更しない）
 // =====================================================================
@@ -29,6 +43,7 @@ function buildExtensionConfig(env, argv) {
     if (!webauthClientId) {
         console.warn('[webpack] WEBAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
     }
+    const pickerPageUrl = resolvePickerPageUrlOverride(isProduction);
 
     return {
         entry: {
@@ -68,6 +83,7 @@ function buildExtensionConfig(env, argv) {
         plugins: [
             new webpack.DefinePlugin({
                 __EXTENSION_OAUTH_CLIENT_ID__: JSON.stringify(webauthClientId ?? ''),
+                __PICKER_PAGE_URL__: JSON.stringify(pickerPageUrl),
             }),
             new CopyPlugin({
                 patterns: [
@@ -138,14 +154,25 @@ function buildExtensionConfig(env, argv) {
 function buildWebConfig(argv) {
     const isProduction = argv.mode === 'production';
     const webClientId = process.env.WEB_OAUTH_CLIENT_ID?.trim();
+    const pickerApiKey = process.env.PICKER_API_KEY?.trim();
+    const gcpProjectNumber = process.env.GCP_PROJECT_NUMBER?.trim();
     if (isProduction && !webClientId) {
         throw new Error('WEB_OAUTH_CLIENT_ID が未設定です。.env に Web アプリ用 OAuth クライアントIDを設定してください。');
+    }
+    if (isProduction && !pickerApiKey) {
+        throw new Error('PICKER_API_KEY が未設定です。.env に Google Picker API key を設定してください。');
+    }
+    if (isProduction && !gcpProjectNumber) {
+        throw new Error('GCP_PROJECT_NUMBER が未設定です。.env に GCP プロジェクト番号を設定してください。');
     }
     if (!webClientId) {
         console.warn('[webpack] WEB_OAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
     }
+    if (!pickerApiKey || !gcpProjectNumber) {
+        console.warn('[webpack] PICKER_API_KEY または GCP_PROJECT_NUMBER が未設定です（dev ビルド）。Pickerページは動作しません。');
+    }
     return {
-        entry: { app: './src/webapp/index.ts' },
+        entry: { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },
         output: {
             path: path.resolve(__dirname, 'docs/app'),
             filename: '[name].js',
@@ -176,6 +203,9 @@ function buildWebConfig(argv) {
         plugins: [
             new webpack.DefinePlugin({
                 __WEB_OAUTH_CLIENT_ID__: JSON.stringify(webClientId ?? ''),
+                __PICKER_API_KEY__: JSON.stringify(pickerApiKey ?? ''),
+                __GCP_PROJECT_NUMBER__: JSON.stringify(gcpProjectNumber ?? ''),
+                __PICKER_PAGE_URL__: JSON.stringify(resolvePickerPageUrlOverride(isProduction)),
                 __APP_VERSION__: JSON.stringify(packageJson.version),
             }),
             new CopyPlugin({
@@ -188,6 +218,7 @@ function buildWebConfig(argv) {
                     { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel.css' },
                     { from: 'src/sidepanel/styles', to: 'styles' },
                     { from: 'src/webapp/webapp.css', to: 'webapp.css' },
+                    { from: 'src/webapp/picker.html', to: 'picker.html' },
                     { from: 'src/icons/icon128.png', to: 'icon128.png' }, // favicon 用
                 ],
             }),
