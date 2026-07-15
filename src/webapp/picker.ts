@@ -88,9 +88,14 @@ function openPicker(token: string, fileId: string | null): void {
     picker.setVisible(true);
 }
 
-async function start(): Promise<void> {
+/**
+ * ignoreFileId=true で setFileIds を外した全シートビューを開く。
+ * href での開き直しにすると email が落ちてアカウント照合が効かなくなるため、
+ * 遷移せず同一ページ内で開き直す。
+ */
+async function start(ignoreFileId = false): Promise<void> {
     const params = hashParams();
-    const fileId = params.get('fileId');
+    const fileId = ignoreFileId ? null : params.get('fileId');
     const expectedEmail = params.get('email');
     try {
         await waitForGoogleApis();
@@ -115,7 +120,12 @@ function init(): void {
     document.getElementById('intro')!.textContent = t('picker_pageIntro');
     document.getElementById('shareHint')!.textContent = t('picker_shareHint');
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
-    document.getElementById('allSheetsLink')!.textContent = t('picker_openAllSheets');
+    const allSheetsLink = document.getElementById('allSheetsLink')!;
+    allSheetsLink.textContent = t('picker_openAllSheets');
+    allSheetsLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        void start(true);
+    });
     document.getElementById('startBtn')!.addEventListener('click', () => void start());
 }
 

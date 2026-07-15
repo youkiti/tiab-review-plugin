@@ -181,6 +181,10 @@ function showPickerAccessGuidance(spreadsheetId: string): void {
 }
 
 async function connectToSpreadsheet(resolvedId: string): Promise<void> {
+    // 別シートの許可待ちポーリングが残っていると、後から成功したときに
+    // 作業中のプロジェクトを勝手に切り替えてしまうため、接続開始時点で破棄する。
+    stopPickerPolling();
+
     try {
         showLoading(true);
         hideStatus();
