@@ -1,9 +1,9 @@
 # Handoff: OAuthスコープ縮小（drive.file + Google Picker移行）
 
-作成: 2026-07-15 ／ 更新: 2026-07-16 ／ 状態: **実装済み・主要検証通過（PR #30、マージ待ち）**
+作成: 2026-07-15 ／ 更新: 2026-07-16 ／ 状態: **実装・検証完了（PR #30、マージ可能）**
 
-- 実装は PR #30（base: main）。Step 0〜6 完了、CI green。**最大リスクだった不確実点2（Picker付与のプロジェクト単位性）は 7b-5 で実測・成立を確認済み**。
-- 残: 7b の副次項目（下記チェックリスト参照）→ main マージ → ストアリリース → 同意画面のスコープ削除 → 審査返信。
+- 実装は PR #30（base: main）。Step 0〜6 完了、CI green、7a/7b 全項目通過、**当初の不確実点5件はすべて解消**。
+- 残: main マージ → ストアリリース → 旧版の自動更新浸透待ち → 同意画面のスコープ削除 → 審査返信（下記「ロールアウト順序」の 2 以降）。
 
 ## 経緯・意思決定
 
@@ -170,16 +170,18 @@ throw 箇所:
 - `setFileIds` は「表示対象の限定」仕様どおり動作（対象シートが表示されることを確認）。
 - （レビューで確定）GIS のパラメータ名は `login_hint`（`hint` は非推奨）／ TokenResponse にメールは含まれない → userinfo 照合が必要。
 
-### 未解決（残りの検証で潰す）
+- **1. フルスコープ時代のアプリ作成シートが drive.file で見え続けるか → 見える**（7b-4）。旧シートは Picker 不要で開けるため、既存ユーザーの移行時に追加操作は発生しない。
+- **5. `include_granted_scopes: false` で既許可ユーザーのトークンから spreadsheets が外れるか → 外れる**（7b-2）。ビルド成果物レベル（拡張の認可URL `include_granted_scopes=false`／Web GIS・Pickerページの `include_granted_scopes: false`）と実トークンの双方で確認。
 
-1. フルスコープ時代のアプリ作成シートが drive.file で見え続けるか（7a-3。ダメでも誘導UIで救済されるため致命傷ではない）
-5. `include_granted_scopes: false` で既許可ユーザーのトークンから spreadsheets が確実に外れるか（7b-2）。**ビルド成果物レベルでは3経路すべてで確認済み**（拡張の認可URL `include_granted_scopes=false`／Web GIS・Pickerページの `include_granted_scopes: false`）。残るは実トークンでの挙動確認のみ。
+### 未解決
+
+なし。**当初の不確実点5件はすべて解消**（2026-07-16）。
 
 ## 検証記録（2026-07-16）
 
 **静的検証（すべて通過）**: typecheck / lint / 118テスト / 拡張・Web両ビルド。ビルド成果物を grep して、3つの認証経路（拡張 service-worker.js・Web app.js・Pickerページ picker.js）すべてが **`userinfo.email` + `drive.file` の2スコープのみ**を要求し、`auth/spreadsheets` が完全に消滅していること、`include_granted_scopes=false` が全経路に入っていることを確認。
 
-**実機検証（通過）**: 7b-5 の全ループ（URL貼付 → 誘導UI → Picker → 選択 → 自動再接続）、setFileIds による対象シート表示、`window.close()`。
+**実機検証（7a/7b 全項目通過）**: 同意画面2権限化、既許可アカウントの新トークンから spreadsheets が外れること（7b-2）、7b-5 の全ループ（URL貼付 → 誘導UI → Picker → 選択 → 自動再接続）、setFileIds による対象シート表示、`window.close()`、旧アプリ作成シートが Picker 不要で開けること（7b-4）、共有権限なしシートでの案内文と全シートビュー切替（7b-6）、キャンセル／別アカウント選択時の警告とトークン破棄（7b-7）、新規プロジェクト作成〜判定保存〜フォルダ整理・PDF保存・共有ボタンの退行なし（7b-3, 7b-9）。
 
 **実装中に判明した落とし穴**:
 
