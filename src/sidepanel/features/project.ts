@@ -9,6 +9,7 @@ import { showLoading, showStatus, hideStatus, showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
 import {
     getSpreadsheetInfo,
+    SheetsAccessDeniedError,
     validateSpreadsheetFormat,
     createSpreadsheet,
     getRecentSpreadsheets,
@@ -31,6 +32,7 @@ import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { initTeamProgress } from './team-progress';
 import { flushDecisionQueue } from '../utils/offline-queue';
+import { buildPickerUrl } from '../../lib/picker-url';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -123,24 +125,62 @@ function extractSpreadsheetId(input: string): string | null {
     return null;
 }
 
-/**
- * スプレッドシート接続処理
- */
-export async function handleConnect() {
-    const manualInput = dom.spreadsheetInput.value.trim();
-    const selectedId = dom.recentSheetsSelect.value;
-    const resolvedId = manualInput ? extractSpreadsheetId(manualInput) : selectedId;
-
-    if (!resolvedId) {
-        showStatus(
-            manualInput
-                ? t('project_invalidUrl')
-                : t('project_selectOrInput'),
-            'error'
-        );
-        return;
+let pickerPollTimer: number | undefined;
+function stopPickerPolling(): void {
+    if (pickerPollTimer !== undefined) {
+        window.clearInterval(pickerPollTimer);
+        pickerPollTimer = undefined;
     }
+}
 
+/** Google Picker 選択後に drive.file の許可が反映されるまで再試行する。 */
+function startPickerPolling(spreadsheetId: string): void {
+    stopPickerPolling();
+    let attempts = 0;
+    pickerPollTimer = window.setInterval(() => {
+        attempts += 1;
+        void (async () => {
+            try {
+                await getSpreadsheetInfo(spreadsheetId);
+                stopPickerPolling();
+                await connectToSpreadsheet(spreadsheetId);
+            } catch (error) {
+                if (attempts >= 40) {
+                    stopPickerPolling();
+                    showStatus(t('picker_accessStillDenied'), 'error');
+                } else if (!(error instanceof SheetsAccessDeniedError)) {
+                    stopPickerPolling();
+                    showStatus(t('project_connectError', (error as Error).message), 'error');
+                }
+            }
+        })();
+    }, 3000);
+}
+
+function showPickerAccessGuidance(spreadsheetId: string): void {
+    stopPickerPolling();
+    showStatus(t('picker_accessNeeded'), 'error');
+
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.textContent = t('picker_openBtn');
+    openBtn.addEventListener('click', () => {
+        platform().openExternal(buildPickerUrl(spreadsheetId, state.userEmail));
+        startPickerPolling(spreadsheetId);
+    });
+
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.textContent = t('picker_retryBtn');
+    retryBtn.addEventListener('click', () => void connectToSpreadsheet(spreadsheetId));
+
+    dom.statusMessage.appendChild(document.createTextNode(' '));
+    dom.statusMessage.appendChild(openBtn);
+    dom.statusMessage.appendChild(document.createTextNode(' '));
+    dom.statusMessage.appendChild(retryBtn);
+}
+
+async function connectToSpreadsheet(resolvedId: string): Promise<void> {
     try {
         showLoading(true);
         hideStatus();
@@ -177,10 +217,35 @@ export async function handleConnect() {
         await loadDataAndShowScreening();
     } catch (error) {
         console.error('Connection error:', error);
-        showStatus(t('project_connectError', (error as Error).message), 'error');
+        if (error instanceof SheetsAccessDeniedError) {
+            showPickerAccessGuidance(resolvedId);
+        } else {
+            showStatus(t('project_connectError', (error as Error).message), 'error');
+        }
     } finally {
         showLoading(false);
     }
+}
+
+/**
+ * スプレッドシート接続処理
+ */
+export async function handleConnect() {
+    const manualInput = dom.spreadsheetInput.value.trim();
+    const selectedId = dom.recentSheetsSelect.value;
+    const resolvedId = manualInput ? extractSpreadsheetId(manualInput) : selectedId;
+
+    if (!resolvedId) {
+        showStatus(
+            manualInput
+                ? t('project_invalidUrl')
+                : t('project_selectOrInput'),
+            'error'
+        );
+        return;
+    }
+
+    await connectToSpreadsheet(resolvedId);
 }
 
 /**
@@ -487,9 +552,13 @@ export async function loadDataAndShowScreening() {
         }
     } catch (error) {
         console.error('Load data error:', error);
-        showStatus(t('project_loadDataError', (error as Error).message), 'error');
         // 設定画面に戻す（Store経由）
         showProjectView();
+        if (error instanceof SheetsAccessDeniedError && spreadsheetId) {
+            showPickerAccessGuidance(spreadsheetId);
+        } else {
+            showStatus(t('project_loadDataError', (error as Error).message), 'error');
+        }
     } finally {
         showLoading(false);
     }

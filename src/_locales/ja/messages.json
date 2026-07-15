@@ -1452,14 +1452,20 @@
   "llm_recoverOrphansDialogBody": {
     "message": "$1件の孤立した実行が見つかりました。LLM_Executions に Batch 行を追加し、自動的に LLM_Runs にグループ化します。実行後は履歴UIから Run 単位で閾値設定が可能になります（Run は明示的に有効化するまで使用されません）。",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_recoverOrphansListItem": {
     "message": "$1 （判定行: $2件）",
     "placeholders": {
-      "1": { "content": "$1" },
-      "2": { "content": "$2" }
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
     }
   },
   "llm_recoverOrphansConfirmBtn": {
@@ -1471,13 +1477,17 @@
   "llm_recoverOrphansSuccess": {
     "message": "$1件の履歴行を復旧しました。実行履歴で閾値を設定してください。",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_recoverOrphansError": {
     "message": "復旧中にエラーが発生しました: $1",
     "placeholders": {
-      "1": { "content": "$1" }
+      "1": {
+        "content": "$1"
+      }
     }
   },
   "llm_historyBatch": {
@@ -2192,13 +2202,19 @@
   "llm_customModelTestSuccess": {
     "message": "✅ $ID$ を保存しました",
     "placeholders": {
-      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+      "id": {
+        "content": "$1",
+        "example": "anthropic/claude-sonnet-4.6"
+      }
     }
   },
   "llm_customModelTestFailed": {
     "message": "❌ テスト失敗: $ERROR$",
     "placeholders": {
-      "error": { "content": "$1", "example": "HTTP 404" }
+      "error": {
+        "content": "$1",
+        "example": "HTTP 404"
+      }
     }
   },
   "llm_customModelIdRequired": {
@@ -2216,7 +2232,10 @@
   "llm_customModelLimitReached": {
     "message": "カスタムモデルは最大 $LIMIT$ 件まで登録できます",
     "placeholders": {
-      "limit": { "content": "$1", "example": "20" }
+      "limit": {
+        "content": "$1",
+        "example": "20"
+      }
     }
   },
   "llm_customModelRequiresApiKey": {
@@ -2234,7 +2253,10 @@
   "llm_customModelRemoveConfirm": {
     "message": "$ID$ を削除しますか？",
     "placeholders": {
-      "id": { "content": "$1", "example": "anthropic/claude-sonnet-4.6" }
+      "id": {
+        "content": "$1",
+        "example": "anthropic/claude-sonnet-4.6"
+      }
     }
   },
   "llm_customModelBadge": {
@@ -2299,5 +2321,44 @@
   },
   "manuscript_warnBlind": {
     "message": "ブラインド中のため、自分の判定のみが数値に反映されています。"
+  },
+  "picker_accessNeeded": {
+    "message": "このシートを開くには Google への許可が必要です。開いたページでこのシートを選択してください（初回のみ）。シートが削除された、またはURL/IDが誤っている可能性もあります。"
+  },
+  "picker_accessStillDenied": {
+    "message": "Google Pickerで選択した後もシートを開けませんでした。シートが削除済み、URL/IDが誤り、またはGoogle Driveで共有されていない可能性があります。"
+  },
+  "picker_openBtn": {
+    "message": "Googleで許可する"
+  },
+  "picker_retryBtn": {
+    "message": "再試行"
+  },
+  "picker_pageTitle": {
+    "message": "Google Pickerでシートを許可"
+  },
+  "picker_pageIntro": {
+    "message": "拡張機能から開くスプレッドシートを選択して、このアプリにアクセスを許可します。"
+  },
+  "picker_shareHint": {
+    "message": "対象のシートが表示されない場合は、先にGoogle Driveでこのシートが自分のアカウントに共有されているか確認してください。"
+  },
+  "picker_startBtn": {
+    "message": "Google Pickerを開く"
+  },
+  "picker_success": {
+    "message": "選択が完了しました。拡張機能のパネルに戻ってください（自動で再接続されます）。"
+  },
+  "picker_cancelled": {
+    "message": "選択がキャンセルされました。必要に応じてもう一度Google Pickerを開いてください。"
+  },
+  "picker_error": {
+    "message": "エラーが発生しました: $1"
+  },
+  "picker_wrongAccount": {
+    "message": "拡張機能でログイン中のアカウント（$1）と異なるGoogleアカウントが選択されました。正しいアカウントで許可し直してください。"
+  },
+  "picker_openAllSheets": {
+    "message": "全シートから選び直す"
   }
 }

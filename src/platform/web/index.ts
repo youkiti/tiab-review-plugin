@@ -3,8 +3,8 @@
  * chrome.* API に依存せず、GIS 認証・localStorage・EventTarget・バンドル i18n で構成する。
  * capabilities は拡張専用機能（LLM/ML/フルテキスト/インポートエクスポート）を
  * false にし、共有 UI 側で非表示にする。
- * 新規プロジェクト作成（createProject）は spreadsheets.create のみで実現でき、
- * Web の GIS トークンも spreadsheets / drive.file スコープを持つため有効化する。
+ * 新規プロジェクト作成（createProject）は drive.file スコープで作成した
+ * スプレッドシートへアクセスできるため有効化する。共有シートは Picker 選択で許可する。
  */
 import type { PlatformAdapter } from '../types';
 import * as auth from './auth';

@@ -8,9 +8,8 @@
 // webpack DefinePlugin によりビルド時に文字列リテラルへ置換されるグローバル定数。
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 
-// このアプリが要求する OAuth スコープ（スプレッドシート・ユーザーメール・Drive のアプリ作成ファイルのみ）
+// このアプリが要求する OAuth スコープ（ユーザーメール・Drive のアプリ作成/ユーザー選択ファイルのみ）
 const SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
@@ -30,6 +29,7 @@ function ensureClient(): google.accounts.oauth2.TokenClient {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: __WEB_OAUTH_CLIENT_ID__,
         scope: SCOPES,
+        include_granted_scopes: false,
         callback: (resp) => {
             const p = pending; pending = null;
             if (!p) return;
