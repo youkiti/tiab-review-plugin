@@ -1,8 +1,16 @@
 # TiAb Review Webアプリ版 要件定義書 兼 実装指示書
 
 - 作成日: 2026-07-07
-- ステータス: ドラフト（レビュー待ち）
+- ステータス: **実装済み（Web版は稼働中）。作成時点の記録として残置しており、一部は後続の変更で無効**
 - 対象リポジトリ: tiab-review-plugin（作成時点 v0.24.0）
+
+> **⚠️ 本書を実装指示として読む前に**: 作成後の変更で、以下は**現在の実装と異なる**。
+>
+> - **OAuth スコープ（FR-1）**: `spreadsheets` は 2026-07 に廃止され、現在は `userinfo.email` + `drive.file` の**2つ**。共有シートは Google Picker でユーザーが選択したものだけを扱う。経緯は [`picker-drive-file-migration.md`](./picker-drive-file-migration.md)。
+> - **`manifest.json` の `oauth2.scopes`**: 現在は存在しない。スコープの定義箇所は `src/background/auth-flow.ts` と `src/platform/web/auth.ts` の2箇所。
+> - **デプロイ**: `docs/app/` の手動コミットは廃止。main への push で `deploy-web.yml` が自動ビルド・配信する（`docs/app/` は .gitignore 対象）。
+>
+> 現行の正典は `AGENTS.md` と [`.agent/workflows/release.md`](../workflows/release.md)。
 - 決定済み方針: スコープ=TiAb判定＋表示系フル / デプロイ=docs/app/コミット / オンライン前提（PWAは第2段階） / **LLM実行機能はWeb版に載せない**
 - 想定読者: 本リポジトリを初めて触る開発者。本書の Part II はタスク単位でそのまま着手できる粒度で書いている
 
@@ -66,10 +74,12 @@ TiAb Review は現在 Chrome 拡張機能としてのみ提供されており、
 ### FR-1: 認証（Google Identity Services）
 
 - Web 版は GIS の Token Client 方式（`google.accounts.oauth2.initTokenClient`）でアクセストークンを取得する
-- スコープは現行拡張機能（`src/manifest.json` の `oauth2.scopes`）と**完全に同一**の3つ。**増やさない**（OAuth 再審査回避のため）:
-  - `https://www.googleapis.com/auth/spreadsheets`
-  - `https://www.googleapis.com/auth/userinfo.email`
-  - `https://www.googleapis.com/auth/drive.file`
+- ~~スコープは現行拡張機能（`src/manifest.json` の `oauth2.scopes`）と**完全に同一**の3つ。**増やさない**（OAuth 再審査回避のため）:~~
+  - ~~`https://www.googleapis.com/auth/spreadsheets`~~
+  - ~~`https://www.googleapis.com/auth/userinfo.email`~~
+  - ~~`https://www.googleapis.com/auth/drive.file`~~
+
+  > **【2026-07-16 訂正】** `spreadsheets` は廃止済み。現在は `userinfo.email` + `drive.file` の**2つ**（いずれも非機微スコープ）で、**増やさない**方針は変わらない。理由が変わっており、「再審査回避」ではなく **「機微スコープを1つでも要求すると OAuth 審査と100人ユーザー上限が復活するため」**。スコープ定義は `src/platform/web/auth.ts`（Web版）と `src/background/auth-flow.ts`（拡張版）の2箇所で、`manifest.json` には無い。詳細は [`picker-drive-file-migration.md`](./picker-drive-file-migration.md)。
 - 初回ログインはユーザー操作（ログインボタンのタップ）起点でのみ認可ポップアップを開く（iOS Safari のポップアップブロック対策）
 - トークンは `expires_in` を記録し、期限の 60 秒前を過ぎていたら API 呼び出し前にサイレント再取得（`prompt: ''`）する
 - サイレント再取得が失敗した場合は例外を投げ、UI はログイン画面（既存のログインボタン）に戻す。このとき未送信の判定はオフラインキュー（FR-10）に残っており消えない
@@ -384,12 +394,14 @@ GIS（Google Identity Services）の Token Client を使う。`index.html` に `
 
 型定義: `npm i -D @types/google.accounts` を追加。
 
+> **【2026-07-16 訂正】** 下記コード例の `SCOPES` と `initTokenClient` は作成時点のもので、**そのまま写すと `spreadsheets`（機微スコープ）を要求してしまい、OAuth 審査と100人上限が復活する**。現行の実装は `src/platform/web/auth.ts` を参照すること（`spreadsheets` を除いた2スコープ + `include_granted_scopes: false` の明示が必須）。
+
 ```ts
 // ビルド時に webpack DefinePlugin で注入（Task 6）
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 
+// 【訂正】現行は spreadsheets を含まない2スコープ。src/platform/web/auth.ts が正典。
 const SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
@@ -405,6 +417,9 @@ function ensureClient(): google.accounts.oauth2.TokenClient {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: __WEB_OAUTH_CLIENT_ID__,
         scope: SCOPES,
+        // 【訂正・必須】GIS の既定は true で、過去に許可した機微スコープを新トークンが
+        // 引き継いでしまう。スコープ縮小を確実にするため false の明示が要る。
+        include_granted_scopes: false,
         callback: (resp) => {
             const p = pending; pending = null;
             if (!p) return;

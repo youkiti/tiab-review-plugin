@@ -131,7 +131,7 @@ npm run watch
 
 ## Chrome Web Store への提出（リリース手順）
 
-- リリースは `npm run release`（patch bump + ストア用ビルド）または `npm run release:minor`。生成される `dist-store-v<version>.zip` をデベロッパーダッシュボードにアップロードします。
+- リリースは `npm run release`（patch bump + ストア用ビルド）または `npm run release:minor`。生成される **`dist.zip`** をデベロッパーダッシュボードにアップロードします（ファイル名は `dist.zip` 固定。バージョン付きの名前ではアップロードできません）。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
 - `chrome.identity.launchWebAuthFlow` の認可には、ウェブ アプリケーション種別のOAuthクライアントをGCP側で作成し、承認済みリダイレクトURIにストア版・dev版それぞれの `https://<拡張機能ID>.chromiumapp.org/` を登録した上で、`.env` の `WEBAUTH_CLIENT_ID` に設定してください（詳細は上記「OAuth 2.0 クライアントIDの作成」参照）。
 - `WEBAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。

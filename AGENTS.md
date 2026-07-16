@@ -502,18 +502,18 @@ https://www.googleapis.com/auth/drive.file
 3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定でもビルドは通り警告のみ）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
-6. リリースは `npm run release`（patch bump + ストア用ビルド + `dist-store-v<version>.zip` 作成）。minor は `npm run release:minor`
+6. リリースは `npm run release`（patch bump + ストア用ビルド + `dist.zip` 作成）。minor は `npm run release:minor`
 
 ### リリース（Chrome Web Store）
 
 正式リリース済み（2026-07〜）のため、**リリースビルドは常にストア用**。zip を Google Drive で配布する経路は廃止した（最後の zip 配布は v0.24.0）。
 
 ```bash
-npm run release         # patch bump + ストア用ビルド + dist-store-v<version>.zip
+npm run release         # patch bump + ストア用ビルド + dist.zip
 npm run release:minor   # minor bump + 同上
 ```
 
-生成された `dist-store-v<version>.zip` を Chrome Web Store デベロッパーダッシュボードへアップロードする。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
+生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。**ファイル名は `dist.zip` 固定**（バージョン付きの名前ではアップロードできない）。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
 
 launchWebAuthFlow のリダイレクトURIは拡張機能IDから実行時に導出されるため、`WEBAUTH_CLIENT_ID` は dev/ストアの両ビルドで単一クライアントを共用する。ただし Google Cloud Console 側の「承認済みリダイレクトURI」には拡張機能IDごとに1件ずつ（`https://alejlnlfflogpnabpbplmnojgoeeabij.chromiumapp.org/` と `https://ifnejjicfekmighagknaacliiiliodgf.chromiumapp.org/`）登録しておく必要がある。
 
