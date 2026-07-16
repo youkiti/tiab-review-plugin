@@ -50,7 +50,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 
 - `permissions`: `identity`（`launchWebAuthFlow` に必要）, `storage`
 - `host_permissions`: `https://sheets.googleapis.com/*`
-- OAuth: manifest に `oauth2` ブロックは持たない。クライアントIDはビルド時に `WEBAUTH_CLIENT_ID`（`.env`）を webpack DefinePlugin 経由でコード側に埋め込む（Sheets APIの最小スコープ）
+- OAuth: manifest に `oauth2` ブロックは持たない。クライアントIDはビルド時に `WEBAUTH_CLIENT_ID`（`.env`）を webpack DefinePlugin 経由でコード側に埋め込む。クライアント種別は**ウェブアプリケーション型**でなければならない（Chrome 拡張機能型は `launchWebAuthFlow` で `redirect_uri_mismatch` になる。「OAuth フロー: なぜ implicit なのか」参照）
 - `side_panel`: サイドパネル利用時に定義
 - `commands`: ショートカット定義（単一キーはUI内で処理）
 
@@ -494,6 +494,23 @@ https://www.googleapis.com/auth/drive.file
 >
 > - スプレッドシート新規作成と読み書きは、`drive.file` によりアプリ作成・Picker選択済みファイルに限定して行う。
 > - Google Drive上のファイル選択UIは Picker/Drive API と `drive.file` が必須。
+
+### OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）
+
+拡張版は `chrome.identity.launchWebAuthFlow` + **implicit フロー（`response_type=token`）** を使う。GCPダッシュボードに「安全なフローの使用」警告が出るが、**これは現状で唯一成立する選択肢であり、認可コード + PKCE への移行は Google 側の制約で不可能**。2026-07-16 に実機検証済み（Issue #26）。同じ検討を蒸し返さないこと。
+
+| クライアント種別 | launchWebAuthFlow + chromiumapp.org | 認可コード + PKCE（secret無し） |
+|---|---|---|
+| ウェブアプリケーション型（現用） | ✅ 動作 | ❌ 400 `client_secret is missing` |
+| Chrome 拡張機能型 | ❌ 400 `redirect_uri_mismatch` | 到達せず |
+
+- **`launchWebAuthFlow` では Google は「implicit（secret 不要）」か「認可コード + client_secret」の二択しか提供しない。**
+- Chrome 拡張機能型クライアントは**リダイレクトURIの登録欄が無く `getAuthToken` 専用**。`getAuthToken` には戻れない（プロファイルのアカウントに束縛され、大学・病院の Workspace ユーザーが組織ポリシーでハードブロックされる。これが #23 で launchWebAuthFlow へ移行した理由）。
+- 却下した代替案: ①secret 埋め込み（ウェブアプリ型の secret は confidential。配布物から抽出可能で PKCE の意味が消える）②バックエンド追加（過剰。トークンを見せることになる）③デスクトップアプリ型（正規リダイレクトはループバックのみ。拡張は listen 不可）④TV/限定入力デバイスフロー（ポーリングに client_secret が必要 + プラットフォーム誤分類）⑤GitHub Pages + GIS（`initCodeClient` はバックエンド前提で同じ壁。`initTokenClient` は Google 自身が implicit と明記しており、かつトークンがページ側 JS に露出して現状より悪化）。
+- 実在の OSS 拡張（[Stylebot](https://github.com/ankit/stylebot/blob/b848edf8955eb6784571553cffd1061ea486acc2/src/sync/google-drive/get-access-token.ts) の Drive 同期）も、Web client + `response_type=token` + `drive.file` と同一構成。
+- **セキュリティ上の評価**: `https://<拡張ID>.chromiumapp.org/` は Chrome が横取りし、ページとしてロードされない。したがって implicit の主なリスク（履歴・Referer・サーバログへのトークン漏えい）は成立しない。access_token は `chrome.storage.session`（ディスク非永続）のみに保持する。
+- Google は `response_type=token` の停止時期を告知していない（2026-07 時点。廃止告知が出ているのは旧 Google Sign-In JS ライブラリで、Google は OAuth 2.0 の認可自体には影響しないと明記）。**実際に停止された場合は上記①②③の三択を迫られる**ため、その時点で再評価する。
+- 実装のみ完成済みで使えない PKCE 版: ブランチ `feat/oauth-pkce-code-flow` / PR #31（マージ不可）。
 
 ## 開発ワークフロー
 
