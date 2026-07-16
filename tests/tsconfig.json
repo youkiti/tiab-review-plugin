@@ -20,6 +20,7 @@
         "../src/lib/providers/openrouter.ts",
         "./**/*.ts",
         "../src/lib/picker-url.ts",
-        "../src/lib/sheets-api.ts"
+        "../src/lib/sheets-api.ts",
+        "../src/lib/auth-pkce.ts"
     ]
 }
