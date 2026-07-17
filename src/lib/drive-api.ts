@@ -16,6 +16,7 @@ import {
     getProjectDriveFolderId,
     saveProjectDriveFolderId,
 } from './sheets-api';
+import type { ImportedCopyMatch } from './drive-import-action';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
@@ -32,6 +33,19 @@ const APP_FOLDER_COLOR = '#7bd148';
 export interface DriveFileInfo {
     id: string;
     webViewLink: string;
+}
+
+export interface DriveFileMetadata {
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    parents?: string[];
+    trashed: boolean;
+    capabilities?: { canCopy?: boolean; canTrash?: boolean };
+    appProperties?: Record<string, string>;
+    /** 共有ドライブ配下のファイルにのみ付与される。マイドライブのファイルには存在しない。 */
+    driveId?: string;
 }
 
 /**
@@ -315,4 +329,115 @@ export async function uploadPdfToDrive(
     }
     const data = await resp.json() as { id: string; webViewLink: string };
     return { id: data.id, webViewLink: data.webViewLink };
+}
+
+// ---------------------------------------------------------------------------
+// Driveフォルダへ直接置かれた未登録PDFの取り込み（V1）
+// Picker（mode=pdf）で選択されたファイルの検証・fulltextフォルダへのコピー・
+// 冪等性チェック（appProperties検索）に使う。
+// ---------------------------------------------------------------------------
+
+/**
+ * Drive ファイルのメタデータを取得する（Picker選択直後の検証用）。
+ * Picker自体のMIME絞り込みは信用せず、mimeType の再確認や canCopy/canTrash の確認に使う。
+ * driveId は共有ドライブ配下のファイルにのみ付与されるため、Shared Drive検出にも使う
+ * （V1はMy Drive限定。共有ドライブは検出してブロックする）。
+ */
+export async function getDriveFileMetadata(fileId: string): Promise<DriveFileMetadata> {
+    const token = await getAuthToken();
+    const fields = 'id,name,mimeType,size,parents,trashed,driveId,capabilities(canCopy,canTrash),appProperties';
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`Driveファイル情報の取得に失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+    return resp.json() as Promise<DriveFileMetadata>;
+}
+
+/**
+ * Picker で選択したPDF（ユーザーのDrive上の既存ファイル）を、files.copy でfulltextフォルダへ
+ * アプリ作成ファイルとして複製する。appProperties は呼び出し側が渡す
+ * （sourceFileId / refId / spreadsheetId / importOperationId 等、冪等性判定や追跡に使う）。
+ * copy を使う理由: move だとアプリ作成属性が付かず、drive.file スコープの他レビュアーから
+ * 読めなくなる懸念があるため（.agent/artifacts/picker-drive-file-migration.md 参照）。
+ */
+export async function copyPdfToFulltextFolder(
+    sourceFileId: string,
+    folderId: string,
+    fileName: string,
+    appProperties: Record<string, string>
+): Promise<DriveFileInfo> {
+    const token = await getAuthToken();
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: fileName, parents: [folderId], appProperties }),
+        }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`DriveのPDFコピーに失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+    const data = await resp.json() as { id: string; webViewLink: string };
+    return { id: data.id, webViewLink: data.webViewLink };
+}
+
+/**
+ * 「Driveへ直接置かれたPDFの取り込み」の冪等性チェック用クエリを組み立てる（純関数）。
+ * appProperties の sourceFileId と spreadsheetId の両方が一致し、ゴミ箱に無いファイルを探す。
+ * `has { key='...' and value='...' }` の中括弧はDrive APIクエリ構文上必須で、
+ * 複数の has 条件は and で連結する（括弧を省略するとASTが崩れて誤ヒットする恐れがあるため注意）。
+ */
+export function buildImportedCopyQuery(sourceFileId: string, spreadsheetId: string): string {
+    const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return [
+        `appProperties has { key='sourceFileId' and value='${esc(sourceFileId)}' }`,
+        `appProperties has { key='spreadsheetId' and value='${esc(spreadsheetId)}' }`,
+        'trashed=false',
+    ].join(' and ');
+}
+
+/**
+ * 指定した元ファイル（sourceFileId）が、このプロジェクト（spreadsheetId）向けに
+ * 既に取り込み済み（fulltextフォルダへコピー済み）かどうかを調べる。
+ * 見つかった場合はそのコピーの id/webViewLink/appProperties.refId を返す
+ * （refId は「そのコピーがどの文献向けに作られたか」の判定に使う。
+ * appProperties が無い/refIdキーが無い孤立コピーの場合は refId が undefined になる）。
+ * ページネーションはしない（該当は通常0〜1件のため pageSize=1 で十分。
+ * 同一ファイルが複数のReferenceへ対応付け直された場合に取りこぼす可能性があるのは
+ * 既知の限界として許容する。実害は「本来再利用できたはずのコピーを再利用し損ねて
+ * 新規コピーが1つ増える」程度で、データ破損には繋がらない）。
+ * 検索自体（fetch）が失敗した場合は例外を投げる。検証フェーズ（表示用）の呼び出し側は
+ * 「未取り込み」扱いにフォールバックしてよいが、実行直前の呼び出し側は fail-closed
+ * （進めずエラーにする）こと。二重コピーを防ぐための冪等性チェックのため。
+ */
+export async function findImportedCopy(
+    sourceFileId: string,
+    spreadsheetId: string
+): Promise<ImportedCopyMatch | null> {
+    const token = await getAuthToken();
+    const q = buildImportedCopyQuery(sourceFileId, spreadsheetId);
+    const fields = 'files(id,webViewLink,appProperties)';
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=1`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`取り込み済みファイルの検索に失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+    const data = await resp.json() as {
+        files?: Array<{ id: string; webViewLink: string; appProperties?: Record<string, string> }>;
+    };
+    const first = data.files?.[0];
+    if (!first) return null;
+    return { id: first.id, webViewLink: first.webViewLink, refId: first.appProperties?.refId };
 }

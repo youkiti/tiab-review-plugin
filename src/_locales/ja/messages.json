@@ -2360,5 +2360,131 @@
   },
   "picker_openAllSheets": {
     "message": "全シートから選び直す"
+  },
+  "picker_pdfPageIntro": {
+    "message": "拡張機能に取り込むPDFファイルを選択してください。"
+  },
+  "picker_invalidRedirect": {
+    "message": "許可できないリダイレクト先です。拡張機能から開き直してください。"
+  },
+  "fulltext_importDriveBtn": {
+    "message": "Driveに直接置かれたPDFを取り込む"
+  },
+  "fulltext_driveImportRunning": {
+    "message": "Google Picker を開いています…"
+  },
+  "fulltext_driveImportParseError": {
+    "message": "Picker からの応答を解釈できませんでした。"
+  },
+  "fulltext_driveImportError": {
+    "message": "Driveからの取り込みでエラーが発生しました: $1"
+  },
+  "fulltext_driveImportNoFiles": {
+    "message": "取り込めるファイルがありませんでした。"
+  },
+  "fulltext_driveImportInvalidShape": {
+    "message": "$1件のファイル情報を読み取れませんでした（Picker側の不具合の可能性があります）。"
+  },
+  "fulltext_driveImportDuplicateShape": {
+    "message": "$1件は重複して選択されていたため1件にまとめました。"
+  },
+  "fulltext_driveImportOverflowShape": {
+    "message": "選択件数が上限（$1件）を超えたため、$2件を無視しました。"
+  },
+  "fulltext_driveImportValidating": {
+    "message": "選択したファイルを確認しています…"
+  },
+  "fulltext_driveImportModalTitle": {
+    "message": "取り込むPDFの対応付け"
+  },
+  "fulltext_driveImportModalIntro": {
+    "message": "各ファイルの取り込み先文献を選択してください。「対応付けない（スキップ）」を選ぶとそのファイルは取り込みません。"
+  },
+  "fulltext_importErrorNotPdf": {
+    "message": "PDFではありません（$1）"
+  },
+  "fulltext_importErrorTrashed": {
+    "message": "ゴミ箱内のファイルです"
+  },
+  "fulltext_importErrorNoCopyPermission": {
+    "message": "コピーする権限がありません"
+  },
+  "fulltext_importErrorSharedDrive": {
+    "message": "共有ドライブのファイルは未対応です"
+  },
+  "fulltext_importErrorMetaFailed": {
+    "message": "ファイル情報の取得に失敗しました: $1"
+  },
+  "fulltext_importErrorRefNotFound": {
+    "message": "対応する文献が見つかりませんでした（削除された可能性があります）"
+  },
+  "fulltext_importWarnLargeSize": {
+    "message": "ファイルサイズが大きいです（$1）。取り込みに時間がかかる場合があります。"
+  },
+  "fulltext_importIncompleteNotice": {
+    "message": "以前の取り込みが未完了です（コピー済み・シート未反映）。このまま実行するとこのファイルを再利用してシートのみ更新します。"
+  },
+  "fulltext_importBadgeImported": {
+    "message": "✓ 取り込み済み"
+  },
+  "fulltext_importSkipOption": {
+    "message": "対応付けない（スキップ）"
+  },
+  "fulltext_importComboNoMatch": {
+    "message": "一致する文献が見つかりません"
+  },
+  "fulltext_importDuplicateWarning": {
+    "message": "同じ文献が複数のファイルに割り当てられています。重複を解消してから実行してください。"
+  },
+  "fulltext_importExecuteBtn": {
+    "message": "取り込み実行（$1件）"
+  },
+  "fulltext_importCancelBtn": {
+    "message": "キャンセル"
+  },
+  "fulltext_importRunning": {
+    "message": "取り込み中…（$1/$2）"
+  },
+  "fulltext_importResultSuccess": {
+    "message": "✓ 取り込み完了"
+  },
+  "fulltext_importResultSkippedCached": {
+    "message": "△ 他のユーザーが先に取り込み済みのため、このファイルはスキップしました"
+  },
+  "fulltext_importResultError": {
+    "message": "✕ 失敗: $1"
+  },
+  "fulltext_importRetryBtn": {
+    "message": "再試行"
+  },
+  "fulltext_importDoneSummary": {
+    "message": "成功 $1件 / スキップ $2件 / 失敗 $3件"
+  },
+  "fulltext_importCleanupTitle": {
+    "message": "元ファイルの後片付け"
+  },
+  "fulltext_importCleanupIntro": {
+    "message": "取り込みが完了した元ファイルをDriveのゴミ箱へ移動できます。プロジェクトフォルダ内にあったファイルは既定でチェックされています。"
+  },
+  "fulltext_importCleanupNoTrashPermission": {
+    "message": "（ゴミ箱への移動権限なし）"
+  },
+  "fulltext_importCleanupNote": {
+    "message": "ゴミ箱内のファイルは30日間復元できます。自動では削除されません。"
+  },
+  "fulltext_importCleanupBtn": {
+    "message": "選択したファイルをゴミ箱へ移動"
+  },
+  "fulltext_importCleanupRunning": {
+    "message": "処理中…"
+  },
+  "fulltext_importCleanupDone": {
+    "message": "$1件をゴミ箱へ移動しました。"
+  },
+  "fulltext_importCleanupError": {
+    "message": "ゴミ箱への移動に失敗したファイルがあります: $1"
+  },
+  "fulltext_importCloseBtn": {
+    "message": "閉じる"
   }
 }

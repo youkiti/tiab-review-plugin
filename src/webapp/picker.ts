@@ -1,4 +1,5 @@
 import { getMessage } from '../platform/web/i18n';
+import { isExtensionRedirectUri } from '../lib/picker-url';
 
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 declare const __PICKER_API_KEY__: string;
@@ -65,6 +66,70 @@ function requestToken(email: string | null): Promise<google.accounts.oauth2.Toke
     });
 }
 
+interface PickedFile {
+    id: string;
+    name: string;
+    mimeType: string;
+}
+
+/**
+ * PDFモードの結果（選択ファイル or キャンセル）を拡張機能のリダイレクトURIへフラグメントで返す。
+ * redirect が拡張機能の chromiumapp.org 形式でない場合は、遷移せずエラー表示に留める
+ * （オープンリダイレクト防止。この検証は isExtensionRedirectUri に一本化してある）。
+ */
+function redirectToExtension(redirectUri: string, fragment: string): void {
+    if (!isExtensionRedirectUri(redirectUri)) {
+        setStatus(t('picker_invalidRedirect'));
+        return;
+    }
+    window.location.href = `${redirectUri}#${fragment}`;
+}
+
+function returnFilesToExtension(redirectUri: string, files: PickedFile[]): void {
+    redirectToExtension(redirectUri, `files=${encodeURIComponent(JSON.stringify(files))}`);
+}
+
+function returnCancelledToExtension(redirectUri: string): void {
+    redirectToExtension(redirectUri, 'cancelled=1');
+}
+
+/**
+ * PDFモード用Picker: DocsView(DOCS) を application/pdf に絞り込み、複数選択を許可する。
+ * folderId があれば初期表示フォルダとして使う（アクセス範囲の制限ではなく表示上の絞り込みのみ）。
+ * PICKED/CANCEL のいずれも window.location.href で拡張機能のリダイレクトURIへ遷移して結果を返す。
+ */
+function openPdfPicker(token: string, folderId: string | null, redirectUri: string): void {
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
+    view.setMimeTypes('application/pdf');
+    if (folderId) view.setParent(folderId);
+    const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+    const picker = new google.picker.PickerBuilder()
+        .setDeveloperKey(__PICKER_API_KEY__)
+        .setAppId(__GCP_PROJECT_NUMBER__)
+        .setOAuthToken(token)
+        .addView(view)
+        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .setLocale(locale)
+        .setCallback((data) => {
+            const action = data[google.picker.Response.ACTION];
+            if (action === google.picker.Action.PICKED) {
+                const docs = data[google.picker.Response.DOCUMENTS] ?? [];
+                const files: PickedFile[] = docs.map((doc) => ({
+                    id: doc[google.picker.Document.ID] ?? '',
+                    name: doc[google.picker.Document.NAME] ?? '',
+                    mimeType: doc[google.picker.Document.MIME_TYPE] ?? '',
+                }));
+                setStatus(t('picker_success'));
+                returnFilesToExtension(redirectUri, files);
+            } else if (action === google.picker.Action.CANCEL) {
+                setStatus(t('picker_cancelled'));
+                returnCancelledToExtension(redirectUri);
+            }
+        })
+        .build();
+    picker.setVisible(true);
+}
+
 function openPicker(token: string, fileId: string | null): void {
     const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
     if (fileId) view.setFileIds(fileId);
@@ -95,8 +160,21 @@ function openPicker(token: string, fileId: string | null): void {
  */
 async function start(ignoreFileId = false): Promise<void> {
     const params = hashParams();
+    // mode が無い/pdf以外の場合は既存のスプレッドシート動作を一切変えない（旧拡張が新ページを開く互換性のため）。
+    const isPdfMode = params.get('mode') === 'pdf';
     const fileId = ignoreFileId ? null : params.get('fileId');
     const expectedEmail = params.get('email');
+    const redirectUri = isPdfMode ? params.get('redirect') : null;
+
+    // PDFモードは redirect が有効な拡張機能URIであることを fail-fast で検証する。
+    // ここで弾かないと、ユーザーがGoogleサインイン→同意→ファイル選択まで終えた後に
+    // redirectToExtension() で初めて失敗が判明し、全操作が無駄になるため。
+    // redirectToExtension() 側の検証は最終防衛線としてそのまま残す。
+    if (isPdfMode && (!redirectUri || !isExtensionRedirectUri(redirectUri))) {
+        setStatus(t('picker_invalidRedirect'));
+        return;
+    }
+
     try {
         await waitForGoogleApis();
         const resp = await requestToken(expectedEmail);
@@ -108,24 +186,35 @@ async function start(ignoreFileId = false): Promise<void> {
             return;
         }
         await loadPicker();
-        openPicker(token, fileId);
+        if (isPdfMode) {
+            // 上のfail-fastチェックを通過しているため、ここでは redirectUri は非nullかつ有効。
+            openPdfPicker(token, params.get('folderId'), redirectUri!);
+        } else {
+            openPicker(token, fileId);
+        }
     } catch (error) {
         setStatus(t('picker_error', (error as Error).message));
     }
 }
 
 function init(): void {
+    const isPdfMode = hashParams().get('mode') === 'pdf';
     document.title = t('picker_pageTitle');
     document.getElementById('title')!.textContent = t('picker_pageTitle');
-    document.getElementById('intro')!.textContent = t('picker_pageIntro');
+    document.getElementById('intro')!.textContent = isPdfMode ? t('picker_pdfPageIntro') : t('picker_pageIntro');
     document.getElementById('shareHint')!.textContent = t('picker_shareHint');
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
     const allSheetsLink = document.getElementById('allSheetsLink')!;
-    allSheetsLink.textContent = t('picker_openAllSheets');
-    allSheetsLink.addEventListener('click', (event) => {
-        event.preventDefault();
-        void start(true);
-    });
+    if (isPdfMode) {
+        // PDFモードには「fileId限定→全シートへ切替」の概念が無いため導線ごと隠す
+        allSheetsLink.style.display = 'none';
+    } else {
+        allSheetsLink.textContent = t('picker_openAllSheets');
+        allSheetsLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            void start(true);
+        });
+    }
     document.getElementById('startBtn')!.addEventListener('click', () => void start());
 }
 

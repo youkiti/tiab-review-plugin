@@ -2360,5 +2360,131 @@
   },
   "picker_openAllSheets": {
     "message": "Choose from all sheets"
+  },
+  "picker_pdfPageIntro": {
+    "message": "Select the PDF file(s) to import into the extension."
+  },
+  "picker_invalidRedirect": {
+    "message": "This redirect destination is not allowed. Please reopen this page from the extension."
+  },
+  "fulltext_importDriveBtn": {
+    "message": "Import a PDF placed directly in Drive"
+  },
+  "fulltext_driveImportRunning": {
+    "message": "Opening Google Picker…"
+  },
+  "fulltext_driveImportParseError": {
+    "message": "Could not parse the response from Picker."
+  },
+  "fulltext_driveImportError": {
+    "message": "An error occurred while importing from Drive: $1"
+  },
+  "fulltext_driveImportNoFiles": {
+    "message": "No files were available to import."
+  },
+  "fulltext_driveImportInvalidShape": {
+    "message": "Could not read file information for $1 item(s) (possibly a Picker-side issue)."
+  },
+  "fulltext_driveImportDuplicateShape": {
+    "message": "$1 item(s) were selected more than once and were merged into a single entry."
+  },
+  "fulltext_driveImportOverflowShape": {
+    "message": "The selection exceeded the limit ($1 files), so $2 item(s) were ignored."
+  },
+  "fulltext_driveImportValidating": {
+    "message": "Checking the selected files…"
+  },
+  "fulltext_driveImportModalTitle": {
+    "message": "Match PDFs to references"
+  },
+  "fulltext_driveImportModalIntro": {
+    "message": "Choose which reference each file should be imported into. Choosing \"Don't match (skip)\" leaves that file out."
+  },
+  "fulltext_importErrorNotPdf": {
+    "message": "Not a PDF ($1)"
+  },
+  "fulltext_importErrorTrashed": {
+    "message": "This file is in the trash"
+  },
+  "fulltext_importErrorNoCopyPermission": {
+    "message": "You don't have permission to copy this file"
+  },
+  "fulltext_importErrorSharedDrive": {
+    "message": "Files in shared drives are not supported"
+  },
+  "fulltext_importErrorMetaFailed": {
+    "message": "Failed to fetch file information: $1"
+  },
+  "fulltext_importErrorRefNotFound": {
+    "message": "The matching reference could not be found (it may have been removed)"
+  },
+  "fulltext_importWarnLargeSize": {
+    "message": "This is a large file ($1). Importing may take a while."
+  },
+  "fulltext_importIncompleteNotice": {
+    "message": "A previous import attempt did not finish (the file was copied but the spreadsheet was not updated). Running this again will reuse that copy and only update the spreadsheet."
+  },
+  "fulltext_importBadgeImported": {
+    "message": "✓ Already imported"
+  },
+  "fulltext_importSkipOption": {
+    "message": "Don't match (skip)"
+  },
+  "fulltext_importComboNoMatch": {
+    "message": "No matching references found"
+  },
+  "fulltext_importDuplicateWarning": {
+    "message": "The same reference is assigned to more than one file. Resolve the duplicates before running the import."
+  },
+  "fulltext_importExecuteBtn": {
+    "message": "Run import ($1 file(s))"
+  },
+  "fulltext_importCancelBtn": {
+    "message": "Cancel"
+  },
+  "fulltext_importRunning": {
+    "message": "Importing… ($1/$2)"
+  },
+  "fulltext_importResultSuccess": {
+    "message": "✓ Imported"
+  },
+  "fulltext_importResultSkippedCached": {
+    "message": "△ Another user already imported a PDF for this reference, so this file was skipped"
+  },
+  "fulltext_importResultError": {
+    "message": "✕ Failed: $1"
+  },
+  "fulltext_importRetryBtn": {
+    "message": "Retry"
+  },
+  "fulltext_importDoneSummary": {
+    "message": "$1 succeeded / $2 skipped / $3 failed"
+  },
+  "fulltext_importCleanupTitle": {
+    "message": "Clean up original files"
+  },
+  "fulltext_importCleanupIntro": {
+    "message": "You can move the original files to Drive's trash now that they've been imported. Files that were inside the project folder are checked by default."
+  },
+  "fulltext_importCleanupNoTrashPermission": {
+    "message": "(no permission to trash)"
+  },
+  "fulltext_importCleanupNote": {
+    "message": "Files in the trash can be restored for 30 days. Nothing is deleted automatically."
+  },
+  "fulltext_importCleanupBtn": {
+    "message": "Move selected files to trash"
+  },
+  "fulltext_importCleanupRunning": {
+    "message": "Working…"
+  },
+  "fulltext_importCleanupDone": {
+    "message": "Moved $1 file(s) to trash."
+  },
+  "fulltext_importCleanupError": {
+    "message": "Failed to trash some files: $1"
+  },
+  "fulltext_importCloseBtn": {
+    "message": "Close"
   }
 }

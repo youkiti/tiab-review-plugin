@@ -25,12 +25,20 @@ import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
 import type { FulltextFetchOutcome } from '../../lib/fulltext-retriever';
-import { ensureFulltextFolder, uploadPdfToDrive, buildPdfFileName } from '../../lib/drive-api';
+import {
+    ensureFulltextFolder,
+    uploadPdfToDrive,
+    buildPdfFileName,
+} from '../../lib/drive-api';
 import {
     saveFulltextPoolRule,
     updateReferenceFulltextUrl,
     updateReferenceFulltextUrls,
 } from '../../lib/sheets-api';
+import {
+    setFulltextDriveImportDeps,
+    setupFulltextDriveImportListeners,
+} from './fulltext-drive-import';
 import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
 import { showToast } from '../ui/feedback';
 import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
@@ -552,4 +560,6 @@ export function setupFulltextTabListeners(): void {
         renderFulltextTab();
     });
     dom.fulltextUploadInput?.addEventListener('change', () => { void handleUploadChange(); });
+    setFulltextDriveImportDeps({ rerenderTab: renderFulltextTab });
+    setupFulltextDriveImportListeners();
 }
