@@ -126,40 +126,73 @@ function extractSpreadsheetId(input: string): string | null {
 }
 
 let pickerPollTimer: number | undefined;
+let pickerPollFocusHandler: (() => void) | undefined;
+// stopPickerPolling() のたびに進めるセッション番号。進行中の非同期チェックが
+// 停止後・別シート接続開始後に成功しても、古いシートへ勝手に接続しないようにする
+let pickerPollSession = 0;
+let pickerPollInFlight = false;
+
 function stopPickerPolling(): void {
+    pickerPollSession += 1;
     if (pickerPollTimer !== undefined) {
         window.clearInterval(pickerPollTimer);
         pickerPollTimer = undefined;
+    }
+    if (pickerPollFocusHandler !== undefined) {
+        window.removeEventListener('focus', pickerPollFocusHandler);
+        pickerPollFocusHandler = undefined;
     }
 }
 
 /** Google Picker 選択後に drive.file の許可が反映されるまで再試行する。 */
 function startPickerPolling(spreadsheetId: string): void {
     stopPickerPolling();
+    const session = pickerPollSession;
     let attempts = 0;
+    let lastError: unknown;
+
+    // 許可確認の実体。interval と focus の両方から呼ばれるため多重実行ガードを持つ。
+    // 一時的なネットワークエラー等ではポーリングを中断せず、タイムアウトまで継続する
+    const check = async (): Promise<void> => {
+        if (pickerPollInFlight) return;
+        pickerPollInFlight = true;
+        try {
+            await getSpreadsheetInfo(spreadsheetId);
+        } catch (error) {
+            lastError = error;
+            return;
+        } finally {
+            pickerPollInFlight = false;
+        }
+        if (session !== pickerPollSession) return; // 停止済みの古い許可待ち
+        stopPickerPolling();
+        await connectToSpreadsheet(spreadsheetId);
+    };
+
+    // Pickerタブから戻ってサイドパネルに触れた瞬間に判定できるよう、focus でも即時チェックする
+    pickerPollFocusHandler = () => { void check(); };
+    window.addEventListener('focus', pickerPollFocusHandler);
+
     pickerPollTimer = window.setInterval(() => {
         attempts += 1;
         void (async () => {
-            try {
-                await getSpreadsheetInfo(spreadsheetId);
+            await check();
+            if (session !== pickerPollSession) return; // 成功または別要因で停止済み
+            if (attempts >= 40) {
                 stopPickerPolling();
-                await connectToSpreadsheet(spreadsheetId);
-            } catch (error) {
-                if (attempts >= 40) {
-                    stopPickerPolling();
-                    showStatus(t('picker_accessStillDenied'), 'error');
-                } else if (!(error instanceof SheetsAccessDeniedError)) {
-                    stopPickerPolling();
-                    showStatus(t('project_connectError', (error as Error).message), 'error');
-                }
+                // タイムアウト後も行き止まりにせず、許可・再試行ボタンを残す
+                const message = lastError === undefined || lastError instanceof SheetsAccessDeniedError
+                    ? t('picker_accessStillDenied')
+                    : t('project_connectError', (lastError as Error).message);
+                showPickerAccessGuidance(spreadsheetId, message);
             }
         })();
     }, 3000);
 }
 
-function showPickerAccessGuidance(spreadsheetId: string): void {
+function showPickerAccessGuidance(spreadsheetId: string, message = t('picker_accessNeeded')): void {
     stopPickerPolling();
-    showStatus(t('picker_accessNeeded'), 'error');
+    showStatus(message, 'error');
 
     const openBtn = document.createElement('button');
     openBtn.type = 'button';
