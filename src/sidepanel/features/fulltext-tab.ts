@@ -25,7 +25,14 @@ import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
 import type { FulltextFetchOutcome } from '../../lib/fulltext-retriever';
-import { ensureFulltextFolder, uploadPdfToDrive, buildPdfFileName } from '../../lib/drive-api';
+import {
+    ensureFulltextFolder,
+    uploadPdfToDrive,
+    buildPdfFileName,
+    getDriveFileMetadata,
+    copyPdfToFulltextFolder,
+} from '../../lib/drive-api';
+import { buildPdfPickerUrl } from '../../lib/picker-url';
 import {
     saveFulltextPoolRule,
     updateReferenceFulltextUrl,
@@ -527,6 +534,117 @@ async function handleUploadChange(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Driveへ直接置かれたPDFの取り込み（検証版・フェーズA検証スパイク）
+//
+// アプリを経由せずDriveフォルダへ直接保存されたPDFを、Pickerで明示選択させたうえで
+// fulltextフォルダへ files.copy で取り込む機能のうち、以下2点の実機検証のみを行う導線:
+//   検証1: Pickerの選択結果（ファイルID）を launchWebAuthFlow のリダイレクト捕捉で
+//           拡張機能へ直接返せるか（各ファイルの metadata 取得結果で確認）
+//   検証2: 選択PDFの files.copy によるfulltextフォルダへのコピーが拡張機能トークンで
+//           成功するか（先頭1ファイルのみ、確認ダイアログ付きで実行）
+// 対応付けUI・シート更新・クリーンアップUIは今回のスパイクでは実装しない。
+// ---------------------------------------------------------------------------
+
+interface PickedDriveFile {
+    id: string;
+    name: string;
+    mimeType: string;
+}
+
+/**
+ * Picker ページからの launchWebAuthFlow リダイレクトURLを解析する。
+ * フラグメントに files=<JSON> または cancelled=1 が入っている想定
+ * （src/webapp/picker.ts の returnFilesToExtension / returnCancelledToExtension が付与する）。
+ */
+function parsePdfPickerRedirect(redirectUrl: string): { files: PickedDriveFile[] } | 'cancelled' | null {
+    let hash: string;
+    try {
+        hash = new URL(redirectUrl).hash.replace(/^#/, '');
+    } catch {
+        return null;
+    }
+    const params = new URLSearchParams(hash);
+    if (params.get('cancelled') === '1') return 'cancelled';
+    const filesParam = params.get('files');
+    if (!filesParam) return null;
+    try {
+        const parsed: unknown = JSON.parse(filesParam);
+        if (!Array.isArray(parsed)) return null;
+        return { files: parsed as PickedDriveFile[] };
+    } catch {
+        return null;
+    }
+}
+
+function setDriveImportStatus(msg: string | null): void {
+    dom.fulltextImportDriveStatus.classList.toggle('hidden', !msg);
+    dom.fulltextImportDriveStatus.textContent = msg ?? '';
+}
+
+async function handleImportFromDriveClick(): Promise<void> {
+    setDriveImportStatus(t('fulltext_driveImportRunning'));
+    try {
+        // 検証1: Picker選択結果を launchWebAuthFlow のリダイレクト捕捉で受け取る。
+        // sidepanel はタブとして開かれる拡張ページであり chrome.identity を直接呼べるため、
+        // auth-flow.ts（service-worker専用のトークンキャッシュ管理）を経由させず直接呼ぶ。
+        const redirectUri = chrome.identity.getRedirectURL('picker');
+        const url = buildPdfPickerUrl({ email: state.userEmail, redirectUri });
+        const redirectUrl = await chrome.identity.launchWebAuthFlow({ url, interactive: true });
+        if (!redirectUrl) {
+            setDriveImportStatus(null);
+            return;
+        }
+
+        const parsed = parsePdfPickerRedirect(redirectUrl);
+        if (parsed === null) {
+            showToast(t('fulltext_driveImportParseError'), 5000);
+            setDriveImportStatus(null);
+            return;
+        }
+        if (parsed === 'cancelled' || parsed.files.length === 0) {
+            setDriveImportStatus(null);
+            return;
+        }
+
+        // 各ファイルのmetadata取得を試み、結果をコンソールと画面の両方に出す（検証1の合否確認）
+        const resultLines: string[] = [];
+        for (const file of parsed.files) {
+            try {
+                const meta = await getDriveFileMetadata(file.id);
+                console.log('[fulltext-tab][drive-import-spike] metadata取得成功', meta);
+                resultLines.push(t('fulltext_driveImportMetaOk', [
+                    meta.name, meta.mimeType, meta.size ?? '?', String(meta.capabilities?.canCopy ?? '?'),
+                ]));
+            } catch (err) {
+                console.warn('[fulltext-tab][drive-import-spike] metadata取得失敗', file, err);
+                resultLines.push(t('fulltext_driveImportMetaFail', [file.name, (err as Error).message]));
+            }
+        }
+        setDriveImportStatus(resultLines.join('\n'));
+
+        // 検証2: 先頭の1ファイルのみ、確認のうえfulltextフォルダへコピーする
+        const first = parsed.files[0];
+        if (!window.confirm(t('fulltext_driveImportCopyConfirm', first.name))) return;
+
+        setDriveImportStatus(`${resultLines.join('\n')}\n${t('fulltext_driveImportCopying')}`);
+        const folderId = await ensureFulltextFolder(state.spreadsheetId);
+        const copy = await copyPdfToFulltextFolder(first.id, folderId, first.name, {
+            sourceFileId: first.id,
+            refId: 'spike-test',
+            spreadsheetId: state.spreadsheetId,
+            importOperationId: crypto.randomUUID(),
+        });
+        console.log('[fulltext-tab][drive-import-spike] コピー成功', copy);
+        setDriveImportStatus(`${resultLines.join('\n')}\n${t('fulltext_driveImportCopyDone', copy.webViewLink)}`);
+        showToast(t('fulltext_driveImportCopyDone', copy.webViewLink), 6000);
+    } catch (err) {
+        console.warn('[fulltext-tab][drive-import-spike] エラー', err);
+        showToast(t('fulltext_driveImportError', (err as Error).message), 6000);
+        setDriveImportStatus(null);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // イベントリスナー
 // ---------------------------------------------------------------------------
 
@@ -552,4 +670,5 @@ export function setupFulltextTabListeners(): void {
         renderFulltextTab();
     });
     dom.fulltextUploadInput?.addEventListener('change', () => { void handleUploadChange(); });
+    dom.fulltextImportDriveBtn?.addEventListener('click', () => { void handleImportFromDriveClick(); });
 }

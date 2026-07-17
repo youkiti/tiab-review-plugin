@@ -2360,5 +2360,38 @@
   },
   "picker_openAllSheets": {
     "message": "全シートから選び直す"
+  },
+  "picker_pdfPageIntro": {
+    "message": "拡張機能に取り込むPDFファイルを選択してください。"
+  },
+  "picker_invalidRedirect": {
+    "message": "許可できないリダイレクト先です。拡張機能から開き直してください。"
+  },
+  "fulltext_importDriveBtn": {
+    "message": "Driveに直接置かれたPDFを取り込む（検証版）"
+  },
+  "fulltext_driveImportRunning": {
+    "message": "Google Picker を開いています…"
+  },
+  "fulltext_driveImportParseError": {
+    "message": "Picker からの応答を解釈できませんでした。"
+  },
+  "fulltext_driveImportMetaOk": {
+    "message": "✓ $1（種類: $2 / サイズ: $3バイト / コピー可否: $4）"
+  },
+  "fulltext_driveImportMetaFail": {
+    "message": "✕ $1: メタデータ取得に失敗しました（$2）"
+  },
+  "fulltext_driveImportCopyConfirm": {
+    "message": "検証2として、先頭のファイル「$1」をフルテキストフォルダへコピーします。シートへの反映は行いません。よろしいですか？"
+  },
+  "fulltext_driveImportCopying": {
+    "message": "コピー中…"
+  },
+  "fulltext_driveImportCopyDone": {
+    "message": "コピーが完了しました: $1"
+  },
+  "fulltext_driveImportError": {
+    "message": "Driveからの取り込みでエラーが発生しました: $1"
   }
 }

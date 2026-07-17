@@ -25,3 +25,35 @@ export function buildPickerUrl(spreadsheetId?: string, email?: string, baseUrl =
     const hash = params.toString();
     return hash ? `${baseUrl}#${hash}` : baseUrl;
 }
+
+/**
+ * PDFモード（mode=pdf）でPickerページを開くためのURLを組み立てる。
+ * 選択結果は chrome.identity.launchWebAuthFlow のリダイレクト捕捉で拡張機能へ直接返す設計のため、
+ * 拡張機能側のリダイレクトURI（chrome.identity.getRedirectURL(...)）を redirect パラメータとして渡す。
+ * email/redirect/folderId のいずれも配信サーバーのログに残さないため、buildPickerUrl 同様
+ * すべてURLフラグメントで渡す。
+ */
+export function buildPdfPickerUrl(options: {
+    email?: string;
+    redirectUri: string;
+    folderId?: string;
+    baseUrl?: string;
+}): string {
+    const { email, redirectUri, folderId, baseUrl = PICKER_PAGE_URL } = options;
+    const params = new URLSearchParams();
+    params.set('mode', 'pdf');
+    params.set('redirect', redirectUri);
+    if (folderId) params.set('folderId', folderId);
+    if (email) params.set('email', email);
+    return `${baseUrl}#${params.toString()}`;
+}
+
+/**
+ * redirect パラメータが拡張機能の chromiumapp.org リダイレクトURIかどうかを検証する純粋関数。
+ * Picker側（src/webapp/picker.ts）はこの検証を通った場合のみ window.location.href で遷移する
+ * （オープンリダイレクト防止。redirect はURLフラグメント経由でPickerページに渡ってくる値のため、
+ * 拡張機能自身が発行したリダイレクトURIであることを検証してからのみ使用する）。
+ */
+export function isExtensionRedirectUri(url: string): boolean {
+    return /^https:\/\/[a-p]{32}\.chromiumapp\.org\//.test(url);
+}

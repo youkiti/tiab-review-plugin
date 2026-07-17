@@ -850,6 +850,12 @@
             <div id="fulltext-list" class="fulltext-list">
                 <!-- 候補カードがここに入る -->
             </div>
+
+            <!-- ④ Driveへ直接置かれたPDFの取り込み（検証版・フェーズA検証スパイク。対応付けUI等は未実装） -->
+            <div class="fulltext-drive-import">
+                <button id="fulltext-import-drive-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_importDriveBtn"></button>
+                <div id="fulltext-import-drive-status" class="fulltext-drive-import-status hidden"></div>
+            </div>
             <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
 
             <!-- ④' AI判定（ビュー切替で表示）: 全文確保済みの未AI判定文献を一括でGemini判定 -->

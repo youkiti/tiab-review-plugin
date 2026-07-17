@@ -34,6 +34,17 @@ export interface DriveFileInfo {
     webViewLink: string;
 }
 
+export interface DriveFileMetadata {
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    parents?: string[];
+    trashed: boolean;
+    capabilities?: { canCopy?: boolean; canTrash?: boolean };
+    appProperties?: Record<string, string>;
+}
+
 /**
  * Drive の閲覧リンク（webViewLink / open?id= 形式）からファイルIDを取り出す。
  * Drive 以外の URL は null を返す。
@@ -312,6 +323,62 @@ export async function uploadPdfToDrive(
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
         throw new Error(`DriveへのPDFアップロードに失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+    const data = await resp.json() as { id: string; webViewLink: string };
+    return { id: data.id, webViewLink: data.webViewLink };
+}
+
+// ---------------------------------------------------------------------------
+// Driveフォルダへ直接置かれた未登録PDFの取り込み（検証スパイク: フェーズA）
+// Picker（mode=pdf）で選択されたファイルの検証・fulltextフォルダへのコピーに使う。
+// ---------------------------------------------------------------------------
+
+/**
+ * Drive ファイルのメタデータを取得する（Picker選択直後の検証用）。
+ * Picker自体のMIME絞り込みは信用せず、mimeType の再確認や canCopy/canTrash の確認に使う。
+ */
+export async function getDriveFileMetadata(fileId: string): Promise<DriveFileMetadata> {
+    const token = await getAuthToken();
+    const fields = 'id,name,mimeType,size,parents,trashed,capabilities(canCopy,canTrash),appProperties';
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`Driveファイル情報の取得に失敗しました: ${error?.error?.message || resp.statusText}`);
+    }
+    return resp.json() as Promise<DriveFileMetadata>;
+}
+
+/**
+ * Picker で選択したPDF（ユーザーのDrive上の既存ファイル）を、files.copy でfulltextフォルダへ
+ * アプリ作成ファイルとして複製する。appProperties は呼び出し側が渡す
+ * （sourceFileId / refId / spreadsheetId / importOperationId 等、冪等性判定や追跡に使う想定）。
+ * copy を使う理由: move だとアプリ作成属性が付かず、drive.file スコープの他レビュアーから
+ * 読めなくなる懸念があるため（.agent/artifacts/picker-drive-file-migration.md 参照）。
+ */
+export async function copyPdfToFulltextFolder(
+    sourceFileId: string,
+    folderId: string,
+    fileName: string,
+    appProperties: Record<string, string>
+): Promise<DriveFileInfo> {
+    const token = await getAuthToken();
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`,
+        {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: fileName, parents: [folderId], appProperties }),
+        }
+    );
+    if (!resp.ok) {
+        const error = await resp.json().catch(() => null);
+        throw new Error(`DriveのPDFコピーに失敗しました: ${error?.error?.message || resp.statusText}`);
     }
     const data = await resp.json() as { id: string; webViewLink: string };
     return { id: data.id, webViewLink: data.webViewLink };

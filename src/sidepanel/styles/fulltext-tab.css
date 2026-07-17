@@ -205,6 +205,21 @@
     background: #fff;
 }
 
+/* ---------- Driveへ直接置かれたPDFの取り込み（検証版・フェーズA検証スパイク） ---------- */
+
+.fulltext-drive-import {
+    margin: 10px 0;
+    padding-top: 10px;
+    border-top: 1px dashed #d5d8dc;
+}
+
+.fulltext-drive-import-status {
+    font-size: 12px;
+    color: #2c6fbb;
+    margin-top: 6px;
+    white-space: pre-line;
+}
+
 .fulltext-progress-line {
     font-size: 14px;
     font-weight: 600;

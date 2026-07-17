@@ -177,6 +177,9 @@ const domElements = {
     get fulltextFetchStatus() { return getElement<HTMLElement>('fulltext-fetch-status'); },
     get fulltextViewFilter() { return getElement<HTMLSelectElement>('fulltext-view-filter'); },
     get fulltextUploadInput() { return getElement<HTMLInputElement>('fulltext-upload-input'); },
+    // Driveへ直接置かれたPDFの取り込み（検証版・フェーズA検証スパイク）
+    get fulltextImportDriveBtn() { return getElement<HTMLButtonElement>('fulltext-import-drive-btn'); },
+    get fulltextImportDriveStatus() { return getElement<HTMLElement>('fulltext-import-drive-status'); },
     get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },
     // 結果ビュー（ビュー切替・判定者選択・PRISMA・エクスポート）
     get fulltextBlindRow() { return getElement<HTMLElement>('fulltext-blind-row'); },

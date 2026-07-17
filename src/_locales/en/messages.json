@@ -2360,5 +2360,38 @@
   },
   "picker_openAllSheets": {
     "message": "Choose from all sheets"
+  },
+  "picker_pdfPageIntro": {
+    "message": "Select the PDF file(s) to import into the extension."
+  },
+  "picker_invalidRedirect": {
+    "message": "This redirect destination is not allowed. Please reopen this page from the extension."
+  },
+  "fulltext_importDriveBtn": {
+    "message": "Import a PDF placed directly in Drive (spike)"
+  },
+  "fulltext_driveImportRunning": {
+    "message": "Opening Google Picker…"
+  },
+  "fulltext_driveImportParseError": {
+    "message": "Could not parse the response from Picker."
+  },
+  "fulltext_driveImportMetaOk": {
+    "message": "✓ $1 (type: $2 / size: $3 bytes / can copy: $4)"
+  },
+  "fulltext_driveImportMetaFail": {
+    "message": "✕ $1: failed to fetch metadata ($2)"
+  },
+  "fulltext_driveImportCopyConfirm": {
+    "message": "As verification step 2, this will copy the first file \"$1\" into the fulltext folder. The spreadsheet will not be updated. Continue?"
+  },
+  "fulltext_driveImportCopying": {
+    "message": "Copying…"
+  },
+  "fulltext_driveImportCopyDone": {
+    "message": "Copy completed: $1"
+  },
+  "fulltext_driveImportError": {
+    "message": "An error occurred while importing from Drive: $1"
   }
 }
