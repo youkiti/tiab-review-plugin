@@ -122,6 +122,7 @@ const domElements = {
     get addExcludeBtn() { return getElement<HTMLButtonElement>('add-exclude-btn'); },
     get saveStatus() { return getElement<HTMLElement>('save-status'); },
     get toast() { return getElement<HTMLElement>('toast'); },
+    get modalCloseBtn() { return getElement<HTMLButtonElement>('modal-close-btn'); },
 
     // ========== Sharing ==========
     get shareBtn() { return getElement<HTMLButtonElement>('share-btn'); },
@@ -177,7 +178,7 @@ const domElements = {
     get fulltextFetchStatus() { return getElement<HTMLElement>('fulltext-fetch-status'); },
     get fulltextViewFilter() { return getElement<HTMLSelectElement>('fulltext-view-filter'); },
     get fulltextUploadInput() { return getElement<HTMLInputElement>('fulltext-upload-input'); },
-    // Driveへ直接置かれたPDFの取り込み（検証版・フェーズA検証スパイク）
+    // Driveへ直接置かれたPDFの取り込み（fulltext-drive-import.ts）
     get fulltextImportDriveBtn() { return getElement<HTMLButtonElement>('fulltext-import-drive-btn'); },
     get fulltextImportDriveStatus() { return getElement<HTMLElement>('fulltext-import-drive-status'); },
     get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },

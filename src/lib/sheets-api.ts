@@ -666,6 +666,36 @@ export async function updateReferenceFulltextUrls(
 }
 
 /**
+ * 指定した文献の fulltext_status と fulltext_url を最新値で読み直す。
+ * Driveへ直接置かれたPDFの取り込み実行時、files.copy 成功後・シート書き込み前に
+ * 「他のユーザーが自分より先に同じ文献へ取り込み済みでないか」を確認するために使う
+ * （楽観ロック相当。競合していれば呼び出し側は上書きせずコピーをゴミ箱へ戻す。
+ * URLまで返すのは、cached済みのURLが自分がこれから書こうとしているコピーと同一かどうか
+ * ＝「応答喪失後の再試行」かどうかを呼び出し側で判定するために必要なため）。
+ * ref_id 列(A列)で行を特定してから T:U（fulltext_url/fulltext_status）だけを読むため、
+ * 巨大な abstract 列等を含む References!A:U 全体を毎回読むより軽量。
+ * 該当行が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること）。
+ */
+export async function getReferenceFulltextState(
+    spreadsheetId: string,
+    refId: string
+): Promise<{ status: FulltextStatus; url: string } | undefined> {
+    const idColumn = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
+    let rowIndex = -1;
+    for (let i = 1; i < idColumn.length; i++) {
+        if (idColumn[i][0] === refId) {
+            rowIndex = i + 1; // 1-indexed（ヘッダー行=1）
+            break;
+        }
+    }
+    if (rowIndex === -1) return undefined;
+
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!T${rowIndex}:U${rowIndex}`);
+    const row = values[0] ?? [];
+    return { url: row[0] || '', status: (row[1] || 'not_retrieved') as FulltextStatus };
+}
+
+/**
  * 特定のソースファイルの文献を削除
  */
 export async function deleteReferencesBySourceFile(spreadsheetId: string, sourceFileName: string): Promise<number> {
