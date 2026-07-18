@@ -8,9 +8,61 @@ import { state } from '../state';
 import { showToast } from '../ui/feedback';
 import { addPermission, getProjectDriveFolderId, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
+import { addShareEmailToHistory, getShareEmailHistory, mergeShareEmailsToHistory } from '../../lib/share-email-history';
 
 // Store互換レイヤー（Phase 4）
 import { closeShareInput } from '../store/compat';
+
+/** 候補チップとして表示する最大件数（datalistは全件、チップは絞る） */
+const SHARE_SUGGESTION_CHIP_LIMIT = 5;
+
+/**
+ * 共有メール候補（チップ + datalist）を描画する。
+ * 履歴から自分のメールと excludeEmails（現プロジェクトで共有済み）を除外して表示する。
+ */
+export function loadShareSuggestions(excludeEmails: string[] = []): void {
+    const selfEmail = state.userEmail.trim().toLowerCase();
+    // excludeEmails は呼び出し元でフィルタ済みの想定だが、リンク共有等でemailAddressが
+    // undefinedになるDriveレスポンスが紛れ込む事故があったため、ここでも防御的に除外する
+    const normalizedExcludes = excludeEmails
+        .filter((e): e is string => typeof e === 'string')
+        .map(e => e.trim().toLowerCase());
+    const excludeSet = new Set([selfEmail, ...normalizedExcludes].filter(e => e.length > 0));
+
+    void getShareEmailHistory().then(history => {
+        const candidates = history.filter(email => !excludeSet.has(email));
+
+        // 前回の描画内容をクリア
+        dom.shareSuggestionChips.innerHTML = '';
+        dom.shareEmailDatalist.innerHTML = '';
+
+        if (candidates.length === 0) {
+            dom.shareSuggestionArea.classList.add('hidden');
+            return;
+        }
+
+        dom.shareSuggestionArea.classList.remove('hidden');
+
+        candidates.slice(0, SHARE_SUGGESTION_CHIP_LIMIT).forEach(email => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'share-suggestion-chip';
+            chip.textContent = email;
+            chip.title = email;
+            chip.addEventListener('click', () => {
+                dom.shareEmailInput.value = email;
+                dom.shareEmailInput.focus();
+            });
+            dom.shareSuggestionChips.appendChild(chip);
+        });
+
+        candidates.forEach(email => {
+            const option = document.createElement('option');
+            option.value = email;
+            dom.shareEmailDatalist.appendChild(option);
+        });
+    });
+}
 
 /**
  * 共有設定を追加
@@ -38,6 +90,11 @@ export async function handleShare() {
 
         showToast(t('share_added', email));
         dom.shareEmailInput.value = '';
+
+        // suggestion履歴に追加。今追加したメールは候補から消えるよう除外リストに含めて再描画する
+        await addShareEmailToHistory(email);
+        loadShareSuggestions([email]);
+
         // Store経由で閉じる
         closeShareInput();
     } catch (error) {
@@ -129,6 +186,8 @@ export async function loadSharedUsers() {
             } else {
                 dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#666;">${t('share_noUsers')}</div>`;
             }
+            // 権限リストが取れなかった/空の場合は除外なしで候補を表示
+            loadShareSuggestions();
             return;
         }
 
@@ -151,8 +210,20 @@ export async function loadSharedUsers() {
             dom.sharedUsersList.appendChild(div);
         });
 
+        // 権限リストを履歴へ取り込み（自分のメールは除外してから）、共有済みユーザーを除外した候補を表示
+        // リンク共有・ドメイン共有の権限オブジェクトには emailAddress が存在しない（undefined）ことがあるため、
+        // 型上は string でも実際には undefined が混入し得る。ここで明示的に除外してから後続処理に渡す。
+        const permissionEmails = permissions
+            .map(p => p.emailAddress)
+            .filter((e): e is string => typeof e === 'string' && e.length > 0);
+        const selfEmailLower = userEmail.trim().toLowerCase();
+        await mergeShareEmailsToHistory(permissionEmails.filter(e => e.trim().toLowerCase() !== selfEmailLower));
+        loadShareSuggestions(permissionEmails);
+
     } catch (error) {
         console.error('Failed to load shared users:', error);
         dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#c62828;">${t('share_loadFailed')}</div>`;
+        // 予期しないエラー時も除外なしで候補だけは表示しておく
+        loadShareSuggestions();
     }
 }

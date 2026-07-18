@@ -35,6 +35,9 @@ module.exports = {
         "src/popup/**",
         "src/fulltext/**",
         "src/lib/storage.ts",
+        // chrome.storage.sync（デバイス間同期）を使用。PlatformAdapter は local 相当のみ抽象化しており
+        // sync に対応する概念が無いため、storage.ts と同様に拡張専用として直接 chrome API を使う。
+        "src/lib/share-email-history.ts",
         "src/lib/gemini-api.ts",
         "src/lib/llm-provider.ts",
         "src/lib/llm-processor.ts",

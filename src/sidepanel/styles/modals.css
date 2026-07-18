@@ -145,6 +145,42 @@
     font-size: 13px;
 }
 
+/* 共有メールのsuggestion（チップ表示） */
+.share-suggestion-area {
+    margin-top: 4px;
+    font-size: 11px;
+}
+
+.share-suggestion-label {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.share-suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.share-suggestion-chip {
+    max-width: 100%;
+    padding: 2px 8px;
+    border: none;
+    border-radius: 10px;
+    background: #f1f3f4;
+    color: #333;
+    font-size: 11px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.share-suggestion-chip:hover {
+    background: #e0e3e6;
+}
+
 /* トースト通知 */
 .toast {
     position: fixed;

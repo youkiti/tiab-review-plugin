@@ -104,9 +104,14 @@
                     </button>
                     <div id="share-input-area" class="share-input-area hidden">
                         <input type="email" id="share-email-input" data-i18n-placeholder="share_emailPlaceholder"
-                            class="share-email-input">
+                            class="share-email-input" list="share-email-suggestions">
+                        <datalist id="share-email-suggestions"></datalist>
                         <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-i18n="share_add"></button>
                         <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
+                        <div id="share-suggestion-area" class="share-suggestion-area hidden">
+                            <div class="share-suggestion-label" data-i18n="share_recentContacts"></div>
+                            <div id="share-suggestion-chips" class="share-suggestion-chips"></div>
+                        </div>
                         <div class="shared-users-section">
                             <h5 data-i18n="share_sharedUsers"></h5>
                             <div id="shared-users-list" class="shared-users-list"></div>

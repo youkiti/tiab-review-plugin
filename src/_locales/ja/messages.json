@@ -931,6 +931,9 @@
   "share_sharedUsers": {
     "message": "共有済みユーザー"
   },
+  "share_recentContacts": {
+    "message": "最近の共有相手"
+  },
   "share_invalidEmail": {
     "message": "有効なメールアドレスを入力してください"
   },
