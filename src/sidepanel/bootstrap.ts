@@ -171,6 +171,9 @@ export function bootstrapCommon(): void {
             const appState = getState();
             if (appState.ui.flags.shareInputOpen) {
                 dom.shareEmailInput.focus();
+                // 権限リスト取得（loadSharedUsers）を待たず、履歴ベースの候補をまず即時表示する。
+                // 権限リスト取得完了後、共有済みユーザーを除外した候補で再描画される（二段構え）。
+                sharing.loadShareSuggestions();
                 sharing.loadSharedUsers();
             }
         }, 0);

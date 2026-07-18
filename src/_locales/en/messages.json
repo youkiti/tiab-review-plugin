@@ -931,6 +931,9 @@
   "share_sharedUsers": {
     "message": "Shared Users"
   },
+  "share_recentContacts": {
+    "message": "Recent collaborators"
+  },
   "share_invalidEmail": {
     "message": "Please enter a valid email address"
   },

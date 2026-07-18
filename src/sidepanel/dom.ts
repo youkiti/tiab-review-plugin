@@ -132,6 +132,9 @@ const domElements = {
     get shareCancelBtn() { return getElement<HTMLButtonElement>('share-cancel-btn'); },
     get shareCopyInviteBtn() { return getElement<HTMLButtonElement>('share-copy-invite-btn'); },
     get sharedUsersList() { return getElement<HTMLElement>('shared-users-list'); },
+    get shareSuggestionArea() { return getElement<HTMLElement>('share-suggestion-area'); },
+    get shareSuggestionChips() { return getElement<HTMLElement>('share-suggestion-chips'); },
+    get shareEmailDatalist() { return getElement<HTMLDataListElement>('share-email-suggestions'); },
 
     // ========== Settings ==========
     get settingsSection() { return getElement<HTMLElement>('settings-section'); },
