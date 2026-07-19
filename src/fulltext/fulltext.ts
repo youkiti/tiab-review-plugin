@@ -111,6 +111,16 @@ function isStale(token: number): boolean {
 let pendingDecision: 'include' | 'exclude' | 'maybe' | null = null;
 let existingDecision: { decision: Decision; rowIndex: number } | null = null;
 
+// 除外理由 select をポインタ（マウス/タッチ）で操作中かどうか。
+// リストボックス（size付きselect）はクリックでも change が発火するため、
+// 「クリック選択 → 保存して次へ」と「↑↓キーでのブラウズ → 保存のみ」を
+// 区別するのに使う。
+let reasonPointerDown = false;
+// 今回のポインタ操作中に理由の値が変わったかどうか。
+// select の外で離した（クリック不成立）場合に、表示と保存を一致させる
+// 保存だけを行うための判定に使う。
+let reasonChangedByPointer = false;
+
 // 除外理由の選択肢（fulltext.html の <select> のオプション順と一致させる）。
 // 数字キー 1〜7 のショートカット割り当てに使う。
 const REASON_VALUES = [
@@ -499,11 +509,47 @@ function wireDecisionButtons(): void {
     document.getElementById('ft-btn-maybe')?.addEventListener('click', () => { void chooseDecision('maybe'); });
     document.getElementById('ft-save-btn')?.addEventListener('click', () => { void handleSave(); });
 
-    // 除外理由・メモの変更は、その場で再保存する。
+    // 除外理由の確定はモダリティで挙動を分ける：
+    // - クリック（ポインタ）で選択: 確定とみなし、保存して次の候補へ進む
+    // - ↑↓キーでのブラウズ: その場で保存のみ（Enter/数字キーで次へ）
     // 新規除外は理由が選ばれてから初めて保存する。
-    document.getElementById('ft-reason-select')?.addEventListener('change', () => {
-        if (pendingDecision === 'exclude') void handleSave();
+    const reasonSelect = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    reasonSelect?.addEventListener('change', () => {
+        if (pendingDecision !== 'exclude') return;
+        if (reasonPointerDown) {
+            // クリック選択。確定処理（保存＋次へ）は pointerup 側で行う
+            reasonChangedByPointer = true;
+            return;
+        }
+        void handleSave();
     });
+    reasonSelect?.addEventListener('pointerdown', () => {
+        reasonPointerDown = true;
+        reasonChangedByPointer = false;
+    });
+    // select の外で離した場合も拾えるよう window で監視する
+    window.addEventListener('pointerup', (e) => {
+        if (!reasonPointerDown) return;
+        reasonPointerDown = false;
+        if (pendingDecision !== 'exclude' || !reasonSelect?.value) return;
+        if (e.target instanceof Node && reasonSelect.contains(e.target)) {
+            // select 上で離した＝クリック確定。保存して次の候補へ。
+            // 選択済みの理由をもう一度クリックした場合も確定として扱う。
+            void commitReasonAndAdvance();
+        } else if (reasonChangedByPointer) {
+            // select の外で離した（クリック取り消し）。選択表示は変わっているため
+            // 保存だけ行い、次へは進まない。
+            void handleSave();
+        }
+    });
+    window.addEventListener('pointercancel', () => {
+        if (!reasonPointerDown) return;
+        reasonPointerDown = false;
+        if (pendingDecision === 'exclude' && reasonChangedByPointer && reasonSelect?.value) {
+            void handleSave();
+        }
+    });
+    // メモの変更は、その場で再保存する（自動送りはしない）。
     document.getElementById('ft-reason-note')?.addEventListener('change', () => {
         if (pendingDecision === 'exclude') {
             const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
@@ -545,7 +591,7 @@ async function commitNoteAndAdvance(): Promise<void> {
 /**
  * 判定を選択して即保存する（TiAbレビューと同じ即保存挙動）。
  * - 組み入れ: 保存してそのまま次の候補へ進む
- * - 除外: 理由エリアを表示・フォーカスし、理由が確定（数字キー/Enter）したら次へ進む
+ * - 除外: 理由エリアを表示・フォーカスし、理由が確定（クリック/数字キー/Enter）したら次へ進む
  * - 保留: 即保存しつつメモ欄（任意）を表示。第2レビュアー・adjudication で
  *   「何が判断できなかったか」を共有できるようにする。Enter で次へ進む。
  */
@@ -555,7 +601,7 @@ async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'): Promis
 
     if (decision === 'exclude') {
         focusReasonSelect();     // キーボードで理由を選べるようフォーカス
-        showFeedback('除外理由を選択すると保存されます');
+        showFeedback('除外理由を選択すると保存して次の候補へ進みます');
         return;                  // 理由確定で保存して advanceToNext する
     }
 
