@@ -143,6 +143,10 @@
                     <code>chrome.identity</code> により取得し、Google API の呼び出しに必要な範囲で使用します。</p>
                 <p class="en">The Service uses Google's OAuth 2.0 authorization. Authentication tokens are obtained via
                     <code>chrome.identity</code> and used only as needed to call Google APIs.</p>
+                <p class="ja">認証トークンはブラウザのセッション内だけに保持し、Chrome終了時に消去されます。次回起動時のサイレント再認証のため、前回使用したGoogleアカウントのメールアドレスのみを端末内に保存し、明示的なログアウト時に削除します。</p>
+                <p class="en">Authentication tokens are kept only for the browser session and are cleared when Chrome
+                    exits. To support silent reauthorization on the next launch, only the email address of the last used
+                    Google account is stored on the device and is removed when you explicitly sign out.</p>
                 <p class="ja">本拡張機能は、外部から JavaScript / Wasm をダウンロードして実行することはありません（いわゆるリモートコードは使用しません）。</p>
                 <p class="en">The extension does not download and execute external JavaScript/Wasm (i.e., we do not use
                     remote code).</p>
