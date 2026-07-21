@@ -1,0 +1,85 @@
+{
+  "experimentId": "2026-07-21T21-50-00",
+  "startTime": "2026-07-21T21:50:00.214Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "sampleSize": 50,
+    "condition": {
+      "id": "C3",
+      "model": "gemini-3.5-flash-lite",
+      "temperature": 1,
+      "topP": 0.95,
+      "thinkingLevel": "MINIMAL"
+    },
+    "tier": "tier_smoke",
+    "rateLimitConfig": {
+      "concurrency": 10,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 50,
+    "successCount": 50,
+    "failCount": 0,
+    "fallbackCount": 0,
+    "durationMs": 7984,
+    "avgTimePerItem": 159.68,
+    "modelVersions": [
+      "gemini-3.5-flash-lite"
+    ]
+  },
+  "usage": {
+    "promptTokens": 25110,
+    "candidatesTokens": 5323,
+    "thoughtsTokens": 0,
+    "totalTokens": 30433,
+    "samples": 50,
+    "maxTokensTruncated": 0,
+    "parseErrorFallback": 0
+  },
+  "cost": {
+    "inputUSD": 0.007533,
+    "outputUSD": 0.0133075,
+    "totalUSD": 0.020840499999999998,
+    "usdPer1000Items": 0.41680999999999996
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 7,
+    "falsePositives": 0,
+    "trueNegatives": 42,
+    "falseNegatives": 1,
+    "sensitivity": 0.875,
+    "specificity": 1,
+    "precision": 1,
+    "fBetaScore": 0.8771929824561403
+  },
+  "endTime": "2026-07-21T21:50:08.270Z",
+  "consoleLog": [
+    "[2026-07-21T21:50:00.214Z] === Starting Experiment 2026-07-21T21-50-00 ===",
+    "[2026-07-21T21:50:00.214Z] Dataset: depression, Condition: C3, Tier: tier_smoke",
+    "[2026-07-21T21:50:00.226Z] 1993件の文献をdepressionから読み込み",
+    "[2026-07-21T21:50:00.227Z] ラベル分布: 陽性=280, 陰性=1713",
+    "[2026-07-21T21:50:00.227Z] 50件にサンプリング",
+    "[2026-07-21T21:50:00.229Z] 条件: {\"id\":\"C3\",\"model\":\"gemini-3.5-flash-lite\",\"temperature\":1,\"topP\":0.95,\"thinkingLevel\":\"MINIMAL\"}",
+    "[2026-07-21T21:50:00.229Z] レート制限: concurrency=10, delay=200ms",
+    "[2026-07-21T21:50:08.266Z] 完了: 50/50 成功, フォールバック 0 (8.0秒)",
+    "[2026-07-21T21:50:08.266Z] 平均処理時間: 160ms/件",
+    "[2026-07-21T21:50:08.266Z] 実モデルバージョン: gemini-3.5-flash-lite",
+    "[2026-07-21T21:50:08.268Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.5-flash-lite\\results\\decisions_2026-07-21T21-50-00.json",
+    "[2026-07-21T21:50:08.269Z] \n=== Token / Cost ===",
+    "[2026-07-21T21:50:08.269Z] prompt=25110, candidates=5323, thoughts=0, total=30433",
+    "[2026-07-21T21:50:08.269Z] USD: input=$0.0075, output=$0.0133, total=$0.0208 ($0.417 / 1K件)",
+    "[2026-07-21T21:50:08.269Z] MAX_TOKENS で切り詰め: 0 件 (フォールバック総数 0 件中)",
+    "[2026-07-21T21:50:08.270Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-07-21T21:50:08.270Z] TP: 7, FP: 0",
+    "[2026-07-21T21:50:08.270Z] TN: 42, FN: 1",
+    "[2026-07-21T21:50:08.270Z] Sensitivity: 87.50%",
+    "[2026-07-21T21:50:08.270Z] Specificity: 100.00%",
+    "[2026-07-21T21:50:08.270Z] Precision: 100.00%",
+    "[2026-07-21T21:50:08.270Z] Fβ(β=7): 87.72%"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+    "description": "gemini-3.5-flash-lite 評価実験 (Lite階層: temperature/topP/thinkingLevel マトリクス)",
+    "version": "1.0",
+    "model": "gemini-3.5-flash-lite",
+    "pricing": {
+        "inputPerMTok": 0.30,
+        "outputPerMTok": 2.50,
+        "note": "ユーザー提供, 2026-07-22"
+    },
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 1000,
+            "delayBetweenRequests": 1
+        },
+        "tier_smoke": {
+            "concurrency": 10,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "C1",
+            "model": "gemini-3.5-flash-lite",
+            "temperature": 0.0
+        },
+        {
+            "id": "C2",
+            "model": "gemini-3.5-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95
+        },
+        {
+            "id": "C3",
+            "model": "gemini-3.5-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL"
+        },
+        {
+            "id": "C4",
+            "model": "gemini-3.5-flash-lite",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11, "msPerItem": 300 },
+            "GA_C1": { "model": "gemini-3.1-flash-lite (GA)", "config": "Temp 0", "recall": 0.936, "precision": 0.616, "fBeta7": 0.926, "tp": 262, "fp": 163, "tn": 1550, "fn": 18, "msPerItem": 9 }
+        }
+    }
+}

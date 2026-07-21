@@ -182,6 +182,8 @@ npm run watch
 | `gemini-3.1-flash-lite` (GA) | Temp 0 | 93.6% | 61.6% | 92.6% | 9 | 約 $0.30 |
 | `gemini-3.1-flash-lite-preview` | Temp 0 | 92.9% | 62.4% | 92.0% | 15 | 約 $0.30 |
 | `gemini-3.5-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MINIMAL | 93.2% | 54.6% | 91.9% | 31 | $1.93 |
+| `gemini-3.6-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 94.6% | 49.6% | 93.0% | 31 | $1.70 |
+| `gemini-3.5-flash-lite` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 91.8% | 64.4% | 91.0% | 5 | $0.41 |
 
 ### OpenRouter モデル評価 (2026-05, depression 全1,993件)
 
@@ -235,6 +237,10 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 | `gemini-3.5-flash` | $1.50 | $9.00 |
 | `gemini-3-flash-preview` (B4, 当時の `gemini-flash-latest` エイリアス実体) | 推定 | 推定 |
 | `gemini-3.1-flash-lite` | 低価格帯 | 低価格帯 |
+| `gemini-3.6-flash` | $1.50 | $7.50 |
+| `gemini-3.5-flash-lite` | $0.30 | $2.50 |
+
+※ `gemini-3.6-flash` / `gemini-3.5-flash-lite` の価格はプロジェクトオーナーが直接提供した数値（2026-07-22時点）。参照可能な公式価格ページが未公開のため出典は引用できない。
 
 **現時点の推奨**:
 - 既定モデル: 速度・コスト優先で `gemini-3.1-flash-lite` (GA, Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
@@ -242,6 +248,8 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 - OpenRouter 系 (Kimi K2 / Qwen3 235B / DeepSeek V4 / Grok 4.3) は 2026-05 評価でいずれも depression 全件 Recall 95% 未満で、既定モデルの差し替え候補にはならず。`qwen3-235b-a22b-2507` のみ「コスト最重視の予算オプション」として `experiments/openrouter-bench/` で再現可能。
 - OpenAI `gpt-5.6-luna` は 2026-07 評価で depression 全件 Recall 95% 未満 (none 92.9% / low・medium 91.4%)、B4 を上回らず差し替え候補にならず。詳細は `experiments/gpt-5.6/`。
+- `gemini-3.6-flash` は 2026-07 評価で depression Recall 94.6%（最良 D1, Think LOW）。現行デフォルト `gemini-3.1-flash-lite` (93.6%) と B4 (96.1%) の中間で、fallback/budget-tier の候補ではあるが採用基準の Recall ≥95% には届かず。コストは B4 とほぼ同水準（約1.0倍）で、UI公開・デフォルト切替は見送り。詳細は `experiments/gemini-3.6-flash/`。
+- `gemini-3.5-flash-lite` は 2026-07 評価で depression Recall 91.8%（最良 C4, Think LOW）にとどまり、現行 lite 既定 (93.6%) を下回るため却下。B4 よりコストは低い（約0.24倍）が、Recall 不足が採用のボトルネック。詳細は `experiments/gemini-3.5-flash-lite/`。
 
 ### 詳細レポート
 
@@ -252,6 +260,8 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `gemini-3.5-flash` (採用見送り): [experiments/gemini-3.5-flash/report.md](experiments/gemini-3.5-flash/report.md)
 - OpenRouter 比較 (Kimi/Qwen/DeepSeek/Grok, 2026-05): [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)
 - OpenAI `gpt-5.6-luna` (採用見送り, 2026-07): [experiments/gpt-5.6/report.md](experiments/gpt-5.6/report.md)
+- `gemini-3.6-flash` (参考・採用見送り, 2026-07): [experiments/gemini-3.6-flash/report.md](experiments/gemini-3.6-flash/report.md)
+- `gemini-3.5-flash-lite` (却下, 2026-07): [experiments/gemini-3.5-flash-lite/report.md](experiments/gemini-3.5-flash-lite/report.md)
 - ASReview 比較: [experiments/asreview/REPORT.md](experiments/asreview/REPORT.md)
 
 ## 手動レビュー時の戻る挙動
