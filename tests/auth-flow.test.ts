@@ -96,6 +96,19 @@ test('旧 session のメールを local へ移行してサイレント認証に�
     assert.equal(session.values.oauthEmail, undefined);
 });
 
+test('有効なトークンがキャッシュ済みでも旧 session のメールを local へ移行する', async () => {
+    session.values.oauthToken = { token: 'cached-token', expiresAt: Date.now() + 3_600_000 };
+    session.values.oauthEmail = 'legacy@example.com';
+    const { getAuthToken } = await import('../src/background/auth-flow');
+
+    const token = await getAuthToken(false);
+
+    assert.equal(token, 'cached-token');
+    assert.equal(launchedUrls.length, 0); // トークンがキャッシュヒットしたので認可フローは起動しない
+    assert.equal(local.values.oauthEmail, 'legacy@example.com');
+    assert.equal(session.values.oauthEmail, undefined);
+});
+
 test('ログアウト時は session のトークンと local のメールを削除する', async () => {
     session.values.oauthToken = { token: 'test-token', expiresAt: Date.now() + 3_600_000 };
     local.values.oauthEmail = 'reviewer@example.com';

@@ -127,7 +127,13 @@ let inflight: Promise<string> | null = null;
  */
 export async function getAuthToken(interactive = false): Promise<string> {
     const cached = await readCachedToken();
-    if (cached && Date.now() < cached.expiresAt - 60_000) return cached.token;
+    if (cached && Date.now() < cached.expiresAt - 60_000) {
+        // トークンがキャッシュヒットする間は下の inflight フロー（cacheEmail 経由の
+        // local 保存）が実行されない。旧 session 保存のメールが残ったままだと
+        // ブラウザを閉じた瞬間に失われるため、ヒット時も移行だけは都度試みる。
+        await readCachedEmail();
+        return cached.token;
+    }
 
     if (inflight) {
         try {
