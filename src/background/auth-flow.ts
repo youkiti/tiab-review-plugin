@@ -5,6 +5,8 @@
  * 認可時に任意の Google アカウントを選べる launchWebAuthFlow へ移行した。
  * MV3 の Service Worker はアイドルで破棄されメモリ上のキャッシュが消えるため、
  * トークンは chrome.storage.session に保持する（ディスク非永続・ブラウザ終了で消去）。
+ * 前回使ったメールアドレスだけは chrome.storage.local に保持し、Chrome 再起動後の
+ * サイレント再認証で login_hint として使う。トークン自体は永続化しない。
  */
 
 // webpack DefinePlugin によりビルド時に文字列リテラルへ置換されるグローバル定数。
@@ -18,7 +20,8 @@ const SCOPES = [
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_KEY = 'oauthToken';
-// 認可済みアカウントのメール。login_hint（サイレント再取得時のヒント）とポップアップ表示に使う。
+// 認可済みアカウントのメール。機密トークンではないため local に保存し、
+// Chrome 再起動後もサイレント再認証の login_hint として使う。
 const EMAIL_KEY = 'oauthEmail';
 
 interface CachedToken {
@@ -75,8 +78,18 @@ async function readCachedToken(): Promise<CachedToken | undefined> {
 }
 
 async function readCachedEmail(): Promise<string | undefined> {
-    const stored = await chrome.storage.session.get(EMAIL_KEY);
-    return stored[EMAIL_KEY] as string | undefined;
+    const stored = await chrome.storage.local.get(EMAIL_KEY);
+    const email = stored[EMAIL_KEY];
+    if (typeof email === 'string' && email) return email;
+
+    // 旧バージョンの session 保存から、ブラウザを閉じる前に一度だけ移行する。
+    const legacyStored = await chrome.storage.session.get(EMAIL_KEY);
+    const legacyEmail = legacyStored[EMAIL_KEY];
+    if (typeof legacyEmail !== 'string' || !legacyEmail) return undefined;
+
+    await chrome.storage.local.set({ [EMAIL_KEY]: legacyEmail });
+    await chrome.storage.session.remove(EMAIL_KEY);
+    return legacyEmail;
 }
 
 /**
@@ -93,7 +106,7 @@ async function cacheEmail(token: string, force: boolean): Promise<void> {
         if (!response.ok) return;
         const info = await response.json();
         if (info.email) {
-            await chrome.storage.session.set({ [EMAIL_KEY]: info.email });
+            await chrome.storage.local.set({ [EMAIL_KEY]: info.email });
         }
     } catch {
         // userinfo は付随情報のため、失敗してもトークン取得自体は成功として扱う
@@ -165,7 +178,7 @@ export async function forceReauth(): Promise<string> {
     return token;
 }
 
-/** ログアウト処理。トークンを取り消し、storage.session のキャッシュも破棄する。 */
+/** ログアウト処理。トークンを取り消し、セッションとアカウントヒントを破棄する。 */
 export async function clearAuth(): Promise<void> {
     const cached = await readCachedToken();
     if (cached) {
@@ -178,6 +191,7 @@ export async function clearAuth(): Promise<void> {
         }
     }
     await chrome.storage.session.remove([TOKEN_KEY, EMAIL_KEY]);
+    await chrome.storage.local.remove(EMAIL_KEY);
 }
 
 /** 現在サインイン中のメールを返す。未ログイン・取得失敗時は null。 */
@@ -199,7 +213,7 @@ export async function getSignedInEmail(): Promise<string | null> {
         if (!response.ok) return null;
         const info = await response.json();
         if (!info.email) return null;
-        await chrome.storage.session.set({ [EMAIL_KEY]: info.email });
+        await chrome.storage.local.set({ [EMAIL_KEY]: info.email });
         return info.email;
     } catch {
         return null;
