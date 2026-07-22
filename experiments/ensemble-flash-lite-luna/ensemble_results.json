@@ -1,0 +1,52 @@
+{
+  "threshold": 0.5,
+  "flashLite": {
+    "totalRaw": 1993,
+    "parsedCount": 1993,
+    "parseFailures": 0
+  },
+  "conditions": [
+    {
+      "label": "none",
+      "evaluation": {
+        "threshold": 0.5,
+        "truePositives": 267,
+        "falsePositives": 285,
+        "trueNegatives": 1428,
+        "falseNegatives": 13,
+        "sensitivity": 0.9535714285714286,
+        "specificity": 0.8336252189141856,
+        "precision": 0.483695652173913,
+        "fBetaScore": 0.9353979820627802
+      }
+    },
+    {
+      "label": "low",
+      "evaluation": {
+        "threshold": 0.5,
+        "truePositives": 266,
+        "falsePositives": 219,
+        "trueNegatives": 1494,
+        "falseNegatives": 14,
+        "sensitivity": 0.95,
+        "specificity": 0.87215411558669,
+        "precision": 0.5484536082474227,
+        "fBetaScore": 0.9362900387187609
+      }
+    },
+    {
+      "label": "medium",
+      "evaluation": {
+        "threshold": 0.5,
+        "truePositives": 265,
+        "falsePositives": 178,
+        "trueNegatives": 1535,
+        "falseNegatives": 15,
+        "sensitivity": 0.9464285714285714,
+        "specificity": 0.8960887332165791,
+        "precision": 0.5981941309255079,
+        "fBetaScore": 0.935536256442844
+      }
+    }
+  ]
+}
