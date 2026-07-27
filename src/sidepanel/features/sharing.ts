@@ -9,6 +9,7 @@ import { showToast } from '../ui/feedback';
 import { addPermission, getProjectDriveFolderId, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 import { addShareEmailToHistory, getShareEmailHistory, mergeShareEmailsToHistory } from '../../lib/share-email-history';
+import { buildInviteMessage } from '../../lib/share-invite';
 
 // Store互換レイヤー（Phase 4）
 import { closeShareInput } from '../store/compat';
@@ -86,7 +87,14 @@ export async function handleShare() {
         // 一括で編集可能にできる（PDFは著作権物なので公開リンクは使わずメンバー限定）。
         // フォルダを持たない既存プロジェクトは従来どおりスプレッドシート単体を共有する。
         const folderId = await getProjectDriveFolderId(state.spreadsheetId);
-        await addPermission(folderId || state.spreadsheetId, email, 'writer');
+
+        // フォルダ共有時、Driveの既定通知メールは「フォルダを共有しました」としか表示されず、
+        // スプレッドシートURLも拡張のインストール手順も載らない（スプレッドシート単体共有の場合と
+        // 違い、共有相手はどこから作業を始めればよいか分からなくなる）。そのため招待文テンプレートを
+        // 通知メール本文に載せる。spreadsheetIdが無い場合（想定外だが防御的に）は従来どおり
+        // Drive既定の通知文のみとする。
+        const message = state.spreadsheetId ? buildInviteMessage(state.spreadsheetId) : undefined;
+        await addPermission(folderId || state.spreadsheetId, email, 'writer', message);
 
         showToast(t('share_added', email));
         dom.shareEmailInput.value = '';
@@ -120,8 +128,7 @@ export async function copyInviteTemplate() {
         return;
     }
 
-    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
-    const text = t('share_inviteTemplate', url);
+    const text = buildInviteMessage(spreadsheetId);
 
     try {
         await navigator.clipboard.writeText(text);

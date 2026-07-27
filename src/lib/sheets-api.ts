@@ -1813,24 +1813,87 @@ export async function getSpreadsheetPermissions(spreadsheetId: string): Promise<
 }
 
 /**
- * 共有設定を追加（Google Drive API）
+ * emailMessage クエリパラメータの、encodeURIComponent 後の長さの上限バジェット。
+ * Drive REST API の URL 全体には概ね8KB程度の実用上の制限があるため、その半分程度を
+ * emailMessage 用に確保する。日本語1文字は encodeURIComponent で最大9文字
+ * （UTF-8 3バイト → "%XX%XX%XX"）に膨らむため、元の文字数ではなくエンコード後の
+ * 長さを基準に切り詰める。招待文テンプレート（日本語で約300文字）はエンコード後でも
+ * 十分このバジェット内に収まるため、実運用で切り詰めが発生することはまず無い。
  */
-export async function addPermission(fileId: string, emailAddress: string, role: 'writer' | 'reader' = 'writer'): Promise<void> {
+const EMAIL_MESSAGE_ENCODED_BUDGET = 4000;
+
+/** truncateEmailMessageForQuery が1回のループで末尾から削るコードポイント数 */
+const TRUNCATE_CHUNK_SIZE = 50;
+
+/**
+ * emailMessage を、encodeURIComponent 後の長さが budget 以内に収まるまで末尾から削る。
+ * サロゲートペア（絵文字等）を途中で分断しないよう Array.from でコードポイント単位に
+ * 分割してから操作する。ループのたびに配列が必ず短くなるため無限ループにはならない。
+ */
+function truncateEmailMessageForQuery(message: string, budget: number): string {
+    if (encodeURIComponent(message).length <= budget) return message;
+    const chars = Array.from(message);
+    while (chars.length > 0 && encodeURIComponent(chars.join('')).length > budget) {
+        chars.splice(-TRUNCATE_CHUNK_SIZE);
+    }
+    return chars.join('');
+}
+
+/**
+ * 共有設定を追加（Google Drive API）
+ *
+ * @param fileId 共有対象のファイル/フォルダID
+ * @param emailAddress 共有相手のメールアドレス
+ * @param role 付与する権限（既定: writer）
+ * @param emailMessage Driveの共有通知メールに載せる本文（省略時はDrive既定の通知文のみ）。
+ *   **注意**: Drive API v3 permissions.create の仕様上、emailMessage は
+ *   リクエストボディではなく **URLのクエリパラメータ** で渡す
+ *   （https://developers.google.com/workspace/drive/api/reference/rest/v3/permissions/create）。
+ *   Permission リソース（ボディ）のスキーマに emailMessage フィールドは存在せず、
+ *   ボディに入れても Drive 側は無視する（＝通知メール本文が変わらない）ので注意すること。
+ *   emailMessage 指定時は sendNotificationEmail=true も明示的にクエリへ付ける
+ *   （type=user 時は本来既定で true だが、本文を載せる以上メール送信自体を必須要件として
+ *   明示する）。emailMessage 未指定時はクエリを一切付けず、従来と同一のリクエストにする。
+ *   URL長制限に配慮し、エンコード後の長さが EMAIL_MESSAGE_ENCODED_BUDGET を超える場合は
+ *   末尾を切り詰める。
+ */
+export async function addPermission(
+    fileId: string,
+    emailAddress: string,
+    role: 'writer' | 'reader' = 'writer',
+    emailMessage?: string
+): Promise<void> {
     const token = await getAuthToken();
 
+    const body = {
+        role: role,
+        type: 'user',
+        emailAddress: emailAddress,
+    };
+
+    // クエリ文字列は URLSearchParams ではなく encodeURIComponent を自前で使って組み立てる。
+    // URLSearchParams.toString() は application/x-www-form-urlencoded 形式のため、
+    // 空白を %20 ではなく + にエンコードしてしまう。招待文には「TiAb Review Plugin」
+    // 「Google Chrome」など空白を含む文字列が多数あり、Google側が + をリテラルの
+    // プラス記号として解釈した場合、共有相手に届くメール本文が「TiAb+Review+Plugin」の
+    // ように壊れて見えるリスクがある。%20（RFC 3986）はどちらの解釈でも確実に空白になる
+    // ため、こちらに寄せている。「URLSearchParamsの方が綺麗」という理由で戻さないこと。
+    let queryString = '';
+    if (emailMessage) {
+        const truncated = truncateEmailMessageForQuery(emailMessage, EMAIL_MESSAGE_ENCODED_BUDGET);
+        queryString = `?emailMessage=${encodeURIComponent(truncated)}&sendNotificationEmail=true`;
+    }
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`;
+
     const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+        url,
         {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                role: role,
-                type: 'user',
-                emailAddress: emailAddress,
-            }),
+            body: JSON.stringify(body),
         }
     );
 
