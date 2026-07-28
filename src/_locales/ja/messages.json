@@ -1107,6 +1107,9 @@
   "blind_offError": {
     "message": "Blind openエラー: $1"
   },
+  "error_quotaExceeded": {
+    "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"
+  },
   "progress_importPrompt": {
     "message": "文献をインポートしてください 📂"
   },

@@ -28,6 +28,17 @@ export function isSheetsAccessDeniedStatus(status: number): boolean {
     return status === 403 || status === 404;
 }
 
+/**
+ * エラーが Sheets/Google API のクォータ超過によるものかを判定する。
+ * 429 レスポンスのメッセージには "Quota exceeded for quota metric ..." が、
+ * gRPC系のエラーには "RESOURCE_EXHAUSTED" が含まれるため、どちらかを含むかで判定する。
+ * UI 側で「アクセスが集中しています」という専用メッセージに差し替える際に使う。
+ */
+export function isQuotaExceededError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED');
+}
+
 async function readSheetsErrorMessage(response: Response): Promise<string> {
     try {
         const error = await response.json();
@@ -489,9 +500,33 @@ async function getSheetValuesBatch(spreadsheetId: string, ranges: string[]): Pro
 }
 
 /**
- * シートに行を追加
+ * values:append レスポンスの updates.updatedRange（例: `Decisions!A123:K123`、
+ * シート名に空白を含む場合は `'My Sheet'!A123:K123`）から先頭行番号を取り出す。
+ * シート名部分にも `!` が含まれ得るため、範囲の区切りは「最後の `!`」を基準にする。
+ * パースに失敗した場合は null を返す（呼び出し側はキャッシュを無効化すること）。
  */
-async function appendRows(spreadsheetId: string, sheetName: string, rows: (string | number | undefined)[][]): Promise<void> {
+function parseFirstRowIndexFromUpdatedRange(updatedRange: string | undefined): number | null {
+    if (!updatedRange) return null;
+    const bangIndex = updatedRange.lastIndexOf('!');
+    if (bangIndex === -1) return null;
+    const rangePart = updatedRange.slice(bangIndex + 1);
+    const match = rangePart.match(/^[A-Za-z]+(\d+)/);
+    if (!match) return null;
+    const rowIndex = parseInt(match[1], 10);
+    return Number.isFinite(rowIndex) ? rowIndex : null;
+}
+
+/**
+ * シートに行を追加
+ * 戻り値の firstRowIndex は追記した最初の行のシート行番号（1始まり）。
+ * Decisions への保存で「読み取りなしで新規行の行番号をキャッシュへ登録する」ために使う。
+ * 既存の呼び出し元の大半は戻り値を使わない（await するだけ）ため、そのまま動作する。
+ */
+async function appendRows(
+    spreadsheetId: string,
+    sheetName: string,
+    rows: (string | number | undefined)[][]
+): Promise<{ firstRowIndex: number | null }> {
     const token = await getAuthToken();
 
     const response = await fetch(
@@ -512,6 +547,10 @@ async function appendRows(spreadsheetId: string, sheetName: string, rows: (strin
         const error = await response.json();
         throw new Error(`Failed to append rows: ${error.error?.message || response.statusText}`);
     }
+
+    const data = await response.json().catch(() => null);
+    const firstRowIndex = parseFirstRowIndexFromUpdatedRange(data?.updates?.updatedRange);
+    return { firstRowIndex };
 }
 
 /**
@@ -831,7 +870,10 @@ function parseDecisionValues(values: string[][]): { decision: Decision; rowIndex
  */
 export async function getDecisions(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
     const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
-    return parseDecisionValues(values);
+    const decisionsData = parseDecisionValues(values);
+    // 全件読み取ったタイミングで行番号キャッシュを温める（saveDecision の読み取り削減用）
+    primeDecisionRowCache(spreadsheetId, decisionsData);
+    return decisionsData;
 }
 
 /**
@@ -1141,19 +1183,116 @@ function detectConflict(decisions: Decision[]): boolean {
     return uniqueDecisions.size > 1;
 }
 
+// ---------------------------------------------------------------------------
+// Decisions 行番号キャッシュ（判定保存のクォータ削減用）
+//
+// saveDecision() が判定1件ごとに Decisions!A:K を全件読み取ると、読み取りクォータ
+// （60回/分/ユーザー）を連打時に即座に超過してしまう。getDecisions() 等で読んだ内容から
+// 「key(ref_id+reviewer_id+phase) -> シート行番号」のキャッシュを作っておき、
+// saveDecision() では原則キャッシュだけで既存行の有無を判定する（読み取り0回で保存する）。
+// ---------------------------------------------------------------------------
+
+/**
+ * キャッシュの有効期限。他ユーザーがDecisionsの行を削除した場合、行番号がずれて
+ * 古いキャッシュのまま上書きすると他人の判定を破壊しかねない。その巻き添えの窓を
+ * このTTLの範囲に限定するための安全弁であり、省略してはならない。
+ */
+const DECISION_ROW_CACHE_TTL_MS = 60_000;
+
+let decisionRowCache: {
+    spreadsheetId: string;
+    builtAt: number;
+    rows: Map<string, number>; // key -> シート行番号（1始まり）
+} | null = null;
+
+/** Decisions 行番号キャッシュのキーを組み立てる（ref_id/reviewer_id は trim、phase 省略時は 'tiab'） */
+function decisionRowKey(refId: string, reviewerId: string, phase: string | undefined): string {
+    return `${(refId || '').trim()}\u0000${(reviewerId || '').trim()}\u0000${phase ?? 'tiab'}`;
+}
+
+/**
+ * decisionRowCache の参照結果。
+ * ヒット/ミスの2値にすると「キャッシュはあるが未知のキー＝新規行」と
+ * 「キャッシュ自体が無効」を区別できず、初回判定のたびに読み取りが発生して
+ * 効果が半減してしまう。必ず3値で返すこと。
+ */
+type DecisionRowLookup =
+    | { state: 'cold' }                   // キャッシュ無効/期限切れ/別シート → 従来どおり読む
+    | { state: 'hit'; rowIndex: number }  // 既存行あり → updateRange
+    | { state: 'absent' };                // キャッシュは有効だがキー無し = 新規行 → 読まずに append
+
+function getCachedDecisionRow(spreadsheetId: string, key: string): DecisionRowLookup {
+    if (!decisionRowCache) return { state: 'cold' };
+    if (decisionRowCache.spreadsheetId !== spreadsheetId) return { state: 'cold' };
+    if (Date.now() - decisionRowCache.builtAt > DECISION_ROW_CACHE_TTL_MS) return { state: 'cold' };
+    const rowIndex = decisionRowCache.rows.get(key);
+    return rowIndex !== undefined ? { state: 'hit', rowIndex } : { state: 'absent' };
+}
+
+/**
+ * getDecisions() / getFulltextPageData() など、Decisions を rowIndex 付きで全件取得した
+ * 直後に必ず呼び、キャッシュを温める。
+ * 同一キーが複数行ある場合は「最初に見つかった行」を採用する（既存の saveDecision の
+ * find と同じ選択にすることで挙動を変えないため）。
+ */
+function primeDecisionRowCache(
+    spreadsheetId: string,
+    decisionsData: { decision: Decision; rowIndex: number }[]
+): void {
+    const rows = new Map<string, number>();
+    for (const { decision, rowIndex } of decisionsData) {
+        const key = decisionRowKey(decision.ref_id, decision.reviewer_id, decision.screening_phase);
+        if (!rows.has(key)) {
+            rows.set(key, rowIndex);
+        }
+    }
+    decisionRowCache = { spreadsheetId, builtAt: Date.now(), rows };
+}
+
+/**
+ * 新規追加した判定の行番号をキャッシュへ登録する。
+ * 行番号が特定できなかった場合（appendRows のレスポンス解析失敗）は、誤ったキャッシュで
+ * 他人の判定を上書きするリスクを避けるため、登録せずキャッシュ自体を無効化する。
+ */
+function registerDecisionRowInCache(spreadsheetId: string, key: string, rowIndex: number | null): void {
+    if (rowIndex === null) {
+        invalidateDecisionRowCache();
+        return;
+    }
+    if (!decisionRowCache || decisionRowCache.spreadsheetId !== spreadsheetId) return;
+    decisionRowCache.rows.set(key, rowIndex);
+}
+
+/**
+ * Decisions 行番号キャッシュを無効化する。
+ * 行削除など行番号がずれる操作の後や、新規キーの把握ができない一括追加の後に呼ぶこと。
+ */
+export function invalidateDecisionRowCache(): void {
+    decisionRowCache = null;
+}
+
+/**
+ * saveDecision の直列化用 Promise チェーン。
+ * 同一文献への保存が並行すると、両方が「既存行なし」と誤判定して重複行が2行できてしまう
+ * （連打時に実際に発生していたバグ）。モジュールスコープの Promise チェーンで直列化して防ぐ。
+ * 前段が失敗しても後続の保存を止めないよう、チェーン自体は常に resolve させておく。
+ */
+let saveDecisionChain: Promise<void> = Promise.resolve();
+
 /**
  * 判定を保存（新規追加 or 更新）
+ * 行番号キャッシュがヒットする限り読み取りリクエストを発行しない。
+ * キャッシュが無効な場合のみ、従来どおり Decisions!A:K を全件読み取ってから判定する。
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
-    // 既存の判定を検索（screening_phase ごとに分離して上書き）
-    const decisionsData = await getDecisions(spreadsheetId);
+    const run = saveDecisionChain.then(() => saveDecisionInner(spreadsheetId, decision));
+    saveDecisionChain = run.catch(() => { /* 前段の失敗で後続を止めない */ });
+    return run;
+}
+
+async function saveDecisionInner(spreadsheetId: string, decision: Decision): Promise<void> {
     const targetPhase = decision.screening_phase ?? 'tiab';
-    const existing = decisionsData.find(
-        ({ decision: d }) =>
-            d.ref_id === decision.ref_id &&
-            d.reviewer_id === decision.reviewer_id &&
-            (d.screening_phase ?? 'tiab') === targetPhase
-    );
+    const key = decisionRowKey(decision.ref_id, decision.reviewer_id, decision.screening_phase);
 
     const row = [
         decision.decision_id,
@@ -1169,12 +1308,37 @@ export async function saveDecision(spreadsheetId: string, decision: Decision): P
         decision.screening_phase || '',
     ];
 
+    const lookup = getCachedDecisionRow(spreadsheetId, key);
+
+    if (lookup.state === 'hit') {
+        // 既存行を更新（読み取り0回）
+        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${lookup.rowIndex}:K${lookup.rowIndex}`, [row]);
+        return;
+    }
+
+    if (lookup.state === 'absent') {
+        // キャッシュ済みで未知のキー = 新規行（読み取り0回）
+        const { firstRowIndex } = await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
+        registerDecisionRowInCache(spreadsheetId, key, firstRowIndex);
+        return;
+    }
+
+    // cold: キャッシュ無効時のみ従来どおり全件読み取る（getDecisions が内部でキャッシュを温める）
+    const decisionsData = await getDecisions(spreadsheetId);
+    const existing = decisionsData.find(
+        ({ decision: d }) =>
+            d.ref_id === decision.ref_id &&
+            d.reviewer_id === decision.reviewer_id &&
+            (d.screening_phase ?? 'tiab') === targetPhase
+    );
+
     if (existing) {
         // 既存行を更新
         await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:K${existing.rowIndex}`, [row]);
     } else {
         // 新規追加
-        await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
+        const { firstRowIndex } = await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
+        registerDecisionRowInCache(spreadsheetId, key, firstRowIndex);
     }
 }
 
@@ -1668,9 +1832,12 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
             `${DECISIONS_SHEET}!A:K`,
             `${CONFIG_SHEET}!A:B`,
         ]);
+        const decisions = parseDecisionValues(decValues);
+        // ここでも Decisions を rowIndex 付きで全件取得しているため、行番号キャッシュを温める
+        primeDecisionRowCache(spreadsheetId, decisions);
         return {
             references: parseReferenceValues(refValues),
-            decisions: parseDecisionValues(decValues),
+            decisions,
             config: parseConfigBundle(configValues),
         };
     } catch (error) {
@@ -1681,9 +1848,11 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
                 `${REFERENCES_SHEET}!A:V`,
                 `${DECISIONS_SHEET}!A:K`,
             ]);
+            const decisions = parseDecisionValues(decValues);
+            primeDecisionRowCache(spreadsheetId, decisions);
             return {
                 references: parseReferenceValues(refValues),
-                decisions: parseDecisionValues(decValues),
+                decisions,
                 config: { ...DEFAULT_CONFIG_BUNDLE },
             };
         }
@@ -2128,6 +2297,9 @@ export async function deleteFulltextAiRound(spreadsheetId: string, reviewerId: s
         const error = await response.json().catch(() => null);
         throw new Error(error?.error?.message || response.statusText);
     }
+
+    // 削除により Decisions の行番号がずれるため、行番号キャッシュを必ず無効化する
+    invalidateDecisionRowCache();
 
     // 採用中ラウンドを消したら採用解除
     const active = await getFulltextAiActiveRound(spreadsheetId);
@@ -3116,6 +3288,9 @@ export async function appendDecisions(spreadsheetId: string, decisions: Decision
     ]);
 
     await appendRows(spreadsheetId, DECISIONS_SHEET, rows);
+    // 行番号はずれないが、新規に追加したキーを行番号キャッシュが把握できておらず
+    // absent 判定を誤る（＝存在するのに新規行として追記してしまう）ため無効化する
+    invalidateDecisionRowCache();
 }
 
 /**

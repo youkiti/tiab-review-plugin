@@ -1107,6 +1107,9 @@
   "blind_offError": {
     "message": "Unblinding error: $1"
   },
+  "error_quotaExceeded": {
+    "message": "Too many requests right now. Please wait about a minute and try again."
+  },
   "progress_importPrompt": {
     "message": "Import references to get started 📂"
   },
