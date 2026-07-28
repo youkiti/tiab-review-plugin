@@ -38,6 +38,7 @@
 /* ヘッダータブ */
 .header-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
 }
 
@@ -87,6 +88,46 @@
     background: #16a085;
     border-color: #16a085;
     color: #fff;
+}
+
+/* フルテキストタブの候補件数バッジ（迷子防止：TiAb完了後の次工程を気づかせる） */
+.tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 5px;
+    margin-left: 5px;
+    border-radius: 8px;
+    background: #16a085;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    vertical-align: middle;
+}
+
+/* active時（タブ背景も#16a085）は白地に差し色文字で反転させ、視認性を保つ */
+.tab-btn-fulltext.active .tab-badge {
+    background: #fff;
+    color: #16a085;
+}
+
+/* TiAb完了時にバッジをパルスさせ、次工程への気づきを促す */
+.tab-badge.pulse {
+    animation: tab-badge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tab-badge-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tab-badge.pulse {
+        animation: none;
+    }
 }
 
 /* ログインヘッダー */

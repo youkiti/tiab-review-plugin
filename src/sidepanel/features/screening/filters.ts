@@ -245,6 +245,24 @@ export function getFilteredReferences(): ReferenceWithStatus[] {
 }
 
 /**
+ * スクリーニング件数（pending/all/include/exclude/maybe/conflict）を計算する
+ * - 対象配列は呼び出し側が渡す（統計フィルタは絞り込み後の配列、TiAb完了バナーは state.references 全体）
+ * - enabledReviewers / isKeyOpened / treatMlAsManual は既存の updateFilterCounts と同じく state から直接参照する
+ */
+export function getScreeningCounts(refs: ReferenceWithStatus[]) {
+    return {
+        pending: refs.filter(r => getMyManualDecisionStatus(r) === 'pending').length,
+        all: refs.length,
+        include: refs.filter(r => getMyManualDecisionStatus(r) === 'include').length,
+        exclude: refs.filter(r => getMyManualDecisionStatus(r) === 'exclude').length,
+        maybe: refs.filter(r => getMyManualDecisionStatus(r) === 'maybe').length,
+        conflict: refs.filter(r =>
+            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
+        ).length,
+    };
+}
+
+/**
  * フィルターの件数を更新
  */
 export function updateFilterCounts() {
@@ -258,16 +276,7 @@ export function updateFilterCounts() {
         filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
     }
 
-    const counts = {
-        pending: filtered.filter(r => getMyManualDecisionStatus(r) === 'pending').length,
-        all: filtered.length,
-        include: filtered.filter(r => getMyManualDecisionStatus(r) === 'include').length,
-        exclude: filtered.filter(r => getMyManualDecisionStatus(r) === 'exclude').length,
-        maybe: filtered.filter(r => getMyManualDecisionStatus(r) === 'maybe').length,
-        conflict: filtered.filter(r =>
-            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
-        ).length,
-    };
+    const counts = getScreeningCounts(filtered);
 
     // フルテキスト候補（独立アルゴリズム・自分の担当分のみ）
     const fulltextCount = filtered.filter(isMyFulltextCandidate).length;
@@ -287,6 +296,35 @@ export function updateFilterCounts() {
         const label = labels[opt.value];
         if (label !== undefined) opt.textContent = label;
     }
+
+    updateFulltextTabBadge(fulltextCount);
+}
+
+/**
+ * 「📄 全文」タブの候補件数バッジを更新する
+ * - 件数は上記の fulltextCount（isMyFulltextCandidate、ソースファイル／担当セット絞り込み込み）をそのまま流用
+ * - 0件なら非表示
+ * - TiAb完了時（自分の未判定0件かつ文献1件以上。絞り込みの影響を受けない全体基準）はパルスさせて次工程への気づきを促す
+ */
+function updateFulltextTabBadge(count: number): void {
+    const badge = dom.tabFulltextBadge;
+    if (count === 0) {
+        badge.classList.add('hidden');
+        badge.textContent = '';
+        badge.classList.remove('pulse');
+        return;
+    }
+
+    badge.textContent = String(count);
+    badge.title = t('nav_tabFulltextBadgeTitle', String(count));
+    badge.classList.remove('hidden');
+
+    // pulse要否は「未判定が0件か」だけ分かればよいため、getScreeningCounts()（全件に対し
+    // フィルタ5回＋不一致判定1回）は使わず some() の短絡評価で済ませる。
+    // 矢印キーでの文献移動のたびに走る処理のため、数千件規模でも軽量に保つ。
+    const isTiabDone = state.references.length > 0
+        && !state.references.some(r => getMyManualDecisionStatus(r) === 'pending');
+    badge.classList.toggle('pulse', isTiabDone);
 }
 
 /**

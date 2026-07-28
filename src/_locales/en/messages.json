@@ -224,6 +224,36 @@
   "screening_openFulltext": {
     "message": "Open Full Text →"
   },
+  "screening_tiabDoneTitle": {
+    "message": "🎉 TiAb screening complete ($1 references, all decided)"
+  },
+  "screening_tiabDoneConflictOr": {
+    "message": "There are $1 conflicting decisions, but conflicting references still count as full-text candidates, so it's fine to move on. If you'd like to reduce the full texts to retrieve, resolve any obvious slip-ups first."
+  },
+  "screening_tiabDoneConflictStrict": {
+    "message": "⚠️ There are $1 conflicting decisions. Under the current pool rule ($3 of $2 votes), conflicting references won't become full-text candidates until resolved. Please resolve them first."
+  },
+  "screening_tiabDoneConflictBtn": {
+    "message": "Review conflicts"
+  },
+  "screening_tiabDoneBlind": {
+    "message": "Conflicts are hidden while blinded, so it's fine to proceed to full text as is. You can resolve any slip-ups after turning blinding off."
+  },
+  "screening_tiabDoneMaybe": {
+    "message": "⚠️ There are $1 references marked Maybe. They won't become full-text candidates while left as Maybe — change any you'd like to evaluate in full text to Include."
+  },
+  "screening_tiabDoneMaybeBtn": {
+    "message": "Review Maybe"
+  },
+  "screening_tiabDoneNext": {
+    "message": "Next up: full-text screening."
+  },
+  "screening_tiabDoneNextBtn": {
+    "message": "📄 Go to Full-text tab"
+  },
+  "screening_tiabDoneToast": {
+    "message": "TiAb screening complete! Head to the \"📄 Full-text\" tab next"
+  },
   "nav_prev": {
     "message": "Prev (←)"
   },
@@ -256,6 +286,9 @@
   },
   "nav_tabFulltextTitle": {
     "message": "Full-text Screening"
+  },
+  "nav_tabFulltextBadgeTitle": {
+    "message": "$1 full-text candidates"
   },
   "fulltext_progressLine": {
     "message": "Full-text decided: $1 / $2"
