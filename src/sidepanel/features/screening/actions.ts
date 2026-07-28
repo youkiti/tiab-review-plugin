@@ -11,7 +11,8 @@ import {
     saveDecision as apiSaveDecision,
     setKeyOpenedStatus,
     getReferencesWithStatus,
-    getReferencesWithAllDecisions
+    getReferencesWithAllDecisions,
+    isQuotaExceededError
 } from '../../../lib/sheets-api';
 import { getClientVersion } from '../../../lib/client-version';
 import { showLoading, showToast } from '../../ui/feedback';
@@ -306,7 +307,28 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
 }
 
 /**
+ * キー切替失敗時のエラーメッセージを組み立てる。
+ * クォータ超過（連打によるSheets API 429）は生のAPIエラー文をそのまま出さず、
+ * 専用の分かりやすいメッセージに差し替える。それ以外は従来どおり既存キーでエラー文を表示する。
+ */
+function buildKeyToggleErrorMessage(key: 'blind_onError' | 'blind_offError', error: unknown): string {
+    if (isQuotaExceededError(error)) {
+        return t('error_quotaExceeded');
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return t(key, message);
+}
+
+/**
  * キー状態切替処理
+ *
+ * 「取得してから確定する」順序で実行する: setKeyOpenedStatus による永続化やローカル状態の
+ * 変更より前に getReferencesWith*() のデータ取得を成功させる。取得は isKeyOpened に依存せず
+ * 引数だけで完結するため、この順序でも結果は変わらない。途中で失敗しても何も永続化・変更して
+ * いない状態を保てるため、catch側はチェックボックスの見た目を戻すだけで整合が取れる
+ * （旧実装は永続化・状態更新の後にデータ取得しており、取得失敗時に isKeyOpened と
+ * availableReviewers/enabledReviewers が食い違って「レビュアーが誰も表示されない」まま
+ * 固まる不具合があった）。
  */
 export async function handleKeyToggle() {
     // チェックボックスは既に切り替わっているので、その状態を取得
@@ -322,13 +344,16 @@ export async function handleKeyToggle() {
 
         try {
             showLoading(true);
-            await setKeyOpenedStatus(state.spreadsheetId, false);
-            state.clearReviewHistory();
-            // Store経由で両方に同期
-            syncSetIsKeyOpened(false);
 
-            // データを再読み込み（自分の判定のみ取得になる）
+            // 1. 先にデータ取得を成功させる（失敗してもまだ何も変更していない）
             const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+
+            // 2. 取得成功後に永続化
+            await setKeyOpenedStatus(state.spreadsheetId, false);
+
+            // 3. ローカル状態を確定
+            state.clearReviewHistory();
+            syncSetIsKeyOpened(false);
             syncSetReferences(refs);
 
             // レビュアーフィルターをクリア（Store経由）
@@ -347,8 +372,8 @@ export async function handleKeyToggle() {
             showToast(t('blind_onSuccess'));
         } catch (error) {
             console.error('Key close error:', error);
-            alert(t('blind_onError', (error as Error).message));
-            // エラー時は元の状態に戻す
+            alert(buildKeyToggleErrorMessage('blind_onError', error));
+            // エラー時は元の状態に戻す（永続化・状態変更はまだ行っていないため、これだけで整合する）
             dom.keyToggleInput.checked = true;
         } finally {
             showLoading(false);
@@ -364,13 +389,16 @@ export async function handleKeyToggle() {
 
         try {
             showLoading(true);
-            await setKeyOpenedStatus(state.spreadsheetId, true);
-            state.clearReviewHistory();
-            // Store経由で両方に同期
-            syncSetIsKeyOpened(true);
 
-            // データを再読み込み（全員の判定を取得）
+            // 1. 先にデータ取得を成功させる（失敗してもまだ何も変更していない）
             const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
+
+            // 2. 取得成功後に永続化
+            await setKeyOpenedStatus(state.spreadsheetId, true);
+
+            // 3. ローカル状態を確定
+            state.clearReviewHistory();
+            syncSetIsKeyOpened(true);
             syncSetReferences(refs);
 
             // レビュアーを抽出
@@ -402,8 +430,8 @@ export async function handleKeyToggle() {
             showToast(t('blind_offSuccess'));
         } catch (error) {
             console.error('Key open error:', error);
-            alert(t('blind_offError', (error as Error).message));
-            // エラー時は元の状態に戻す
+            alert(buildKeyToggleErrorMessage('blind_offError', error));
+            // エラー時は元の状態に戻す（永続化・状態変更はまだ行っていないため、これだけで整合する）
             dom.keyToggleInput.checked = false;
         } finally {
             showLoading(false);
