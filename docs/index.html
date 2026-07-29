@@ -4,9 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TiAb Review Plugin - Systematic Review スクリーニングツール</title>
+    <title data-ja="TiAb Review Plugin - Systematic Review スクリーニングツール"
+        data-en="TiAb Review Plugin - Systematic Review Screening Tool">TiAb Review Plugin - Systematic Review スクリーニングツール</title>
     <meta name="description"
-        content="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能 / A Chrome extension to streamline title and abstract screening for Systematic Reviews">
+        content="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能 / A Chrome extension to streamline title and abstract screening for Systematic Reviews"
+        data-ja="Systematic Review のタイトル・抄録スクリーニングを効率化する Chrome 拡張機能"
+        data-en="A Chrome extension to streamline title and abstract screening for Systematic Reviews">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -57,6 +60,83 @@
             font-family: 'Inter', sans-serif;
             font-size: 0.9em;
             opacity: 0.85;
+        }
+
+        /* ==== 言語切替（lang.js が付与する data-lang 属性に基づく表示制御） ====
+           JS が無効な場合は data-lang が付与されず、以下のルールは一切発火しない
+           （= .ja/.en は無条件に両方表示されたままになり、壊れない）。 */
+        html[data-lang="ja"] .en,
+        html[data-lang="en"] .ja {
+            display: none !important;
+        }
+
+        /* 単一言語表示になったら、英語側も「弱められた添え書き」ではなく通常の本文として見せる */
+        html[data-lang="en"] .en,
+        html[data-lang="en"] .hero .subtitle .en {
+            font-size: 1em;
+            opacity: 1;
+        }
+
+        /* 機能カード内で .en だけが残ったときに不要な上余白が出ないようにする */
+        html[data-lang] .feature-card .en {
+            margin-top: 0;
+        }
+
+        /* ja/en の間のリテラルな区切り文字（" / " など）。単一言語表示時は非表示にする。 */
+        .lang-sep {
+            opacity: 0.85;
+        }
+
+        html[data-lang] .lang-sep {
+            display: none;
+        }
+
+        /* ヘッダー（ロゴの右に言語切替トグルボタンを配置） */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px 0;
+        }
+
+        .header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .logo:hover {
+            opacity: 0.9;
+        }
+
+        .lang-toggle {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            font-family: inherit;
+            line-height: 1.2;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s ease;
+        }
+
+        .lang-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .lang-toggle:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
         }
 
         /* Hero Section */
@@ -266,9 +346,16 @@
             }
         }
     </style>
+    <script src="lang.js"></script>
 </head>
 
 <body>
+    <header class="header">
+        <div class="container">
+            <a href="index.html" class="logo">🔬 TiAb Review Plugin</a>
+        </div>
+    </header>
+
     <section class="hero">
         <div class="container">
             <h1>🔬 TiAb Review Plugin</h1>
@@ -280,7 +367,7 @@
             <div class="hero-buttons">
                 <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub</a>
                 <a href="#features" class="btn btn-secondary">
-                    <span class="ja">機能を見る</span> / <span class="en">Features</span>
+                    <span class="ja">機能を見る</span><span class="lang-sep"> / </span><span class="en">Features</span>
                 </a>
             </div>
         </div>
@@ -448,13 +535,13 @@
             <div class="footer-content">
                 <div class="footer-links">
                     <a href="help.html">
-                        <span class="ja">ヘルプ</span> / <span class="en">Help</span>
+                        <span class="ja">ヘルプ</span><span class="lang-sep"> / </span><span class="en">Help</span>
                     </a>
                     <a href="privacy-policy.html">
-                        <span class="ja">プライバシーポリシー</span> / <span class="en">Privacy Policy</span>
+                        <span class="ja">プライバシーポリシー</span><span class="lang-sep"> / </span><span class="en">Privacy Policy</span>
                     </a>
                     <a href="terms-of-service.html">
-                        <span class="ja">利用規約</span> / <span class="en">Terms of Service</span>
+                        <span class="ja">利用規約</span><span class="lang-sep"> / </span><span class="en">Terms of Service</span>
                     </a>
                     <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
                 </div>
