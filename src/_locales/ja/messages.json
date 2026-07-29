@@ -1000,6 +1000,33 @@
   "share_loadFailed": {
     "message": "読み込み失敗"
   },
+  "share_removeTitle": {
+    "message": "共有を解除"
+  },
+  "share_removeConfirm": {
+    "message": "$1 のアクセス権を解除します。よろしいですか？\n（この人がすでに入力した判定データはスプレッドシートに残ります）"
+  },
+  "share_removed": {
+    "message": "$1 のアクセス権を解除しました"
+  },
+  "share_removePartial": {
+    "message": "$1 のアクセス権を一部解除しました。解除しきれなかった設定が残っている可能性があるため、Google Drive 側でも共有状態をご確認ください"
+  },
+  "share_removeNotFound": {
+    "message": "$1 は共有ユーザーに見つかりませんでした（すでに解除済みの可能性があります）"
+  },
+  "share_removeErrorForbidden": {
+    "message": "解除する権限がありません（オーナーまたは編集者のみ操作できます）"
+  },
+  "share_removeErrorNotFound": {
+    "message": "対象の共有設定が見つかりませんでした"
+  },
+  "share_removeErrorInherited": {
+    "message": "親フォルダから継承された権限のため、Google Drive 側でフォルダの共有を解除してください"
+  },
+  "share_removeErrorUnknown": {
+    "message": "解除エラー: $1"
+  },
   "share_copyInvite": {
     "message": "招待文をコピー"
   },

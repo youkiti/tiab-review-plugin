@@ -1959,13 +1959,22 @@ async function tryUpdateConfig(spreadsheetId: string, keywords: HighlightKeyword
 export interface SpreadsheetPermission {
     role: 'owner' | 'writer' | 'reader';
     emailAddress: string;
+    /** 権限ID（permissions.delete に必要。取得できない場合がある） */
+    id?: string;
+    /** 'user' / 'group' / 'domain' / 'anyone' 等（リンク共有等の判別に使う） */
+    type?: string;
+    displayName?: string;
 }
 
-export async function getSpreadsheetPermissions(spreadsheetId: string): Promise<SpreadsheetPermission[]> {
+/**
+ * 指定ファイル（スプレッドシート/フォルダ問わず）の権限一覧を取得する。
+ * 解除処理で権限IDが必要なため、role/emailAddress に加えて id/type/displayName も取得する。
+ */
+export async function getFilePermissions(fileId: string): Promise<SpreadsheetPermission[]> {
     const token = await getAuthToken();
 
     const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions?fields=permissions(role,emailAddress)`,
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,role,type,emailAddress,displayName)`,
         {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -1979,6 +1988,59 @@ export async function getSpreadsheetPermissions(spreadsheetId: string): Promise<
 
     const data = await response.json();
     return data.permissions || [];
+}
+
+/**
+ * スプレッドシートの権限情報を取得（getFilePermissions への委譲）
+ * 呼び出し元（isUserAdmin / project.ts / fulltext.ts 等）への影響を避けるため、
+ * シグネチャ・外部挙動は変更しない。
+ */
+export async function getSpreadsheetPermissions(spreadsheetId: string): Promise<SpreadsheetPermission[]> {
+    return getFilePermissions(spreadsheetId);
+}
+
+/**
+ * Drive Permissions API のエラーレスポンス（ステータスコード・エラーメッセージ）を保持する例外。
+ * 呼び出し元で classifyPermissionRemovalError に渡し、権限不足/継承権限などを判別する。
+ */
+export class DrivePermissionError extends Error {
+    status: number;
+    apiMessage: string;
+
+    constructor(status: number, apiMessage: string) {
+        super(apiMessage);
+        this.name = 'DrivePermissionError';
+        this.status = status;
+        this.apiMessage = apiMessage;
+    }
+}
+
+/**
+ * 指定ファイル（スプレッドシート/フォルダ）から権限を1件削除する。
+ *
+ * **注意**: フォルダ共有プロジェクトでは、フォルダ側の権限を削除しないと
+ * 配下のスプレッドシート/フルテキストPDFへのアクセスが（フォルダからの継承として）
+ * 残り続けてしまう。呼び出し側は「共有先（フォルダがあればフォルダ優先）」の各対象に
+ * 対して本関数を呼ぶこと。
+ */
+export async function deletePermission(fileId: string, permissionId: string): Promise<void> {
+    const token = await getAuthToken();
+
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`,
+        {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        const apiMessage = error?.error?.message || response.statusText;
+        throw new DrivePermissionError(response.status, apiMessage);
+    }
 }
 
 /**
