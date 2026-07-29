@@ -138,8 +138,8 @@
                 <span class="en">Help Guide</span>
             </h1>
             <p class="last-updated">
-                <span class="ja">最終更新: 2026年1月3日</span>
-                <span class="en">Last updated: January 3, 2026</span>
+                <span class="ja">最終更新: 2026年7月29日</span>
+                <span class="en">Last updated: July 29, 2026</span>
             </p>
 
             <!-- 目次 -->
@@ -154,16 +154,8 @@
                             <span class="en">Login Screen</span>
                         </a></li>
                     <li><a href="#screening">
-                            <span class="ja">レビュー画面（スクリーニング）</span> /
-                            <span class="en">Review Screen (Screening)</span>
-                        </a></li>
-                    <li><a href="#shortcuts">
-                            <span class="ja">キーボードショートカット</span> /
-                            <span class="en">Keyboard Shortcuts</span>
-                        </a></li>
-                    <li><a href="#settings">
-                            <span class="ja">設定オプション</span> /
-                            <span class="en">Settings</span>
+                            <span class="ja">TiAbスクリーニング（手動タブ）</span> /
+                            <span class="en">TiAb Screening (Manual Tab)</span>
                         </a></li>
                     <li><a href="#ml-screening">
                             <span class="ja">MLスクリーニング（機械学習支援）</span> /
@@ -172,6 +164,26 @@
                     <li><a href="#ai-screening">
                             <span class="ja">AIスクリーニング支援</span> /
                             <span class="en">AI Screening Support</span>
+                        </a></li>
+                    <li><a href="#fulltext">
+                            <span class="ja">フルテキストスクリーニング</span> /
+                            <span class="en">Full-Text Screening</span>
+                        </a></li>
+                    <li><a href="#sharing">
+                            <span class="ja">共有とチーム運用</span> /
+                            <span class="en">Sharing and Team Workflow</span>
+                        </a></li>
+                    <li><a href="#web-version">
+                            <span class="ja">Web版（インストール不要）</span> /
+                            <span class="en">Web App (No Installation Required)</span>
+                        </a></li>
+                    <li><a href="#shortcuts">
+                            <span class="ja">キーボードショートカット</span> /
+                            <span class="en">Keyboard Shortcuts</span>
+                        </a></li>
+                    <li><a href="#settings">
+                            <span class="ja">設定オプション</span> /
+                            <span class="en">Settings</span>
                         </a></li>
                     <li><a href="#faq">
                             <span class="ja">よくある質問</span> /
@@ -219,22 +231,23 @@
                     <span class="en">Connect to Existing Project</span>
                 </h3>
                 <p>
-                    <span class="ja">「スプレッドシートURL/IDを入力」欄にURL/IDを入力するか、「最近のスプレッドシートから選択」ドロップダウンから既存のプロジェクトを選択し、「選択したシートに接続」ボタンをクリックします。URL/IDが入力されている場合はそちらが優先されます。</span>
-                    <span class="en">Enter a spreadsheet URL/ID or select an existing project from the "Recent Spreadsheets"
-                        dropdown, then click "Connect to Selected Sheet". If a URL/ID is entered, it takes priority.</span>
+                    <span class="ja">「スプレッドシートURL/IDを入力（優先）」欄にURL/IDを入力するか、「最近のスプレッドシートから選択」ドロップダウンから既存のプロジェクトを選択し、「選択したシートに接続」ボタンをクリックします。URL/IDが入力されている場合はそちらが優先されます。</span>
+                    <span class="en">Enter a spreadsheet URL/ID in the "Enter spreadsheet URL/ID (priority)" field, or
+                        select an existing project from the "Select from recent spreadsheets" dropdown, then click
+                        "Connect to selected sheet". If a URL/ID is entered, it takes priority.</span>
                 </p>
             </section>
 
-            <!-- レビュー画面 -->
+            <!-- TiAbスクリーニング（手動タブ） -->
             <section id="screening" class="help-section">
                 <h2>
-                    <span class="ja">レビュー画面（スクリーニング）</span>
-                    <span class="en">Review Screen (Screening)</span>
+                    <span class="ja">TiAbスクリーニング（手動タブ）</span>
+                    <span class="en">TiAb Screening (Manual Tab)</span>
                 </h2>
                 <p>
-                    <span class="ja">文献のタイトルと抄録を確認し、Include/Exclude/Maybeの判定を行うメイン画面です。</span>
-                    <span class="en">The main screen where you review titles and abstracts and make
-                        Include/Exclude/Maybe decisions.</span>
+                    <span class="ja">文献のタイトルと抄録を確認し、Include/Exclude/Maybeの判定を行う、サイドパネル最初のタブ（👤 手動）です。この章ではタイトル・抄録（TiAb）スクリーニングの操作を説明します。</span>
+                    <span class="en">The first tab in the side panel (👤 Manual), where you review titles and abstracts and
+                        make Include/Exclude/Maybe decisions. This section covers title/abstract (TiAb) screening.</span>
                 </p>
 
                 <h3>
@@ -243,46 +256,38 @@
                 </h3>
                 <ul>
                     <li>
-                        <span class="ja"><strong>📁 RIS/nbibインポート</strong>: RIS形式またはPubMed NBIB形式のファイルをインポート（対応: .ris,
-                            .nbib, .txt）</span>
-                        <span class="en"><strong>📁 RIS/nbib Import</strong>: Import RIS or PubMed NBIB format files
-                            (.ris, .nbib, .txt)</span>
+                        <span class="ja"><strong>📁 インポート</strong>: RIS(.ris)・PubMed NBIB(.nbib/.txt)・ClinicalTrials.gov
+                            CSV(.csv)・ICTRP XML(.xml)・EndNote XML(.xml/.enl/.enlp)形式のファイルをインポート</span>
+                        <span class="en"><strong>📁 Import</strong>: Import RIS (.ris), PubMed NBIB (.nbib/.txt),
+                            ClinicalTrials.gov CSV (.csv), ICTRP XML (.xml), or EndNote XML (.xml/.enl/.enlp)
+                            format files</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>📥 CSV出力</strong>: 現在のフィルター結果をCSVファイルとしてエクスポート</span>
-                        <span class="en"><strong>📥 CSV Export</strong>: Export current filter results as a CSV
-                            file</span>
+                        <span class="ja"><strong>📥 エクスポート</strong>: 現在のフィルター結果のCSV/RISエクスポート、および論文用テキスト（Methods/Results下書き）の生成</span>
+                        <span class="en"><strong>📥 Export</strong>: Export the current filter results as CSV/RIS, and
+                            generate manuscript text (Methods/Results draft)</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>👤 共有</strong>: 共同編集者をGoogleアカウント（メールアドレス）で追加。「招待文をコピー」ボタンで、インストール先・スプレッドシートURL・操作ガイドをまとめた案内文をクリップボードへコピーし、メールやチャットで共同研究者に送れます</span>
-                        <span class="en"><strong>👤 Share</strong>: Add collaborators by their Google account
-                            (email). Use the "Copy invite message" button to copy an invitation (install link,
-                            spreadsheet URL, and usage guide) to the clipboard and send it to collaborators</span>
+                        <span class="ja"><strong>👤 共有</strong>: 共同編集者の追加。詳細は「<a href="#sharing">共有とチーム運用</a>」章を参照してください</span>
+                        <span class="en"><strong>👤 Share</strong>: Add collaborators. See the "<a href="#sharing">Sharing and
+                                Team Workflow</a>" section for details</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>Blind on/off</strong>: ON で他のレビュアーの判定を非表示（ブラインドレビュー）</span>
+                        <span class="ja"><strong>Blind on/off</strong>: ON で他のレビュアーの判定を非表示（ブラインドレビュー）。詳細は「<a
+                                href="#sharing">共有とチーム運用</a>」章を参照してください</span>
                         <span class="en"><strong>Blind on/off</strong>: When ON, hide other reviewers' decisions (blind
-                            review)</span>
+                            review). See "<a href="#sharing">Sharing and Team Workflow</a>" for details</span>
                     </li>
                 </ul>
-
-
-                <h3>
-                    <span class="ja">共有シートを初めて開く場合</span>
-                    <span class="en">Opening a shared sheet for the first time</span>
-                </h3>
-                <p>
-                    <span class="ja">共同研究者が作成したスプレッドシートをURLで接続すると、初回のみ「Googleで許可する」ボタンが表示されることがあります。開いたGoogle Pickerページで対象シートを選択すると、拡張機能のパネルが自動で再接続します。対象シートが表示されない場合は、先にGoogle Driveでそのシートが自分のGoogleアカウントに共有されているか確認してください。</span>
-                    <span class="en">When you connect to a spreadsheet created by a collaborator by URL, an "Allow with Google" button may appear the first time. Select the target sheet on the Google Picker page that opens, and the extension panel will reconnect automatically. If the target sheet is not shown, first confirm in Google Drive that the sheet is shared with your Google account.</span>
-                </p>
 
                 <h3>
                     <span class="ja">フィルター機能</span>
                     <span class="en">Filter Features</span>
                 </h3>
                 <p>
-                    <span class="ja">ステータスフィルターで文献を絞り込めます：未判定、すべて、Include、Exclude、Maybe、不一致</span>
-                    <span class="en">Filter references by status: Pending, All, Include, Exclude, Maybe, Conflict</span>
+                    <span class="ja">ステータスフィルターで文献を絞り込めます：未判定、すべて、Include、Exclude、Maybe、不一致、フルテキスト候補</span>
+                    <span class="en">Filter references by status: Pending, All, Include, Exclude, Maybe, Conflict,
+                        Full-text candidates</span>
                 </p>
 
                 <h3>
@@ -341,91 +346,51 @@
                     <span class="en">Add notes for each reference. Record decision reasons or points of interest. Notes
                         are saved automatically.</span>
                 </p>
-            </section>
 
-            <!-- キーボードショートカット -->
-            <section id="shortcuts" class="help-section">
-                <h2>
-                    <span class="ja">キーボードショートカット</span>
-                    <span class="en">Keyboard Shortcuts</span>
-                </h2>
-                <table class="shortcut-table">
-                    <tr>
-                        <th><span class="ja">キー</span> / <span class="en">Key</span></th>
-                        <th><span class="ja">機能</span> / <span class="en">Function</span></th>
-                    </tr>
-                    <tr>
-                        <td><code>i</code></td>
-                        <td>
-                            <span class="ja">Include（組み入れ）</span>
-                            <span class="en">Include</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><code>e</code></td>
-                        <td>
-                            <span class="ja">Exclude（除外）</span>
-                            <span class="en">Exclude</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><code>m</code></td>
-                        <td>
-                            <span class="ja">Maybe（保留）</span>
-                            <span class="en">Maybe</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><code>←</code></td>
-                        <td>
-                            <span class="ja">前の文献へ</span>
-                            <span class="en">Previous reference</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><code>→</code></td>
-                        <td>
-                            <span class="ja">次の文献へ</span>
-                            <span class="en">Next reference</span>
-                        </td>
-                    </tr>
-                </table>
+                <h3>
+                    <span class="ja">TiAb完了バナー</span>
+                    <span class="en">TiAb Completion Banner</span>
+                </h3>
                 <p>
-                    <span class="ja">※ テキスト入力欄（メモ、検索など）にフォーカスがある場合は無効になります</span>
-                    <span class="en">* Shortcuts are disabled when a text input field has focus (notes, search,
-                        etc.)</span>
+                    <span class="ja">自分の未判定（保留を除く）文献が0件になると、画面上部に「🎉 TiAbスクリーニング完了」バナーが表示されます（表示条件はフィルターの絞り込みに影響されず、プロジェクト全体の判定状況で判定されます）。バナーには次の内容が含まれます。</span>
+                    <span class="en">Once your own pending decisions reach zero, a "🎉 TiAb screening complete" banner
+                        appears at the top of the screen (this is based on your overall decisions across the whole
+                        project, not the current filter). The banner shows:</span>
                 </p>
-            </section>
-
-            <!-- 設定 -->
-            <section id="settings" class="help-section">
-                <h2>
-                    <span class="ja">設定オプション</span>
-                    <span class="en">Settings</span>
-                </h2>
+                <ul>
+                    <li>
+                        <span class="ja">不一致（コンフリクト）が残っている場合の件数表示と「不一致を確認」ボタン（キーオープン時のみ件数表示。Blind中は件数を伏せた案内のみ）</span>
+                        <span class="en">A count of remaining conflicts and a "Review conflicts" button (the count is
+                            only shown when the key is open; while blind, only a generic notice is shown)</span>
+                    </li>
+                    <li>
+                        <span class="ja">保留（Maybe）が残っている場合の件数表示と「保留を確認」ボタン</span>
+                        <span class="en">A count of remaining Maybe decisions and a "Review Maybe" button</span>
+                    </li>
+                    <li>
+                        <span class="ja">「📄 全文タブへ進む」ボタン（常に表示され、不一致や保留が残っていてもブロックしません）</span>
+                        <span class="en">A "📄 Go to Full-text tab" button (always shown; remaining conflicts or Maybe
+                            decisions do not block it)</span>
+                    </li>
+                </ul>
                 <p>
-                    <span class="ja">設定画面（⚙️ボタン）から以下のオプションを変更できます。</span>
-                    <span class="en">Access settings via the ⚙️ button to change the following options.</span>
+                    <span class="ja">未判定が0件になった瞬間には、一度だけ完了トーストも表示されます。</span>
+                    <span class="en">A completion toast is also shown once, at the moment your pending count reaches
+                        zero.</span>
                 </p>
 
-                <h4>
-                    <span class="ja">判断後に自動的に次の文献に遷移する</span>
-                    <span class="en">Auto-advance after decision</span>
-                </h4>
+                <h3>
+                    <span class="ja">チーム進捗パネル（TiAbタブ）</span>
+                    <span class="en">Team Progress Panel (TiAb Tab)</span>
+                </h3>
                 <p>
-                    <span class="ja">ON（デフォルト）: 判定後、自動的に次の文献へ移動<br>OFF: 判定後もその場にとどまり、手動で移動</span>
-                    <span class="en">ON (default): Auto-advance after making a decision<br>OFF: Stay on current
-                        reference, advance manually</span>
-                </p>
-
-                <h4>
-                    <span class="ja">進捗表示を下部に表示</span>
-                    <span class="en">Show progress at bottom</span>
-                </h4>
-                <p>
-                    <span class="ja">ON（デフォルト）: ナビゲーションエリアに進捗表示<br>OFF: タイトル上部の目立つ位置に進捗表示</span>
-                    <span class="en">ON (default): Show progress in navigation area<br>OFF: Show progress prominently
-                        above title</span>
+                    <span class="ja">ツールバーの⚙️ボタンの右側に👥アイコンのチップが表示され、クリックするとチームメンバー全員の進捗（判定件数と最終判定日時）を確認できます。ブラインディングを保つため、Include/Exclude等の内訳は表示されません。🔄ボタンで最新の状態に更新できます。プロジェクトメンバーが自分1人だけの場合は、このチップ自体が表示されません。詳細は「<a
+                            href="#sharing">共有とチーム運用</a>」章を参照してください。</span>
+                    <span class="en">A 👥 chip appears to the right of the ⚙️ button in the toolbar; clicking it shows
+                        every team member's progress (decision count and the time of their last decision). To preserve
+                        blinding, the Include/Exclude breakdown is never shown. Use the 🔄 button to refresh. The chip is
+                        hidden entirely on single-member projects. See "<a href="#sharing">Sharing and Team
+                            Workflow</a>" for details.</span>
                 </p>
             </section>
 
@@ -441,6 +406,20 @@
                     <span class="en">This feature labels records (title/abstract) as Include/Exclude and uses machine
                         learning (active learning) to reorder the remaining records. The model updates with each
                         decision, prioritizing more relevant records.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">利用条件</span>
+                    <span class="en">Requirements to Use ML Screening</span>
+                </h3>
+                <p>
+                    <span class="ja">MLタブは、文献数が1,000件以上のプロジェクトでのみ利用できます。1,000件未満の状態でMLタブを開こうとすると、エラーメッセージが表示されて開始できません。初めてMLタブを開いたときは、停止基準（CMH）の確認ダイアログが表示され、内容を確認して設定を確定する必要があります（このダイアログでの確認は、下記で説明する「1+1ルール」＝モデル学習が始まるためのラベル数の条件とは別のものです）。</span>
+                    <span class="en">The ML tab is only available for projects with 1,000 or more references. If you
+                        try to open it with fewer than 1,000 references, an error message is shown and you cannot
+                        start. The first time you open the ML tab, a confirmation dialog for the stopping rule (CMH)
+                        appears, and you must review and confirm it (this confirmation is separate from the "1+1
+                        rule" described below, which is the label-count condition for the model to start
+                        training).</span>
                 </p>
 
                 <h3>
@@ -474,9 +453,10 @@
                 </h3>
                 <ol>
                     <li>
-                        <span class="ja"><strong>データセットを読み込む</strong>：CSV/TSVなど、タイトル・抄録を含むデータを取り込みます。</span>
-                        <span class="en"><strong>Load dataset</strong>: Import data containing titles and abstracts
-                            (CSV/TSV etc.).</span>
+                        <span class="ja"><strong>データセットを読み込む</strong>：RIS等の対応形式のファイルを取り込みます（対応形式は「<a
+                                href="#screening">TiAbスクリーニング</a>」章のインポートの説明を参照）。</span>
+                        <span class="en"><strong>Load dataset</strong>: Import a file in a supported format (see the
+                            import formats listed in the "<a href="#screening">TiAb Screening</a>" section).</span>
                     </li>
                     <li>
                         <span class="ja"><strong>（任意）Prior knowledge
@@ -607,38 +587,55 @@
                     <span class="en">AI Screening Support</span>
                 </h2>
                 <p>
-                    <span class="ja">Google Gemini API を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。</span>
-                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using the Google Gemini
-                        API.</span>
+                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAIの3系統のプロバイダに対応しており、設定したAPIキーに応じて使えるモデルが選べます。</span>
+                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Three
+                        provider families are supported — Gemini, OpenRouter, and OpenAI — and the models available
+                        depend on which API keys you have configured.</span>
                 </p>
 
                 <h3>
-                    <span class="ja">セットアップ</span>
-                    <span class="en">Setup</span>
+                    <span class="ja">APIキーのセットアップ</span>
+                    <span class="en">API Key Setup</span>
                 </h3>
                 <p>
-                    <span class="ja">1. <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI
-                            Studio</a> から API キーを取得します（<a href="https://ai.google.dev/gemini-api/docs/api-key"
+                    <span class="ja">「🤖 AI」タブの設定（⚙️）から、使いたいプロバイダのAPIキーを入力して保存します。プロバイダごとに専用のカード（🔑 Gemini APIキー / 🔑 OpenRouter APIキー / 🔑 OpenAI APIキー）が用意されており、それぞれ独立して保管されます。少なくとも1つのプロバイダのキーがあればAI判定を利用できます。</span>
+                    <span class="en">From the "🤖 AI" tab's settings (⚙️), enter and save the API key for
+                        whichever provider you want to use. Each provider has its own card (🔑 Gemini API Key / 🔑
+                        OpenRouter API Key / 🔑 OpenAI API Key) and keys are stored independently. You only need a key
+                        for at least one provider to use AI screening.</span>
+                </p>
+                <p>
+                    <span class="ja">1. Gemini: <a href="https://aistudio.google.com/app/apikey" target="_blank">Google
+                            AI Studio</a> から API キーを取得します（<a href="https://ai.google.dev/gemini-api/docs/api-key"
                             target="_blank">取得方法</a>）。<br>
-                        2. 設定（⚙️）ボタンをクリックし、「Gemini API設定」を開きます。<br>
-                        3. APIキーを入力して「保存」をクリックします。</span>
-                    <span class="en">1. Get an API key from <a href="https://aistudio.google.com/app/apikey"
+                        2. OpenRouter: <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a> のアカウント設定から
+                        API キーを発行します。<br>
+                        3. OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+                        から API キーを発行します。<br>
+                        4. 対応するカードにAPIキーを入力すると自動的に保存されます（保存ボタンはありません）。</span>
+                    <span class="en">1. Gemini: Get an API key from <a href="https://aistudio.google.com/app/apikey"
                             target="_blank">Google AI Studio</a> (see <a
                             href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">instructions</a>).<br>
-                        2. Click the Settings (⚙️) button and open "Gemini API Settings".<br>
-                        3. Enter your API key and click "Save".</span>
+                        2. OpenRouter: Issue an API key from your <a href="https://openrouter.ai/keys"
+                            target="_blank">OpenRouter</a> account settings.<br>
+                        3. OpenAI: Issue an API key from the <a href="https://platform.openai.com/api-keys"
+                            target="_blank">OpenAI Platform</a>.<br>
+                        4. Enter the key in the matching card — it is saved automatically (there is no separate
+                        "Save" button).</span>
                 </p>
 
                 <h3>
-                    <span class="ja">一括判定の実行</span>
-                    <span class="en">Running Batch Screening</span>
+                    <span class="ja">モデル選択とカスタムモデル</span>
+                    <span class="en">Model Selection and Custom Models</span>
                 </h3>
                 <p>
-                    <span class="ja">サイドパネルの「AI判定」タブから実行できます。<br>
-                        「未判定の文献をAIで判定開始」をクリックすると、現在のフィルター条件に一致する未判定の文献に対して順次判定を行います。</span>
-                    <span class="en">Run from the "AI Screening" tab in the side panel.<br>
-                        Click "Start AI Screening for Pending" to sequentially evaluate pending references matching the
-                        current filter.</span>
+                    <span class="ja">「⚙️ 詳細設定」で、Gemini・OpenRouter・OpenAIそれぞれの標準モデルから判定に使うモデルを選べます（表示されるのは、APIキーを設定済みのプロバイダのモデルのみです）。加えて、OpenRouterでは任意のモデルIDを手入力し「テストして保存」を実行できます。実際のAPIテストに成功した場合のみブラウザに保存され、以降の選択肢に追加されます（最大20件）。カスタムモデルは公式にベンチマーク検証されていない旨がUI上に明示されます。</span>
+                    <span class="en">In "⚙️ Advanced Settings", choose the model to use from Gemini's, OpenRouter's, and
+                        OpenAI's built-in options (only models for providers with a configured API key are shown).
+                        In addition, OpenRouter lets you type in any model ID and click "Test and save". Only
+                        models that pass a live API test are saved to your browser and added to the model list (up
+                        to 20 entries). The UI clearly notes that custom models have not been officially
+                        benchmarked.</span>
                 </p>
 
                 <h3>
@@ -646,20 +643,471 @@
                     <span class="en">Customizing Criteria</span>
                 </h3>
                 <p>
-                    <span class="ja">「判定基準」タブで、AIに与える指示（プロンプト）を編集できます。<br>
+                    <span class="ja">「📋 レビュー基準」カードで、AIに与える指示（プロンプト）を編集できます。<br>
                         デフォルトのプロンプトを参考に、ご自身のレビュー基準に合わせて修正してください。</span>
-                    <span class="en">Edit the instructions (prompt) given to the AI in the "Criteria" tab.<br>
+                    <span class="en">Edit the instructions (prompt) given to the AI in the "📋 Review Criteria" card.<br>
                         Modify the default prompt to fit your specific review criteria.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">一括判定の実行</span>
+                    <span class="en">Running Batch Screening</span>
+                </h3>
+                <p>
+                    <span class="ja">サイドパネルの「🤖 AI」タブから実行できます。<br>
+                        「▶️ 一括実行開始」をクリックすると、自分が未判定で、かついずれのAI実行でもまだ判定されていない文献（担当割り振りが設定されている場合は自分の担当分のみ）に対して、選択したモデルで順次判定を行います。担当割り振りは、設定（⚙️）内の「担当セット」から管理者が設定できます。</span>
+                    <span class="en">Run from the "🤖 AI" tab in the side panel.<br>
+                        Click "▶️ Start Batch" to sequentially evaluate references that are still pending for you
+                        and have not yet been decided by any AI run (limited to your assigned set if assignment is
+                        configured), using the selected model. Assignment can be configured by an admin from
+                        "Assignment Sets" inside Settings (⚙️).</span>
+                </p>
+                <p>
+                    <span class="ja">初めて実行する場合（まだ確定していないRun）は、一括実行が終わると画面下部にInclude閾値を確認するエリアが表示されます。「💾 閾値を確定して判断をGoogleスプレッドシートに保存」ボタンをクリックして初めて、判定がDecisionsシートへ確定保存されます。このステップを行わないと、判定は未確定のままになるので注意してください。</span>
+                    <span class="en">The first time you run a batch (an unconfirmed Run), an area to review the
+                        Include threshold appears at the bottom of the screen once the batch finishes. Decisions are
+                        only confirmed and saved to the Decisions sheet once you click "💾 Confirm Threshold &amp;
+                        Save to Google Spreadsheet" — skipping this step leaves the decisions unconfirmed.</span>
                 </p>
                 <div class="note"
                     style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-top: 16px;">
                     <p>
-                        <span class="ja"><strong>注意:</strong> APIの利用には料金が発生する場合があります（Google AI
-                            Studioの利用規約をご確認ください）。また、センシティブなデータを含む場合は、組織のポリシーに従ってください。</span>
-                        <span class="en"><strong>Note:</strong> API usage may incur charges (check Google AI Studio
-                            terms). Follow your organization's policy when handling sensitive data.</span>
+                        <span class="ja"><strong>注意:</strong> APIの利用には料金が発生する場合があります（各プロバイダ（Google AI Studio /
+                            OpenRouter / OpenAI）の利用規約をご確認ください）。また、センシティブなデータを含む場合は、組織のポリシーに従ってください。</span>
+                        <span class="en"><strong>Note:</strong> API usage may incur charges (check the terms of the
+                            provider you use — Google AI Studio, OpenRouter, or OpenAI). Follow your organization's
+                            policy when handling sensitive data.</span>
                     </p>
                 </div>
+            </section>
+
+            <!-- フルテキストスクリーニング -->
+            <section id="fulltext" class="help-section">
+                <h2>
+                    <span class="ja">フルテキストスクリーニング</span>
+                    <span class="en">Full-Text Screening</span>
+                </h2>
+                <p>
+                    <span class="ja">TiAbスクリーニングで組み入れ候補となった文献の本文（フルテキストPDF）を取得し、Include/Exclude/Maybeを判定する画面です。サイドパネル上部の「📄 全文」タブから開きます（TiAb完了バナーの「📄 全文タブへ進む」ボタンからも移動できます）。</span>
+                    <span class="en">The screen for retrieving the full-text PDF of references that were included
+                        during TiAb screening and making Include/Exclude/Maybe decisions on them. Open it from the
+                        "📄 Full-text" tab at the top of the side panel (or from the "📄 Go to Full-text tab" button on
+                        the TiAb completion banner).</span>
+                </p>
+
+                <h3>
+                    <span class="ja">3つのサブビュー</span>
+                    <span class="en">Three Sub-Views</span>
+                </h3>
+                <p>
+                    <span class="ja">フルテキストタブの上部にある3つのボタンで表示を切り替えます。</span>
+                    <span class="en">Three buttons at the top of the Full-text tab switch between views.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>候補リスト</strong>（既定表示）：全文の入手状況を確認し、PDFを取得・アップロードします。</span>
+                        <span class="en"><strong>Candidate list</strong> (default view): Check full-text retrieval
+                            status and fetch or upload PDFs.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>AI判定</strong>：Geminiによる一括AI判定を実行します。</span>
+                        <span class="en"><strong>AI screening</strong>: Run batch AI screening with Gemini.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>判定後レビュー</strong>：判定者ごとの結果を集計し、PRISMAのフルテキスト相の数値やCSV/RISエクスポートを行います。</span>
+                        <span class="en"><strong>Post-decision review</strong>: Aggregate results across judges and
+                            view PRISMA full-text-stage numbers, CSV/RIS export, etc.</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">候補（対象文献）の決まり方</span>
+                    <span class="en">How Candidates Are Determined</span>
+                </h3>
+                <p>
+                    <span class="ja">フルテキストの対象となる文献（候補）は、既定ではTiAbでIncludeと判定された文献です。プロジェクトで「候補ルール」が設定されている場合は、それに従います（例：指定した3人の判定者のうち2人以上がIncludeと判定した文献のみを候補にする、など）。候補ルールは候補リスト上部のボタン（未設定時は「ルールを設定」、設定済みの場合は「✎ 編集」）から編集できます。編集にはブラインド解除（キーオープン）が必要で、キーが未開封の場合に開封できるのは管理者のみですが、開封後の編集自体は誰でも行えます。ルールが未設定の間は、管理者には全レビュアーの誰か1人でもIncludeした文献、非管理者には自分がIncludeした文献が仮の候補として表示されます。</span>
+                    <span class="en">By default, references that were marked Include during TiAb screening become
+                        full-text candidates. If the project has a "candidate rule" configured, that rule is used
+                        instead (for example, only including references where at least 2 of 3 designated reviewers
+                        marked Include). The candidate rule can be edited from the button above the candidate list
+                        (labeled "Set rule" when unset, "✎ Edit" once configured). Editing requires the blind to be
+                        lifted (the key to be open) first — only admins can open the key when it's closed, but once
+                        it's open, anyone can edit the rule. Until a rule is set, admins provisionally see any
+                        reference Included by any loaded reviewer, while non-admins see only references they
+                        personally Included.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">担当割り当て</span>
+                    <span class="en">Assignment</span>
+                </h3>
+                <p>
+                    <span class="ja">候補プールが確定した後、管理者は「担当割り振り」行（候補ルール行の下）のボタン（未設定時は「分担を設定」）から、候補文献をグループに分けて担当レビュアーへ割り振れます。割り振りが未設定の場合は、全員が全候補を判定します。割り振り後に新しく候補入りした未割り当ての文献は、「割り振り後に候補入りした未割り当ての文献が◯件あります」という案内とともに表示される「既存グループへ配分」ボタンで後から割り振れます。</span>
+                    <span class="en">Once the candidate pool is fixed, admins can split candidates into groups and
+                        assign them to reviewers from the button on the "Assignment" row below the candidate-rule row
+                        (labeled "Set up assignment" when unset). Without an assignment, everyone reviews every
+                        candidate. References that newly enter the pool after assignment can be distributed later via
+                        the "Distribute to existing groups" button, shown together with a notice such as "N
+                        unassigned reference(s) have entered the pool since assignment".</span>
+                </p>
+
+                <h3>
+                    <span class="ja">全文PDFの取得</span>
+                    <span class="en">Retrieving Full-Text PDFs</span>
+                </h3>
+                <p>
+                    <span class="ja">「⬇ フリー全文を一括検索」ボタンで、PMC OA・Europe PMC・出版社・Unpaywall・OpenAlexなどのオープンアクセス経路を順に検索します。取得できたPDFはプロジェクトのGoogle Driveフォルダへ自動保存され、取得できない場合はDOI/PubMedへのリンクのみ記録されます。文献1件ずつの「🔍 取得を試す」ボタンや、手元のPDFファイルをアップロードするボタンも利用できます。</span>
+                    <span class="en">The "⬇ Fetch free full texts" button checks open-access sources in order
+                        (PMC OA, Europe PMC, publisher, Unpaywall, OpenAlex, etc.). Successfully retrieved PDFs are
+                        saved automatically to the project's Google Drive folder; when no PDF can be retrieved, only
+                        a DOI/PubMed link is recorded. A per-reference "🔍 Try fetch" button and a manual PDF
+                        upload button are also available.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">Driveに直接置いたPDFの取り込み</span>
+                    <span class="en">Importing PDFs Placed Directly in Drive</span>
+                </h3>
+                <p>
+                    <span class="ja">拡張機能を経由せずGoogle Driveフォルダへ直接保存したPDFは、そのままでは候補として認識されません。「Driveに直接置かれたPDFを取り込む」ボタンからPickerでPDFを選択すると、ファイル名やタイトルをもとに対応する文献の候補が自動的に提案されます。内容を確認して実行すると、プロジェクト用フォルダへPDFがコピーされ、対応する文献に紐付けられます。取り込み完了後は、元ファイルをゴミ箱へ移動するかどうかも選べます。</span>
+                    <span class="en">PDFs saved directly to the Drive folder (without going through the extension)
+                        are not automatically recognized as candidates. The "Import a PDF placed directly in Drive"
+                        button opens a Picker to select PDFs, and the matching reference for each file is
+                        auto-suggested from its file name and title. After you review and confirm, the PDF is copied
+                        into the project folder and linked to the reference. You can also choose whether to move the
+                        original files to trash once the import succeeds.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">フルテキストページでの判定</span>
+                    <span class="en">Making Decisions on the Full-Text Page</span>
+                </h3>
+                <p>
+                    <span class="ja">候補リストのカードをクリックすると、PDFと判定パネルが並んだフルテキストページ（新しいタブ）が開きます。</span>
+                    <span class="en">Clicking a card in the candidate list opens the full-text page (a new tab) with
+                        the PDF and a decision panel side by side.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>判定</strong>：Include/Exclude/Maybeボタンで判定します（TiAb画面と同じ<code>i</code>/<code>e</code>/<code>m</code>のキーボードショートカットにも対応）。Includeは保存後、自動的に次の候補へ進みます。</span>
+                        <span class="en"><strong>Decision</strong>: Use the Include/Exclude/Maybe buttons (the same
+                            <code>i</code>/<code>e</code>/<code>m</code> keyboard shortcuts as the TiAb screen also
+                            work). Include saves and then automatically advances to the next candidate.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>除外理由</strong>：Excludeを選ぶと、理由（Population / Intervention / Comparator /
+                            Outcome / Study design / Duplicate / Other、数字キー1〜7でも選択可）を選ぶエリアが表示されます。理由をクリック（または数字キーで確定）すると、保存されてそのまま自動的に次の候補へ進みます。</span>
+                        <span class="en"><strong>Exclusion reason</strong>: Choosing Exclude shows a reason picker
+                            (Population / Intervention / Comparator / Outcome / Study design / Duplicate / Other,
+                            selectable with number keys 1–7). Clicking a reason (or confirming with a number key)
+                            saves the decision and automatically advances to the next candidate.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>保留（Maybe）</strong>：即座に保存され、任意でメモを入力できます（Enterキーで次の候補へ進みます）。</span>
+                        <span class="en"><strong>Maybe</strong>: Saves immediately, with an optional note field
+                            (press Enter to advance to the next candidate).</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>AI判定のハイライト</strong>：AI一括判定を実行済みの文献では、AIが根拠として挙げた本文中の箇所がPDF上にハイライト表示され、右側に根拠カードの一覧が並びます（プロジェクトの共有設定によっては非表示になる場合もあります）。ブラインド中は、含む/除外どちらの判断かが分からない中立表示になります。ブラインド解除後は、管理者が画面内のトグルで色分き表示とAI判断サマリの開示を切り替えられます（AI判断サマリは非管理者には表示されません）。カードをクリックするとPDF上の該当箇所へジャンプします。PDF上のハイライト表示自体はチェックボックスでON/OFFできます。スキャン画像PDF（テキストレイヤーが無いPDF）では、AIが推定した領域をもとにハイライトされるため精度が落ちる場合がある旨が表示されます。</span>
+                        <span class="en"><strong>AI evidence highlighting</strong>: For references already batch
+                            AI-screened, the passages the AI cited as evidence are highlighted directly on the PDF,
+                            with a matching list of evidence cards on the right (these may be hidden depending on the
+                            project's sharing settings). While blind, they are shown in a neutral style that does not
+                            reveal whether the AI judged include or exclude. After the blind is lifted, admins can
+                            toggle color-coded display and disclosure of the AI's decision summary from an in-page
+                            toggle (the AI decision summary is never shown to non-admins). Clicking a card jumps to
+                            that spot on the PDF. A checkbox toggles the on-PDF highlight overlay on/off. For
+                            scanned, image-only PDFs (no text layer), a notice explains that highlight positions are
+                            based on the AI's estimated region and may be less accurate.</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">AI一括判定</span>
+                    <span class="en">Batch AI Screening</span>
+                </h3>
+                <p>
+                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAIは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。</span>
+                    <span class="en">The "AI judge" view sends the full PDF of each candidate that is saved to
+                        Drive (cached) and not yet AI-screened to Gemini, and returns a batch Include/Exclude/Maybe
+                        decision. Batch AI screening for full text only supports Gemini — unlike TiAb AI screening,
+                        OpenRouter and OpenAI are not available here. The criteria prompt can be pre-filled from your
+                        TiAb settings. Each run is recorded as a "round". Once at least one decision succeeds, that
+                        round is adopted automatically (a cancelled run is not adopted). When multiple rounds exist,
+                        you can switch which round is adopted later using radio buttons (including "None adopted"),
+                        and this is not limited to admins. Only the adopted round's decisions drive PDF highlighting
+                        and the post-decision review aggregation.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">判定後レビュー</span>
+                    <span class="en">Post-Decision Review</span>
+                </h3>
+                <p>
+                    <span class="ja">各判定者（人間・AI）の判定を一覧化し、集計に含める判定者をチェックボックスで選べます。組み入れ判定は選択した判定者のOR合議（誰か1人でもIncludeならInclude扱い）で決まります。PRISMAのフルテキスト相の数値（候補数・入手済数・Include/Exclude/Maybe数・除外理由の内訳）が自動集計され、CSV/RISエクスポートや論文用テキストの生成もここから行えます。</span>
+                    <span class="en">Lists each judge's (human or AI) decisions, with checkboxes to choose which
+                        judges to include in the aggregate. The consensus decision is an OR across the selected
+                        judges (Include if any one of them marked Include). PRISMA full-text-stage numbers (candidate
+                        count, obtained count, Include/Exclude/Maybe counts, exclusion-reason breakdown) are computed
+                        automatically, and CSV/RIS export and manuscript text generation are also available here.</span>
+                </p>
+            </section>
+
+            <!-- 共有とチーム運用 -->
+            <section id="sharing" class="help-section">
+                <h2>
+                    <span class="ja">共有とチーム運用</span>
+                    <span class="en">Sharing and Team Workflow</span>
+                </h2>
+                <p>
+                    <span class="ja">複数のレビュアーで同じプロジェクトを進めるための機能をまとめて説明します。</span>
+                    <span class="en">This section covers the features that support multiple reviewers working on the
+                        same project together.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">共有ダイアログ</span>
+                    <span class="en">Share Dialog</span>
+                </h3>
+                <p>
+                    <span class="ja">ツールバーの「👤 共有」ボタンから、共同編集者をGoogleアカウント（メールアドレス）で追加できます。</span>
+                    <span class="en">Use the "👤 Share" button in the toolbar to add collaborators by their Google
+                        account (email address).</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja">過去に共有したことがある相手は「最近の共有相手」としてチップに表示され、クリックするだけで入力できます。</span>
+                        <span class="en">Previously shared contacts appear as "Recent collaborators" chips — click one
+                            to fill in the address instantly.</span>
+                    </li>
+                    <li>
+                        <span class="ja">プロジェクトにGoogle Driveフォルダがある場合はフォルダごと共有され、スプレッドシート・フルテキストPDFがまとめて編集可能になります。</span>
+                        <span class="en">If the project has a Google Drive folder, the whole folder is shared, giving
+                            edit access to the spreadsheet and full-text PDFs together.</span>
+                    </li>
+                    <li>
+                        <span class="ja">「招待文をコピー」ボタンで、インストール先・スプレッドシートURL・操作ガイドをまとめた案内文をクリップボードへコピーできます。メールやチャットで共同研究者に送るのに使えます。</span>
+                        <span class="en">The "Copy invite message" button copies an invitation (install link,
+                            spreadsheet URL, and usage guide) to the clipboard, ready to send by email or chat.</span>
+                    </li>
+                    <li>
+                        <span class="ja">共有すると、Google Driveの標準の通知メールにも招待文（スプレッドシートURLと導入手順）が本文として自動的に載ります。</span>
+                        <span class="en">When you share, Google Drive's own notification email also automatically
+                            includes the invite message (spreadsheet URL and setup instructions) in its body.</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">Blind on/off</span>
+                    <span class="en">Blind On/Off</span>
+                </h3>
+                <p>
+                    <span class="ja">ON（既定）で他のレビュアーの判定を非表示にします（ブラインドレビュー）。OFF（キーオープン）にすると、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。ブラインド状態の切り替えはプロジェクト全体で共有されます。</span>
+                    <span class="en">ON (default) hides other reviewers' decisions (blind review). Turning it OFF
+                        ("opening the key") reveals other reviewers' decisions and the conflict banner, and also
+                        enables disclosure of the full-text AI decision summary (toggled by an admin from an in-page
+                        control). The blind state is shared across the whole project.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">チーム進捗パネル</span>
+                    <span class="en">Team Progress Panel</span>
+                </h3>
+                <p>
+                    <span class="ja">TiAbタブ（ツールバーの⚙️ボタン右側のチップ）とフルテキストタブ（候補ルール行の下にインライン表示）の両方で、チームメンバー全員の進捗を確認できます。表示されるのは各メンバーの判定件数と最終判定日時のみで、ブラインディングを維持するためInclude/Exclude等の内訳は表示されません。件数にカウントされるのは人間の判定と確定済みのML判定のみで、AI（LLM）判定や未確定（pending）の判定行はカウントに含まれません。データは🔄ボタンで再取得します（自分の判定を保存した場合は即時反映されます）。残作業があり3日以上判定がないメンバーには⚠が表示されます。プロジェクトメンバーが1人だけの場合は、パネル自体が表示されません。</span>
+                    <span class="en">Every team member's progress can be checked both from the TiAb tab (the chip to
+                        the right of the ⚙️ button) and the Full-text tab (shown inline below the candidate-rule
+                        row). Only each member's decision count and the time of their last decision are shown — the
+                        Include/Exclude breakdown is never shown, to preserve blinding. Only human decisions and
+                        confirmed ML decisions count toward these numbers; AI (LLM) decisions and unconfirmed
+                        (pending) rows are excluded. Data is refreshed with the 🔄
+                        button (your own saved decisions are reflected immediately). Members with remaining work and
+                        no decisions for 3 or more days are marked with ⚠. On single-member projects, the panel is
+                        hidden entirely.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">共有シートを初めて開く場合</span>
+                    <span class="en">Opening a shared sheet for the first time</span>
+                </h3>
+                <p>
+                    <span class="ja">共同研究者が作成したスプレッドシートをURLで接続すると、初回のみ「Googleで許可する」ボタンが表示されることがあります。開いたGoogle Pickerページで対象シートを選択すると、拡張機能のパネルが自動で再接続します。対象シートが表示されない場合は、先にGoogle Driveでそのシートが自分のGoogleアカウントに共有されているか確認してください。</span>
+                    <span class="en">When you connect to a spreadsheet created by a collaborator by URL, an "Allow with Google" button may appear the first time. Select the target sheet on the Google Picker page that opens, and the extension panel will reconnect automatically. If the target sheet is not shown, first confirm in Google Drive that the sheet is shared with your Google account.</span>
+                </p>
+            </section>
+
+            <!-- Web版 -->
+            <section id="web-version" class="help-section">
+                <h2>
+                    <span class="ja">Web版（インストール不要）</span>
+                    <span class="en">Web App (No Installation Required)</span>
+                </h2>
+                <p>
+                    <span class="ja">Chrome拡張機能をインストールしなくても、ブラウザだけでTiAb判定に参加できるWeb版があります。共同レビュアーがスマートフォンやタブレット、Chrome以外のブラウザからでも判定作業に参加できるようにするためのものです。</span>
+                    <span class="en">A web app version lets collaborators join TiAb screening using only a browser —
+                        no Chrome extension install required. It allows co-reviewers to participate from a
+                        smartphone, tablet, or a browser other than Chrome.</span>
+                </p>
+                <p>
+                    <span class="ja">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/"
+                            target="_blank">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                    <span class="en">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/"
+                            target="_blank">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                </p>
+
+                <h3>
+                    <span class="ja">できること</span>
+                    <span class="en">What You Can Do</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja">Googleアカウントでのログイン</span>
+                        <span class="en">Sign in with a Google account</span>
+                    </li>
+                    <li>
+                        <span class="ja">新規プロジェクトの作成、既存プロジェクト（共有されたスプレッドシート）への接続</span>
+                        <span class="en">Create a new project, or connect to an existing project (a shared
+                            spreadsheet)</span>
+                    </li>
+                    <li>
+                        <span class="ja">TiAbのInclude/Exclude/Maybe判定・メモの記録</span>
+                        <span class="en">TiAb Include/Exclude/Maybe decisions and notes</span>
+                    </li>
+                    <li>
+                        <span class="ja">キーワードハイライトの表示・編集、Blind on/off、不一致（コンフリクト）表示</span>
+                        <span class="en">Keyword highlight display/editing, Blind on/off, conflict display</span>
+                    </li>
+                    <li>
+                        <span class="ja">チーム進捗の確認、AI判定結果の閲覧（確信度・理由・エビデンスハイライトの表示のみ。実行はできません）</span>
+                        <span class="en">Team progress, and viewing existing AI decision results (confidence,
+                            reasoning, and evidence highlighting are shown, but you cannot run AI screening)</span>
+                    </li>
+                </ul>
+
+                <h3>
+                    <span class="ja">できないこと（Chrome拡張機能版のみの機能）</span>
+                    <span class="en">What You Can't Do (Chrome Extension Only)</span>
+                </h3>
+                <ul>
+                    <li>
+                        <span class="ja">MLスクリーニング（機械学習支援）</span>
+                        <span class="en">ML screening (machine learning assistance)</span>
+                    </li>
+                    <li>
+                        <span class="ja">AI（LLM）スクリーニングの実行（APIキー設定・一括判定）</span>
+                        <span class="en">Running AI (LLM) screening (API key setup, batch screening)</span>
+                    </li>
+                    <li>
+                        <span class="ja">フルテキストスクリーニング（PDF取得・判定・ハイライト）</span>
+                        <span class="en">Full-text screening (PDF retrieval, decisions, highlighting)</span>
+                    </li>
+                    <li>
+                        <span class="ja">RIS/nbibなどのインポート、CSV/RISエクスポート、論文用テキスト生成</span>
+                        <span class="en">RIS/NBIB import, CSV/RIS export, and manuscript text generation</span>
+                    </li>
+                </ul>
+                <div class="note"
+                    style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-top: 16px;">
+                    <p>
+                        <span class="ja"><strong>注意:</strong> フル機能（ML・AI実行・フルテキスト・インポート/エクスポート等）が必要な場合は、Chrome拡張機能版をお使いください。</span>
+                        <span class="en"><strong>Note:</strong> If you need the full feature set (ML, running AI
+                            screening, full-text screening, import/export, etc.), use the Chrome extension
+                            version.</span>
+                    </p>
+                </div>
+            </section>
+
+            <!-- キーボードショートカット -->
+            <section id="shortcuts" class="help-section">
+                <h2>
+                    <span class="ja">キーボードショートカット</span>
+                    <span class="en">Keyboard Shortcuts</span>
+                </h2>
+                <table class="shortcut-table">
+                    <tr>
+                        <th><span class="ja">キー</span> / <span class="en">Key</span></th>
+                        <th><span class="ja">機能</span> / <span class="en">Function</span></th>
+                    </tr>
+                    <tr>
+                        <td><code>i</code></td>
+                        <td>
+                            <span class="ja">Include（組み入れ）</span>
+                            <span class="en">Include</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>e</code></td>
+                        <td>
+                            <span class="ja">Exclude（除外）</span>
+                            <span class="en">Exclude</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>m</code></td>
+                        <td>
+                            <span class="ja">Maybe（保留）</span>
+                            <span class="en">Maybe</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>←</code></td>
+                        <td>
+                            <span class="ja">前の文献へ</span>
+                            <span class="en">Previous reference</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>→</code></td>
+                        <td>
+                            <span class="ja">次の文献へ</span>
+                            <span class="en">Next reference</span>
+                        </td>
+                    </tr>
+                </table>
+                <p>
+                    <span class="ja">※ テキスト入力欄（メモ、検索など）にフォーカスがある場合は無効になります</span>
+                    <span class="en">* Shortcuts are disabled when a text input field has focus (notes, search,
+                        etc.)</span>
+                </p>
+                <p>
+                    <span class="ja">※ フルテキストページ（新しいタブで開くPDF判定画面）でも同じ <code>i</code>/<code>e</code>/<code>m</code>
+                        が使えます。Excludeを選んだ後は数字キー（<code>1</code>〜<code>7</code>）で除外理由を選択できます。</span>
+                    <span class="en">* The same <code>i</code>/<code>e</code>/<code>m</code> shortcuts also work on the
+                        full-text page (the PDF decision screen that opens in a new tab). After choosing Exclude, use
+                        the number keys (<code>1</code>–<code>7</code>) to pick an exclusion reason.</span>
+                </p>
+            </section>
+
+            <!-- 設定 -->
+            <section id="settings" class="help-section">
+                <h2>
+                    <span class="ja">設定オプション</span>
+                    <span class="en">Settings</span>
+                </h2>
+                <p>
+                    <span class="ja">設定画面（⚙️ボタン）から以下のオプションを変更できます。</span>
+                    <span class="en">Access settings via the ⚙️ button to change the following options.</span>
+                </p>
+
+                <h4>
+                    <span class="ja">判断後に自動的に次の文献に遷移する</span>
+                    <span class="en">Auto-advance after decision</span>
+                </h4>
+                <p>
+                    <span class="ja">ON（デフォルト）: 判定後、自動的に次の文献へ移動<br>OFF: 判定後もその場にとどまり、手動で移動</span>
+                    <span class="en">ON (default): Auto-advance after making a decision<br>OFF: Stay on current
+                        reference, advance manually</span>
+                </p>
+
+                <h4>
+                    <span class="ja">進捗表示を下部に表示</span>
+                    <span class="en">Show progress at bottom</span>
+                </h4>
+                <p>
+                    <span class="ja">ON（デフォルト）: ナビゲーションエリアに進捗表示<br>OFF: タイトル上部の目立つ位置に進捗表示</span>
+                    <span class="en">ON (default): Show progress in navigation area<br>OFF: Show progress prominently
+                        above title</span>
+                </p>
             </section>
 
             <!-- FAQ -->
@@ -671,13 +1119,14 @@
 
                 <div class="faq-item">
                     <h4>
-                        <span class="ja">Q: ファイルをインポートしようとしたらエラーになりました</span>
-                        <span class="en">Q: I got an error when importing a file</span>
+                        <span class="ja">Q: インポートしたら抄録が途中で切れました</span>
+                        <span class="en">Q: The abstract got cut off after importing</span>
                     </h4>
                     <p>
-                        <span class="ja">A: ファイルサイズが50,000文字を超えている可能性があります。ファイルを分割してインポートしてください。</span>
-                        <span class="en">A: The file may exceed 50,000 characters. Try splitting the file and importing
-                            in parts.</span>
+                        <span class="ja">A: 抄録は15,000文字を超えると自動的に切り詰められます（末尾に「...」が付きます）。これはエラーではなく仕様で、ファイルを分割してインポートし直す必要はありません。</span>
+                        <span class="en">A: Abstracts longer than 15,000 characters are automatically truncated (with
+                            "..." appended). This is expected behavior, not an error — there is no need to split the
+                            file and re-import.</span>
                     </p>
                 </div>
 
@@ -711,9 +1160,13 @@
                         <span class="en">Q: Where is my data stored?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: 全てのデータはあなたのGoogle Driveに保存されます。プラグインはデータを外部サーバーに送信しません。</span>
-                        <span class="en">A: All data is stored in your Google Drive. The plugin does not send data to
-                            external servers.</span>
+                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。AI機能を使わなければ、データが外部へ送信されることはありません。</span>
+                        <span class="en">A: Your review data (references, decisions, notes, etc.) is stored in your
+                            Google Drive. However, if you use AI screening, the title/abstract of each reference
+                            being screened (or the full PDF, for full-text AI screening) is sent to the API of
+                            whichever provider you configured (Gemini/OpenRouter/OpenAI). API keys are stored in your
+                            browser's local storage. If you don't use the AI features, no data is sent
+                            externally.</span>
                     </p>
                 </div>
 
@@ -739,6 +1192,46 @@
                             を入れる方が効率的です。</span>
                         <span class="en">A: If you have known Includes, a small number (a few) is sufficient. Adding
                             accurate prior knowledge as seeds is more efficient than labeling many at once.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: Web版でML/AI/フルテキストのタブが見当たりません</span>
+                        <span class="en">Q: I can't find the ML/AI/Full-text tabs in the web app</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: ML・AI（LLM）判定の実行・フルテキストスクリーニング・インポート/エクスポートは、いずれもChrome拡張機能版限定の機能です。Web版ではTiAb判定・チーム進捗の確認・AI判定結果の閲覧などができます。フル機能が必要な場合はChrome拡張機能版をご利用ください（詳細は「Web版」章を参照）。</span>
+                        <span class="en">A: ML screening, running AI (LLM) screening, full-text screening, and
+                            import/export are all Chrome-extension-only features. The web app supports TiAb
+                            decisions, team progress, and viewing existing AI results. Use the Chrome extension
+                            version if you need the full feature set (see the "Web App" section for details).</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: AI判定はGoogle Gemini以外でも使えますか？</span>
+                        <span class="en">Q: Can I use AI screening with providers other than Google Gemini?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: TiAbのAI判定はGemini・OpenRouter・OpenAIの3プロバイダに対応しています（プロバイダごとに個別のAPIキー設定が必要です）。ただし、フルテキストのAI一括判定はGeminiのみに対応しています。</span>
+                        <span class="en">A: TiAb AI screening supports three providers — Gemini, OpenRouter, and
+                            OpenAI (each requires its own API key). However, batch AI screening for full text only
+                            supports Gemini.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: フルテキストのAI一括判定の対象はどう決まりますか？</span>
+                        <span class="en">Q: Which references are eligible for batch AI screening in Full-text?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: Google Driveに保存済み（cached）で、かつまだAI判定を行っていない候補文献が対象です。リンクのみ、または未取得の文献は、先にPDFをDriveへ保存してから実行してください。</span>
+                        <span class="en">A: Only candidates whose PDF is already saved to Google Drive (cached) and
+                            that have not yet been AI-screened are eligible. For references that are link-only or not
+                            yet retrieved, save the PDF to Drive first, then run AI screening.</span>
                     </p>
                 </div>
             </section>
