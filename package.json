@@ -19,7 +19,11 @@
         "watch:web": "webpack --mode development --watch --env target=web",
         "lint": "eslint src/**/*.ts",
         "typecheck": "tsc --noEmit",
-        "test": "tsc --project tests/tsconfig.json && node --test .tmp/tests/tests/*.test.js"
+        "test": "tsc --project tests/tsconfig.json && node --test .tmp/tests/tests/*.test.js",
+        "video:setup": "bash video/scripts/setup.sh",
+        "video:record": "node video/scripts/record.mjs",
+        "video:tts": "node video/scripts/tts.mjs",
+        "video:assemble": "node video/scripts/assemble.mjs"
     },
     "devDependencies": {
         "@types/chrome": "^0.0.260",
@@ -29,6 +33,7 @@
         "copy-webpack-plugin": "^12.0.2",
         "dotenv": "^17.2.3",
         "eslint": "^8.57.0",
+        "playwright": "^1.62.0",
         "ts-loader": "^9.5.1",
         "typescript": "^5.3.3",
         "webpack": "^5.90.0",

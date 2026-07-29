@@ -67,3 +67,7 @@ experiments/local_data/
 
 # Internal planning docs
 plans/
+
+# 操作解説動画パイプラインの生成物・自動セットアップ物（video/README.md 参照）
+video/build/
+video/tools/
