@@ -1,10 +1,10 @@
 // デモモード用 fetch モック
 //
-// globalThis.fetch を丸ごと差し替え、Google Sheets API / Drive API / OAuth userinfo への
-// 呼び出しをすべて src/demo/sheet-store.ts（インメモリストア）で処理する。
-// chrome-extension:// 宛て（PDF.js のワーカー/CMap取得等）と相対URLは実際の fetch へ
-// そのまま素通しし、それ以外の未対応な外部ホスト・エンドポイントは 404 を返して
-// console.warn するだけに留め、実ネットワークには一切出ない。
+// globalThis.fetch を丸ごと差し替え、Google Sheets API / Drive API / Gemini API /
+// OAuth userinfo への呼び出しをすべてインメモリで処理する。
+// chrome-extension:// 宛て（PDF.js のワーカー/CMap取得・同梱PDFフィクスチャ取得等）と
+// 相対URLは実際の fetch へそのまま素通しし、それ以外の未対応な外部ホスト・エンドポイントは
+// 404 を返して console.warn するだけに留め、実ネットワークには一切出ない。
 
 import {
     readRange,
@@ -15,7 +15,16 @@ import {
     listSheets,
     getStoreSpreadsheetTitle,
 } from './sheet-store';
-import { DEMO_SPREADSHEET_ID, DEMO_SPREADSHEET_TITLE, DEMO_USER_EMAIL, DEMO_SEED_TIMESTAMP } from './constants';
+import { buildDemoModelsListBody, buildStreamGenerateContentResponseText } from './gemini-fixtures';
+import {
+    DEMO_SPREADSHEET_ID,
+    DEMO_SPREADSHEET_TITLE,
+    DEMO_USER_EMAIL,
+    DEMO_COLLEAGUE_EMAIL,
+    DEMO_SEED_TIMESTAMP,
+    DEMO_FULLTEXT_DRIVE_FILE_ID,
+    DEMO_FULLTEXT_PDF_RESOURCE_PATH,
+} from './constants';
 
 let installed = false;
 
@@ -207,7 +216,82 @@ function routeSheetsApi(pathname: string, url: URL, method: string, body: any): 
 // Google Drive API / OAuth userinfo
 // ============================================================
 
-function routeGoogleApis(pathname: string, method: string): Response | null {
+/** 共有ダイアログ用の共有権限（インメモリ）。resetDemoDrivePermissions() でシードし直す */
+interface DemoPermission {
+    id: string;
+    role: 'owner' | 'writer' | 'reader';
+    type: 'user';
+    emailAddress: string;
+    displayName: string;
+}
+
+let demoPermissions: DemoPermission[] = [];
+let nextDemoPermissionId = 1;
+
+/**
+ * 共有ダイアログのデモ用に、デモユーザー(owner) + 同僚(writer) の2件で初期化する。
+ * install 時に1回だけ呼ぶ（installDemoFetchMock は多重インストールされない前提）。
+ */
+function resetDemoDrivePermissions(): void {
+    demoPermissions = [
+        {
+            id: 'demo-owner-permission',
+            role: 'owner',
+            type: 'user',
+            emailAddress: DEMO_USER_EMAIL,
+            displayName: 'デモ 太郎',
+        },
+        {
+            id: 'demo-colleague-permission',
+            role: 'writer',
+            type: 'user',
+            emailAddress: DEMO_COLLEAGUE_EMAIL,
+            displayName: '同僚 花子',
+        },
+    ];
+    nextDemoPermissionId = 1;
+}
+
+/** 拡張バンドル同梱のデモPDFをバイト列で取得する（chrome-extension:// URLはisPassthroughUrlで実fetchへ流れる） */
+async function fetchBundledDemoPdfBytes(): Promise<ArrayBuffer> {
+    const resourceUrl = chrome.runtime.getURL(DEMO_FULLTEXT_PDF_RESOURCE_PATH);
+    const response = await fetch(resourceUrl);
+    return response.arrayBuffer();
+}
+
+/** Drive files.get?alt=media（PDFバイナリ取得）の応答を組み立てる */
+async function handleDriveMediaDownload(fileId: string): Promise<Response> {
+    if (fileId !== DEMO_FULLTEXT_DRIVE_FILE_ID) {
+        return jsonResponse(404, { error: { code: 404, message: 'File not found' } });
+    }
+    try {
+        const bytes = await fetchBundledDemoPdfBytes();
+        return new Response(bytes, { status: 200, headers: { 'Content-Type': 'application/pdf' } });
+    } catch (error) {
+        console.error('[demo] デモPDFフィクスチャの読み込みに失敗しました:', error);
+        return jsonResponse(500, { error: { code: 500, message: 'demo pdf fixture load failed' } });
+    }
+}
+
+/** Drive permissions.create（共有追加）の応答を組み立てる */
+function handleAddPermission(fileId: string, body: any): Response {
+    if (fileId !== DEMO_SPREADSHEET_ID) return jsonResponse(404, { error: { code: 404, message: 'File not found' } });
+    const emailAddress: string = typeof body?.emailAddress === 'string' ? body.emailAddress : '';
+    const role: DemoPermission['role'] = body?.role === 'reader' ? 'reader' : 'writer';
+    const id = `demo-permission-${nextDemoPermissionId}`;
+    nextDemoPermissionId += 1;
+    demoPermissions.push({ id, role, type: 'user', emailAddress, displayName: emailAddress });
+    return jsonResponse(200, { id, role, type: 'user', emailAddress });
+}
+
+/** Drive permissions.delete（共有解除）の応答を組み立てる */
+function handleDeletePermission(fileId: string, permissionId: string): Response {
+    if (fileId !== DEMO_SPREADSHEET_ID) return jsonResponse(404, { error: { code: 404, message: 'File not found' } });
+    demoPermissions = demoPermissions.filter((p) => p.id !== permissionId);
+    return jsonResponse(200, {});
+}
+
+function routeGoogleApis(pathname: string, url: URL, method: string, body: any): Response | null | Promise<Response | null> {
     if (pathname === '/oauth2/v3/userinfo') {
         if (method !== 'GET') return null;
         return jsonResponse(200, {
@@ -227,27 +311,59 @@ function routeGoogleApis(pathname: string, method: string): Response | null {
 
     const permMatch = pathname.match(/^\/drive\/v3\/files\/([^/]+)\/permissions$/);
     if (permMatch) {
-        if (method !== 'GET') return null;
         const fileId = decodeURIComponent(permMatch[1]);
-        if (fileId !== DEMO_SPREADSHEET_ID) return jsonResponse(200, { permissions: [] });
-        // デモユーザーを owner として返す → isUserAdmin() が管理者判定になる
-        return jsonResponse(200, {
-            permissions: [
-                {
-                    id: 'demo-owner-permission',
-                    role: 'owner',
-                    type: 'user',
-                    emailAddress: DEMO_USER_EMAIL,
-                    displayName: 'デモ 太郎',
-                },
-            ],
-        });
+        if (method === 'GET') {
+            if (fileId !== DEMO_SPREADSHEET_ID) return jsonResponse(200, { permissions: [] });
+            // sendNotificationEmail / emailMessage クエリは通知メール送信の指示なので、
+            // デモ（実ネットワークに出ない）では単に無視する。
+            return jsonResponse(200, { permissions: demoPermissions });
+        }
+        if (method === 'POST') return handleAddPermission(fileId, body);
+        return null;
+    }
+
+    const permDeleteMatch = pathname.match(/^\/drive\/v3\/files\/([^/]+)\/permissions\/([^/]+)$/);
+    if (permDeleteMatch) {
+        if (method !== 'DELETE') return null;
+        return handleDeletePermission(decodeURIComponent(permDeleteMatch[1]), decodeURIComponent(permDeleteMatch[2]));
     }
 
     const fileMatch = pathname.match(/^\/drive\/v3\/files\/([^/]+)$/);
     if (fileMatch) {
         if (method !== 'GET') return null;
+        const fileId = decodeURIComponent(fileMatch[1]);
+        if (url.searchParams.get('alt') === 'media') {
+            return handleDriveMediaDownload(fileId);
+        }
         return jsonResponse(200, { capabilities: { canEdit: true, canShare: true } });
+    }
+
+    return null;
+}
+
+// ============================================================
+// Gemini API（generativelanguage.googleapis.com）
+// ============================================================
+
+/**
+ * `/v1beta/models` および `/v1beta/models/{model}:streamGenerateContent` のみ対応する。
+ * APIキーの値そのものは一切検証しない（デモでは何を入力しても通す）。
+ */
+function routeGeminiApi(pathname: string, method: string, body: any): Response | null {
+    if (pathname === '/v1beta/models') {
+        if (method !== 'GET') return null;
+        return jsonResponse(200, buildDemoModelsListBody());
+    }
+
+    const streamMatch = pathname.match(/^\/v1beta\/models\/([^:]+):streamGenerateContent$/);
+    if (streamMatch) {
+        if (method !== 'POST') return null;
+        const modelId = decodeURIComponent(streamMatch[1]);
+        const responseText = buildStreamGenerateContentResponseText(body, modelId);
+        return new Response(responseText, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 
     return null;
@@ -260,6 +376,7 @@ function routeGoogleApis(pathname: string, method: string): Response | null {
 export function installDemoFetchMock(): void {
     if (installed) return;
     installed = true;
+    resetDemoDrivePermissions();
 
     const originalFetch = globalThis.fetch.bind(globalThis);
 
@@ -279,7 +396,9 @@ export function installDemoFetchMock(): void {
             if (url.hostname === 'sheets.googleapis.com') {
                 response = routeSheetsApi(url.pathname, url, method, body);
             } else if (url.hostname === 'www.googleapis.com') {
-                response = routeGoogleApis(url.pathname, method);
+                response = await routeGoogleApis(url.pathname, url, method, body);
+            } else if (url.hostname === 'generativelanguage.googleapis.com') {
+                response = routeGeminiApi(url.pathname, method, body);
             }
 
             if (response) return response;

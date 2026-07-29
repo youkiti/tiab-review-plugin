@@ -34,3 +34,17 @@ export const DEMO_SEED_TIMESTAMP = '2026-01-05T09:00:00.000Z';
  * 実際の拡張機能バージョンに依存しないここの値を使う。
  */
 export const DEMO_HUMAN_CLIENT_VERSION = 'demo-0.0.0-human';
+
+/**
+ * フルテキストデモ用の Drive ファイルID（fake）。
+ * extractDriveFileId()（src/lib/drive-api.ts）は `[\w-]+` を許可するためハイフン付きでも
+ * 問題なくパースできる。demo-ref-001 の fulltext_url はこのIDを含む Drive リンクにする。
+ */
+export const DEMO_FULLTEXT_DRIVE_FILE_ID = 'demo-pdf-001';
+
+/**
+ * バンドル同梱の全文デモPDF（video/fixtures/demo-paper.pdf）の、拡張機能パッケージ内での
+ * 相対パス。webpack.config.js の CopyPlugin（デモビルド限定）でこの位置にコピーする。
+ * fetch-mock.ts が chrome.runtime.getURL() 経由で読み込む。
+ */
+export const DEMO_FULLTEXT_PDF_RESOURCE_PATH = 'fixtures/demo-paper.pdf';

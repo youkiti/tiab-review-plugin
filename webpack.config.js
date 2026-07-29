@@ -171,6 +171,12 @@ function buildExtensionConfig(env, argv) {
                     // 一部PDFの正しい描画に必要な CMap / 標準フォント（オンデマンド読込）。
                     { from: 'node_modules/pdfjs-dist/cmaps', to: 'cmaps' },
                     { from: 'node_modules/pdfjs-dist/standard_fonts', to: 'standard_fonts' },
+                    // デモビルドのみ: 全文デモ用の固定PDF（src/demo/fetch-mock.ts が
+                    // chrome.runtime.getURL() 経由で読み込み、Drive files.get?alt=media の
+                    // モック応答として返す）。生成手順は video/fixtures/demo-paper.pdf 内コメント参照。
+                    ...(isDemo
+                        ? [{ from: 'video/fixtures/demo-paper.pdf', to: 'fixtures/demo-paper.pdf' }]
+                        : []),
                 ],
             }),
         ],

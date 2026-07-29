@@ -4,11 +4,18 @@
 // Decisions / Config / LLM_Executions / LLM_Runs タブの初期状態を組み立てて
 // sheet-store（インメモリ）へ書き込む。ref_id・タイムスタンプ等はすべて固定値にし、
 // Playwright で毎回同じ画面が再現できるようにする（Date.now() や乱数は使わない）。
+//
+// profile='ml' 指定時（src/demo/profile.ts）は、実データ10件に加えて
+// src/demo/ml-fixtures.ts の合成文献1,090件（計1,100件）と、その一部への
+// デモユーザーのヒト判定40件を追加する。MLタブは文献数1,000件以上でのみ開放される
+// （src/lib/ml/cmh-defaults.ts）ため、既定プロファイルではこのタブを開けない。
 
 import nbibContent from '../../sample/pubmed-srws-psgad-set.nbib';
 import { parseRIS } from '../lib/ris-parser';
 import type { Reference } from '../lib/types';
 import { resetDemoStore } from './sheet-store';
+import type { DemoProfile } from './profile';
+import { buildSyntheticReferences, buildSyntheticDecisionSeeds } from './ml-fixtures';
 import {
     DEMO_SPREADSHEET_TITLE,
     DEMO_USER_EMAIL,
@@ -16,6 +23,7 @@ import {
     DEMO_SOURCE_FILE,
     DEMO_SEED_TIMESTAMP,
     DEMO_HUMAN_CLIENT_VERSION,
+    DEMO_FULLTEXT_DRIVE_FILE_ID,
 } from './constants';
 
 // 以下2つの定数は src/lib/sheets-api.ts の REFERENCES_HEADERS / DECISIONS_HEADERS と
@@ -51,17 +59,36 @@ const LLM_RUNS_HEADERS = [
     'requested_model', 'model_version', 'response_id',
 ];
 
-/** 決定論的な ref_id（demo-ref-001 ... ）を振り直した文献一覧を作る */
-function buildDemoReferences(): Reference[] {
+/** 決定論的な ref_id（demo-ref-001 ... ）を振り直した実データ文献一覧を作る（常に10件） */
+function buildRealDemoReferences(): Reference[] {
     const parsed = parseRIS(nbibContent, DEMO_SOURCE_FILE);
-    return parsed.map((ref, index) => ({
-        ...ref,
-        ref_id: `demo-ref-${String(index + 1).padStart(3, '0')}`,
-        // parseRIS は new Date().toISOString() を使うため、録画のたびに値が変わらないよう上書きする
-        imported_at: DEMO_SEED_TIMESTAMP,
-        imported_by: DEMO_USER_EMAIL,
-        source: ref.source || 'PubMed',
-    }));
+    return parsed.map((ref, index) => {
+        const refNumber = index + 1;
+        const built: Reference = {
+            ...ref,
+            ref_id: `demo-ref-${String(refNumber).padStart(3, '0')}`,
+            // parseRIS は new Date().toISOString() を使うため、録画のたびに値が変わらないよう上書きする
+            imported_at: DEMO_SEED_TIMESTAMP,
+            imported_by: DEMO_USER_EMAIL,
+            source: ref.source || 'PubMed',
+        };
+        // フルテキストデモ用（セクション4）: 1件目はDrive保存済みPDFのキャッシュ済み扱い、
+        // 2件目はあえて未取得のままにして「取得候補」の両パターンを見せる。
+        if (refNumber === 1) {
+            built.fulltext_status = 'cached';
+            built.fulltext_url = `https://drive.google.com/file/d/${DEMO_FULLTEXT_DRIVE_FILE_ID}/view`;
+        }
+        return built;
+    });
+}
+
+/** References タブ全体（実データ + プロファイルに応じた合成文献）を組み立てる */
+function buildDemoReferences(profile: DemoProfile): Reference[] {
+    const references = buildRealDemoReferences();
+    if (profile === 'ml') {
+        references.push(...buildSyntheticReferences());
+    }
+    return references;
 }
 
 function buildReferenceRow(ref: Reference): string[] {
@@ -103,8 +130,18 @@ function refId(n: number): string {
     return `demo-ref-${String(n).padStart(3, '0')}`;
 }
 
-/** Decisions タブのシード判定一覧を組み立てる（デモユーザー3件・同僚5件） */
-function buildDemoDecisions(): string[][] {
+/** 合成文献（demo-ref-011...）内でのインデックスから ref_id を得る（seed.ts側の連番規則と一致） */
+function syntheticRefId(syntheticIndex: number): string {
+    return refId(10 + syntheticIndex);
+}
+
+/**
+ * Decisions タブのシード判定一覧を組み立てる（デモユーザー3件・同僚5件が基本）。
+ * profile==='ml' のときは、ML学習用にデモユーザーの合成文献判定40件を追加する
+ * （mlStoppingRule はここでは一切保存しない。ML タブ初回起動時の停止基準ダイアログを
+ * 必ず表示させるため）。
+ */
+function buildDemoDecisions(profile: DemoProfile): string[][] {
     const decisions: SeedDecisionInput[] = [
         // デモユーザー本人の判定（3/10: include 2件・exclude 1件）
         { decisionId: 'demo-dec-001', refId: refId(1), reviewerId: DEMO_USER_EMAIL, decision: 'include', decidedAt: '2026-01-06T01:00:00.000Z' },
@@ -117,6 +154,20 @@ function buildDemoDecisions(): string[][] {
         { decisionId: 'demo-dec-007', refId: refId(4), reviewerId: DEMO_COLLEAGUE_EMAIL, decision: 'include', decidedAt: '2026-01-05T09:45:00.000Z' },
         { decisionId: 'demo-dec-008', refId: refId(5), reviewerId: DEMO_COLLEAGUE_EMAIL, decision: 'exclude', reason: 'プロトコルのため対象外', decidedAt: '2026-01-05T09:50:00.000Z' },
     ];
+
+    if (profile === 'ml') {
+        buildSyntheticDecisionSeeds().forEach((seed, i) => {
+            decisions.push({
+                decisionId: `demo-dec-ml-${String(i + 1).padStart(3, '0')}`,
+                refId: syntheticRefId(seed.syntheticIndex),
+                reviewerId: DEMO_USER_EMAIL,
+                decision: seed.decision,
+                reason: seed.decision === 'exclude' ? '研究デザインが組み入れ基準に合致しないため対象外' : undefined,
+                decidedAt: '2026-01-06T02:00:00.000Z',
+            });
+        });
+    }
+
     return [DECISIONS_HEADERS, ...decisions.map(buildDecisionRow)];
 }
 
@@ -131,13 +182,16 @@ function buildDemoConfig(): string[][] {
     ];
 }
 
-/** シード全体を組み立てて sheet-store へ書き込む */
-export function seedDemoStore(): void {
-    const references = buildDemoReferences();
+/**
+ * シード全体を組み立てて sheet-store へ書き込む。
+ * @param profile 'default'（実データ10件のみ）/ 'ml'（+ 合成文献1,090件。MLタブ開放デモ用）
+ */
+export function seedDemoStore(profile: DemoProfile = 'default'): void {
+    const references = buildDemoReferences(profile);
 
     resetDemoStore(DEMO_SPREADSHEET_TITLE, {
         References: [REFERENCES_HEADERS, ...references.map(buildReferenceRow)],
-        Decisions: buildDemoDecisions(),
+        Decisions: buildDemoDecisions(profile),
         Config: buildDemoConfig(),
         // LLM機能はこのチャンクの対象外。ensureLlmExecutionsSheet/ensureLlmRunsSheet が
         // 「ヘッダーは揃っている」と判定できるよう、ヘッダー行のみ用意しておく。
