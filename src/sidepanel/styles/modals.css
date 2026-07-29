@@ -137,6 +137,30 @@
     color: #666;
 }
 
+.shared-user-remove-btn {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 0 4px;
+    border: none;
+    background: none;
+    color: #999;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.shared-user-remove-btn:hover {
+    color: #c62828;
+    background: #fdecea;
+}
+
+.shared-user-remove-btn:disabled {
+    color: #ccc;
+    cursor: default;
+    background: none;
+}
+
 .share-email-input {
     flex: 1;
     padding: 4px 8px;

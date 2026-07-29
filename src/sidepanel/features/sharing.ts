@@ -6,10 +6,27 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
-import { addPermission, getProjectDriveFolderId, getSpreadsheetPermissions, isUserAdmin } from '../../lib/sheets-api';
+import {
+    addPermission,
+    deletePermission,
+    DrivePermissionError,
+    getFilePermissions,
+    getProjectDriveFolderId,
+    getSpreadsheetPermissions,
+    isUserAdmin,
+    type SpreadsheetPermission,
+} from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 import { addShareEmailToHistory, getShareEmailHistory, mergeShareEmailsToHistory } from '../../lib/share-email-history';
 import { buildInviteMessage } from '../../lib/share-invite';
+import {
+    canRemovePermission,
+    classifyPermissionRemovalError,
+    findRemovableUserPermission,
+    resolveRemovalTargets,
+    summarizeRemovalOutcome,
+    type PermissionRemovalFailure,
+} from '../../lib/share-permissions';
 
 // Store互換レイヤー（Phase 4）
 import { closeShareInput } from '../store/compat';
@@ -66,6 +83,20 @@ export function loadShareSuggestions(excludeEmails: string[] = []): void {
 }
 
 /**
+ * 共有先（フォルダ優先）の Drive フォルダIDを取得する。
+ * `handleShare` と一覧取得・解除処理で同じ規則を使うため切り出している。
+ * 取得に失敗した場合は null 扱い（スプレッドシート単体共有にフォールバック）とする。
+ */
+async function resolveShareFolderId(spreadsheetId: string): Promise<string | null> {
+    try {
+        return await getProjectDriveFolderId(spreadsheetId);
+    } catch (error) {
+        console.warn('Failed to resolve project drive folder id:', error);
+        return null;
+    }
+}
+
+/**
  * 共有設定を追加
  */
 export async function handleShare() {
@@ -86,7 +117,7 @@ export async function handleShare() {
         // フォルダ権限は下方向に継承されるため、スプレッドシート・fulltext・全PDFを
         // 一括で編集可能にできる（PDFは著作権物なので公開リンクは使わずメンバー限定）。
         // フォルダを持たない既存プロジェクトは従来どおりスプレッドシート単体を共有する。
-        const folderId = await getProjectDriveFolderId(state.spreadsheetId);
+        const folderId = await resolveShareFolderId(state.spreadsheetId);
 
         // フォルダ共有時、Driveの既定通知メールは「フォルダを共有しました」としか表示されず、
         // スプレッドシートURLも拡張のインストール手順も載らない（スプレッドシート単体共有の場合と
@@ -162,14 +193,24 @@ export async function loadSharedUsers() {
     try {
         dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#666;">${t('common_loading')}</div>`;
 
-        // 管理者権限チェック（fallback含む）
+        // 管理者権限チェック（fallback含む。従来どおりスプレッドシートIDで判定する）
         const isAdmin = await isUserAdmin(spreadsheetId, userEmail);
 
-        let permissions: { emailAddress: string; role: string }[] = [];
+        // 権限一覧の取得対象は共有先に合わせる（フォルダがあればフォルダ優先。handleShareと同じ規則）。
+        // 取得に失敗した場合は従来どおりスプレッドシート単体の一覧にフォールバックする。
+        const folderId = await resolveShareFolderId(spreadsheetId);
+        const primaryTarget = folderId || spreadsheetId;
+
+        let permissions: SpreadsheetPermission[] = [];
         try {
-            permissions = await getSpreadsheetPermissions(spreadsheetId);
+            permissions = await getFilePermissions(primaryTarget);
         } catch (e) {
-            console.warn('Failed to load permissions list (likely due to scope):', e);
+            console.warn('Failed to load permissions list from primary target, falling back to spreadsheet:', e);
+            try {
+                permissions = await getSpreadsheetPermissions(spreadsheetId);
+            } catch (fallbackError) {
+                console.warn('Failed to load permissions list (likely due to scope):', fallbackError);
+            }
         }
 
         if (permissions.length === 0) {
@@ -214,6 +255,20 @@ export async function loadSharedUsers() {
 
             div.appendChild(emailSpan);
             div.appendChild(roleSpan);
+
+            if (canRemovePermission(p, { isAdmin, selfEmail: userEmail })) {
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'shared-user-remove-btn';
+                removeBtn.textContent = '✕';
+                removeBtn.title = t('share_removeTitle');
+                removeBtn.setAttribute('aria-label', t('share_removeTitle'));
+                removeBtn.addEventListener('click', () => {
+                    void handleRemoveShare(p.emailAddress);
+                });
+                div.appendChild(removeBtn);
+            }
+
             dom.sharedUsersList.appendChild(div);
         });
 
@@ -232,5 +287,82 @@ export async function loadSharedUsers() {
         dom.sharedUsersList.innerHTML = `<div style="font-size:11px;color:#c62828;">${t('share_loadFailed')}</div>`;
         // 予期しないエラー時も除外なしで候補だけは表示しておく
         loadShareSuggestions();
+    }
+}
+
+/**
+ * 共有相手のアクセス権を解除する。
+ *
+ * フォルダ共有プロジェクトでは、フォルダ・スプレッドシートの両方に個別の権限が
+ * 付与されている場合があるため、resolveRemovalTargets が返す各ターゲットを順に処理する。
+ * あるターゲットで一覧取得や削除に失敗しても、他のターゲットの処理は続行する。
+ */
+export async function handleRemoveShare(email: string): Promise<void> {
+    if (!window.confirm(t('share_removeConfirm', email))) return;
+
+    const removeButtons = dom.sharedUsersList.querySelectorAll<HTMLButtonElement>('.shared-user-remove-btn');
+    removeButtons.forEach(btn => { btn.disabled = true; });
+
+    try {
+        const folderId = await resolveShareFolderId(state.spreadsheetId);
+        const targets = resolveRemovalTargets(folderId, state.spreadsheetId);
+
+        let successCount = 0;
+        let folderRemovalSucceeded = false;
+        const failures: PermissionRemovalFailure[] = [];
+        // 「失敗」表示（'unknown'）の引数に使う、最初に発生した失敗のAPI/エラーメッセージ
+        let firstUnknownFailureMessage = '';
+
+        for (const target of targets) {
+            try {
+                const permissions = await getFilePermissions(target);
+                const permission = findRemovableUserPermission(permissions, email);
+                if (!permission || !permission.id) continue;
+
+                try {
+                    await deletePermission(target, permission.id);
+                    successCount += 1;
+                    if (target === folderId) folderRemovalSucceeded = true;
+                } catch (deleteError) {
+                    if (deleteError instanceof DrivePermissionError) {
+                        const failure = classifyPermissionRemovalError(deleteError.status, deleteError.apiMessage);
+                        // フォルダ側の解除が成功していれば、配下のスプレッドシート権限は
+                        // フォルダから継承された状態になるため、'inherited' での失敗は成功扱いにする
+                        if (folderRemovalSucceeded && failure === 'inherited') continue;
+                        if (failure === 'unknown' && !firstUnknownFailureMessage) {
+                            firstUnknownFailureMessage = deleteError.apiMessage;
+                        }
+                        failures.push(failure);
+                    } else {
+                        console.error('Failed to delete permission:', deleteError);
+                        if (!firstUnknownFailureMessage) firstUnknownFailureMessage = (deleteError as Error).message;
+                        failures.push('unknown');
+                    }
+                }
+            } catch (listError) {
+                // 一覧取得に失敗しても他のターゲットは続行するが、フォルダ側の削除成功だけを
+                // もって「成功」と表示すると、このターゲットに残っているかもしれない権限を
+                // 見逃してしまうため、失敗としても集計する
+                console.warn(`Failed to load permissions for target ${target}:`, listError);
+                if (!firstUnknownFailureMessage) firstUnknownFailureMessage = (listError as Error).message;
+                failures.push('unknown');
+            }
+        }
+
+        const summary = summarizeRemovalOutcome(successCount, failures);
+        if (summary.arg === 'email') {
+            showToast(t(summary.key, email));
+        } else if (summary.arg === 'apiMessage') {
+            showToast(t(summary.key, firstUnknownFailureMessage));
+        } else {
+            showToast(t(summary.key));
+        }
+    } catch (error) {
+        console.error('Failed to remove share:', error);
+        showToast(t('share_removeErrorUnknown', (error as Error).message));
+    } finally {
+        // Drive側の権限伝播には数秒かかることがあり、再描画直後は解除したはずの相手が
+        // 一覧に残って見える場合がある（Drive側の反映待ち。アプリのバグではない）
+        await loadSharedUsers();
     }
 }
