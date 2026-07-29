@@ -6,6 +6,8 @@ node_modules/
 dist/
 dist.zip
 dist-store-*.zip
+# デモモードビルド成果物（npm run build:demo / Playwright録画用）
+dist-demo/
 # Web アプリ版のビルド成果物。デプロイ時のみ `git add -f docs/app` で明示的にコミットする
 # （実装 PR に dev ビルド成果物が混入するのを防ぐ）。
 docs/app/

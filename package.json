@@ -13,6 +13,7 @@
         "release:minor": "npm run bump:minor && npm run build:release",
         "watch": "webpack --mode development --watch",
         "dev": "webpack --mode development",
+        "build:demo": "webpack --mode development --env demo",
         "build:web": "webpack --mode production --env target=web",
         "dev:web": "webpack --mode development --env target=web",
         "watch:web": "webpack --mode development --watch --env target=web",

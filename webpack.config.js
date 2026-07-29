@@ -29,18 +29,25 @@ function resolvePickerPageUrlOverride(isProduction) {
 }
 
 // =====================================================================
-// 拡張機能ビルド（既存設定。挙動は一切変更しない）
+// 拡張機能ビルド
+// 通常の dev/production ビルドの挙動は一切変更しない。`--env demo` 指定時のみ
+// デモモード（Playwright 録画用。実credentials/実ネットワーク無し）に切り替わる。
 // =====================================================================
 function buildExtensionConfig(env, argv) {
     const isProduction = argv.mode === 'production';
+    // デモビルド（Playwright録画用。実credentials/実ネットワーク無しでUIを動かす）。
+    // `npm run build:demo`（webpack --mode development --env demo）で有効になる。
+    const isDemo = Boolean(env && env.demo);
     // launchWebAuthFlow はリダイレクトURI（chromiumapp.org）を拡張機能IDから実行時に導出するため、
     // getAuthToken 時代のような拡張機能IDごとのクライアント選択は不要。ウェブアプリ型クライアント
     // 1つを全ビルド（dev/zip/store）で共用する。
     const webauthClientId = process.env.WEBAUTH_CLIENT_ID?.trim();
-    if (isProduction && !webauthClientId) {
+    // デモビルドは実認証を一切行わない（src/platform/demo が肩代わりする）ため、
+    // WEBAUTH_CLIENT_ID 未設定でも本番モードのビルドを止めない。
+    if (isProduction && !webauthClientId && !isDemo) {
         throw new Error('WEBAUTH_CLIENT_ID が未設定です。.env に WEBAUTH_CLIENT_ID を設定してから本番ビルドを実行してください。');
     }
-    if (!webauthClientId) {
+    if (!webauthClientId && !isDemo) {
         console.warn('[webpack] WEBAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
     }
     const pickerPageUrl = resolvePickerPageUrlOverride(isProduction);
@@ -48,12 +55,12 @@ function buildExtensionConfig(env, argv) {
     return {
         entry: {
             'background/service-worker': './src/background/service-worker.ts',
-            'popup/popup': './src/popup/popup.ts',
-            'sidepanel/sidepanel': './src/sidepanel/sidepanel.ts',
-            'fulltext/fulltext': './src/fulltext/fulltext.ts',
+            'popup/popup': isDemo ? './src/demo/popup-entry.ts' : './src/popup/popup.ts',
+            'sidepanel/sidepanel': isDemo ? './src/demo/sidepanel-entry.ts' : './src/sidepanel/sidepanel.ts',
+            'fulltext/fulltext': isDemo ? './src/demo/fulltext-entry.ts' : './src/fulltext/fulltext.ts',
         },
         output: {
-            path: path.resolve(__dirname, 'dist'),
+            path: path.resolve(__dirname, isDemo ? 'dist-demo' : 'dist'),
             filename: '[name].js',
             clean: true,
         },
@@ -72,6 +79,13 @@ function buildExtensionConfig(env, argv) {
                     type: 'javascript/auto',
                     resolve: { fullySpecified: false },
                 },
+                {
+                    // デモモードのシード（src/demo/seed.ts）が PubMed サンプルデータを
+                    // テキストとして bundle へ取り込むための rule。demo エントリ以外からは
+                    // 参照されないため、通常ビルドの出力には影響しない。
+                    test: /\.nbib$/,
+                    type: 'asset/source',
+                },
             ],
         },
         resolve: {
@@ -84,7 +98,19 @@ function buildExtensionConfig(env, argv) {
             new webpack.DefinePlugin({
                 __EXTENSION_OAUTH_CLIENT_ID__: JSON.stringify(webauthClientId ?? ''),
                 __PICKER_PAGE_URL__: JSON.stringify(pickerPageUrl),
+                __DEMO__: JSON.stringify(isDemo),
             }),
+            ...(isDemo
+                ? [
+                    // sidepanel/fulltext/popup の `import { chromePlatform } from '../platform/chrome'`
+                    // を実クロームアダプタからデモアダプタ（src/platform/demo）へ差し替える。
+                    // 既存ソースは一切書き換えず、ビルド設定だけで挙動を切り替えるための仕組み。
+                    new webpack.NormalModuleReplacementPlugin(
+                        /platform\/chrome$/,
+                        path.resolve(__dirname, 'src/platform/demo/index.ts')
+                    ),
+                ]
+                : []),
             new CopyPlugin({
                 patterns: [
                     {
@@ -112,7 +138,14 @@ function buildExtensionConfig(env, argv) {
                                 }
                             };
 
-                            if (isProduction && env.keepKey) {
+                            if (isDemo) {
+                                // デモビルド: key はそのまま保持する（Playwrightでの拡張機能ID固定のため）。
+                                // (dev) ではなく (demo) サフィックスでストア版・dev版と区別する。
+                                manifest.name = `${manifest.name} (demo)`;
+                                if (manifest.action?.default_title) {
+                                    manifest.action.default_title = `${manifest.action.default_title} (demo)`;
+                                }
+                            } else if (isProduction && env.keepKey) {
                                 // zip 配布: key はそのまま保持し、(dev) サフィックスでストア版と区別する
                                 appendDevSuffix();
                             } else if (isProduction) {
