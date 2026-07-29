@@ -160,6 +160,65 @@
     text-align: center;
 }
 
+/* TiAb完了バナー（自分の未判定が0件になったら表示。フルテキストタブの差し色#16a085に合わせる） */
+.tiab-done-banner {
+    background-color: #eafaf1;
+    border: 1px solid #16a085;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #0e6251;
+}
+
+.tiab-done-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.tiab-done-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    line-height: 1.5;
+}
+
+.tiab-done-row:not(:last-child) {
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.tiab-done-row span {
+    flex: 1;
+}
+
+.tiab-done-row button {
+    flex-shrink: 0;
+}
+
+/* 残作業（不一致・保留）の行 */
+.tiab-done-row-warning {
+    color: #856404;
+}
+
+/* Blind中の案内行（件数を出さない中立トーン） */
+.tiab-done-row-info {
+    color: #5f6368;
+}
+
+/* 次工程（全文タブへ）ボタン: フルテキストタブと同じ差し色で導線を強調 */
+.tiab-done-next-btn {
+    background-color: #16a085;
+    color: #fff;
+}
+
+.tiab-done-next-btn:hover {
+    background-color: #128a72;
+}
+
 /* 担当分け未設定の案内カード（設定画面・担当セット欄・管理者向け） */
 .assignment-banner {
     display: flex;

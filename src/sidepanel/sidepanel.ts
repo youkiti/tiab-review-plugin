@@ -24,7 +24,7 @@ import * as llm from './features/llm';
 import * as screeningRender from './features/screening/render';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
-import { setupFulltextTabListeners } from './features/fulltext-tab';
+import { setupFulltextTabListeners, activateFulltextTab } from './features/fulltext-tab';
 import { initModal } from './ui/modal';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 import { showToast } from './ui/feedback';
@@ -100,6 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ========== フルテキストタブ ==========
     setupFulltextTabListeners();
+    // TiAb完了バナーの「全文タブへ進む」ボタンから遷移できるように登録
+    // （render.tsからfulltext-tab.tsを直接importすると循環依存になるため依存注入で渡す）
+    screeningRender.setFulltextTabNavigator(activateFulltextTab);
 
     // ========== ML ==========
     initMlHandlers();

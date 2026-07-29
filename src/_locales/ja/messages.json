@@ -224,6 +224,36 @@
   "screening_openFulltext": {
     "message": "フルテキストを開く →"
   },
+  "screening_tiabDoneTitle": {
+    "message": "🎉 TiAbスクリーニング完了（$1件すべて判定済み）"
+  },
+  "screening_tiabDoneConflictOr": {
+    "message": "不一致が $1 件ありますが、不一致の文献も全文候補に入るのでこのまま進めて大丈夫です。取り寄せる全文を減らしたい場合は、明らかなうっかりミスだけ先に直しておくと楽になります。"
+  },
+  "screening_tiabDoneConflictStrict": {
+    "message": "⚠️ 不一致が $1 件あります。現在の候補ルール（$2票中$3票）では、不一致のままだと全文候補に入りません。先に解消してください。"
+  },
+  "screening_tiabDoneConflictBtn": {
+    "message": "不一致を確認"
+  },
+  "screening_tiabDoneBlind": {
+    "message": "Blind中のため不一致は表示されていません。このまま全文に進んで構いません。うっかりミスの解消は Blind off 後でも大丈夫です。"
+  },
+  "screening_tiabDoneMaybe": {
+    "message": "⚠️ 保留が $1 件あります。保留のままだと全文候補に入りません。全文を読んで判断したい文献は Include に変えてください。"
+  },
+  "screening_tiabDoneMaybeBtn": {
+    "message": "保留を確認"
+  },
+  "screening_tiabDoneNext": {
+    "message": "次は全文スクリーニングです。"
+  },
+  "screening_tiabDoneNextBtn": {
+    "message": "📄 全文タブへ進む"
+  },
+  "screening_tiabDoneToast": {
+    "message": "TiAbスクリーニング完了！次は「📄 全文」タブへ"
+  },
   "nav_prev": {
     "message": "前へ (←)"
   },
@@ -256,6 +286,9 @@
   },
   "nav_tabFulltextTitle": {
     "message": "フルテキストスクリーニング"
+  },
+  "nav_tabFulltextBadgeTitle": {
+    "message": "全文候補 $1 件"
   },
   "fulltext_progressLine": {
     "message": "フルテキスト判定済み: $1 / $2件"

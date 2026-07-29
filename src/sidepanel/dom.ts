@@ -109,6 +109,7 @@ const domElements = {
     get aiHighlightCheckbox() { return getElement<HTMLInputElement>('ai-highlight-checkbox'); },
     get reviewerFilterContainer() { return getElement<HTMLElement>('reviewer-filter-container'); },
     get conflictBanner() { return getElement<HTMLElement>('conflict-banner'); },
+    get tiabDoneBanner() { return getElement<HTMLElement>('tiab-done-banner'); },
     get allDecisionsDiv() { return getElement<HTMLElement>('all-decisions'); },
 
     // ========== Highlight Keywords ==========
@@ -161,6 +162,7 @@ const domElements = {
     get tabLlmBtn() { return getElement<HTMLButtonElement>('tab-llm'); },
     get tabMlBtn() { return getElement<HTMLButtonElement>('tab-ml'); },
     get tabFulltextBtn() { return getElement<HTMLButtonElement>('tab-fulltext'); },
+    get tabFulltextBadge() { return getElement<HTMLElement>('tab-fulltext-badge'); },
     get headerTabs() { return querySelector<HTMLElement>('.header-tabs'); },
 
     // ========== Fulltext Section ==========

@@ -14,13 +14,13 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-07-27</span>
+                <span class="build-version">Build: 2026-07-28</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
                 <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
                 <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
-                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle" data-i18n="nav_tabFulltext"></button>
+                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -174,6 +174,9 @@
                 <!-- 不一致警告バナー（キーオープン後のみ表示） -->
                 <div id="conflict-banner" class="conflict-banner hidden" data-i18n="screening_conflictBanner">
                 </div>
+
+                <!-- TiAb完了バナー（自分の未判定が0件になったら表示。中身はJSで組み立てる） -->
+                <div id="tiab-done-banner" class="tiab-done-banner hidden"></div>
 
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
                 <div id="all-decisions" class="all-decisions hidden"></div>

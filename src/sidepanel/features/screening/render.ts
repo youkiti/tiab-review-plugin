@@ -6,23 +6,44 @@
 import { dom } from '../../dom';
 import { state } from '../../state';
 import { escapeHtml, escapeRegex } from '../../utils/text';
-import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus } from './filters';
+import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus, getScreeningCounts } from './filters';
 import type { ReferenceWithStatus } from '../../../lib/types';
 import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { isInFulltextPool } from '../../../lib/fulltext-pool';
 import { t } from '../../../lib/i18n';
+import { showToast } from '../../ui/feedback';
+import { platform } from '../../../platform';
 import type { DecisionStatus } from '../../../lib/types';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
+
+// TiAb完了バナーの「全文タブへ進む」ボタンから呼ぶ遷移関数。
+// fulltext-tab.ts は screening/filters.ts に依存しており、かつ拡張専用（Web版には無い）機能のため、
+// ここから直接importせず setRenderDependencies と同じ依存注入パターンで回避する。
+// 未登録（Web版など fulltext capability が無い場合）はボタンクリックが何もしない。
+let _navigateToFulltextTab: (() => void) | null = null;
 
 export function setRenderDependencies(deps: {
     navigate: (dir: number) => void;
 }) {
     _navigate = deps.navigate;
 }
+
+export function setFulltextTabNavigator(fn: () => void): void {
+    _navigateToFulltextTab = fn;
+}
+
+// TiAb完了トースト（1回だけ）の重複防止ガード。
+// 前回描画時の自分の未判定件数と、対象のスプレッドシートIDを保持する。
+// null は「未初期化」を意味し、初回ロード時（既に完了済みのプロジェクトを開いた瞬間）の誤発火を防ぐ。
+let _tiabDoneToastPrevPending: number | null = null;
+let _tiabDoneToastSpreadsheetId: string | null = null;
+
+// fulltext capability が有効なのに navigator 未登録（配線ミス）の警告を1回だけ出すためのガード
+let _missingFulltextNavigatorWarned = false;
 
 function getCurrentHistoryReference(): ReferenceWithStatus | undefined {
     const historyRefId = state.getCurrentReviewHistoryRefId();
@@ -204,6 +225,9 @@ export function renderCurrentReference() {
         dom.filterResultCount.textContent = t('filter_resultCount', ['0', '0']);
 
         updateFilterCounts();
+        // renderProgress()を経由しない分岐（絞り込み結果が0件など）でも
+        // TiAb完了バナーは表示する必要があるため、ここでも呼ぶ
+        renderTiabDoneBanner();
 
         dom.conflictBanner.classList.add('hidden');
         dom.allDecisionsDiv.classList.add('hidden');
@@ -460,6 +484,117 @@ function renderProgress() {
     }
 
     updateFilterCounts();
+    renderTiabDoneBanner();
+}
+
+/**
+ * TiAb完了バナーを描画する。
+ * 自分の未判定が0件（かつ文献が1件以上）のときだけ「🎉 完了」バナーとして、
+ * 残作業（不一致・保留）と次工程（全文タブ）の案内を表示する。
+ * 表示条件・件数は絞り込みの影響を受けない state.references 全体ベース
+ * （renderProgress() の進捗表示と同じ基準に合わせる）。
+ */
+function renderTiabDoneBanner(): void {
+    const banner = dom.tiabDoneBanner;
+
+    // プロジェクトを切り替えたら完了トーストの発火ガードをリセットする
+    if (_tiabDoneToastSpreadsheetId !== state.spreadsheetId) {
+        _tiabDoneToastSpreadsheetId = state.spreadsheetId;
+        _tiabDoneToastPrevPending = null;
+    }
+
+    const total = state.references.length;
+    if (total === 0) {
+        banner.classList.add('hidden');
+        banner.innerHTML = '';
+        _tiabDoneToastPrevPending = null;
+        return;
+    }
+
+    const counts = getScreeningCounts(state.references);
+    const hasFulltextTab = platform().capabilities.fulltext;
+
+    // 未判定 > 0 → 0 に変化した瞬間だけ完了トーストを1回鳴らす（初回ロード時は発火させない）。
+    // トースト文言は全文タブへの誘導なので、fulltext capability が無い（Web版）ときは鳴らさない。
+    if (hasFulltextTab && _tiabDoneToastPrevPending !== null && _tiabDoneToastPrevPending > 0 && counts.pending === 0) {
+        showToast(t('screening_tiabDoneToast'), 4000);
+    }
+    _tiabDoneToastPrevPending = counts.pending;
+
+    if (counts.pending !== 0) {
+        banner.classList.add('hidden');
+        banner.innerHTML = '';
+        return;
+    }
+
+    // ---- ここから「完了」時のみの描画 ----
+    const rows: string[] = [
+        `<div class="tiab-done-title">${t('screening_tiabDoneTitle', String(total))}</div>`,
+    ];
+
+    // 残作業①: 不一致（キーオープン時のみ件数を出す。Blind中は下のBlind行に譲る）
+    if (state.isKeyOpened && counts.conflict > 0) {
+        const rule = state.fulltextPoolRule;
+        const conflictMessage = (rule && rule.threshold >= 2)
+            ? t('screening_tiabDoneConflictStrict', [String(counts.conflict), String(rule.voters.length), String(rule.threshold)])
+            : t('screening_tiabDoneConflictOr', String(counts.conflict));
+        rows.push(`
+            <div class="tiab-done-row tiab-done-row-warning">
+                <span>${conflictMessage}</span>
+                <button type="button" class="btn btn-outline btn-small" data-action="tiab-done-conflict">${t('screening_tiabDoneConflictBtn')}</button>
+            </div>
+        `);
+    }
+
+    // 残作業②: Blind中は不一致件数を伏せた案内のみ（他レビュアーの判定を推測させないため）
+    if (!state.isKeyOpened) {
+        rows.push(`
+            <div class="tiab-done-row tiab-done-row-info">
+                <span>${t('screening_tiabDoneBlind')}</span>
+            </div>
+        `);
+    }
+
+    // 残作業③: 保留（自分の判定なのでBlind中でも件数を出せる）
+    if (counts.maybe > 0) {
+        rows.push(`
+            <div class="tiab-done-row tiab-done-row-warning">
+                <span>${t('screening_tiabDoneMaybe', String(counts.maybe))}</span>
+                <button type="button" class="btn btn-outline btn-small" data-action="tiab-done-maybe">${t('screening_tiabDoneMaybeBtn')}</button>
+            </div>
+        `);
+    }
+
+    // 次工程（常に表示。不一致・保留が残っていてもこのボタンはブロックしない）。
+    // ただし全文タブ自体が無い（Web版、capabilities.fulltext === false）ビルドでは
+    // 押しても何も起きない案内を出さないよう、行ごと省略する。
+    if (hasFulltextTab) {
+        if (!_navigateToFulltextTab && !_missingFulltextNavigatorWarned) {
+            console.warn('[renderTiabDoneBanner] fulltext capability is enabled but setFulltextTabNavigator() was never called. Wire it up from the extension entry point (sidepanel.ts).');
+            _missingFulltextNavigatorWarned = true;
+        }
+        rows.push(`
+            <div class="tiab-done-row tiab-done-row-next">
+                <span>${t('screening_tiabDoneNext')}</span>
+                <button type="button" class="btn btn-small tiab-done-next-btn" data-action="tiab-done-next">${t('screening_tiabDoneNextBtn')}</button>
+            </div>
+        `);
+    }
+
+    banner.innerHTML = rows.join('');
+    banner.classList.remove('hidden');
+
+    banner.querySelector('[data-action="tiab-done-conflict"]')?.addEventListener('click', () => {
+        dom.statusFilter.value = 'conflict';
+        dom.statusFilter.dispatchEvent(new Event('change'));
+    });
+    banner.querySelector('[data-action="tiab-done-maybe"]')?.addEventListener('click', () => {
+        dom.statusFilter.value = 'maybe';
+        dom.statusFilter.dispatchEvent(new Event('change'));
+    });
+    banner.querySelector('[data-action="tiab-done-next"]')?.addEventListener('click', () => {
+        _navigateToFulltextTab?.();
+    });
 }
 
 /**
