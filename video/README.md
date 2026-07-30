@@ -137,13 +137,17 @@ CONTRACT の全文と ctx API の詳細は `video/scripts/record.mjs` の先頭�
 - `narration`（省略可）: 使用するナレーション原稿・字幕ソースのキー。省略時は `${id}-${slug}`。
   ナレーション無し（映像のみ）のシーンにしたい場合は `narration: null` を指定する。
 - `storageSeed`（省略可）: 収録前に `chrome.storage.local` へ流し込む初期状態。ログイン画面を
-  スキップしたい場合は `{ demo_signed_in: true }` を指定する（`video/scenes/00-smoke.mjs` 参照）。
+  スキップしたい場合は `{ demo_signed_in: true }` を指定する（`video/scenes/examples/00-smoke.mjs` 参照）。
 - `run(ctx)` の中で `ctx.cue(n)` を呼んだタイミングが、そのナレーション cue の発声開始時刻の
   目安として記録される。`ctx.newSegment(page)` を呼ぶと、以後の `ctx.page`/`ctx.cue()` は
   新しいタブ（例: フルテキストページ）を基準に切り替わる。
 
-サンプル: [`video/scenes/00-smoke.mjs`](./scenes/00-smoke.mjs)（スモークテスト用。narration を
-`01-intro` に向けて音声付きで最後まで通す）。実際のチャプター01〜11のシーンは別タスクで追加する。
+サンプル: [`video/scenes/examples/00-smoke.mjs`](./scenes/examples/00-smoke.mjs)（スモークテスト用。
+narration を `01-intro` に向けて音声付きで最後まで通す）。`video/scenes/` 直下ではなく `examples/`
+サブディレクトリに置いているのは、`record.mjs` のシーン列挙が拡張子 `.mjs` のファイルのみを
+対象とし、サブディレクトリを無視するため（`npm run video:record` を引数無しで実行しても
+スモークテストは収録対象に含まれない）。実際のチャプター01〜11のシーンは `video/scenes/NN-slug.mjs`
+として追加済み。
 
 ## タイミング精度についての注意
 

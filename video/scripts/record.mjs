@@ -68,7 +68,7 @@
 //   sub秒（1秒未満）オーダーの誤差は許容し、ナレーション尺に対して十分な余裕
 //   （MIN_CUE_GAP_SEC 等）を assemble.mjs 側で確保することで吸収する設計とする。
 
-import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync, renameSync, readdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync, renameSync, copyFileSync, unlinkSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { chromium } from 'playwright';
@@ -83,6 +83,25 @@ import {
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * ファイルを別ファイルシステムをまたいでも移動できるようにする renameSync のラッパー。
+ * os.tmpdir()（録画の一時出力先）と video/build/（リポジトリ側）が別マウントの場合、
+ * renameSync は EXDEV で失敗するため、その場合のみ copyFileSync + unlinkSync にフォール
+ * バックする（同一ファイルシステムでは高速な rename をそのまま使う）。
+ */
+function moveFile(srcPath, destPath) {
+    try {
+        renameSync(srcPath, destPath);
+    } catch (err) {
+        if (err && err.code === 'EXDEV') {
+            copyFileSync(srcPath, destPath);
+            unlinkSync(srcPath);
+        } else {
+            throw err;
+        }
+    }
 }
 
 /** 2桁ゼロ埋め文字列に正規化する（1 -> '01', '01' -> '01'） */
@@ -221,7 +240,7 @@ async function recordScene(sceneFile) {
             const srcPath = await segments[i].page.video().path();
             const destName = `segment-${i}.webm`;
             const destPath = path.join(outDir, destName);
-            renameSync(srcPath, destPath);
+            moveFile(srcPath, destPath);
             segmentMeta.push({ file: destName, t0Wallclock: segments[i].t0Wallclock });
         }
 

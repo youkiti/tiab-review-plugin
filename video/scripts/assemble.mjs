@@ -345,6 +345,9 @@ function formatSrtTime(sec) {
     return `${pad2(h)}:${pad2(m)}:${pad2(s)},${pad3(ms)}`;
 }
 
+/** 分割後の最終ブロックがこれより短い場合、直前のブロックへ吸収合併する（秒） */
+const MIN_LAST_SRT_BLOCK_SEC = 1.0;
+
 /**
  * 1つの cue（英語テキスト + 配置済み絶対時刻 [start,end]）を、1ブロック2行までの
  * SRT ブロック列に変換する。行数が2行を超える場合は時間窓を文字数比で分割し、
@@ -370,6 +373,19 @@ function buildSrtBlocksForCue(text, absStart, absEnd) {
         blocks.push({ start: blockStart, end: blockEnd, text: group.join('\n') });
         cursor = blockEnd;
     });
+
+    // 比例配分の結果、最終ブロックが極端に短くなる（一瞬しか表示されず読めない）ことがある。
+    // その場合は直前のブロックへ吸収し、時間幅・テキストの両方を統合する。
+    if (blocks.length >= 2) {
+        const lastBlock = blocks[blocks.length - 1];
+        if (lastBlock.end - lastBlock.start < MIN_LAST_SRT_BLOCK_SEC) {
+            const prevBlock = blocks[blocks.length - 2];
+            prevBlock.end = lastBlock.end;
+            prevBlock.text = `${prevBlock.text}\n${lastBlock.text}`;
+            blocks.pop();
+        }
+    }
+
     return blocks;
 }
 
