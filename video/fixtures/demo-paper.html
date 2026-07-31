@@ -1,0 +1,262 @@
+<!--
+    デモ用フルテキストPDFのソースHTML（fake but realistic）。
+    demo-ref-001（sample/pubmed-srws-psgad-set.nbib 1件目）のタイトル・抄録と一致させてある。
+
+    再生成コマンド（このHTMLを編集したら必ず再実行して demo-paper.pdf を更新すること）:
+      /opt/pw-browsers/chromium --headless --disable-gpu --no-sandbox \
+        --print-to-pdf=video/fixtures/demo-paper.pdf --print-to-pdf-no-header \
+        video/fixtures/demo-paper.html
+
+    生成後、PDF.js でテキストレイヤーが取れることと 200KB 未満であることを確認すること
+    （dbus 関連の ERROR ログは headless 環境特有の無害な警告で無視してよい）。
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Efficacy of Musculoskeletal Manipulation for Endoscopic Discomfort in Patients Undergoing Upper Gastrointestinal Endoscopy and Colonoscopy: A Systematic Review and Meta-Analysis</title>
+<style>
+    @page {
+        size: A4;
+        margin: 20mm 18mm;
+    }
+    body {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #111;
+        margin: 0;
+    }
+    h1 {
+        font-size: 15pt;
+        line-height: 1.35;
+        margin: 0 0 4pt 0;
+    }
+    .journal-meta {
+        font-size: 9pt;
+        color: #555;
+        margin-bottom: 14pt;
+        border-bottom: 1px solid #999;
+        padding-bottom: 8pt;
+    }
+    .authors {
+        font-size: 10.5pt;
+        margin-bottom: 4pt;
+    }
+    h2 {
+        font-size: 12pt;
+        margin: 16pt 0 6pt 0;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 2pt;
+    }
+    h3 {
+        font-size: 11pt;
+        margin: 10pt 0 4pt 0;
+    }
+    p {
+        margin: 0 0 8pt 0;
+        text-align: justify;
+    }
+    .abstract {
+        background: #f7f7f7;
+        padding: 10pt 12pt;
+        border-left: 3px solid #888;
+        margin-bottom: 14pt;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 8pt 0 12pt 0;
+        font-size: 10pt;
+    }
+    th, td {
+        border: 1px solid #999;
+        padding: 4pt 6pt;
+        text-align: left;
+    }
+    .footnote {
+        font-size: 8.5pt;
+        color: #666;
+        margin-top: 20pt;
+        border-top: 1px solid #ccc;
+        padding-top: 6pt;
+    }
+    .refs li {
+        font-size: 9.5pt;
+        margin-bottom: 4pt;
+    }
+</style>
+</head>
+<body>
+
+<h1>Efficacy of Musculoskeletal Manipulation for Endoscopic Discomfort in Patients Undergoing Upper Gastrointestinal Endoscopy and Colonoscopy: A Systematic Review and Meta-Analysis</h1>
+<div class="authors">Kitamura S, Tanaka M, Fujiwara H, et al.</div>
+<div class="journal-meta">
+    Cureus (Demo Fixture). 2025 Nov;17(11):e96660. doi:10.7759/cureus.96660 &middot;
+    PMID: 41393576 &middot; This PDF is a synthetic fixture generated for the TiAb Review Plugin demo build
+    and does not represent a real publication artifact.
+</div>
+
+<div class="abstract">
+    <h3 style="margin-top:0;">Abstract</h3>
+    <p>
+        Patients undergoing upper gastrointestinal endoscopy (UGIE) and colonoscopy often experience
+        discomfort, including anxiety, abdominal pain, and bloating. The efficacy of musculoskeletal
+        manipulation (e.g., massage) for these symptoms remains unclear. This systematic review and
+        meta-analysis aimed to clarify its efficacy in patients undergoing UGIE and colonoscopy. We
+        searched major electronic databases (MEDLINE (PubMed), CENTRAL, EMBASE, CINAHL, and PEDro) and
+        trial registries up to July 17, 2025, for randomized controlled trials (RCTs). Meta-analyses
+        employed a random-effects model, and risk of bias was formally assessed. Four trials were
+        included. Two trials on reflexology showed a non-significant effect on pre-procedural anxiety,
+        with the evidence being highly variable and leading to very low certainty findings. Two trials
+        on abdominal massage following colonoscopy suggested a possible benefit for reduced abdominal
+        pain, but this finding was limited by substantial heterogeneity. The overall evidence for
+        musculoskeletal manipulation on anxiety, abdominal pain, and bloating is generally low or very
+        low certainty due to imprecision and high risk of bias. While the overall evidence is
+        insufficient for routine clinical recommendations, future high-quality, large-scale trials
+        that standardize outcome assessments are essential to establish definitive conclusions. This
+        review was registered with PROSPERO (CRD420251104522).
+    </p>
+</div>
+
+<h2>1. Introduction</h2>
+<p>
+    Upper gastrointestinal endoscopy (UGIE) and colonoscopy are core diagnostic and therapeutic
+    procedures in gastroenterology, yet a substantial proportion of patients report considerable
+    peri-procedural discomfort. Commonly reported symptoms include anticipatory anxiety, abdominal
+    pain related to insufflation, and post-procedural bloating. Non-pharmacological adjuncts &mdash;
+    including reflexology, therapeutic massage, and other forms of musculoskeletal manipulation
+    &mdash; have been proposed as low-risk interventions to reduce this burden without the sedation-related
+    risks associated with pharmacological approaches. However, the evidence base for these
+    interventions has not previously been synthesized in a systematic manner.
+</p>
+<p>
+    The objective of this review was to systematically identify, appraise, and synthesize randomized
+    controlled trials evaluating musculoskeletal manipulation for procedural discomfort in patients
+    undergoing UGIE or colonoscopy, and to grade the certainty of the resulting evidence using
+    standard GRADE methodology.
+</p>
+
+<h2>2. Methods</h2>
+<h3>2.1 Protocol and registration</h3>
+<p>
+    This review was conducted in accordance with the PRISMA 2020 statement and was prospectively
+    registered with PROSPERO (CRD420251104522). No amendments were made to the registered protocol.
+</p>
+<h3>2.2 Search strategy</h3>
+<p>
+    We searched MEDLINE (via PubMed), CENTRAL, EMBASE, CINAHL, and PEDro from inception to July 17,
+    2025, without language restriction. Trial registries (ClinicalTrials.gov and ICTRP) were
+    additionally searched to identify unpublished or ongoing trials. Reference lists of included
+    studies and relevant reviews were hand-searched for additional eligible trials.
+</p>
+<h3>2.3 Eligibility criteria</h3>
+<p>
+    Eligible studies were randomized controlled trials enrolling adult patients scheduled for UGIE
+    and/or colonoscopy, comparing any form of musculoskeletal manipulation (massage, reflexology, or
+    related manual therapy) against usual care, sham intervention, or an active comparator. Case
+    reports, narrative reviews, and study protocols without outcome data were excluded.
+</p>
+<h3>2.4 Risk of bias and certainty assessment</h3>
+<p>
+    Two reviewers independently assessed risk of bias using the Cochrane RoB 2 tool and resolved
+    disagreements by consensus. The overall certainty of evidence for each outcome was rated using
+    the GRADE framework (high / moderate / low / very low).
+</p>
+
+<div class="page-break"></div>
+
+<h2>3. Results</h2>
+<h3>3.1 Study selection</h3>
+<p>
+    The search identified 812 records after deduplication. Following title/abstract screening, 41
+    reports underwent full-text assessment, of which four randomized controlled trials met all
+    eligibility criteria and were included in the qualitative and quantitative synthesis.
+</p>
+
+<table>
+    <thead>
+        <tr><th>Study</th><th>Design</th><th>N</th><th>Intervention</th><th>Primary outcome</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Trial A</td><td>Parallel RCT</td><td>64</td><td>Foot reflexology</td><td>Pre-procedural anxiety (VAS)</td></tr>
+        <tr><td>Trial B</td><td>Parallel RCT</td><td>58</td><td>Auricular reflexology</td><td>Pre-procedural anxiety (STAI)</td></tr>
+        <tr><td>Trial C</td><td>Parallel RCT</td><td>72</td><td>Abdominal massage</td><td>Post-procedural abdominal pain</td></tr>
+        <tr><td>Trial D</td><td>Crossover RCT</td><td>45</td><td>Abdominal massage</td><td>Bloating score at 2 hours</td></tr>
+    </tbody>
+</table>
+
+<h3>3.2 Effect on pre-procedural anxiety</h3>
+<p>
+    Pooling of the two reflexology trials showed a non-significant reduction in anxiety scores
+    (standardized mean difference &minus;0.18, 95% CI &minus;0.46 to 0.10, I&sup2; = 42%), with the
+    certainty of evidence rated very low owing to serious risk of bias and imprecision.
+</p>
+<h3>3.3 Effect on abdominal pain and bloating</h3>
+<p>
+    The two massage trials suggested a possible reduction in post-procedural abdominal pain
+    (mean difference &minus;0.9 points on a 10-point scale, 95% CI &minus;1.8 to 0.0), although
+    substantial heterogeneity (I&sup2; = 61%) limited the precision of this pooled estimate. Effects
+    on bloating were inconsistent across the two contributing trials.
+</p>
+<h3>3.4 Adverse events</h3>
+<p>
+    No serious adverse events attributable to the interventions were reported in any of the four
+    included trials.
+</p>
+
+<div class="page-break"></div>
+
+<h2>4. Discussion</h2>
+<p>
+    This systematic review found only four eligible randomized controlled trials evaluating
+    musculoskeletal manipulation for endoscopy-related discomfort, and the overall certainty of the
+    evidence was low to very low across all assessed outcomes. While a possible benefit for
+    post-procedural abdominal pain was observed, this finding should be interpreted cautiously given
+    the small number of trials, modest sample sizes, and substantial statistical heterogeneity.
+</p>
+<p>
+    Several factors likely contribute to the low certainty of the current evidence base, including
+    inconsistent outcome measurement instruments across trials, limited blinding of outcome
+    assessors, and heterogeneous intervention protocols (e.g., differing massage duration and
+    technique). Future trials should adopt standardized, validated outcome measures and clearly
+    reported intervention protocols to enable more precise pooled estimates.
+</p>
+<h3>4.1 Limitations</h3>
+<p>
+    Limitations of this review include the small number of eligible trials, the exclusion of
+    non-English language studies published only as conference abstracts, and the inability to
+    formally assess publication bias given the limited number of included studies.
+</p>
+
+<h2>5. Conclusion</h2>
+<p>
+    The current evidence for musculoskeletal manipulation as an adjunct to reduce procedural
+    discomfort during upper gastrointestinal endoscopy and colonoscopy is of low to very low
+    certainty. Although a possible benefit on post-procedural abdominal pain was suggested, routine
+    clinical adoption cannot yet be recommended. Adequately powered, methodologically rigorous trials
+    with standardized outcome reporting are needed before definitive conclusions can be drawn.
+</p>
+
+<h2>References</h2>
+<ol class="refs">
+    <li>Demo Fixture Group. Reflexology for procedural anxiety in endoscopy: a randomized controlled trial. J Demo Endosc. 2024;12(3):101-109.</li>
+    <li>Demo Fixture Group. Auricular reflexology before upper GI endoscopy: a parallel-group RCT. Demo J Gastrointest Nurs. 2023;9(2):55-63.</li>
+    <li>Demo Fixture Group. Abdominal massage after colonoscopy reduces short-term pain: a randomized trial. Demo Ann Colonoscopy. 2022;5(1):12-19.</li>
+    <li>Demo Fixture Group. Effect of abdominal massage on post-colonoscopy bloating: a crossover trial. Demo Clin Endosc Rep. 2021;8(4):200-207.</li>
+</ol>
+
+<div class="footnote">
+    This document is a fabricated demo fixture created for the TiAb Review Plugin Chrome extension
+    demo build (Playwright recording / manual QA). It is not a real scientific publication. The
+    Abstract section above intentionally mirrors the metadata of the bundled sample reference
+    "demo-ref-001" so that the sidepanel screening card and this PDF show consistent content during
+    demos. See video/fixtures/demo-paper.pdf generation command in this repository for regeneration
+    instructions.
+</div>
+
+</body>
+</html>

@@ -54,5 +54,16 @@ module.exports = {
         "no-restricted-globals": "off",
       },
     },
+    {
+      // デモモード専用コード: Playwright録画用のモック実装で chrome.storage を直接使う。
+      // Web版ビルドには含まれない（webpack.config.js の `--env demo` 経由でのみ使用）。
+      files: [
+        "src/demo/**",
+        "src/platform/demo/**",
+      ],
+      rules: {
+        "no-restricted-globals": "off",
+      },
+    },
   ],
 };

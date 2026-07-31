@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  アウトロ用エンドカード（1920x1080）。
+  シーンスクリプト（video/scenes/11-outro.mjs）が録画中のページで file:// で開き、
+  締めのナレーションの背景として表示する。デザインは title-card.html と統一する。
+  外部リソースは使用しない。バージョン表記は ?version=x.y.z で差し込む。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>TiAb Review Plugin ご案内</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI",
+      "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+  .stage {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.10), transparent 45%),
+      linear-gradient(135deg, #0b3d91 0%, #145ea8 45%, #1c8fc4 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    background: #ffffff;
+    color: #145ea8;
+    font-size: 36px;
+    font-weight: 700;
+  }
+  .brand-name {
+    font-size: 44px;
+    font-weight: 700;
+  }
+  .thanks {
+    font-size: 76px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 56px;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  }
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    font-size: 34px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .links .label {
+    display: inline-block;
+    min-width: 260px;
+    text-align: right;
+    margin-right: 24px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+  }
+  .credit {
+    position: absolute;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand-row">
+      <span class="brand-badge">Ti</span>
+      <span class="brand-name">TiAb Review Plugin</span>
+    </div>
+    <div class="thanks">ご視聴ありがとうございました</div>
+    <div class="links">
+      <div><span class="label">ヘルプページ</span>youkiti.github.io/tiab-review-plugin/help.html</div>
+      <div><span class="label">Web版</span>youkiti.github.io/tiab-review-plugin/app/</div>
+      <div><span class="label">不具合・要望</span>github.com/youkiti/tiab-review-plugin</div>
+    </div>
+    <div class="credit">ナレーション: VOICEVOX:四国めたん ｜ SRWS-PSG</div>
+  </div>
+</body>
+</html>

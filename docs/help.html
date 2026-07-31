@@ -46,6 +46,34 @@
             text-decoration: underline;
         }
 
+        /* 操作解説動画 */
+        .help-video {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .help-video h2 {
+            border: none;
+            margin-bottom: 12px;
+            padding-bottom: 0;
+        }
+
+        .help-video .video-frame {
+            position: relative;
+            max-width: 720px;
+            aspect-ratio: 16 / 9;
+            margin-top: 16px;
+        }
+
+        .help-video iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 8px;
+        }
+
         .help-section {
             margin-bottom: 48px;
             padding-bottom: 24px;
@@ -143,6 +171,29 @@
                 <span class="ja">最終更新: 2026年8月1日</span>
                 <span class="en">Last updated: August 1, 2026</span>
             </p>
+
+            <!-- 操作解説動画 -->
+            <section class="help-video">
+                <h2>
+                    <span class="ja">📺 操作解説動画</span>
+                    <span class="en">📺 Video Tutorial</span>
+                </h2>
+                <p>
+                    <span class="ja">ログインからTiAbスクリーニング、ML・AI支援、フルテキスト評価、チーム共有までを約10分で解説しています（英語字幕あり）。</span>
+                    <span class="en">A 10-minute walkthrough covering everything from signing in to TiAb screening, ML/AI assistance, full-text screening, and team sharing (English subtitles available).</span>
+                </p>
+                <p>
+                    <a href="https://youtu.be/Yg51rvO9Yrs" target="_blank" rel="noopener">
+                        <span class="ja">YouTubeで見る →</span>
+                        <span class="en">Watch on YouTube →</span>
+                    </a>
+                </p>
+                <div class="video-frame">
+                    <iframe src="https://www.youtube.com/embed/Yg51rvO9Yrs" title="TiAb Review Plugin 操作解説動画"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen loading="lazy"></iframe>
+                </div>
+            </section>
 
             <!-- 目次 -->
             <nav class="help-toc">
