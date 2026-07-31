@@ -143,3 +143,34 @@
     background-color: #e8eaed;
     border-radius: 4px;
 }
+
+/* 担当セットの担当者名（セット名の後ろに控えめに併記） */
+.assignment-set-reviewers {
+    color: #888;
+}
+
+/* 担当外のセット（誰の担当か確認するためだけに表示する行） */
+.source-file-item.is-out-of-scope label {
+    cursor: default;
+    color: #999;
+}
+
+.source-file-item.is-out-of-scope input[type="checkbox"] {
+    cursor: not-allowed;
+}
+
+/* グループ別の件数・担当者一覧（フルテキストタブ） */
+.assignment-set-breakdown {
+    margin: 4px 0 8px;
+    padding-left: 2px;
+    font-size: 12px;
+    color: #555;
+}
+
+.assignment-set-breakdown-item {
+    padding: 1px 0;
+}
+
+.assignment-set-breakdown-name {
+    color: #333;
+}

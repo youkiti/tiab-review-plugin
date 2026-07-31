@@ -2004,6 +2004,15 @@
   "assignment_filterTitle": {
     "message": "Assignment Sets"
   },
+  "assignment_filterReviewersAll": {
+    "message": "Everyone"
+  },
+  "assignment_filterReviewersNone": {
+    "message": "No reviewer ⚠"
+  },
+  "assignment_filterOutOfScope": {
+    "message": "Not assigned to you (shown so you can see who owns it)"
+  },
   "assignment_setCalibration": {
     "message": "Calibration"
   },

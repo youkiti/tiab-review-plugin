@@ -2004,6 +2004,15 @@
   "assignment_filterTitle": {
     "message": "担当セット"
   },
+  "assignment_filterReviewersAll": {
+    "message": "全員"
+  },
+  "assignment_filterReviewersNone": {
+    "message": "担当者なし ⚠"
+  },
+  "assignment_filterOutOfScope": {
+    "message": "あなたの担当外のセットです（担当者の確認用に表示しています）"
+  },
   "assignment_setCalibration": {
     "message": "全員用キャリブレーション"
   },

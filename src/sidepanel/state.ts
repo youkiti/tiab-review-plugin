@@ -21,6 +21,10 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 
 // 基本状態
 let _references: ReferenceWithStatus[] = [];
+// 担当割り振りで絞り込む前の全文献。
+// _references は非管理者だと自分の担当分だけになるため、
+// 「どのセットが何件で誰の担当か」をレビュアー全員に同じ数字で見せる用途にはこちらを使う。
+let _allReferences: ReferenceWithStatus[] = [];
 let _currentIndex = 0;
 let _currentFilter: DecisionStatus | 'all' | 'fulltext_candidates' = 'pending';
 let _reviewHistoryRefIds: string[] = [];
@@ -90,6 +94,10 @@ export const state = {
     // ----- References -----
     get references() { return _references; },
     setReferences(refs: ReferenceWithStatus[]) { _references = refs; },
+
+    /** 担当割り振りで絞り込む前の全文献（未設定時は references と同じ内容） */
+    get allReferences() { return _allReferences.length > 0 ? _allReferences : _references; },
+    setAllReferences(refs: ReferenceWithStatus[]) { _allReferences = refs; },
 
     get currentIndex() { return _currentIndex; },
     setCurrentIndex(idx: number) { _currentIndex = idx; },
@@ -290,6 +298,7 @@ export const state = {
         _spreadsheetId = '';
         _userEmail = '';
         _references = [];
+        _allReferences = [];
         _isKeyOpened = false;
         _isAdmin = false;
         _fulltextPoolRule = null;
@@ -319,6 +328,7 @@ export const state = {
     resetForBack() {
         _spreadsheetId = '';
         _references = [];
+        _allReferences = [];
         _fulltextPoolRule = null;
         _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
         _currentIndex = 0;

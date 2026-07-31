@@ -38,8 +38,24 @@ interface TeamProgressCache {
 let cache: TeamProgressCache | null = null;
 // 分母計算用の全文献（担当割り振りで絞り込む前）。取得失敗後のリトライでも使う
 let baseRefsStore: { spreadsheetId: string; refs: TeamProgressRef[] } | null = null;
-let loading = false;
+/**
+ * 取得中のプロジェクトID（null = 取得していない）。
+ * 単なる boolean にすると「別プロジェクトの取得が飛んでいる間に開き直した」場合に
+ * 新しい取得ごと捨ててしまい、cache=null / エラーなし / 取得中でもない詰み状態
+ * （＝共著者の行が出ないまま「読み込み中…」で止まる）になるため、必ずIDで管理する。
+ */
+let inflightSpreadsheetId: string | null = null;
 let loadError = false;
+
+/** 現在のプロジェクトの判定データを取得中か */
+function isLoadingCurrent(): boolean {
+    return inflightSpreadsheetId !== null && inflightSpreadsheetId === state.spreadsheetId;
+}
+
+/** 現在のプロジェクトの判定データがキャッシュ済みか */
+function hasCurrentCache(): boolean {
+    return cache !== null && cache.spreadsheetId === state.spreadsheetId;
+}
 // 展開状態はホストごとに保持（デフォルトは折りたたみ）
 const expanded: Record<HostKind, boolean> = { tiab: false, fulltext: false };
 // TiAb側はツールバー内のドロップダウン表示のため、外側クリックで閉じる
@@ -83,20 +99,25 @@ export function initTeamProgress(fullRefs: ReferenceWithStatus[]): void {
     }));
     baseRefsStore = { spreadsheetId, refs: baseRefs };
 
-    renderTeamProgress();
+    // 取得開始（同期的に「取得中」状態と初回描画まで進む）→ その後に念のため描画。
+    // 既に同じプロジェクトを取得中で fetchDecisions が即 return した場合も、
+    // 続く renderTeamProgress() が「読み込み中」を描くので空パネルにはならない。
     void fetchDecisions(spreadsheetId, baseRefs);
+    renderTeamProgress();
 }
 
 /** Decisions タブを再取得して描画を更新する（🔄ボタン・初回読み込み） */
 async function fetchDecisions(spreadsheetId: string, baseRefs: TeamProgressRef[]): Promise<void> {
-    if (loading) return;
-    loading = true;
+    if (!spreadsheetId) return;
+    // 抑止するのは「同じプロジェクトの二重取得」だけ。別プロジェクトの取得中でも新しい取得は必ず開始する
+    if (inflightSpreadsheetId === spreadsheetId) return;
+    inflightSpreadsheetId = spreadsheetId;
     loadError = false;
     renderTeamProgress();
 
     try {
         const rows = await getDecisions(spreadsheetId);
-        // 取得中にプロジェクトが切り替わっていたら破棄
+        // 取得中にプロジェクトが切り替わっていたら破棄（切替先の取得は別途走っている）
         if (state.spreadsheetId !== spreadsheetId) return;
         cache = {
             spreadsheetId,
@@ -110,7 +131,10 @@ async function fetchDecisions(spreadsheetId: string, baseRefs: TeamProgressRef[]
             loadError = true;
         }
     } finally {
-        loading = false;
+        // 自分より後に始まった取得が inflight を握っている場合は触らない
+        if (inflightSpreadsheetId === spreadsheetId) {
+            inflightSpreadsheetId = null;
+        }
         renderTeamProgress();
     }
 }
@@ -172,7 +196,7 @@ function renderHost(kind: HostKind): void {
         return;
     }
 
-    const members = cache && cache.spreadsheetId === state.spreadsheetId
+    const members = hasCurrentCache() && cache
         ? computeTeamProgress({
             refs: cache.baseRefs,
             decisions: cache.decisions,
@@ -184,7 +208,7 @@ function renderHost(kind: HostKind): void {
         : null;
 
     // 一人プロジェクトでは表示しない（自分の進捗は既存表示と重複するため）
-    if (members && members.length < 2 && !loading && !loadError) {
+    if (members && members.length < 2 && !isLoadingCurrent() && !loadError) {
         host.classList.add('hidden');
         host.innerHTML = '';
         return;
@@ -225,16 +249,18 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
     const body = document.createElement('div');
     body.className = 'team-progress-body';
 
-    if (loadError && !members) {
-        const error = document.createElement('div');
-        error.className = 'team-progress-error';
-        error.textContent = t('teamProgress_error');
-        body.appendChild(error);
-    } else if (!members) {
+    if (!members && isLoadingCurrent()) {
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'team-progress-loading';
         loadingDiv.textContent = t('teamProgress_loading');
         body.appendChild(loadingDiv);
+    } else if (!members) {
+        // 取得失敗、または（あってはならないが）取得が走らないまま止まった場合。
+        // 「読み込み中…」のまま固まって見えるより、🔄で復帰できるエラー表示にする
+        const error = document.createElement('div');
+        error.className = 'team-progress-error';
+        error.textContent = t('teamProgress_error');
+        body.appendChild(error);
     } else {
         body.appendChild(buildTable(members));
     }
@@ -246,9 +272,11 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
 
 /** ヘッダーの要約（例: "自分 68% · tanaka 82% · sato 36%"） */
 function buildSummaryHtml(kind: HostKind, members: TeamMemberProgress[] | null): string {
-    if (loading && !cache) return escapeHtml(t('teamProgress_loading'));
-    if (loadError && !cache) return escapeHtml(t('teamProgress_error'));
-    if (!members) return '';
+    // members が null = 現在のプロジェクトのキャッシュがない状態。
+    // 取得中なら「読み込み中」、そうでなければ取得できていないので「失敗」を出す（空欄にはしない）
+    if (!members) {
+        return escapeHtml(isLoadingCurrent() ? t('teamProgress_loading') : t('teamProgress_error'));
+    }
 
     const parts = members.map((m) => {
         const name = m.isSelf ? t('teamProgress_you') : shortNameOf(m.email);
@@ -356,13 +384,14 @@ function buildFooter(): HTMLElement {
 
     const updatedAt = document.createElement('span');
     updatedAt.className = 'team-progress-updated';
-    if (cache && cache.spreadsheetId === state.spreadsheetId) {
+    if (hasCurrentCache() && cache) {
         const hh = String(cache.fetchedAt.getHours()).padStart(2, '0');
         const mm = String(cache.fetchedAt.getMinutes()).padStart(2, '0');
         updatedAt.textContent = t('teamProgress_updatedAt', `${hh}:${mm}`);
     }
     footer.appendChild(updatedAt);
 
+    const loading = isLoadingCurrent();
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'btn btn-xsmall btn-outline team-progress-refresh';
     refreshBtn.textContent = loading ? t('teamProgress_refreshing') : `🔄 ${t('teamProgress_refresh')}`;
