@@ -27,8 +27,82 @@
     display: inline;
 }
 
+/* h1〜h4 内の .ja/.en には見出し用の下マージンを付けない
+   （見出し直下の装飾下線との間隔が広がってしまうのを防ぐ） */
+.document-page h1 .ja,
+.document-page h1 .en,
+.document-page h2 .ja,
+.document-page h2 .en,
+.document-page h3 .ja,
+.document-page h3 .en,
+.document-page h4 .ja,
+.document-page h4 .en {
+    margin-bottom: 0;
+}
+
 .document-page li .en {
     margin-left: 4px;
+}
+
+/* ==== 言語切替（lang.js が付与する data-lang 属性に基づく表示制御） ====
+   JS が無効な場合は data-lang が付与されず、以下のルールは一切発火しない
+   （= .ja/.en は無条件に両方表示されたままになり、壊れない）。 */
+html[data-lang="ja"] .en,
+html[data-lang="en"] .ja {
+    display: none !important;
+}
+
+/* 単一言語表示になったら、英語側も「弱められた添え書き」ではなく通常の本文として見せる */
+html[data-lang="en"] .en {
+    font-size: 1em;
+    opacity: 1;
+    color: inherit;
+}
+
+/* リスト項目内で .en だけが残ったときに不要な左余白が出ないようにする */
+html[data-lang] .document-page li .en {
+    margin-left: 0;
+}
+
+/* ja/en の間のリテラルな区切り文字（" / " など）。単一言語表示時は非表示にする。 */
+.lang-sep {
+    color: var(--text-secondary);
+}
+
+html[data-lang] .lang-sep {
+    display: none;
+}
+
+/* 言語切替トグルボタン（ヘッダー内、ロゴの右に配置） */
+.header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.lang-toggle {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1.2;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+}
+
+.lang-toggle:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.lang-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
 }
 
 :root {

@@ -1000,6 +1000,33 @@
   "share_loadFailed": {
     "message": "Failed to load"
   },
+  "share_removeTitle": {
+    "message": "Remove access"
+  },
+  "share_removeConfirm": {
+    "message": "This will remove $1's access. Are you sure?\n(Decisions this person already entered will remain in the spreadsheet.)"
+  },
+  "share_removed": {
+    "message": "Removed access for $1"
+  },
+  "share_removePartial": {
+    "message": "Partially removed access for $1. Some sharing settings may not have been removed, so please also check the sharing status on Google Drive"
+  },
+  "share_removeNotFound": {
+    "message": "$1 was not found among shared users (access may already have been removed)"
+  },
+  "share_removeErrorForbidden": {
+    "message": "You don't have permission to remove access (only the owner or an editor can do this)"
+  },
+  "share_removeErrorNotFound": {
+    "message": "The permission to remove could not be found"
+  },
+  "share_removeErrorInherited": {
+    "message": "This permission is inherited from the parent folder. Please remove the folder's sharing on Google Drive instead"
+  },
+  "share_removeErrorUnknown": {
+    "message": "Removal error: $1"
+  },
   "share_copyInvite": {
     "message": "Copy invite message"
   },
