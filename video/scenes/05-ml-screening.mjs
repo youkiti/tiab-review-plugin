@@ -38,6 +38,7 @@ export default {
         await sleepRemainder(ctx, t2, DUR['02'] * 1000 + 500);
 
         // --- cue 3: ダイアログを確定→ML判定を2〜3件 ---
+        // cue の尺いっぱいに判定の間隔を広げ、最後に固まって静止しないようにする。
         const t3 = Date.now();
         ctx.cue(3);
         await ctx.page.getByText('この設定で開始', { exact: false }).first().click();
@@ -46,9 +47,9 @@ export default {
         const mlDecisions1 = ['include', 'exclude', 'include'];
         for (const d of mlDecisions1) {
             const btn = d === 'include' ? '#ml-btn-include' : '#ml-btn-exclude';
-            await hoverSlow(ctx.page, ctx.page.locator(btn), { durationMs: 400 });
+            await hoverSlow(ctx.page, ctx.page.locator(btn), { durationMs: 450 });
             await ctx.page.locator(btn).click();
-            await ctx.sleep(700);
+            await ctx.sleep(2200);
         }
         await sleepRemainder(ctx, t3, DUR['03'] * 1000 + 500);
 
@@ -58,8 +59,9 @@ export default {
         const mlDecisions2 = ['exclude', 'include', 'exclude', 'include'];
         for (const d of mlDecisions2) {
             const btn = d === 'include' ? '#ml-btn-include' : '#ml-btn-exclude';
+            await hoverSlow(ctx.page, ctx.page.locator(btn), { durationMs: 350 });
             await ctx.page.locator(btn).click();
-            await ctx.sleep(650);
+            await ctx.sleep(2000);
         }
         await hoverSlow(ctx.page, ctx.page.locator('#ml-status-badge'), { durationMs: 500 });
         await sleepRemainder(ctx, t4, DUR['04'] * 1000 + 500);
