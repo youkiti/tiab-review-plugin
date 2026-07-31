@@ -72,15 +72,23 @@ function resolveSceneTitle(meta) {
 // 映像処理（セグメント結合・パディング）
 // ============================================================================
 
-/** 複数の segment-K.webm を1本の映像（音声無し）に結合し、統一フォーマットへ再エンコードする */
-async function concatSegments(meta, sceneDir, outPath) {
+/**
+ * 複数の segment-K.webm を1本の映像（音声無し）に結合し、統一フォーマットへ再エンコードする。
+ * Playwright は新しいタブへ録画対象が切り替わった後も元ページの録画を（コンテキストが
+ * 閉じるまで）続けるため、非最終セグメントをそのまま結合すると「次のセグメント開始以降の
+ * 操作していない待機画面」が動画に挟まってしまう。これを避けるため、各非最終セグメントは
+ * activeDurations（次セグメント開始までの実時間）でトリムして結合する。
+ */
+async function concatSegments(meta, sceneDir, outPath, activeDurations) {
     const inputs = [];
     const filterParts = [];
     const labels = [];
     meta.segments.forEach((seg, i) => {
         inputs.push('-i', path.join(sceneDir, seg.file));
+        const isLast = i === meta.segments.length - 1;
+        const trim = isLast ? '' : `trim=duration=${activeDurations[i].toFixed(3)},setpts=PTS-STARTPTS,`;
         filterParts.push(
-            `[${i}:v]scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=disable,setsar=1,fps=${FPS}[v${i}]`,
+            `[${i}:v]${trim}scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=disable,setsar=1,fps=${FPS}[v${i}]`,
         );
         labels.push(`[v${i}]`);
     });
@@ -213,14 +221,22 @@ async function processScene(built, tmpDir) {
     const { key, dir, meta } = built;
     console.log(`\n--- シーン合成: ${key} ---`);
 
-    // 元セグメントの尺（tRel からの絶対時刻計算に使う累積オフセット）
+    // 各セグメントの「有効尺」を求める。非最終セグメントは録画ファイルの尺ではなく
+    // 「次のセグメントが開始するまでの実時間（wallclock差）」を使う。録画ファイル自体は
+    // コンテキストが閉じるまで回り続けており、後半は操作していない待機画面のため
+    // （concatSegments のコメント参照）。最終セグメントはファイル尺をそのまま使う。
     const segmentDurations = [];
     for (const seg of meta.segments) {
         segmentDurations.push(await ffprobeDuration(path.join(dir, seg.file)));
     }
+    const activeDurations = meta.segments.map((seg, i) => {
+        if (i === meta.segments.length - 1) return segmentDurations[i];
+        const wallclockGap = (meta.segments[i + 1].t0Wallclock - seg.t0Wallclock) / 1000;
+        return Math.min(segmentDurations[i], wallclockGap);
+    });
     const segmentOffsets = [];
     let acc = 0;
-    for (const d of segmentDurations) {
+    for (const d of activeDurations) {
         segmentOffsets.push(acc);
         acc += d;
     }
@@ -230,7 +246,7 @@ async function processScene(built, tmpDir) {
     };
 
     const concatPath = path.join(tmpDir, `${key}-concat.mp4`);
-    const videoDuration = await concatSegments(meta, dir, concatPath);
+    const videoDuration = await concatSegments(meta, dir, concatPath, activeDurations);
     console.log(`  結合映像: ${videoDuration.toFixed(2)}s`);
 
     let audioIndex = null;
