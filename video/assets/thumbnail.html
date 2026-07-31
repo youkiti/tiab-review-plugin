@@ -1,0 +1,149 @@
+<!doctype html>
+<!--
+  YouTube サムネイル生成用テンプレート（1280x720）。
+  video/scripts/assemble.mjs が Playwright（Chromium）でこのファイルを
+  file:// で開き、1280x720 のビューポートでスクリーンショットを撮って
+  video/build/thumbnail.png を生成する。
+
+  外部リソース（フォント・画像等）は一切使用しない（CSP的な制約が無い環境だが、
+  再現性・オフライン動作のためシステムフォントのみで完結させる）。
+  バージョン表記は URL クエリ ?version=x.y.z で渡し、JS で差し込む。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>TiAb Review Plugin サムネイル</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html, body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI",
+      "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+  .stage {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.10), transparent 45%),
+      linear-gradient(135deg, #0b3d91 0%, #145ea8 45%, #1c8fc4 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 72px 88px;
+  }
+
+  /* 右下の装飾（拡張機能のアイコンっぽい丸窓） */
+  .stage::after {
+    content: "";
+    position: absolute;
+    right: -120px;
+    bottom: -140px;
+    width: 480px;
+    height: 480px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #145ea8;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+  .brand-name {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .headline {
+    font-size: 132px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 2px;
+    text-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .subtext {
+    margin-top: 24px;
+    font-size: 34px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 920px;
+  }
+
+  .footer-row {
+    position: absolute;
+    left: 88px;
+    right: 88px;
+    bottom: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.12);
+    padding: 10px 20px;
+    border-radius: 999px;
+  }
+  .footer-version {
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand-row">
+      <span class="brand-badge">Ti</span>
+      <span class="brand-name">TiAb Review Plugin</span>
+    </div>
+    <div class="headline">操作解説</div>
+    <div class="subtext">文献スクリーニングを効率化するChrome拡張</div>
+    <div class="footer-row">
+      <span class="footer-tag">SRWS-PSG</span>
+      <span class="footer-version" id="version-tag">v0.0.0</span>
+    </div>
+  </div>
+  <script>
+    // ?version=x.y.z をバージョン表記に反映する（無ければ既定表示のまま）
+    const params = new URLSearchParams(location.search);
+    const version = params.get('version');
+    if (version) {
+      document.getElementById('version-tag').textContent = 'v' + version;
+    }
+  </script>
+</body>
+</html>
