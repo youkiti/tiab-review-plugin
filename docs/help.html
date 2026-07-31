@@ -289,6 +289,18 @@
                     <span class="en">Filter references by status: Pending, All, Include, Exclude, Maybe, Conflict,
                         Full-text candidates</span>
                 </p>
+                <p>
+                    <span class="ja">担当割り振りが設定されている場合は「担当セット」の一覧に、セットごとの件数と担当者が併記されます（例:
+                        「グループ1 (250) — youkiti, tanaka」）。自分の担当外のセットも、誰が担当しているかを確認できるよう
+                        グレー表示で一覧に出ます（チェックボックスは操作できません）。担当者が未設定のセットと「未割当」は
+                        「担当者なし ⚠」と表示されます。未割当の文献は誰の担当でもなく、チーム進捗の分母にも入りません。</span>
+                    <span class="en">When assignment is configured, the "Assignment Sets" list shows the reference count
+                        and assigned reviewers for each set (for example, "Group 1 (250) — youkiti, tanaka"). Sets that
+                        are not assigned to you are still listed, greyed out, so you can see who owns them (their
+                        checkboxes are disabled). Sets with no reviewer, and "Unassigned", are shown as "No reviewer ⚠".
+                        Unassigned references belong to nobody and are excluded from the team-progress
+                        denominators.</span>
+                </p>
 
                 <h3>
                     <span class="ja">判定ボタン</span>
@@ -749,6 +761,15 @@
                         candidate. References that newly enter the pool after assignment can be distributed later via
                         the "Distribute to existing groups" button, shown together with a notice such as "N
                         unassigned reference(s) have entered the pool since assignment".</span>
+                </p>
+                <p>
+                    <span class="ja">割り振り後は「担当割り振り」行の下に、グループごとの件数と担当者が一覧表示されます（例:
+                        「グループ1 (120) — sato, tanaka」）。管理者でなくても全グループの担当者を確認できます。担当者が
+                        未設定のグループは「担当者なし ⚠」と表示されます。</span>
+                    <span class="en">After assignment, the reference count and assigned reviewers for each group are
+                        listed below the "Assignment" row (for example, "Group 1 (120) — sato, tanaka"). Non-admins can
+                        see the reviewers of every group as well. Groups with no reviewer are shown as "No reviewer
+                        ⚠".</span>
                 </p>
 
                 <h3>

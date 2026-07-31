@@ -166,28 +166,70 @@ export async function loadAssignmentConfig(spreadsheetId: string): Promise<Assig
     return config;
 }
 
+/**
+ * セットの担当者表示（例: "youkiti, tanaka" / "全員" / "担当者なし"）
+ * - calibration は全員共通の担当なので「全員」
+ * - unassigned は誰の担当セットでもない（＝進捗の分母にも入らない）ので「担当者なし」
+ * 表示はメールのローカル部のみに短縮し、完全なアドレスは title 属性で補う。
+ */
+function describeSetReviewers(setId: string, config: AssignmentConfig): { text: string; title: string } {
+    if (setId === 'calibration') {
+        return { text: t('assignment_filterReviewersAll'), title: '' };
+    }
+
+    const reviewers = setId === 'unassigned' ? [] : (config.reviewerMap[setId] || []);
+    if (reviewers.length === 0) {
+        return { text: t('assignment_filterReviewersNone'), title: '' };
+    }
+
+    return {
+        text: reviewers.map((email) => email.split('@')[0] || email).join(', '),
+        title: reviewers.join(', '),
+    };
+}
+
+/** setId -> 件数（全文献ベース。レビュアー全員に同じ数字を見せるため references は使わない） */
+function countRefsBySet(refs: ReferenceWithStatus[]): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const ref of refs) {
+        const setId = getReferenceAssignmentSet(ref);
+        counts.set(setId, (counts.get(setId) ?? 0) + 1);
+    }
+    return counts;
+}
+
 export function renderAssignmentFilters() {
     dom.assignmentSetListDiv.innerHTML = '';
 
-    if (state.assignmentConfig.status !== 'configured' || state.assignmentSets.size === 0) {
+    const config = state.assignmentConfig;
+    if (config.status !== 'configured' || state.assignmentSets.size === 0) {
         dom.assignmentFiltersSection.classList.add('hidden');
         return;
     }
 
     dom.assignmentFiltersSection.classList.remove('hidden');
 
+    // 件数は全文献ベース。担当外セットも「誰の担当か」を確認できるよう常に一覧へ出し、
+    // 自分に文献がないセットはフィルタとして機能しないのでチェックボックスを無効化する。
+    const totalCounts = countRefsBySet(state.allReferences);
+    const visibleCounts = countRefsBySet(state.references);
+
     state.assignmentSets.forEach((setId) => {
-        const count = state.references.filter((ref) => getReferenceAssignmentSet(ref) === setId).length;
-        if (!state.isAdmin && count === 0) {
-            return;
-        }
+        const count = totalCounts.get(setId) ?? 0;
+        // 自分の担当セットは（たまたま0件でも）操作可能なままにし、担当外だけ無効化する
+        const canFilter = state.isAdmin
+            || (visibleCounts.get(setId) ?? 0) > 0
+            || state.selectedAssignmentSets.has(setId);
+        const reviewers = describeSetReviewers(setId, config);
+
         const wrapper = document.createElement('div');
-        wrapper.className = 'source-file-item';
+        wrapper.className = canFilter ? 'source-file-item' : 'source-file-item is-out-of-scope';
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `assignment-set-${setId}`;
-        checkbox.checked = state.selectedAssignmentSets.has(setId);
+        checkbox.checked = canFilter && state.selectedAssignmentSets.has(setId);
+        checkbox.disabled = !canFilter;
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) {
                 state.addSelectedAssignmentSet(setId);
@@ -202,7 +244,22 @@ export function renderAssignmentFilters() {
 
         const label = document.createElement('label');
         label.htmlFor = checkbox.id;
-        label.textContent = `${getAssignmentSetLabel(setId)} (${count})`;
+        if (!canFilter) {
+            label.title = t('assignment_filterOutOfScope');
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `${getAssignmentSetLabel(setId)} (${count})`;
+
+        const reviewerSpan = document.createElement('span');
+        reviewerSpan.className = 'assignment-set-reviewers';
+        reviewerSpan.textContent = ` — ${reviewers.text}`;
+        if (reviewers.title) {
+            reviewerSpan.title = reviewers.title;
+        }
+
+        label.appendChild(nameSpan);
+        label.appendChild(reviewerSpan);
 
         wrapper.appendChild(checkbox);
         wrapper.appendChild(label);
