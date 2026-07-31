@@ -40,6 +40,10 @@ When done, return a concise report the commander can review against the diff:
 - **How it maps to the acceptance criteria**: which criterion each change satisfies.
 - **Anything uncertain**: assumptions made, edge cases not handled, scope concerns, or
   places you would want a second look.
+- **Errors hit along the way**: commands that failed, assumptions that turned out wrong,
+  environment surprises — with the root cause where you found it. Report these even when
+  you recovered from them; the commander banks them so later turns and future runs do not
+  repeat them.
 
 Do not paste the entire diff back; the commander will read `git diff` directly. Give the
 map and the rationale.
