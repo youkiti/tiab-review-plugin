@@ -79,6 +79,88 @@ function countPoolBySet(config: FulltextAssignmentConfig): Map<string, number> {
 // 状態行の描画
 // ---------------------------------------------------------------------------
 
+/**
+ * グループごとの件数（全文献ベース）。
+ * fulltext_set 列は割り振り時に References へ書き込まれるため、候補ルールの有無に関係なく
+ * グループ別件数は正確に数えられる。非管理者の state.references は自分の担当分に絞られて
+ * いるので、全員に同じ数字を見せるために state.allReferences を使う。
+ */
+function countAllRefsByFulltextSet(): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const ref of state.allReferences) {
+        const setId = (ref.fulltext_set || '').trim();
+        if (!setId) continue; // 未割り当ては候補プールが確定しないと数えられないため別扱い
+        counts.set(setId, (counts.get(setId) ?? 0) + 1);
+    }
+    return counts;
+}
+
+/**
+ * 「どのグループが誰の担当か」の内訳を描画する。
+ * 未割り当て文献は仕様上「全員が対象」（取りこぼし防止）なので、担当者なしとは書かない。
+ */
+function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): void {
+    let host: HTMLElement;
+    try {
+        host = dom.fulltextAssignmentSets;
+    } catch {
+        return; // 要素がないページでは何もしない
+    }
+
+    host.innerHTML = '';
+    if (config.status !== 'configured') {
+        host.classList.add('hidden');
+        return;
+    }
+    host.classList.remove('hidden');
+
+    const counts = countAllRefsByFulltextSet();
+    const rows: Array<{ setId: string; count: number; reviewers: string[]; everyone: boolean }> = [];
+
+    for (let i = 1; i <= config.groupCount; i += 1) {
+        const setId = `ft-group-${i}`;
+        rows.push({
+            setId,
+            count: counts.get(setId) ?? 0,
+            reviewers: config.reviewerMap[setId] || [],
+            everyone: false,
+        });
+    }
+
+    // 未割り当て（割り振り後にプールへ流入した文献）の件数は候補プール依存で、
+    // 非管理者の手元には全候補が揃わず正確に数えられない。管理者のときだけ出す。
+    if (state.isAdmin) {
+        const unassignedCount = getUnassignedPoolRefs(config).length;
+        if (unassignedCount > 0) {
+            rows.push({ setId: 'unassigned', count: unassignedCount, reviewers: [], everyone: true });
+        }
+    }
+
+    for (const row of rows) {
+        const item = document.createElement('div');
+        item.className = 'assignment-set-breakdown-item';
+
+        const name = document.createElement('span');
+        name.className = 'assignment-set-breakdown-name';
+        name.textContent = `${getFulltextSetLabel(row.setId)} (${row.count})`;
+
+        const reviewers = document.createElement('span');
+        reviewers.className = 'assignment-set-reviewers';
+        if (row.everyone) {
+            reviewers.textContent = ` — ${t('assignment_filterReviewersAll')}`;
+        } else if (row.reviewers.length === 0) {
+            reviewers.textContent = ` — ${t('assignment_filterReviewersNone')}`;
+        } else {
+            reviewers.textContent = ` — ${row.reviewers.map((e) => e.split('@')[0] || e).join(', ')}`;
+            reviewers.title = row.reviewers.join(', ');
+        }
+
+        item.appendChild(name);
+        item.appendChild(reviewers);
+        host.appendChild(item);
+    }
+}
+
 /** フルテキストタブの割り振り状態行を描画する（renderFulltextTab から呼ぶ） */
 export function renderFulltextAssignmentRow(): void {
     const line = dom.fulltextAssignmentLine;
@@ -86,6 +168,7 @@ export function renderFulltextAssignmentRow(): void {
     const config = state.fulltextAssignment;
 
     btn.classList.toggle('hidden', !state.isAdmin);
+    renderFulltextAssignmentBreakdown(config);
 
     if (config.status !== 'configured') {
         line.textContent = t('ftAssign_lineNone');

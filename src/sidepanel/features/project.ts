@@ -514,6 +514,8 @@ export async function loadDataAndShowScreening() {
             }
         }
         syncSetReferences(visibleRefs);
+        // 担当セット別の件数・担当者一覧を全員に同じ数字で見せるため、絞り込み前の全文献も保持する
+        state.setAllReferences(refs);
 
         // チーム進捗: 割り振り前の全文献を分母計算に使う（判定データは非同期取得）
         initTeamProgress(refs);
