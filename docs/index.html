@@ -199,6 +199,51 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
+        /* Demo Video */
+        .demo-video {
+            padding: 80px 0;
+            background: var(--bg-secondary);
+            text-align: center;
+        }
+
+        .demo-video h2 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .demo-video .video-lead {
+            color: var(--text-secondary);
+            max-width: 720px;
+            margin: 0 auto 32px;
+        }
+
+        .demo-video .video-frame {
+            position: relative;
+            max-width: 800px;
+            aspect-ratio: 16 / 9;
+            margin: 0 auto;
+        }
+
+        .demo-video iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .demo-video .video-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .demo-video .video-link:hover {
+            text-decoration: underline;
+        }
+
         /* Features */
         .features {
             padding: 80px 0;
@@ -366,10 +411,36 @@
             </div>
             <div class="hero-buttons">
                 <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub</a>
+                <a href="#demo-video" class="btn btn-secondary">
+                    <span class="ja">操作動画を見る</span><span class="lang-sep"> / </span><span class="en">Watch Demo</span>
+                </a>
                 <a href="#features" class="btn btn-secondary">
                     <span class="ja">機能を見る</span><span class="lang-sep"> / </span><span class="en">Features</span>
                 </a>
             </div>
+        </div>
+    </section>
+
+    <section class="demo-video" id="demo-video">
+        <div class="container">
+            <h2 class="bilingual">
+                <span class="ja">📺 操作解説動画</span>
+                <span class="en">📺 Video Tutorial</span>
+            </h2>
+            <p class="video-lead bilingual">
+                <span class="ja">ログインからTiAbスクリーニング、ML・AI支援、フルテキスト評価、チーム共有までを約10分で解説しています（英語字幕あり）。</span>
+                <span class="en">A 10-minute walkthrough covering everything from signing in to TiAb screening, ML/AI
+                    assistance, full-text screening, and team sharing (English subtitles available).</span>
+            </p>
+            <div class="video-frame">
+                <iframe src="https://www.youtube.com/embed/Yg51rvO9Yrs" title="TiAb Review Plugin 操作解説動画"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen loading="lazy"></iframe>
+            </div>
+            <a href="https://youtu.be/Yg51rvO9Yrs" target="_blank" rel="noopener" class="video-link">
+                <span class="ja">YouTubeで見る →</span>
+                <span class="en">Watch on YouTube →</span>
+            </a>
         </div>
     </section>
 
