@@ -3,8 +3,10 @@
  * chrome.* API に依存せず、GIS 認証・localStorage・EventTarget・バンドル i18n で構成する。
  * capabilities は拡張専用機能（LLM/ML/フルテキスト/インポートエクスポート）を
  * false にし、共有 UI 側で非表示にする。
- * 新規プロジェクト作成（createProject）は drive.file スコープで作成した
- * スプレッドシートへアクセスできるため有効化する。共有シートは Picker 選択で許可する。
+ * 新規プロジェクト作成（createProject）も false にする。Web版はRIS等の文献取り込み手段
+ * （importExport）を持たないため、有効化すると「作れるが取り込めない」空プロジェクトが
+ * できてしまう詰み状態になる。Web版はレビュー専用と位置づけ、プロジェクト作成・文献取り込み
+ * は拡張版に誘導し、Web版では作成済みプロジェクトを開いてレビューするのみに限定する。
  */
 import type { PlatformAdapter } from '../types';
 import * as auth from './auth';
@@ -35,6 +37,6 @@ export const webPlatform: PlatformAdapter = {
     getVersionString: () => `web-${__APP_VERSION__}`,
 
     capabilities: {
-        llm: false, ml: false, fulltext: false, importExport: false, createProject: true,
+        llm: false, ml: false, fulltext: false, importExport: false, createProject: false,
     },
 };

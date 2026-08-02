@@ -304,5 +304,18 @@ function transformSidepanelHtml(content) {
     // body: FOUC 防止のため web-app クラスを付与（JS 側でも付与するが二重で問題ない）
     replaceOrThrow('<body>', '<body class="web-app">', 'body tag');
 
+    // タイトル: ブラウザ版であることが分かるよう「(ブラウザ版)」を明示する
+    replaceOrThrow(
+        '<title>TiAb Review - Screening</title>',
+        '<title data-i18n="webapp_pageTitle">TiAb Review (ブラウザ版) - Screening</title>',
+        'page title'
+    );
+    // ヘッダー見出し: 同様に「(ブラウザ版)」ラベルを付与する（拡張版の sidepanel.html 自体は変更しない）
+    replaceOrThrow(
+        '<h1>TiAb Review</h1>',
+        '<h1>TiAb Review <span class="app-edition" data-i18n="webapp_editionLabel"></span></h1>',
+        'header h1'
+    );
+
     return html;
 }

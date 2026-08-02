@@ -12,8 +12,10 @@ import { webPlatform } from '../platform/web';
 setPlatform(webPlatform);
 
 import { bootstrapCommon } from '../sidepanel/bootstrap';
+import { setupDesktopExtensionNotice } from './desktop-notice';
 
 document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('web-app');
     bootstrapCommon();
+    void setupDesktopExtensionNotice();
 });

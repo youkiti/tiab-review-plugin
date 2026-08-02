@@ -2561,5 +2561,26 @@
   },
   "fulltext_importCloseBtn": {
     "message": "Close"
+  },
+  "webapp_editionLabel": {
+    "message": "(Browser)"
+  },
+  "webapp_pageTitle": {
+    "message": "TiAb Review (Browser) - Screening"
+  },
+  "webapp_reviewOnlyTitle": {
+    "message": "The browser edition is for review only"
+  },
+  "webapp_reviewOnlyDesc": {
+    "message": "Create projects and import references using the Chrome extension on a PC. Once a project is created, you can open it here to review."
+  },
+  "webapp_openStore": {
+    "message": "Get it on the Chrome Web Store"
+  },
+  "webapp_desktopNoticeText": {
+    "message": "On a PC, we recommend the Chrome extension. It supports RIS import, AI assistance, and full-text screening."
+  },
+  "webapp_desktopNoticeClose": {
+    "message": "Dismiss"
   }
 }
