@@ -46,6 +46,51 @@
             text-decoration: underline;
         }
 
+        /* Web版への導線（ページ冒頭のCTA） */
+        .web-app-cta {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            padding: 20px 24px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .web-app-cta h2 {
+            border: none;
+            margin-bottom: 12px;
+            padding-bottom: 0;
+            display: block;
+        }
+
+        .web-app-cta p:last-of-type {
+            margin-bottom: 0;
+        }
+
+        /* Web版を開くボタン */
+        .btn-web-app {
+            display: inline-block;
+            background: var(--primary-dark);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            margin: 4px 0 16px;
+        }
+
+        .btn-web-app:hover {
+            background: var(--primary);
+            text-decoration: none;
+        }
+
+        .btn-web-app .ja,
+        .btn-web-app .en {
+            display: inline;
+            margin-bottom: 0;
+            color: #fff;
+        }
+
         /* 操作解説動画 */
         .help-video {
             background: var(--bg-secondary);
@@ -171,6 +216,31 @@
                 <span class="ja">最終更新: 2026年8月1日</span>
                 <span class="en">Last updated: August 1, 2026</span>
             </p>
+
+            <!-- Web版への導線 -->
+            <section class="web-app-cta">
+                <h2>
+                    <span class="ja">🌐 Web版（インストール不要）</span>
+                    <span class="en">🌐 Web App (No Installation Required)</span>
+                </h2>
+                <p>
+                    <span class="ja">Chrome拡張機能をインストールしなくても、ブラウザだけでTiAb判定に参加できます。スマートフォンやタブレット、Chrome以外のブラウザでも利用できます。</span>
+                    <span class="en">You can join TiAb screening from a browser alone — no Chrome extension install
+                        required. It also works on smartphones, tablets, and browsers other than Chrome.</span>
+                </p>
+                <p>
+                    <a class="btn-web-app" href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
+                        rel="noopener">
+                        <span class="ja">Web版を開く →</span>
+                        <span class="en">Open the Web App →</span>
+                    </a>
+                </p>
+                <p>
+                    <span class="ja">できること・できないことの詳細は <a href="#web-version">Web版（インストール不要）</a> をご覧ください。</span>
+                    <span class="en">See <a href="#web-version">Web App (No Installation Required)</a> for what you can
+                        and can't do there.</span>
+                </p>
+            </section>
 
             <!-- 操作解説動画 -->
             <section class="help-video">
@@ -1036,10 +1106,17 @@
                         smartphone, tablet, or a browser other than Chrome.</span>
                 </p>
                 <p>
-                    <span class="ja">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/"
-                            target="_blank">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
-                    <span class="en">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/"
-                            target="_blank">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                    <a class="btn-web-app" href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
+                        rel="noopener">
+                        <span class="ja">Web版を開く →</span>
+                        <span class="en">Open the Web App →</span>
+                    </a>
+                </p>
+                <p>
+                    <span class="ja">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
+                            rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                    <span class="en">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
+                            rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
                 </p>
 
                 <h3>
@@ -1346,6 +1423,9 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-links">
+                    <a href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank" rel="noopener">
+                        <span class="ja">Web版</span><span class="lang-sep"> / </span><span class="en">Web App</span>
+                    </a>
                     <a href="privacy-policy.html">
                         <span class="ja">プライバシーポリシー</span><span class="lang-sep"> / </span><span class="en">Privacy Policy</span>
                     </a>
