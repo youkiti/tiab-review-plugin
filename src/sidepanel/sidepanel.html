@@ -54,11 +54,30 @@
                     </div>
                 </div>
 
+                <!-- PCブラウザアクセス時のみ表示する拡張版誘導バナー（表示ロジックは src/webapp/desktop-notice.ts、
+                     拡張版のエントリからは呼ばれないため拡張版に表示されることは無い） -->
+                <div id="desktop-extension-notice" class="desktop-notice hidden">
+                    <span class="desktop-notice-text" data-i18n="webapp_desktopNoticeText"></span>
+                    <a href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                        target="_blank" rel="noopener" class="btn btn-outline btn-xsmall" data-i18n="webapp_openStore"></a>
+                    <button id="desktop-extension-notice-close" class="desktop-notice-close"
+                        data-i18n-title="webapp_desktopNoticeClose">✕</button>
+                </div>
+
                 <!-- 新規プロジェクト作成 -->
-                <div class="setup-option primary">
+                <div id="create-project-option" class="setup-option primary">
                     <button id="create-btn" class="btn btn-primary btn-large" data-i18n="project_createNew">
                     </button>
                     <p class="help-text" data-i18n="project_createHelp"></p>
+                </div>
+
+                <!-- Web版レビュー専用案内カード（表示条件: capabilities.createProject === false のときのみ。
+                     bootstrap.ts の #create-project-option 非表示分岐と同一条件で表示する） -->
+                <div id="review-only-notice" class="review-only-notice hidden">
+                    <h3 data-i18n="webapp_reviewOnlyTitle"></h3>
+                    <p data-i18n="webapp_reviewOnlyDesc"></p>
+                    <a href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                        target="_blank" rel="noopener" class="btn btn-primary btn-small" data-i18n="webapp_openStore"></a>
                 </div>
 
                 <!-- 既存プロジェクトに接続 -->

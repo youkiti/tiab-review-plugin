@@ -36,3 +36,66 @@ body.web-app #ml-section,
 body.web-app #fulltext-section {
     display: none !important;
 }
+
+/* ヘッダー/タイトルの「(ブラウザ版)」ラベル（webpack.config.js の transformSidepanelHtml で付与） */
+body.web-app .app-edition {
+    font-size: 12px;
+    font-weight: 400;
+    color: #888;
+}
+
+/* Web版レビュー専用案内カード（新規プロジェクト作成ボタンの代わりに表示） */
+body.web-app #review-only-notice {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #f5f7fa;
+    border: 1px solid #e0e4e9;
+    border-radius: 8px;
+    text-align: center;
+}
+
+body.web-app #review-only-notice h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+body.web-app #review-only-notice p {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+/* PCブラウザアクセス時のみ表示する拡張版誘導バナー（表示制御は src/webapp/desktop-notice.ts） */
+body.web-app #desktop-extension-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background: #eef6ff;
+    border: 1px solid #cfe3fb;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #333;
+}
+
+body.web-app #desktop-extension-notice .desktop-notice-text {
+    flex: 1;
+}
+
+body.web-app #desktop-extension-notice .desktop-notice-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    font-size: 13px;
+    padding: 2px 6px;
+    line-height: 1;
+}
+
+body.web-app #desktop-extension-notice .desktop-notice-close:hover {
+    color: #333;
+}

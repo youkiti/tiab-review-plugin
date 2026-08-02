@@ -107,7 +107,13 @@ export function bootstrapCommon(): void {
         dom.importBtn?.classList.add('hidden');
         dom.exportBtn?.classList.add('hidden');
     }
-    if (!caps.createProject) dom.createBtn?.classList.add('hidden');
+    if (!caps.createProject) {
+        // 作成ボタンだけでなく説明文（help-text）ごとラッパーで隠す。
+        // ボタンだけ隠すと project_createHelp の説明文だけが宙に浮いて残り、
+        // 直下の「ブラウザ版はレビュー専用です」案内カードと矛盾するため。
+        dom.createProjectOption?.classList.add('hidden');
+        dom.reviewOnlyNotice.classList.remove('hidden');
+    }
 
     // ========== 共有イベント配線 ==========
     // i18n: HTMLの静的テキストを翻訳

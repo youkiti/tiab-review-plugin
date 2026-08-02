@@ -2561,5 +2561,26 @@
   },
   "fulltext_importCloseBtn": {
     "message": "閉じる"
+  },
+  "webapp_editionLabel": {
+    "message": "(ブラウザ版)"
+  },
+  "webapp_pageTitle": {
+    "message": "TiAb Review (ブラウザ版) - Screening"
+  },
+  "webapp_reviewOnlyTitle": {
+    "message": "ブラウザ版はレビュー専用です"
+  },
+  "webapp_reviewOnlyDesc": {
+    "message": "プロジェクトの作成と文献の取り込みは、PC の Chrome 拡張版で行ってください。作成済みのプロジェクトはこの画面から開いてレビューできます。"
+  },
+  "webapp_openStore": {
+    "message": "Chrome ウェブストアで入手"
+  },
+  "webapp_desktopNoticeText": {
+    "message": "PC では Chrome 拡張版がおすすめです。RIS取り込み・AI補助・全文スクリーニングが使えます。"
+  },
+  "webapp_desktopNoticeClose": {
+    "message": "閉じる"
   }
 }
