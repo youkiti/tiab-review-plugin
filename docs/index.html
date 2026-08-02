@@ -199,6 +199,26 @@
             background: rgba(255, 255, 255, 0.25);
         }
 
+        .hero-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+            font-size: 0.95rem;
+        }
+
+        .hero-links a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .hero-links a:hover {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+
         /* Demo Video */
         .demo-video {
             padding: 80px 0;
@@ -339,6 +359,12 @@
             color: var(--text-secondary);
         }
 
+        .step-note {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
         /* Footer */
         footer {
             background: var(--text);
@@ -384,6 +410,11 @@
                 font-size: 1rem;
             }
 
+            .btn {
+                padding: 12px 20px;
+                font-size: 0.95rem;
+            }
+
             .step {
                 flex-direction: column;
                 text-align: center;
@@ -410,13 +441,27 @@
                     Reviews</span>
             </div>
             <div class="hero-buttons">
-                <a href="https://github.com/youkiti/tiab-review-plugin" class="btn btn-primary">GitHub</a>
-                <a href="#demo-video" class="btn btn-secondary">
+                <a href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                    class="btn btn-primary" target="_blank" rel="noopener">
+                    <span class="ja">Chromeウェブストアでインストール</span><span class="lang-sep"> / </span><span class="en">Install
+                        from Chrome Web Store</span>
+                </a>
+                <a href="app/" class="btn btn-secondary" target="_blank" rel="noopener">
+                    <span class="ja">Web版を開く（インストール不要）</span><span class="lang-sep"> / </span><span class="en">Open the
+                        Web App (No Install)</span>
+                </a>
+                <a href="help.html" class="btn btn-secondary">
+                    <span class="ja">使い方ガイド</span><span class="lang-sep"> / </span><span class="en">Help Guide</span>
+                </a>
+            </div>
+            <div class="hero-links">
+                <a href="#demo-video">
                     <span class="ja">操作動画を見る</span><span class="lang-sep"> / </span><span class="en">Watch Demo</span>
                 </a>
-                <a href="#features" class="btn btn-secondary">
+                <a href="#features">
                     <span class="ja">機能を見る</span><span class="lang-sep"> / </span><span class="en">Features</span>
                 </a>
+                <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
             </div>
         </div>
     </section>
@@ -553,8 +598,19 @@
                             <span class="en">Install the Extension</span>
                         </h3>
                         <p class="bilingual">
-                            <span class="ja">Chrome ウェブストアから TiAb Review Plugin をインストールします。</span>
-                            <span class="en">Install TiAb Review Plugin from the Chrome Web Store.</span>
+                            <span class="ja"><a
+                                    href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                                    target="_blank" rel="noopener">Chrome ウェブストア</a>から TiAb Review Plugin
+                                をインストールします。</span>
+                            <span class="en">Install TiAb Review Plugin from the <a
+                                    href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                                    target="_blank" rel="noopener">Chrome Web Store</a>.</span>
+                        </p>
+                        <p class="bilingual step-note">
+                            <span class="ja">拡張機能をインストールせずに使いたい場合は <a href="app/" target="_blank"
+                                    rel="noopener">Web版</a> も利用できます。</span>
+                            <span class="en">If you'd rather not install the extension, you can also use the <a
+                                    href="app/" target="_blank" rel="noopener">Web App</a>.</span>
                         </p>
                     </div>
                 </div>
@@ -607,6 +663,14 @@
                 <div class="footer-links">
                     <a href="help.html">
                         <span class="ja">ヘルプ</span><span class="lang-sep"> / </span><span class="en">Help</span>
+                    </a>
+                    <a href="app/" target="_blank" rel="noopener">
+                        <span class="ja">Web版</span><span class="lang-sep"> / </span><span class="en">Web App</span>
+                    </a>
+                    <a href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                        target="_blank" rel="noopener">
+                        <span class="ja">Chromeウェブストア</span><span class="lang-sep"> / </span><span class="en">Chrome
+                            Web Store</span>
                     </a>
                     <a href="privacy-policy.html">
                         <span class="ja">プライバシーポリシー</span><span class="lang-sep"> / </span><span class="en">Privacy Policy</span>
