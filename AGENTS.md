@@ -536,6 +536,42 @@ launchWebAuthFlow のリダイレクトURIは拡張機能IDから実行時に導
 
 > 廃止済み（履歴）: かつてテスター向けに `build:zip:tester`（`--env keepKey` + `ZIP_OAUTH_CLIENT_ID`、固定ID `ifnejji…`）で zip を Drive 配布していた。`key` を削除した zip を直接配布すると拡張機能IDがランダム化し `bad client id` になるため、zip 配布を再開する場合は key 保持ビルドが必須（git 履歴の `build:zip:tester` を参照）。
 
+### Web版（ブラウザ版）
+
+Chrome拡張をインストールせずブラウザだけで判定に参加できる Web 版を GitHub Pages で配信している（<https://youkiti.github.io/tiab-review-plugin/app/>）。**位置づけはレビュー専用**。プロジェクト作成・文献取り込み・LLM/ML・フルテキストは拡張版のみの機能で、Web版は「拡張版で作られたプロジェクトを開いて判定する」用途に限定する（タブレット・スマホ・Chrome以外のブラウザからの共同レビュー参加を想定）。
+
+| 項目           | 内容                                                                                                                                            |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| エントリ       | `src/webapp/index.ts`（Picker ページは `src/webapp/picker.ts`）                                                                                 |
+| ビルド         | `npm run dev:web`（開発） / `npm run build:web`（本番）                                                                                          |
+| 出力先         | `docs/app/`。**`.gitignore` 済み。実装 PR にビルド成果物を含めないこと**                                                                         |
+| デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
+| 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番ビルドは未設定だと throw、dev は警告のみ） |
+| ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+
+**HTML は複製ではなく機械変換で生成する。** `webpack.config.js` の `transformSidepanelHtml()` が拡張版の `src/sidepanel/sidepanel.html` を変換して `docs/app/index.html` を出力する。これにより表示系の新機能が自動で Web 版へ載る。変換対象の文字列が見つからない場合は `replaceOrThrow` が例外を投げてビルドを止めるので、`sidepanel.html` の該当行（`<title>` / `<h1>` / `<body>` / stylesheet link / entry script / viewport meta）を書き換えたら変換ルールも必ず更新すること。
+
+**機能差は `capabilities` フラグで表現する。** `src/platform/types.ts` の `PlatformAdapter.capabilities` を各アダプタ（`platform/chrome` / `platform/web` / `platform/demo`）が実装し、共有ブートストラップ `src/sidepanel/bootstrap.ts` がそれを見て拡張専用 UI を隠す。
+
+- Web版だけの分岐を `bootstrap.ts` に書かないこと。**Web版限定のロジックは `src/webapp/` 配下に置き、Web版エントリからのみ呼ぶ**。拡張版エントリ（`src/sidepanel/sidepanel.ts`）から到達不能になり、拡張版への回帰を構造的に防げる。
+- 共有 HTML に Web版専用の要素を足す場合は、初期状態を `hidden` クラス（`styles/base.css` で `display: none !important`）にし、表示側だけが外す設計にする。拡張版では誰も外さないため出ない。
+- 機能をひとつ落とすときは、それに付随する説明文や導線も一緒に落とすこと（ボタンだけ隠して help-text が残る、といった矛盾が起きやすい）。
+
+**ローカル確認手順**（`file://` では GIS が動かないので必ず localhost で開く）:
+
+```bash
+npm run dev:web
+npx http-server docs/app -p 8080   # または python -m http.server 8080 -d docs/app
+```
+
+`http://localhost:8080` を開く。**`127.0.0.1` は不可**（OAuth クライアントの承認済み JavaScript 生成元に `https://youkiti.github.io` と `http://localhost:8080` を登録しているため）。
+
+**CI ゲート**: `.github/workflows/build-check.yml` が PR ごとに次の5つを実行し、どれかが落ちるとマージ不可になる。ローカルでも同じ5つを通してから PR を出すこと。
+
+```bash
+npm run typecheck && npm run lint && npm run test && npm run dev && npm run dev:web
+```
+
 ### ローカル実験環境
 
 LLMのパラメーター調整などの実験をローカル環境（Chrome拡張外）で実行可能。
@@ -556,6 +592,7 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
 
 - **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別 Webアプリで実装する（アーキテクチャ方針セクション参照）
 - **後方互換の維持**: `Decision.screening_phase` は省略時 `'tiab'` 扱い。`Reference` の `fulltext_url` / `fulltext_status` は空でも既存機能に影響しない
+- **`src/sidepanel/dom.ts` の `getElement()` は要素が見つからないと例外を投げる**。`dom.foo?.classList` のような optional chaining では getter 内の throw を防げないので、参照する要素は必ず `sidepanel.html` に存在させること（Web版 HTML も `sidepanel.html` から生成されるため両方に入る）
 - **排他制御は不要**（追記型設計のため）
 - **重複解決は手動**（自動重複解決は将来拡張）
 
