@@ -250,6 +250,12 @@
                 <button id="btn-next" class="btn btn-nav" data-i18n="nav_next"></button>
             </div>
 
+            <!-- メモ（抄録→コメント→ハイライト設定の順にするためハイライト設定より上に配置） -->
+            <div class="form-group">
+                <label for="note" data-i18n="screening_noteLabel"></label>
+                <textarea id="note" rows="2" data-i18n-placeholder="screening_notePlaceholder"></textarea>
+            </div>
+
             <!-- ハイライト設定 -->
             <div id="config-settings" class="config-settings">
                 <div class="config-header">
@@ -286,12 +292,6 @@
                 <div id="save-status" class="save-status">
                     <span class="save-icon">✓</span> <span data-i18n="keyword_autoSave"></span>
                 </div>
-            </div>
-
-            <!-- メモ -->
-            <div class="form-group">
-                <label for="note" data-i18n="screening_noteLabel"></label>
-                <textarea id="note" rows="2" data-i18n-placeholder="screening_notePlaceholder"></textarea>
             </div>
 
             <!-- 担当セットフィルター (管理者のみ) -->
