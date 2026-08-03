@@ -1,48 +1,58 @@
 # バージョン自動更新スクリプト
-# 使用方法: .\scripts\bump-version.ps1 [major|minor|patch]
-# デフォルト: patch
+# このプロジェクトのバージョンは 0.<major>.<minor> 形式（先頭の 0 は固定）
+#
+# 使用方法: .\scripts\bump-version.ps1 [-BumpType major|minor]
+#   major : 0.33.2 → 0.34.0（機能追加）
+#   minor : 0.33.2 → 0.33.3（修正・小変更。デフォルト）
+#   1.0.0 など先頭の数字を動かす場合は -SetVersion "1.0.0" で明示指定する
 
 param(
-    [ValidateSet("major", "minor", "patch")]
-    [string]$BumpType = "patch"
+    [ValidateSet("major", "minor")]
+    [string]$BumpType = "minor",
+
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$SetVersion
 )
 
 $ErrorActionPreference = "Stop"
 
-# ファイルパス
-$packageJsonPath = "package.json"
-$manifestJsonPath = "src/manifest.json"
-$sidepanelHtmlPath = "src/sidepanel/sidepanel.html"
+# ファイルパス（[System.IO.File] は PowerShell のカレントではなく .NET の
+# カレントディレクトリを見るため、スクリプト位置から絶対パスで解決する）
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$packageJsonPath = Join-Path $repoRoot "package.json"
+$manifestJsonPath = Join-Path $repoRoot "src/manifest.json"
+$sidepanelHtmlPath = Join-Path $repoRoot "src/sidepanel/sidepanel.html"
 
 # package.json から現在のバージョンを取得
 $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
 $currentVersion = $packageJson.version
 Write-Host "現在のバージョン: $currentVersion"
 
-# バージョンを分解
+# バージョンを分解（0.<major>.<minor>）
 $versionParts = $currentVersion.Split(".")
-$major = [int]$versionParts[0]
-$minor = [int]$versionParts[1]
-$patch = [int]$versionParts[2]
+$lead = [int]$versionParts[0]
+$major = [int]$versionParts[1]
+$minor = [int]$versionParts[2]
 
-# バージョンをインクリメント
-switch ($BumpType) {
-    "major" {
-        $major++
-        $minor = 0
-        $patch = 0
-    }
-    "minor" {
-        $minor++
-        $patch = 0
-    }
-    "patch" {
-        $patch++
-    }
+if ($SetVersion) {
+    $newVersion = $SetVersion
+    Write-Host "新しいバージョン: $newVersion (明示指定)"
 }
+else {
+    # バージョンをインクリメント
+    switch ($BumpType) {
+        "major" {
+            $major++
+            $minor = 0
+        }
+        "minor" {
+            $minor++
+        }
+    }
 
-$newVersion = "$major.$minor.$patch"
-Write-Host "新しいバージョン: $newVersion ($BumpType)"
+    $newVersion = "$lead.$major.$minor"
+    Write-Host "新しいバージョン: $newVersion ($BumpType)"
+}
 
 # ビルド日時
 $buildDate = Get-Date -Format "yyyy-MM-dd"

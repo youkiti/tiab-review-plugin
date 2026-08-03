@@ -6,11 +6,19 @@ description: バージョンを自動更新してChrome Web Store用のリリー
 
 ## バージョンバンプのみ
 
+バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。
+
 // turbo
 ```bash
-npm run bump          # パッチ +1 (0.3.0 → 0.3.1)
-npm run bump:minor    # マイナー +1 (0.3.1 → 0.4.0)
-npm run bump:major    # メジャー +1 (0.4.0 → 1.0.0)
+npm run bump          # = bump:minor（デフォルト）
+npm run bump:minor    # 修正・小変更 (0.33.2 → 0.33.3)
+npm run bump:major    # 機能追加     (0.33.2 → 0.34.0)
+```
+
+1.0.0 など先頭の数字を動かす場合のみ明示指定する:
+
+```bash
+powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -SetVersion "1.0.0"
 ```
 
 ## リリース（バンプ + ストア用ビルド）
@@ -20,8 +28,9 @@ zip を Google Drive で配布する経路は廃止済み（最終配布は v0.2
 
 // turbo
 ```bash
-npm run release        # patch bump + ビルド + dist.zip
-npm run release:minor  # minor bump + ビルド + dist.zip
+npm run release        # = release:minor（デフォルト）
+npm run release:minor  # 0.33.2 → 0.33.3 + ビルド + dist.zip
+npm run release:major  # 0.33.2 → 0.34.0 + ビルド + dist.zip
 ```
 
 生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。

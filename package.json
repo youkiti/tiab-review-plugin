@@ -1,6 +1,6 @@
 {
     "name": "tiab-review-plugin",
-    "version": "0.33.1",
+    "version": "0.33.2",
     "description": "TiAb Review Plugin - Chrome Extension for Systematic Review Screening",
     "private": true,
     "scripts": {
@@ -11,6 +11,7 @@
         "bump:major": "powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -BumpType major",
         "release": "npm run bump && npm run build:release",
         "release:minor": "npm run bump:minor && npm run build:release",
+        "release:major": "npm run bump:major && npm run build:release",
         "watch": "webpack --mode development --watch",
         "dev": "webpack --mode development",
         "build:demo": "webpack --mode development --env demo",
