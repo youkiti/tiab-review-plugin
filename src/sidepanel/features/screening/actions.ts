@@ -100,10 +100,19 @@ async function persistDisplayedNote(ref: ReferenceWithStatus | undefined) {
     if (currentNote === savedNote) return;
 
     if (ref.myDecision) {
-        // 既存の判定がある場合はメモを更新する
-        ref.myDecision.note = currentNote;
-        ref.myDecision.decided_at = new Date().toISOString();
-        saveDecisionWithQueue(ref.myDecision, false);
+        // 既存の判定がある場合はメモを更新する。
+        // Decisionsタブが追記専用になったため、既存オブジェクトを破壊的に書き換えて
+        // 同じ decision_id のまま再保存すると、履歴上は同一判定イベントの重複行になってしまう。
+        // decision / reason / client_version / source_url / screening_phase は引き継ぎつつ、
+        // decision_id と decided_at だけ新規発番した新しい Decision に差し替える。
+        const updatedDecision: Decision = {
+            ...ref.myDecision,
+            decision_id: crypto.randomUUID(),
+            note: currentNote,
+            decided_at: new Date().toISOString(),
+        };
+        ref.myDecision = updatedDecision;
+        saveDecisionWithQueue(updatedDecision, false);
         return;
     }
 
@@ -239,8 +248,10 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
     if (!ref) return;
 
     // 判定オブジェクトを作成
+    // decision_id は判定イベントごとに毎回新規発番する（Decisionsタブが追記専用になったため、
+    // 既存判定のIDを使い回すと判定変更の履歴が別イベントとして残らなくなる）
     const decisionObj: Decision = {
-        decision_id: ref.myDecision?.decision_id || crypto.randomUUID(),
+        decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: state.userEmail,
         decision,

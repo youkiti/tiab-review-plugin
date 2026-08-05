@@ -209,8 +209,10 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
     if (!ref) return;
 
     // 2. Save decision
+    // decision_id は判定イベントごとに毎回新規発番する（Decisionsタブが追記専用になったため、
+    // 既存判定のIDを使い回すと判定変更の履歴が別イベントとして残らなくなる）
     const decisionObj: Decision = {
-        decision_id: ref.myDecision?.decision_id || crypto.randomUUID(),
+        decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: state.userEmail,
         decision,

@@ -755,8 +755,10 @@ async function handleSave(): Promise<boolean> {
             return false;
         }
 
+        // decision_id は判定イベントごとに毎回新規発番する（Decisionsタブが追記専用になったため、
+        // 既存判定のIDを使い回すと判定変更の履歴が別イベントとして残らなくなる）
         const decisionObj: Decision = {
-            decision_id: existingDecision?.decision.decision_id ?? crypto.randomUUID(),
+            decision_id: crypto.randomUUID(),
             ref_id: currentRef.ref_id,
             reviewer_id: userEmail,
             decision: pendingDecision,
@@ -768,14 +770,19 @@ async function handleSave(): Promise<boolean> {
             screening_phase: 'fulltext',
         };
 
-        // 送信前にメモリ状態を確定させる。除外→数字を高速連打した時に
-        // 同じ decision_id を再利用させ、重複行が生まれるのを防ぐ。
+        // 送信前にメモリ状態を確定させる。decision_id は追記専用化により毎回新規発番されるため、
+        // (ref_id, reviewer_id, screening_phase) が一致する既存要素を探して置換することで、
+        // メモリ上の allDecisions に同一判定の重複が積まれるのを防ぐ。
         if (existingDecision) {
             existingDecision.decision = decisionObj;
         } else {
             existingDecision = { decision: decisionObj, rowIndex: -1 };
         }
-        const idx = allDecisions.findIndex(d => d.decision_id === decisionObj.decision_id);
+        const idx = allDecisions.findIndex(d =>
+            d.ref_id === decisionObj.ref_id &&
+            d.reviewer_id === decisionObj.reviewer_id &&
+            (d.screening_phase ?? 'tiab') === (decisionObj.screening_phase ?? 'tiab')
+        );
         if (idx >= 0) allDecisions[idx] = decisionObj;
         else allDecisions.push(decisionObj);
         renderOverallProgress();

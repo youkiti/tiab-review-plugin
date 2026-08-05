@@ -14,6 +14,12 @@ import type { Decision } from '../src/lib/types';
 // 連打時に「判定1件につき全件読み取り1回＋書き込み1回」となっていた不具合の回帰防止のため、
 // 「hit（読み取り0回でupdate）」「absent（読み取り0回でappend、以後hit化）」
 // 「TTL経過でcoldに戻る」「deleteFulltextAiRound後にcoldへ無効化される」を検証する。
+//
+// Decisionsタブの追記専用化（human判定 / ML手動確認判定は常にappend）に伴い、saveDecisionInner は
+// 判定種別で分岐するようになった。ここで検証しているのは従来どおりの upsert 分岐
+// （ML自動判定・LLM判定が通る経路）であることを明示するため、fixture の client_version は
+// 意図的に LLM判定を表す値（'-llm' サフィックス）を設定する。追記専用分岐の検証は
+// decision-history.test.ts を参照。
 
 const mockPlatform: PlatformAdapter = {
     getAuthToken: async () => 'test-token',
@@ -157,6 +163,7 @@ test('hit: 行番号がキャッシュ済みなら saveDecision は読み取り�
         reviewer_id: 'alice@example.com',
         decision: 'include',
         decided_at: '2026-01-01T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'tiab',
     };
     const mockState = createMockState([existing]);
@@ -188,6 +195,7 @@ test('absent: 未知のキーは読み取りなしでappendされ、以後は同
         reviewer_id: 'someone@example.com',
         decision: 'include',
         decided_at: '2026-01-01T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'tiab',
     };
     const mockState = createMockState([other]);
@@ -202,6 +210,7 @@ test('absent: 未知のキーは読み取りなしでappendされ、以後は同
         reviewer_id: 'bob@example.com',
         decision: 'include',
         decided_at: '2026-01-02T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'tiab',
     };
     await saveDecision(spreadsheetId, newDecision);
@@ -237,6 +246,7 @@ test('TTL経過後はcoldに戻り、saveDecisionが全件読み取りを再度�
         reviewer_id: 'alice@example.com',
         decision: 'include',
         decided_at: '2026-01-01T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'tiab',
     };
     const mockState = createMockState([existing]);
@@ -270,6 +280,7 @@ test('deleteFulltextAiRound後はキャッシュが無効化され、saveDecisio
         reviewer_id: 'alice@example.com',
         decision: 'include',
         decided_at: '2026-01-01T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'tiab',
     };
     const llmDecision: Decision = {
@@ -278,6 +289,7 @@ test('deleteFulltextAiRound後はキャッシュが無効化され、saveDecisio
         reviewer_id: 'llm:gemini@2026-01-01T00-00-00Z',
         decision: 'include',
         decided_at: '2026-01-01T00:00:00Z',
+        client_version: '0.33.2-llm',
         screening_phase: 'fulltext',
     };
     const mockState = createMockState([tiabDecision, llmDecision]);
@@ -287,7 +299,7 @@ test('deleteFulltextAiRound後はキャッシュが無効化され、saveDecisio
     assert.equal(countDecisionsFullReads(mockState), 1);
 
     await deleteFulltextAiRound(spreadsheetId, 'llm:gemini@2026-01-01T00-00-00Z');
-    // deleteFulltextAiRound内部でも対象行特定のため getDecisions を呼ぶので+1回読む
+    // deleteFulltextAiRound内部でも対象行特定のため全件読み取り（getDecisionsRaw）を行うので+1回読む
     assert.equal(countDecisionsFullReads(mockState), 2);
 
     const updated: Decision = {
