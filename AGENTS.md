@@ -80,11 +80,11 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_url    | フルテキストURL（OA / ブラウザアタッチ）            |      |
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 
-#### Decisions タブ（最新判定のみを有効にする判定ログ）
+#### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
 | 列名            | 説明                                   | 必須 |
 | --------------- | -------------------------------------- | ---- |
-| decision_id     | 判定ID（UUID）                         | ✓   |
+| decision_id     | 判定ID（UUID、判定イベントごとに新規発番） | ✓   |
 | ref_id          | 文献ID（Referencesと結合）             | ✓   |
 | reviewer_id     | 判定者（email）                        | ✓   |
 | decision        | include / exclude / maybe              | ✓   |
@@ -96,12 +96,14 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | source_url      | 判定時に見ていたURL                    |      |
 | screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
 
-**重要**:
+**重要**（2026-08 追記専用化。詳細は「κ（Cohen's kappa）の算出」参照）:
 
-- **本人の判定**: 同一 `ref_id` + `reviewer_id` の既存判定は上書き可能（新しい判定で更新）
-- **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止
-- 判定履歴は保持しない（最新判定のみを有効とする）
-- **衝突解決**: 同時編集が発生した場合は `decided_at` の新しい判定を優先
+- **Decisions は追記専用**: human 判定（`client_version` に `-human` を含む）と ML 手動確認判定（`-ml` を含み `-auto` を含まない）は、既存行を更新せず**常に新しい行として追記**する
+- 同一 `ref_id` + `reviewer_id` + `screening_phase` の行は複数存在しうる。**`decided_at` が最新の行（同値の場合はシート上で後の行）を有効な判定とする**。読み取り側（UI・進捗集計・不一致検出など）はこの最新行だけを見るため、下流の挙動は追記専用化前と同じ
+- 過去の行は判定変更の履歴として保持する（合議前後の κ 算出などに利用できる）
+- **ML自動判定・LLM判定は従来どおり既存行を更新する**（pending→confirm の行更新と `deleteFulltextAiRound` のラウンド管理を壊さないため）
+- **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止（変更なし）
+- スプレッドシートの列定義は変更していないため、既存プロジェクトはそのまま動作する
 
 #### Config タブ（プロジェクト設定）
 
@@ -161,9 +163,9 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 4. **判定の記録**
 
    - Decisionsタブへ判定を保存
-   - **新規判定**: `spreadsheets.values.append` で追記
-   - **判定更新**: 既存行を検索し `spreadsheets.values.update` で上書き
-   - 同一 `ref_id` + `reviewer_id` の行が存在する場合は更新、なければ新規追加
+   - **human判定・ML手動確認判定**: 既存行を検索せず常に `spreadsheets.values.append` で追記（追記専用）
+   - **ML自動判定・LLM判定**: 従来どおり既存行を検索し、あれば `spreadsheets.values.update` で上書き、なければ `append`
+   - 読み取り側は同一 `ref_id` + `reviewer_id` + `screening_phase` の行のうち `decided_at` が最新の1行だけを有効な判定として扱う
 5. **フィルタ・検索**
 
    - 未判定（自分が未判定）フィルタ
@@ -319,9 +321,9 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **キュー永続化**:
   - **小規模（100件未満）**: `chrome.storage.local` を使用（5MB制限）
   - **大規模**: IndexedDB を使用（容量制限なし）
-- **冪等性**: `decision_id` を固定し、再送時は同一IDとして扱う
+- **キュー内の重複排除**: 送信前に同一 `ref_id` + `reviewer_id` + `screening_phase`（省略時 `tiab`）の未送信項目はキュー内で最新の1件へ置き換える（`decision_id` はDecisionsタブ追記専用化に伴い判定イベントごとに新規発番されるため、このキーで同一性を判定する。詳細は `src/sidepanel/utils/offline-queue.ts` の `upsertDecision`）
 - **同期順序**: `decided_at` の昇順で送信し、失敗時は次回再試行
-- **衝突解決**: 同一 `ref_id` + `reviewer_id` の既存行がある場合は更新（最新判定を有効）
+- **冪等性**: ML自動判定・LLM判定は既存行への upsert のため再送しても重複しない。human判定・ML手動確認判定は追記専用のため、内容が直前の保存と完全一致する場合のみ保存側のスナップショットキャッシュ（60秒TTL、詳細は `decisionContentCache`）で重複追記を防げる。それを超える間隔での再送（長時間オフライン後のflushなど、サーバ側の書き込み成功をクライアントが確認できずに再試行するケース）は重複行を生みうる既知のトレードオフ
 
 ### エラーハンドリング
 
@@ -449,20 +451,33 @@ POST https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range
 
 ### 判定保存フロー
 
+判定種別によって分岐する（`src/lib/sheets-api.ts` の `saveDecisionInner`）。human判定・ML手動確認判定は
+追記専用（既存行の検索・読み取りをしない）、ML自動判定・LLM判定は従来どおりの upsert。
+
 ```typescript
 async function saveDecision(decision: Decision): Promise<void> {
-  const existingRow = await findDecisionRow(decision.ref_id, decision.reviewer_id);
-  
+  if (isHumanDecision(decision.client_version) || isConfirmedMlDecision(decision.client_version)) {
+    // human判定・ML手動確認判定は追記専用: 既存行を探さず常にappendする
+    await sheetsApi.values.append({
+      spreadsheetId,
+      range: 'Decisions!A:K',
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [decisionToRow(decision)] } // labelsは空文字で保存
+    });
+    return;
+  }
+
+  // ML自動判定・LLM判定（pending→confirmの行更新やdeleteFulltextAiRoundのため）は従来どおりupsert
+  const existingRow = await findDecisionRow(decision.ref_id, decision.reviewer_id, decision.screening_phase);
   if (existingRow) {
-    // 既存行を更新
     await sheetsApi.values.update({
       spreadsheetId,
       range: `Decisions!A${existingRow.rowIndex}:K${existingRow.rowIndex}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [decisionToRow(decision)] } // labelsは空文字で保存
+      requestBody: { values: [decisionToRow(decision)] }
     });
   } else {
-    // 新規追加
     await sheetsApi.values.append({
       spreadsheetId,
       range: 'Decisions!A:K',
@@ -476,9 +491,67 @@ async function saveDecision(decision: Decision): Promise<void> {
 
 ### 運用フロー要約
 
-- **保存**: 同一 `ref_id` + `reviewer_id` がある場合は `update`、なければ `append`
-- **参照**: `ref_id` + `reviewer_id` ごとに1件のみ存在（設計上重複なし）
-- **整合性**: 判定更新は1行に集約し、判定履歴は保持しない
+- **保存**: human判定・ML手動確認判定は既存行を探さず常に `append`。ML自動判定・LLM判定は同一 `ref_id` + `reviewer_id` + `screening_phase` の既存行があれば `update`、なければ `append`
+- **参照**: `ref_id` + `reviewer_id` + `screening_phase` ごとに複数行が存在しうる。読み取り側は `decided_at` が最新の行（同値ならシート上で後の行）だけへ畳み込んで有効な判定とする（実装は `collapseToLatestDecisions`）
+- **整合性**: 過去の行は判定変更の履歴として保持する（合議前後の κ 算出に利用できる。次項参照）
+
+### κ（Cohen's kappa）の算出手順
+
+Decisionsタブの追記専用化（2026-08）により、human判定の変更履歴がシートに残るようになった。これを使って
+「合議前（各レビュアーの独立した初回判定）」と「合議後（最終判定）」の一致度（Cohen's κ）を後日算出できる。
+
+- **Decisionsタブを CSV でダウンロードすると、追記順＝シートの行順で全履歴が得られる**（Google スプレッドシートの
+  ファイル > ダウンロード > カンマ区切り値）
+- `revision`（同一キー内の連番）と `is_latest`（最終行フラグ）はシートに保存していない。**ダウンロード後に自分で
+  導出する**（理由は本項末尾を参照）
+- **`revision == 1` の行 = 各レビュアーの独立した初回判定 → 合議前の κ**
+- **各キーの最終行（`is_latest`）= 最終判定 → 合議後の κ**
+- 特定の合議・会議より前後で区切りたい場合は `decided_at` で絞り込む（例: 会議日時より前の最終行を「合議前」、
+  会議日時以降を含む最終行を「合議後」とする、など運用に合わせて調整する）
+
+R での算出例（`client_version` に `-human` を含む行のみを対象にし、`screening_phase` が空または `tiab` の行
+＝TiAbスクリーニングの判定に絞り、`(ref_id, reviewer_id)` ごとに `decided_at` 昇順で並べて連番を振る）:
+
+```r
+library(dplyr)
+library(tidyr)
+library(irr) # kappa2()
+
+decisions <- read.csv("Decisions.csv", stringsAsFactors = FALSE) %>%
+  # human判定のみ（ML/LLMを除く）。'0.1.0' は追記専用化より前の旧形式で、これも human 判定。
+  # 旧プロジェクトでは初回判定が '0.1.0' で記録されているため、除外すると revision == 1 が
+  # 「後の変更」を初回判定と誤認し、合議前のκが狂う（実装は isHumanDecision と対応させること）
+  filter(grepl("-human", client_version) | client_version == "0.1.0") %>%
+  filter(screening_phase == "" | is.na(screening_phase) | screening_phase == "tiab") %>%
+  arrange(ref_id, reviewer_id, decided_at) %>%
+  group_by(ref_id, reviewer_id) %>%
+  mutate(
+    revision = row_number(),          # 同一キー内の連番（1 = 初回判定）
+    is_latest = row_number() == n()   # 最終行フラグ（= 最終判定）
+  ) %>%
+  ungroup()
+
+# 合議前のκ: 各レビュアーの初回判定を横持ちにしてkappa2へ渡す（2名レビュアー想定）
+pre_consensus <- decisions %>%
+  filter(revision == 1) %>%
+  select(ref_id, reviewer_id, decision) %>%
+  pivot_wider(names_from = reviewer_id, values_from = decision) %>%
+  select(-ref_id)
+kappa2(pre_consensus)
+
+# 合議後のκ: 各キーの最終判定を横持ちにする
+post_consensus <- decisions %>%
+  filter(is_latest) %>%
+  select(ref_id, reviewer_id, decision) %>%
+  pivot_wider(names_from = reviewer_id, values_from = decision) %>%
+  select(-ref_id)
+kappa2(post_consensus)
+```
+
+**アプリ内のエクスポート機能として実装していない理由**: (1) Decisionsタブを直接CSVダウンロードすれば十分で、
+アプリ側に追加実装するほどの価値が薄いため。(2) 保存のたびに `revision` / `is_latest` のような連番をシート側へ
+書き込もうとすると、そのために既存行の読み取りが必要になり、追記専用化で実現した「保存時は読み取り0回」という
+設計（`decisionRowCache` / `decisionContentCache`）が崩れてしまうため。
 
 ### OAuth スコープ
 
