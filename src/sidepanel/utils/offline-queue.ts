@@ -26,9 +26,25 @@ function sortQueue(items: Decision[]): Decision[] {
         .sort((a, b) => a.decided_at.localeCompare(b.decided_at));
 }
 
+/**
+ * キュー内の重複判定キー（ref_id/reviewer_id/screening_phase、phase省略時は 'tiab' 扱い）。
+ * sheets-api.ts の decisionRowKey() と同じ「同一判定キー」の概念のため、ref_id/reviewer_id の
+ * trim 正規化も揃える。
+ */
+function decisionQueueKey(decision: Decision): string {
+    return `${(decision.ref_id || '').trim()}::${(decision.reviewer_id || '').trim()}::${decision.screening_phase ?? 'tiab'}`;
+}
+
+/**
+ * オフラインキューへ判定を積む。
+ * decision_id は追記専用化により毎回新規発番されるため、代わりに
+ * (ref_id, reviewer_id, screening_phase) をキーに既存要素を探して置換する。
+ * これによりオフライン中の途中変更は履歴に残さず、最新の1件だけを送信する。
+ */
 function upsertDecision(items: Decision[], decision: Decision): Decision[] {
     const next = items.slice();
-    const index = next.findIndex(item => item.decision_id === decision.decision_id);
+    const key = decisionQueueKey(decision);
+    const index = next.findIndex(item => decisionQueueKey(item) === key);
     if (index >= 0) {
         next[index] = decision;
     } else {

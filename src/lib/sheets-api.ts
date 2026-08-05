@@ -9,6 +9,7 @@ import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
+import { isHumanDecision, isConfirmedMlDecision } from './client-version';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -866,12 +867,25 @@ function parseDecisionValues(values: string[][]): { decision: Decision; rowIndex
 }
 
 /**
- * Decisions タブから判定一覧を取得
+ * Decisions タブから生の全行を取得する（畳み込みなし）。
+ * 追記専用化（human / ML手動確認の判定は append のみ）により同一キーの行が複数残るため、
+ * 判定イベントの履歴そのものが必要な箇所（deleteFulltextAiRound など）だけがこれを使うこと。
+ * 通常の読み取りは getDecisions() の畳み込み結果を使う。外部へは export しない。
+ */
+async function getDecisionsRaw(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
+    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
+    return parseDecisionValues(values);
+}
+
+/**
+ * Decisions タブから判定一覧を取得。
+ * 追記専用化により同一 (ref_id, reviewer_id, screening_phase) の行が複数存在しうるため、
+ * ここで各キーの最新1行へ畳み込んでから返す（下流のUI・集計は従来どおり最新判定のみを見る）。
  */
 export async function getDecisions(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
-    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
-    const decisionsData = parseDecisionValues(values);
-    // 全件読み取ったタイミングで行番号キャッシュを温める（saveDecision の読み取り削減用）
+    const rawData = await getDecisionsRaw(spreadsheetId);
+    const decisionsData = collapseToLatestDecisions(rawData);
+    // 全件読み取ったタイミングで行番号キャッシュ・保存内容スナップショットを温める（saveDecision の読み取り/重複防止用）
     primeDecisionRowCache(spreadsheetId, decisionsData);
     return decisionsData;
 }
@@ -1205,9 +1219,78 @@ let decisionRowCache: {
     rows: Map<string, number>; // key -> シート行番号（1始まり）
 } | null = null;
 
+/** 追記対象（human / ML手動確認）の判定保存内容。同一内容の連続保存をスキップする判定に使う */
+interface DecisionContentSnapshot {
+    decision: string;
+    reason: string;
+    note: string;
+}
+
+/**
+ * decisionRowCache と同じライフサイクル（同一 spreadsheetId スコープ + TTL +
+ * invalidateDecisionRowCache() での破棄）で保持する、直近保存内容のスナップショットキャッシュ。
+ * decisionRowCache.rows は「absent = 全件読み取り済みでキーが存在しないことが確定」という
+ * 意味を持つため、ここへ部分的な書き込みを混ぜると ML/LLM側の hit/absent/cold 判定を
+ * 汚染しかねない。意味が異なるため別オブジェクトとして分離する。
+ */
+let decisionContentCache: {
+    spreadsheetId: string;
+    builtAt: number;
+    latest: Map<string, DecisionContentSnapshot>; // key -> 直近保存内容
+} | null = null;
+
+/** Decision から比較用のスナップショットを作る（undefined と '' を同一視するため ?? '' で正規化） */
+function contentSnapshotOf(decision: Decision): DecisionContentSnapshot {
+    return {
+        decision: decision.decision ?? '',
+        reason: decision.reason ?? '',
+        note: decision.note ?? '',
+    };
+}
+
+function isSameDecisionContent(a: DecisionContentSnapshot, b: DecisionContentSnapshot): boolean {
+    return a.decision === b.decision && a.reason === b.reason && a.note === b.note;
+}
+
 /** Decisions 行番号キャッシュのキーを組み立てる（ref_id/reviewer_id は trim、phase 省略時は 'tiab'） */
 function decisionRowKey(refId: string, reviewerId: string, phase: string | undefined): string {
     return `${(refId || '').trim()}\u0000${(reviewerId || '').trim()}\u0000${phase ?? 'tiab'}`;
+}
+
+/**
+ * a が b より新しい判定行かどうかを判定する。
+ * decided_at はISO 8601文字列のため辞書順比較で時系列順になる。同値の場合はシート上で
+ * 後にある行（rowIndex が大きい行）を新しいとみなす（同一 decided_at での追記順を優先）。
+ */
+function isNewerDecisionRow(
+    a: { decision: Decision; rowIndex: number },
+    b: { decision: Decision; rowIndex: number }
+): boolean {
+    const aTime = a.decision.decided_at || '';
+    const bTime = b.decision.decided_at || '';
+    if (aTime !== bTime) return aTime > bTime;
+    return a.rowIndex > b.rowIndex;
+}
+
+/**
+ * Decisions の生行を (ref_id, reviewer_id, screening_phase) ごとに最新1行へ畳み込む。
+ * 追記専用化により同一キーの行が複数残るようになったため、UI・集計を含む下流の挙動を
+ * 従来（最新判定のみが有効）どおりに保つには、読み取りの入口でここを通す必要がある。
+ * 出力の並び順は入力の行順（rowIndex 昇順）を維持する。
+ */
+function collapseToLatestDecisions(
+    rows: { decision: Decision; rowIndex: number }[]
+): { decision: Decision; rowIndex: number }[] {
+    const latestByKey = new Map<string, { decision: Decision; rowIndex: number }>();
+    for (const row of rows) {
+        const key = decisionRowKey(row.decision.ref_id, row.decision.reviewer_id, row.decision.screening_phase);
+        const current = latestByKey.get(key);
+        if (!current || isNewerDecisionRow(row, current)) {
+            latestByKey.set(key, row);
+        }
+    }
+    const winners = new Set(latestByKey.values());
+    return rows.filter(row => winners.has(row));
 }
 
 /**
@@ -1231,22 +1314,48 @@ function getCachedDecisionRow(spreadsheetId: string, key: string): DecisionRowLo
 
 /**
  * getDecisions() / getFulltextPageData() など、Decisions を rowIndex 付きで全件取得した
- * 直後に必ず呼び、キャッシュを温める。
- * 同一キーが複数行ある場合は「最初に見つかった行」を採用する（既存の saveDecision の
- * find と同じ選択にすることで挙動を変えないため）。
+ * 直後に必ず呼び、キャッシュを温める。呼び出し側は畳み込み後（各キーの最新1行）のデータを
+ * 渡すこと。生データを渡すと古い rowIndex や内容がキャッシュに乗る危険がある。
+ * 併せて、同キーの直近保存内容スナップショット（decisionContentCache）も同時に構築する。
  */
 function primeDecisionRowCache(
     spreadsheetId: string,
     decisionsData: { decision: Decision; rowIndex: number }[]
 ): void {
     const rows = new Map<string, number>();
+    const latestContent = new Map<string, DecisionContentSnapshot>();
     for (const { decision, rowIndex } of decisionsData) {
         const key = decisionRowKey(decision.ref_id, decision.reviewer_id, decision.screening_phase);
         if (!rows.has(key)) {
             rows.set(key, rowIndex);
         }
+        latestContent.set(key, contentSnapshotOf(decision));
     }
     decisionRowCache = { spreadsheetId, builtAt: Date.now(), rows };
+    decisionContentCache = { spreadsheetId, builtAt: Date.now(), latest: latestContent };
+}
+
+/**
+ * 直近に把握している保存内容のスナップショットを返す。
+ * キャッシュ無効/期限切れ/別シートの場合は null（＝把握していない）を返し、
+ * 呼び出し側はスキップ判定をせず通常どおり保存する。
+ */
+function getCachedDecisionContent(spreadsheetId: string, key: string): DecisionContentSnapshot | null {
+    if (!decisionContentCache) return null;
+    if (decisionContentCache.spreadsheetId !== spreadsheetId) return null;
+    if (Date.now() - decisionContentCache.builtAt > DECISION_ROW_CACHE_TTL_MS) return null;
+    return decisionContentCache.latest.get(key) ?? null;
+}
+
+/**
+ * 追記（append）に成功した判定の内容をスナップショットへ記録する。
+ * キャッシュが未構築/別シートの場合はここで新規に作る（次回以降のスキップ判定に使うため）。
+ */
+function rememberDecisionContent(spreadsheetId: string, key: string, decision: Decision): void {
+    if (!decisionContentCache || decisionContentCache.spreadsheetId !== spreadsheetId) {
+        decisionContentCache = { spreadsheetId, builtAt: Date.now(), latest: new Map() };
+    }
+    decisionContentCache.latest.set(key, contentSnapshotOf(decision));
 }
 
 /**
@@ -1264,11 +1373,12 @@ function registerDecisionRowInCache(spreadsheetId: string, key: string, rowIndex
 }
 
 /**
- * Decisions 行番号キャッシュを無効化する。
+ * Decisions 行番号キャッシュ（保存内容スナップショット含む）を無効化する。
  * 行削除など行番号がずれる操作の後や、新規キーの把握ができない一括追加の後に呼ぶこと。
  */
 export function invalidateDecisionRowCache(): void {
     decisionRowCache = null;
+    decisionContentCache = null;
 }
 
 /**
@@ -1280,9 +1390,11 @@ export function invalidateDecisionRowCache(): void {
 let saveDecisionChain: Promise<void> = Promise.resolve();
 
 /**
- * 判定を保存（新規追加 or 更新）
- * 行番号キャッシュがヒットする限り読み取りリクエストを発行しない。
- * キャッシュが無効な場合のみ、従来どおり Decisions!A:K を全件読み取ってから判定する。
+ * 判定を保存する。
+ * - human判定 / ML手動確認判定: 常に追記（append-only）。判定変更の履歴を行として残し、
+ *   後日 Cohen's kappa を合議前後で算出できるようにするため、既存行の検索・更新は行わない。
+ * - それ以外（ML自動判定・LLM判定）: 従来どおりの upsert（行番号キャッシュがヒットする限り
+ *   読み取りリクエストを発行しない。キャッシュが無効な場合のみ全件読み取ってから判定する）。
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
     const run = saveDecisionChain.then(() => saveDecisionInner(spreadsheetId, decision));
@@ -1308,11 +1420,28 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
         decision.screening_phase || '',
     ];
 
+    if (isHumanDecision(decision.client_version) || isConfirmedMlDecision(decision.client_version)) {
+        // 追記専用（append-only）: 既存行の検索・読み取りは一切行わず、常に新しい行として積む。
+        // ただし直前に把握している内容と完全一致する場合は、誤タップ・連打・再描画による
+        // 無意味な重複行を防ぐため保存自体をスキップする。
+        const cachedContent = getCachedDecisionContent(spreadsheetId, key);
+        if (cachedContent && isSameDecisionContent(cachedContent, contentSnapshotOf(decision))) {
+            return;
+        }
+        await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
+        rememberDecisionContent(spreadsheetId, key, decision);
+        return;
+    }
+
+    // それ以外（ML自動判定・LLM判定）は従来どおりの upsert ロジックを維持する
+    // （LLMのpending→confirm行更新や deleteFulltextAiRound を壊さないため）
     const lookup = getCachedDecisionRow(spreadsheetId, key);
 
     if (lookup.state === 'hit') {
         // 既存行を更新（読み取り0回）
         await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${lookup.rowIndex}:K${lookup.rowIndex}`, [row]);
+        // decisionContentCache は「このキーへ最後に自分が書き込んだ内容」を指し続ける不変条件を保つ
+        rememberDecisionContent(spreadsheetId, key, decision);
         return;
     }
 
@@ -1320,6 +1449,7 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
         // キャッシュ済みで未知のキー = 新規行（読み取り0回）
         const { firstRowIndex } = await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
         registerDecisionRowInCache(spreadsheetId, key, firstRowIndex);
+        rememberDecisionContent(spreadsheetId, key, decision);
         return;
     }
 
@@ -1340,6 +1470,8 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
         const { firstRowIndex } = await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
         registerDecisionRowInCache(spreadsheetId, key, firstRowIndex);
     }
+    // decisionContentCache は「このキーへ最後に自分が書き込んだ内容」を指し続ける不変条件を保つ
+    rememberDecisionContent(spreadsheetId, key, decision);
 }
 
 /**
@@ -1820,6 +1952,8 @@ export async function getProjectConfigBundle(spreadsheetId: string): Promise<Pro
 /**
  * フルテキストページの初期データをまとめて取得（1リクエスト）
  * References / Decisions / Config を values:batchGet で取得する。
+ * 追記専用化により Decisions には同一キーの履歴行が複数残りうるため、返す前に
+ * 各キーの最新1行へ畳み込む（下流のUI・集計を getDecisions() と同じ挙動に保つため）。
  */
 export async function getFulltextPageData(spreadsheetId: string): Promise<{
     references: Reference[];
@@ -1832,7 +1966,7 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
             `${DECISIONS_SHEET}!A:K`,
             `${CONFIG_SHEET}!A:B`,
         ]);
-        const decisions = parseDecisionValues(decValues);
+        const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
         // ここでも Decisions を rowIndex 付きで全件取得しているため、行番号キャッシュを温める
         primeDecisionRowCache(spreadsheetId, decisions);
         return {
@@ -1848,7 +1982,7 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
                 `${REFERENCES_SHEET}!A:V`,
                 `${DECISIONS_SHEET}!A:K`,
             ]);
-            const decisions = parseDecisionValues(decValues);
+            const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
             primeDecisionRowCache(spreadsheetId, decisions);
             return {
                 references: parseReferenceValues(refValues),
@@ -2325,10 +2459,11 @@ async function trySetFulltextAiActiveRound(spreadsheetId: string, reviewerId: st
 /**
  * フルテキストAI判定の1ラウンド（特定 reviewer_id・fulltext フェーズ）の判定行を全削除する。
  * 採用中ラウンドを削除した場合は採用を解除する。
+ * ラウンドの履歴行を1行残らず消す必要があるため、畳み込み後ではなく生の全行を使う。
  * @returns 削除した行数
  */
 export async function deleteFulltextAiRound(spreadsheetId: string, reviewerId: string): Promise<number> {
-    const decisionsData = await getDecisions(spreadsheetId);
+    const decisionsData = await getDecisionsRaw(spreadsheetId);
     const targetRows = decisionsData
         .filter(({ decision }) =>
             decision.reviewer_id === reviewerId &&
