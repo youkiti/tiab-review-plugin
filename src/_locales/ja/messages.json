@@ -1384,7 +1384,7 @@
     "message": "プランを更新しました ($1)"
   },
   "llm_batchPending": {
-    "message": "未判定:"
+    "message": "AI未判定:"
   },
   "llm_batchPendingCount": {
     "message": "$1件"

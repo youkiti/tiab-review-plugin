@@ -1384,7 +1384,7 @@
     "message": "Plan updated ($1)"
   },
   "llm_batchPending": {
-    "message": "Pending:"
+    "message": "AI pending:"
   },
   "llm_batchPendingCount": {
     "message": "$1 items"

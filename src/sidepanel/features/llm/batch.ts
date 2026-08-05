@@ -46,6 +46,7 @@ import {
     setReferences as syncSetReferences,
 } from '../../store/compat';
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment';
+import { isBatchEligible, resolveBatchLimit, selectBatchTargets } from '../../../lib/llm-batch-target';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -101,15 +102,7 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
 }
 
 
-/**
- * LLM バッチの対象となる文献かどうか判定
- * - 自分が未判定 (status === 'pending')
- * - かつ いずれの LLM 実行でもまだ判定されていない（pending/confirmed/inactive いずれも除外）
- *   → 同一文献を別バッチで再処理してAPI呼び出しが無駄になるのを防ぐ
- */
-function isBatchEligible(ref: { status: string; hasAnyLlmDecision?: boolean }): boolean {
-    return ref.status === 'pending' && !ref.hasAnyLlmDecision;
-}
+// バッチ対象の判定ロジックは src/lib/llm-batch-target.ts（純粋関数・テスト対象）に集約している
 
 /**
  * バッチ実行直後に references を再読込してUIカウントを最新化する
@@ -148,10 +141,8 @@ export function updateBatchTargetCount() {
     const eligibleCount = state.references.filter(isBatchEligible).length;
     dom.batchTargetCount.textContent = eligibleCount.toString();
 
-    const maxCountRaw = dom.batchMaxCountSelect.value;
-    const plannedCount = maxCountRaw === 'all'
-        ? eligibleCount
-        : Math.min(eligibleCount, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+    const limit = resolveBatchLimit(dom.batchMaxCountSelect.value);
+    const plannedCount = limit === null ? eligibleCount : Math.min(eligibleCount, limit);
     dom.batchPlannedCount.textContent = plannedCount.toString();
 }
 
@@ -190,12 +181,8 @@ export async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得（未判定 かつ LLM 未判定のみ・件数上限を適用）
-    const eligibleRefs = state.references.filter(isBatchEligible);
-    const maxCountRaw = dom.batchMaxCountSelect.value;
-    const targetRefs = maxCountRaw === 'all'
-        ? eligibleRefs
-        : eligibleRefs.slice(0, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+    // 対象文献を取得（AI 未判定のみ・件数上限を適用。人間の判定有無では絞り込まない）
+    const targetRefs = selectBatchTargets(state.references, dom.batchMaxCountSelect.value);
 
     if (targetRefs.length === 0) {
         showToast(t('llm_batchNoTarget'));
