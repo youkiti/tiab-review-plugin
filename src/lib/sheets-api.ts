@@ -5,6 +5,7 @@ import { MODEL_ID_MIGRATIONS } from './model-migrations';
 import { t } from './i18n';
 import { platform } from '../platform';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
+import { pickRunByConfigHash, pickLegacyRunByConfigHash } from './llm-batch-target';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
@@ -1019,7 +1020,7 @@ export async function getReferencesWithStatus(
             myDecision,
             status,
             allDecisions: llmDecisions,
-            hasAnyLlmDecision: llmDecisions.length > 0,
+            llmBatchIds: llmDecisions.map(d => d.reviewer_id),
             myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
         };
     });
@@ -1084,8 +1085,9 @@ export async function getReferencesWithAllDecisions(
 
     // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
-    // バッチ再判定の重複を避けるため、status/active を問わず LLM 判定の有無を別途記録
-    const refIdsWithAnyLlmDecision = new Set<string>();
+    // バッチ対象を Run 単位で決めるため、status/active を問わず
+    // 「どの LLM バッチがこの文献を判定したか」を別途記録する
+    const llmBatchIdsByRefId = new Map<string, string[]>();
     let skippedLlm = 0;
     let addedDecisions = 0;
     let addedHuman = 0;
@@ -1103,7 +1105,9 @@ export async function getReferencesWithAllDecisions(
         }
 
         if (decision.reviewer_id.startsWith('llm:')) {
-            refIdsWithAnyLlmDecision.add(decision.ref_id);
+            const ids = llmBatchIdsByRefId.get(decision.ref_id) ?? [];
+            ids.push(decision.reviewer_id);
+            llmBatchIdsByRefId.set(decision.ref_id, ids);
         }
 
         // LLMの判定かつ、有効な実行IDに含まれていない場合はスキップ
@@ -1169,7 +1173,7 @@ export async function getReferencesWithAllDecisions(
             status,
             allDecisions,
             hasConflict,
-            hasAnyLlmDecision: refIdsWithAnyLlmDecision.has(ref.ref_id),
+            llmBatchIds: llmBatchIdsByRefId.get(ref.ref_id) ?? [],
             myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
             allFulltextDecisions: allFulltextDecisionsMap.get(ref.ref_id) || [],
         };
@@ -3265,9 +3269,13 @@ async function migrateLegacyExecutionsToRuns(
         groups.set(hash, list);
     }
 
+    // 同一 config_hash の Run が複数ある（＝「新規にやり直す」を使った）場合、
+    // legacy バッチはやり直しより前の実行なので最も古い Run に属させる
     const runByHash = new Map<string, LlmRun>();
     for (const run of existingRuns) {
-        runByHash.set(run.config_hash, run);
+        if (runByHash.has(run.config_hash)) continue;
+        const picked = pickLegacyRunByConfigHash(existingRuns, run.config_hash);
+        if (picked) runByHash.set(run.config_hash, picked);
     }
 
     const newRuns: LlmRun[] = [];
@@ -3372,25 +3380,15 @@ export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
 
 /**
  * config_hash で Run を検索する。
- * 複数ヒット時の優先順位: active confirmed > 最新 confirmed > 最新 created_at
+ * 「新規にやり直す」により同一 config_hash の Run が複数存在しうるため、
+ * 優先順位は最新 created_at（同時刻なら active confirmed > confirmed > pending）。
  */
 export async function findRunByConfigHash(
     spreadsheetId: string,
     configHash: string
 ): Promise<LlmRun | null> {
     const runs = await getLlmRuns(spreadsheetId);
-    const matched = runs.filter(r => r.config_hash === configHash);
-    if (matched.length === 0) return null;
-
-    const activeConfirmed = matched.find(r => r.is_active && r.status === 'confirmed');
-    if (activeConfirmed) return activeConfirmed;
-
-    const confirmed = matched
-        .filter(r => r.status === 'confirmed')
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    if (confirmed.length > 0) return confirmed[0];
-
-    return matched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    return pickRunByConfigHash(runs, configHash);
 }
 
 /**

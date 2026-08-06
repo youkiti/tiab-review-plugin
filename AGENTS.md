@@ -195,11 +195,24 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
    - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
    - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
-   - **一括判定**: **AI未判定**の文献に対するLLMによる自動判定（バッチ処理。`src/lib/llm-batch-target.ts`）
-     - AIは**独立した判定者**として扱うため、人間（自分を含む）が既に判定済みの文献も対象に含める。
-       人間の判定状況で絞ると「自分が手動判定した分だけAIの対象件数が減る」（例: 全50件中2件を自分が判定 → AI対象が48件になる）
-       という、ログインユーザーによって判定範囲が変わる非対称な挙動になるため、`status` は条件に含めない
-     - 除外するのは既にAI判定済みの文献（`hasAnyLlmDecision`）のみ。同一文献を別バッチで再処理してAPI呼び出しが無駄になるのを防ぐ
+   - **一括判定**: LLMによる自動判定（バッチ処理）。対象の決定ロジックは `src/lib/llm-batch-target.ts`（純粋関数）に集約
+     - **人間の判定状況では絞らない**。AIは独立した判定者なので、人間（自分を含む）が判定済みの文献も対象に含める。
+       `status`（＝自分の判定）で絞ると「自分が手動判定した分だけAIの対象件数が減る」（例: 全50件中2件を自分が判定 → AI対象が48件）
+       という、ログインユーザーによって判定範囲が変わる非対称な挙動になる
+     - **対象の絞り込みは Run 単位**。「これから実行する Run（config_hash で解決）で既に判定済みの文献」だけを除外する
+       （`ReferenceWithStatus.llmBatchIds` と Run 配下の Batch ID 集合を突き合わせる）。
+       グローバルに「AI判定済みか」で絞ると、最初のRunが全件を判定した時点で2つ目以降のRunが常に0件になり、
+       Runの採用選択（`is_active`）が機能しなくなる
+     - **中断からの再開**: 設定が同じなら `findRunByConfigHash` が既存Runを再利用し、残りだけを新しいBatchとして処理する。
+       再開できる件数がある場合は一括実行カードに「$1件が判定済み」と表示する
+     - **新規にやり直す**: 「🔄 新規にやり直す」ボタン（`state.forceNewLlmRun`）をONにすると、既存Runを再利用せず
+       新しいRunとして全文献を判定する。**既存の判定・履歴は一切削除しない**（Decisions/LLM_Executions/LLM_Runs はそのまま残り、
+       どちらのRunを採用するかは実行履歴のラジオボタンで選ぶ）。新Run作成時にフラグは自動でOFFに戻る
+     - これにより同一 config_hash のRunが複数存在しうる。`pickRunByConfigHash` は再開先として
+       **最新 created_at** のRunを返す（同時刻のみ active confirmed > confirmed > pending）。
+       legacy移行（run_id空のBatch集約）は逆に最古のRunへ寄せる（`pickLegacyRunByConfigHash`）
+     - 対象件数の表示は Sheets を再読み込みせず `state.llmRuns` / `state.llmExecutions` のキャッシュで計算する
+       （`loadExecutionHistory` が更新）。モデル・プロンプト変更のたびにAPIを叩くと読み取りクォータを超過するため
    - **結果表示**: LLMの判定結果・理由の表示
 8. **フルテキストAI判定（PDF全文）**
 
