@@ -52,6 +52,7 @@ import {
 } from './criteria';
 import {
     updateBatchTargetCount,
+    handleToggleRestartRun,
     handleStartBatch,
     handleStopBatch,
     handleRetryFailed,
@@ -62,6 +63,23 @@ import {
     setLoadDataAndShowScreening as setLoadDataAndShowScreeningForBatch,
 } from './batch';
 import { handleRecoverOrphans } from './recovery';
+
+/**
+ * プロンプト入力中の対象件数再計算をデバウンスする
+ * 1文字ごとに config_hash を計算し直すのを避ける（Sheets へのアクセスは発生しない）
+ */
+const BATCH_TARGET_COUNT_DEBOUNCE_MS = 300;
+let batchTargetCountTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleBatchTargetCountUpdate() {
+    if (batchTargetCountTimer !== null) {
+        clearTimeout(batchTargetCountTimer);
+    }
+    batchTargetCountTimer = setTimeout(() => {
+        batchTargetCountTimer = null;
+        void updateBatchTargetCount();
+    }, BATCH_TARGET_COUNT_DEBOUNCE_MS);
+}
 
 // Store互換レイヤー（Phase 5）
 import {
@@ -225,6 +243,9 @@ export function setupLlmEventListeners() {
 
     // モデル選択: 選択 provider に応じて該当 API キーカードを強調
     dom.llmModelSelect?.addEventListener('change', handleModelSelectChange);
+    // モデル・プロンプトを変えると別 Run になり対象件数も変わるので再計算する
+    dom.llmModelSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
+    dom.screeningPromptInput?.addEventListener('input', scheduleBatchTargetCountUpdate);
 
     // 基準最適化
     dom.optimizeCriteriaBtn?.addEventListener('click', handleOptimizeCriteria);
@@ -234,7 +255,8 @@ export function setupLlmEventListeners() {
     dom.startBatchBtn?.addEventListener('click', handleStartBatch);
     dom.stopBatchBtn?.addEventListener('click', handleStopBatch);
     dom.retryFailedBtn?.addEventListener('click', handleRetryFailed);
-    dom.batchMaxCountSelect?.addEventListener('change', updateBatchTargetCount);
+    dom.batchMaxCountSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
+    dom.batchRestartRunBtn?.addEventListener('click', () => { void handleToggleRestartRun(); });
 
     // 閾値調整
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);
@@ -323,11 +345,11 @@ export async function initializeLlmSection() {
                 dom.criteriaCard.classList.remove('confirmed');
             }
 
-            // バッチ対象件数を更新
-            updateBatchTargetCount();
-
-            // 実行履歴を読み込み
+            // 実行履歴を読み込み（Run/Batch のキャッシュもここで更新される）
             await loadExecutionHistory();
+
+            // バッチ対象件数を更新（Run 単位で数えるため履歴の読み込み後に行う）
+            await updateBatchTargetCount();
         }
     } catch (error) {
         console.error('[initializeLlmSection] Error:', error);

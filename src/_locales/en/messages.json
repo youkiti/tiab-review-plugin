@@ -1384,7 +1384,7 @@
     "message": "Plan updated ($1)"
   },
   "llm_batchPending": {
-    "message": "Pending:"
+    "message": "AI pending:"
   },
   "llm_batchPendingCount": {
     "message": "$1 items"
@@ -1424,6 +1424,21 @@
   },
   "llm_batchPlanned": {
     "message": "This run:"
+  },
+  "llm_batchRunResume": {
+    "message": "$1 items already judged in this run. Starting will resume where it left off"
+  },
+  "llm_batchRunRestartBtn": {
+    "message": "🔄 Start over as a new run"
+  },
+  "llm_batchRunRestartActive": {
+    "message": "Will judge all items as a new run. The existing run and its decisions stay in the history"
+  },
+  "llm_batchRunRestartCancel": {
+    "message": "Back to resuming"
+  },
+  "llm_batchRunRestartToast": {
+    "message": "New-run mode enabled. Existing decisions are kept; you can choose which run to adopt from the history"
   },
   "llm_batchNoTarget": {
     "message": "No references to process"

@@ -24,6 +24,7 @@ import {
     getRunForBatchId,
     getBatchIdsForRun,
     findRunByConfigHash,
+    getJudgedRefIdsForBatches,
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
 import { showModal, hideModal } from '../../ui/modal';
@@ -46,6 +47,12 @@ import {
     setReferences as syncSetReferences,
 } from '../../store/compat';
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment';
+import {
+    isBatchEligible,
+    resolveBatchLimit,
+    selectBatchTargetsByJudgedRefIds,
+    pickRunByConfigHash,
+} from '../../../lib/llm-batch-target';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -101,14 +108,54 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
 }
 
 
+// バッチ対象の判定ロジックは src/lib/llm-batch-target.ts（純粋関数・テスト対象）に集約している
+
 /**
- * LLM バッチの対象となる文献かどうか判定
- * - 自分が未判定 (status === 'pending')
- * - かつ いずれの LLM 実行でもまだ判定されていない（pending/confirmed/inactive いずれも除外）
- *   → 同一文献を別バッチで再処理してAPI呼び出しが無駄になるのを防ぐ
+ * 現在の UI 設定から config_hash を計算する
+ * screeningPrompt は handleStartBatch と同じ既定値解決を行う
  */
-function isBatchEligible(ref: { status: string; hasAnyLlmDecision?: boolean }): boolean {
-    return ref.status === 'pending' && !ref.hasAnyLlmDecision;
+async function computeCurrentConfigHash(): Promise<string> {
+    const modelConfig = getModelConfig(dom.llmModelSelect.value);
+    const screeningPrompt = dom.screeningPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
+    return computeConfigHash({
+        model: modelConfig.model,
+        temperature: modelConfig.temperature,
+        topP: modelConfig.topP,
+        thinkingLevel: modelConfig.thinkingLevel,
+        criteria_snapshot: state.llmConfig.llm_criteria,
+        screening_prompt: screeningPrompt,
+    });
+}
+
+/**
+ * 「これから実行する Run」と、その Run で既に判定済みの Batch ID 集合を解決する
+ *
+ * Sheets は読まず、loadExecutionHistory が保持した state のキャッシュだけを使う。
+ * 件数表示はモデル変更やプロンプト入力のたびに再計算されるため、
+ * ここで API を叩くと読み取りクォータを容易に超過してしまう。
+ */
+async function resolveTargetRun(): Promise<{ run: LlmRun | null; judgedBatchIds: Set<string> }> {
+    // 「新規にやり直す」モードでは既存 Run を再利用しないので、判定済み集合は空
+    if (state.forceNewLlmRun) {
+        return { run: null, judgedBatchIds: new Set() };
+    }
+
+    try {
+        const configHash = await computeCurrentConfigHash();
+        const run = pickRunByConfigHash(state.llmRuns, configHash);
+        if (!run) return { run: null, judgedBatchIds: new Set() };
+
+        const judgedBatchIds = new Set(
+            state.llmExecutions
+                .filter(e => e.execution_type === 'batch_screening' && e.run_id === run.run_id)
+                .map(e => e.execution_id)
+        );
+        return { run, judgedBatchIds };
+    } catch (error) {
+        // ハッシュ計算に失敗しても件数表示は出したいので、新規 Run 扱いにフォールバックする
+        console.warn('[resolveTargetRun] Failed to resolve run:', error);
+        return { run: null, judgedBatchIds: new Set() };
+    }
 }
 
 /**
@@ -135,24 +182,74 @@ async function refreshReferencesAfterBatch(spreadsheetId: string): Promise<void>
         })();
 
         syncSetReferences(visibleRefs);
-        updateBatchTargetCount();
+        await updateBatchTargetCount();
     } catch (error) {
         console.error('[refreshReferencesAfterBatch] Failed to reload references:', error);
     }
 }
 
 /**
- * バッチ対象件数を更新
+ * バッチ対象件数と実行モード表示を更新
+ *
+ * 対象は「これから実行する Run でまだ判定していない文献」。
+ * 設定（モデル・プロンプト・基準）を変えると別 Run になるため、対象は全文献に戻る。
  */
-export function updateBatchTargetCount() {
-    const eligibleCount = state.references.filter(isBatchEligible).length;
+export async function updateBatchTargetCount() {
+    const { run, judgedBatchIds } = await resolveTargetRun();
+
+    const eligibleCount = state.references.filter(ref => isBatchEligible(ref, judgedBatchIds)).length;
     dom.batchTargetCount.textContent = eligibleCount.toString();
 
-    const maxCountRaw = dom.batchMaxCountSelect.value;
-    const plannedCount = maxCountRaw === 'all'
-        ? eligibleCount
-        : Math.min(eligibleCount, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+    const limit = resolveBatchLimit(dom.batchMaxCountSelect.value);
+    const plannedCount = limit === null ? eligibleCount : Math.min(eligibleCount, limit);
     dom.batchPlannedCount.textContent = plannedCount.toString();
+
+    renderBatchRunMode(run, state.references.length - eligibleCount);
+}
+
+/**
+ * 実行モード行（続きから / 新規にやり直す）を描画する
+ * @param judgedCount 現在の Run で既に判定済みの件数
+ */
+function renderBatchRunMode(run: LlmRun | null, judgedCount: number) {
+    const container = dom.batchRunMode;
+    const text = dom.batchRunModeText;
+    const button = dom.batchRestartRunBtn;
+
+    if (state.forceNewLlmRun) {
+        container.classList.remove('hidden');
+        container.classList.add('restart-active');
+        text.textContent = t('llm_batchRunRestartActive');
+        button.textContent = t('llm_batchRunRestartCancel');
+        return;
+    }
+
+    container.classList.remove('restart-active');
+
+    // 既存 Run の続きでない（＝この設定では未実行）ときは、やり直す対象が無いので非表示
+    if (!run || judgedCount <= 0) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    text.textContent = t('llm_batchRunResume', String(judgedCount));
+    button.textContent = t('llm_batchRunRestartBtn');
+}
+
+/**
+ * 「新規にやり直す」トグル
+ *
+ * 既存の判定・履歴は一切削除せず、次の実行を新しい Run として全文献に対して行う。
+ * どちらの Run を採用するかは実行履歴のラジオボタンで選べる。
+ */
+export async function handleToggleRestartRun() {
+    const next = !state.forceNewLlmRun;
+    state.setForceNewLlmRun(next);
+    if (next) {
+        showToast(t('llm_batchRunRestartToast'), 5000);
+    }
+    await updateBatchTargetCount();
 }
 
 /**
@@ -190,12 +287,41 @@ export async function handleStartBatch() {
         return;
     }
 
-    // 対象文献を取得（未判定 かつ LLM 未判定のみ・件数上限を適用）
-    const eligibleRefs = state.references.filter(isBatchEligible);
-    const maxCountRaw = dom.batchMaxCountSelect.value;
-    const targetRefs = maxCountRaw === 'all'
-        ? eligibleRefs
-        : eligibleRefs.slice(0, Math.max(parseInt(maxCountRaw, 10) || 100, 1));
+    const spreadsheetId = state.spreadsheetId;
+    const modelConfig = getModelConfig(dom.llmModelSelect.value);
+    // 「新規にやり直す」モードでは既存 Run を再利用せず、新しい Run として全文献を対象にする
+    const isRestart = state.forceNewLlmRun;
+
+    // Run 解決 → 対象文献の確定。
+    // 件数表示は state のキャッシュ（llmBatchIds）による近似で済ませているが、実行時は
+    // 他レビュアーが直前に判定した分をキャッシュが取りこぼすと同一 Run に LLM 票が二重に入り、
+    // AI 同士の偽 conflict が発生してしまう。それを防ぐため、実行直前に Sheets から
+    // 最新の Run/Batch と「その Run で判定済みの ref_id」を読み直して対象を確定する。
+    let configHash: string;
+    let matchedRun: LlmRun | null;
+    let targetRefs: typeof state.references;
+    try {
+        configHash = await computeConfigHash({
+            model: modelConfig.model,
+            temperature: modelConfig.temperature,
+            topP: modelConfig.topP,
+            thinkingLevel: modelConfig.thinkingLevel,
+            criteria_snapshot: state.llmConfig.llm_criteria,
+            screening_prompt: screeningPrompt,
+        });
+        matchedRun = isRestart ? null : await findRunByConfigHash(spreadsheetId, configHash);
+        const judgedBatchIds = matchedRun
+            ? await getBatchIdsForRun(spreadsheetId, matchedRun.run_id)
+            : new Set<string>();
+        const judgedRefIds = await getJudgedRefIdsForBatches(spreadsheetId, judgedBatchIds);
+
+        // 対象文献を取得（この Run で未判定のもの・件数上限を適用。人間の判定有無では絞り込まない）
+        targetRefs = selectBatchTargetsByJudgedRefIds(state.references, dom.batchMaxCountSelect.value, judgedRefIds);
+    } catch (error) {
+        console.error('[handleStartBatch] Failed to resolve run:', error);
+        showToast(t('llm_batchError', (error as Error).message));
+        return;
+    }
 
     if (targetRefs.length === 0) {
         showToast(t('llm_batchNoTarget'));
@@ -218,12 +344,8 @@ export async function handleStartBatch() {
     // try 開始前に execution_id を保持する変数を用意しておく
     let executionId: string | null = null;
     let batchResult: Awaited<ReturnType<typeof processBatch>> | null = null;
-    const spreadsheetId = state.spreadsheetId;
 
     try {
-        // 選択されたモデルの設定を取得（モデル ID はプロファイル解決にも使う）
-        const modelConfig = getModelConfig(dom.llmModelSelect.value);
-
         const profile = await resolveBatchProfile(modelConfig.model);
         const llmConfig = state.llmConfig;
 
@@ -231,18 +353,8 @@ export async function handleStartBatch() {
             showToast(t('llm_freeTierBatchWarning'), 4000);
         }
 
-        // Run 解決: 同一設定の既存 Run があれば再利用、なければ新規作成
+        // Run は上で解決済み（matchedRun があればその続き、無ければ新規作成）。
         // confirmed Run なら閾値を即時適用し、閾値確認 UI をスキップする
-        const configHash = await computeConfigHash({
-            model: modelConfig.model,
-            temperature: modelConfig.temperature,
-            topP: modelConfig.topP,
-            thinkingLevel: modelConfig.thinkingLevel,
-            criteria_snapshot: llmConfig.llm_criteria,
-            screening_prompt: screeningPrompt,
-        });
-
-        const matchedRun = await findRunByConfigHash(spreadsheetId, configHash);
         const isImmediate = matchedRun?.status === 'confirmed';
         const runThreshold = isImmediate ? matchedRun!.include_threshold : null;
 
@@ -269,6 +381,9 @@ export async function handleStartBatch() {
                 is_active: false,
             };
             await saveLlmRun(spreadsheetId, newRun);
+            // 新しい Run を作れたら「新規にやり直す」モードは役目を終える。
+            // 以降の実行はこの Run の続きとして扱う（毎回 Run が増えるのを防ぐ）
+            state.setForceNewLlmRun(false);
         }
 
         // バッチ開始前に execution_id を生成し、Batch 行（LLM_Executions）を先書きする。
@@ -1025,6 +1140,9 @@ export async function loadExecutionHistory() {
             getLlmExecutions(spreadsheetId),
             getLlmRuns(spreadsheetId),
         ]);
+
+        // バッチ対象件数を Sheets 再読み込みなしに Run 単位で計算できるようキャッシュしておく
+        state.setLlmRunsAndExecutions(runs, executions);
 
         // active Run 配下の Batch IDs をキャッシュへ反映
         const activeRun = runs.find(r => r.is_active && r.status === 'confirmed');

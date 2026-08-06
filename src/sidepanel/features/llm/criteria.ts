@@ -6,6 +6,7 @@ import { dom } from '../../dom';
 import { state } from '../../state';
 import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';
+import { updateBatchTargetCount } from './batch';
 import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getEffectiveOpenAiApiKey } from '../../../lib/storage';
 import { getStandardCriteriaFields, AVAILABLE_MODELS, getModelConfig } from '../../../lib/gemini-api';
 import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
@@ -124,6 +125,13 @@ export async function handleOptimizeCriteria() {
 
         // 保存ボタンを表示
         dom.saveCriteriaBtn.classList.remove('hidden');
+
+        // 基準とプロンプトを差し替えると config_hash が変わって別 Run になるが、
+        // 代入では input イベントが飛ばないため件数表示が更新されない。明示的に再計算する。
+        // 件数表示の再計算に失敗しても最適化自体は成功しているので、エラー表示には倒さない
+        await updateBatchTargetCount().catch(err =>
+            console.error('[handleOptimizeCriteria] Failed to refresh batch target count:', err)
+        );
     } catch (error) {
         console.error('[handleOptimizeCriteria] Error:', error);
         dom.optimizeStatusDiv.textContent = t('llm_optimizeError', (error as Error).message);

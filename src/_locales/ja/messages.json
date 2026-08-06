@@ -1384,7 +1384,7 @@
     "message": "プランを更新しました ($1)"
   },
   "llm_batchPending": {
-    "message": "未判定:"
+    "message": "AI未判定:"
   },
   "llm_batchPendingCount": {
     "message": "$1件"
@@ -1424,6 +1424,21 @@
   },
   "llm_batchPlanned": {
     "message": "今回実行:"
+  },
+  "llm_batchRunResume": {
+    "message": "この設定のAI実行（Run）で$1件が判定済みです。開始すると続きから実行します"
+  },
+  "llm_batchRunRestartBtn": {
+    "message": "🔄 新規にやり直す"
+  },
+  "llm_batchRunRestartActive": {
+    "message": "新規のAI実行（Run）として全件を判定します。既存のRunと判定は履歴に残ります"
+  },
+  "llm_batchRunRestartCancel": {
+    "message": "続きに戻す"
+  },
+  "llm_batchRunRestartToast": {
+    "message": "新規Runモードにしました。既存の判定は削除されず、履歴からどちらのRunを採用するか選べます"
   },
   "llm_batchNoTarget": {
     "message": "処理対象の文献がありません"

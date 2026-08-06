@@ -3,7 +3,7 @@
  * getter/setter パターンで副作用を制御し、状態変更の影響範囲を限定
  */
 
-import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap } from '../lib/types';
+import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
@@ -78,6 +78,12 @@ let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
 let _currentBatchDecisions: Decision[] = [];
 let _activeLlmExecutionIds: Set<string> = new Set();
+// Run/Batch の一覧キャッシュ。バッチ対象件数を Run 単位で計算する際、
+// UI 操作のたびに Sheets を読むとクォータを消費するため loadExecutionHistory の取得結果を保持する
+let _llmRuns: LlmRun[] = [];
+let _llmExecutions: LlmExecution[] = [];
+// 「新規にやり直す」モード。ONの間は既存 Run を再利用せず、新しい Run として全文献を対象にする
+let _forceNewLlmRun = false;
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
@@ -267,6 +273,16 @@ export const state = {
     addActiveLlmExecutionId(id: string) { _activeLlmExecutionIds.add(id); },
     clearActiveLlmExecutionIds() { _activeLlmExecutionIds.clear(); },
 
+    get llmRuns() { return _llmRuns; },
+    get llmExecutions() { return _llmExecutions; },
+    setLlmRunsAndExecutions(runs: LlmRun[], executions: LlmExecution[]) {
+        _llmRuns = runs;
+        _llmExecutions = executions;
+    },
+
+    get forceNewLlmRun() { return _forceNewLlmRun; },
+    setForceNewLlmRun(force: boolean) { _forceNewLlmRun = force; },
+
     get failedRefIds() { return _failedRefIds; },
     setFailedRefIds(ids: string[]) { _failedRefIds = ids; },
     clearFailedRefIds() { _failedRefIds = []; },
@@ -321,6 +337,9 @@ export const state = {
         _currentExecutionId = '';
         _currentBatchDecisions = [];
         _activeLlmExecutionIds.clear();
+        _llmRuns = [];
+        _llmExecutions = [];
+        _forceNewLlmRun = false;
         _failedRefIds = [];
         _mlState = createInitialMlState();
     },

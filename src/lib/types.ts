@@ -84,7 +84,12 @@ export interface ReferenceWithStatus extends Reference {
     status: DecisionStatus;
     allDecisions?: Decision[];  // キーオープン後に全レビュアーの判定を保持
     hasConflict?: boolean;       // 不一致フラグ
-    hasAnyLlmDecision?: boolean; // LLM バッチで判定済みか（pending/confirmed/inactive を問わず）
+    /**
+     * この文献を判定した LLM バッチの reviewer_id（= LLM_Executions.execution_id）一覧。
+     * Run/active を問わず全て含める。LLM バッチの対象判定を Run 単位で行うために使う
+     * （「この Run ではまだ判定していない文献」を特定する）。
+     */
+    llmBatchIds?: string[];
     myFulltextDecision?: Decision; // 自分のフルテキストフェーズ判定（フルテキストタブで使用）
     allFulltextDecisions?: Decision[]; // キーオープン後に全レビュアー(+有効LLM)のフルテキスト判定を保持（結果集計で使用）
 }
