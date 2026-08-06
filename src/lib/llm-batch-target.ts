@@ -14,6 +14,12 @@
  *
  *    グローバルに「AI 判定済みか」で絞ると、最初の Run が全件を判定した時点で
  *    2 つ目以降の Run が常に 0 件になり、Run の採用選択機能が機能しなくなる。
+ *
+ * 3. 件数表示と実行時で判定済みの判定元が非対称になっている。件数表示（updateBatchTargetCount）は
+ *    state.references[].llmBatchIds（画面ロード時のキャッシュ）による近似で済ませ、実行時
+ *    （handleStartBatch）だけ Sheets から読み直した判定済み ref_id（サーバーの真値）で対象を確定する。
+ *    表示のたびに Sheets を読むとモデル変更・プロンプト入力のたびに読み取りクォータ
+ *    （60回/分/ユーザー）を超過するため、この非対称は意図的なもの。
  */
 
 import type { LlmRun } from './types';
@@ -51,15 +57,54 @@ export function resolveBatchLimit(maxCountRaw: string): number | null {
     return Math.max(parseInt(maxCountRaw, 10) || DEFAULT_BATCH_LIMIT, 1);
 }
 
+/** 判定済み ref_id の抽出に必要な Decision の最小形（Decisions 1行分） */
+export interface JudgedDecisionRow {
+    reviewer_id?: string;
+    ref_id?: string;
+    screening_phase?: string;
+}
+
 /**
- * 対象文献のうち、今回のバッチで実際に処理する分を切り出す
+ * 指定 Batch ID 群が判定した ref_id を抽出する（TiAb フェーズのみ）
+ *
+ * Sheets から読んだ Decisions 行を渡す。reviewer_id / ref_id は
+ * シート直編集で空白が混じりうるため trim してから突き合わせる。
+ * Run 単位の絞り込み（別 Run の Batch が判定した ref_id は拾わない）はここで保証する。
  */
-export function selectBatchTargets<T extends BatchEligibleRef>(
+export function collectJudgedRefIds(
+    decisions: readonly JudgedDecisionRow[],
+    batchIds: ReadonlySet<string>
+): Set<string> {
+    const judgedRefIds = new Set<string>();
+    if (batchIds.size === 0) return judgedRefIds;
+
+    for (const decision of decisions) {
+        if ((decision.screening_phase ?? 'tiab') !== 'tiab') continue;
+        const reviewerId = (decision.reviewer_id || '').trim();
+        if (!batchIds.has(reviewerId)) continue;
+        const refId = (decision.ref_id || '').trim();
+        if (!refId) continue;
+        judgedRefIds.add(refId);
+    }
+    return judgedRefIds;
+}
+
+export interface BatchTargetRef {
+    ref_id: string;
+}
+
+/**
+ * バッチ実行時に、実際に処理する文献を切り出す
+ *
+ * @param judgedRefIds これから実行する Run で既に判定済みの ref_id 集合
+ *   （実行直前に Sheets から取り直したサーバーの真値）
+ */
+export function selectBatchTargetsByJudgedRefIds<T extends BatchTargetRef>(
     refs: readonly T[],
     maxCountRaw: string,
-    judgedBatchIds: ReadonlySet<string>
+    judgedRefIds: ReadonlySet<string>
 ): T[] {
-    const eligible = refs.filter(ref => isBatchEligible(ref, judgedBatchIds));
+    const eligible = refs.filter(ref => !judgedRefIds.has(ref.ref_id));
     const limit = resolveBatchLimit(maxCountRaw);
     return limit === null ? eligible : eligible.slice(0, limit);
 }

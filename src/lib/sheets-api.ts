@@ -5,7 +5,7 @@ import { MODEL_ID_MIGRATIONS } from './model-migrations';
 import { t } from './i18n';
 import { platform } from '../platform';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
-import { pickRunByConfigHash, pickLegacyRunByConfigHash } from './llm-batch-target';
+import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } from './llm-batch-target';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
@@ -3433,6 +3433,27 @@ export async function getBatchIdsForRun(
             .filter(b => b.execution_type === 'batch_screening' && b.run_id === runId)
             .map(b => b.execution_id)
     );
+}
+
+/**
+ * 指定した Batch ID 群が既に判定した ref_id の集合を Sheets から取得する。
+ *
+ * バッチ実行直前の対象確定に使う。state.references[].llmBatchIds は画面ロード時の
+ * スナップショットなので、他レビュアーが直前に判定した分を取りこぼす。同一 Run に
+ * 同じ文献の LLM 票が二重に入るのを防ぐため、実行時だけはサーバーの真値を読み直す。
+ *
+ * getSheetValues はキャッシュしないので、この呼び出しは必ず最新を返す（読み取り1リクエスト）。
+ */
+export async function getJudgedRefIdsForBatches(
+    spreadsheetId: string,
+    batchIds: ReadonlySet<string>
+): Promise<Set<string>> {
+    if (batchIds.size === 0) return new Set();
+
+    // 抽出ロジック（Run 単位の絞り込み・trim 正規化）は collectJudgedRefIds に集約しテスト対象にしている。
+    // ここは Sheets から読み取って渡すだけの薄いラッパー。
+    const decisionsData = await getDecisions(spreadsheetId);
+    return collectJudgedRefIds(decisionsData.map(({ decision }) => decision), batchIds);
 }
 
 /**

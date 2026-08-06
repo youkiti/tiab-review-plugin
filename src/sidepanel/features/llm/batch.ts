@@ -24,6 +24,7 @@ import {
     getRunForBatchId,
     getBatchIdsForRun,
     findRunByConfigHash,
+    getJudgedRefIdsForBatches,
 } from '../../../lib/sheets-api';
 import { computeConfigHash } from '../../../lib/llm-config-hash';
 import { showModal, hideModal } from '../../ui/modal';
@@ -49,7 +50,7 @@ import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment
 import {
     isBatchEligible,
     resolveBatchLimit,
-    selectBatchTargets,
+    selectBatchTargetsByJudgedRefIds,
     pickRunByConfigHash,
 } from '../../../lib/llm-batch-target';
 
@@ -292,8 +293,10 @@ export async function handleStartBatch() {
     const isRestart = state.forceNewLlmRun;
 
     // Run 解決 → 対象文献の確定。
-    // 件数表示は state のキャッシュで計算しているが、実行時は他レビュアーの実行を取りこぼさないよう
-    // Sheets から最新の Run/Batch を読み直す。
+    // 件数表示は state のキャッシュ（llmBatchIds）による近似で済ませているが、実行時は
+    // 他レビュアーが直前に判定した分をキャッシュが取りこぼすと同一 Run に LLM 票が二重に入り、
+    // AI 同士の偽 conflict が発生してしまう。それを防ぐため、実行直前に Sheets から
+    // 最新の Run/Batch と「その Run で判定済みの ref_id」を読み直して対象を確定する。
     let configHash: string;
     let matchedRun: LlmRun | null;
     let targetRefs: typeof state.references;
@@ -310,9 +313,10 @@ export async function handleStartBatch() {
         const judgedBatchIds = matchedRun
             ? await getBatchIdsForRun(spreadsheetId, matchedRun.run_id)
             : new Set<string>();
+        const judgedRefIds = await getJudgedRefIdsForBatches(spreadsheetId, judgedBatchIds);
 
         // 対象文献を取得（この Run で未判定のもの・件数上限を適用。人間の判定有無では絞り込まない）
-        targetRefs = selectBatchTargets(state.references, dom.batchMaxCountSelect.value, judgedBatchIds);
+        targetRefs = selectBatchTargetsByJudgedRefIds(state.references, dom.batchMaxCountSelect.value, judgedRefIds);
     } catch (error) {
         console.error('[handleStartBatch] Failed to resolve run:', error);
         showToast(t('llm_batchError', (error as Error).message));

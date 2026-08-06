@@ -211,8 +211,16 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
      - これにより同一 config_hash のRunが複数存在しうる。`pickRunByConfigHash` は再開先として
        **最新 created_at** のRunを返す（同時刻のみ active confirmed > confirmed > pending）。
        legacy移行（run_id空のBatch集約）は逆に最古のRunへ寄せる（`pickLegacyRunByConfigHash`）
-     - 対象件数の表示は Sheets を再読み込みせず `state.llmRuns` / `state.llmExecutions` のキャッシュで計算する
+     - **件数表示（`updateBatchTargetCount`）は Sheets を再読み込みせず** `state.llmRuns` / `state.llmExecutions` のキャッシュで計算する
        （`loadExecutionHistory` が更新）。モデル・プロンプト変更のたびにAPIを叩くと読み取りクォータを超過するため
+     - **実行時（`handleStartBatch`）は Run/Batch に加えて、その Run で判定済みの ref_id も Sheets から取り直す**
+       （`getJudgedRefIdsForBatches`）。件数表示のキャッシュ（`llmBatchIds`）は画面ロード時のスナップショットなので、
+       他レビュアーが直前に判定した分を取りこぼす。取りこぼすと同一Runに同じ文献のLLM票が二重に入り、
+       AI同士の偽の不一致（conflict）が画面に出てしまうため、実行直前だけはサーバーの真値で対象を確定する
+       （`selectBatchTargetsByJudgedRefIds`）
+     - **基準最適化（`handleOptimizeCriteria`）後は `updateBatchTargetCount()` を明示的に呼ぶ**。
+       最適化結果はプロンプト・判定基準をプログラムから代入するため `input` イベントが発火せず、
+       config_hash が変わって別Runになったのに対象件数・実行モード表示が古いRunのまま残ってしまう
    - **結果表示**: LLMの判定結果・理由の表示
 8. **フルテキストAI判定（PDF全文）**
 

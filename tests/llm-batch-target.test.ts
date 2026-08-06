@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import {
     isBatchEligible,
     resolveBatchLimit,
-    selectBatchTargets,
+    selectBatchTargetsByJudgedRefIds,
+    collectJudgedRefIds,
     pickRunByConfigHash,
     pickLegacyRunByConfigHash,
+    BATCH_MAX_COUNT_ALL,
 } from '../src/lib/llm-batch-target';
+import type { JudgedDecisionRow } from '../src/lib/llm-batch-target';
 import type { LlmRun } from '../src/lib/types';
 
 /** テスト用の文献（status は AI バッチの対象判定に影響しないことの確認用に保持） */
@@ -23,6 +26,19 @@ const RUN_A = new Set(['llm:gemini@2026-01-01T00:00:00Z']);
 const RUN_B = new Set(['llm:gemini@2026-02-01T00:00:00Z']);
 const NO_RUN = new Set<string>();
 
+/** テスト用の Decisions 1行（collectJudgedRefIds 用） */
+function decision(
+    refId: string,
+    reviewerId: string,
+    opts: { screening_phase?: string } = {}
+): JudgedDecisionRow {
+    return {
+        ref_id: refId,
+        reviewer_id: reviewerId,
+        screening_phase: opts.screening_phase,
+    };
+}
+
 // ---------------------------------------------------------------------------
 // 人間の判定は対象判定に影響しない
 // ---------------------------------------------------------------------------
@@ -31,13 +47,6 @@ test('人間が判定済みの文献も AI バッチの対象になる', () => {
     for (const status of ['include', 'exclude', 'maybe', 'conflict', 'pending']) {
         assert.equal(isBatchEligible(ref('1', { status }), NO_RUN), true, status);
     }
-});
-
-test('全50件中2件を人間が判定済みでも対象は50件のまま', () => {
-    const refs = Array.from({ length: 50 }, (_, i) =>
-        ref(`ref-${i}`, { status: i < 2 ? 'include' : 'pending' })
-    );
-    assert.equal(selectBatchTargets(refs, 'all', NO_RUN).length, 50);
 });
 
 // ---------------------------------------------------------------------------
@@ -52,25 +61,6 @@ test('同じ Run で判定済みの文献は除外される（中断からの続
 test('別の Run で判定済みでも対象になる（別モデル・別プロンプトでの再実行）', () => {
     const judgedByA = ref('1', { llmBatchIds: [...RUN_A] });
     assert.equal(isBatchEligible(judgedByA, RUN_B), true);
-});
-
-test('Run 1 が全50件を判定済みでも、別 Run では全50件が対象になる', () => {
-    const refs = Array.from({ length: 50 }, (_, i) =>
-        ref(`ref-${i}`, { llmBatchIds: [...RUN_A] })
-    );
-    // 同じ Run では 0 件（＝全部処理済み）
-    assert.equal(selectBatchTargets(refs, 'all', RUN_A).length, 0);
-    // 別 Run では 50 件すべてが対象
-    assert.equal(selectBatchTargets(refs, 'all', RUN_B).length, 50);
-    // 新規 Run（判定済み集合が空）でも 50 件
-    assert.equal(selectBatchTargets(refs, 'all', NO_RUN).length, 50);
-});
-
-test('中断した Run を再開すると残りだけが対象になる', () => {
-    const refs = Array.from({ length: 50 }, (_, i) =>
-        ref(`ref-${i}`, { llmBatchIds: i < 30 ? [...RUN_A] : [] })
-    );
-    assert.equal(selectBatchTargets(refs, 'all', RUN_A).length, 20);
 });
 
 test('複数バッチに分かれた Run でも、その Run の全バッチが除外対象になる', () => {
@@ -110,19 +100,88 @@ test('resolveBatchLimit は負値を1に丸める', () => {
     assert.equal(resolveBatchLimit('-5'), 1);
 });
 
-test('selectBatchTargets は上限まで切り出し、同一 Run で判定済みは飛ばす', () => {
-    const refs = [
-        ref('a', { llmBatchIds: [...RUN_A] }),
-        ref('b', { status: 'include' }),
-        ref('c'),
-        ref('d'),
+// ---------------------------------------------------------------------------
+// Run 単位の判定済み ref_id 抽出（collectJudgedRefIds）
+//
+// getJudgedRefIdsForBatches（Sheets 読み取り）の中核ロジック。実行時の重複判定防止は
+// ここでの Run 分離（別 Run の Batch が判定した ref_id を拾わないこと）に懸かっている。
+// ---------------------------------------------------------------------------
+
+const BATCH_A1 = 'llm:gemini@2026-01-01T00:00:00Z';
+const BATCH_A2 = 'llm:gemini@2026-01-01T09:00:00Z';
+const BATCH_B1 = 'llm:gemini@2026-02-01T00:00:00Z';
+
+test('batchIds に含まれる Batch の判定だけが拾われ、別 Run の Batch が判定した ref_id は拾われない', () => {
+    const decisions = [
+        decision('ref-1', BATCH_A1),
+        decision('ref-2', BATCH_B1),
     ];
-    const targets = selectBatchTargets(refs, '2', RUN_A);
+    const judged = collectJudgedRefIds(decisions, new Set([BATCH_A1]));
+    assert.deepEqual([...judged], ['ref-1']);
+});
+
+test('同一 Run の複数 Batch にまたがる判定がまとめて拾われる', () => {
+    const decisions = [
+        decision('ref-1', BATCH_A1),
+        decision('ref-2', BATCH_A2),
+        decision('ref-3', BATCH_B1),
+    ];
+    const judged = collectJudgedRefIds(decisions, new Set([BATCH_A1, BATCH_A2]));
+    assert.deepEqual([...judged].sort(), ['ref-1', 'ref-2']);
+});
+
+test('screening_phase が fulltext の行は無視され、未設定（undefined）は tiab として拾われる', () => {
+    const decisions = [
+        decision('ref-1', BATCH_A1, { screening_phase: 'fulltext' }),
+        decision('ref-2', BATCH_A1), // screening_phase 未設定
+    ];
+    const judged = collectJudgedRefIds(decisions, new Set([BATCH_A1]));
+    assert.deepEqual([...judged], ['ref-2']);
+});
+
+test('reviewer_id / ref_id の前後空白が trim されて正しくマッチする', () => {
+    const decisions = [decision(' ref-1 ', ` ${BATCH_A1} `)];
+    const judged = collectJudgedRefIds(decisions, new Set([BATCH_A1]));
+    assert.deepEqual([...judged], ['ref-1']);
+});
+
+test('batchIds が空なら空 Set を返す', () => {
+    const decisions = [decision('ref-1', BATCH_A1)];
+    assert.equal(collectJudgedRefIds(decisions, new Set()).size, 0);
+});
+
+// ---------------------------------------------------------------------------
+// 実行時の対象確定（selectBatchTargetsByJudgedRefIds）
+//
+// この関数は実行直前に Sheets から読み直した「その Run で判定済みの ref_id」を受け取る。
+// Batch ID の集合ではなく ref_id の集合であることに注意（isBatchEligible とは入力が違う）。
+// ---------------------------------------------------------------------------
+
+test('judgedRefIds が空なら全件が対象になる', () => {
+    const refs = Array.from({ length: 50 }, (_, i) => ref(`ref-${i}`));
+    assert.equal(selectBatchTargetsByJudgedRefIds(refs, 'all', new Set()).length, 50);
+});
+
+test('judgedRefIds に含まれる ref は除外される', () => {
+    const refs = [ref('a'), ref('b', { status: 'include' }), ref('c'), ref('d')];
+    const targets = selectBatchTargetsByJudgedRefIds(refs, 'all', new Set(['a', 'd']));
     assert.deepEqual(targets.map(r => r.ref_id), ['b', 'c']);
 });
 
-test('selectBatchTargets は対象が上限より少なくても全件返す', () => {
-    assert.equal(selectBatchTargets([ref('a'), ref('b')], '100', NO_RUN).length, 2);
+test('上限（maxCountRaw）は除外後の件数に対して適用される', () => {
+    const refs = [ref('a'), ref('b'), ref('c'), ref('d')];
+    // 'a' を除外した残り3件（b, c, d）に上限2件が適用される
+    const targets = selectBatchTargetsByJudgedRefIds(refs, '2', new Set(['a']));
+    assert.deepEqual(targets.map(r => r.ref_id), ['b', 'c']);
+});
+
+test('BATCH_MAX_COUNT_ALL のとき上限なしで全件返る', () => {
+    const refs = Array.from({ length: 5 }, (_, i) => ref(`ref-${i}`));
+    assert.equal(selectBatchTargetsByJudgedRefIds(refs, BATCH_MAX_COUNT_ALL, new Set()).length, 5);
+});
+
+test('対象が上限より少なくても全件返る', () => {
+    assert.equal(selectBatchTargetsByJudgedRefIds([ref('a'), ref('b')], '100', new Set()).length, 2);
 });
 
 // ---------------------------------------------------------------------------
