@@ -33,8 +33,8 @@ import { getFulltextCandidateList } from './screening/filters';
 import { buildPdfPickerUrl } from '../../lib/picker-url';
 import { parsePdfPickerRedirect, validatePickedFiles, MAX_PICKED_FILES } from '../../lib/drive-picker-result';
 import type { PickedDriveFile } from '../../lib/drive-picker-result';
-import { findBestMatch } from '../../lib/pdf-title-match';
-import type { MatchTarget } from '../../lib/pdf-title-match';
+import { resolveMappingSuggestion } from '../../lib/drive-import-suggestion';
+import type { MappingSuggestionTarget } from '../../lib/drive-import-suggestion';
 import { resolveImportAction } from '../../lib/drive-import-action';
 import type { ImportedCopyMatch, SheetFulltextState, ImportAction } from '../../lib/drive-import-action';
 import {
@@ -268,11 +268,24 @@ async function validateAndCheckFiles(files: PickedDriveFile[]): Promise<Validate
 interface MappingEntry {
     file: ValidatedFile;
     refId: string | null;
+    /** ファイル名の最良マッチがcached済み文献だった場合の、そのマッチ先タイトル（既定値はプリセットしない） */
+    likelyImportedTitle?: string;
 }
 
 function openMappingModal(files: ValidatedFile[]): void {
     const mappableRefs = getFulltextCandidateList().filter(r => r.fulltext_status !== 'cached');
-    const matchTargets: MatchTarget[] = mappableRefs.map(r => ({ ref_id: r.ref_id, title: r.title, doi: r.doi }));
+    // マッチ判定の対象は担当外文献も含む全文献（cachedも含む）。ドロップダウンに出す候補
+    // （mappableRefs）とは別に、cachedを土俵に戻して競わせることで「本来cached済み文献に
+    // マッチすべきところ、cachedが候補から外れているせいで劣った未取り込み文献が既定値として
+    // 選ばれてしまう」誤対応付けを防ぐ（詳細は drive-import-suggestion.ts）。
+    const mappableRefIds = new Set(mappableRefs.map(r => r.ref_id));
+    const matchTargets: MappingSuggestionTarget[] = state.allReferences.map(r => ({
+        ref_id: r.ref_id,
+        title: r.title,
+        doi: r.doi,
+        isCached: r.fulltext_status === 'cached',
+        isMappable: mappableRefIds.has(r.ref_id),
+    }));
 
     const entries: MappingEntry[] = files.map(file => {
         if (file.blockedReason || file.importState === 'done') {
@@ -284,8 +297,16 @@ function openMappingModal(files: ValidatedFile[]): void {
             && mappableRefs.some(r => r.ref_id === file.existingCopyRefId)) {
             return { file, refId: file.existingCopyRefId };
         }
-        const suggestion = findBestMatch(file.name, matchTargets);
-        return { file, refId: suggestion ? suggestion.ref_id : null };
+        const suggestion = resolveMappingSuggestion(file.name, matchTargets);
+        if (suggestion.kind === 'suggest') return { file, refId: suggestion.refId };
+        if (suggestion.kind === 'likely-imported') {
+            // 'incomplete'（このユーザーからコピーが見えている）行では「他のメンバーのコピーは
+            // 見えない」という注記の前提が偽になり、fulltext_importIncompleteNoticeとも矛盾する
+            // ため出さない。refIdは常にnullのまま（誤った既定値は出さない）。
+            const likelyImportedTitle = file.importState === 'incomplete' ? undefined : suggestion.title;
+            return { file, refId: null, likelyImportedTitle };
+        }
+        return { file, refId: null };
     });
 
     const body = document.createElement('div');
@@ -421,6 +442,13 @@ function buildMappingRow(
         const notice = document.createElement('div');
         notice.className = 'ft-import-row-notice';
         notice.textContent = t('fulltext_importIncompleteNotice');
+        row.appendChild(notice);
+    }
+
+    if (entry.likelyImportedTitle) {
+        const notice = document.createElement('div');
+        notice.className = 'ft-import-row-notice';
+        notice.textContent = t('fulltext_importLikelyImportedNotice', entry.likelyImportedTitle);
         row.appendChild(notice);
     }
 
