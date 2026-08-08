@@ -16,10 +16,14 @@
  *  ③ 再確認: Pickerを閉じた後にもう一度①を実行し、解消件数・残り件数をモーダルで表示する
  *
  * フォルダIDの取得に ensureFulltextFolder() を使わない理由: ensureFulltextFolder() は
- * 保存済みIDが inaccessible だと DriveAccessDeniedError を投げる設計（Issue #60対策）。
- * 共同研究者はまさにその状態なので、この機能を一番必要としている人が最初の一歩で
- * 弾かれてしまう。代わりに getFulltextDriveFolderId()（Configの生読み。取れなければ null）
- * を使う。
+ * 「無ければ作る」副作用を持つ（trashed の場合に作り直す経路がある）。この機能は
+ * 読み取り権限を調べるだけの確認操作なので、確認しただけで Drive にフォルダができるのは
+ * 筋が悪い。また「Config にIDが無い＝まだPDFが1件も無い」を null で区別したい。
+ * よって Config の生読みである getFulltextDriveFolderId() を使う。
+ *
+ * 注: 以前は「ensureFulltextFolder() が inaccessible で throw するから使えない」ことも
+ * 理由だったが、共同研究者のアップロードを通すため inaccessible では throw しない挙動へ
+ * 変更した（2026-08-08）。上記2点の理由は変わらないため、ここは引き続き生読みを使う。
  */
 
 import { dom } from '../dom';

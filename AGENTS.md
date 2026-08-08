@@ -608,10 +608,13 @@ https://www.googleapis.com/auth/drive.file
 Drive アクセスを扱うコードでは次を守ること:
 
 - ステータスは `drive-api.ts` の `classifyDriveApiStatus()` / `resolveFolderState()` で分類する。**真偽値に潰さない**（`accessible` / `trashed` / `inaccessible` / `auth-error` / `transient-error`）
-- 403/404・401・一時エラー（5xx/429/ネットワーク例外/JSONパース失敗）で**リソースを作り直さない**。確定した答えである `trashed` のみ作り直してよい
-- 「Config に ID が記録されているのに解決できない」は fail-fast する。`DriveAccessDeniedError` / `DriveAuthError` / `DriveTransientError` を投げ、UI 文言は `describeDriveAccessError()` 経由で `messages.json` から取る（エラークラスのデフォルトメッセージは内部ログ用の英語。UI文言をハードコードしない）
+- 403/404・401・一時エラー（5xx/429/ネットワーク例外/JSONパース失敗）で**リソースを作り直さない**。確定した答えである `trashed` のみ作り直してよい。**この「作り直してよいのはtrashedだけ」という原則自体は不変**
+- ただし `inaccessible`（403/404）を fail-fast するかどうかは呼び出し元によって異なる。**`ensureFulltextFolder()` は inaccessible を fail-fast しない**（下記参照）。それ以外（`setupProjectFolder()` の所有者チェック、`ensureProjectFolder()` など）は従来どおり `DriveAccessDeniedError` を投げて fail-fast する
+- `auth-error` / `transient-error` はどこでも従来どおり fail-fast する（状態が判定できないため）。`DriveAuthError` / `DriveTransientError` を投げ、UI 文言は `describeDriveAccessError()` 経由で `messages.json` から取る（エラークラスのデフォルトメッセージは内部ログ用の英語。UI文言をハードコードしない）
 - `setupProjectFolder()` は `ownedByMe` を確認してからでないとスプレッドシートを移動しない。Config にフォルダIDを持たないレガシープロジェクトでも同じ破壊が起きうるため
 - `getProjectDriveFolderId()` / `getFulltextDriveFolderId()` は Config タブが本当に無い場合だけ `null` を返す。アクセス拒否・一時エラーを `null`（＝未設定）に潰さない
+
+**`ensureFulltextFolder()` は inaccessible(403/404) で fail-fast しない（2026-08-08 変更）**。共同研究者にとって他人が作った fulltext フォルダは常に inaccessible であり、これは異常ではなく正常な状態。実測（下記）でアップロードに親フォルダへの `drive.file` 付与は不要と確定したため、Config に保存済みのフォルダIDをそのまま返して使う。`auth-error` / `transient-error` は「状態が判定できない」ため引き続き fail-fast する。既知のトレードオフとして、404 は「このユーザーに未付与」と「本当に削除済み」を区別できない。後者では従来 `DriveAccessDeniedError` で分かりやすく止まっていたが、今後はアップロード実行時に Drive 側のエラーで失敗する形になる。未付与のケースが圧倒的多数であり、かつそれを救えないと共同研究者のアップロード機能自体が成立しないため、このトレードオフを受け入れる。
 
 #### 実測で確定した挙動（2026-08-08。再検証不要）
 
@@ -621,6 +624,8 @@ Drive アクセスを扱うコードでは次を守ること:
 - **`files.list` は権限が無くても HTTP 200 + `files: []` を返す**（404 にならない）。**付与の有無を list の HTTP ステータスで判定してはならない**。中身の `files[]` を見ること
 - **親フォルダ自体が未付与でも、`files.list` はそのフォルダを親に指定すれば付与済みの子ファイルを返す。** これが「このユーザーが実際に読めるファイル」を知る唯一の経路（`listAccessibleFileIdsInFolder()`）
 - 付与済みフォルダに対しても `files.list` は 0件を返すため、**「読めないファイル」を Drive 側から列挙する経路は存在しない**。列挙は References シートの `fulltext_url` から行うこと
+- **`drive.file` 未付与のフォルダでも、`files.create` の `parents` にそのフォルダIDを指定すればファイルを新規作成できる（HTTP 200）。指定した親も尊重される**（マイドライブ直下へ逃げたりしない）。自己所有フォルダ・他人所有＋共有フォルダの両方で確認済み（`scripts/drive-file-probe/`、PR #66）
+- **子ファイルを作成しても、親フォルダ自体には `drive.file` は付与されない**（作成後も親フォルダの `files.get` は404のまま）
 
 #### 読めなくなった PDF の復旧（対策 C'）
 

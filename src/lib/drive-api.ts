@@ -425,15 +425,41 @@ async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
 
 /**
  * プロジェクトのフルテキスト保存フォルダIDを返す。
- * Configシートに記録済みで accessible ならそれを再利用し、trashed なら作り直す。
- * inaccessible/auth-error/transient-error の場合は ensureProjectFolder へ進まず、
- * 型付きエラーを投げる（ensureProjectFolder 側の分類は上記コメント参照）。
+ * Configシートに記録済みで accessible/inaccessible ならそれを再利用し、trashed なら作り直す。
+ * auth-error/transient-error の場合は ensureProjectFolder へ進まず、型付きエラーを投げる
+ * （ensureProjectFolder 側の分類は上記コメント参照）。
+ *
+ * inaccessible（403/404）を作り直しの理由にしない点が ensureProjectFolder と異なる。
+ * 詳細は下の inaccessible 分岐のコメントを参照。
  */
 export async function ensureFulltextFolder(spreadsheetId: string): Promise<string> {
     const saved = await getFulltextDriveFolderId(spreadsheetId);
     if (saved) {
         const folderState = await resolveFolderState(saved);
         if (folderState === 'accessible') return saved;
+        if (folderState === 'inaccessible') {
+            // inaccessible（403/404）は共同研究者にとって正常な状態であり、異常ではない。
+            // drive.file は「アプリ×ユーザー×ファイル」単位でしか付与されず、所有権や
+            // Drive の共有では付与されないため、PDFをアップロードした本人以外がこの
+            // フォルダを files.get すると常に404になる（AGENTS.md「drive.file の403/404は
+            // 『無い』ではなく『このユーザーに未付与』」参照）。
+            //
+            // 実測で確定済み（2026-08-08, scripts/drive-file-probe/。自己所有・他人所有＋
+            // 共有の両方で確認）: drive.file が未付与のフォルダでも、files.create の
+            // parents にそのフォルダIDを指定すればファイルを新規作成でき（HTTP 200）、
+            // 指定した親もそのまま尊重される（マイドライブ直下へ逃げたりしない）。
+            // つまりアップロードに親フォルダへの drive.file 付与は不要であり、
+            // アプリはこのフォルダを読める必要が無い。よって保存済みIDをそのまま
+            // 返してよく、作り直し（setupProjectFolder等）へは絶対に進まない。
+            // ここで trashed 以外は作り直さないという PR #61 の保護は維持されたままである点が重要。
+            //
+            // 既知のトレードオフ: 404は「このユーザーに未付与」と「本当に削除済み」を
+            // 区別できない。後者の場合、従来は DriveAccessDeniedError でここが止まって
+            // いたが、今後はアップロード実行時に Drive 側のエラー（File not found 等）で
+            // 失敗する形になる。前者（未付与）が圧倒的多数であり、かつ前者を救えないと
+            // 共同研究者のアップロード機能自体が成立しないため、このトレードオフを受け入れる。
+            return saved;
+        }
         if (folderState !== 'trashed') {
             throw toDriveFolderError(saved, folderState);
         }

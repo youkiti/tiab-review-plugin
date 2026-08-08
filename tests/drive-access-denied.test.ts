@@ -268,17 +268,48 @@ function buildDriveMock(opts: {
     return { calls };
 }
 
-test('ensureFulltextFolder: 保存済みIDがinaccessible(404)なら型付きエラーをthrowし、フォルダを作り直さない', async () => {
+test('ensureFulltextFolder: 保存済みIDがinaccessible(404)なら保存済みIDをそのまま返し、フォルダを作り直さない', async () => {
+    // drive.file は所有権やDrive共有では付与されないため、共同研究者にとってこの
+    // フォルダは常にinaccessible(404)になる。実測で親フォルダへの付与が無くても
+    // アップロード自体は可能と確定しているため、fail-fastせず保存済みIDを再利用する
+    // （src/lib/drive-api.ts の ensureFulltextFolder 内コメント参照）。
     const { calls } = buildDriveMock({ fulltextFolderId: 'existing-folder', fulltextFolderStatus: 404 });
+
+    const folderId = await ensureFulltextFolder('sheet-1');
+
+    // 別のフォルダを作って返しているのではなく、Configに保存されていた値そのものであること
+    assert.equal(folderId, 'existing-folder');
+
+    // setupProjectFolder（createFolder）・moveFileToFolderへ絶対に進んでいないことを確認する
+    // （PR #61 の「trashed以外では作り直さない」保護がここでも維持されていることの検証）
+    const createCalls = calls.filter(c => c.startsWith('POST') && c.includes('/files?fields=id'));
+    const moveCalls = calls.filter(c => c.startsWith('PATCH') && c.includes('addParents='));
+    assert.equal(createCalls.length, 0, 'inaccessible の場合に createFolder が呼ばれてはならない');
+    assert.equal(moveCalls.length, 0, 'inaccessible の場合に moveFileToFolder が呼ばれてはならない');
+});
+
+test('ensureFulltextFolder: 保存済みIDがauth-error(401)なら型付きエラーをthrowし、フォルダを作り直さない', async () => {
+    const { calls } = buildDriveMock({ fulltextFolderId: 'existing-folder', fulltextFolderStatus: 401 });
 
     await assert.rejects(
         () => ensureFulltextFolder('sheet-1'),
-        (error: unknown) => error instanceof DriveAccessDeniedError
+        (error: unknown) => error instanceof DriveAuthError
     );
 
-    // setupProjectFolder（createFolder）へ絶対に進んでいないことを確認する
     const createCalls = calls.filter(c => c.startsWith('POST') && c.includes('/files?fields=id'));
-    assert.equal(createCalls.length, 0, 'inaccessible の場合に createFolder が呼ばれてはならない');
+    assert.equal(createCalls.length, 0, 'auth-error の場合に createFolder が呼ばれてはならない');
+});
+
+test('ensureFulltextFolder: 保存済みIDがtransient-error(500)なら型付きエラーをthrowし、フォルダを作り直さない', async () => {
+    const { calls } = buildDriveMock({ fulltextFolderId: 'existing-folder', fulltextFolderStatus: 500 });
+
+    await assert.rejects(
+        () => ensureFulltextFolder('sheet-1'),
+        (error: unknown) => error instanceof DriveTransientError
+    );
+
+    const createCalls = calls.filter(c => c.startsWith('POST') && c.includes('/files?fields=id'));
+    assert.equal(createCalls.length, 0, 'transient-error の場合に createFolder が呼ばれてはならない');
 });
 
 test('ensureFulltextFolder: 保存済みIDがaccessibleならそのまま返し、作り直さない', async () => {
