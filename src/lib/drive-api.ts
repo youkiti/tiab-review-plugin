@@ -17,6 +17,7 @@ import {
     saveProjectDriveFolderId,
 } from './sheets-api';
 import type { ImportedCopyMatch } from './drive-import-action';
+import { t } from './i18n';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
@@ -46,6 +47,133 @@ export interface DriveFileMetadata {
     appProperties?: Record<string, string>;
     /** 共有ドライブ配下のファイルにのみ付与される。マイドライブのファイルには存在しない。 */
     driveId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// アクセス不能を「存在しない」と誤認しないための型付きエラー
+//
+// OAuth スコープ drive.file は「アプリ×ユーザー×ファイル」単位でしか付与されない
+// （Drive の共有では付与されない）。そのため PDF をアップロードした本人以外が
+// プロジェクトの Drive フォルダ/ファイルを GET すると 403/404 になりうるが、これは
+// 「見えない」のであって「無い」わけではない。ここを区別せずに握り潰すと、
+// 誤ってフォルダを作り直し・他人のスプレッドシートを移動してしまう（Issue #60）。
+// sheets-api.ts の SheetsAccessDeniedError と同じ考え方を Drive 側にも適用する。
+// ---------------------------------------------------------------------------
+
+/**
+ * 現在のアカウントから対象（フォルダ/ファイル/スプレッドシート）にアクセスできない場合のエラー
+ * （HTTP 403/404、または所有者チェックで ownedByMe !== true だった場合）。
+ * 一時的な問題ではないため、フォルダの作り直しや移動には絶対に使ってはならない。
+ * デフォルトメッセージはログ/デバッグ用の中立的な英語文字列とし、UIへ出す文言は
+ * describeDriveAccessError() 経由で messages.json（ja/en）から取得する
+ * （sheets-api.ts の SheetsAccessDeniedError と同じ方針。2箇所に文言を持たせて drift させない）。
+ */
+export class DriveAccessDeniedError extends Error {
+    constructor(
+        public readonly fileId: string,
+        public readonly status?: number,
+        message = 'Drive folder/file access is not granted for the current account, or it was not found'
+    ) {
+        super(message);
+        this.name = 'DriveAccessDeniedError';
+    }
+}
+
+/**
+ * Drive API 呼び出しが HTTP 401（認証切れ）で失敗した場合のエラー。再ログインで解消しうる。
+ * デフォルトメッセージは中立的な英語文字列。UI文言は describeDriveAccessError() を使うこと。
+ */
+export class DriveAuthError extends Error {
+    constructor(
+        public readonly fileId: string,
+        message = 'Drive API authentication failed (401); re-authentication is required'
+    ) {
+        super(message);
+        this.name = 'DriveAuthError';
+    }
+}
+
+/**
+ * Drive API 呼び出しが 5xx/429・ネットワーク例外・JSONパース失敗などで失敗した場合のエラー。
+ * 恒久的な問題ではない可能性が高いため、フォルダの作り直しには使わず再試行を促す。
+ * デフォルトメッセージは中立的な英語文字列。UI文言は describeDriveAccessError() を使うこと。
+ */
+export class DriveTransientError extends Error {
+    constructor(
+        public readonly fileId: string,
+        message = 'Drive API request failed transiently; retry later'
+    ) {
+        super(message);
+        this.name = 'DriveTransientError';
+    }
+}
+
+/**
+ * Drive API のレスポンスステータスを4分類する純粋関数（テストのためネットワーク処理と分離）。
+ * 200番台は 'ok'（trashed 判定など後続処理は呼び出し側で行う）。
+ */
+export function classifyDriveApiStatus(status: number): 'ok' | 'auth-error' | 'inaccessible' | 'transient-error' {
+    if (status >= 200 && status < 300) return 'ok';
+    if (status === 401) return 'auth-error';
+    if (status === 403 || status === 404) return 'inaccessible';
+    // 5xx, 429, その他未知のステータスは一時エラー扱い
+    return 'transient-error';
+}
+
+export type FolderAccessState = 'accessible' | 'trashed' | 'inaccessible' | 'auth-error' | 'transient-error';
+
+/**
+ * フォルダIDの現在の状態を判定する（旧 folderExists() のboolean置き換え）。
+ * boolean は「見えない」と「無い」を区別できず危険だったため、状態を返す形にした:
+ *   - HTTP 200 かつ trashed !== true → accessible
+ *   - HTTP 200 かつ trashed === true → trashed（確定した答えなので作り直してよい）
+ *   - HTTP 401 → auth-error（認証切れ。作り直し禁止）
+ *   - HTTP 403/404 → inaccessible（権限で見えない or 削除済み。作り直し禁止）
+ *   - HTTP 5xx/429・ネットワーク例外・JSONパース失敗 → transient-error（作り直し禁止）
+ */
+export async function resolveFolderState(folderId: string): Promise<FolderAccessState> {
+    let resp: Response;
+    try {
+        const token = await getAuthToken();
+        resp = await fetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+    } catch {
+        return 'transient-error';
+    }
+
+    const statusClass = classifyDriveApiStatus(resp.status);
+    if (statusClass !== 'ok') return statusClass;
+
+    try {
+        const data = await resp.json() as { id?: string; trashed?: boolean };
+        if (!data.id) return 'transient-error';
+        return data.trashed === true ? 'trashed' : 'accessible';
+    } catch {
+        return 'transient-error';
+    }
+}
+
+/**
+ * resolveFolderState の非 accessible/trashed 状態を、対応する型付きエラーへ変換する。
+ */
+function toDriveFolderError(fileId: string, state: 'inaccessible' | 'auth-error' | 'transient-error'): Error {
+    if (state === 'auth-error') return new DriveAuthError(fileId);
+    if (state === 'transient-error') return new DriveTransientError(fileId);
+    return new DriveAccessDeniedError(fileId);
+}
+
+/**
+ * Drive アクセス関連の型付きエラーを、UIにそのまま出せる原因＋対処の文言に変換する。
+ * 該当しないエラーは null を返すので、呼び出し側は既存のエラー表示（フォールバック）に委ねればよい。
+ * i18n key は `src/_locales/{ja,en}/messages.json` を参照。
+ */
+export function describeDriveAccessError(error: unknown): string | null {
+    if (error instanceof DriveAccessDeniedError) return t('fulltext_driveAccessDenied');
+    if (error instanceof DriveAuthError) return t('fulltext_driveAuthError');
+    if (error instanceof DriveTransientError) return t('fulltext_driveTransientError');
+    return null;
 }
 
 /**
@@ -79,6 +207,12 @@ export async function downloadDriveFile(fileId: string): Promise<Blob> {
         { headers: { 'Authorization': `Bearer ${token}` } }
     );
     if (!resp.ok) {
+        // 403/404 は「PDFが無い」のではなく「別アカウントがアップロードしたPDFで
+        // drive.file スコープが無い」可能性が高い（原因を伝えるため型付きエラーにする）。
+        // 401 は認証切れ。呼び出し側のプレビュー埋め込みフォールバックは維持する
+        // （instanceof Error である限り既存の catch はそのまま動く）。
+        if (resp.status === 401) throw new DriveAuthError(fileId);
+        if (resp.status === 403 || resp.status === 404) throw new DriveAccessDeniedError(fileId, resp.status);
         throw new Error(`DriveからのPDF取得に失敗しました (HTTP ${resp.status})`);
     }
     return resp.blob();
@@ -105,24 +239,6 @@ export async function deleteDriveFile(fileId: string): Promise<void> {
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
         throw new Error(`DriveのPDF削除に失敗しました: ${error?.error?.message || resp.statusText}`);
-    }
-}
-
-/**
- * フォルダが存在し、ゴミ箱に入っていないか確認する
- */
-async function folderExists(folderId: string): Promise<boolean> {
-    try {
-        const token = await getAuthToken();
-        const resp = await fetch(
-            `${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (!resp.ok) return false;
-        const data = await resp.json() as { id?: string; trashed?: boolean };
-        return !!data.id && !data.trashed;
-    } catch {
-        return false;
     }
 }
 
@@ -233,12 +349,53 @@ async function moveFileToFolder(fileId: string, parentId: string): Promise<void>
 }
 
 /**
+ * 対象スプレッドシートを現在のユーザーが所有しているか確認する。
+ * レガシープロジェクト（project_drive_folder が Config に未設定）では「ID が無いので
+ * 作成してよい」に該当してしまい、共同研究者が先に操作するとオーナーのスプレッドシートが
+ * 移動されてしまう（Issue #60）。setupProjectFolder が createFolder / moveFileToFolder に
+ * 進む前に必ずこれを通す。ownedByMe が判定できない場合も安全側に倒して例外にする
+ * （drive.file スコープの追加は不要。対象スプレッドシートは Picker 付与済みでアクセス可能）。
+ */
+async function assertSpreadsheetOwnedByCurrentUser(spreadsheetId: string): Promise<void> {
+    const token = await getAuthToken();
+    let resp: Response;
+    try {
+        resp = await fetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(spreadsheetId)}?fields=ownedByMe`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+    } catch {
+        throw new DriveTransientError(spreadsheetId);
+    }
+
+    const statusClass = classifyDriveApiStatus(resp.status);
+    if (statusClass === 'auth-error') throw new DriveAuthError(spreadsheetId);
+    if (statusClass === 'inaccessible') throw new DriveAccessDeniedError(spreadsheetId, resp.status);
+    if (statusClass === 'transient-error') throw new DriveTransientError(spreadsheetId);
+
+    let data: { ownedByMe?: boolean };
+    try {
+        data = await resp.json();
+    } catch {
+        throw new DriveTransientError(spreadsheetId);
+    }
+    if (data.ownedByMe !== true) {
+        // false、またはフィールド欠落（undefined）はどちらも「自分の所有と確認できない」ため作り直さない
+        throw new DriveAccessDeniedError(spreadsheetId);
+    }
+}
+
+/**
  * 新規プロジェクト用のフォルダ階層を構築する。
  *   tiab-reviewer-plugin / {title} / (スプレッドシート本体をここへ移動)
  * 作成したプロジェクトフォルダIDを Config に保存し、そのIDを返す。
  * 失敗してもプロジェクト作成自体は成立しているため、呼び出し側で警告に留めてよい。
+ *
+ * 所有者チェックは createFolder より前に置く。moveFileToFolder 失敗時に孤児フォルダが
+ * 残る問題があるため、フォルダを作る前に「そもそも移動してよいか」を確定させる。
  */
 export async function setupProjectFolder(spreadsheetId: string, title: string): Promise<string> {
+    await assertSpreadsheetOwnedByCurrentUser(spreadsheetId);
     const rootId = await ensureAppRootFolder();
     const projectFolderId = await createFolder(title, rootId, APP_FOLDER_COLOR);
     await moveFileToFolder(spreadsheetId, projectFolderId);
@@ -248,12 +405,19 @@ export async function setupProjectFolder(spreadsheetId: string, title: string): 
 
 /**
  * プロジェクトフォルダ（tiab-reviewer-plugin/{title}）のIDを返す。
- * Config に記録済みで実在すればそれを再利用し、無ければ新構成で作成して記録する。
+ * Config に記録済みで accessible ならそれを再利用し、trashed なら作り直す。
+ * inaccessible/auth-error/transient-error の場合は setupProjectFolder（＝作り直し）へ
+ * 絶対に進まず、型付きエラーを投げる（「見えない」を「無い」と誤認しないため。Issue #60）。
  */
 async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
     const saved = await getProjectDriveFolderId(spreadsheetId);
-    if (saved && await folderExists(saved)) {
-        return saved;
+    if (saved) {
+        const folderState = await resolveFolderState(saved);
+        if (folderState === 'accessible') return saved;
+        if (folderState !== 'trashed') {
+            throw toDriveFolderError(saved, folderState);
+        }
+        // trashed: 確定した答えなので作り直してよい
     }
     const { title } = await getSpreadsheetInfo(spreadsheetId);
     return setupProjectFolder(spreadsheetId, title);
@@ -261,13 +425,19 @@ async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
 
 /**
  * プロジェクトのフルテキスト保存フォルダIDを返す。
- * Configシートに記録済みで実在すればそれを再利用し、なければ
- * プロジェクトフォルダ配下に fulltext サブフォルダを作成して記録する。
+ * Configシートに記録済みで accessible ならそれを再利用し、trashed なら作り直す。
+ * inaccessible/auth-error/transient-error の場合は ensureProjectFolder へ進まず、
+ * 型付きエラーを投げる（ensureProjectFolder 側の分類は上記コメント参照）。
  */
 export async function ensureFulltextFolder(spreadsheetId: string): Promise<string> {
     const saved = await getFulltextDriveFolderId(spreadsheetId);
-    if (saved && await folderExists(saved)) {
-        return saved;
+    if (saved) {
+        const folderState = await resolveFolderState(saved);
+        if (folderState === 'accessible') return saved;
+        if (folderState !== 'trashed') {
+            throw toDriveFolderError(saved, folderState);
+        }
+        // trashed: 確定した答えなので作り直してよい（project フォルダ側は ensureProjectFolder に委譲）
     }
 
     const projectFolderId = await ensureProjectFolder(spreadsheetId);

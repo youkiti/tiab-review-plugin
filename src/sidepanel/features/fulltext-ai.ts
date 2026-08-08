@@ -31,7 +31,7 @@ import {
     deleteFulltextAiRound,
 } from '../../lib/sheets-api';
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
-import { extractDriveFileId, downloadDriveFile } from '../../lib/drive-api';
+import { extractDriveFileId, downloadDriveFile, describeDriveAccessError } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
 import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
@@ -373,7 +373,7 @@ async function handleStartAiBatch(): Promise<void> {
             } catch (err) {
                 ng++;
                 const msg = err instanceof Error ? err.message : String(err);
-                appendLog(`✕ ${ref.title || ref.ref_id} — ${msg}`, 'log-err');
+                appendLog(`✕ ${ref.title || ref.ref_id} — ${describeDriveAccessError(err) ?? msg}`, 'log-err');
             } finally {
                 done++;
                 updateProgress(done, targets.length, ok, ng);

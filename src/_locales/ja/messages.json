@@ -2490,6 +2490,15 @@
   "fulltext_driveImportModalIntro": {
     "message": "各ファイルの取り込み先文献を選択してください。「対応付けない（スキップ）」を選ぶとそのファイルは取り込みません。"
   },
+  "fulltext_driveAccessDenied": {
+    "message": "このプロジェクトの Drive フォルダにアクセスできません（PDF をアップロードした人と別のアカウントを使っている可能性があります）。PDF をアップロードした本人のアカウントで実行するか、プロジェクト作成者に確認してください。"
+  },
+  "fulltext_driveAuthError": {
+    "message": "Google アカウントの認証が切れています。再ログインしてから、もう一度お試しください。"
+  },
+  "fulltext_driveTransientError": {
+    "message": "Drive への一時的なアクセスエラーが発生しました。しばらく時間をおいてから再試行してください。"
+  },
   "fulltext_importErrorNotPdf": {
     "message": "PDFではありません（$1）"
   },

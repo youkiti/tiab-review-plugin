@@ -29,6 +29,7 @@ import {
     ensureFulltextFolder,
     uploadPdfToDrive,
     buildPdfFileName,
+    describeDriveAccessError,
 } from '../../lib/drive-api';
 import {
     saveFulltextPoolRule,
@@ -417,9 +418,17 @@ async function handleBulkFetch(): Promise<void> {
     bulkRun = { cancelled: false };
     renderFulltextTab();
 
-    // Driveフォルダは最初のPDF取得成功時に一度だけ作成
+    // Driveフォルダは最初のPDF取得成功時に一度だけ作成。
+    // ensureFulltextFolder が fail-fast エラー（アクセス拒否/認証切れ/一時エラー）を
+    // 投げた場合はここで一度だけ toast を出す（memo化により2回目以降は再実行されない）。
+    // retrieveAndCacheFulltext 側の catch でこのエラーは既存どおり linked へフォールバックする
+    // ため、ここでは再送出するだけで分岐は変えない。
     let folderPromise: Promise<string> | null = null;
-    const ensureFolder = () => (folderPromise ??= ensureFulltextFolder(state.spreadsheetId));
+    const ensureFolder = () => (folderPromise ??= ensureFulltextFolder(state.spreadsheetId).catch(err => {
+        const knownMessage = describeDriveAccessError(err);
+        if (knownMessage) showToast(knownMessage, 6000);
+        throw err;
+    }));
 
     const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }> = [];
     const flush = async () => {
@@ -483,7 +492,17 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
     try {
         const outcome = await retrieveAndCacheFulltext(
             ref, state.userEmail,
-            () => ensureFulltextFolder(state.spreadsheetId)
+            // ensureFulltextFolder の fail-fast エラーは通知だけして再送出する。
+            // retrieveAndCacheFulltext 側は従来どおり linked へフォールバックする。
+            async () => {
+                try {
+                    return await ensureFulltextFolder(state.spreadsheetId);
+                } catch (err) {
+                    const knownMessage = describeDriveAccessError(err);
+                    if (knownMessage) showToast(knownMessage, 6000);
+                    throw err;
+                }
+            }
         );
         const write = applyOutcome(ref, outcome);
         await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status);
@@ -530,7 +549,8 @@ async function handleUploadChange(): Promise<void> {
         renderFulltextTab();
         showToast(t('fulltext_uploadDone'), 3000);
     } catch (err) {
-        showToast(t('fulltext_uploadError', (err as Error).message), 5000);
+        const knownMessage = describeDriveAccessError(err);
+        showToast(knownMessage ?? t('fulltext_uploadError', (err as Error).message), 5000);
     }
 }
 

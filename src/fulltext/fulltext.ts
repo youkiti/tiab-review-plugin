@@ -31,6 +31,7 @@ import {
     deleteDriveFile,
     uploadPdfToDrive,
     buildPdfFileName,
+    describeDriveAccessError,
 } from '../lib/drive-api';
 import { getClientVersion } from '../lib/client-version';
 import {
@@ -931,7 +932,17 @@ async function handleResolve(token?: number): Promise<void> {
         // 実PDFが取れれば Drive に保存（cached）、ダメなら開けるURLをリンク記録（linked）。
         const outcome = await retrieveAndCacheFulltext(
             ref, userEmail,
-            () => ensureFulltextFolder(spreadsheetId)
+            // ensureFulltextFolder の fail-fast エラーは通知だけして再送出する。
+            // retrieveAndCacheFulltext 側は従来どおり linked へフォールバックするため分岐は変えない。
+            async () => {
+                try {
+                    return await ensureFulltextFolder(spreadsheetId);
+                } catch (err) {
+                    const knownMessage = describeDriveAccessError(err);
+                    if (knownMessage) showFeedback(knownMessage, true);
+                    throw err;
+                }
+            }
         );
 
         if (outcome.kind === 'cached') {
@@ -990,6 +1001,10 @@ async function openLinkedInline(url: string, source: OaSource | 'cached' | 'link
             showFeedback('PDFをDriveに保存しました');
             return;
         } catch (err) {
+            // fail-fast エラー（アクセス拒否等）は原因が分かるよう通知した上で、
+            // 従来どおりインライン埋め込みへフォールバックする（分岐は変えない）
+            const knownMessage = describeDriveAccessError(err);
+            if (knownMessage) showFeedback(knownMessage, true);
             console.warn('[fulltext] Drive保存に失敗、インライン表示にフォールバック:', err);
         }
     }
@@ -1206,7 +1221,8 @@ async function uploadPdfFile(file: File): Promise<void> {
         }
     } catch (err) {
         if (ref === currentRef) {
-            showPlaceholder(`アップロードに失敗しました: ${(err as Error).message}`);
+            const knownMessage = describeDriveAccessError(err);
+            showPlaceholder(knownMessage ?? `アップロードに失敗しました: ${(err as Error).message}`);
         }
     } finally {
         uploadInProgress = false;

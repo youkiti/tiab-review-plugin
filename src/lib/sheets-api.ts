@@ -2563,7 +2563,23 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
 }
 
 /**
- * フルテキストPDF保存用 Drive フォルダIDを取得（未設定は null）
+ * Config タブ自体が存在しない（＝本当に未設定）ことを示すエラーかを判定する。
+ * getSheetValues が投げる「Unable to parse range」等のメッセージ文言で判定する
+ * （saveFulltextDriveFolderId 等が Config シート新規作成のトリガーに使っている判定と同じ）。
+ * SheetsAccessDeniedError（403/404）のデフォルトメッセージにも "not found" を含みうるため、
+ * ここでは常に false 扱いにして呼び出し側へ再送出させる（アクセス拒否を「未設定」に潰さないため）。
+ */
+function isConfigSheetMissingError(error: unknown): boolean {
+    if (error instanceof SheetsAccessDeniedError) return false;
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return message.includes('Unable to parse range') || message.includes('not found');
+}
+
+/**
+ * フルテキストPDF保存用 Drive フォルダIDを取得（未設定は null）。
+ * Config タブが本当に無い場合だけ null を返す。アクセス拒否・一時エラーは
+ * 「未設定」に見せず throw する（呼び出し元の ensureFulltextFolder が誤ってフォルダを
+ * 作り直さないようにするため。詳細は drive-api.ts の resolveFolderState 参照）。
  */
 export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<string | null> {
     try {
@@ -2575,8 +2591,11 @@ export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<s
         }
         return null;
     } catch (error) {
-        console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
-        return null;
+        if (isConfigSheetMissingError(error)) {
+            console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
+            return null;
+        }
+        throw error;
     }
 }
 
@@ -2615,6 +2634,8 @@ async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: str
 /**
  * プロジェクト用 Drive フォルダIDを取得（未設定は null）
  * このフォルダ配下にスプレッドシート本体と fulltext サブフォルダを格納する。
+ * Config タブが本当に無い場合だけ null を返す。アクセス拒否・一時エラーは
+ * 「未設定」に見せず throw する（isConfigSheetMissingError のコメント参照）。
  */
 export async function getProjectDriveFolderId(spreadsheetId: string): Promise<string | null> {
     try {
@@ -2626,8 +2647,11 @@ export async function getProjectDriveFolderId(spreadsheetId: string): Promise<st
         }
         return null;
     } catch (error) {
-        console.log('[getProjectDriveFolderId] Config not found, returning null:', error);
-        return null;
+        if (isConfigSheetMissingError(error)) {
+            console.log('[getProjectDriveFolderId] Config not found, returning null:', error);
+            return null;
+        }
+        throw error;
     }
 }
 
