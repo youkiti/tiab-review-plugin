@@ -593,6 +593,28 @@ https://www.googleapis.com/auth/drive.file
 > - スプレッドシート新規作成と読み書きは、`drive.file` によりアプリ作成・Picker選択済みファイルに限定して行う。
 > - Google Drive上のファイル選択UIは Picker/Drive API と `drive.file` が必須。
 
+#### `drive.file` の 403/404 は「無い」ではなく「このユーザーに未付与」（重要）
+
+`drive.file` の付与単位は **「アプリ × ユーザー × ファイル」**。付与経路は次の3つだけで、**Drive の共有（オーナー/編集者/閲覧者）は付与経路に含まれない**。
+
+1. そのユーザーがアプリ経由で作成した
+2. そのユーザーが Google Picker で選択した（アプリの appId 付き）
+3. Drive UI の「アプリで開く」から開いた
+
+したがって複数人プロジェクトでは、**PDF をアップロードした本人以外が、そのPDFやフォルダを GET すると 403/404 になる**。判定条件は「実行者 ≠ アップロード者」だけで、オーナーかどうかは無関係（オーナーが共同研究者のアップロードしたPDFを読む場合も同じく404）。
+
+**Drive API の 403/404 を「存在しない」と解釈して作り直し・再セットアップに進んではならない。** 過去に `folderExists()` が 404 を `false` に潰していたため、共同研究者の操作でフォルダが二重作成され、`moveFileToFolder()` が**オーナーのスプレッドシート本体を別の人の Drive へ移動**し、Config のフォルダIDが両者の間でピンポンする不具合があった（PR #61 で修正）。
+
+Drive アクセスを扱うコードでは次を守ること:
+
+- ステータスは `drive-api.ts` の `classifyDriveApiStatus()` / `resolveFolderState()` で分類する。**真偽値に潰さない**（`accessible` / `trashed` / `inaccessible` / `auth-error` / `transient-error`）
+- 403/404・401・一時エラー（5xx/429/ネットワーク例外/JSONパース失敗）で**リソースを作り直さない**。確定した答えである `trashed` のみ作り直してよい
+- 「Config に ID が記録されているのに解決できない」は fail-fast する。`DriveAccessDeniedError` / `DriveAuthError` / `DriveTransientError` を投げ、UI 文言は `describeDriveAccessError()` 経由で `messages.json` から取る（エラークラスのデフォルトメッセージは内部ログ用の英語。UI文言をハードコードしない）
+- `setupProjectFolder()` は `ownedByMe` を確認してからでないとスプレッドシートを移動しない。Config にフォルダIDを持たないレガシープロジェクトでも同じ破壊が起きうるため
+- `getProjectDriveFolderId()` / `getFulltextDriveFolderId()` は Config タブが本当に無い場合だけ `null` を返す。アクセス拒否・一時エラーを `null`（＝未設定）に潰さない
+
+> 関連: `isUserAdmin()`（`sheets-api.ts`）は role が **owner または writer** で `true` を返す。共同研究者は編集者として招待されるため、**`isAdmin` ではオーナーと共同研究者を区別できない**。オーナー限定の分岐が必要な場合は別の識別子を用意すること。
+
 ### OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）
 
 拡張版は `chrome.identity.launchWebAuthFlow` + **implicit フロー（`response_type=token`）** を使う。GCPダッシュボードに「安全なフローの使用」警告が出るが、**これは現状で唯一成立する選択肢であり、認可コード + PKCE への移行は Google 側の制約で不可能**。2026-07-16 に実機検証済み（Issue #26）。同じ検討を蒸し返さないこと。
