@@ -220,6 +220,39 @@ function buildCtx({ page, inputs, log }) {
         },
 
         /**
+         * window.__probe.copyFile({ sourceFileId, folderId, name, appProperties }) をページ内で
+         * 実行し、結果を記録・表示する。upload() と同じ「1引数のオブジェクトを渡す」書式に揃える。
+         */
+        async copy(label, { sourceFileId, folderId, name, appProperties }) {
+            const result = await page.evaluate(
+                (t) => window.__probe.copyFile(t),
+                { sourceFileId, folderId, name, appProperties }
+            );
+            console.log(`\n=== 複製: ${label} ===`);
+            console.table([
+                {
+                    label,
+                    sourceFileId,
+                    folderId,
+                    name,
+                    status: result.status,
+                    ok: result.ok,
+                    summary: result.ok
+                        ? `id=${result.body?.id}, name=${result.body?.name}, parents=${JSON.stringify(result.body?.parents)}`
+                        : JSON.stringify(result.body),
+                },
+            ]);
+            log.push({
+                type: 'copy',
+                label,
+                params: { sourceFileId, folderId, name, appProperties },
+                result,
+                at: new Date().toISOString(),
+            });
+            return result;
+        },
+
+        /**
          * #open-picker を page.click() で開く。Picker は docs.google.com の
          * クロスオリジン iframe なので、中身をセレクタで自動操作しようとせず、
          * 人間がクリックする前提で待つだけの設計にしてある。
@@ -321,6 +354,23 @@ function renderReport({ scenario, opts, log, aborted, abortMessage, startedAt, f
                 lines.push(`- 結果: status=${entry.result.status}, ok=${entry.result.ok ? '○' : '×'}`);
                 if (entry.result.ok) {
                     lines.push(`- 作成されたファイル: id=${entry.result.body?.id}, name=${entry.result.body?.name}`);
+                } else {
+                    lines.push(`- レスポンス本文: \`${JSON.stringify(entry.result.body)}\``);
+                }
+                lines.push('');
+                break;
+            case 'copy':
+                lines.push(`## 複製: ${entry.label}`);
+                lines.push('');
+                lines.push(`- コピー元ファイルID: ${entry.params.sourceFileId}`);
+                lines.push(`- コピー先フォルダID: ${entry.params.folderId}`);
+                lines.push(`- ファイル名: ${entry.params.name}`);
+                lines.push(`- 結果: status=${entry.result.status}, ok=${entry.result.ok ? '○' : '×'}`);
+                if (entry.result.ok) {
+                    lines.push(
+                        `- 作成されたファイル: id=${entry.result.body?.id}, name=${entry.result.body?.name}, ` +
+                        `parents=${JSON.stringify(entry.result.body?.parents)}`
+                    );
                 } else {
                     lines.push(`- レスポンス本文: \`${JSON.stringify(entry.result.body)}\``);
                 }

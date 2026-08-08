@@ -35,6 +35,12 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
   （AGENTS.md の「`drive.file` の 403/404 は『無い』ではなく『このユーザーに未付与』」セクションで
   説明されている、共同研究者がフルテキストPDFをアップロードできない問題の直し方を実測してから
   決めるための実験）。必要な `--input`: `folderId`（未付与フォルダのID）。
+- **`copy-to-ungranted-folder`**（`scenarios/copy-to-ungranted-folder.mjs`）: アプリに
+  `drive.file` 未付与のフォルダを `parents` に指定して、`files.copy` でファイルを複製できるかを
+  測定する（GitHub Issue #68）。`upload-to-ungranted-folder` は `files.create`（multipart upload）で
+  検証済みだが、`files.copy` は別エンドポイントのため未検証。実装側の該当箇所は
+  `src/lib/drive-api.ts` の `copyPdfToFulltextFolder()`。必要な `--input`: `folderId`（未付与フォルダの
+  ID）, `sourceFileId`（複製元となる未付与PDFのID）。
 
 ## 前提
 
@@ -63,6 +69,12 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
 - `folder-cascade`: 未付与のフォルダ1つ + その配下に未付与の PDF を1本。
 - `upload-to-ungranted-folder`: 未付与の**空のフォルダ**1つのみ（PDF は不要）。このシナリオは
   フォルダへファイルを新規作成できるかを測るだけなので、あらかじめ中身がある必要はありません。
+- `copy-to-ungranted-folder`: 未付与の**空**フォルダ1つ + **別の場所にある**未付与 PDF 1本。
+  PDF はコピー先フォルダの中に置かないでください（既に中にあるファイルをコピーしても
+  「未付与フォルダを parents に新規指定できるか」の測定にならないため）。
+  コピー元 PDF は自分のマイドライブに置いてください（Picker の既定ビューがマイドライブなので、
+  共有アイテム側に置くと選択時に見つけられず手間取るため。また、実際の取り込みフロー（アプリの
+  本番機能）でも取り込む側は自分の Drive にある PDF を選ぶため、そちらの方が実条件にも合います）。
 
 ## 実行例
 
@@ -73,6 +85,10 @@ node scripts/drive-file-probe/run.mjs --list
 # folder-cascade シナリオを実行する
 node scripts/drive-file-probe/run.mjs --scenario folder-cascade --profile owner \
   --input folderId=<未付与フォルダのID> --input fileId=<フォルダ内の未付与PDFのID>
+
+# copy-to-ungranted-folder シナリオを実行する
+node scripts/drive-file-probe/run.mjs --scenario copy-to-ungranted-folder --profile owner \
+  --input folderId=<未付与フォルダのID> --input sourceFileId=<複製元の未付与PDFのID>
 ```
 
 - `--profile <name>`: 永続プロファイルディレクトリ `profile/<name>/` を使う（既定 `default`）。
@@ -126,6 +142,7 @@ export default {
 | `await ctx.signIn()` | `#signin` ボタンをクリックしてサインインする。`window.__probe.state.signedIn` が `true` になるまで最大5分ポーリングで待つ。完了するとメールアドレスを返す。 |
 | `await ctx.measure(label, targets)` | `window.__probe.measure(targets)` をページ内で実行し、結果を記録してターミナルにも表で出す。`targets` は `[{ label, kind, id }]`（`kind` は `'meta'` / `'media'` / `'list'`）。戻り値は `[{ label, kind, id, status, ok, body }]`。 |
 | `await ctx.upload(label, { folderId, name, content })` | `window.__probe.uploadFile({ folderId, name, content })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, webViewLink }`）。 |
+| `await ctx.copy(label, { sourceFileId, folderId, name, appProperties })` | `window.__probe.copyFile({ sourceFileId, folderId, name, appProperties })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, parents, webViewLink }`）。 |
 | `await ctx.pick(options, instruction)` | `#open-picker` をクリックして Picker を開く。`instruction`（日本語）をターミナルへ表示し、`window.__probe.state.pickResult` が入るまで最大5分ポーリングで待つ。`options` は `{ selectFolder, mimeTypes, parentId }`。キャンセルされていたら例外を投げる。 |
 | `await ctx.ask(question)` | ターミナルから人間に一行入力させ、trim して返す。 |
 | `ctx.note(text)` | `report.md` へ地の文として追記する。 |

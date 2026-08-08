@@ -295,13 +295,38 @@ async function uploadFile({ folderId, name, content }) {
     return { status: resp.status, ok: resp.ok, body: data };
 }
 
+/**
+ * 予備API: Drive上の既存ファイルを files.copy で複製する（今後のシナリオ用）。
+ * src/lib/drive-api.ts の copyPdfToFulltextFolder() と同条件で測るため、
+ * リクエストボディに appProperties も含めて送る。
+ * fields に parents を含めているのが本質: 複製先が本当に指定した folderId になっているか
+ * （Drive が黙って別の場所へ複製していないか）をレスポンスから直接確認するため。
+ */
+async function copyFile({ sourceFileId, folderId, name, appProperties }) {
+    if (!accessToken) throw new Error('サインインしていません');
+    const resp = await fetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,name,parents,webViewLink`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, parents: [folderId], appProperties }),
+        }
+    );
+    const data = await readBody(resp);
+    return { status: resp.status, ok: resp.ok, body: data };
+}
+
 // run.mjs（Playwright ランナー）から window.__probe.state / measure() / openPicker() /
-// uploadFile() を呼べるようにする。token は含めない。
+// uploadFile() / copyFile() を呼べるようにする。token は含めない。
 window.__probe = {
     state,
     measure,
     openPicker,
     uploadFile,
+    copyFile,
     // run.mjs の ctx.pick() が #open-picker クリック前にセットする Picker オプション
     pickOptions: {},
 };
