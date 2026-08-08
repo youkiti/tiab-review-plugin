@@ -24,6 +24,18 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
 最初の測定シナリオは「Google Picker でフォルダを選択したとき、`drive.file` の付与がそのフォルダ配下の
 ファイルにも及ぶか」（GitHub Issue #60）です（`scenarios/folder-cascade.mjs`）。
 
+## シナリオ一覧
+
+- **`folder-cascade`**（`scenarios/folder-cascade.mjs`）: Google Picker でフォルダを選択したとき、
+  `drive.file` の付与がそのフォルダ配下のファイルにも及ぶか（カスケードするか）を測定する
+  （GitHub Issue #60）。必要な `--input`: `folderId`（未付与フォルダのID）, `fileId`（フォルダ内の
+  未付与PDFのID）。
+- **`upload-to-ungranted-folder`**（`scenarios/upload-to-ungranted-folder.mjs`）: アプリに
+  `drive.file` 未付与のフォルダを `parents` に指定して、ファイルを新規作成できるかを測定する
+  （AGENTS.md の「`drive.file` の 403/404 は『無い』ではなく『このユーザーに未付与』」セクションで
+  説明されている、共同研究者がフルテキストPDFをアップロードできない問題の直し方を実測してから
+  決めるための実験）。必要な `--input`: `folderId`（未付与フォルダのID）。
+
 ## 前提
 
 - リポジトリルートの `.env` に次の3つが設定されていること（`.env.example` 参照）。
@@ -45,6 +57,12 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
 付与は不可逆なので、一度使ったフィクスチャは同じ目的の測定には二度と使えません。
 `probe-01` 〜 `probe-05` のように、あらかじめ複数のフォルダ（それぞれに未付与の PDF を1本ずつ）を
 まとめて作っておくと、やり直しのたびに新しく作り直す手間が減ります。
+
+必要なフィクスチャはシナリオによって異なります。
+
+- `folder-cascade`: 未付与のフォルダ1つ + その配下に未付与の PDF を1本。
+- `upload-to-ungranted-folder`: 未付与の**空のフォルダ**1つのみ（PDF は不要）。このシナリオは
+  フォルダへファイルを新規作成できるかを測るだけなので、あらかじめ中身がある必要はありません。
 
 ## 実行例
 
@@ -107,6 +125,7 @@ export default {
 | `ctx.input` | `--input` で渡された値のオブジェクト（`{ folderId: '...' }` 等）。 |
 | `await ctx.signIn()` | `#signin` ボタンをクリックしてサインインする。`window.__probe.state.signedIn` が `true` になるまで最大5分ポーリングで待つ。完了するとメールアドレスを返す。 |
 | `await ctx.measure(label, targets)` | `window.__probe.measure(targets)` をページ内で実行し、結果を記録してターミナルにも表で出す。`targets` は `[{ label, kind, id }]`（`kind` は `'meta'` / `'media'` / `'list'`）。戻り値は `[{ label, kind, id, status, ok, body }]`。 |
+| `await ctx.upload(label, { folderId, name, content })` | `window.__probe.uploadFile({ folderId, name, content })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, webViewLink }`）。 |
 | `await ctx.pick(options, instruction)` | `#open-picker` をクリックして Picker を開く。`instruction`（日本語）をターミナルへ表示し、`window.__probe.state.pickResult` が入るまで最大5分ポーリングで待つ。`options` は `{ selectFolder, mimeTypes, parentId }`。キャンセルされていたら例外を投げる。 |
 | `await ctx.ask(question)` | ターミナルから人間に一行入力させ、trim して返す。 |
 | `ctx.note(text)` | `report.md` へ地の文として追記する。 |

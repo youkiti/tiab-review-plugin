@@ -191,6 +191,35 @@ function buildCtx({ page, inputs, log }) {
         },
 
         /**
+         * window.__probe.uploadFile({ folderId, name, content }) をページ内で実行し、
+         * 結果を記録・表示する。measure() と同じ「1引数のオブジェクトを渡す」書式に揃える。
+         */
+        async upload(label, { folderId, name, content }) {
+            const result = await page.evaluate((t) => window.__probe.uploadFile(t), { folderId, name, content });
+            console.log(`\n=== アップロード: ${label} ===`);
+            console.table([
+                {
+                    label,
+                    folderId,
+                    name,
+                    status: result.status,
+                    ok: result.ok,
+                    summary: result.ok
+                        ? `id=${result.body?.id}, name=${result.body?.name}`
+                        : JSON.stringify(result.body),
+                },
+            ]);
+            log.push({
+                type: 'upload',
+                label,
+                params: { folderId, name, content },
+                result,
+                at: new Date().toISOString(),
+            });
+            return result;
+        },
+
+        /**
          * #open-picker を page.click() で開く。Picker は docs.google.com の
          * クロスオリジン iframe なので、中身をセレクタで自動操作しようとせず、
          * 人間がクリックする前提で待つだけの設計にしてある。
@@ -282,6 +311,19 @@ function renderReport({ scenario, opts, log, aborted, abortMessage, startedAt, f
                 lines.push('');
                 lines.push(`- 案内文: ${entry.instruction}`);
                 lines.push(`- 選択結果: \`${JSON.stringify(entry.result)}\``);
+                lines.push('');
+                break;
+            case 'upload':
+                lines.push(`## アップロード: ${entry.label}`);
+                lines.push('');
+                lines.push(`- フォルダID: ${entry.params.folderId}`);
+                lines.push(`- ファイル名: ${entry.params.name}`);
+                lines.push(`- 結果: status=${entry.result.status}, ok=${entry.result.ok ? '○' : '×'}`);
+                if (entry.result.ok) {
+                    lines.push(`- 作成されたファイル: id=${entry.result.body?.id}, name=${entry.result.body?.name}`);
+                } else {
+                    lines.push(`- レスポンス本文: \`${JSON.stringify(entry.result.body)}\``);
+                }
                 lines.push('');
                 break;
             case 'ask':
