@@ -54,11 +54,33 @@ export default {
         }
         ctx.note('ベースラインは想定どおり 404（未付与）でした。実験を継続します。');
 
-        await ctx.pick(
+        const picked = await ctx.pick(
             { selectFolder: true },
             `「${folderId}」フォルダ自体を選択して「選択」ボタンを押してください` +
             '（フォルダをダブルクリックして中に入らないこと。フォルダの行/アイコンを選んだ状態で選択ボタンを押す）'
         );
+
+        // 選択されたのが対象フォルダそのものかを検証する。
+        // ダブルクリックでフォルダの中に入ってしまうと、配下のファイルを選んだ状態でも
+        // Picker は正常に PICKED を返す。そのまま進むと「選んだファイルが 200 になった」
+        // だけの結果を「カスケードした」と誤読してしまう（実測1回目で実際に踏んだ）。
+        // 付与は不可逆でやり直しにフィクスチャを1つ消費するため、ここで必ず止める。
+        const pickedFolder = Array.isArray(picked) && picked.some((doc) => doc.id === folderId);
+        if (!pickedFolder) {
+            const pickedDesc = Array.isArray(picked)
+                ? picked.map((doc) => `${doc.name}（${doc.mimeType}）`).join(', ')
+                : JSON.stringify(picked);
+            ctx.fail(
+                `対象フォルダ（${folderId}）ではなく別のものが選択されました: ${pickedDesc}\n` +
+                'ダブルクリックでフォルダの中に入り、配下のファイルを選んでいませんか。' +
+                'フォルダはシングルクリックで選択状態にしてから「選択」ボタンを押してください。\n' +
+                'なお、そもそも Picker 上でフォルダを選択できない（クリックしても選択状態にならない）場合は、' +
+                'それ自体が Issue #60 の結論です（判定表3行目「フォルダ自体が選択できない → 対策 A が必要」）。' +
+                'その場合は再実行せず、そう報告してください。\n' +
+                '再実行するときは、いま選択してしまったファイルは付与済みなので使えません。' +
+                'フォルダ自体が未付与のままなら、同じフォルダ＋別の未付与ファイルで再実行できます。'
+            );
+        }
 
         const afterPick = await ctx.measure('Picker選択後', buildTargets(folderId, fileId));
 
