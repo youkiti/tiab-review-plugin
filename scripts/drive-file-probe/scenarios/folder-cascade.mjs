@@ -54,23 +54,58 @@ export default {
         }
         ctx.note('ベースラインは想定どおり 404（未付与）でした。実験を継続します。');
 
-        await ctx.pick(
+        const picked = await ctx.pick(
             { selectFolder: true },
             `「${folderId}」フォルダ自体を選択して「選択」ボタンを押してください` +
             '（フォルダをダブルクリックして中に入らないこと。フォルダの行/アイコンを選んだ状態で選択ボタンを押す）'
         );
 
-        const afterPick = await ctx.measure('Picker選択後', buildTargets(folderId, fileId));
+        // 選択されたのが対象フォルダそのものかを検証する。
+        // ダブルクリックでフォルダの中に入ってしまうと、配下のファイルを選んだ状態でも
+        // Picker は正常に PICKED を返す。そのまま進むと「選んだファイルが 200 になった」
+        // だけの結果を「カスケードした」と誤読してしまう（実測1回目で実際に踏んだ）。
+        // 付与は不可逆でやり直しにフィクスチャを1つ消費するため、ここで必ず止める。
+        const pickedFolder = Array.isArray(picked) && picked.some((doc) => doc.id === folderId);
+        if (!pickedFolder) {
+            const pickedDesc = Array.isArray(picked)
+                ? picked.map((doc) => `${doc.name}（${doc.mimeType}）`).join(', ')
+                : JSON.stringify(picked);
+            ctx.fail(
+                `対象フォルダ（${folderId}）ではなく別のものが選択されました: ${pickedDesc}\n` +
+                'ダブルクリックでフォルダの中に入り、配下のファイルを選んでいませんか。' +
+                'フォルダはシングルクリックで選択状態にしてから「選択」ボタンを押してください。\n' +
+                'なお、そもそも Picker 上でフォルダを選択できない（クリックしても選択状態にならない）場合は、' +
+                'それ自体が Issue #60 の結論です（判定表3行目「フォルダ自体が選択できない → 対策 A が必要」）。' +
+                'その場合は再実行せず、そう報告してください。\n' +
+                '再実行するときは、いま選択してしまったファイルは付与済みなので使えません。' +
+                'フォルダ自体が未付与のままなら、同じフォルダ＋別の未付与ファイルで再実行できます。'
+            );
+        }
+
+        await ctx.measure('Picker選択後（直後）', buildTargets(folderId, fileId));
+
+        // 付与がサーバ側へ反映されるまでに遅延がある疑いがあるため、間を置いて測り直す。
+        // 実測では「Picker 直後は 404 だったフォルダが、数分後に 200 になっている」現象を観測した。
+        // 直後の1回だけで 404 を根拠に「カスケードしない」と結論すると誤る恐れがあるため、
+        // 遅延後の測定を本番の判定材料とする。
+        await ctx.ask('1分ほど待ってから Enter を押してください（付与の伝播待ち。何も入力しなくてよい）');
+        const afterPick = await ctx.measure('Picker選択後（待機後）', buildTargets(folderId, fileId));
 
         const newFileId = await ctx.ask(
             'Drive UI でこのフォルダに新しい PDF を1本追加し、その fileId を貼り付けて Enter'
         );
 
-        const afterUpload = await ctx.measure('後追いアップロード後', [
-            { label: '後追いファイル meta', kind: 'meta', id: newFileId },
-            { label: '後追いファイル media', kind: 'media', id: newFileId },
+        const buildFollowUpTargets = (id) => [
+            { label: '後追いファイル meta', kind: 'meta', id },
+            { label: '後追いファイル media', kind: 'media', id },
             { label: 'フォルダ配下 list', kind: 'list', id: folderId },
-        ]);
+        ];
+
+        await ctx.measure('後追いアップロード後（直後）', buildFollowUpTargets(newFileId));
+
+        // 上と同じ理由（伝播遅延）で、後追いファイルについても間を置いて測り直す。
+        await ctx.ask('1分ほど待ってから Enter を押してください（付与の伝播待ち。何も入力しなくてよい）');
+        const afterUpload = await ctx.measure('後追いアップロード後（待機後）', buildFollowUpTargets(newFileId));
 
         ctx.note(
             '## 判定の読み方\n\n' +
