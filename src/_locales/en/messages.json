@@ -2454,6 +2454,9 @@
   "picker_pdfPageIntro": {
     "message": "Select the PDF file(s) to import into the extension."
   },
+  "picker_regrantPageIntro": {
+    "message": "Select the PDF file(s) you want to restore read access to (you need to re-select files that are already in the folder)."
+  },
   "picker_invalidRedirect": {
     "message": "This redirect destination is not allowed. Please reopen this page from the extension."
   },
@@ -2584,6 +2587,45 @@
     "message": "Failed to trash some files: $1"
   },
   "fulltext_importCloseBtn": {
+    "message": "Close"
+  },
+  "fulltext_regrantBtn": {
+    "message": "Check read access"
+  },
+  "fulltext_regrantChecking": {
+    "message": "Checking access…"
+  },
+  "fulltext_regrantNoFolder": {
+    "message": "This project doesn't have any PDFs yet."
+  },
+  "fulltext_regrantAllReadable": {
+    "message": "All PDFs are readable."
+  },
+  "fulltext_regrantOpeningPicker": {
+    "message": "Opening Google Picker…"
+  },
+  "fulltext_regrantRechecking": {
+    "message": "Rechecking…"
+  },
+  "fulltext_regrantParseError": {
+    "message": "Could not parse the response from Picker."
+  },
+  "fulltext_regrantError": {
+    "message": "An error occurred while checking read access: $1"
+  },
+  "fulltext_regrantModalTitle": {
+    "message": "Restore read access"
+  },
+  "fulltext_regrantResultSummary": {
+    "message": "Resolved $1 / Remaining $2"
+  },
+  "fulltext_regrantAllResolved": {
+    "message": "All PDFs are now readable."
+  },
+  "fulltext_regrantRemainingIntro": {
+    "message": "Still unreadable PDFs (re-select them in Picker, or ask the person who uploaded them):"
+  },
+  "fulltext_regrantCloseBtn": {
     "message": "Close"
   },
   "webapp_editionLabel": {

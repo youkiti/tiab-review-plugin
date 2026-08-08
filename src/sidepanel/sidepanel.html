@@ -890,6 +890,12 @@
                 <button id="fulltext-import-drive-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_importDriveBtn"></button>
                 <div id="fulltext-import-drive-status" class="fulltext-drive-import-status hidden"></div>
             </div>
+
+            <!-- 他のメンバーがアップロードしたPDFの読み取り権限を復旧する（drive.fileの未付与対策。Issue #60） -->
+            <div class="fulltext-drive-import">
+                <button id="fulltext-regrant-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_regrantBtn"></button>
+                <div id="fulltext-regrant-status" class="fulltext-drive-import-status hidden"></div>
+            </div>
             <input type="file" id="fulltext-upload-input" accept="application/pdf,.pdf" class="hidden">
 
             <!-- ④' AI判定（ビュー切替で表示）: 全文確保済みの未AI判定文献を一括でGemini判定 -->

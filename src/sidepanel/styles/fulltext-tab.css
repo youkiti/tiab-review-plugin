@@ -1033,3 +1033,36 @@
     color: #999;
     margin: 8px 0;
 }
+
+/* ---------- 読み取り権限の再付与（fulltext-regrant.ts, Issue #60） ---------- */
+
+.ft-regrant-summary {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 10px;
+}
+
+.ft-regrant-success {
+    color: #117a65;
+    font-size: 13px;
+}
+
+.ft-regrant-remaining-intro {
+    font-size: 13px;
+    color: #555;
+    margin: 0 0 6px;
+}
+
+.ft-regrant-remaining-list {
+    margin: 0;
+    padding-left: 20px;
+    max-height: 240px;
+    overflow-y: auto;
+    font-size: 13px;
+    color: #333;
+}
+
+.ft-regrant-remaining-list li {
+    margin: 4px 0;
+}

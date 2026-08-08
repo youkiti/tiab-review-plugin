@@ -49,6 +49,27 @@ export function buildPdfPickerUrl(options: {
 }
 
 /**
+ * mode=regrant（読み取り権限の再付与）でPickerページを開くためのURLを組み立てる。
+ * buildPdfPickerUrl と同様、選択結果は launchWebAuthFlow のリダイレクト捕捉で受け取るため
+ * email/redirect/folderId はすべてURLフラグメントで渡す（配信サーバーのログに残さないため）。
+ * folderId は再付与対象のfulltextフォルダを初期表示するために必須（pdfモードと異なり省略不可）。
+ */
+export function buildRegrantPickerUrl(options: {
+    email?: string;
+    redirectUri: string;
+    folderId: string;
+    baseUrl?: string;
+}): string {
+    const { email, redirectUri, folderId, baseUrl = PICKER_PAGE_URL } = options;
+    const params = new URLSearchParams();
+    params.set('mode', 'regrant');
+    params.set('redirect', redirectUri);
+    params.set('folderId', folderId);
+    if (email) params.set('email', email);
+    return `${baseUrl}#${params.toString()}`;
+}
+
+/**
  * redirect パラメータが拡張機能の chromiumapp.org リダイレクトURIかどうかを検証する純粋関数。
  * Picker側（src/webapp/picker.ts）はこの検証を通った場合のみ window.location.href で遷移する
  * （オープンリダイレクト防止。redirect はURLフラグメント経由でPickerページに渡ってくる値のため、

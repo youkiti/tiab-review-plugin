@@ -60,6 +60,39 @@ export interface PickedFilesValidation {
     overflowCount: number;
 }
 
+// ---------------------------------------------------------------------------
+// mode=regrant（読み取り権限の再付与）用リダイレクトの解釈
+//
+// mode=pdf と違い、選択ファイルの一覧ではなく選択件数だけを granted=<件数> として受け取る。
+// 再付与は数百件を一度に選びうるため、ファイル一覧をURLフラグメントに載せると巨大化して
+// リダイレクト捕捉が壊れる恐れがある。また付与はユーザーが「選択」を押した時点で
+// サーバー側に確定済みのため、拡張機能が一覧そのものを受け取る必要が無い
+// （表示に使う真値は listAccessibleFileIdsInFolder による再度の files.list で取り直す）。
+// ---------------------------------------------------------------------------
+
+export type RegrantPickerRedirectResult = { granted: number } | 'cancelled' | null;
+
+/**
+ * mode=regrant のPickerからのlaunchWebAuthFlowリダイレクトを解析する。
+ * granted は非負整数としてパースできる場合のみ受理し、それ以外（欠落・小数・負数・非数値）は
+ * null（呼び出し側でエラー表示する）。
+ */
+export function parseRegrantPickerRedirect(redirectUrl: string): RegrantPickerRedirectResult {
+    let hash: string;
+    try {
+        hash = new URL(redirectUrl).hash.replace(/^#/, '');
+    } catch {
+        return null;
+    }
+    const params = new URLSearchParams(hash);
+    if (params.get('cancelled') === '1') return 'cancelled';
+    const grantedParam = params.get('granted');
+    if (grantedParam === null || !/^\d+$/.test(grantedParam)) return null;
+    const granted = Number(grantedParam);
+    if (!Number.isSafeInteger(granted)) return null;
+    return { granted };
+}
+
 /**
  * Picker応答の各要素が PickedDriveFile として妥当か（id/name/mimeTypeがすべてstring）を検証し、
  * 同一idの重複を除去し、MAX_PICKED_FILES件を超える分は切り捨てる。

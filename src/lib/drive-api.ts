@@ -576,6 +576,22 @@ export function buildImportedCopyQuery(sourceFileId: string, spreadsheetId: stri
 }
 
 /**
+ * 指定フォルダ直下の子ファイル（ゴミ箱を除く）を列挙する files.list 用クエリ（純関数）。
+ * エスケープ方式は buildImportedCopyQuery と揃える（バックスラッシュを先に、
+ * 続けてシングルクォートをエスケープする）。
+ *
+ * fulltext-access.ts（読み取り権限の再付与判定）から使われる。drive-api.ts はDrive APIを
+ * 叩く低レイヤのモジュールで、fulltext-access.ts はその上のドメイン判定なので、
+ * クエリ組み立て自体はここ（低レイヤ側）に置き、fulltext-access.ts からは import するだけの
+ * 一方向にする（逆向きの import があると循環参照になり、将来どちらかがモジュール
+ * トップレベルで相手のシンボルを使った瞬間にTDZでロード時クラッシュしうる）。
+ */
+export function buildFolderChildrenQuery(folderId: string): string {
+    const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `'${esc(folderId)}' in parents and trashed=false`;
+}
+
+/**
  * 指定した元ファイル（sourceFileId）が、このプロジェクト（spreadsheetId）向けに
  * 既に取り込み済み（fulltextフォルダへコピー済み）かどうかを調べる。
  * 見つかった場合はそのコピーの id/webViewLink/appProperties.refId を返す
@@ -610,4 +626,89 @@ export async function findImportedCopy(
     const first = data.files?.[0];
     if (!first) return null;
     return { id: first.id, webViewLink: first.webViewLink, refId: first.appProperties?.refId };
+}
+
+// ---------------------------------------------------------------------------
+// 読み取り権限の再付与（Issue #60）
+// 共同研究者がアップロードしたPDFを、他のメンバーが読めるようにする。
+// ---------------------------------------------------------------------------
+
+/**
+ * listAccessibleFileIdsInFolder が読みに行くページ数の上限（1ページ pageSize=1000 なので
+ * 最大2万件相当）。Drive が異常応答で同じ nextPageToken を返し続けた場合に、拡張機能が
+ * ユーザーに進行状況を見せられないまま Drive API を無限に叩き続けるのを防ぐための安全弁。
+ * 通常のプロジェクト規模（PDF高々数千件）では到達しない想定。
+ */
+const MAX_FOLDER_LIST_PAGES = 20;
+
+/**
+ * fulltext フォルダ直下の子ファイルのうち、現在のユーザーが実際にアクセスできる
+ * ファイルIDの集合を返す（＝「読めるPDF」の真値）。
+ *
+ * 実測事実（2026-08-08, scripts/drive-file-probe/ ハーネスで確定。再検証不要）:
+ * - **files.list は権限が無くても HTTP 200 + files: [] を返す。** HTTPステータスを
+ *   「付与されているか」の判定に使ってはならない。中身の files[] を見て判定すること。
+ * - **親フォルダ自体が未付与（files.get が 404）でも、files.list はそのフォルダを親に
+ *   指定すれば付与済みの子ファイルは返す。** そのため folderId 自体へのアクセス可否は問わず、
+ *   ここで得られた files[] の中身だけを「読める/読めない」の根拠にしてよい。
+ * - Picker でフォルダを選択しても配下ファイルへは一切カスケードしない（別途確定済みの事実）。
+ *   つまり Drive 側から「読めないファイル」を列挙する経路はこの API しか無い。
+ *
+ * PDFが1000件を超えるプロジェクトで取りこぼすと「読めない」と誤判定し無駄なPickerを
+ * 出してしまうため、nextPageToken は MAX_FOLDER_LIST_PAGES に達するまで追う。上限に達した
+ * 場合は例外にはせず、console.warn を出してそこまでに集めたIDで打ち切って返す
+ * （取りこぼしがあっても「読める」ものを「読めない」と誤判定してPickerを余計に出すだけで、
+ * 破壊的なことは起きないため）。
+ */
+export async function listAccessibleFileIdsInFolder(folderId: string): Promise<Set<string>> {
+    const ids = new Set<string>();
+    let pageToken: string | undefined;
+    let pageCount = 0;
+
+    do {
+        const token = await getAuthToken();
+        const params = new URLSearchParams({
+            q: buildFolderChildrenQuery(folderId),
+            fields: 'nextPageToken,files(id)',
+            pageSize: '1000',
+        });
+        if (pageToken) params.set('pageToken', pageToken);
+
+        let resp: Response;
+        try {
+            resp = await fetch(`${DRIVE_API_BASE}/files?${params.toString()}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+        } catch {
+            throw new DriveTransientError(folderId);
+        }
+
+        const statusClass = classifyDriveApiStatus(resp.status);
+        if (statusClass === 'auth-error') throw new DriveAuthError(folderId);
+        if (statusClass === 'inaccessible') throw new DriveAccessDeniedError(folderId, resp.status);
+        if (statusClass === 'transient-error') throw new DriveTransientError(folderId);
+
+        let data: { files?: Array<{ id: string }>; nextPageToken?: string };
+        try {
+            data = await resp.json();
+        } catch {
+            throw new DriveTransientError(folderId);
+        }
+
+        for (const f of data.files ?? []) {
+            if (f.id) ids.add(f.id);
+        }
+        pageToken = data.nextPageToken;
+        pageCount += 1;
+
+        if (pageToken && pageCount >= MAX_FOLDER_LIST_PAGES) {
+            console.warn(
+                `[listAccessibleFileIdsInFolder] ページ数が上限(${MAX_FOLDER_LIST_PAGES})に達したため打ち切ります:`,
+                folderId
+            );
+            break;
+        }
+    } while (pageToken);
+
+    return ids;
 }
