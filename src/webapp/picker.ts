@@ -94,6 +94,14 @@ function returnCancelledToExtension(redirectUri: string): void {
 }
 
 /**
+ * 再付与モード（mode=regrant）の結果を拡張機能へ返す。選択ファイルの一覧ではなく
+ * 選択件数だけを返す（詳細は openRegrantPicker のコメント参照）。
+ */
+function returnGrantedCountToExtension(redirectUri: string, count: number): void {
+    redirectToExtension(redirectUri, `granted=${count}`);
+}
+
+/**
  * PDFモード用Picker: DocsView(DOCS) を application/pdf に絞り込み、複数選択を許可する。
  * folderId があれば初期表示フォルダとして使う（アクセス範囲の制限ではなく表示上の絞り込みのみ）。
  * PICKED/CANCEL のいずれも window.location.href で拡張機能のリダイレクトURIへ遷移して結果を返す。
@@ -121,6 +129,44 @@ function openPdfPicker(token: string, folderId: string | null, redirectUri: stri
                 }));
                 setStatus(t('picker_success'));
                 returnFilesToExtension(redirectUri, files);
+            } else if (action === google.picker.Action.CANCEL) {
+                setStatus(t('picker_cancelled'));
+                returnCancelledToExtension(redirectUri);
+            }
+        })
+        .build();
+    picker.setVisible(true);
+}
+
+/**
+ * 再付与モード用Picker: openPdfPicker とほぼ同じ見た目（DocsView(DOCS) を application/pdf に
+ * 絞り込み、folderId を初期表示、複数選択可）だが、返す payload が決定的に違う。
+ *
+ * mode=pdf は選択ファイルの一覧を返すが、再付与は数百件を一度に選びうるため、一覧を
+ * URLフラグメントに載せると巨大化してリダイレクト捕捉が壊れる恐れがある。しかも
+ * drive.file の付与はユーザーが「選択」を押した時点でサーバー側に確定しており、
+ * 拡張機能が一覧そのものを受け取る必要が無い。拡張機能側は返ってきた件数を表示に
+ * 使うだけで、実際に読めるようになったかどうかの真値は再度の files.list で取り直す
+ * （src/lib/fulltext-access.ts / listAccessibleFileIdsInFolder 参照）。
+ */
+function openRegrantPicker(token: string, folderId: string | null, redirectUri: string): void {
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
+    view.setMimeTypes('application/pdf');
+    if (folderId) view.setParent(folderId);
+    const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+    const picker = new google.picker.PickerBuilder()
+        .setDeveloperKey(__PICKER_API_KEY__)
+        .setAppId(__GCP_PROJECT_NUMBER__)
+        .setOAuthToken(token)
+        .addView(view)
+        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .setLocale(locale)
+        .setCallback((data) => {
+            const action = data[google.picker.Response.ACTION];
+            if (action === google.picker.Action.PICKED) {
+                const docs = data[google.picker.Response.DOCUMENTS] ?? [];
+                setStatus(t('picker_success'));
+                returnGrantedCountToExtension(redirectUri, docs.length);
             } else if (action === google.picker.Action.CANCEL) {
                 setStatus(t('picker_cancelled'));
                 returnCancelledToExtension(redirectUri);
@@ -160,17 +206,20 @@ function openPicker(token: string, fileId: string | null): void {
  */
 async function start(ignoreFileId = false): Promise<void> {
     const params = hashParams();
-    // mode が無い/pdf以外の場合は既存のスプレッドシート動作を一切変えない（旧拡張が新ページを開く互換性のため）。
-    const isPdfMode = params.get('mode') === 'pdf';
+    // mode が無い/pdf・regrant以外の場合は既存のスプレッドシート動作を一切変えない
+    // （旧拡張が新ページを開く互換性のため）。
+    const mode = params.get('mode');
+    const isPdfMode = mode === 'pdf';
+    const isRegrantMode = mode === 'regrant';
     const fileId = ignoreFileId ? null : params.get('fileId');
     const expectedEmail = params.get('email');
-    const redirectUri = isPdfMode ? params.get('redirect') : null;
+    const redirectUri = (isPdfMode || isRegrantMode) ? params.get('redirect') : null;
 
-    // PDFモードは redirect が有効な拡張機能URIであることを fail-fast で検証する。
+    // PDF/再付与モードは redirect が有効な拡張機能URIであることを fail-fast で検証する。
     // ここで弾かないと、ユーザーがGoogleサインイン→同意→ファイル選択まで終えた後に
     // redirectToExtension() で初めて失敗が判明し、全操作が無駄になるため。
     // redirectToExtension() 側の検証は最終防衛線としてそのまま残す。
-    if (isPdfMode && (!redirectUri || !isExtensionRedirectUri(redirectUri))) {
+    if ((isPdfMode || isRegrantMode) && (!redirectUri || !isExtensionRedirectUri(redirectUri))) {
         setStatus(t('picker_invalidRedirect'));
         return;
     }
@@ -189,6 +238,8 @@ async function start(ignoreFileId = false): Promise<void> {
         if (isPdfMode) {
             // 上のfail-fastチェックを通過しているため、ここでは redirectUri は非nullかつ有効。
             openPdfPicker(token, params.get('folderId'), redirectUri!);
+        } else if (isRegrantMode) {
+            openRegrantPicker(token, params.get('folderId'), redirectUri!);
         } else {
             openPicker(token, fileId);
         }
@@ -198,15 +249,21 @@ async function start(ignoreFileId = false): Promise<void> {
 }
 
 function init(): void {
-    const isPdfMode = hashParams().get('mode') === 'pdf';
+    const mode = hashParams().get('mode');
+    const isPdfMode = mode === 'pdf';
+    const isRegrantMode = mode === 'regrant';
     document.title = t('picker_pageTitle');
     document.getElementById('title')!.textContent = t('picker_pageTitle');
-    document.getElementById('intro')!.textContent = isPdfMode ? t('picker_pdfPageIntro') : t('picker_pageIntro');
+    document.getElementById('intro')!.textContent = isPdfMode
+        ? t('picker_pdfPageIntro')
+        : isRegrantMode
+            ? t('picker_regrantPageIntro')
+            : t('picker_pageIntro');
     document.getElementById('shareHint')!.textContent = t('picker_shareHint');
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
     const allSheetsLink = document.getElementById('allSheetsLink')!;
-    if (isPdfMode) {
-        // PDFモードには「fileId限定→全シートへ切替」の概念が無いため導線ごと隠す
+    if (isPdfMode || isRegrantMode) {
+        // PDF/再付与モードには「fileId限定→全シートへ切替」の概念が無いため導線ごと隠す
         allSheetsLink.style.display = 'none';
     } else {
         allSheetsLink.textContent = t('picker_openAllSheets');

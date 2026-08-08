@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePdfPickerRedirect, validatePickedFiles, MAX_PICKED_FILES } from '../src/lib/drive-picker-result';
+import {
+    parsePdfPickerRedirect,
+    parseRegrantPickerRedirect,
+    validatePickedFiles,
+    MAX_PICKED_FILES,
+} from '../src/lib/drive-picker-result';
 
 const REDIRECT = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker';
 
@@ -35,6 +40,36 @@ test('parsePdfPickerRedirect: filesが配列でないJSONならnull', () => {
 
 test('parsePdfPickerRedirect: URLとして解釈できない文字列はnull', () => {
     assert.equal(parsePdfPickerRedirect('not a url'), null);
+});
+
+test('parseRegrantPickerRedirect: granted=<件数> フラグメントを数値として取り出す', () => {
+    const result = parseRegrantPickerRedirect(`${REDIRECT}#granted=12`);
+    assert.deepEqual(result, { granted: 12 });
+});
+
+test('parseRegrantPickerRedirect: granted=0 も有効な数値として扱う', () => {
+    const result = parseRegrantPickerRedirect(`${REDIRECT}#granted=0`);
+    assert.deepEqual(result, { granted: 0 });
+});
+
+test('parseRegrantPickerRedirect: cancelled=1 は "cancelled" を返す', () => {
+    const result = parseRegrantPickerRedirect(`${REDIRECT}#cancelled=1`);
+    assert.equal(result, 'cancelled');
+});
+
+test('parseRegrantPickerRedirect: grantedもcancelledも無ければnull', () => {
+    assert.equal(parseRegrantPickerRedirect(`${REDIRECT}#`), null);
+});
+
+test('parseRegrantPickerRedirect: grantedが負数・小数・非数値ならnull', () => {
+    assert.equal(parseRegrantPickerRedirect(`${REDIRECT}#granted=-1`), null);
+    assert.equal(parseRegrantPickerRedirect(`${REDIRECT}#granted=1.5`), null);
+    assert.equal(parseRegrantPickerRedirect(`${REDIRECT}#granted=abc`), null);
+    assert.equal(parseRegrantPickerRedirect(`${REDIRECT}#granted=`), null);
+});
+
+test('parseRegrantPickerRedirect: URLとして解釈できない文字列はnull', () => {
+    assert.equal(parseRegrantPickerRedirect('not a url'), null);
 });
 
 test('validatePickedFiles: id/name/mimeTypeがすべてstringの要素のみ有効とする', () => {

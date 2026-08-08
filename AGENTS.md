@@ -613,6 +613,23 @@ Drive アクセスを扱うコードでは次を守ること:
 - `setupProjectFolder()` は `ownedByMe` を確認してからでないとスプレッドシートを移動しない。Config にフォルダIDを持たないレガシープロジェクトでも同じ破壊が起きうるため
 - `getProjectDriveFolderId()` / `getFulltextDriveFolderId()` は Config タブが本当に無い場合だけ `null` を返す。アクセス拒否・一時エラーを `null`（＝未設定）に潰さない
 
+#### 実測で確定した挙動（2026-08-08。再検証不要）
+
+`scripts/drive-file-probe/` の実測ハーネスで確定した。**Google の公式ドキュメントには一切記載が無いので、調べ直しても出てこない。**
+
+- **Picker でフォルダを選択しても、付与は配下ファイルへ一切カスケードしない。** 選択時点で既にフォルダ内にあったファイルすら 404 のまま（スナップショット型ですらない）。伝播遅延も無い
+- **`files.list` は権限が無くても HTTP 200 + `files: []` を返す**（404 にならない）。**付与の有無を list の HTTP ステータスで判定してはならない**。中身の `files[]` を見ること
+- **親フォルダ自体が未付与でも、`files.list` はそのフォルダを親に指定すれば付与済みの子ファイルを返す。** これが「このユーザーが実際に読めるファイル」を知る唯一の経路（`listAccessibleFileIdsInFolder()`）
+- 付与済みフォルダに対しても `files.list` は 0件を返すため、**「読めないファイル」を Drive 側から列挙する経路は存在しない**。列挙は References シートの `fulltext_url` から行うこと
+
+#### 読めなくなった PDF の復旧（対策 C'）
+
+上記の帰結として、フォルダ単位での一括付与は成立しない。代わりに **Picker の複数選択で1セッションにまとめて再付与する**（`fulltext-regrant.ts`）。Picker の一覧表示は `drive.file` ではなく**ユーザー自身の Drive 権限**を使うため、fulltext フォルダに Drive 共有さえされていれば、共同研究者にも他人がアップロードした PDF が見えて選択できる（＝ Drive 共有は付与経路ではないが、Picker で選ぶための前提にはなる）。
+
+- 検知は `listAccessibleFileIdsInFolder()` と References の `cached` 行の突き合わせ（`fulltext-access.ts`）
+- Picker ページ側は `mode=regrant`。選択ファイルの一覧ではなく**件数だけ**を返す（数百件選択時に URL フラグメントが肥大するのを避けるため。付与は「選択」を押した時点でサーバー側に確定しており、一覧を受け取る必要が無い）
+- 真値は必ず再度の `files.list` で取り直す。Picker の戻り値を「読めるようになった証拠」として扱わないこと
+
 > 関連: `isUserAdmin()`（`sheets-api.ts`）は role が **owner または writer** で `true` を返す。共同研究者は編集者として招待されるため、**`isAdmin` ではオーナーと共同研究者を区別できない**。オーナー限定の分岐が必要な場合は別の識別子を用意すること。
 
 ### OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）

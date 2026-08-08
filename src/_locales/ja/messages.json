@@ -2454,6 +2454,9 @@
   "picker_pdfPageIntro": {
     "message": "拡張機能に取り込むPDFファイルを選択してください。"
   },
+  "picker_regrantPageIntro": {
+    "message": "読み取り権限を復旧したいPDFファイルを選択してください（すでにフォルダ内にあるファイルも選び直す必要があります）。"
+  },
   "picker_invalidRedirect": {
     "message": "許可できないリダイレクト先です。拡張機能から開き直してください。"
   },
@@ -2584,6 +2587,45 @@
     "message": "ゴミ箱への移動に失敗したファイルがあります: $1"
   },
   "fulltext_importCloseBtn": {
+    "message": "閉じる"
+  },
+  "fulltext_regrantBtn": {
+    "message": "読み取り権限を確認"
+  },
+  "fulltext_regrantChecking": {
+    "message": "アクセス状況を確認しています…"
+  },
+  "fulltext_regrantNoFolder": {
+    "message": "このプロジェクトにはまだPDFが1件もありません。"
+  },
+  "fulltext_regrantAllReadable": {
+    "message": "読み取れないPDFはありませんでした。"
+  },
+  "fulltext_regrantOpeningPicker": {
+    "message": "Google Picker を開いています…"
+  },
+  "fulltext_regrantRechecking": {
+    "message": "再確認しています…"
+  },
+  "fulltext_regrantParseError": {
+    "message": "Picker からの応答を解釈できませんでした。"
+  },
+  "fulltext_regrantError": {
+    "message": "読み取り権限の確認でエラーが発生しました: $1"
+  },
+  "fulltext_regrantModalTitle": {
+    "message": "読み取り権限の復旧"
+  },
+  "fulltext_regrantResultSummary": {
+    "message": "解消 $1件 / 残り $2件"
+  },
+  "fulltext_regrantAllResolved": {
+    "message": "すべてのPDFを読み取れるようになりました。"
+  },
+  "fulltext_regrantRemainingIntro": {
+    "message": "まだ読み取れないPDF（Pickerで選び直すか、アップロードした本人に確認してください）:"
+  },
+  "fulltext_regrantCloseBtn": {
     "message": "閉じる"
   },
   "webapp_editionLabel": {

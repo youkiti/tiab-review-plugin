@@ -191,6 +191,9 @@ const domElements = {
     // Driveへ直接置かれたPDFの取り込み（fulltext-drive-import.ts）
     get fulltextImportDriveBtn() { return getElement<HTMLButtonElement>('fulltext-import-drive-btn'); },
     get fulltextImportDriveStatus() { return getElement<HTMLElement>('fulltext-import-drive-status'); },
+    // 読み取り権限の再付与（fulltext-regrant.ts）
+    get fulltextRegrantBtn() { return getElement<HTMLButtonElement>('fulltext-regrant-btn'); },
+    get fulltextRegrantStatus() { return getElement<HTMLElement>('fulltext-regrant-status'); },
     get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },
     // 結果ビュー（ビュー切替・判定者選択・PRISMA・エクスポート）
     get fulltextBlindRow() { return getElement<HTMLElement>('fulltext-blind-row'); },

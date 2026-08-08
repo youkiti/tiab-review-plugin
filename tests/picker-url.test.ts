@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPickerUrl, buildPdfPickerUrl, isExtensionRedirectUri, PICKER_PAGE_URL } from '../src/lib/picker-url';
+import {
+    buildPickerUrl,
+    buildPdfPickerUrl,
+    buildRegrantPickerUrl,
+    isExtensionRedirectUri,
+    PICKER_PAGE_URL,
+} from '../src/lib/picker-url';
 
 test('buildPickerUrl uses URL fragment for fileId and email', () => {
     const url = buildPickerUrl('sheet_123', 'reviewer@example.com', 'https://example.test/picker.html');
@@ -34,6 +40,32 @@ test('buildPdfPickerUrl omits folderId/email when not provided', () => {
     assert.equal(
         url,
         'https://example.test/picker.html#mode=pdf&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F'
+    );
+});
+
+test('buildRegrantPickerUrl sets mode=regrant and passes redirect/folderId/email via fragment', () => {
+    const url = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        baseUrl: 'https://example.test/picker.html',
+    });
+    assert.equal(
+        url,
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com'
+    );
+    assert.equal(url.includes('?'), false);
+});
+
+test('buildRegrantPickerUrl omits email when not provided (folderId is always required)', () => {
+    const url = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/',
+        folderId: 'folder_2',
+        baseUrl: 'https://example.test/picker.html',
+    });
+    assert.equal(
+        url,
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F&folderId=folder_2'
     );
 });
 

@@ -40,6 +40,7 @@ import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
 } from './fulltext-drive-import';
+import { setupFulltextRegrantListeners } from './fulltext-regrant';
 import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
 import { showToast } from '../ui/feedback';
 import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
@@ -582,4 +583,5 @@ export function setupFulltextTabListeners(): void {
     dom.fulltextUploadInput?.addEventListener('change', () => { void handleUploadChange(); });
     setFulltextDriveImportDeps({ rerenderTab: renderFulltextTab });
     setupFulltextDriveImportListeners();
+    setupFulltextRegrantListeners();
 }
