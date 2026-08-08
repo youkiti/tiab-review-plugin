@@ -33,7 +33,7 @@ export default {
 
         const folderMeta = baseline.find((r) => r.label === 'フォルダ meta');
         // files.list は権限が無くても 200 + files:[] を返すため、ガードには使わない
-        // （folder-cascade.mjs と同じ理由。README.md「実測で確定した挙動」参照）。
+        // （folder-cascade.mjs と同じ理由。AGENTS.md「実測で確定した挙動」参照）。
         if (folderMeta.status !== 404) {
             if (folderMeta.ok) {
                 ctx.fail(
