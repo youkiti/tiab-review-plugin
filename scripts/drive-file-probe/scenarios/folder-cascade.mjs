@@ -82,17 +82,30 @@ export default {
             );
         }
 
-        const afterPick = await ctx.measure('Picker選択後', buildTargets(folderId, fileId));
+        await ctx.measure('Picker選択後（直後）', buildTargets(folderId, fileId));
+
+        // 付与がサーバ側へ反映されるまでに遅延がある疑いがあるため、間を置いて測り直す。
+        // 実測では「Picker 直後は 404 だったフォルダが、数分後に 200 になっている」現象を観測した。
+        // 直後の1回だけで 404 を根拠に「カスケードしない」と結論すると誤る恐れがあるため、
+        // 遅延後の測定を本番の判定材料とする。
+        await ctx.ask('1分ほど待ってから Enter を押してください（付与の伝播待ち。何も入力しなくてよい）');
+        const afterPick = await ctx.measure('Picker選択後（待機後）', buildTargets(folderId, fileId));
 
         const newFileId = await ctx.ask(
             'Drive UI でこのフォルダに新しい PDF を1本追加し、その fileId を貼り付けて Enter'
         );
 
-        const afterUpload = await ctx.measure('後追いアップロード後', [
-            { label: '後追いファイル meta', kind: 'meta', id: newFileId },
-            { label: '後追いファイル media', kind: 'media', id: newFileId },
+        const buildFollowUpTargets = (id) => [
+            { label: '後追いファイル meta', kind: 'meta', id },
+            { label: '後追いファイル media', kind: 'media', id },
             { label: 'フォルダ配下 list', kind: 'list', id: folderId },
-        ]);
+        ];
+
+        await ctx.measure('後追いアップロード後（直後）', buildFollowUpTargets(newFileId));
+
+        // 上と同じ理由（伝播遅延）で、後追いファイルについても間を置いて測り直す。
+        await ctx.ask('1分ほど待ってから Enter を押してください（付与の伝播待ち。何も入力しなくてよい）');
+        const afterUpload = await ctx.measure('後追いアップロード後（待機後）', buildFollowUpTargets(newFileId));
 
         ctx.note(
             '## 判定の読み方\n\n' +
