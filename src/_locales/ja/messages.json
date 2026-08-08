@@ -2526,6 +2526,9 @@
   "fulltext_importIncompleteNotice": {
     "message": "以前の取り込みが未完了です（コピー済み・シート未反映）。このまま実行するとこのファイルを再利用してシートのみ更新します。"
   },
+  "fulltext_importLikelyImportedNotice": {
+    "message": "この PDF は「$1」として既に取り込み済みの可能性があります。他のメンバーが取り込んだコピーはあなたからは見えないため、未取り込みと表示されています。取り込み済みであれば「スキップ」のままにしてください。"
+  },
   "fulltext_importBadgeImported": {
     "message": "✓ 取り込み済み"
   },
