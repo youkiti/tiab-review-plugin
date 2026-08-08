@@ -33,12 +33,24 @@ export default {
 
         const folderMeta = baseline.find((r) => r.label === 'フォルダ meta');
         const fileMeta = baseline.find((r) => r.label === 'ファイル meta');
-        if (folderMeta.ok || fileMeta.ok) {
-            ctx.fail(
-                'ベースラインが 404 ではありません。フォルダまたはファイルが既にこのアプリへ付与済みのため、' +
-                '実験が成立しません（drive.file の付与は不可逆です）。README.md の「フィクスチャの作り方」に従い、' +
-                'Drive UI で新しいフォルダ・PDF を作り直してから再実行してください。'
-            );
+        // files.list は権限が無くても 200 + files:[] を返すため、ここでは 404 かどうかを
+        // 明示的に見る（ok/statusが200系以外だからといって404とは限らない。401/403等が
+        // 紛れ込むと「未付与」と誤判定してしまい、直後の Picker で不可逆な付与が起きる）。
+        const unexpected = [folderMeta, fileMeta].find((r) => r.status !== 404);
+        if (unexpected) {
+            if (unexpected.ok) {
+                ctx.fail(
+                    'ベースラインが 404 ではありません。フォルダまたはファイルが既にこのアプリへ付与済みのため、' +
+                    '実験が成立しません（drive.file の付与は不可逆です）。README.md の「フィクスチャの作り方」に従い、' +
+                    'Drive UI で新しいフォルダ・PDF を作り直してから再実行してください。'
+                );
+            } else {
+                ctx.fail(
+                    `404 以外の想定外のステータス（${unexpected.status}）が返りました。付与状態を判定できないため中断します。` +
+                    'サインインし直すか、フォルダ/ファイルIDが正しいか確認してください。' +
+                    'なお、このケースではフィクスチャは消費されていません。同じフィクスチャで再実行してかまいません。'
+                );
+            }
         }
         ctx.note('ベースラインは想定どおり 404（未付与）でした。実験を継続します。');
 

@@ -21,12 +21,16 @@ const SCOPES = [
 let accessToken = null;
 let tokenClient = null;
 let config = null;
+// GIS の prompt を silent → consent の順で試すための状態。
+// 'silent': 無人取得を試行中。'consent': silent が失敗し対話的に再試行中。
+let signInStage = null;
 
 const state = {
     ready: false,
     signedIn: false,
     email: null,
     pickResult: null,
+    lastError: null,
 };
 
 const statusEl = document.getElementById('status');
@@ -74,6 +78,24 @@ async function fetchUserEmail(token) {
     return data.email;
 }
 
+/**
+ * サインイン失敗（callback の resp.error / error_callback）を一箇所で処理する。
+ * silent 取得中の失敗は「まだ同意していないだけ」の想定内分岐なので、エラー扱いにせず
+ * consent 付きで自動的に再試行する。consent での再試行が失敗した場合のみ本当の失敗として
+ * state.lastError に記録する（run.mjs の ctx.signIn() はこれを見て即座に失敗を判定する）。
+ */
+function handleSignInFailure(message) {
+    if (signInStage === 'silent') {
+        signInStage = 'consent';
+        setStatus('初回のサインインが必要です。ブラウザで操作してください（アカウント選択・スコープ同意）');
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+    }
+    state.lastError = message;
+    setStatus(message);
+    renderState();
+}
+
 function ensureTokenClient() {
     if (tokenClient) return tokenClient;
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -84,9 +106,10 @@ function ensureTokenClient() {
         include_granted_scopes: false,
         callback: async (resp) => {
             if (resp.error) {
-                setStatus(`サインインに失敗しました: ${resp.error}`);
+                handleSignInFailure(`サインインに失敗しました: ${resp.error}`);
                 return;
             }
+            signInStage = null;
             accessToken = resp.access_token;
             try {
                 const email = await fetchUserEmail(accessToken);
@@ -96,11 +119,14 @@ function ensureTokenClient() {
                 setStatus(`サインイン済み: ${email}`);
                 renderState();
             } catch (err) {
-                setStatus(`ユーザー情報の取得に失敗しました: ${err.message}`);
+                const message = `ユーザー情報の取得に失敗しました: ${err.message}`;
+                setStatus(message);
+                state.lastError = message;
+                renderState();
             }
         },
         error_callback: (err) => {
-            setStatus(`サインインがキャンセルまたは失敗しました: ${err.type}`);
+            handleSignInFailure(`サインインがキャンセルまたは失敗しました: ${err.type}`);
         },
     });
     return tokenClient;
@@ -129,29 +155,60 @@ function buildMeasureUrl(kind, id) {
 }
 
 /**
+ * エラーレスポンスの body から、人間が読みやすい失敗理由を1つ取り出す。
+ * `body.error.errors[0].reason` があればそれを、無ければ `body.error.message` を、
+ * どちらも取れなければ空文字を返す。
+ */
+function getErrorReason(body) {
+    if (body && typeof body === 'object' && body.error) {
+        const reason = body.error.errors?.[0]?.reason;
+        if (reason) return reason;
+        if (body.error.message) return body.error.message;
+    }
+    return '';
+}
+
+/**
  * ターゲット1件を測定する。
- * 戻り値の body は、失敗時はエラーJSON、成功時は meta/list なら取得したJSON、
- * media なら本文を含めない（読み捨てて status/ok だけを見る）。
+ * 戻り値の body は、meta/list なら成功・失敗いずれも取得した JSON（非JSONならテキスト）。
+ * media は成功時は読み捨てて undefined（status/ok だけを見る）、失敗時のみ summary の
+ * エラー理由を出すために本文を読む。
+ * summary は一目でわかる要約文字列（list は件数「N件」、meta はファイル名、media は
+ * Content-Length 由来のバイト数「N bytes」。いずれも失敗時はエラー理由、取得できなければ空文字）。
  */
 async function measureOne({ label, kind, id }) {
     if (!accessToken) throw new Error('サインインしていません');
     const url = buildMeasureUrl(kind, id);
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     let body;
+    let summary;
     if (kind === 'media') {
-        // ファイル実体は読まずに読み捨てる。見るのは status のみ。
-        if (resp.body?.cancel) {
-            try {
-                await resp.body.cancel();
-            } catch {
-                // 読み捨て失敗は無視してよい（測定結果には影響しない）
+        if (resp.ok) {
+            // ファイル実体は読まずに読み捨てる。見るのは status と Content-Length のみ。
+            if (resp.body?.cancel) {
+                try {
+                    await resp.body.cancel();
+                } catch {
+                    // 読み捨て失敗は無視してよい（測定結果には影響しない）
+                }
             }
+            body = undefined;
+            const contentLength = resp.headers.get('content-length');
+            summary = contentLength ? `${contentLength} bytes` : '';
+        } else {
+            // 404 と 403 の区別はステータスでできるが、理由を summary に出すには本文が要る。
+            body = await readBody(resp);
+            summary = getErrorReason(body);
         }
-        body = undefined;
     } else {
         body = await readBody(resp);
+        if (resp.ok) {
+            summary = kind === 'list' ? `${body?.files?.length ?? 0}件` : body?.name ?? '';
+        } else {
+            summary = getErrorReason(body);
+        }
     }
-    return { label, kind, id, status: resp.status, ok: resp.ok, body };
+    return { label, kind, id, status: resp.status, ok: resp.ok, body, summary };
 }
 
 async function measure(targets) {
@@ -261,7 +318,10 @@ async function init() {
     await loadPicker();
 
     signinBtn.addEventListener('click', () => {
-        ensureTokenClient().requestAccessToken();
+        state.lastError = null;
+        signInStage = 'silent';
+        setStatus('サインインを試みています...');
+        ensureTokenClient().requestAccessToken({ prompt: '' });
     });
     pickerBtn.addEventListener('click', () => {
         void openPicker(window.__probe.pickOptions || {});

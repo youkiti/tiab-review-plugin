@@ -164,7 +164,15 @@ function buildCtx({ page, inputs, log }) {
                 '初回はGoogleアカウント選択・スコープ同意が必要です（最大5分待機します）。'
             );
             await page.click('#signin');
-            await waitForPageCondition(() => window.__probe.state.signedIn === true, 5 * 60 * 1000, 'サインイン');
+            await waitForPageCondition(
+                () => window.__probe.state.signedIn === true || !!window.__probe.state.lastError,
+                5 * 60 * 1000,
+                'サインイン'
+            );
+            const lastError = await page.evaluate(() => window.__probe.state.lastError);
+            if (lastError) {
+                throw new Error(`サインインに失敗しました: ${lastError}`);
+            }
             const email = await page.evaluate(() => window.__probe.state.email);
             console.log(`サインイン完了: ${email}`);
             log.push({ type: 'signin', email, at: new Date().toISOString() });
@@ -175,7 +183,9 @@ function buildCtx({ page, inputs, log }) {
         async measure(label, targets) {
             const results = await page.evaluate((t) => window.__probe.measure(t), targets);
             console.log(`\n=== 測定: ${label} ===`);
-            console.table(results.map((r) => ({ label: r.label, kind: r.kind, id: r.id, status: r.status, ok: r.ok })));
+            console.table(
+                results.map((r) => ({ label: r.label, kind: r.kind, id: r.id, status: r.status, ok: r.ok, summary: r.summary }))
+            );
             log.push({ type: 'measure', label, targets, results, at: new Date().toISOString() });
             return results;
         },
@@ -234,9 +244,11 @@ function buildCtx({ page, inputs, log }) {
 }
 
 function renderResultsTable(results) {
-    const header = '| label | kind | id | status | ok |';
-    const sep = '|---|---|---|---|---|';
-    const rows = results.map((r) => `| ${r.label} | ${r.kind} | ${r.id} | ${r.status} | ${r.ok ? '○' : '×'} |`);
+    const header = '| label | kind | id | status | ok | summary |';
+    const sep = '|---|---|---|---|---|---|';
+    const rows = results.map(
+        (r) => `| ${r.label} | ${r.kind} | ${r.id} | ${r.status} | ${r.ok ? '○' : '×'} | ${r.summary ?? ''} |`
+    );
     return [header, sep, ...rows].join('\n');
 }
 
