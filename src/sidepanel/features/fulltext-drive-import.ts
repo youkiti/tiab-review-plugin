@@ -44,6 +44,7 @@ import {
     findImportedCopy,
     deleteDriveFile,
     buildPdfFileName,
+    describeDriveAccessError,
 } from '../../lib/drive-api';
 import type { DriveFileMetadata, DriveFileInfo } from '../../lib/drive-api';
 import {
@@ -701,11 +702,13 @@ async function runImportAndShowResults(
         }
     } catch (err) {
         // フォルダ確保自体に失敗した場合は残り全件をエラーとして記録する
+        // （型付きエラーなら原因＋対処の文言に差し替え、結果リストの表示形式は変えない）
+        const knownMessage = describeDriveAccessError(err);
         for (const entry of targets.slice(results.length)) {
             const refId = entry.refId as string;
             results.push({
                 file: entry.file, refId, refTitle: refsById.get(refId)?.title ?? refId, outcome: 'error',
-                message: t('fulltext_importResultError', (err as Error).message),
+                message: t('fulltext_importResultError', knownMessage ?? (err as Error).message),
             });
         }
     }
@@ -739,7 +742,11 @@ async function retrySingle(
         const folderId = await ensureFulltextFolder(state.spreadsheetId);
         allResults[idx] = await importOneFile(original.file, ref, folderId, crypto.randomUUID());
     } catch (err) {
-        allResults[idx] = { ...original, message: t('fulltext_importResultError', (err as Error).message) };
+        const knownMessage = describeDriveAccessError(err);
+        allResults[idx] = {
+            ...original,
+            message: t('fulltext_importResultError', knownMessage ?? (err as Error).message),
+        };
     }
     await renderResultStep(body, footer, allResults);
 }
@@ -832,6 +839,10 @@ async function buildCleanupSection(cleanupTargets: ExecResult[]): Promise<HTMLEl
     try {
         fulltextFolderId = await ensureFulltextFolder(state.spreadsheetId);
     } catch (err) {
+        // チェックボックスの初期状態（既知フォルダ内か）を絞れないだけなので処理は続行するが、
+        // fail-fast エラー（アクセス拒否等）は原因が分かるよう別途通知する
+        const knownMessage = describeDriveAccessError(err);
+        if (knownMessage) showToast(knownMessage, 6000);
         console.warn('[fulltext-drive-import] fulltextフォルダID取得に失敗（既定チェックはフォルダ外扱い）:', err);
     }
 

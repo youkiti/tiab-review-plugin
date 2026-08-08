@@ -2490,6 +2490,15 @@
   "fulltext_driveImportModalIntro": {
     "message": "Choose which reference each file should be imported into. Choosing \"Don't match (skip)\" leaves that file out."
   },
+  "fulltext_driveAccessDenied": {
+    "message": "Cannot access this project's Drive folder (you may be signed in with a different account than the one that uploaded the PDF). Sign in as the uploader, or check with the project owner."
+  },
+  "fulltext_driveAuthError": {
+    "message": "Your Google account authentication has expired. Please sign in again and retry."
+  },
+  "fulltext_driveTransientError": {
+    "message": "A temporary error occurred while accessing Drive. Please wait a moment and try again."
+  },
   "fulltext_importErrorNotPdf": {
     "message": "Not a PDF ($1)"
   },
