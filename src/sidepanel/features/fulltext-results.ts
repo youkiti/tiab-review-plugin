@@ -18,7 +18,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { escapeCSVField } from '../utils/csv';
-import { getFulltextCandidateList } from './screening/filters';
+import { getProjectFulltextCandidateList } from './screening/filters';
 import { getReviewerLabel } from './screening/reviewer-utils';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
@@ -169,7 +169,7 @@ function representativeReason(c: Consensus): string {
 
 export function renderFulltextResults(): void {
     if (!resultsMode) return;
-    const candidates = getFulltextCandidateList();
+    const candidates = getProjectFulltextCandidateList();
     const allJudges = collectJudges(candidates);
     const judges = effectiveJudges(allJudges);
 
@@ -285,7 +285,7 @@ function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): Full
  * 現在の判定者選択に基づくフルテキスト相サマリを返す（論文用テキスト生成で使用）
  */
 export function getFulltextResultsSummary(): FulltextResultsSummary {
-    const candidates = getFulltextCandidateList();
+    const candidates = getProjectFulltextCandidateList();
     const judges = effectiveJudges(collectJudges(candidates));
     return summarize(candidates, judges);
 }
@@ -435,7 +435,7 @@ function preExportGuard(candidates: ReferenceWithStatus[], judges: Set<string>):
 }
 
 function handleExportCsv(): void {
-    const candidates = getFulltextCandidateList();
+    const candidates = getProjectFulltextCandidateList();
     const allJudges = collectJudges(candidates);
     const judges = effectiveJudges(allJudges);
     if (!preExportGuard(candidates, judges)) return;
@@ -477,7 +477,7 @@ function handleExportCsv(): void {
 }
 
 function handleExportRis(): void {
-    const candidates = getFulltextCandidateList();
+    const candidates = getProjectFulltextCandidateList();
     const allJudges = collectJudges(candidates);
     const judges = effectiveJudges(allJudges);
     if (!preExportGuard(candidates, judges)) return;

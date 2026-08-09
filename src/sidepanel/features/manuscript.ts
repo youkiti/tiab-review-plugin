@@ -16,7 +16,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
-import { getFulltextCandidateList } from './screening/filters';
+import { getProjectFulltextCandidateList } from './screening/filters';
 import { getFulltextResultsSummary } from './fulltext-results';
 import type { FulltextResultsSummary } from './fulltext-results';
 import { isTiabDecision } from '../../lib/fulltext-pool';
@@ -66,7 +66,7 @@ interface IdentificationData {
 
 /** Identification 相の数値（import_stats + シート上の件数） */
 function collectIdentification(): IdentificationData {
-    const refs = state.references;
+    const refs = state.allReferences;
     const perFile = new Map<string, number>();
     for (const r of refs) {
         const file = r.source_file || '(unknown source)';
@@ -105,7 +105,7 @@ function collectIdentification(): IdentificationData {
 /** TiAb 相にヒト判定を出したレビュアー数（LLM/ML自動を除く。最低1） */
 function countTiabHumanReviewers(): number {
     const reviewers = new Set<string>();
-    for (const r of state.references) {
+    for (const r of state.allReferences) {
         for (const d of collectRefDecisions(r)) {
             if (!isTiabDecision(d)) continue;
             const id = (d.reviewer_id || '').trim();
@@ -128,7 +128,7 @@ function llmModelFromReviewerId(reviewerId: string): string {
 /** TiAb 相で使われた LLM モデル名（重複除去） */
 function collectTiabLlmModels(): string[] {
     const models = new Set<string>();
-    for (const r of state.references) {
+    for (const r of state.allReferences) {
         for (const d of collectRefDecisions(r)) {
             if (!isTiabDecision(d)) continue;
             const id = (d.reviewer_id || '').trim();
@@ -140,7 +140,7 @@ function collectTiabLlmModels(): string[] {
 
 /** TiAb 相で ML 判定（確定/自動）が使われたか */
 function wasMlUsedInTiab(): boolean {
-    for (const r of state.references) {
+    for (const r of state.allReferences) {
         for (const d of collectRefDecisions(r)) {
             if (isTiabDecision(d) && isMlDecision(d.client_version)) return true;
         }
@@ -151,7 +151,7 @@ function wasMlUsedInTiab(): boolean {
 /** TiAb 未判定（誰の非 pending 判定も無い）の文献数 */
 function countUnscreenedTiab(): number {
     let count = 0;
-    for (const r of state.references) {
+    for (const r of state.allReferences) {
         const hasJudged = collectRefDecisions(r).some(
             d => isTiabDecision(d) && d.decision !== 'pending'
         );
@@ -389,7 +389,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     }
 
     const id = collectIdentification();
-    const sought = getFulltextCandidateList().length;
+    const sought = getProjectFulltextCandidateList().length;
     const summary = phase === 'fulltext' ? getFulltextResultsSummary() : null;
 
     const methods = phase === 'fulltext' && summary

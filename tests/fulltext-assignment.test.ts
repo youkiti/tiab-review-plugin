@@ -6,6 +6,9 @@ import {
     canSeeFulltextRef,
     getFulltextSetsForUser,
     fulltextSetOf,
+    initialSelectedFulltextSets,
+    matchesSelectedFulltextSets,
+    normalizeStoredFulltextSets,
 } from '../src/lib/fulltext-assignment';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
 
@@ -103,4 +106,81 @@ test('fulltextSetOf: 設定済みで空値は unassigned、未設定では空文
     assert.equal(fulltextSetOf({ fulltext_set: ' ft-group-1 ' }, CONFIGURED), 'ft-group-1');
     assert.equal(fulltextSetOf({}, CONFIGURED), 'unassigned');
     assert.equal(fulltextSetOf({}, NONE), '');
+});
+
+test('initialSelectedFulltextSets: 担当グループがあれば担当分＋unassigned', () => {
+    assert.deepEqual(
+        [...initialSelectedFulltextSets(CONFIGURED, 'alice@example.com')].sort(),
+        ['ft-group-1', 'unassigned']
+    );
+});
+
+test('initialSelectedFulltextSets: 担当グループが無ければ全グループ＋unassigned（オーナー等）', () => {
+    assert.deepEqual(
+        [...initialSelectedFulltextSets(CONFIGURED, 'owner@example.com')].sort(),
+        ['ft-group-1', 'ft-group-2', 'unassigned']
+    );
+});
+
+test('initialSelectedFulltextSets: 割り振り未設定(status=none)なら空集合', () => {
+    assert.equal(initialSelectedFulltextSets(NONE, 'alice@example.com').size, 0);
+});
+
+test('matchesSelectedFulltextSets: status=none なら常に true', () => {
+    const selected = new Set(['ft-group-1']);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-2' }, NONE, selected), true);
+});
+
+test('matchesSelectedFulltextSets: 選択が空集合なら常に true（未初期化とみなす）', () => {
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, new Set()), true);
+});
+
+test('matchesSelectedFulltextSets: 全グループ選択時は絞り込まない（unassignedの有無は問わない）', () => {
+    const selected = new Set(['ft-group-1', 'ft-group-2']);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, selected), true);
+    assert.equal(matchesSelectedFulltextSets({}, CONFIGURED, selected), true); // unassigned
+});
+
+test('matchesSelectedFulltextSets: 一部選択時は該当セットのみ通す', () => {
+    const selected = new Set(['ft-group-1', 'unassigned']);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, selected), true);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-2' }, CONFIGURED, selected), false);
+    assert.equal(matchesSelectedFulltextSets({}, CONFIGURED, selected), true); // unassigned
+});
+
+test('非管理者回帰: 自分の担当セットのみ選択していても fulltext_set が空(unassigned)の文献は通る', () => {
+    // 初期選択は担当セット + unassigned のはず。取りこぼし防止の要件。
+    const selected = initialSelectedFulltextSets(CONFIGURED, 'alice@example.com');
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: '' }, CONFIGURED, selected), true);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, selected), true);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-2' }, CONFIGURED, selected), false);
+});
+
+test('回帰: グループ数変更後に古い選択(state.selectedFulltextSets)を使い回すと全件弾かれる', () => {
+    // groupCount=3 → 2 へ再シャッフルした直後を想定。古い選択には新しい構成に存在しない
+    // ft-group-3 が残ったまま（ウィザードが選択状態を更新しなかった場合の再現）。
+    const staleSelected = new Set(['ft-group-3', 'unassigned']);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, staleSelected), false);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-2' }, CONFIGURED, staleSelected), false);
+
+    // initialSelectedFulltextSets で新しい設定に基づいて選択を作り直せば、担当外だけを除いて通る
+    const freshSelected = initialSelectedFulltextSets(CONFIGURED, 'owner@example.com');
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-1' }, CONFIGURED, freshSelected), true);
+    assert.equal(matchesSelectedFulltextSets({ fulltext_set: 'ft-group-2' }, CONFIGURED, freshSelected), true);
+});
+
+test('normalizeStoredFulltextSets: 陳腐化したID（ft-group-9等）は捨てる', () => {
+    const stored = ['ft-group-1', 'ft-group-9', 'unassigned'];
+    const result = normalizeStoredFulltextSets(stored, CONFIGURED, 'alice@example.com');
+    assert.deepEqual([...result].sort(), ['ft-group-1', 'unassigned']);
+});
+
+test('normalizeStoredFulltextSets: 捨てた結果グループが空になれば初期選択へフォールバック', () => {
+    // CONFIGURED は groupCount=2 なので ft-group-9 は無効
+    const stored = ['ft-group-9', 'unassigned'];
+    const result = normalizeStoredFulltextSets(stored, CONFIGURED, 'alice@example.com');
+    assert.deepEqual(
+        [...result].sort(),
+        [...initialSelectedFulltextSets(CONFIGURED, 'alice@example.com')].sort()
+    );
 });

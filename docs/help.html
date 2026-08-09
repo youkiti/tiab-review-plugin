@@ -886,13 +886,23 @@
                         unassigned reference(s) have entered the pool since assignment".</span>
                 </p>
                 <p>
-                    <span class="ja">割り振り後は「担当割り振り」行の下に、グループごとの件数と担当者が一覧表示されます（例:
-                        「グループ1 (120) — sato, tanaka」）。管理者でなくても全グループの担当者を確認できます。担当者が
+                    <span class="ja">割り振り後は「担当割り振り」行の下に、グループごとの件数と担当者がチェックボックス付きで一覧表示されます（例:
+                        「☑ グループ1 (120) — sato, tanaka」）。管理者でなくても全グループの担当者を確認できます。担当者が
                         未設定のグループは「担当者なし ⚠」と表示されます。</span>
                     <span class="en">After assignment, the reference count and assigned reviewers for each group are
-                        listed below the "Assignment" row (for example, "Group 1 (120) — sato, tanaka"). Non-admins can
-                        see the reviewers of every group as well. Groups with no reviewer are shown as "No reviewer
-                        ⚠".</span>
+                        listed below the "Assignment" row, each with a checkbox (for example, "☑ Group 1 (120) —
+                        sato, tanaka"). Non-admins can see the reviewers of every group as well. Groups with no
+                        reviewer are shown as "No reviewer ⚠".</span>
+                </p>
+                <p>
+                    <span class="ja">このチェックボックスは、TiAbタブの「担当セット」フィルタと同じ操作感で候補一覧を絞り込みます。既定では自分の担当グループ＋「未割り当て」がチェックされており、全グループにチェックを入れると絞り込みを解除できます（担当外グループのチェックボックスは、件数確認用に表示されるだけで操作できません。管理者は全グループを操作できます）。この絞り込みは候補一覧・件数表示・「⬇ フリー全文を一括検索」・AI一括判定の対象に反映されますが、結果タブ・論文用テキスト・Driveからの取り込み対応付けには影響しません（PRISMAの数値が絞り込みで変動しないようにするためです）。</span>
+                    <span class="en">These checkboxes filter the candidate list the same way the "Assignment Sets"
+                        filter works on the TiAb tab. By default your own group(s) plus "Unassigned" are checked;
+                        checking every group clears the filter. Checkboxes for groups you're not assigned to are
+                        shown only so you can see who owns them and can't be toggled (admins can toggle every group).
+                        This filter affects the candidate list, its counts, "⬇ Fetch free full texts", and the AI
+                        batch judge, but not the Results tab, manuscript text, or the Drive import mapping — so
+                        PRISMA numbers never shift because of this filter.</span>
                 </p>
 
                 <h3>

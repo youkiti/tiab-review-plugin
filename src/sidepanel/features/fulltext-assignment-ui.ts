@@ -16,6 +16,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { showLoading, showToast } from '../ui/feedback';
 import { hideModal, showModal } from '../ui/modal';
+import { platform } from '../../platform';
 import {
     getSpreadsheetPermissions,
     saveFulltextAssignmentConfig,
@@ -30,10 +31,16 @@ import {
     getFulltextSetsForUser,
     getFulltextSetLabel,
     normalizeFulltextReviewerMap,
+    initialSelectedFulltextSets,
+    normalizeStoredFulltextSets,
+    canSeeFulltextRef,
 } from '../../lib/fulltext-assignment';
 import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
 import { getFulltextPoolList } from './screening/filters';
 import type { ReferenceWithStatus } from '../../lib/types';
+
+// selectedFulltextSets の永続化キー。値は { [spreadsheetId]: string[] }（プロジェクトごとに保持）
+const STORAGE_KEY = 'selectedFulltextSets';
 
 let _rerenderTab: (() => void) | null = null;
 let _wizardOpen = false;
@@ -96,18 +103,37 @@ function countAllRefsByFulltextSet(): Map<string, number> {
 }
 
 /**
- * 「どのグループが誰の担当か」の内訳を描画する。
+ * 「自分がこのセットの文献を持っているか」の件数（全文献ベース、canSeeFulltextRef 準拠）。
+ * TiAb の canFilter 判定（visibleCounts）と同じ役割: 自分の担当外セットのチェックボックスを
+ * 無効化するかどうかの根拠に使う（表示件数そのものは countAllRefsByFulltextSet を使う）。
+ */
+function countVisibleRefsByFulltextSet(config: FulltextAssignmentConfig): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const ref of state.allReferences) {
+        const setId = (ref.fulltext_set || '').trim();
+        if (!setId) continue;
+        if (!canSeeFulltextRef(ref, config, state.userEmail, state.isAdmin)) continue;
+        counts.set(setId, (counts.get(setId) ?? 0) + 1);
+    }
+    return counts;
+}
+
+/**
+ * 「どのグループが誰の担当か」の内訳を、TiAb の担当セットフィルタ（assignment.ts の
+ * renderAssignmentFilters）と同じチェックボックスUIで描画する。
  * 未割り当て文献は仕様上「全員が対象」（取りこぼし防止）なので、担当者なしとは書かない。
  */
 function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): void {
     let host: HTMLElement;
+    let listDiv: HTMLElement;
     try {
         host = dom.fulltextAssignmentSets;
+        listDiv = dom.fulltextAssignmentSetListDiv;
     } catch {
         return; // 要素がないページでは何もしない
     }
 
-    host.innerHTML = '';
+    listDiv.innerHTML = '';
     if (config.status !== 'configured') {
         host.classList.add('hidden');
         return;
@@ -115,6 +141,7 @@ function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): vo
     host.classList.remove('hidden');
 
     const counts = countAllRefsByFulltextSet();
+    const visibleCounts = countVisibleRefsByFulltextSet(config);
     const rows: Array<{ setId: string; count: number; reviewers: string[]; everyone: boolean }> = [];
 
     for (let i = 1; i <= config.groupCount; i += 1) {
@@ -137,28 +164,91 @@ function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): vo
     }
 
     for (const row of rows) {
-        const item = document.createElement('div');
-        item.className = 'assignment-set-breakdown-item';
+        // 担当外セットの扱いは TiAb の canFilter と同じ条件式（管理者は常に操作可能）
+        const canFilter = state.isAdmin
+            || (visibleCounts.get(row.setId) ?? 0) > 0
+            || state.selectedFulltextSets.has(row.setId);
 
-        const name = document.createElement('span');
-        name.className = 'assignment-set-breakdown-name';
-        name.textContent = `${getFulltextSetLabel(row.setId)} (${row.count})`;
+        const wrapper = document.createElement('div');
+        wrapper.className = canFilter ? 'source-file-item' : 'source-file-item is-out-of-scope';
 
-        const reviewers = document.createElement('span');
-        reviewers.className = 'assignment-set-reviewers';
-        if (row.everyone) {
-            reviewers.textContent = ` — ${t('assignment_filterReviewersAll')}`;
-        } else if (row.reviewers.length === 0) {
-            reviewers.textContent = ` — ${t('assignment_filterReviewersNone')}`;
-        } else {
-            reviewers.textContent = ` — ${row.reviewers.map((e) => e.split('@')[0] || e).join(', ')}`;
-            reviewers.title = row.reviewers.join(', ');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `fulltext-assignment-set-${row.setId}`;
+        checkbox.checked = canFilter && state.selectedFulltextSets.has(row.setId);
+        checkbox.disabled = !canFilter;
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                state.addSelectedFulltextSet(row.setId);
+            } else {
+                state.removeSelectedFulltextSet(row.setId);
+            }
+            void persistSelectedFulltextSets();
+            if (_rerenderTab) _rerenderTab();
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        if (!canFilter) {
+            label.title = t('assignment_filterOutOfScope');
         }
 
-        item.appendChild(name);
-        item.appendChild(reviewers);
-        host.appendChild(item);
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `${getFulltextSetLabel(row.setId)} (${row.count})`;
+
+        const reviewerSpan = document.createElement('span');
+        reviewerSpan.className = 'assignment-set-reviewers';
+        if (row.everyone) {
+            reviewerSpan.textContent = ` — ${t('assignment_filterReviewersAll')}`;
+        } else if (row.reviewers.length === 0) {
+            reviewerSpan.textContent = ` — ${t('assignment_filterReviewersNone')}`;
+        } else {
+            reviewerSpan.textContent = ` — ${row.reviewers.map((e) => e.split('@')[0] || e).join(', ')}`;
+            reviewerSpan.title = row.reviewers.join(', ');
+        }
+
+        label.appendChild(nameSpan);
+        label.appendChild(reviewerSpan);
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        listDiv.appendChild(wrapper);
     }
+}
+
+/**
+ * 選択状態を platform().storageSet で永続化する（サイドパネルは chrome.storage.local を直接呼ばない）。
+ * 値は他プロジェクト分と共存する { [spreadsheetId]: string[] } 形式なので、読み直してから該当キーだけ更新する。
+ */
+async function persistSelectedFulltextSets(): Promise<void> {
+    try {
+        const stored = await platform().storageGet([STORAGE_KEY]);
+        const map = { ...(stored[STORAGE_KEY] as Record<string, string[]> | undefined) };
+        map[state.spreadsheetId] = Array.from(state.selectedFulltextSets);
+        await platform().storageSet({ [STORAGE_KEY]: map });
+    } catch (error) {
+        console.warn('[ftAssign] 選択状態の保存に失敗:', error);
+    }
+}
+
+/**
+ * 担当セットフィルタの選択状態を初期化する（保存値の読み込み＋正規化、無ければ初期選択）。
+ * project.ts の loadDataAndShowScreening から、state.fulltextAssignment 設定後に呼ぶ。
+ */
+export async function initializeFulltextAssignmentSelection(spreadsheetId: string, userEmail: string): Promise<void> {
+    const config = state.fulltextAssignment;
+    let selected = initialSelectedFulltextSets(config, userEmail);
+    try {
+        const stored = await platform().storageGet([STORAGE_KEY]);
+        const map = stored[STORAGE_KEY] as Record<string, string[]> | undefined;
+        const storedForProject = map?.[spreadsheetId];
+        if (storedForProject) {
+            selected = normalizeStoredFulltextSets(storedForProject, config, userEmail);
+        }
+    } catch (error) {
+        console.warn('[ftAssign] 選択状態の読み込みに失敗:', error);
+    }
+    state.setSelectedFulltextSets(selected);
 }
 
 /** フルテキストタブの割り振り状態行を描画する（renderFulltextTab から呼ぶ） */
@@ -562,6 +652,10 @@ async function handleCreate(
         await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
         applyLocalFulltextSets(assignments);
         syncSetFulltextAssignment(nextConfig);
+        // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
+        // 新しい設定に基づく初期選択へ戻す
+        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_created', [String(pool.length), String(groupCount)]), 3000);
         if (_rerenderTab) _rerenderTab();
@@ -589,6 +683,10 @@ async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise
         };
         await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
         syncSetFulltextAssignment(nextConfig);
+        // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
+        // 新しい設定に基づく初期選択へ戻す
+        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_mapSaved'), 3000);
         if (_rerenderTab) _rerenderTab();
@@ -647,6 +745,10 @@ async function handleReset(): Promise<void> {
         };
         await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
         syncSetFulltextAssignment(nextConfig);
+        // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
+        // 新しい設定に基づく初期選択へ戻す（status='none' なら initialSelectedFulltextSets は空集合を返す）
+        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_resetDone'), 3000);
         if (_rerenderTab) _rerenderTab();

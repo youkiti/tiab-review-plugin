@@ -159,18 +159,25 @@
     cursor: not-allowed;
 }
 
-/* グループ別の件数・担当者一覧（フルテキストタブ） */
+/* 担当セットフィルター（フルテキストタブ、インライン配置）
+ * TiAbの #assignment-filters-section と同じ .source-file-item ベースの見た目を使うが、
+ * ⚙️パネルを持たないフルテキストタブでは囲み枠（.source-filters-section）は使わず、
+ * 見出しだけ小さめにしてインラインに収める。 */
 .assignment-set-breakdown {
     margin: 4px 0 8px;
-    padding-left: 2px;
+}
+
+.assignment-set-breakdown h4 {
+    margin-bottom: 4px;
     font-size: 12px;
+    font-weight: 600;
     color: #555;
 }
 
-.assignment-set-breakdown-item {
-    padding: 1px 0;
+.assignment-set-breakdown .source-file-list {
+    max-height: 120px;
 }
 
-.assignment-set-breakdown-name {
-    color: #333;
+.assignment-set-breakdown .source-file-item {
+    font-size: 12px;
 }

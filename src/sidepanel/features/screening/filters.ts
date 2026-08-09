@@ -12,8 +12,8 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
-import { isInFulltextPool, isTiabDecision, describeRule } from '../../../lib/fulltext-pool';
-import { canSeeFulltextRef } from '../../../lib/fulltext-assignment';
+import { isInFulltextPool, isTiabDecision, describeRule, isProjectFulltextCandidate } from '../../../lib/fulltext-pool';
+import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 
@@ -95,6 +95,32 @@ export function getFulltextCandidateList(): ReferenceWithStatus[] {
  */
 export function getFulltextPoolList(): ReferenceWithStatus[] {
     return state.references.filter(isFulltextCandidate);
+}
+
+/**
+ * フルテキスト候補一覧に、担当セットのチェックボックス絞り込み（state.selectedFulltextSets）を
+ * 適用したもの。候補一覧・入手状況・一括OA検索・AI一括判定など「表示中の作業対象」に使う。
+ * Drive取り込み対応付けは getFulltextCandidateList() をそのまま使い続け、この絞り込みの影響を受けない。
+ * PRISMA の分母に関わる結果タブ・論文用テキストは getProjectFulltextCandidateList() を使う
+ * （ログインユーザーや担当割り振りに依存させないため）。
+ */
+export function getVisibleFulltextCandidateList(): ReferenceWithStatus[] {
+    return getFulltextCandidateList().filter((r) =>
+        matchesSelectedFulltextSets(r, state.fulltextAssignment, state.selectedFulltextSets)
+    );
+}
+
+/**
+ * プロジェクト全体のフルテキスト候補一覧（ログインユーザー・担当割り振りに依存しない）。
+ * state.allReferences（担当割り振りで絞り込まれる前の全文献）を走査し、
+ * canSeeFulltextRef / matchesSelectedFulltextSets のいずれも適用しない。
+ * PRISMA の数値・論文用テキスト・CSV/RIS エクスポートなど、誰がログインしていても
+ * 同じ結果でなければならない集計に使う。
+ */
+export function getProjectFulltextCandidateList(): ReferenceWithStatus[] {
+    return state.allReferences.filter((r) =>
+        isProjectFulltextCandidate(collectRefDecisions(r), state.fulltextPoolRule)
+    );
 }
 
 /**
