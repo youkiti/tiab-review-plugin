@@ -179,6 +179,7 @@ const domElements = {
     get fulltextAssignmentLine() { return getElement<HTMLElement>('fulltext-assignment-line'); },
     get fulltextAssignmentEditBtn() { return getElement<HTMLButtonElement>('fulltext-assignment-edit-btn'); },
     get fulltextAssignmentSets() { return getElement<HTMLElement>('fulltext-assignment-sets'); },
+    get fulltextAssignmentSetListDiv() { return getElement<HTMLElement>('fulltext-assignment-set-list'); },
     get fulltextObtainedLine() { return getElement<HTMLElement>('fulltext-obtained-line'); },
     get fulltextStatusBarFill() { return getElement<HTMLElement>('fulltext-status-bar-fill'); },
     get fulltextStatusBreakdown() { return getElement<HTMLElement>('fulltext-status-breakdown'); },

@@ -13,7 +13,7 @@ import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/shee
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 import { isInFulltextPool, isTiabDecision, describeRule } from '../../../lib/fulltext-pool';
-import { canSeeFulltextRef } from '../../../lib/fulltext-assignment';
+import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 
@@ -95,6 +95,18 @@ export function getFulltextCandidateList(): ReferenceWithStatus[] {
  */
 export function getFulltextPoolList(): ReferenceWithStatus[] {
     return state.references.filter(isFulltextCandidate);
+}
+
+/**
+ * フルテキスト候補一覧に、担当セットのチェックボックス絞り込み（state.selectedFulltextSets）を
+ * 適用したもの。候補一覧・入手状況・一括OA検索・AI一括判定など「表示中の作業対象」に使う。
+ * PRISMA の分母に関わる結果タブ・論文用テキスト・Drive取り込み対応付けは
+ * getFulltextCandidateList() をそのまま使い続け、この絞り込みの影響を受けない。
+ */
+export function getVisibleFulltextCandidateList(): ReferenceWithStatus[] {
+    return getFulltextCandidateList().filter((r) =>
+        matchesSelectedFulltextSets(r, state.fulltextAssignment, state.selectedFulltextSets)
+    );
 }
 
 /**

@@ -61,6 +61,9 @@ let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
 let _assignmentSets: Set<string> = new Set();
 let _selectedAssignmentSets: Set<string> = new Set();
 
+// フルテキスト担当セットフィルター（TiAb の _selectedAssignmentSets と対称）
+let _selectedFulltextSets: Set<string> = new Set();
+
 // ユーザー設定
 let _autoNavigateAfterDecision = true;
 let _showRecordCountBelow = true;
@@ -219,6 +222,12 @@ export const state = {
     addSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.add(setId); },
     removeSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.delete(setId); },
 
+    // ----- Fulltext Assignment Filters -----
+    get selectedFulltextSets() { return _selectedFulltextSets; },
+    setSelectedFulltextSets(sets: Set<string>) { _selectedFulltextSets = sets; },
+    addSelectedFulltextSet(setId: string) { _selectedFulltextSets.add(setId); },
+    removeSelectedFulltextSet(setId: string) { _selectedFulltextSets.delete(setId); },
+
     // ----- User Settings -----
     get autoNavigateAfterDecision() { return _autoNavigateAfterDecision; },
     setAutoNavigateAfterDecision(value: boolean) { _autoNavigateAfterDecision = value; },
@@ -330,6 +339,7 @@ export const state = {
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();
+        _selectedFulltextSets.clear();
         _activeTermFilters = [];
         _currentTab = 'screening';
         _llmConfig = { ...DEFAULT_LLM_CONFIG };
@@ -360,6 +370,7 @@ export const state = {
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();
+        _selectedFulltextSets.clear();
         _activeTermFilters = [];
         _enabledReviewers.clear();
         _availableReviewers.clear();

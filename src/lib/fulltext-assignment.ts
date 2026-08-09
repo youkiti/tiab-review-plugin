@@ -94,6 +94,85 @@ export function canSeeFulltextRef(
     return getFulltextSetsForUser(config, userEmail).has(setId);
 }
 
+/**
+ * 存在しうるフルテキストセットIDの集合（ft-group-1..N を昇順、hasUnassigned なら末尾に 'unassigned'）。
+ * TiAb の getAvailableAssignmentSets に相当するが、フルテキスト側は候補プールに依存させず
+ * config.groupCount だけから機械的に決まる（絞り込みロジックが availableSets に依存しないようにするため）。
+ */
+export function getAvailableFulltextSets(config: FulltextAssignmentConfig, hasUnassigned: boolean): Set<string> {
+    const sets = new Set<string>();
+    for (let i = 1; i <= config.groupCount; i += 1) {
+        sets.add(`ft-group-${i}`);
+    }
+    if (hasUnassigned) sets.add('unassigned');
+    return sets;
+}
+
+/**
+ * チェックボックス絞り込みの初期選択セット
+ * - 割り振り未設定: 空（絞り込みなし）
+ * - 自分の担当グループがある: 担当グループ + 'unassigned'
+ *   （'unassigned' 行は管理者にしか描画されないが、非管理者にも取りこぼし防止のため
+ *   常に見せる必要があるので初期選択には含めておく。管理者は行が出るのでチェックを外せる）
+ * - 担当グループが無い（オーナー等）: 全 ft-group-1..N + 'unassigned'
+ */
+export function initialSelectedFulltextSets(config: FulltextAssignmentConfig, userEmail: string): Set<string> {
+    if (config.status !== 'configured') return new Set<string>();
+
+    const mySets = getFulltextSetsForUser(config, userEmail);
+    if (mySets.size > 0) {
+        return new Set([...mySets, 'unassigned']);
+    }
+    return getAvailableFulltextSets(config, true);
+}
+
+/**
+ * 文献が現在の絞り込み選択に一致するか（純粋関数。availableSets には依存しない）
+ * - 割り振り未設定: 常に true（絞り込まない）
+ * - 選択が空: 常に true（未初期化とみなし絞り込まない）
+ * - ft-group-1..groupCount が全て選択されている: 常に true（unassigned の選択有無は問わない）
+ * - それ以外: 選択にこの文献のセットが含まれるか
+ */
+export function matchesSelectedFulltextSets(
+    ref: { fulltext_set?: string },
+    config: FulltextAssignmentConfig,
+    selected: Set<string>
+): boolean {
+    if (config.status !== 'configured') return true;
+    if (selected.size === 0) return true;
+
+    let allGroupsSelected = true;
+    for (let i = 1; i <= config.groupCount; i += 1) {
+        if (!selected.has(`ft-group-${i}`)) {
+            allGroupsSelected = false;
+            break;
+        }
+    }
+    if (allGroupsSelected) return true;
+
+    return selected.has(fulltextSetOf(ref, config));
+}
+
+/**
+ * 永続化された選択状態を現在の割り振り設定に照らして正規化する。
+ * 再シャッフルやグループ数変更で ft-group-N の意味が変わっている可能性があるため、
+ * 現在の ft-group-1..groupCount / 'unassigned' に含まれないIDは捨てる。
+ * 捨てた結果 ft-group-* が1つも残らなければ陳腐化とみなし、初期選択へフォールバックする。
+ */
+export function normalizeStoredFulltextSets(
+    stored: string[],
+    config: FulltextAssignmentConfig,
+    userEmail: string
+): Set<string> {
+    const validIds = getAvailableFulltextSets(config, true);
+    const kept = new Set(stored.filter((id) => validIds.has(id)));
+    const hasAnyGroup = Array.from(kept).some((id) => id.startsWith('ft-group-'));
+    if (!hasAnyGroup) {
+        return initialSelectedFulltextSets(config, userEmail);
+    }
+    return kept;
+}
+
 /** セットIDの表示名（例: ft-group-2 → グループ2） */
 export function getFulltextSetLabel(setId: string): string {
     if (setId === 'unassigned') return t('ftAssign_setUnassigned');

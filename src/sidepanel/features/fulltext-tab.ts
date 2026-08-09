@@ -11,7 +11,7 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
-import { getFulltextCandidateList } from './screening/filters';
+import { getVisibleFulltextCandidateList } from './screening/filters';
 import { handleKeyToggle } from './screening/actions';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { setupFulltextAiListeners } from './fulltext-ai';
@@ -110,7 +110,7 @@ function collectAllDecisions(): Decision[] {
  * フルテキストタブの内容を描画
  */
 export function renderFulltextTab(): void {
-    const candidates = getFulltextCandidateList();
+    const candidates = getVisibleFulltextCandidateList();
 
     renderRuleAndProgress(candidates);
     renderFulltextAssignmentRow();
@@ -405,7 +405,7 @@ async function handleBulkFetch(): Promise<void> {
     if (bulkRun) return;
 
     const retry = dom.fulltextRetryCheckbox.checked;
-    const targets = getFulltextCandidateList().filter(r => {
+    const targets = getVisibleFulltextCandidateList().filter(r => {
         const s = retrievalStatus(r);
         return s === 'not_retrieved' || (retry && s === 'unavailable');
     });

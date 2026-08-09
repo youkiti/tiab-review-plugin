@@ -39,7 +39,13 @@ import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
-import { canSeeFulltextRef, createDefaultFulltextAssignment } from '../lib/fulltext-assignment';
+import {
+    canSeeFulltextRef,
+    createDefaultFulltextAssignment,
+    initialSelectedFulltextSets,
+    normalizeStoredFulltextSets,
+    matchesSelectedFulltextSets,
+} from '../lib/fulltext-assignment';
 import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
 import type { OaSource } from '../lib/fulltext-retriever';
 import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types';
@@ -71,6 +77,8 @@ let allDecisions: Decision[] = [];
 let poolRule: FulltextPoolRule | null = null;
 // フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none' = 全員が全候補）
 let ftAssignment: FulltextAssignmentConfig = createDefaultFulltextAssignment();
+// サイドパネルの担当セットフィルタで選択されたセット（起動時に一度だけ読む。以後の追従は不要）
+let selectedFulltextSets: Set<string> = new Set();
 let keyOpened = false;
 
 // 採用中のフルテキストAI判定ラウンド（reviewer_id）。サマリ/ハイライトはこのラウンドを優先する。
@@ -190,6 +198,21 @@ async function initFulltextPage(): Promise<void> {
     //   縮退表示する（既定 neutral: 単色・polarityなし）。開示時のみ色分け・polarityを出す。
     aiReveal = keyOpened;
     evidenceDisplay = config.fulltextEvidenceDisplay;
+
+    // サイドパネルの担当セットフィルタ選択を読み込む（起動時に一度だけ。以後の追従は不要）。
+    // このページは拡張専用なので chrome.storage.local を直接読む
+    // （サイドパネル側は platform().storageGet/Set 経由で同じキーへ書き込む）。
+    try {
+        const storedSelection = await chrome.storage.local.get(['selectedFulltextSets']);
+        const map = storedSelection.selectedFulltextSets as Record<string, string[]> | undefined;
+        const storedForProject = map?.[spreadsheetId];
+        selectedFulltextSets = storedForProject
+            ? normalizeStoredFulltextSets(storedForProject, ftAssignment, userEmail)
+            : initialSelectedFulltextSets(ftAssignment, userEmail);
+    } catch (err) {
+        console.warn('[fulltext] 担当セットフィルタ選択の読み込みに失敗:', err);
+        selectedFulltextSets = initialSelectedFulltextSets(ftAssignment, userEmail);
+    }
 
     currentRef = refs.find(r => r.ref_id === refId) ?? null;
     if (!currentRef) {
@@ -380,6 +403,11 @@ function recomputeCandidates(): void {
     // 担当割り振り設定済みなら自分の担当分（+未割り当て）へ絞り込む。管理者は全候補。
     fulltextCandidates = fulltextCandidates.filter(r =>
         canSeeFulltextRef(r, ftAssignment, userEmail, isAdmin)
+    );
+
+    // サイドパネルの担当セットフィルタ選択（チェックボックス絞り込み）を反映する
+    fulltextCandidates = fulltextCandidates.filter(r =>
+        matchesSelectedFulltextSets(r, ftAssignment, selectedFulltextSets)
     );
 
     currentCandidateIndex = currentRef

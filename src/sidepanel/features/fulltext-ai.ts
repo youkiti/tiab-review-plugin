@@ -17,7 +17,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { showToast } from '../ui/feedback';
-import { getFulltextCandidateList } from './screening/filters';
+import { getVisibleFulltextCandidateList } from './screening/filters';
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from './assignment';
 import { setReferences as syncSetReferences } from '../store/compat';
 import {
@@ -295,7 +295,7 @@ async function deleteRound(reviewerId: string): Promise<void> {
 
 /** 対象件数の表示を更新する */
 function updateAiTargetCount(): void {
-    const candidates = getFulltextCandidateList();
+    const candidates = getVisibleFulltextCandidateList();
     const eligible = candidates.filter(isAiEligible).length;
     const cached = candidates.filter(r => r.fulltext_status === 'cached' && r.fulltext_url).length;
     dom.fulltextAiTargetDiv.innerHTML =
@@ -333,7 +333,7 @@ async function handleStartAiBatch(): Promise<void> {
     const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
     const modelConfig = getModelConfig(modelId);
 
-    const candidates = getFulltextCandidateList();
+    const candidates = getVisibleFulltextCandidateList();
     const targets = candidates.filter(isAiEligible);
     if (targets.length === 0) {
         showToast(t('fulltext_aiNoTarget'));

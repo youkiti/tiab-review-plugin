@@ -30,6 +30,7 @@ import { setupProjectFolder } from '../../lib/drive-api';
 import { platform } from '../../platform';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
+import { initializeFulltextAssignmentSelection } from './fulltext-assignment-ui';
 import { initTeamProgress } from './team-progress';
 import { flushDecisionQueue } from '../utils/offline-queue';
 import { buildPickerUrl } from '../../lib/picker-url';
@@ -579,6 +580,8 @@ export async function loadDataAndShowScreening() {
         if (_renderKeywords) _renderKeywords();
         if (_renderSourceFilters) _renderSourceFilters();
         renderAssignmentFilters();
+        // フルテキストタブの担当セットフィルタ選択状態（state.fulltextAssignment 設定後に読み込む）
+        await initializeFulltextAssignmentSelection(spreadsheetId, userEmail);
         if (_renderCurrentReference) _renderCurrentReference();
         void maybeShowAssignmentWizard('load');
 
