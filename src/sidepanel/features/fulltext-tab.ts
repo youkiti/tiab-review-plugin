@@ -42,6 +42,7 @@ import {
     setupFulltextDriveImportListeners,
 } from './fulltext-drive-import';
 import { setupFulltextRegrantListeners } from './fulltext-regrant';
+import { renderFulltextChecklist, setupFulltextChecklistListeners } from './fulltext-checklist';
 import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
 import { showToast } from '../ui/feedback';
 import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
@@ -116,6 +117,7 @@ export function renderFulltextTab(): void {
     renderRuleAndProgress(candidates);
     renderFulltextAssignmentRow();
     renderTeamProgress();
+    renderFulltextChecklist(candidates);
     renderRetrievalSummary(candidates);
     renderViewFilter(candidates);
     renderList(candidates);
@@ -643,4 +645,5 @@ export function setupFulltextTabListeners(): void {
     setFulltextDriveImportDeps({ rerenderTab: renderFulltextTab });
     setupFulltextDriveImportListeners();
     setupFulltextRegrantListeners();
+    setupFulltextChecklistListeners();
 }

@@ -2664,6 +2664,45 @@
   "fulltext_regrantCloseBtn": {
     "message": "Close"
   },
+  "fulltext_checklist_heading": {
+    "message": "Setup"
+  },
+  "fulltext_checklist_collapsedSummary": {
+    "message": "Setup complete ✓"
+  },
+  "fulltext_checklist_version": {
+    "message": "1. Version: v$1"
+  },
+  "fulltext_checklist_groupNarrowed": {
+    "message": "2. Assigned group: showing $1 ($2 items)"
+  },
+  "fulltext_checklist_groupAll": {
+    "message": "2. Assigned group: showing all candidates ($1 items)"
+  },
+  "fulltext_checklist_regrantUnchecked": {
+    "message": "3. PDF read access: not checked yet"
+  },
+  "fulltext_checklist_regrantOk": {
+    "message": "3. PDF read access OK ($1 file(s) verified)"
+  },
+  "fulltext_checklist_regrantUnreadable": {
+    "message": "3. PDF read access: $1 file(s) unreadable"
+  },
+  "fulltext_checklist_regrantPreviousOk": {
+    "message": "3. PDF read access: no issues as of last check ($1) — recheck recommended"
+  },
+  "fulltext_checklist_regrantPreviousUnreadable": {
+    "message": "3. PDF read access: $2 file(s) unreadable as of last check ($1) — recheck recommended"
+  },
+  "fulltext_checklist_regrantCheckBtn": {
+    "message": "Check access"
+  },
+  "fulltext_checklist_regrantGrantBtn": {
+    "message": "Grant access"
+  },
+  "fulltext_checklist_progress": {
+    "message": "4. Decisions: $1 / $2"
+  },
   "webapp_editionLabel": {
     "message": "(Browser)"
   },

@@ -2664,6 +2664,45 @@
   "fulltext_regrantCloseBtn": {
     "message": "閉じる"
   },
+  "fulltext_checklist_heading": {
+    "message": "セットアップ"
+  },
+  "fulltext_checklist_collapsedSummary": {
+    "message": "セットアップ完了 ✓"
+  },
+  "fulltext_checklist_version": {
+    "message": "1. バージョン: v$1"
+  },
+  "fulltext_checklist_groupNarrowed": {
+    "message": "2. 担当グループ: $1（$2件）を表示中"
+  },
+  "fulltext_checklist_groupAll": {
+    "message": "2. 担当グループ: 全候補を表示中（$1件）"
+  },
+  "fulltext_checklist_regrantUnchecked": {
+    "message": "3. PDF読み取り権限: 未確認"
+  },
+  "fulltext_checklist_regrantOk": {
+    "message": "3. PDF読み取り権限OK（$1件確認済み）"
+  },
+  "fulltext_checklist_regrantUnreadable": {
+    "message": "3. PDF読み取り権限: 読めないPDFが$1件"
+  },
+  "fulltext_checklist_regrantPreviousOk": {
+    "message": "3. PDF読み取り権限: 前回確認時（$1）は問題なし（要再確認）"
+  },
+  "fulltext_checklist_regrantPreviousUnreadable": {
+    "message": "3. PDF読み取り権限: 前回確認時（$1）に読めないPDFが$2件（要再確認）"
+  },
+  "fulltext_checklist_regrantCheckBtn": {
+    "message": "権限を確認する"
+  },
+  "fulltext_checklist_regrantGrantBtn": {
+    "message": "まとめて権限を付与"
+  },
+  "fulltext_checklist_progress": {
+    "message": "4. 判定: $1 / $2 件"
+  },
   "webapp_editionLabel": {
     "message": "(ブラウザ版)"
   },
