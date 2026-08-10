@@ -122,14 +122,20 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
         }
     }
 
-    // ---- フルテキスト候補プール（ルール設定済みの場合のみ・全員共通の分母） ----
-    const poolRefIds = poolRule
-        ? new Set(
-            refs
-                .filter((r) => isInFulltextPool(decisionsByRef.get(r.ref_id) ?? [], poolRule))
-                .map((r) => r.ref_id)
-        )
-        : null;
+    // ---- フルテキスト候補プール（全員共通の分母） ----
+    // 担当割り振り設定済みなら fulltext_set 列（判定票に依存しない）が非空の文献を分母にする。
+    // Blind中は他人の票が読み込まれずプールルール評価が人によってブレるため、
+    // 割り振り済みプロジェクトではこちらを優先し、全員の分母を一致させる。
+    // 未設定時は従来どおりプールルール評価（ルール未設定なら分母なし = null）。
+    const poolRefIds = ftAssignmentConfigured
+        ? new Set(refs.filter((r) => (r.fulltext_set || '').trim() !== '').map((r) => r.ref_id))
+        : poolRule
+            ? new Set(
+                refs
+                    .filter((r) => isInFulltextPool(decisionsByRef.get(r.ref_id) ?? [], poolRule))
+                    .map((r) => r.ref_id)
+            )
+            : null;
 
     // ---- メンバー別: フェーズごとの判定済み ref_id と最終判定日時 ----
     const tiabDoneByMember = new Map<string, Set<string>>();

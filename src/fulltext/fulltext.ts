@@ -36,11 +36,11 @@ import {
 import { getClientVersion } from '../lib/client-version';
 import { t } from '../lib/i18n';
 import {
-    isInFulltextPool,
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
+import { isFulltextCandidateRef } from '../lib/fulltext-candidates';
 import {
     canSeeFulltextRef,
     createDefaultFulltextAssignment,
@@ -185,7 +185,7 @@ async function initFulltextPage(): Promise<void> {
     }
 
     // 文献一覧・判定一覧・Config共有設定を1リクエストで取得（429対策）
-    const { references: refs, decisions: decisionsData, config } = await getFulltextPageData(spreadsheetId);
+    const { references: refs, decisions: decisionsData, config } = await getFulltextPageData(spreadsheetId, userEmail);
 
     allRefs = refs;
     allDecisions = decisionsData.map(({ decision }) => decision);
@@ -372,37 +372,33 @@ function updateToolbarMode(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * 候補リストを再計算する
- * - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
+ * 候補リストを再計算する（判定は isFulltextCandidateRef に委譲。詳細は fulltext-candidates.ts 参照）
+ * - 割り振り設定済み: fulltext_set が非空の文献 ∪ ルール評価で候補入りする未割り当て流入分
  * - 未設定:
- *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
- *   - 非管理者: 自分が TiAb で Include した文献
+ *   - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
+ *   - ルール未設定:
+ *     - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *     - 非管理者: 自分が TiAb で Include した文献
  */
 function recomputeCandidates(): void {
-    if (poolRule) {
-        const rule = poolRule;
-        const byRef = new Map<string, Decision[]>();
-        for (const d of allDecisions) {
-            const list = byRef.get(d.ref_id);
-            if (list) {
-                list.push(d);
-            } else {
-                byRef.set(d.ref_id, [d]);
-            }
+    const byRef = new Map<string, Decision[]>();
+    for (const d of allDecisions) {
+        const list = byRef.get(d.ref_id);
+        if (list) {
+            list.push(d);
+        } else {
+            byRef.set(d.ref_id, [d]);
         }
-        fulltextCandidates = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule));
-    } else {
-        const tiabIncludes = new Set(
-            allDecisions
-                .filter(d =>
-                    d.decision === 'include' &&
-                    isTiabDecision(d) &&
-                    (isAdmin || d.reviewer_id === userEmail)
-                )
-                .map(d => d.ref_id)
-        );
-        fulltextCandidates = allRefs.filter(r => tiabIncludes.has(r.ref_id));
     }
+
+    fulltextCandidates = allRefs.filter(r => isFulltextCandidateRef({
+        ref: r,
+        decisions: byRef.get(r.ref_id) ?? [],
+        poolRule,
+        assignment: ftAssignment,
+        userEmail,
+        isAdmin,
+    }));
 
     // 担当割り振り設定済みなら自分の担当分（+未割り当て）へ絞り込む。管理者は全候補。
     fulltextCandidates = fulltextCandidates.filter(r =>

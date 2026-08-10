@@ -1954,12 +1954,35 @@ export async function getProjectConfigBundle(spreadsheetId: string): Promise<Pro
 }
 
 /**
+ * Blind中（keyOpened=false）の全文閲覧ウィンドウ向けに Decisions を絞り込む。
+ * サイドパネルの Blind ロード（getReferencesWithStatus）と同じポリシー:
+ * 自分の判定（reviewer_id が userEmail と一致）＋ LLM判定（reviewer_id が 'llm:' で始まる）のみ返す。
+ * 他レビュアーの人間票・ML票はBlind中は一切クライアントへ渡さない。
+ */
+function filterDecisionsForBlind(
+    decisions: { decision: Decision; rowIndex: number }[],
+    keyOpened: boolean,
+    userEmail: string
+): { decision: Decision; rowIndex: number }[] {
+    if (keyOpened) return decisions;
+    const normalizedEmail = (userEmail || '').trim();
+    return decisions.filter(({ decision }) => {
+        const reviewerId = (decision.reviewer_id || '').trim();
+        return reviewerId === normalizedEmail || reviewerId.startsWith('llm:');
+    });
+}
+
+/**
  * フルテキストページの初期データをまとめて取得（1リクエスト）
  * References / Decisions / Config を values:batchGet で取得する。
  * 追記専用化により Decisions には同一キーの履歴行が複数残りうるため、返す前に
  * 各キーの最新1行へ畳み込む（下流のUI・集計を getDecisions() と同じ挙動に保つため）。
+ *
+ * keyOpened=false（Blind中）のときは、返す decisions を filterDecisionsForBlind() で
+ * 自分の判定＋LLM判定に絞り込む（サイドパネルの Blind ロードと同じポリシー）。
+ * primeDecisionRowCache() は絞り込み前の全件で温める（行番号キャッシュの整合性のため）。
  */
-export async function getFulltextPageData(spreadsheetId: string): Promise<{
+export async function getFulltextPageData(spreadsheetId: string, userEmail: string): Promise<{
     references: Reference[];
     decisions: { decision: Decision; rowIndex: number }[];
     config: ProjectConfigBundle;
@@ -1973,10 +1996,11 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
         const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
         // ここでも Decisions を rowIndex 付きで全件取得しているため、行番号キャッシュを温める
         primeDecisionRowCache(spreadsheetId, decisions);
+        const config = parseConfigBundle(configValues);
         return {
             references: parseReferenceValues(refValues),
-            decisions,
-            config: parseConfigBundle(configValues),
+            decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
+            config,
         };
     } catch (error) {
         // Config タブがない旧シートでは batchGet 全体が失敗するため、Config 抜きで再試行
@@ -1988,10 +2012,11 @@ export async function getFulltextPageData(spreadsheetId: string): Promise<{
             ]);
             const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
             primeDecisionRowCache(spreadsheetId, decisions);
+            const config = { ...DEFAULT_CONFIG_BUNDLE };
             return {
                 references: parseReferenceValues(refValues),
-                decisions,
-                config: { ...DEFAULT_CONFIG_BUNDLE },
+                decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
+                config,
             };
         }
         throw error;

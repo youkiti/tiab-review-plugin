@@ -16,6 +16,11 @@ export type FulltextEmptyReason =
     | 'filtered_out'             // 担当セットのチェックボックス絞り込みで0件になっただけ
     | 'no_candidates';           // 本当にまだ候補が無い（従来メッセージ）
 
+// 2026-08 fulltext-candidates.ts 導入後の注記:
+// 割り振り済みプロジェクトでは候補判定が fulltext_set 列（判定票に依存しない）を優先するため、
+// assignedSetCount > 0（fulltext_set に件数がある）のに候補0件になることは原理的にほぼ起きなくなった。
+// もし発生した場合は fulltext_set とロードデータの不整合＝真のデータ異常を疑うこと。
+
 /**
  * フルテキスト候補が0件になった理由を判定する
  *

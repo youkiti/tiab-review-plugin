@@ -24,6 +24,7 @@
         "../src/lib/picker-url.ts",
         "../src/lib/sheets-api.ts",
         "../src/background/auth-flow.ts",
-        "../src/lib/fulltext-empty-reason.ts"
+        "../src/lib/fulltext-empty-reason.ts",
+        "../src/lib/fulltext-candidates.ts"
     ]
 }
