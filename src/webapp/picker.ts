@@ -102,20 +102,43 @@ function returnGrantedCountToExtension(redirectUri: string, count: number): void
 }
 
 /**
+ * マイドライブ向け・共有アイテム向け（setOwnedByMe(false)）の2枚のビューを組にして返す。
+ * 既定の DocsView はマイドライブ配下のみが対象で、共有されただけでマイドライブに
+ * 追加していないファイルは一覧にも検索結果にも出てこない（Issue #75）。configure は
+ * setFileIds/setMimeTypes/setParent 等の絞り込みを両方のビューへ同一に適用するために使う
+ * （片方だけに適用すると、オーナー本人か共有を受けた側かのどちらかで従来どおり出てこない）。
+ */
+function buildDocsViews(
+    viewId: google.picker.ViewId,
+    configure: (view: google.picker.DocsView) => void,
+): [google.picker.DocsView, google.picker.DocsView] {
+    const ownedView = new google.picker.DocsView(viewId);
+    configure(ownedView);
+    const sharedView = new google.picker.DocsView(viewId);
+    sharedView.setOwnedByMe(false);
+    configure(sharedView);
+    return [ownedView, sharedView];
+}
+
+/**
  * PDFモード用Picker: DocsView(DOCS) を application/pdf に絞り込み、複数選択を許可する。
  * folderId があれば初期表示フォルダとして使う（アクセス範囲の制限ではなく表示上の絞り込みのみ）。
+ * フルテキスト用フォルダはプロジェクトのオーナーが所有し共同研究者に共有される運用のため、
+ * 共有アイテムビューも addView する（Issue #75）。
  * PICKED/CANCEL のいずれも window.location.href で拡張機能のリダイレクトURIへ遷移して結果を返す。
  */
 function openPdfPicker(token: string, folderId: string | null, redirectUri: string): void {
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
-    view.setMimeTypes('application/pdf');
-    if (folderId) view.setParent(folderId);
+    const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.DOCS, (view) => {
+        view.setMimeTypes('application/pdf');
+        if (folderId) view.setParent(folderId);
+    });
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
         .setAppId(__GCP_PROJECT_NUMBER__)
         .setOAuthToken(token)
-        .addView(view)
+        .addView(ownedView)
+        .addView(sharedView)
         .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         .setLocale(locale)
         .setCallback((data) => {
@@ -148,17 +171,22 @@ function openPdfPicker(token: string, folderId: string | null, redirectUri: stri
  * 拡張機能が一覧そのものを受け取る必要が無い。拡張機能側は返ってきた件数を表示に
  * 使うだけで、実際に読めるようになったかどうかの真値は再度の files.list で取り直す
  * （src/lib/fulltext-access.ts / listAccessibleFileIdsInFolder 参照）。
+ *
+ * フルテキスト用フォルダはプロジェクトのオーナーが所有し共同研究者に共有される運用のため、
+ * openPdfPicker と同様に共有アイテムビューも addView する（Issue #75）。
  */
 function openRegrantPicker(token: string, folderId: string | null, redirectUri: string): void {
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
-    view.setMimeTypes('application/pdf');
-    if (folderId) view.setParent(folderId);
+    const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.DOCS, (view) => {
+        view.setMimeTypes('application/pdf');
+        if (folderId) view.setParent(folderId);
+    });
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
         .setAppId(__GCP_PROJECT_NUMBER__)
         .setOAuthToken(token)
-        .addView(view)
+        .addView(ownedView)
+        .addView(sharedView)
         .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         .setLocale(locale)
         .setCallback((data) => {
@@ -176,15 +204,24 @@ function openRegrantPicker(token: string, folderId: string | null, redirectUri: 
     picker.setVisible(true);
 }
 
+/**
+ * スプレッドシート選択用Picker: マイドライブ向けビューに加えて、共有アイテム向けビュー
+ * （setOwnedByMe(false)）も addView する。自分がオーナーではなく共有を受けただけの
+ * スプレッドシートは、既定のビューだけでは一覧にも検索結果にも出てこないため（Issue #75）。
+ * fileId が指定されている場合は両方のビューに setFileIds する（片方だけだと、
+ * シートのオーナーか共有を受けた側かのどちらかで従来どおり出てこないままになる）。
+ */
 function openPicker(token: string, fileId: string | null): void {
-    const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
-    if (fileId) view.setFileIds(fileId);
+    const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.SPREADSHEETS, (view) => {
+        if (fileId) view.setFileIds(fileId);
+    });
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
         .setAppId(__GCP_PROJECT_NUMBER__)
         .setOAuthToken(token)
-        .addView(view)
+        .addView(ownedView)
+        .addView(sharedView)
         .setLocale(locale)
         .setCallback((data) => {
             const action = data[google.picker.Response.ACTION];
@@ -259,7 +296,9 @@ function init(): void {
         : isRegrantMode
             ? t('picker_regrantPageIntro')
             : t('picker_pageIntro');
-    document.getElementById('shareHint')!.textContent = t('picker_shareHint');
+    document.getElementById('shareHint')!.textContent = (isPdfMode || isRegrantMode)
+        ? t('picker_pdfShareHint')
+        : t('picker_shareHint');
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
     const allSheetsLink = document.getElementById('allSheetsLink')!;
     if (isPdfMode || isRegrantMode) {
