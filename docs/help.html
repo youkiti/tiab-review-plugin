@@ -871,6 +871,33 @@
                         reference Included by any loaded reviewer, while non-admins see only references they
                         personally Included.</span>
                 </p>
+                <p>
+                    <span class="ja"><strong>担当割り振りが設定済みの場合</strong>、候補は割り振り時に確定した集合（References の
+                        fulltext_set 列）から直接決まります。この集合は判定票に依存しないため、Blind中でも全メンバーに同じ候補リストが
+                        表示されます（他のレビュアーの判定内容は Blind 解除まで表示されません）。候補が0件のときは、その理由
+                        （Blind中で候補ルールを評価できない・絞り込みで0件・まだ候補が無い等）が空欄の代わりに表示されます。</span>
+                    <span class="en"><strong>Once an assignment is configured</strong>, candidates are derived directly
+                        from the set fixed at assignment time (the fulltext_set column in References). Because this set
+                        does not depend on screening votes, every member sees the same candidate list even while Blind
+                        is on (other reviewers' decisions remain hidden until the blind is lifted). When the list is
+                        empty, the reason (rule not evaluable during Blind, filtered out, no candidates yet, etc.) is
+                        shown instead of a blank message.</span>
+                </p>
+                <h3>
+                    <span class="ja">セットアップチェックリスト</span>
+                    <span class="en">Setup Checklist</span>
+                </h3>
+                <p>
+                    <span class="ja">候補リストの上部に、バージョン・担当グループ・PDF読み取り権限・判定進捗の4項目を状態から自動判定する
+                        「セットアップ」パネルが表示されます。特に「PDF読み取り権限」は、他のメンバーがアップロードしたPDFが drive.file
+                        スコープの制約で読めない問題（共有だけでは権限が付かない）をここから確認・一括付与できます。全項目が完了すると
+                        自動的に折りたたまれます。</span>
+                    <span class="en">Above the candidate list, a "Setup" panel automatically evaluates four items:
+                        version, your assigned group, PDF read permission, and screening progress. The "PDF read
+                        permission" item lets you check and batch-grant access to PDFs uploaded by other members (the
+                        drive.file scope means Drive sharing alone does not grant the app access). The panel collapses
+                        automatically once every item is complete.</span>
+                </p>
 
                 <h3>
                     <span class="ja">担当割り当て</span>
