@@ -11,8 +11,9 @@ import { dom } from '../dom';
 import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
-import { getVisibleFulltextCandidateList } from './screening/filters';
+import { getFulltextCandidateList, getVisibleFulltextCandidateList } from './screening/filters';
 import { handleKeyToggle } from './screening/actions';
+import { explainEmptyFulltextCandidates } from '../../lib/fulltext-empty-reason';
 import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
 import { setupFulltextAiListeners } from './fulltext-ai';
 import {
@@ -208,16 +209,74 @@ function renderList(candidates: ReferenceWithStatus[]): void {
     const visible = applyViewFilter(candidates);
 
     if (visible.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'fulltext-empty';
-        empty.textContent = t('fulltext_emptyList');
-        listDiv.appendChild(empty);
+        listDiv.appendChild(buildEmptyState());
         return;
     }
 
     for (const ref of visible) {
         listDiv.appendChild(buildCard(ref));
     }
+}
+
+/**
+ * 候補0件時の空状態表示を構築する。
+ * 表示切替（missing/obtained/undecided）で0件になった場合は候補自体は存在する
+ * （explainEmptyFulltextCandidates は担当セットのチェックボックス絞り込みのみを見るため
+ * reason が null になる）ので、「候補がまだ無い」ではなく表示条件の変更を促す。
+ */
+function buildEmptyState(): HTMLElement {
+    const empty = document.createElement('div');
+    empty.className = 'fulltext-empty';
+
+    const assignedSetCount = state.allReferences.filter(r => (r.fulltext_set || '').trim() !== '').length;
+    const visibleCandidateCount = getVisibleFulltextCandidateList().length;
+    const reason = explainEmptyFulltextCandidates({
+        poolRule: state.fulltextPoolRule,
+        keyOpened: state.isKeyOpened,
+        userEmail: state.userEmail,
+        assignedSetCount,
+        candidateCountBeforeSetFilter: getFulltextCandidateList().length,
+        visibleCandidateCount,
+    });
+
+    switch (reason) {
+        case 'rule_unevaluable_blind': {
+            if (state.isAdmin) {
+                const text = document.createElement('p');
+                text.textContent = t('fulltext_emptyBlindUnevaluableAdmin');
+                empty.appendChild(text);
+
+                const btn = document.createElement('button');
+                btn.className = 'fulltext-action-btn fulltext-action-btn--primary';
+                btn.textContent = t('fulltext_emptyUnblockBtn');
+                btn.addEventListener('click', () => {
+                    dom.keyToggleInput.checked = true;
+                    void handleKeyToggle().then(() => {
+                        dom.fulltextKeyToggle.checked = state.isKeyOpened;
+                        renderFulltextTab();
+                    });
+                });
+                empty.appendChild(btn);
+            } else {
+                empty.textContent = t('fulltext_emptyBlindUnevaluable');
+            }
+            break;
+        }
+        case 'assignment_mismatch':
+            empty.textContent = t('fulltext_emptyAssignmentMismatch', String(assignedSetCount));
+            break;
+        case 'filtered_out':
+            empty.textContent = t('fulltext_emptyFilteredOut');
+            break;
+        default:
+            // reason=null かつ候補が存在する＝表示切替（未入手/入手済み/未判定）で0件になっただけ
+            empty.textContent = visibleCandidateCount > 0
+                ? t('fulltext_emptyViewFiltered')
+                : t('fulltext_emptyList');
+            break;
+    }
+
+    return empty;
 }
 
 function buildCard(ref: ReferenceWithStatus): HTMLElement {

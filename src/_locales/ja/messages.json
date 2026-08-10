@@ -722,6 +722,27 @@
   "fulltext_emptyList": {
     "message": "フルテキスト候補がまだありません。TiAbスクリーニングを進めてください。"
   },
+  "fulltext_emptyBlindUnevaluable": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。管理者にBlind解除を依頼してください。"
+  },
+  "fulltext_emptyBlindUnevaluableAdmin": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。Blindを解除すると候補を計算できます。"
+  },
+  "fulltext_emptyBlindUnevaluableFulltextWindow": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。サイドパネルの手動タブからBlindを解除してください。"
+  },
+  "fulltext_emptyAssignmentMismatch": {
+    "message": "担当割り振りには $1 件登録されていますが、候補を計算できませんでした。Blind状態と候補ルールの設定を確認してください。"
+  },
+  "fulltext_emptyFilteredOut": {
+    "message": "担当セットの絞り込みにより0件です。チェックを変更してください。"
+  },
+  "fulltext_emptyViewFiltered": {
+    "message": "現在の表示切替（未入手/入手済み/未判定）では0件です。表示条件を変更してください。"
+  },
+  "fulltext_emptyUnblockBtn": {
+    "message": "Blindを解除する"
+  },
   "fulltext_openTitle": {
     "message": "フルテキストページを開く"
   },

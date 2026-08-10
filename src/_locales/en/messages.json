@@ -722,6 +722,27 @@
   "fulltext_emptyList": {
     "message": "No full-text candidates yet. Continue TiAb screening first."
   },
+  "fulltext_emptyBlindUnevaluable": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Ask an admin to turn off Blind."
+  },
+  "fulltext_emptyBlindUnevaluableAdmin": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turning off Blind will let candidates be calculated."
+  },
+  "fulltext_emptyBlindUnevaluableFulltextWindow": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turn off Blind from the Manual tab in the side panel."
+  },
+  "fulltext_emptyAssignmentMismatch": {
+    "message": "$1 reference(s) are assigned, but no candidates could be calculated. Check the Blind state and the candidate rule settings."
+  },
+  "fulltext_emptyFilteredOut": {
+    "message": "No candidates match the selected assignment sets. Change the checkboxes."
+  },
+  "fulltext_emptyViewFiltered": {
+    "message": "No items match the current view filter (missing/obtained/undecided). Change the view."
+  },
+  "fulltext_emptyUnblockBtn": {
+    "message": "Turn off Blind"
+  },
   "fulltext_openTitle": {
     "message": "Open full-text page"
   },

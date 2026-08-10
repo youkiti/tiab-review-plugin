@@ -34,11 +34,13 @@ import {
     describeDriveAccessError,
 } from '../lib/drive-api';
 import { getClientVersion } from '../lib/client-version';
+import { t } from '../lib/i18n';
 import {
     isInFulltextPool,
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
+import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
 import {
     canSeeFulltextRef,
     createDefaultFulltextAssignment,
@@ -106,6 +108,8 @@ function effectiveEvidenceLevel(): FulltextEvidenceDisplay {
 
 // フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
+// 担当セットのチェックボックス絞り込み適用前の候補数（renderProgress の空理由判定用）
+let candidateCountBeforeSetFilter = 0;
 let currentCandidateIndex = -1;
 
 // 先読みしたPDF（ref_id → Blob取得Promise）。隣接候補を事前取得し遷移を高速化する。
@@ -404,6 +408,7 @@ function recomputeCandidates(): void {
     fulltextCandidates = fulltextCandidates.filter(r =>
         canSeeFulltextRef(r, ftAssignment, userEmail, isAdmin)
     );
+    candidateCountBeforeSetFilter = fulltextCandidates.length;
 
     // サイドパネルの担当セットフィルタ選択（チェックボックス絞り込み）を反映する
     fulltextCandidates = fulltextCandidates.filter(r =>
@@ -1474,7 +1479,7 @@ function renderProgress(): void {
     const el = document.getElementById('ft-progress');
     if (!el) return;
     if (fulltextCandidates.length === 0) {
-        el.textContent = '';
+        el.textContent = describeEmptyCandidatesReason();
         return;
     }
     if (currentCandidateIndex === -1) {
@@ -1483,6 +1488,37 @@ function renderProgress(): void {
         return;
     }
     el.textContent = `${currentCandidateIndex + 1} / ${fulltextCandidates.length}`;
+}
+
+/**
+ * 候補0件の理由に応じたメッセージを返す（サイドパネルの空状態と同じ判定関数を使う）。
+ * Blind中に他レビュアーの人間票が読み込まれず候補ルールが評価できない場合、
+ * 従来は無表示で「まだTiAbが終わっていない」と誤認させていた（実際に混乱が起きた）。
+ * このウィンドウにはBlind解除ボタンを置く導線が無いため、管理者にはサイドパネルへの誘導文言を出す。
+ */
+function describeEmptyCandidatesReason(): string {
+    const assignedSetCount = allRefs.filter(r => (r.fulltext_set || '').trim() !== '').length;
+    const reason = explainEmptyFulltextCandidates({
+        poolRule,
+        keyOpened,
+        userEmail,
+        assignedSetCount,
+        candidateCountBeforeSetFilter,
+        visibleCandidateCount: fulltextCandidates.length,
+    });
+    switch (reason) {
+        case 'rule_unevaluable_blind':
+            return isAdmin
+                ? t('fulltext_emptyBlindUnevaluableFulltextWindow')
+                : t('fulltext_emptyBlindUnevaluable');
+        case 'assignment_mismatch':
+            return t('fulltext_emptyAssignmentMismatch', String(assignedSetCount));
+        case 'filtered_out':
+            return t('fulltext_emptyFilteredOut');
+        default:
+            // 従来どおり: 本当に候補が無いだけの場合はヘッダーに何も出さない
+            return '';
+    }
 }
 
 /** 候補プール全体で自分の判定がどれだけ終わったかを表示する */
