@@ -110,6 +110,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
 - **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時は、管理ユーザーは読み込まれている全レビュアーの TiAb Include が1件でもある文献を候補とし、非管理ユーザーは既存の割り振りで見える文献のうち自分が TiAb Include した文献だけを候補とする。
+  - **候補計算を判定票に依存させるとBlindで壊れる（2026-08 実事故）**: Blind中（key_opened=FALSE）は他人の human 票がクライアントへ配られないため、human voter を含むルールは自分以外のメンバーには常に0票＝候補0件と評価される。このため候補判定は `src/lib/fulltext-candidates.ts` に集約し、**担当割り振り設定済みの場合は References の `fulltext_set` 列（判定票非依存）を候補の一次ソース**にしている。候補系のロジックを触るときは必ずこのモジュールを経由し、`isInFulltextPool` を直接呼ぶ実装を新設しないこと。なお `mountRuleEditor` はキー未開封ではフォームを描画しないため、「キー未開封で保存」経路のガードは実質通らない。実際の事故経路は「開封してルール保存 → Blindへ戻す」で、警告は `handleKeyToggle` の CLOSE 側にある。
 - **import_stats**: インポート統計（JSON: `{"ファイル名": {identified, duplicates, imported_at}}`）。ファイルごとの解析件数（重複除去前）と重複スキップ数をインポート時に記録し、論文用テキスト（PRISMAフロー図の識別件数・重複除去数）の自動記入に使う。ソースファイル削除時は該当キーも削除する。
 
 #### Annotations タブ（PDFアノテーション）
