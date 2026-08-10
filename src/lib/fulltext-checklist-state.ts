@@ -103,6 +103,18 @@ export interface FulltextChecklistInput {
     regrantResult: FulltextRegrantKnownResult | null;
 }
 
+/**
+ * PDF読み取り権限チェック結果の永続化・セッション記憶キー（アカウント間で共有されないように）。
+ *
+ * drive.file の可読性はユーザーごとに異なる（AGENTS.md の「drive.file の403/404は…」参照）ため、
+ * spreadsheetId だけをキーにすると、同一サイドパネルでアカウントを切り替えたときに
+ * 前のアカウントの確認結果（freshness: 'session' の「権限OK」）が新しいアカウントにも
+ * 引き継がれてしまう。userEmail を正規化して複合キーに含めることでアカウントごとに分離する。
+ */
+export function regrantResultKey(spreadsheetId: string, userEmail: string): string {
+    return `${spreadsheetId}::${(userEmail || '').trim().toLowerCase()}`;
+}
+
 export function computeFulltextChecklistState(input: FulltextChecklistInput): FulltextChecklistState {
     const version = computeVersion(input.version);
     const group = computeGroup(input.assignment, input.selectedFulltextSets, input.userEmail, input.visibleCandidateCount);

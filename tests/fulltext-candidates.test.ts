@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isFulltextCandidateRef } from '../src/lib/fulltext-candidates';
+import { isFulltextCandidateRef, isSharedFulltextPoolMember } from '../src/lib/fulltext-candidates';
 import { isInFulltextPool } from '../src/lib/fulltext-pool';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
@@ -244,4 +244,81 @@ test('実プロジェクト再現: 割り振り済み + voters=[human:admin] + d
     );
 
     assert.equal(results.filter(Boolean).length, 104, 'fulltext_setが割り当てられた104件全てが候補になる');
+});
+
+// ---------------------------------------------------------------------------
+// isSharedFulltextPoolMember（チーム進捗など「全員で一致すべき分母」用、ユーザー非依存）
+// ---------------------------------------------------------------------------
+
+test('isSharedFulltextPoolMember: 割り振り済み + set空 + ルール成立 → true（流入分が分母に入る）', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:member@example.com'],
+        threshold: 1,
+    };
+    const decisions = [makeDecision({ reviewer_id: 'member@example.com', decision: 'include' })];
+
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: rule,
+        assignment: CONFIGURED_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isSharedFulltextPoolMember: 割り振り済み + set空 + ルール不成立 → false', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:member@example.com'],
+        threshold: 2,
+    };
+    const decisions = [makeDecision({ reviewer_id: 'member@example.com', decision: 'include' })];
+
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: rule,
+        assignment: CONFIGURED_ASSIGNMENT,
+    });
+    assert.equal(result, false);
+});
+
+test('isSharedFulltextPoolMember: 割り振り済み + set非空 + decisions空 → true', () => {
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: 'ft-group-1' },
+        decisions: [],
+        poolRule: null,
+        assignment: CONFIGURED_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isSharedFulltextPoolMember: 未設定 + ルール成立 → true', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:alice@example.com'],
+        threshold: 1,
+    };
+    const decisions = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'include' })];
+
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: rule,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isSharedFulltextPoolMember: 未設定 + ルール無し → false（ユーザー依存のフォールバックを持たない）', () => {
+    const decisions = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'include' })];
+
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, false);
 });

@@ -55,3 +55,26 @@ export function isFulltextCandidateRef(input: {
         (isAdmin || d.reviewer_id === userEmail)
     );
 }
+
+/**
+ * チーム進捗など「全員で一致すべき分母」用の共有プールメンバー判定（ユーザー非依存）。
+ * - 割り振り設定済み: fulltext_set 非空 ∪ プールルール成立（未割り当て流入分）
+ * - 未設定: プールルール成立のみ（ルール無しなら false）
+ *
+ * isFulltextCandidateRef と違い、ルール未設定時の「自分のInclude」フォールバックを持たない
+ * （それはユーザー依存のため共有分母に使えない）。
+ */
+export function isSharedFulltextPoolMember(input: {
+    ref: Pick<Reference, 'fulltext_set'>;
+    decisions: Decision[];
+    poolRule: FulltextPoolRule | null;
+    assignment: FulltextAssignmentConfig;
+}): boolean {
+    const { ref, decisions, poolRule, assignment } = input;
+
+    if (assignment.status === 'configured' && (ref.fulltext_set || '').trim() !== '') {
+        return true;
+    }
+
+    return poolRule ? isInFulltextPool(decisions, poolRule) : false;
+}

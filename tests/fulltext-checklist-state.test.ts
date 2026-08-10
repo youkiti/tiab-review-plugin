@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeFulltextChecklistState } from '../src/lib/fulltext-checklist-state';
+import { computeFulltextChecklistState, regrantResultKey } from '../src/lib/fulltext-checklist-state';
 import type { FulltextChecklistInput, FulltextRegrantKnownResult } from '../src/lib/fulltext-checklist-state';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
 
@@ -261,4 +261,26 @@ test('allComplete: regrantがpersisted(前回確認)扱いのままなら false�
         visibleCandidateCount: 34,
     }));
     assert.equal(state.allComplete, false);
+});
+
+// ---------------------------------------------------------------------------
+// regrantResultKey（PDF権限確認結果の永続化・セッション記憶キー。アカウント間で共有しない）
+// ---------------------------------------------------------------------------
+
+test('regrantResultKey: 大文字小文字・前後の空白を正規化し同一キーになる', () => {
+    const a = regrantResultKey('sheet1', 'A@X.com ');
+    const b = regrantResultKey('sheet1', 'a@x.com');
+    assert.equal(a, b);
+});
+
+test('regrantResultKey: 異なるユーザーは異なるキーになる（アカウント間で結果を共有しない）', () => {
+    const alice = regrantResultKey('sheet1', 'alice@example.com');
+    const bob = regrantResultKey('sheet1', 'bob@example.com');
+    assert.notEqual(alice, bob);
+});
+
+test('regrantResultKey: 異なる spreadsheetId は異なるキーになる', () => {
+    const a = regrantResultKey('sheet1', 'alice@example.com');
+    const b = regrantResultKey('sheet2', 'alice@example.com');
+    assert.notEqual(a, b);
 });

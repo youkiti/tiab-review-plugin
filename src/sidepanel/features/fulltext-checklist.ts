@@ -24,6 +24,7 @@ import { platform } from '../../platform';
 import { getFulltextSetLabel } from '../../lib/fulltext-assignment';
 import {
     computeFulltextChecklistState,
+    regrantResultKey,
     type FulltextChecklistGroupState,
     type FulltextChecklistProgressState,
     type FulltextChecklistRegrantState,
@@ -32,7 +33,10 @@ import {
 import { onRegrantResult, triggerFulltextRegrantCheck } from './fulltext-regrant';
 import type { ReferenceWithStatus } from '../../lib/types';
 
-// 前回確認結果の永続化キー。値は { [spreadsheetId]: StoredRegrantResult }（プロジェクトごとに保持）
+// 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
+// （プロジェクト × アカウントごとに保持）。
+// drive.file の可読性はユーザーごとに異なる（AGENTS.md参照）ため、spreadsheetId だけをキーに
+// すると、同一サイドパネルでアカウントを切り替えたときに前アカウントの確認結果が漏れてしまう。
 const STORAGE_KEY = 'fulltextRegrantCheckResults';
 
 interface StoredRegrantResult {
@@ -41,19 +45,20 @@ interface StoredRegrantResult {
     checkedAt: string;
 }
 
-// spreadsheetId -> 直近のチェック結果（chrome.storage.local と同期。読み込みは初回描画時に一度だけ行う）
+// regrantResultKey(spreadsheetId, userEmail) -> 直近のチェック結果
+// （chrome.storage.local と同期。読み込みは初回描画時に一度だけ行う）
 let storedResults: Record<string, StoredRegrantResult> = {};
 let storedResultsLoaded = false;
-// 今回の起動中に実際にチェックした（=信頼できる最新値の） spreadsheetId の集合。
+// 今回の起動中に実際にチェックした（=信頼できる最新値の） regrantResultKey の集合。
 // これに含まれない storedResults の値は「前回以前の保存値」として扱い、✅固定にしない。
 const confirmedThisSession = new Set<string>();
 // 永続化ロード完了後に再描画するため、直近に渡された候補リストを覚えておく
 let lastCandidates: ReferenceWithStatus[] = [];
 // ユーザーが手動で開閉した状態。再描画（renderFulltextTab は判定保存や
 // フィルタ変更のたびに走る）でユーザーの選択を上書きしないために覚えておく。
-// null = 手動操作なし（allComplete から自動決定）。プロジェクト切替でリセットする。
+// null = 手動操作なし（allComplete から自動決定）。プロジェクト or アカウント切替でリセットする。
 let manualOpenOverride: boolean | null = null;
-let lastSpreadsheetId = '';
+let lastRegrantResultKey = '';
 
 function ensureStoredResultsLoaded(): void {
     if (storedResultsLoaded) return;
@@ -67,11 +72,11 @@ function ensureStoredResultsLoaded(): void {
     });
 }
 
-async function persistRegrantResult(spreadsheetId: string, result: StoredRegrantResult): Promise<void> {
+async function persistRegrantResult(key: string, result: StoredRegrantResult): Promise<void> {
     try {
         const stored = await platform().storageGet([STORAGE_KEY]);
         const map = { ...(stored[STORAGE_KEY] as Record<string, StoredRegrantResult> | undefined) };
-        map[spreadsheetId] = result;
+        map[key] = result;
         await platform().storageSet({ [STORAGE_KEY]: map });
     } catch (error) {
         console.warn('[fulltext-checklist] 確認結果の保存に失敗:', error);
@@ -83,14 +88,15 @@ export function setupFulltextChecklistListeners(): void {
     onRegrantResult((result) => {
         const spreadsheetId = state.spreadsheetId;
         if (!spreadsheetId) return;
-        confirmedThisSession.add(spreadsheetId);
+        const key = regrantResultKey(spreadsheetId, state.userEmail);
+        confirmedThisSession.add(key);
         const entry: StoredRegrantResult = {
             unreadableCount: result.unreadableCount,
             totalCachedCount: result.totalCachedCount,
             checkedAt: result.checkedAt,
         };
-        storedResults = { ...storedResults, [spreadsheetId]: entry };
-        void persistRegrantResult(spreadsheetId, entry);
+        storedResults = { ...storedResults, [key]: entry };
+        void persistRegrantResult(key, entry);
         renderFulltextChecklist(lastCandidates);
     });
 }
@@ -145,9 +151,13 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         return;
     }
 
-    // プロジェクトが切り替わったら手動開閉の記憶をリセット
-    if (state.spreadsheetId !== lastSpreadsheetId) {
-        lastSpreadsheetId = state.spreadsheetId;
+    const key = regrantResultKey(state.spreadsheetId, state.userEmail);
+
+    // プロジェクトまたはアカウントが切り替わったら手動開閉の記憶をリセット
+    // （userEmail の変化も拾うことで、アカウント切替時に前アカウントの「権限OK」表示を
+    // そのまま引き継がないようにする）
+    if (key !== lastRegrantResultKey) {
+        lastRegrantResultKey = key;
         manualOpenOverride = null;
     }
 
@@ -155,9 +165,9 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
     // フルテキストタブ全体が capabilities.fulltext で出し分けられていることに乗っかっている
     // （bootstrap.ts が caps.fulltext=false でタブボタンごと隠す）。ここでも同じフラグを使う。
     const regrantAvailable = platform().capabilities.fulltext;
-    const stored = storedResults[state.spreadsheetId];
+    const stored = storedResults[key];
     const regrantResult: FulltextRegrantKnownResult | null = stored
-        ? { ...stored, freshness: confirmedThisSession.has(state.spreadsheetId) ? 'session' : 'persisted' }
+        ? { ...stored, freshness: confirmedThisSession.has(key) ? 'session' : 'persisted' }
         : null;
 
     const checklist = computeFulltextChecklistState({
