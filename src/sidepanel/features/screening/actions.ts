@@ -15,6 +15,7 @@ import {
     isQuotaExceededError
 } from '../../../lib/sheets-api';
 import { getClientVersion } from '../../../lib/client-version';
+import { shouldWarnBlindRule } from '../../../lib/fulltext-rule-editor';
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
 import { renderReviewerFilter, renderAiHighlightToggle } from './reviewer-filter';
@@ -347,7 +348,18 @@ export async function handleKeyToggle() {
 
     if (!newState) {
         // CLOSE処理 (ON -> OFF)
-        if (!confirm(t('blind_onConfirm'))) {
+        // 実際に起きた事故への対策: 候補ルールが人間の票を使い、かつ担当割り振りが
+        // 未設定のままBlindへ戻すと、他のメンバーの候補リストが0件になる
+        // （他人の票はBlind中クライアントへ配られないため）。この経路で警告する。
+        // ルール保存時のガード（fulltext-rule-editor.ts）はキー開封中しか通らないため、
+        // 「開封してルールを保存 → Blindへ戻す」という実運用の順序はここでしか拾えない。
+        let confirmMessage = t('blind_onConfirm');
+        if (state.fulltextPoolRule
+            && shouldWarnBlindRule(state.fulltextPoolRule, false)
+            && state.fulltextAssignment.status !== 'configured') {
+            confirmMessage += '\n\n' + t('blind_onFulltextRuleWarn');
+        }
+        if (!confirm(confirmMessage)) {
             // キャンセルされたら元の状態に戻す
             dom.keyToggleInput.checked = true;
             return;

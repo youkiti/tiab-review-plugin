@@ -203,7 +203,20 @@ function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): vo
         } else if (row.reviewers.length === 0) {
             reviewerSpan.textContent = ` — ${t('assignment_filterReviewersNone')}`;
         } else {
-            reviewerSpan.textContent = ` — ${row.reviewers.map((e) => e.split('@')[0] || e).join(', ')}`;
+            reviewerSpan.append(' — ');
+            const myEmail = normalizeEmail(state.userEmail);
+            row.reviewers.forEach((email, index) => {
+                if (index > 0) reviewerSpan.append(', ');
+                const localPart = email.split('@')[0] || email;
+                if (myEmail && normalizeEmail(email) === myEmail) {
+                    // 管理者が意図せず自分をグループに残したままにする事故を可視化するため強調表示
+                    const strong = document.createElement('strong');
+                    strong.textContent = `${localPart}${t('ftAssign_selfSuffix')}`;
+                    reviewerSpan.appendChild(strong);
+                } else {
+                    reviewerSpan.append(localPart);
+                }
+            });
             reviewerSpan.title = row.reviewers.join(', ');
         }
 
@@ -385,6 +398,28 @@ async function openFulltextAssignmentWizard(): Promise<void> {
     total.className = 'assignment-summary';
     total.textContent = t('ftAssign_wizardSummary', String(pool.length));
 
+    // 設定後にロールごとにどう見えるかのサマリ。件数はグループ数・担当者選択に依存せず
+    // プール全体の件数（getFulltextPoolList().length）を使う
+    const rolePreview = document.createElement('div');
+    rolePreview.className = 'assignment-role-preview';
+    const rolePreviewHeading = document.createElement('p');
+    rolePreviewHeading.className = 'assignment-role-preview-heading';
+    rolePreviewHeading.textContent = t('ftAssign_wizardRolePreviewHeading');
+    const rolePreviewList = document.createElement('ul');
+    for (const key of [
+        'ftAssign_wizardRolePreviewAdmin',
+        'ftAssign_wizardRolePreviewReviewer',
+        'ftAssign_wizardRolePreviewBlind',
+    ] as const) {
+        const item = document.createElement('li');
+        item.textContent = key === 'ftAssign_wizardRolePreviewAdmin'
+            ? t(key, String(pool.length))
+            : t(key);
+        rolePreviewList.appendChild(item);
+    }
+    rolePreview.appendChild(rolePreviewHeading);
+    rolePreview.appendChild(rolePreviewList);
+
     const form = document.createElement('div');
     form.className = 'assignment-wizard-form';
 
@@ -537,6 +572,7 @@ async function openFulltextAssignmentWizard(): Promise<void> {
 
     container.appendChild(intro);
     container.appendChild(total);
+    container.appendChild(rolePreview);
     container.appendChild(form);
     container.appendChild(preview);
     container.appendChild(reviewerHelp);

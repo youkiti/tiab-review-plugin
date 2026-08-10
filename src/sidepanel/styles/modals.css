@@ -300,6 +300,28 @@
     color: #8a3a3a;
 }
 
+.assignment-role-preview {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #f5f7fa;
+    border: 1px solid #dde3ea;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #445;
+}
+
+.assignment-role-preview-heading {
+    margin: 0 0 4px;
+    font-weight: 600;
+}
+
+.assignment-role-preview ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
 .assignment-group-grid {
     display: flex;
     flex-direction: column;

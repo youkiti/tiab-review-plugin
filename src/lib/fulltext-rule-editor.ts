@@ -30,6 +30,27 @@ export interface RuleEditorOptions {
 }
 
 /**
+ * 保存しようとしているルールが、Blind中（キー未開封）に human voter を使うため
+ * 警告が必要かどうかを判定する（純関数・テスト用に export）。
+ *
+ * 実際の事故: 管理者がキー未開封のまま「自分の票のみ・閾値1」で保存すると、
+ * 他のメンバーには管理者の票が配られず候補リストが0件になる。担当割り振りが
+ * 未設定の間、Blind中に human voter を含むルールは常にこのリスクを持つため、
+ * キー開封状態に関わらず voters に human: が1件でもあれば警告対象とする。
+ */
+export function shouldWarnBlindRule(rule: FulltextPoolRule, keyOpened: boolean): boolean {
+    if (keyOpened) return false;
+    return rule.voters.some(v => v.startsWith('human:'));
+}
+
+/** rule.voters から human voter のメールアドレスを取り出す（表示用） */
+function humanVoterEmails(rule: FulltextPoolRule): string[] {
+    return rule.voters
+        .filter(v => v.startsWith('human:'))
+        .map(v => v.slice('human:'.length));
+}
+
+/**
  * ルールエディタを container 内に描画する（既存内容は破棄）
  */
 export function mountRuleEditor(opts: RuleEditorOptions): void {
@@ -193,16 +214,21 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
         voterCountSpan.textContent = t('ftRule_voterCount', String(selected.size));
     }
 
+    /** 現在の選択状態（voters/threshold）からルールを構築する（プレビュー・保存の共通ヘルパー） */
+    function buildRuleFromState(): FulltextPoolRule {
+        return {
+            version: 1,
+            voters: [...selected],
+            threshold,
+        };
+    }
+
     function renderPreview(): void {
         if (selected.size === 0) {
             preview.textContent = t('ftRule_selectVoter');
             return;
         }
-        const rule: FulltextPoolRule = {
-            version: 1,
-            voters: [...selected],
-            threshold,
-        };
+        const rule = buildRuleFromState();
         const count = opts.references.filter(
             r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule)
         ).length;
@@ -239,11 +265,13 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
             renderPreview();
             return;
         }
-        const rule: FulltextPoolRule = {
-            version: 1,
-            voters: [...selected],
-            threshold,
-        };
+        const rule = buildRuleFromState();
+        if (shouldWarnBlindRule(rule, opts.keyOpened)) {
+            const emails = humanVoterEmails(rule).join(', ');
+            if (!window.confirm(t('ftRule_blindWarnConfirm', emails))) {
+                return;
+            }
+        }
         saveBtn.disabled = true;
         saveBtn.textContent = t('ftRule_saving');
         opts.onSave(rule)

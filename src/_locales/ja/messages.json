@@ -350,6 +350,21 @@
   "ftAssign_wizardSummary": {
     "message": "現在のフルテキスト候補: $1件"
   },
+  "ftAssign_wizardRolePreviewHeading": {
+    "message": "設定後の見え方:"
+  },
+  "ftAssign_wizardRolePreviewAdmin": {
+    "message": "・管理者（編集権限）: 全$1件を表示（担当セットのチェックで絞り込み可能）"
+  },
+  "ftAssign_wizardRolePreviewReviewer": {
+    "message": "・各レビュアー: 自分の担当グループ＋未割り当て分のみ"
+  },
+  "ftAssign_wizardRolePreviewBlind": {
+    "message": "・Blind中でも候補リストは全員に表示されます（判定内容は見えません）"
+  },
+  "ftAssign_selfSuffix": {
+    "message": "（自分）"
+  },
   "ftAssign_wizardGroupCountLabel": {
     "message": "グループ数"
   },
@@ -718,6 +733,9 @@
   },
   "ftRule_saveFailed": {
     "message": "保存失敗: $1"
+  },
+  "ftRule_blindWarnConfirm": {
+    "message": "このルールは人間の票（$1）を使いますが、現在Blind中のため、担当割り振りが未設定の間は他のメンバーの候補リストが正しく計算されません。このまま保存しますか？\n\n※担当割り振りを設定すれば、Blind中でも全員に同じ候補が表示されます。"
   },
   "fulltext_emptyList": {
     "message": "フルテキスト候補がまだありません。TiAbスクリーニングを進めてください。"
@@ -1142,6 +1160,9 @@
   },
   "blind_onConfirm": {
     "message": "Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。"
+  },
+  "blind_onFulltextRuleWarn": {
+    "message": "⚠️ フルテキスト候補ルールは人間の票を使っています。担当割り振りが未設定のため、Blindに戻すと他のメンバーのフルテキスト候補リストが0件になります。先に担当割り振りを設定することを推奨します。"
   },
   "blind_onSuccess": {
     "message": "Blind onを実行しました"
