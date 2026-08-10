@@ -29,8 +29,22 @@ interface CachedToken {
     expiresAt: number; // epoch ms
 }
 
+/**
+ * クライアントIDが未設定のビルドで認可フローに入るのを止める（実行時ガード）。
+ * webpack のビルド時 fail-fast をすり抜けたケース（ALLOW_NO_AUTH=1 のdevビルド等）でも、
+ * client_id が空のまま Google 側へ投げて「Invalid OAuth2 Client ID.」という原因の
+ * 追いにくいエラーになるのを防ぐ。globalThis を都度読む __EXTENSION_OAUTH_CLIENT_ID__ を
+ * 呼び出し時に判定する（モジュール読み込み時の定数畳み込みにしない。テストから差し替え可能にするため）。
+ * クライアントID自体は機密情報ではないが、値そのものはログ・エラーメッセージに出さない。
+ */
+function assertClientIdConfigured(): void {
+    if (__EXTENSION_OAUTH_CLIENT_ID__) return;
+    throw new Error(chrome.i18n.getMessage('auth_clientIdMissing') || 'OAuth client ID is not configured.');
+}
+
 /** 認可URLを組み立てる。prompt/login_hint は指定時のみ付与する。 */
 function buildAuthUrl(prompt?: 'none' | 'select_account' | 'consent' | 'select_account consent', loginHint?: string): string {
+    assertClientIdConfigured();
     const params = new URLSearchParams({
         client_id: __EXTENSION_OAUTH_CLIENT_ID__,
         response_type: 'token',

@@ -25,6 +25,11 @@ const local = createStorageArea();
 const launchedUrls: string[] = [];
 let redirectUrl = '';
 
+// クライアントID未設定ガードのエラーメッセージ（テスト用固定値）。
+// 実際の chrome.i18n.getMessage は拡張パッケージングされた _locales を読むが、
+// このテストでは auth_clientIdMissing キーだけを解決するモックで代替する。
+const CLIENT_ID_MISSING_MESSAGE = 'テスト用: OAuthクライアントIDが未設定です';
+
 Object.assign(globalThis, {
     __EXTENSION_OAUTH_CLIENT_ID__: 'client-id.apps.googleusercontent.com',
     chrome: {
@@ -36,6 +41,9 @@ Object.assign(globalThis, {
             },
         },
         storage: { session, local },
+        i18n: {
+            getMessage: (key: string) => (key === 'auth_clientIdMissing' ? CLIENT_ID_MISSING_MESSAGE : ''),
+        },
     },
 });
 
@@ -118,4 +126,41 @@ test('ログアウト時は session のトークンと local のメールを削�
 
     assert.equal(session.values.oauthToken, undefined);
     assert.equal(local.values.oauthEmail, undefined);
+});
+
+test('クライアントID未設定時は launchWebAuthFlow を呼ぶ前にガードが停止する（interactive=true）', async () => {
+    // このテストだけ一時的に空へ差し替え、他のテストへ漏らさないよう finally で必ず戻す。
+    const original = (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__;
+    (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__ = '';
+    try {
+        const { getAuthToken } = await import('../src/background/auth-flow');
+
+        await assert.rejects(
+            () => getAuthToken(true),
+            (error: Error) => {
+                assert.equal(error.message, CLIENT_ID_MISSING_MESSAGE);
+                return true;
+            }
+        );
+        // client_id が空のまま Google 側へ投げる（= launchWebAuthFlow を呼ぶ）前に止まっていること
+        assert.equal(launchedUrls.length, 0);
+    } finally {
+        (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__ = original;
+    }
+});
+
+test('クライアントID未設定時はサイレント認証（interactive=false）も launchWebAuthFlow を呼ばずに失敗する', async () => {
+    const original = (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__;
+    (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__ = '';
+    try {
+        const { getAuthToken } = await import('../src/background/auth-flow');
+
+        // 呼び出し元（初期化時のサイレント試行など）は「未ログイン」として握り潰す設計のため、
+        // interactive=false では既存仕様どおり汎用の interaction_required に丸められる
+        // （ガードのメッセージ自体はここでは呼び出し元に届かない。詳細は実装報告を参照）。
+        await assert.rejects(() => getAuthToken(false), /interaction_required/);
+        assert.equal(launchedUrls.length, 0);
+    } finally {
+        (globalThis as { __EXTENSION_OAUTH_CLIENT_ID__?: string }).__EXTENSION_OAUTH_CLIENT_ID__ = original;
+    }
 });

@@ -660,7 +660,7 @@ Drive アクセスを扱うコードでは次を守ること:
 
 1. `npm install` - 依存関係インストール
 2. `.env.example` を `.env` にコピーし、`WEBAUTH_CLIENT_ID`（拡張版 launchWebAuthFlow 用、dev/store共通）を設定
-3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定でもビルドは通り警告のみ）
+3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定だと本番と同様に fail-fast する。認証を触らないローカル作業では `ALLOW_NO_AUTH=1 npm run dev` で警告のみに格下げできる）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
 6. リリースは `npm run release`（バージョンバンプ + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
@@ -695,7 +695,7 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | ビルド         | `npm run dev:web`（開発） / `npm run build:web`（本番）                                                                                          |
 | 出力先         | `docs/app/`。**`.gitignore` 済み。実装 PR にビルド成果物を含めないこと**                                                                         |
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
-| 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番ビルドは未設定だと throw、dev は警告のみ） |
+| 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
 
 **HTML は複製ではなく機械変換で生成する。** `webpack.config.js` の `transformSidepanelHtml()` が拡張版の `src/sidepanel/sidepanel.html` を変換して `docs/app/index.html` を出力する。これにより表示系の新機能が自動で Web 版へ載る。変換対象の文字列が見つからない場合は `replaceOrThrow` が例外を投げてビルドを止めるので、`sidepanel.html` の該当行（`<title>` / `<h1>` / `<body>` / stylesheet link / entry script / viewport meta）を書き換えたら変換ルールも必ず更新すること。
@@ -715,10 +715,11 @@ npx http-server docs/app -p 8080   # または python -m http.server 8080 -d doc
 
 `http://localhost:8080` を開く。**`127.0.0.1` は不可**（OAuth クライアントの承認済み JavaScript 生成元に `https://youkiti.github.io` と `http://localhost:8080` を登録しているため）。
 
-**CI ゲート**: `.github/workflows/build-check.yml` が PR ごとに次の5つを実行し、どれかが落ちるとマージ不可になる。ローカルでも同じ5つを通してから PR を出すこと。
+**CI ゲート**: `.github/workflows/build-check.yml` が PR ごとに次の5つを実行し、どれかが落ちるとマージ不可になる。ローカルでも同じ5つを通してから PR を出すこと。CI には `.env` が無いため、`npm run dev` / `npm run dev:web` の2ステップだけ `ALLOW_NO_AUTH=1` を指定してビルド疎通確認に限定している（`.env` があるローカルでは不要）。
 
 ```bash
-npm run typecheck && npm run lint && npm run test && npm run dev && npm run dev:web
+npm run typecheck && npm run lint && npm run test
+ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 ```
 
 ### ローカル実験環境

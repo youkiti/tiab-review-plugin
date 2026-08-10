@@ -19,6 +19,9 @@
       }
     }
   },
+  "auth_clientIdMissing": {
+    "message": "This build has no OAuth client ID configured. There is a problem with this build's configuration. Please contact the administrator."
+  },
   "auth_loginRequired": {
     "message": "Please sign in with your Google account"
   },

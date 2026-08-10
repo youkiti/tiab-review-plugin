@@ -91,7 +91,8 @@ gcloud services enable drive.googleapis.com
 ### 6. ビルド
 
 ```bash
-# 開発ビルド（key 保持。WEBAUTH_CLIENT_ID 未設定でも警告のみでビルド可）
+# 開発ビルド（key 保持。WEBAUTH_CLIENT_ID 必須。認証を使わないローカル作業やCIでは
+# ALLOW_NO_AUTH=1 npm run dev で警告のみに格下げできる）
 npm run dev
 
 # 本番ビルド（WEBAUTH_CLIENT_ID 必須 + key 削除）
