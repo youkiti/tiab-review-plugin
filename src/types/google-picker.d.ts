@@ -15,6 +15,9 @@ declare namespace google.picker {
         // false で「共有アイテム」ビューになる。既定（未指定/true相当）はマイドライブ配下のみが対象で、
         // 共有されただけでマイドライブに追加していないファイルは一覧にも検索結果にも出ない（Issue #75）。
         setOwnedByMe(ownedByMe: boolean): DocsView;
+        // Picker上のタブに表示される見出し。既定ラベルのままだと、マイドライブ向けビューと
+        // 共有アイテム向けビューが同名タブになり見分けが付かないため設定する。
+        setLabel(label: string): DocsView;
     }
 
     class PickerBuilder {

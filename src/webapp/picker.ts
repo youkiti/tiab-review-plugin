@@ -107,15 +107,19 @@ function returnGrantedCountToExtension(redirectUri: string, count: number): void
  * 追加していないファイルは一覧にも検索結果にも出てこない（Issue #75）。configure は
  * setFileIds/setMimeTypes/setParent 等の絞り込みを両方のビューへ同一に適用するために使う
  * （片方だけに適用すると、オーナー本人か共有を受けた側かのどちらかで従来どおり出てこない）。
+ * ラベルはビューごとに異なる値のため configure の外で個別に設定する。既定ラベルのままだと
+ * 同名タブが2つ並んで見分けが付かなくなるため（PR #77）。
  */
 function buildDocsViews(
     viewId: google.picker.ViewId,
     configure: (view: google.picker.DocsView) => void,
 ): [google.picker.DocsView, google.picker.DocsView] {
     const ownedView = new google.picker.DocsView(viewId);
+    ownedView.setLabel(t('picker_ownedViewLabel'));
     configure(ownedView);
     const sharedView = new google.picker.DocsView(viewId);
     sharedView.setOwnedByMe(false);
+    sharedView.setLabel(t('picker_sharedViewLabel'));
     configure(sharedView);
     return [ownedView, sharedView];
 }

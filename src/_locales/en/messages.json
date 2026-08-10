@@ -2436,6 +2436,12 @@
   "picker_pdfShareHint": {
     "message": "Folders and PDFs shared with you, not just ones you own, are also included in the list and search. If the target file still isn't shown, check in Google Drive that it's shared with the Google account you're currently signed in with."
   },
+  "picker_ownedViewLabel": {
+    "message": "My Drive"
+  },
+  "picker_sharedViewLabel": {
+    "message": "Shared with me"
+  },
   "picker_startBtn": {
     "message": "Open Google Picker"
   },
