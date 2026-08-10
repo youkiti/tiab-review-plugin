@@ -14,6 +14,31 @@ module.exports = (env, argv) => {
     return buildExtensionConfig(env, argv);
 };
 
+// dev ビルドで OAuth 系の必須環境変数が未設定のときに fail-fast する既定を、
+// 明示的にオプトインしたときだけ警告のみへ格下げするための環境変数。
+// CI（.env が無い環境）はこれを立てて typecheck/lint/test 相当のビルド疎通確認だけ行う。
+// 本番ビルドの throw はこの変数の影響を受けない（配布物にクライアントID欠落が
+// 混入する事故を防ぐための最終防衛ラインのため、常に有効）。
+const ALLOW_NO_AUTH = process.env.ALLOW_NO_AUTH === '1';
+
+/**
+ * dev ビルド用の必須環境変数チェック。未設定なら既定で例外を投げてビルドを止める
+ * （クライアントID欠落のまま配布し、side-load 先のログイン時に初めて壊れているのが
+ * 発覚する事故を防ぐため）。ALLOW_NO_AUTH=1 のときだけ警告に格下げして続行する。
+ * 本番ビルドの throw は呼び出し元が別途行っており、この関数を経由しない。
+ */
+function requireEnvForDevOrWarn(message) {
+    if (ALLOW_NO_AUTH) {
+        console.warn(`[webpack] ${message}（ALLOW_NO_AUTH=1 指定のため警告のみで続行）`);
+        return;
+    }
+    throw new Error(
+        `${message}\n` +
+        '認証を使わないローカル作業やCIでは環境変数 ALLOW_NO_AUTH=1 を指定すると警告のみで続行できます' +
+        '（本番ビルドでは ALLOW_NO_AUTH を指定してもこのチェックは無効化されません）。'
+    );
+}
+
 /**
  * Picker ページのURLを上書きする（dev ビルド限定）。
  * ローカル配信（例: http://localhost:8080/picker.html）で Picker 導線を検証するための口。
@@ -47,8 +72,16 @@ function buildExtensionConfig(env, argv) {
     if (isProduction && !webauthClientId && !isDemo) {
         throw new Error('WEBAUTH_CLIENT_ID が未設定です。.env に WEBAUTH_CLIENT_ID を設定してから本番ビルドを実行してください。');
     }
+    // dev ビルドも既定で fail-fast する。未設定のまま zip 等で配布すると、ビルド元では
+    // 何のエラーも出ないまま、side-load 先でのログイン時に初めて
+    // 「Invalid OAuth2 Client ID.」として発覚する（Issue #76）。デモビルドは実認証を
+    // 一切行わないため対象外。
     if (!webauthClientId && !isDemo) {
-        console.warn('[webpack] WEBAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
+        requireEnvForDevOrWarn(
+            'WEBAUTH_CLIENT_ID が未設定です。.env に WEBAUTH_CLIENT_ID を設定してください。' +
+            '未設定のままビルドして配布すると、side-load 先でのログイン時に初めて' +
+            '「Invalid OAuth2 Client ID.」エラーとして発覚します。'
+        );
     }
     const pickerPageUrl = resolvePickerPageUrlOverride(isProduction);
 
@@ -204,11 +237,18 @@ function buildWebConfig(argv) {
     if (isProduction && !gcpProjectNumber) {
         throw new Error('GCP_PROJECT_NUMBER が未設定です。.env に GCP プロジェクト番号を設定してください。');
     }
+    // dev ビルドも既定で fail-fast する（拡張版と同じ理由。Issue #76）。
     if (!webClientId) {
-        console.warn('[webpack] WEB_OAUTH_CLIENT_ID が未設定です（dev ビルド）。Google認証は動作しません。');
+        requireEnvForDevOrWarn(
+            'WEB_OAUTH_CLIENT_ID が未設定です。.env に Web アプリ用 OAuth クライアントIDを設定してください。' +
+            '未設定のまま配信すると、Web版のログイン時に初めて認証エラーとして発覚します。'
+        );
     }
     if (!pickerApiKey || !gcpProjectNumber) {
-        console.warn('[webpack] PICKER_API_KEY または GCP_PROJECT_NUMBER が未設定です（dev ビルド）。Pickerページは動作しません。');
+        requireEnvForDevOrWarn(
+            'PICKER_API_KEY または GCP_PROJECT_NUMBER が未設定です。.env に両方を設定してください。' +
+            '未設定のままだと Picker ページ利用時に初めてエラーとして発覚します。'
+        );
     }
     return {
         entry: { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },

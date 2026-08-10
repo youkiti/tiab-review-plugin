@@ -20,6 +20,12 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
-      # dev ビルドは OAuth クライアントID未設定でも警告のみで通る（本番のみ throw）。
+      # dev ビルドも OAuth クライアントID未設定なら既定で fail-fast する（本番同様）。
+      # CI には .env が無く、認証を触らないビルド疎通確認が目的のため、
+      # ALLOW_NO_AUTH=1 を明示指定して警告のみで通す（本番ビルドの throw は無効化されない）。
       - run: npm run dev        # 拡張ビルド
+        env:
+          ALLOW_NO_AUTH: 1
       - run: npm run dev:web    # Web ビルド
+        env:
+          ALLOW_NO_AUTH: 1

@@ -19,6 +19,9 @@
       }
     }
   },
+  "auth_clientIdMissing": {
+    "message": "OAuthクライアントIDが未設定のビルドです。配布ビルドの設定に問題があります。管理者にお問い合わせください。"
+  },
   "auth_loginRequired": {
     "message": "Googleアカウントにログインしてください"
   },

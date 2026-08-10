@@ -5,6 +5,8 @@
  * （タブを閉じる・リロードすると再認可が必要になる仕様）。
  */
 
+import { getMessage } from './i18n';
+
 // webpack DefinePlugin によりビルド時に文字列リテラルへ置換されるグローバル定数。
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 
@@ -22,10 +24,23 @@ let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 let pending: { resolve: (t: string) => void; reject: (e: Error) => void } | null = null;
 
 /**
+ * クライアントIDが未設定のビルドで GIS の TokenClient を作るのを止める（実行時ガード）。
+ * webpack のビルド時 fail-fast をすり抜けたケース（ALLOW_NO_AUTH=1 のdevビルド等）でも、
+ * client_id が空のまま GIS へ渡してわかりにくいエラーになるのを防ぐ。__WEB_OAUTH_CLIENT_ID__ は
+ * 呼び出し時に都度読む（モジュール読み込み時の定数畳み込みにしない。テストから差し替え可能にするため）。
+ * クライアントID自体は機密情報ではないが、値そのものはログ・エラーメッセージに出さない。
+ */
+function assertClientIdConfigured(): void {
+    if (__WEB_OAUTH_CLIENT_ID__) return;
+    throw new Error(getMessage('auth_clientIdMissing') || 'OAuth client ID is not configured.');
+}
+
+/**
  * GIS の TokenClient を遅延初期化する（初回のみ生成し、以後は使い回す）
  */
 function ensureClient(): google.accounts.oauth2.TokenClient {
     if (tokenClient) return tokenClient;
+    assertClientIdConfigured();
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: __WEB_OAUTH_CLIENT_ID__,
         scope: SCOPES,
