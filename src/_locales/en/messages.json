@@ -720,7 +720,10 @@
     "message": "Select at least one reviewer."
   },
   "ftRule_preview": {
-    "message": "→ Full-text candidates under this rule: $1 of $2"
+    "message": "→ Full-text candidates matching this rule: $1 of $2"
+  },
+  "ftRule_previewAssignedNote": {
+    "message": "* $1 already-assigned reference(s) remain candidates regardless of this rule (the count above is how many match the new rule)."
   },
   "ftRule_save": {
     "message": "Save this rule"

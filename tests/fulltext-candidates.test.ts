@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isFulltextCandidateRef, isSharedFulltextPoolMember } from '../src/lib/fulltext-candidates';
+import { isFulltextCandidateRef, isSharedFulltextPoolMember, isProjectFulltextCandidateRef } from '../src/lib/fulltext-candidates';
 import { isInFulltextPool } from '../src/lib/fulltext-pool';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
@@ -315,6 +315,80 @@ test('isSharedFulltextPoolMember: 未設定 + ルール無し → false（ユー
     const decisions = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'include' })];
 
     const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, false);
+});
+
+// ---------------------------------------------------------------------------
+// isProjectFulltextCandidateRef（PRISMA・論文用テキスト・エクスポート集計用、ユーザー非依存）
+// ---------------------------------------------------------------------------
+
+test('isProjectFulltextCandidateRef: 割り振り済み + set非空 + decisions空 → true（Blind中の非管理者でもPRISMAに載る）', () => {
+    const result = isProjectFulltextCandidateRef({
+        ref: { fulltext_set: 'ft-group-1' },
+        decisions: [],
+        poolRule: null,
+        assignment: CONFIGURED_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isProjectFulltextCandidateRef: 割り振り済み + set空 + プールルール成立 → true（未割り当て流入）', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:member@example.com'],
+        threshold: 1,
+    };
+    const decisions = [makeDecision({ reviewer_id: 'member@example.com', decision: 'include' })];
+
+    const result = isProjectFulltextCandidateRef({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: rule,
+        assignment: CONFIGURED_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isProjectFulltextCandidateRef: ルールありは isInFulltextPool に委譲する', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:alice@example.com'],
+        threshold: 1,
+    };
+    const included = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'include' })];
+    const excluded = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'exclude' })];
+    assert.equal(
+        isProjectFulltextCandidateRef({ ref: { fulltext_set: '' }, decisions: included, poolRule: rule, assignment: NONE_ASSIGNMENT }),
+        isInFulltextPool(included, rule)
+    );
+    assert.equal(
+        isProjectFulltextCandidateRef({ ref: { fulltext_set: '' }, decisions: excluded, poolRule: rule, assignment: NONE_ASSIGNMENT }),
+        isInFulltextPool(excluded, rule)
+    );
+});
+
+test('isProjectFulltextCandidateRef: 未設定 + ルール無し + 誰かのIncludeが1件でもある → true', () => {
+    const decisions = [makeDecision({ reviewer_id: 'bob@example.com', decision: 'include' })];
+    const result = isProjectFulltextCandidateRef({
+        ref: { fulltext_set: '' },
+        decisions,
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isProjectFulltextCandidateRef: 未設定 + ルール無し + Includeが誰にも無い → false', () => {
+    const decisions = [
+        makeDecision({ reviewer_id: 'alice@example.com', decision: 'exclude' }),
+        makeDecision({ reviewer_id: 'bob@example.com', decision: 'pending' }),
+    ];
+    const result = isProjectFulltextCandidateRef({
         ref: { fulltext_set: '' },
         decisions,
         poolRule: null,

@@ -396,6 +396,7 @@ function openRuleEditor(): void {
         currentRule: state.fulltextPoolRule,
         keyOpened: state.isKeyOpened,
         isAdmin: state.isAdmin,
+        assignedCandidateCount: state.references.filter(r => (r.fulltext_set || '').trim() !== '').length,
         onOpenKey: async () => {
             // handleBlindToggle (fulltext-results.ts) と同じ委譲パターン:
             // handleKeyToggle は dom.keyToggleInput.checked を正とする

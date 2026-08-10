@@ -22,6 +22,12 @@ export interface RuleEditorOptions {
     currentRule: FulltextPoolRule | null;
     keyOpened: boolean;
     isAdmin?: boolean;
+    /**
+     * 担当割り振り済みの候補数（References の fulltext_set が非空の件数）。
+     * 割り振り済みの文献はルールに関係なく候補のままなので、プレビュー件数（ルール一致件数）
+     * との乖離をこの件数で注記する。未割り振りなら 0 または省略。
+     */
+    assignedCandidateCount?: number;
     /** 管理者がキー開封を実行。完了後の再マウントは呼び出し側が行う */
     onOpenKey?: () => Promise<void>;
     /** ルールの永続化と後続のUI更新。throw するとエラー表示される */
@@ -233,6 +239,15 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
             r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule)
         ).length;
         preview.textContent = t('ftRule_preview', [String(count), String(opts.references.length)]);
+
+        // 担当割り振り済みの文献はこのルールに関係なく候補のままなので、
+        // プレビュー件数（ルール一致件数）との乖離を注記する。
+        if ((opts.assignedCandidateCount ?? 0) > 0) {
+            const note = document.createElement('div');
+            note.className = 'ft-rule-preview-note';
+            note.textContent = t('ftRule_previewAssignedNote', String(opts.assignedCandidateCount));
+            preview.appendChild(note);
+        }
     }
 
     thresholdSelect.addEventListener('change', () => {

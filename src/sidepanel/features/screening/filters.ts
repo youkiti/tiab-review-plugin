@@ -12,9 +12,9 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
-import { describeRule, isProjectFulltextCandidate } from '../../../lib/fulltext-pool';
+import { describeRule } from '../../../lib/fulltext-pool';
 import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
-import { isFulltextCandidateRef } from '../../../lib/fulltext-candidates';
+import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../lib/fulltext-candidates';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 
@@ -112,7 +112,12 @@ export function getVisibleFulltextCandidateList(): ReferenceWithStatus[] {
  */
 export function getProjectFulltextCandidateList(): ReferenceWithStatus[] {
     return state.allReferences.filter((r) =>
-        isProjectFulltextCandidate(collectRefDecisions(r), state.fulltextPoolRule)
+        isProjectFulltextCandidateRef({
+            ref: r,
+            decisions: collectRefDecisions(r),
+            poolRule: state.fulltextPoolRule,
+            assignment: state.fulltextAssignment,
+        })
     );
 }
 

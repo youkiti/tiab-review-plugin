@@ -11,7 +11,7 @@ import type { ReferenceWithStatus } from '../../../lib/types';
 import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
-import { isInFulltextPool } from '../../../lib/fulltext-pool';
+import { isFulltextCandidateRef } from '../../../lib/fulltext-candidates';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
 import { platform } from '../../../platform';
@@ -335,24 +335,21 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     // Trial registry 由来の場合の注釈
     renderTrialRegistryNote(ref);
 
-    // フルテキストを開くボタン:
-    // - 候補ルール設定済み: ルール上プールに入る文献に表示（フィルタと同条件）
-    // - 未設定: 管理者は全レビュアー、自分以外は自分の TiAb Include に表示
-    const rule = state.fulltextPoolRule;
+    // フルテキストを開くボタン: 候補判定は isFulltextCandidateRef に委譲（詳細は fulltext-candidates.ts 参照）。
+    // 担当グループの可視性（canSeeFulltextRef）は従来から考慮していないため、ここでも付けない
+    // （候補メンバーシップのみで判定。従来挙動とのパリティ維持）。
     const decisions = [...(ref.allDecisions ?? [])];
     if (ref.myDecision && !decisions.some(d => d.decision_id === ref.myDecision!.decision_id)) {
         decisions.push(ref.myDecision);
     }
-    let showFulltextBtn: boolean;
-    if (rule) {
-        showFulltextBtn = isInFulltextPool(decisions, rule);
-    } else {
-        showFulltextBtn = decisions.some(d =>
-            d.decision === 'include' &&
-            (d.screening_phase ?? 'tiab') === 'tiab' &&
-            (state.isAdmin || d.reviewer_id === state.userEmail)
-        );
-    }
+    const showFulltextBtn = isFulltextCandidateRef({
+        ref,
+        decisions,
+        poolRule: state.fulltextPoolRule,
+        assignment: state.fulltextAssignment,
+        userEmail: state.userEmail,
+        isAdmin: state.isAdmin,
+    });
     if (showFulltextBtn) {
         dom.btnOpenFulltext.classList.remove('hidden');
         dom.btnOpenFulltext.dataset['refId'] = ref.ref_id;

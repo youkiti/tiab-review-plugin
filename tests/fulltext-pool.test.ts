@@ -4,7 +4,6 @@ import {
     voterKeyOf,
     countIncludeVotes,
     isInFulltextPool,
-    isProjectFulltextCandidate,
     discoverVoters,
     parseFulltextPoolRule,
     type FulltextPoolRule,
@@ -133,40 +132,6 @@ test('discoverVoters: 同一voter同一文献の判定は最新だけ数える',
     ];
     const voters = discoverVoters(decisions);
     assert.equal(voters[0].includeCount, 1);
-});
-
-test('isProjectFulltextCandidate: ルールありは isInFulltextPool に委譲する', () => {
-    const rule: FulltextPoolRule = {
-        version: 1,
-        voters: ['human:alice@example.com'],
-        threshold: 1,
-    };
-    const included = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'include' })];
-    const excluded = [makeDecision({ reviewer_id: 'alice@example.com', decision: 'exclude' })];
-    assert.equal(isProjectFulltextCandidate(included, rule), isInFulltextPool(included, rule));
-    assert.equal(isProjectFulltextCandidate(excluded, rule), isInFulltextPool(excluded, rule));
-    assert.equal(isProjectFulltextCandidate(included, rule), true);
-    assert.equal(isProjectFulltextCandidate(excluded, rule), false);
-});
-
-test('isProjectFulltextCandidate: ルールなしは自分以外のTiAb Includeでも候補になる（ユーザーに依存しない）', () => {
-    const decisions = [makeDecision({ reviewer_id: 'bob@example.com', decision: 'include' })];
-    assert.equal(isProjectFulltextCandidate(decisions, null), true);
-});
-
-test('isProjectFulltextCandidate: ルールなしでTiAb Includeが誰にも無ければfalse', () => {
-    const decisions = [
-        makeDecision({ reviewer_id: 'alice@example.com', decision: 'exclude' }),
-        makeDecision({ reviewer_id: 'bob@example.com', decision: 'pending' }),
-    ];
-    assert.equal(isProjectFulltextCandidate(decisions, null), false);
-});
-
-test('isProjectFulltextCandidate: ルールなしでフルテキスト相のIncludeはTiAb Includeとして数えない', () => {
-    const decisions = [
-        makeDecision({ reviewer_id: 'alice@example.com', decision: 'include', screening_phase: 'fulltext' }),
-    ];
-    assert.equal(isProjectFulltextCandidate(decisions, null), false);
 });
 
 test('parseFulltextPoolRule: 妥当なJSONをパース、不正値はnull', () => {

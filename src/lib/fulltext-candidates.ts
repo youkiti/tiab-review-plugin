@@ -57,6 +57,32 @@ export function isFulltextCandidateRef(input: {
 }
 
 /**
+ * プロジェクト全体集計（PRISMA・論文用テキスト・エクスポート）用の候補判定。
+ * ログインユーザー非依存であることが要件。
+ * - 割り振り設定済み: fulltext_set 非空 ∪ プールルール成立
+ * - 未設定: poolRule 成立、ルール無しなら「誰かの TiAb Include が1件でもある」
+ *   （旧 isProjectFulltextCandidate と同セマンティクス）
+ */
+export function isProjectFulltextCandidateRef(input: {
+    ref: Pick<Reference, 'fulltext_set'>;
+    decisions: Decision[];
+    poolRule: FulltextPoolRule | null;
+    assignment: FulltextAssignmentConfig;
+}): boolean {
+    const { ref, decisions, poolRule, assignment } = input;
+
+    if (assignment.status === 'configured' && (ref.fulltext_set || '').trim() !== '') {
+        return true;
+    }
+
+    if (poolRule) {
+        return isInFulltextPool(decisions, poolRule);
+    }
+
+    return decisions.some(d => isTiabDecision(d) && d.decision === 'include');
+}
+
+/**
  * チーム進捗など「全員で一致すべき分母」用の共有プールメンバー判定（ユーザー非依存）。
  * - 割り振り設定済み: fulltext_set 非空 ∪ プールルール成立（未割り当て流入分）
  * - 未設定: プールルール成立のみ（ルール無しなら false）
