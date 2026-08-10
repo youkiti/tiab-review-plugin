@@ -2431,7 +2431,16 @@
     "message": "拡張機能から開くスプレッドシートを選択して、このアプリにアクセスを許可します。"
   },
   "picker_shareHint": {
-    "message": "対象のシートが表示されない場合は、先にGoogle Driveでこのシートが自分のアカウントに共有されているか確認してください。"
+    "message": "自分がオーナーではなく共有されただけのスプレッドシートも一覧・検索の対象です。それでも対象のシートが表示されない場合は、Google Driveで現在サインインしているアカウントにこのシートが共有されているか確認してください。"
+  },
+  "picker_pdfShareHint": {
+    "message": "自分がオーナーではなく共有されただけのフォルダ・PDFも一覧・検索の対象です。それでも対象のファイルが表示されない場合は、Google Driveで現在サインインしているアカウントに共有されているか確認してください。"
+  },
+  "picker_ownedViewLabel": {
+    "message": "マイドライブ"
+  },
+  "picker_sharedViewLabel": {
+    "message": "共有アイテム"
   },
   "picker_startBtn": {
     "message": "Google Pickerを開く"
