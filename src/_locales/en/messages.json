@@ -350,6 +350,21 @@
   "ftAssign_wizardSummary": {
     "message": "Current full-text candidates: $1"
   },
+  "ftAssign_wizardRolePreviewHeading": {
+    "message": "How this looks after setup:"
+  },
+  "ftAssign_wizardRolePreviewAdmin": {
+    "message": "- Admin (edit access): sees all $1 (can filter by assignment set)"
+  },
+  "ftAssign_wizardRolePreviewReviewer": {
+    "message": "- Each reviewer: only their own group plus unassigned items"
+  },
+  "ftAssign_wizardRolePreviewBlind": {
+    "message": "- The candidate list is shown to everyone even while blind (decision content stays hidden)"
+  },
+  "ftAssign_selfSuffix": {
+    "message": " (you)"
+  },
   "ftAssign_wizardGroupCountLabel": {
     "message": "Number of groups"
   },
@@ -705,7 +720,10 @@
     "message": "Select at least one reviewer."
   },
   "ftRule_preview": {
-    "message": "→ Full-text candidates under this rule: $1 of $2"
+    "message": "→ Full-text candidates matching this rule: $1 of $2"
+  },
+  "ftRule_previewAssignedNote": {
+    "message": "* $1 already-assigned reference(s) remain candidates regardless of this rule (the count above is how many match the new rule)."
   },
   "ftRule_save": {
     "message": "Save this rule"
@@ -719,8 +737,32 @@
   "ftRule_saveFailed": {
     "message": "Save failed: $1"
   },
+  "ftRule_blindWarnConfirm": {
+    "message": "This rule uses human votes ($1), but the key is currently closed (blind), so other members' candidate lists won't be calculated correctly until assignments are set. Save anyway?\n\n* Setting up assignments lets everyone see the same candidates even while blind."
+  },
   "fulltext_emptyList": {
     "message": "No full-text candidates yet. Continue TiAb screening first."
+  },
+  "fulltext_emptyBlindUnevaluable": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Ask an admin to turn off Blind."
+  },
+  "fulltext_emptyBlindUnevaluableAdmin": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turning off Blind will let candidates be calculated."
+  },
+  "fulltext_emptyBlindUnevaluableFulltextWindow": {
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turn off Blind from the Manual tab in the side panel."
+  },
+  "fulltext_emptyAssignmentMismatch": {
+    "message": "$1 reference(s) are assigned, but no candidates could be calculated. Check the Blind state and the candidate rule settings."
+  },
+  "fulltext_emptyFilteredOut": {
+    "message": "No candidates match the selected assignment sets. Change the checkboxes."
+  },
+  "fulltext_emptyViewFiltered": {
+    "message": "No items match the current view filter (missing/obtained/undecided). Change the view."
+  },
+  "fulltext_emptyUnblockBtn": {
+    "message": "Turn off Blind"
   },
   "fulltext_openTitle": {
     "message": "Open full-text page"
@@ -1121,6 +1163,9 @@
   },
   "blind_onConfirm": {
     "message": "Enable blinding?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
+  },
+  "blind_onFulltextRuleWarn": {
+    "message": "⚠️ The full-text candidate rule uses human votes. Because reviewer assignment is not configured, turning Blind back on will make other members' full-text candidate lists empty. Configuring the assignment first is recommended."
   },
   "blind_onSuccess": {
     "message": "Blinding enabled"
@@ -2642,6 +2687,45 @@
   },
   "fulltext_regrantCloseBtn": {
     "message": "Close"
+  },
+  "fulltext_checklist_heading": {
+    "message": "Setup"
+  },
+  "fulltext_checklist_collapsedSummary": {
+    "message": "Setup complete ✓"
+  },
+  "fulltext_checklist_version": {
+    "message": "1. Version: v$1"
+  },
+  "fulltext_checklist_groupNarrowed": {
+    "message": "2. Assigned group: showing $1 ($2 items)"
+  },
+  "fulltext_checklist_groupAll": {
+    "message": "2. Assigned group: showing all candidates ($1 items)"
+  },
+  "fulltext_checklist_regrantUnchecked": {
+    "message": "3. PDF read access: not checked yet"
+  },
+  "fulltext_checklist_regrantOk": {
+    "message": "3. PDF read access OK ($1 file(s) verified)"
+  },
+  "fulltext_checklist_regrantUnreadable": {
+    "message": "3. PDF read access: $1 file(s) unreadable"
+  },
+  "fulltext_checklist_regrantPreviousOk": {
+    "message": "3. PDF read access: no issues as of last check ($1) — recheck recommended"
+  },
+  "fulltext_checklist_regrantPreviousUnreadable": {
+    "message": "3. PDF read access: $2 file(s) unreadable as of last check ($1) — recheck recommended"
+  },
+  "fulltext_checklist_regrantCheckBtn": {
+    "message": "Check access"
+  },
+  "fulltext_checklist_regrantGrantBtn": {
+    "message": "Grant access"
+  },
+  "fulltext_checklist_progress": {
+    "message": "4. Decisions: $1 / $2"
   },
   "webapp_editionLabel": {
     "message": "(Browser)"

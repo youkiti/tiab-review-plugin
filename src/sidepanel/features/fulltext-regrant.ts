@@ -40,10 +40,46 @@ import {
 import { getFulltextDriveFolderId } from '../../lib/sheets-api';
 import { collectCachedFulltextRefs, selectUnreadableRefs } from '../../lib/fulltext-access';
 import type { CachedFulltextRef } from '../../lib/fulltext-access';
+import type { FulltextRegrantKnownResult } from '../../lib/fulltext-checklist-state';
 
 // モーダルが開いている間（結果表示が終わるまで）は解除しない多重実行ガード。
 // モーダルを開けた後は onClose（Close/X いずれも hideModal() 経由で発火する）に解除を委ねる。
 let regrantInProgress = false;
+
+// ---------------------------------------------------------------------------
+// チェックリスト（fulltext-checklist.ts）向けの結果通知口
+// ---------------------------------------------------------------------------
+// 本モジュールはチェックリスト側の状態やストレージ形式を知らない（一方向の疎結合を保つ）。
+// チェック結果（読めないPDFの件数）が確定するたびに登録済みリスナーへ通知するだけにし、
+// 永続化やUI再描画はチェックリスト側の責務とする。
+
+type RegrantResultListener = (result: FulltextRegrantKnownResult) => void;
+const regrantResultListeners: RegrantResultListener[] = [];
+
+/** チェックリストからの結果購読口。多重登録可。 */
+export function onRegrantResult(listener: RegrantResultListener): void {
+    regrantResultListeners.push(listener);
+}
+
+/** 読めないPDFの件数が確定した時点で呼ぶ（キャッシュ済みPDF総数も併せて通知する） */
+function notifyRegrantResult(unreadableCount: number): void {
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount,
+        totalCachedCount: collectCachedFulltextRefs(state.references).length,
+        checkedAt: new Date().toISOString(),
+        freshness: 'session',
+    };
+    for (const listener of regrantResultListeners) listener(result);
+}
+
+/**
+ * チェックリストの「権限を確認する」ボタンから起動するエントリーポイント。
+ * dom.fulltextRegrantBtn（Driveインポート導線の下にある既存ボタン）と全く同じ処理を再利用する
+ * （多重実行ガードも共有するため、どちらのボタンから起動しても二重実行にならない）。
+ */
+export function triggerFulltextRegrantCheck(): void {
+    void handleRegrantClick();
+}
 
 function releaseRegrantGuard(): void {
     regrantInProgress = false;
@@ -184,13 +220,16 @@ async function handleRegrantClick(): Promise<void> {
         const folderId = await getFulltextDriveFolderId(state.spreadsheetId);
         if (!folderId) {
             // まだPDFが1件も無いプロジェクト。復旧する対象が無いので何もしない。
+            // チェックリスト的には「確認済み・問題なし（0件）」として扱ってよい。
             showToast(t('fulltext_regrantNoFolder'), 4000);
+            notifyRegrantResult(0);
             return;
         }
 
         const unreadable = await detectUnreadable(folderId);
         if (unreadable.length === 0) {
             showToast(t('fulltext_regrantAllReadable'), 4000);
+            notifyRegrantResult(0);
             return;
         }
 
@@ -203,6 +242,7 @@ async function handleRegrantClick(): Promise<void> {
 
         setRegrantStatus(t('fulltext_regrantRechecking'));
         const afterUnreadable = await detectUnreadable(folderId);
+        notifyRegrantResult(afterUnreadable.length);
 
         showResultModal(unreadable, afterUnreadable);
         modalOpened = true;

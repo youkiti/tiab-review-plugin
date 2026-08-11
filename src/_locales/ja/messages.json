@@ -350,6 +350,21 @@
   "ftAssign_wizardSummary": {
     "message": "現在のフルテキスト候補: $1件"
   },
+  "ftAssign_wizardRolePreviewHeading": {
+    "message": "設定後の見え方:"
+  },
+  "ftAssign_wizardRolePreviewAdmin": {
+    "message": "・管理者（編集権限）: 全$1件を表示（担当セットのチェックで絞り込み可能）"
+  },
+  "ftAssign_wizardRolePreviewReviewer": {
+    "message": "・各レビュアー: 自分の担当グループ＋未割り当て分のみ"
+  },
+  "ftAssign_wizardRolePreviewBlind": {
+    "message": "・Blind中でも候補リストは全員に表示されます（判定内容は見えません）"
+  },
+  "ftAssign_selfSuffix": {
+    "message": "（自分）"
+  },
   "ftAssign_wizardGroupCountLabel": {
     "message": "グループ数"
   },
@@ -705,7 +720,10 @@
     "message": "判定者を1人以上選択してください。"
   },
   "ftRule_preview": {
-    "message": "→ この条件でのフルテキスト候補: $1件 / 全$2件"
+    "message": "→ この条件に一致するフルテキスト候補: $1件 / 全$2件"
+  },
+  "ftRule_previewAssignedNote": {
+    "message": "※担当割り振り済みの $1 件は、このルールに関係なく候補のままです（上の件数は新ルールに一致する文献数です）"
   },
   "ftRule_save": {
     "message": "この設定で保存"
@@ -719,8 +737,32 @@
   "ftRule_saveFailed": {
     "message": "保存失敗: $1"
   },
+  "ftRule_blindWarnConfirm": {
+    "message": "このルールは人間の票（$1）を使いますが、現在Blind中のため、担当割り振りが未設定の間は他のメンバーの候補リストが正しく計算されません。このまま保存しますか？\n\n※担当割り振りを設定すれば、Blind中でも全員に同じ候補が表示されます。"
+  },
   "fulltext_emptyList": {
     "message": "フルテキスト候補がまだありません。TiAbスクリーニングを進めてください。"
+  },
+  "fulltext_emptyBlindUnevaluable": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。管理者にBlind解除を依頼してください。"
+  },
+  "fulltext_emptyBlindUnevaluableAdmin": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。Blindを解除すると候補を計算できます。"
+  },
+  "fulltext_emptyBlindUnevaluableFulltextWindow": {
+    "message": "Blind中のため候補ルール（他のレビュアーの票）を評価できません。サイドパネルの手動タブからBlindを解除してください。"
+  },
+  "fulltext_emptyAssignmentMismatch": {
+    "message": "担当割り振りには $1 件登録されていますが、候補を計算できませんでした。Blind状態と候補ルールの設定を確認してください。"
+  },
+  "fulltext_emptyFilteredOut": {
+    "message": "担当セットの絞り込みにより0件です。チェックを変更してください。"
+  },
+  "fulltext_emptyViewFiltered": {
+    "message": "現在の表示切替（未入手/入手済み/未判定）では0件です。表示条件を変更してください。"
+  },
+  "fulltext_emptyUnblockBtn": {
+    "message": "Blindを解除する"
   },
   "fulltext_openTitle": {
     "message": "フルテキストページを開く"
@@ -1121,6 +1163,9 @@
   },
   "blind_onConfirm": {
     "message": "Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。"
+  },
+  "blind_onFulltextRuleWarn": {
+    "message": "⚠️ フルテキスト候補ルールは人間の票を使っています。担当割り振りが未設定のため、Blindに戻すと他のメンバーのフルテキスト候補リストが0件になります。先に担当割り振りを設定することを推奨します。"
   },
   "blind_onSuccess": {
     "message": "Blind onを実行しました"
@@ -2642,6 +2687,45 @@
   },
   "fulltext_regrantCloseBtn": {
     "message": "閉じる"
+  },
+  "fulltext_checklist_heading": {
+    "message": "セットアップ"
+  },
+  "fulltext_checklist_collapsedSummary": {
+    "message": "セットアップ完了 ✓"
+  },
+  "fulltext_checklist_version": {
+    "message": "1. バージョン: v$1"
+  },
+  "fulltext_checklist_groupNarrowed": {
+    "message": "2. 担当グループ: $1（$2件）を表示中"
+  },
+  "fulltext_checklist_groupAll": {
+    "message": "2. 担当グループ: 全候補を表示中（$1件）"
+  },
+  "fulltext_checklist_regrantUnchecked": {
+    "message": "3. PDF読み取り権限: 未確認"
+  },
+  "fulltext_checklist_regrantOk": {
+    "message": "3. PDF読み取り権限OK（$1件確認済み）"
+  },
+  "fulltext_checklist_regrantUnreadable": {
+    "message": "3. PDF読み取り権限: 読めないPDFが$1件"
+  },
+  "fulltext_checklist_regrantPreviousOk": {
+    "message": "3. PDF読み取り権限: 前回確認時（$1）は問題なし（要再確認）"
+  },
+  "fulltext_checklist_regrantPreviousUnreadable": {
+    "message": "3. PDF読み取り権限: 前回確認時（$1）に読めないPDFが$2件（要再確認）"
+  },
+  "fulltext_checklist_regrantCheckBtn": {
+    "message": "権限を確認する"
+  },
+  "fulltext_checklist_regrantGrantBtn": {
+    "message": "まとめて権限を付与"
+  },
+  "fulltext_checklist_progress": {
+    "message": "4. 判定: $1 / $2 件"
   },
   "webapp_editionLabel": {
     "message": "(ブラウザ版)"

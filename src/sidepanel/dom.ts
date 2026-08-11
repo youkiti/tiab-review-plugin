@@ -172,6 +172,8 @@ const domElements = {
     // ========== Fulltext Section ==========
     get fulltextSection() { return getElement<HTMLElement>('fulltext-section'); },
     get fulltextBackBtn() { return getElement<HTMLButtonElement>('fulltext-back-btn'); },
+    // セットアップチェックリスト（fulltext-checklist.ts）
+    get fulltextChecklistHost() { return getElement<HTMLElement>('fulltext-checklist'); },
     get fulltextProgressLine() { return getElement<HTMLElement>('fulltext-progress-line'); },
     get fulltextRuleLine() { return getElement<HTMLElement>('fulltext-rule-line'); },
     get fulltextRuleEditBtn() { return getElement<HTMLButtonElement>('fulltext-rule-edit-btn'); },

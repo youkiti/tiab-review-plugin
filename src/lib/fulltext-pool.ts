@@ -104,22 +104,6 @@ export function isInFulltextPool(decisions: Decision[], rule: FulltextPoolRule):
 }
 
 /**
- * 1文献がプロジェクト全体のフルテキスト候補プールに入るか（ログインユーザーに依存しない）
- * - ルール設定済み: isInFulltextPool にそのまま委譲
- * - 未設定: 誰か1人でも TiAb で Include していれば候補（担当者・管理者権限による絞り込みはしない）
- *
- * PRISMA の数値・論文用テキスト・CSV/RIS エクスポートなど、ログインユーザーによって
- * 結果が変わってはならない集計に使う（filters.ts の isFulltextCandidate は表示中ユーザー
- * 依存の絞り込みを含むため、それらの用途には使わないこと）
- */
-export function isProjectFulltextCandidate(decisions: Decision[], rule: FulltextPoolRule | null): boolean {
-    if (rule) {
-        return isInFulltextPool(decisions, rule);
-    }
-    return decisions.some(d => isTiabDecision(d) && d.decision === 'include');
-}
-
-/**
  * 全判定から voter 一覧を発見する（ルール設定UI用）
  * includeCount は voter × 文献ごとに最新判定を採ってカウントする
  */

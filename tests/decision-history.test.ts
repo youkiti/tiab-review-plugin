@@ -324,7 +324,7 @@ test('畳み込み: getFulltextPageData() が返す decisions も最新1行へ�
     const mockState = createMockState([older, newer]);
     installMockFetch(mockState);
 
-    const { decisions } = await getFulltextPageData(spreadsheetId);
+    const { decisions } = await getFulltextPageData(spreadsheetId, 'alice@example.com');
 
     assert.equal(decisions.length, 1);
     assert.equal(decisions[0].decision.decision_id, 'd2');

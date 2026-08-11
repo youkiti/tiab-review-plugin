@@ -34,11 +34,13 @@ import {
     describeDriveAccessError,
 } from '../lib/drive-api';
 import { getClientVersion } from '../lib/client-version';
+import { t } from '../lib/i18n';
 import {
-    isInFulltextPool,
     isTiabDecision,
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
+import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
+import { isFulltextCandidateRef } from '../lib/fulltext-candidates';
 import {
     canSeeFulltextRef,
     createDefaultFulltextAssignment,
@@ -106,6 +108,8 @@ function effectiveEvidenceLevel(): FulltextEvidenceDisplay {
 
 // フルテキスト候補リスト
 let fulltextCandidates: Reference[] = [];
+// 担当セットのチェックボックス絞り込み適用前の候補数（renderProgress の空理由判定用）
+let candidateCountBeforeSetFilter = 0;
 let currentCandidateIndex = -1;
 
 // 先読みしたPDF（ref_id → Blob取得Promise）。隣接候補を事前取得し遷移を高速化する。
@@ -181,7 +185,7 @@ async function initFulltextPage(): Promise<void> {
     }
 
     // 文献一覧・判定一覧・Config共有設定を1リクエストで取得（429対策）
-    const { references: refs, decisions: decisionsData, config } = await getFulltextPageData(spreadsheetId);
+    const { references: refs, decisions: decisionsData, config } = await getFulltextPageData(spreadsheetId, userEmail);
 
     allRefs = refs;
     allDecisions = decisionsData.map(({ decision }) => decision);
@@ -368,42 +372,39 @@ function updateToolbarMode(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * 候補リストを再計算する
- * - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
+ * 候補リストを再計算する（判定は isFulltextCandidateRef に委譲。詳細は fulltext-candidates.ts 参照）
+ * - 割り振り設定済み: fulltext_set が非空の文献 ∪ ルール評価で候補入りする未割り当て流入分
  * - 未設定:
- *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
- *   - 非管理者: 自分が TiAb で Include した文献
+ *   - ルール設定済み: 採用voterのInclude票が必要票数以上の文献
+ *   - ルール未設定:
+ *     - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
+ *     - 非管理者: 自分が TiAb で Include した文献
  */
 function recomputeCandidates(): void {
-    if (poolRule) {
-        const rule = poolRule;
-        const byRef = new Map<string, Decision[]>();
-        for (const d of allDecisions) {
-            const list = byRef.get(d.ref_id);
-            if (list) {
-                list.push(d);
-            } else {
-                byRef.set(d.ref_id, [d]);
-            }
+    const byRef = new Map<string, Decision[]>();
+    for (const d of allDecisions) {
+        const list = byRef.get(d.ref_id);
+        if (list) {
+            list.push(d);
+        } else {
+            byRef.set(d.ref_id, [d]);
         }
-        fulltextCandidates = allRefs.filter(r => isInFulltextPool(byRef.get(r.ref_id) ?? [], rule));
-    } else {
-        const tiabIncludes = new Set(
-            allDecisions
-                .filter(d =>
-                    d.decision === 'include' &&
-                    isTiabDecision(d) &&
-                    (isAdmin || d.reviewer_id === userEmail)
-                )
-                .map(d => d.ref_id)
-        );
-        fulltextCandidates = allRefs.filter(r => tiabIncludes.has(r.ref_id));
     }
+
+    fulltextCandidates = allRefs.filter(r => isFulltextCandidateRef({
+        ref: r,
+        decisions: byRef.get(r.ref_id) ?? [],
+        poolRule,
+        assignment: ftAssignment,
+        userEmail,
+        isAdmin,
+    }));
 
     // 担当割り振り設定済みなら自分の担当分（+未割り当て）へ絞り込む。管理者は全候補。
     fulltextCandidates = fulltextCandidates.filter(r =>
         canSeeFulltextRef(r, ftAssignment, userEmail, isAdmin)
     );
+    candidateCountBeforeSetFilter = fulltextCandidates.length;
 
     // サイドパネルの担当セットフィルタ選択（チェックボックス絞り込み）を反映する
     fulltextCandidates = fulltextCandidates.filter(r =>
@@ -1474,7 +1475,7 @@ function renderProgress(): void {
     const el = document.getElementById('ft-progress');
     if (!el) return;
     if (fulltextCandidates.length === 0) {
-        el.textContent = '';
+        el.textContent = describeEmptyCandidatesReason();
         return;
     }
     if (currentCandidateIndex === -1) {
@@ -1483,6 +1484,37 @@ function renderProgress(): void {
         return;
     }
     el.textContent = `${currentCandidateIndex + 1} / ${fulltextCandidates.length}`;
+}
+
+/**
+ * 候補0件の理由に応じたメッセージを返す（サイドパネルの空状態と同じ判定関数を使う）。
+ * Blind中に他レビュアーの人間票が読み込まれず候補ルールが評価できない場合、
+ * 従来は無表示で「まだTiAbが終わっていない」と誤認させていた（実際に混乱が起きた）。
+ * このウィンドウにはBlind解除ボタンを置く導線が無いため、管理者にはサイドパネルへの誘導文言を出す。
+ */
+function describeEmptyCandidatesReason(): string {
+    const assignedSetCount = allRefs.filter(r => (r.fulltext_set || '').trim() !== '').length;
+    const reason = explainEmptyFulltextCandidates({
+        poolRule,
+        keyOpened,
+        userEmail,
+        assignedSetCount,
+        candidateCountBeforeSetFilter,
+        visibleCandidateCount: fulltextCandidates.length,
+    });
+    switch (reason) {
+        case 'rule_unevaluable_blind':
+            return isAdmin
+                ? t('fulltext_emptyBlindUnevaluableFulltextWindow')
+                : t('fulltext_emptyBlindUnevaluable');
+        case 'assignment_mismatch':
+            return t('fulltext_emptyAssignmentMismatch', String(assignedSetCount));
+        case 'filtered_out':
+            return t('fulltext_emptyFilteredOut');
+        default:
+            // 従来どおり: 本当に候補が無いだけの場合はヘッダーに何も出さない
+            return '';
+    }
 }
 
 /** 候補プール全体で自分の判定がどれだけ終わったかを表示する */

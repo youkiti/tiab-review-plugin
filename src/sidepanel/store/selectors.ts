@@ -8,9 +8,8 @@ import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/ty
 import { createSmartRegex } from '../utils/text';
 import { parseSearchQuery } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
-import { isInFulltextPool } from '../../lib/fulltext-pool';
-import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 import { canSeeFulltextRef } from '../../lib/fulltext-assignment';
+import { isFulltextCandidateRef } from '../../lib/fulltext-candidates';
 import { detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
 import { t } from '../../lib/i18n';
 
@@ -59,37 +58,19 @@ function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
 }
 
 /**
- * フルテキスト候補の判定
- * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
- * - 未設定:
- *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
- *   - 非管理者: 自分が TiAb で Include した文献
- */
-function isFulltextCandidate(
-    ref: ReferenceWithStatus,
-    userEmail: string,
-    isAdmin: boolean,
-    fulltextPoolRule: FulltextPoolRule | null
-): boolean {
-    const decisions = collectRefDecisions(ref);
-    if (fulltextPoolRule) {
-        return isInFulltextPool(decisions, fulltextPoolRule);
-    }
-
-    return decisions.some(d =>
-        d.decision === 'include' &&
-        (d.screening_phase ?? 'tiab') === 'tiab' &&
-        (isAdmin || d.reviewer_id === userEmail)
-    );
-}
-
-/**
  * フルテキスト候補のうち自分の担当分か（担当割り振り適用後）
  * features/screening/filters.ts の isMyFulltextCandidate と同じ規則
+ * （フルテキスト候補判定そのものは fulltext-candidates.ts の isFulltextCandidateRef に委譲）
  */
 function isMyFulltextCandidate(ref: ReferenceWithStatus, data: AppState['data']): boolean {
-    return isFulltextCandidate(ref, data.userEmail, data.isAdmin, data.fulltextPoolRule)
-        && canSeeFulltextRef(ref, data.fulltextAssignment, data.userEmail, data.isAdmin);
+    return isFulltextCandidateRef({
+        ref,
+        decisions: collectRefDecisions(ref),
+        poolRule: data.fulltextPoolRule,
+        assignment: data.fulltextAssignment,
+        userEmail: data.userEmail,
+        isAdmin: data.isAdmin,
+    }) && canSeeFulltextRef(ref, data.fulltextAssignment, data.userEmail, data.isAdmin);
 }
 
 /**

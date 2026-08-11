@@ -8,6 +8,7 @@ import {
 } from '../src/lib/team-progress';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
 import type { Decision, AssignmentConfig } from '../src/lib/types';
+import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
 
 let seq = 0;
 function makeDecision(overrides: Partial<Decision>): Decision {
@@ -173,6 +174,49 @@ test('フルテキスト: ルール設定済みなら共通プールを分母に
     assert.equal(bob.fulltextDone, 2);
 });
 
+test('フルテキスト: 担当割り振り済みでも未割り当て流入分（fulltext_set空+ルール成立）が全員の分母に入る', () => {
+    const refs: TeamProgressRef[] = [
+        { ref_id: 'ref1', fulltext_set: 'ft-group-1' },
+        { ref_id: 'ref2', fulltext_set: 'ft-group-2' },
+        // 割り振り後にプールへ新規流入した未割り当て文献（fulltext_set 空）
+        { ref_id: 'ref3', fulltext_set: '' },
+        // fulltext_set 空だがプールルールも満たさない → 分母に入らない
+        { ref_id: 'ref4', fulltext_set: '' },
+    ];
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:carol@example.com'],
+        threshold: 1,
+    };
+    const ftAssignment: FulltextAssignmentConfig = {
+        status: 'configured',
+        groupCount: 2,
+        reviewerMap: {
+            'ft-group-1': ['alice@example.com'],
+            'ft-group-2': ['bob@example.com'],
+        },
+    };
+    const decisions = [
+        // carol の TiAb Include により ref3 がプールルールを満たす（未割り当て流入分）
+        makeDecision({ ref_id: 'ref3', reviewer_id: 'carol@example.com', decision: 'include' }),
+    ];
+
+    const result = computeTeamProgress({
+        refs,
+        decisions,
+        assignmentConfig: NO_ASSIGNMENT,
+        poolRule: rule,
+        fulltextAssignment: ftAssignment,
+        userEmail: 'alice@example.com',
+    });
+
+    const alice = result.find((m) => m.email === 'alice@example.com')!;
+    assert.equal(alice.fulltextTotal, 2, 'ref1(担当) + ref3(未割り当て流入) が分母に入る');
+
+    const bob = result.find((m) => m.email === 'bob@example.com')!;
+    assert.equal(bob.fulltextTotal, 2, 'ref2(担当) + ref3(未割り当て流入) が分母に入る');
+});
+
 test('フルテキスト: ルール未設定なら fulltextDone/Total は null', () => {
     const result = computeTeamProgress({
         refs: makeRefs(3),
@@ -183,6 +227,41 @@ test('フルテキスト: ルール未設定なら fulltextDone/Total は null',
     });
     assert.equal(result[0].fulltextDone, null);
     assert.equal(result[0].fulltextTotal, null);
+});
+
+test('フルテキスト: 担当割り振り済み + poolRule=null でも分母は fulltext_set 非空件数になる（AGENTS.md 仕様: 割り振り or ルールのどちらか設定済みで分母が出る）', () => {
+    const refs: TeamProgressRef[] = [
+        { ref_id: 'ref1', fulltext_set: 'ft-group-1' },
+        { ref_id: 'ref2', fulltext_set: 'ft-group-2' },
+        // fulltext_set 空 かつ poolRule も無いので流入分にはならない（誰の分母にも入らない）
+        { ref_id: 'ref3', fulltext_set: '' },
+    ];
+    const ftAssignment: FulltextAssignmentConfig = {
+        status: 'configured',
+        groupCount: 2,
+        reviewerMap: {
+            'ft-group-1': ['alice@example.com'],
+            'ft-group-2': ['bob@example.com'],
+        },
+    };
+
+    const result = computeTeamProgress({
+        refs,
+        decisions: [],
+        assignmentConfig: NO_ASSIGNMENT,
+        poolRule: null,
+        fulltextAssignment: ftAssignment,
+        userEmail: 'alice@example.com',
+    });
+
+    // poolRule が無くても、担当割り振り済みなら fulltext_set 非空件数（自分の担当セット分）が分母になる
+    // （修正前は poolRule が無いと常に null で非表示だった）
+    const alice = result.find((m) => m.email === 'alice@example.com')!;
+    assert.notEqual(alice.fulltextTotal, null, 'poolRule未設定でも担当割り振り済みなら分母がnullにならない');
+    assert.equal(alice.fulltextTotal, 1, '自分の担当セット(ft-group-1=ref1)のみが分母。ref3(未割り当て)はルール不成立なので流入しない');
+
+    const bob = result.find((m) => m.email === 'bob@example.com')!;
+    assert.equal(bob.fulltextTotal, 1, '自分の担当セット(ft-group-2=ref2)のみが分母');
 });
 
 test('lastDecidedAt: フェーズを問わず最新の判定日時を返す', () => {

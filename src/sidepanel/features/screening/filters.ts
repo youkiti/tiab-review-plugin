@@ -12,8 +12,9 @@ import { parseSearchQuery } from '../../utils/search';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
-import { isInFulltextPool, isTiabDecision, describeRule, isProjectFulltextCandidate } from '../../../lib/fulltext-pool';
+import { describeRule } from '../../../lib/fulltext-pool';
 import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
+import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../lib/fulltext-candidates';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 
@@ -53,25 +54,17 @@ function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
 }
 
 /**
- * フルテキスト候補の判定
- * - ルール設定済み: FulltextPoolRule（採用voter + 必要票数）で判定
- * - 未設定:
- *   - 管理者: 読み込まれている全レビュアーの TiAb Include が1件でもある文献
- *   - 非管理者: 自分が TiAb で Include した文献
+ * フルテキスト候補の判定（isFulltextCandidateRef に委譲。詳細は fulltext-candidates.ts 参照）
  */
 function isFulltextCandidate(r: ReferenceWithStatus): boolean {
-    const rule = state.fulltextPoolRule;
-    const decisions = collectRefDecisions(r);
-    if (rule) {
-        return isInFulltextPool(decisions, rule);
-    }
-
-    const userEmail = state.userEmail;
-    return decisions.some(d =>
-        d.decision === 'include' &&
-        isTiabDecision(d) &&
-        (state.isAdmin || d.reviewer_id === userEmail)
-    );
+    return isFulltextCandidateRef({
+        ref: r,
+        decisions: collectRefDecisions(r),
+        poolRule: state.fulltextPoolRule,
+        assignment: state.fulltextAssignment,
+        userEmail: state.userEmail,
+        isAdmin: state.isAdmin,
+    });
 }
 
 /**
@@ -119,7 +112,12 @@ export function getVisibleFulltextCandidateList(): ReferenceWithStatus[] {
  */
 export function getProjectFulltextCandidateList(): ReferenceWithStatus[] {
     return state.allReferences.filter((r) =>
-        isProjectFulltextCandidate(collectRefDecisions(r), state.fulltextPoolRule)
+        isProjectFulltextCandidateRef({
+            ref: r,
+            decisions: collectRefDecisions(r),
+            poolRule: state.fulltextPoolRule,
+            assignment: state.fulltextAssignment,
+        })
     );
 }
 

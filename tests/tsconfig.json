@@ -23,6 +23,10 @@
         "./**/*.ts",
         "../src/lib/picker-url.ts",
         "../src/lib/sheets-api.ts",
-        "../src/background/auth-flow.ts"
+        "../src/background/auth-flow.ts",
+        "../src/lib/fulltext-empty-reason.ts",
+        "../src/lib/fulltext-candidates.ts",
+        "../src/lib/fulltext-checklist-state.ts",
+        "../src/lib/fulltext-rule-editor.ts"
     ]
 }

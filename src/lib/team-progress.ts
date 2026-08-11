@@ -14,8 +14,13 @@
 
 import type { Decision, AssignmentConfig } from './types';
 import { isMlAutoDecision } from './client-version';
-import { isInFulltextPool, isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
-import { getFulltextSetsForUser, type FulltextAssignmentConfig } from './fulltext-assignment';
+import { isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
+import {
+    createDefaultFulltextAssignment,
+    getFulltextSetsForUser,
+    type FulltextAssignmentConfig,
+} from './fulltext-assignment';
+import { isSharedFulltextPoolMember } from './fulltext-candidates';
 
 /** 集計に必要な文献情報の最小形 */
 export interface TeamProgressRef {
@@ -122,11 +127,22 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
         }
     }
 
-    // ---- フルテキスト候補プール（ルール設定済みの場合のみ・全員共通の分母） ----
-    const poolRefIds = poolRule
+    // ---- フルテキスト候補プール（全員共通の分母） ----
+    // 担当割り振り設定済みなら fulltext_set 列（判定票に依存しない）が非空の文献に加えて、
+    // 割り振り後にプールへ新規流入した「未割り当て」分（fulltext_set が空だがプールルール成立）も
+    // 分母に含める（isSharedFulltextPoolMember、ユーザー非依存の共有分母判定）。
+    // Blind中は他人の票が読み込まれずプールルール評価が人によってブレるため、
+    // 割り振り済みプロジェクトでは fulltext_set 列を優先しつつ、流入分だけベストエフォートで
+    // プールルール評価する。未設定時は従来どおりプールルール評価のみ（ルール未設定なら分母なし = null）。
+    const poolRefIds = (ftAssignmentConfigured || poolRule)
         ? new Set(
             refs
-                .filter((r) => isInFulltextPool(decisionsByRef.get(r.ref_id) ?? [], poolRule))
+                .filter((r) => isSharedFulltextPoolMember({
+                    ref: r,
+                    decisions: decisionsByRef.get(r.ref_id) ?? [],
+                    poolRule,
+                    assignment: fulltextAssignment ?? createDefaultFulltextAssignment(),
+                }))
                 .map((r) => r.ref_id)
         )
         : null;
