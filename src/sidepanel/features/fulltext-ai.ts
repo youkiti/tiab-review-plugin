@@ -191,8 +191,13 @@ async function renderRounds(): Promise<void> {
         decisions = dec.map(x => x.decision);
         active = act;
     } catch (err) {
+        // 無言で空にすると「ラウンドがまだ無い」状態と見分けが付かないため、失敗を明示する
         console.warn('[fulltext-ai] ラウンド取得に失敗:', err);
         container.innerHTML = '';
+        const error = document.createElement('div');
+        error.className = 'fulltext-ai-rounds-error';
+        error.textContent = t('fulltext_aiRoundsError', err instanceof Error ? err.message : String(err));
+        container.appendChild(error);
         return;
     }
 
@@ -205,6 +210,15 @@ async function renderRounds(): Promise<void> {
         empty.textContent = t('fulltext_aiRoundsEmpty');
         container.appendChild(empty);
         return;
+    }
+
+    // ラウンドがあるのに未採用だと、全文閲覧ウィンドウでハイライトが一切出ない。
+    // 気づけないまま使われる状態なので、選択を促す注意を先頭に出す。
+    if (!active) {
+        const notice = document.createElement('div');
+        notice.className = 'fulltext-ai-rounds-notice';
+        notice.textContent = t('fulltext_aiRoundsNotAdopted');
+        container.appendChild(notice);
     }
 
     // 「採用なし」行

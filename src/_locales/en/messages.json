@@ -594,7 +594,13 @@
     "message": "Judgment rounds (select which to adopt)"
   },
   "fulltext_aiRoundsEmpty": {
-    "message": "No AI judgment rounds yet. Run a batch AI judging above to create one."
+    "message": "No full-text AI judgment rounds yet. Run a batch AI judging above to create one (separate from the TiAb tab’s AI judgments)."
+  },
+  "fulltext_aiRoundsError": {
+    "message": "Could not load judgment rounds: $1"
+  },
+  "fulltext_aiRoundsNotAdopted": {
+    "message": "No round is adopted yet. Adopting one shows the AI evidence highlights in the full-text window even while blinded (the AI’s judgment itself stays hidden)."
   },
   "fulltext_aiRoundCounts": {
     "message": "include $1 · exclude $2 · maybe $3 ($4 total)"

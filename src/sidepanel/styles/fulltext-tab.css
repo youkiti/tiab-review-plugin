@@ -847,6 +847,24 @@
     padding: 4px 2px;
 }
 
+/* ラウンド取得に失敗（「まだ無い」との区別が付くよう赤系で明示） */
+.fulltext-ai-rounds-error {
+    font-size: 11px;
+    color: #c0392b;
+    padding: 4px 2px;
+}
+
+/* ラウンドはあるが未採用（全文閲覧ウィンドウにハイライトが出ない状態）の注意 */
+.fulltext-ai-rounds-notice {
+    font-size: 11px;
+    line-height: 1.4;
+    color: #8a6d3b;
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
 .fulltext-ai-round-row {
     display: flex;
     align-items: center;

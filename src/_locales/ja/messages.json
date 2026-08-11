@@ -594,7 +594,13 @@
     "message": "判定ラウンド（採用するものを選択）"
   },
   "fulltext_aiRoundsEmpty": {
-    "message": "AI判定ラウンドはまだありません。上の「一括AI判定」を実行すると作成されます。"
+    "message": "フルテキストAI判定のラウンドはまだありません。上の「一括AI判定」を実行すると作成されます（TiAbタブのAI判定とは別枠です）。"
+  },
+  "fulltext_aiRoundsError": {
+    "message": "判定ラウンドを取得できませんでした: $1"
+  },
+  "fulltext_aiRoundsNotAdopted": {
+    "message": "採用ラウンドが未選択です。選ぶと、ブラインド中でも全文閲覧ウィンドウにAIの根拠ハイライトが表示されます（AIの判定内容そのものは開示されません）。"
   },
   "fulltext_aiRoundCounts": {
     "message": "組入 $1 ・ 除外 $2 ・ 保留 $3（計 $4 件）"

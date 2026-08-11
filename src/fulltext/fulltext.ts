@@ -40,6 +40,8 @@ import {
 } from '../lib/fulltext-pool';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
+import { explainEmptyAiEvidence } from '../lib/ai-evidence-empty-reason';
+import type { AiEvidenceEmptyReason } from '../lib/ai-evidence-empty-reason';
 import { isFulltextCandidateRef } from '../lib/fulltext-candidates';
 import {
     canSeeFulltextRef,
@@ -1735,19 +1737,47 @@ async function showRenderedPdf(blob: Blob, token?: number): Promise<void> {
  */
 function clearAiHighlights(): void {
     pdfRenderer?.clearHighlights();
-    renderAnnotationsList([], false);
+    // 空文言は文献に依存しない（ラウンドの状態のみで決まる）ため、
+    // ここでも理由別メッセージを出しておき、遷移時に既定文言が一瞬見える状態を作らない
+    renderAnnotationsList([], false, { emptyMessage: evidenceEmptyMessage() });
 }
 
 /**
- * 状態に応じた根拠一覧の空メッセージ。
- * 表示レベル none の時は、採用ラウンドの有無等で文言を変えると
- * 「AI判定が存在するか」が推測できてしまうため、常に既定文言に固定する。
+ * 根拠一覧の空メッセージ（理由別）。
+ * 'blinded'（表示レベル none）は、採用ラウンドの有無等で文言を変えると
+ * 「AI判定が存在するか」が推測できてしまうため 'no_evidence' と同一文言に固定する。
+ * Config の生キー名は出さず、UIから辿れる導線（サイドパネルのAI判定タブ）を案内する。
  */
+const AI_EVIDENCE_EMPTY_MESSAGES: Record<AiEvidenceEmptyReason, string> = {
+    blinded: 'このPDFのAI判定根拠はまだありません。',
+    no_round:
+        'フルテキストAI判定はまだ実行されていません。\n'
+        + 'サイドパネルの「フルテキスト」→「AI判定」から一括AI判定を実行すると、ここに根拠ハイライトが表示されます'
+        + '（TiAbのAI判定とは別枠です）。',
+    round_not_adopted:
+        'フルテキストAI判定はありますが、採用するラウンドが選ばれていません。\n'
+        + 'サイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選択してください。',
+    adopted_round_missing:
+        '採用中のAI判定ラウンドの判定が見つかりません（削除された可能性があります）。\n'
+        + 'サイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選び直してください。',
+    no_evidence: 'このPDFのAI判定根拠はまだありません。',
+};
+
+/** 状態に応じた根拠一覧の空メッセージ */
 function evidenceEmptyMessage(): string {
-    if (effectiveEvidenceLevel() !== 'none' && !aiActiveRound) {
-        return 'AI判定の採用ラウンドが未設定です（Config タブ fulltext_ai_active_round）。';
-    }
-    return 'このPDFのAI判定根拠はまだありません。';
+    const reason = explainEmptyAiEvidence({
+        evidenceLevel: effectiveEvidenceLevel(),
+        hasAnyFulltextAiDecision: allDecisions.some(isFulltextAiDecision),
+        hasAdoptedRoundDecision: !!aiActiveRound
+            && allDecisions.some(d => isFulltextAiDecision(d) && d.reviewer_id === aiActiveRound),
+        activeRound: aiActiveRound,
+    });
+    return AI_EVIDENCE_EMPTY_MESSAGES[reason];
+}
+
+/** フルテキストフェーズのAI判定（reviewer_id が `llm:`）か */
+function isFulltextAiDecision(d: Decision): boolean {
+    return (d.screening_phase ?? 'tiab') === 'fulltext' && (d.reviewer_id || '').startsWith('llm:');
 }
 
 /**
@@ -1966,7 +1996,8 @@ function renderAnnotationsList(
     if (items.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'ft-annotation-empty';
-        empty.textContent = opts.emptyMessage ?? 'このPDFのAI判定根拠はまだありません。';
+        // 理由別メッセージは導線案内を含み複数行になるため、改行を <br> として描画する
+        appendTextWithBreaks(empty, opts.emptyMessage ?? AI_EVIDENCE_EMPTY_MESSAGES.no_evidence);
         list.appendChild(empty);
         return;
     }
