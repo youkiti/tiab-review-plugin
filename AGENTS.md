@@ -237,6 +237,16 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
      スキャン画像PDFはテキストレイヤーが無いため bbox（AIの領域推定）を使う旨をUIに明示
    - **依存**: `pdfjs-dist`（worker/cmaps/standard_fonts を dist 直下へ同梱）。
      manifest に `content_security_policy.extension_pages`（`wasm-unsafe-eval`）を追加
+   - **TiAbのAIラウンドとは別枠**: 全文閲覧ウィンドウのハイライトは `screening_phase='fulltext'` の
+     `llm:` 判定のうち**採用ラウンド**（Config `fulltext_ai_active_round`）のものだけを使う。
+     TiAb のAIラウンドは evidence が抄録の文字オフセットでPDF座標に落とせないため、
+     `note.type === 'llm_fulltext'` でも弾かれる。「AI判定なら2つある」と混同されやすいので、
+     UI文言では必ず「フルテキストAI判定」と書き分けること
+   - **evidence が0件のときの文言**（`src/lib/ai-evidence-empty-reason.ts`）: 未実行 / 未採用 /
+     採用ラウンド消失 / この文献に根拠なし を切り分け、UIから辿れる導線を案内する。
+     Config の生キー名をユーザー向け文言に出さないこと（UIから編集できないため誤誘導になる。2026-08 実事故）。
+     ただし表示レベル `none`（AI evidence 非表示の実験条件）では、理由で文言を変えると
+     「この文献にAI判定があるか」が漏れるため、必ず既定文言に固定する
 9. **論文用テキスト生成**（`manuscript.ts`）
 
    - TiAb エクスポートメニューとフルテキスト結果ビューから、Methods / Results / PRISMA 2020 フロー数値の英語下書きをモーダル表示し、セクションごとにコピー可能
