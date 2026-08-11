@@ -2700,6 +2700,18 @@
   "fulltext_checklist_groupNarrowed": {
     "message": "2. Assigned group: showing $1 ($2 items)"
   },
+  "fulltext_checklist_groupOk": {
+    "message": "2. Assigned group: showing only $1 ($2 items)"
+  },
+  "fulltext_checklist_groupExtra": {
+    "message": "2. Assigned group: also showing $1 outside your assignment ($2 items)"
+  },
+  "fulltext_checklist_groupMissing": {
+    "message": "2. Assigned group: your $1 is hidden from the list ($2 items)"
+  },
+  "fulltext_checklist_groupFixBtn": {
+    "message": "Show only my groups"
+  },
   "fulltext_checklist_groupAll": {
     "message": "2. Assigned group: showing all candidates ($1 items)"
   },

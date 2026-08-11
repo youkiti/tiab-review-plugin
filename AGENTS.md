@@ -729,6 +729,7 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 
 - **`tests/tsconfig.json` の `types` は明示列挙**（`node` / `chrome` / `google.accounts`）。新しい ambient 型に依存するテストを足すと `Cannot find namespace` で `npm run test` が落ちるので、型の追加もセットで行うこと。`include` も明示列挙だが、テストから import したモジュールは推移的に取り込まれるため、通常は `types` 側だけが問題になる。
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
+- **`.tmp/tests` は掃除されない。** `npm run test` は `.tmp/tests/tests/*.test.js` を glob で拾うため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされる（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。件数が合わないときは `tests/*.test.ts` の数と突き合わせること。
 
 ### ローカル実験環境
 

@@ -31,6 +31,7 @@ import {
     type FulltextRegrantKnownResult,
 } from '../../lib/fulltext-checklist-state';
 import { onRegrantResult, triggerFulltextRegrantCheck } from './fulltext-regrant';
+import { resetFulltextSetSelectionToMine } from './fulltext-assignment-ui';
 import type { ReferenceWithStatus } from '../../lib/types';
 
 // 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
@@ -214,7 +215,7 @@ function buildPanel(allComplete: boolean, rows: HTMLElement[]): HTMLElement {
     return details;
 }
 
-type RowStatus = 'ok' | 'warn' | 'pending';
+type RowStatus = 'ok' | 'warn' | 'error' | 'pending';
 
 function buildRow(status: RowStatus, text: string): HTMLElement {
     const row = document.createElement('div');
@@ -222,7 +223,7 @@ function buildRow(status: RowStatus, text: string): HTMLElement {
 
     const icon = document.createElement('span');
     icon.className = 'fulltext-checklist-icon';
-    icon.textContent = status === 'ok' ? '✅' : status === 'warn' ? '⚠️' : '▢';
+    icon.textContent = status === 'ok' ? '✅' : status === 'warn' ? '⚠️' : status === 'error' ? '❌' : '▢';
     row.appendChild(icon);
 
     const label = document.createElement('span');
@@ -234,10 +235,31 @@ function buildRow(status: RowStatus, text: string): HTMLElement {
 }
 
 function buildGroupRow(g: FulltextChecklistGroupState): HTMLElement {
-    const text = g.narrowed
-        ? t('fulltext_checklist_groupNarrowed', [g.groupIds.map(getFulltextSetLabel).join(', '), String(g.visibleCount)])
-        : t('fulltext_checklist_groupAll', String(g.visibleCount));
-    return buildRow('ok', text);
+    if (g.kind === 'all') {
+        // narrowed かどうかの判定は fulltext-checklist-state.ts の narrowed フィールドで完結しており、
+        // ここでは読むだけ（絞り込みで一部グループだけ選択中なら「全候補を表示中」は事実と異なるため文言を出し分ける）
+        const text = g.narrowed
+            ? t('fulltext_checklist_groupNarrowed', [g.selectedGroupIds.map(getFulltextSetLabel).join(', '), String(g.visibleCount)])
+            : t('fulltext_checklist_groupAll', String(g.visibleCount));
+        return buildRow('ok', text);
+    }
+    if (g.kind === 'ok') {
+        const text = t('fulltext_checklist_groupOk', [g.myGroupIds.map(getFulltextSetLabel).join(', '), String(g.visibleCount)]);
+        return buildRow('ok', text);
+    }
+
+    const text = g.kind === 'extra'
+        ? t('fulltext_checklist_groupExtra', [g.extraGroupIds.map(getFulltextSetLabel).join(', '), String(g.visibleCount)])
+        : t('fulltext_checklist_groupMissing', [g.missingGroupIds.map(getFulltextSetLabel).join(', '), String(g.visibleCount)]);
+
+    const row = buildRow('error', text);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-xsmall btn-outline fulltext-checklist-action-btn';
+    btn.textContent = t('fulltext_checklist_groupFixBtn');
+    btn.addEventListener('click', () => { void resetFulltextSetSelectionToMine(); });
+    row.appendChild(btn);
+    return row;
 }
 
 function buildProgressRow(p: FulltextChecklistProgressState): HTMLElement {
