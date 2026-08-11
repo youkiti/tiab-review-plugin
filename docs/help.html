@@ -396,10 +396,12 @@
                                 Team Workflow</a>" section for details</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>Blind on/off</strong>: ON で他のレビュアーの判定を非表示（ブラインドレビュー）。詳細は「<a
+                        <span class="ja"><strong>Blind on/off</strong>: スイッチOFF（既定）がブラインドレビュー（他のレビュアーの判定を非表示）、スイッチONがキー開封（ブラインド解除）です。管理者にのみ表示されます。詳細は「<a
                                 href="#sharing">共有とチーム運用</a>」章を参照してください</span>
-                        <span class="en"><strong>Blind on/off</strong>: When ON, hide other reviewers' decisions (blind
-                            review). See "<a href="#sharing">Sharing and Team Workflow</a>" for details</span>
+                        <span class="en"><strong>Blind on/off</strong>: OFF (default) means blind review — other
+                            reviewers' decisions stay hidden; turning the switch ON opens the key (lifts the blind).
+                            Shown to admins only. See "<a href="#sharing">Sharing and Team Workflow</a>" for
+                            details</span>
                     </li>
                 </ul>
 
@@ -1032,6 +1034,15 @@
                         count, obtained count, Include/Exclude/Maybe counts, exclusion-reason breakdown) are computed
                         automatically, and CSV/RIS export and manuscript text generation are also available here.</span>
                 </p>
+                <p>
+                    <span class="ja">このビューの先頭には「Blind on/off」スイッチがあります（管理者にのみ表示）。スイッチをONにするとキー開封（ブラインド解除）となり、全レビュアー＋AIの判定を集計できます。ブラインド中は自分の判定のみが集計対象で、その旨の注記が判定者選択の下に表示されます。詳細は「<a
+                            href="#sharing">共有とチーム運用</a>」章のBlind on/offを参照してください。</span>
+                    <span class="en">A "Blind on/off" switch sits at the top of this view (admins only). Turning it ON
+                        opens the key (lifts the blind) so that decisions from all reviewers and the AI can be
+                        aggregated. While blinded, only your own decisions are aggregated, and a note saying so appears
+                        under the judge selector. See "Blind on/off" in the "<a href="#sharing">Sharing and Team
+                            Workflow</a>" section for details.</span>
+                </p>
             </section>
 
             <!-- 共有とチーム運用 -->
@@ -1096,11 +1107,35 @@
                     <span class="en">Blind On/Off</span>
                 </h3>
                 <p>
-                    <span class="ja">ON（既定）で他のレビュアーの判定を非表示にします（ブラインドレビュー）。OFF（キーオープン）にすると、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。ブラインド状態の切り替えはプロジェクト全体で共有されます。</span>
-                    <span class="en">ON (default) hides other reviewers' decisions (blind review). Turning it OFF
-                        ("opening the key") reveals other reviewers' decisions and the conflict banner, and also
-                        enables disclosure of the full-text AI decision summary (toggled by an admin from an in-page
-                        control). The blind state is shared across the whole project.</span>
+                    <span class="ja">スイッチOFF（既定）が「Blind on」の状態で、他のレビュアーの判定を非表示にします（ブラインドレビュー）。スイッチをONにするとキー開封（ブラインド解除）となり、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。切り替え時には確認ダイアログが表示されます。スイッチは管理者にのみ表示され、ブラインド状態の切り替えはプロジェクト全体で共有されます。</span>
+                    <span class="en">The switch is OFF by default, which is the blinded state: other reviewers'
+                        decisions are hidden (blind review). Turning the switch ON "opens the key" (lifts the blind),
+                        revealing other reviewers' decisions and the conflict banner, and also enabling disclosure of
+                        the full-text AI decision summary (toggled by an admin from an in-page control). A confirmation
+                        dialog is shown when you flip the switch. The switch is shown to admins only, and the blind
+                        state is shared across the whole project.</span>
+                </p>
+                <p>
+                    <span class="ja">スイッチの場所は次の2か所です（どちらを操作しても同じプロジェクト全体の状態が変わります）。</span>
+                    <span class="en">The switch appears in two places (either one changes the same project-wide
+                        state).</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja">手動タブのツールバー（手動タブを表示しているときのみ表示されます）</span>
+                        <span class="en">The Manual tab toolbar (shown only while the Manual tab is active)</span>
+                    </li>
+                    <li>
+                        <span class="ja">フルテキストタブの「判定後レビュー」ビューの先頭</span>
+                        <span class="en">The top of the "Post-decision review" view in the Full-text tab</span>
+                    </li>
+                </ul>
+                <p>
+                    <span class="ja">このほか、フルテキストの候補リストがブラインドのため0件になっている場合の「Blindを解除する」ボタンや、候補ルールエディタの「キー開封（ブラインド解除）を実行」ボタンからも、同じ解除操作を実行できます（いずれも管理者のみ）。全文閲覧ウィンドウ（PDF画面）には切り替えスイッチが無いため、サイドパネル側から操作してください。</span>
+                    <span class="en">The same unblinding action is also available from the "Turn off Blind" button
+                        shown when the full-text candidate list is empty because of blinding, and from the "Open the
+                        key (lift blinding)" button in the candidate rule editor (both admin-only). The full-text
+                        viewer window (the PDF screen) has no switch of its own, so use the side panel.</span>
                 </p>
 
                 <h3>
@@ -1341,9 +1376,10 @@
                         <span class="en">Q: I can't see other reviewers' decisions</span>
                     </h4>
                     <p>
-                        <span class="ja">A: 「Blind on/off」スイッチがONになっています。OFFに切り替えると他のレビュアーの判定が表示されます。</span>
-                        <span class="en">A: The "Blind on/off" switch is ON. Turn it OFF to see other reviewers'
-                            decisions.</span>
+                        <span class="ja">A: 「Blind on/off」スイッチがOFF（ブラインド中）です。管理者がスイッチをONにしてキーを開封すると、他のレビュアーの判定が表示されます。スイッチは手動タブのツールバー、またはフルテキストタブの「判定後レビュー」ビューの先頭にあります。</span>
+                        <span class="en">A: The "Blind on/off" switch is OFF (still blinded). An admin can turn it ON
+                            to open the key and reveal other reviewers' decisions. The switch is in the Manual tab
+                            toolbar, or at the top of the "Post-decision review" view in the Full-text tab.</span>
                     </p>
                 </div>
 
