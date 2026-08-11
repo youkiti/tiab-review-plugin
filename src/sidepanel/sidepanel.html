@@ -907,6 +907,21 @@
             <!-- ④' AI判定（ビュー切替で表示）: 全文確保済みの未AI判定文献を一括でGemini判定 -->
             <div id="fulltext-ai" class="fulltext-ai hidden">
                 <div class="fulltext-ai-intro" data-i18n="fulltext_aiIntro"></div>
+                <!-- 対象範囲: AIは人間と独立した判定者なので、既定はプロジェクト全体（担当割り振りで絞らない） -->
+                <div class="fulltext-ai-row">
+                    <span class="fulltext-ai-label" data-i18n="fulltext_aiScope"></span>
+                    <div class="fulltext-ai-scope-options">
+                        <label class="fulltext-ai-scope-option">
+                            <input type="radio" name="ft-ai-scope" id="fulltext-ai-scope-project" checked>
+                            <span data-i18n="fulltext_aiScopeProject"></span>
+                        </label>
+                        <label class="fulltext-ai-scope-option">
+                            <input type="radio" name="ft-ai-scope" id="fulltext-ai-scope-assigned">
+                            <span data-i18n="fulltext_aiScopeAssigned"></span>
+                        </label>
+                    </div>
+                    <div class="fulltext-ai-scope-note" data-i18n="fulltext_aiScopeNote"></div>
+                </div>
                 <div class="fulltext-ai-row">
                     <label class="fulltext-ai-label" data-i18n="fulltext_aiModel"></label>
                     <select id="fulltext-ai-model" class="fulltext-ai-model"></select>

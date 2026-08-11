@@ -10,6 +10,11 @@
  *   （候補プールの投票/集計で人間票と共存する）。
  * - 判定根拠（evidence: quote / page / bbox）は Decision.note(JSON) に格納し、
  *   フルテキストページ(fulltext.html)でPDFハイライトとして再現する。
+ * - **対象範囲の既定はプロジェクト全体**。AIは人間とは独立した判定者なので、人間側の
+ *   分業（フルテキスト担当割り振り・担当セット絞り込み）では対象を絞らない。
+ *   自分の担当分だけ試したいときはラジオで `assigned` を選ぶ。詳細は `lib/fulltext-ai-target.ts`
+ * - **「AI判定済み」の判定は Decisions タブの再読込で行う**（Blind 中は参照側の
+ *   allFulltextDecisions が空になり、票から導くと同じPDFを何度も課金してしまうため）
  */
 
 import { dom } from '../dom';
@@ -17,7 +22,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { escapeHtml } from '../utils/text';
 import { showToast } from '../ui/feedback';
-import { getVisibleFulltextCandidateList } from './screening/filters';
+import { getVisibleFulltextCandidateList, getProjectFulltextCandidateList } from './screening/filters';
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from './assignment';
 import { setReferences as syncSetReferences } from '../store/compat';
 import {
@@ -31,7 +36,12 @@ import {
     deleteFulltextAiRound,
 } from '../../lib/sheets-api';
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
-import { extractDriveFileId, downloadDriveFile, describeDriveAccessError } from '../../lib/drive-api';
+import {
+    extractDriveFileId,
+    downloadDriveFile,
+    describeDriveAccessError,
+    DriveAccessDeniedError,
+} from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
 import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
@@ -39,6 +49,14 @@ import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../lib/storage';
 import { getClientVersion } from '../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../lib/prompt-templates';
+import {
+    DEFAULT_FULLTEXT_AI_SCOPE,
+    collectAiJudgedRefIds,
+    countFulltextAiTargets,
+    parseFulltextAiScope,
+    selectFulltextAiTargets,
+    type FulltextAiScope,
+} from '../../lib/fulltext-ai-target';
 import type { LlmConfig } from '../../lib/types';
 import type {
     ReferenceWithStatus,
@@ -51,17 +69,32 @@ import type {
 let aiAbort: { cancelled: boolean } | null = null;
 // パネル初期化済みか（モデル選択・プロンプトの初回プリフィル制御）
 let aiInitialized = false;
+// 対象範囲（既定はプロジェクト全体。人間の担当割り振りでは絞らない）
+let aiScope: FulltextAiScope = DEFAULT_FULLTEXT_AI_SCOPE;
+// 採用ラウンドが判定済みの ref_id（renderRounds が Decisions タブから更新するキャッシュ）
+let judgedRefIds: ReadonlySet<string> = new Set<string>();
 
-/** AI判定の対象（cached かつ AI未判定）か */
-function isAiEligible(ref: ReferenceWithStatus): boolean {
-    if (ref.fulltext_status !== 'cached' || !ref.fulltext_url) return false;
-    return !hasAiFulltextDecision(ref);
+/**
+ * 対象範囲に応じた候補一覧を返す
+ * - project: プロジェクト全体（担当割り振り・担当セット絞り込みを無視）
+ * - assigned: 自分の担当分＋担当セット絞り込み（候補リストタブと同じ見え方）
+ */
+function getScopedCandidates(scope: FulltextAiScope): ReferenceWithStatus[] {
+    return scope === 'project'
+        ? getProjectFulltextCandidateList()
+        : getVisibleFulltextCandidateList();
 }
 
-/** すでにAIフルテキスト判定(llm: voter)が存在するか */
-function hasAiFulltextDecision(ref: ReferenceWithStatus): boolean {
-    const list = ref.allFulltextDecisions ?? (ref.myFulltextDecision ? [ref.myFulltextDecision] : []);
-    return list.some(d => (d.reviewer_id || '').startsWith('llm:'));
+/** Decisions タブと採用ラウンドを読み直して「判定済み ref_id」を取得する */
+async function fetchJudgedRefIds(spreadsheetId: string): Promise<Set<string>> {
+    const [decisions, activeRound] = await Promise.all([
+        getDecisions(spreadsheetId),
+        getFulltextAiActiveRound(spreadsheetId),
+    ]);
+    return collectAiJudgedRefIds(
+        decisions.map(x => x.decision),
+        activeRound ? new Set([activeRound]) : new Set<string>()
+    );
 }
 
 /** Gemini モデルのみの選択肢でセレクトを満たす */
@@ -124,8 +157,16 @@ export function renderFulltextAi(): void {
         aiInitialized = true;
         void prefillPrompt();
     }
+    syncScopeRadios();
     updateAiTargetCount();
+    // 判定済み ref_id を Decisions タブから取り直し、件数表示も更新する
     void renderRounds();
+}
+
+/** 対象範囲ラジオの表示を現在値に合わせる */
+function syncScopeRadios(): void {
+    dom.fulltextAiScopeProjectRadio.checked = aiScope === 'project';
+    dom.fulltextAiScopeAssignedRadio.checked = aiScope === 'assigned';
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +231,10 @@ async function renderRounds(): Promise<void> {
         ]);
         decisions = dec.map(x => x.decision);
         active = act;
+        // 「AI判定済み」は Blind 中に参照側の票から導けないため、ここで取得した
+        // Decisions 行から採用ラウンド基準で作り直す（対象件数表示もこの値を使う）
+        judgedRefIds = collectAiJudgedRefIds(decisions, active ? new Set([active]) : new Set<string>());
+        updateAiTargetCount();
     } catch (err) {
         // 無言で空にすると「ラウンドがまだ無い」状態と見分けが付かないため、失敗を明示する
         console.warn('[fulltext-ai] ラウンド取得に失敗:', err);
@@ -309,12 +354,32 @@ async function deleteRound(reviewerId: string): Promise<void> {
 
 /** 対象件数の表示を更新する */
 function updateAiTargetCount(): void {
-    const candidates = getVisibleFulltextCandidateList();
-    const eligible = candidates.filter(isAiEligible).length;
-    const cached = candidates.filter(r => r.fulltext_status === 'cached' && r.fulltext_url).length;
-    dom.fulltextAiTargetDiv.innerHTML =
-        `<span class="fulltext-ai-target-main">${escapeHtml(t('fulltext_aiTarget', String(eligible)))}</span>` +
-        `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetSub', String(cached)))}</span>`;
+    const counts = countFulltextAiTargets(getScopedCandidates(aiScope), judgedRefIds);
+
+    const lines = [
+        `<span class="fulltext-ai-target-main">${escapeHtml(t('fulltext_aiTarget', String(counts.target)))}</span>`,
+        `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetSub', String(counts.cached)))}</span>`,
+    ];
+
+    // 採用ラウンドで判定済みのため除外した件数（0件表示の理由が分からなくなるのを防ぐ）
+    if (counts.alreadyJudged > 0) {
+        lines.push(
+            `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetJudged', String(counts.alreadyJudged)))}</span>`
+        );
+    }
+
+    // プロジェクト全体を対象にしているとき、そのうち自分の担当分が何件かを併記する
+    // （担当割り振りをしていて件数が変わる場合のみ）
+    if (aiScope === 'project') {
+        const assigned = countFulltextAiTargets(getScopedCandidates('assigned'), judgedRefIds);
+        if (assigned.target !== counts.target) {
+            lines.push(
+                `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetAssignedShare', String(assigned.target)))}</span>`
+            );
+        }
+    }
+
+    dom.fulltextAiTargetDiv.innerHTML = lines.join('');
 }
 
 /** ログ行を追加する */
@@ -347,9 +412,22 @@ async function handleStartAiBatch(): Promise<void> {
     const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
     const modelConfig = getModelConfig(modelId);
 
-    const candidates = getVisibleFulltextCandidateList();
-    const targets = candidates.filter(isAiEligible);
+    const spreadsheetId = state.spreadsheetId;
+
+    // 実行直前だけは Decisions タブを読み直し、サーバーの真値で「判定済み」を確定する
+    // （画面表示のキャッシュはタブを開いた時点のスナップショットで、他レビュアーが
+    //   直前に実行した分を取りこぼす）。読み取りに失敗した場合はキャッシュで続行する
+    let refetchFailed = false;
+    try {
+        judgedRefIds = await fetchJudgedRefIds(spreadsheetId);
+    } catch (err) {
+        refetchFailed = true;
+        console.warn('[fulltext-ai] 判定済み ref_id の再取得に失敗:', err);
+    }
+
+    const targets = selectFulltextAiTargets(getScopedCandidates(aiScope), judgedRefIds);
     if (targets.length === 0) {
+        updateAiTargetCount();
         showToast(t('fulltext_aiNoTarget'));
         return;
     }
@@ -358,7 +436,6 @@ async function handleStartAiBatch(): Promise<void> {
     const batchTimestamp = new Date();
     const reviewerId = generateLlmReviewerId(modelConfig.model, batchTimestamp);
     const executionId = reviewerId;
-    const spreadsheetId = state.spreadsheetId;
 
     // UI: 実行状態へ
     aiAbort = { cancelled: false };
@@ -369,8 +446,14 @@ async function handleStartAiBatch(): Promise<void> {
     dom.fulltextAiLogDiv.innerHTML = '';
     dom.fulltextAiModelSelect.disabled = true;
     dom.fulltextAiPromptInput.disabled = true;
+    setScopeRadiosDisabled(true);
+    if (refetchFailed) appendLog(t('fulltext_aiJudgedRefetchFailed'), 'log-warn');
 
     let done = 0, ok = 0, ng = 0;
+    // Drive の読み取り権限が無くて落ちた件数（drive.file は「アプリ×ユーザー×ファイル」単位の
+    // 付与なので、他メンバーがアップロードしたPDFは読めない。プロジェクト全体を対象にすると
+    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）
+    let driveDenied = 0;
     updateProgress(0, targets.length, 0, 0);
     appendLog(t('fulltext_aiStarted', String(targets.length)));
 
@@ -386,6 +469,7 @@ async function handleStartAiBatch(): Promise<void> {
                 appendLog(`✓ ${ref.title || ref.ref_id}`, 'log-ok');
             } catch (err) {
                 ng++;
+                if (err instanceof DriveAccessDeniedError) driveDenied++;
                 const msg = err instanceof Error ? err.message : String(err);
                 appendLog(`✕ ${ref.title || ref.ref_id} — ${describeDriveAccessError(err) ?? msg}`, 'log-err');
             } finally {
@@ -410,10 +494,14 @@ async function handleStartAiBatch(): Promise<void> {
         dom.fulltextAiStopBtn.disabled = false;
         dom.fulltextAiModelSelect.disabled = false;
         dom.fulltextAiPromptInput.disabled = false;
+        setScopeRadiosDisabled(false);
         updateAiTargetCount();
         void renderRounds();
         aiAbort = null;
         appendLog(t('fulltext_aiDone', [String(ok), String(ng)]), 'log-done');
+        if (driveDenied > 0) {
+            appendLog(t('fulltext_aiDriveDeniedHint', String(driveDenied)), 'log-warn');
+        }
         showToast(t('fulltext_aiDone', [String(ok), String(ng)]), 4000);
     }
 }
@@ -505,6 +593,9 @@ async function reloadReferences(spreadsheetId: string): Promise<void> {
         })();
 
         syncSetReferences(visibleRefs);
+        // プロジェクト全体を対象にする表示（対象件数・結果タブ）が絞り込み前の
+        // 全文献を見るため、こちらも一緒に更新する
+        state.setAllReferences(refs);
     } catch (error) {
         console.error('[fulltext-ai] Failed to reload references:', error);
     }
@@ -519,10 +610,28 @@ function handleStopAiBatch(): void {
     }
 }
 
+/** 実行中は対象範囲を変えられないようにする */
+function setScopeRadiosDisabled(disabled: boolean): void {
+    dom.fulltextAiScopeProjectRadio.disabled = disabled;
+    dom.fulltextAiScopeAssignedRadio.disabled = disabled;
+}
+
+/** 対象範囲の変更を反映する */
+function handleScopeChange(scope: FulltextAiScope): void {
+    aiScope = parseFulltextAiScope(scope);
+    updateAiTargetCount();
+}
+
 export function setupFulltextAiListeners(): void {
     dom.fulltextAiStartBtn?.addEventListener('click', () => { void handleStartAiBatch(); });
     dom.fulltextAiStopBtn?.addEventListener('click', () => {
         dom.fulltextAiStopBtn.disabled = false;
         handleStopAiBatch();
+    });
+    dom.fulltextAiScopeProjectRadio?.addEventListener('change', () => {
+        if (dom.fulltextAiScopeProjectRadio.checked) handleScopeChange('project');
+    });
+    dom.fulltextAiScopeAssignedRadio?.addEventListener('change', () => {
+        if (dom.fulltextAiScopeAssignedRadio.checked) handleScopeChange('assigned');
     });
 }

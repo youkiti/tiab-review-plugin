@@ -551,6 +551,18 @@
   "fulltext_aiIntro": {
     "message": "Batch-judge candidates whose full text is secured (saved to Drive) and not yet AI-judged by sending the whole PDF to Gemini. The AI is stored as an independent reviewer, separate from human review."
   },
+  "fulltext_aiScope": {
+    "message": "Scope"
+  },
+  "fulltext_aiScopeProject": {
+    "message": "Whole project (default)"
+  },
+  "fulltext_aiScopeAssigned": {
+    "message": "Only my assigned references"
+  },
+  "fulltext_aiScopeNote": {
+    "message": "The AI is an independent reviewer, so by default every full-text-secured PDF in the project is judged (full-text assignment and set filters are ignored). Switch this if you only want to try your own assigned references."
+  },
   "fulltext_aiModel": {
     "message": "Model"
   },
@@ -568,6 +580,18 @@
   },
   "fulltext_aiTargetSub": {
     "message": "Full text secured total: $1"
+  },
+  "fulltext_aiTargetJudged": {
+    "message": "Excluded because the adopted round already judged them: $1 (choose \"None\" under Judging rounds to redo them as a new round)"
+  },
+  "fulltext_aiTargetAssignedShare": {
+    "message": "Of which assigned to me: $1"
+  },
+  "fulltext_aiDriveDeniedHint": {
+    "message": "$1 references could not be judged because Drive read access is not granted (PDFs uploaded by other members). Use \"Check read access\" in the candidate list to grant them, then run again."
+  },
+  "fulltext_aiJudgedRefetchFailed": {
+    "message": "Could not refresh which references were already judged. Running with the snapshot from when this tab was opened (judgments may be duplicated)."
   },
   "fulltext_aiProgress": {
     "message": "$1 / $2 done (ok $3 / failed $4)"

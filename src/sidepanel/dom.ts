@@ -206,6 +206,8 @@ const domElements = {
     get fulltextModeResultsBtn() { return getElement<HTMLButtonElement>('fulltext-mode-results'); },
     // AI判定（フルテキスト一括Gemini判定）
     get fulltextAiDiv() { return getElement<HTMLElement>('fulltext-ai'); },
+    get fulltextAiScopeProjectRadio() { return getElement<HTMLInputElement>('fulltext-ai-scope-project'); },
+    get fulltextAiScopeAssignedRadio() { return getElement<HTMLInputElement>('fulltext-ai-scope-assigned'); },
     get fulltextAiModelSelect() { return getElement<HTMLSelectElement>('fulltext-ai-model'); },
     get fulltextAiPromptInput() { return getElement<HTMLTextAreaElement>('fulltext-ai-prompt'); },
     get fulltextAiTargetDiv() { return getElement<HTMLElement>('fulltext-ai-target'); },
