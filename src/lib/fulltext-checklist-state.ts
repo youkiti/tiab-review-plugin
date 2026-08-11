@@ -11,7 +11,7 @@
 // DOM/i18n には依存しない（描画は src/sidepanel/features/fulltext-checklist.ts が担う）。
 
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
-import { getFulltextSetsForUser } from './fulltext-assignment';
+import { getAvailableFulltextSets, getFulltextSetsForUser } from './fulltext-assignment';
 
 // ---------------------------------------------------------------------------
 // 項目1: バージョン（常に情報表示。チェック判定なし）
@@ -23,15 +23,30 @@ export interface FulltextChecklistVersionState {
 }
 
 // ---------------------------------------------------------------------------
-// 項目2: 担当グループ（割り振り未設定なら非表示。それ以外は常に情報表示）
+// 項目2: 担当グループ（割り振り未設定なら非表示。それ以外は常に表示するが判定結果で色を変える）
 // ---------------------------------------------------------------------------
+
+/**
+ * - 'ok': 選択中の ft-group が自分の担当と完全一致（緑✅）
+ * - 'extra': 担当は全て選択されているが担当外も選択されている（赤❌）
+ * - 'missing': 担当の一部/全部が選択から外れている（担当外の有無を問わず優先。赤❌）
+ * - 'all': 担当グループを持たないユーザー（オーナー等、mySets が空）は情報表示のまま（緑✅）
+ */
+export type FulltextChecklistGroupKind = 'ok' | 'extra' | 'missing' | 'all';
 
 export interface FulltextChecklistGroupState {
     visible: boolean;
-    /** true: 自分の担当グループへ絞り込んで表示中。false: 全候補を表示中（担当なし/フィルタ未使用） */
+    kind: FulltextChecklistGroupKind;
+    /** 自分の担当グループID群（昇順） */
+    myGroupIds: string[];
+    /** 選択中だが担当外のグループID群（昇順。kind='extra' のとき使う） */
+    extraGroupIds: string[];
+    /** 担当だが選択から外れているグループID群（昇順。kind='missing' のとき使う） */
+    missingGroupIds: string[];
+    /** 選択中の ft-group ID群のうち存在しうるグループ（ft-group-1..groupCount）に含まれるものだけ（昇順） */
+    selectedGroupIds: string[];
+    /** 選択が ft-group-1..groupCount の空でない真部分集合になっているか。kind='all' のときの文言分岐に使う */
     narrowed: boolean;
-    /** narrowed=true のときに表示する、自分の担当かつ選択中のグループID群（例 ['ft-group-2']） */
-    groupIds: string[];
     /** 現在表示されている候補件数（絞り込み適用後） */
     visibleCount: number;
 }
@@ -125,8 +140,10 @@ export function computeFulltextChecklistState(input: FulltextChecklistInput): Fu
         complete: input.decidedCount >= input.visibleCandidateCount,
     };
 
-    // 項目1・2は情報表示のみなので折りたたみを妨げない。項目3・4は表示中なら完了必須。
+    // 項目1は常に情報表示のみなので折りたたみを妨げない。項目2は赤（extra/missing）なら妨げる。
+    // 項目3・4は表示中なら完了必須。
     const allComplete =
+        (!group.visible || group.kind === 'ok' || group.kind === 'all') &&
         (!regrant.visible || regrant.kind === 'ok') &&
         progress.complete;
 
@@ -144,16 +161,54 @@ function computeGroup(
     visibleCount: number
 ): FulltextChecklistGroupState {
     if (assignment.status !== 'configured') {
-        return { visible: false, narrowed: false, groupIds: [], visibleCount };
+        return {
+            visible: false,
+            kind: 'all',
+            myGroupIds: [],
+            extraGroupIds: [],
+            missingGroupIds: [],
+            selectedGroupIds: [],
+            narrowed: false,
+            visibleCount,
+        };
     }
-    const mySets = getFulltextSetsForUser(assignment, userEmail);
-    const intersecting = Array.from(mySets).filter((id) => selected.has(id)).sort();
-    return {
-        visible: true,
-        narrowed: intersecting.length > 0,
-        groupIds: intersecting,
-        visibleCount,
-    };
+
+    // 比較対象は ft-group-* のみ。'unassigned' は非管理者が外せない仕様のため比較から除外する
+    // （含めると全員が常に赤になる。src/lib/fulltext-assignment.ts の initialSelectedFulltextSets 参照）
+    const availableGroups = getAvailableFulltextSets(assignment, false);
+    const selectedGroups = new Set(Array.from(selected).filter((id) => availableGroups.has(id)));
+    const selectedGroupIds = Array.from(selectedGroups).sort();
+    const narrowed = selectedGroupIds.length > 0 && selectedGroupIds.length < availableGroups.size;
+
+    // Config シート（Googleスプレッドシート）はユーザーが直接編集できるため、reviewerMap に
+    // groupCount を超える古いキー（例: groupCount縮小後も残った ft-group-3）が残存しうる。
+    // availableGroups との積に絞らないと、存在しないグループが myGroupIds に残り続けて
+    // missingGroupIds が永久に解消せず（修復ボタンを押しても赤のまま）になるため絞り込む。
+    const mySetsRaw = getFulltextSetsForUser(assignment, userEmail);
+    const mySets = new Set(Array.from(mySetsRaw).filter((id) => availableGroups.has(id)));
+    const myGroupIds = Array.from(mySets).sort();
+
+    if (mySets.size === 0) {
+        // 担当グループを持たないユーザー（オーナー等、または陳腐化した担当キーしか無いユーザー）は情報表示のまま
+        return {
+            visible: true,
+            kind: 'all',
+            myGroupIds: [],
+            extraGroupIds: [],
+            missingGroupIds: [],
+            selectedGroupIds,
+            narrowed,
+            visibleCount,
+        };
+    }
+
+    const missingGroupIds = myGroupIds.filter((id) => !selectedGroups.has(id)).sort();
+    const extraGroupIds = Array.from(selectedGroups).filter((id) => !mySets.has(id)).sort();
+
+    const kind: FulltextChecklistGroupKind =
+        missingGroupIds.length > 0 ? 'missing' : extraGroupIds.length > 0 ? 'extra' : 'ok';
+
+    return { visible: true, kind, myGroupIds, extraGroupIds, missingGroupIds, selectedGroupIds, narrowed, visibleCount };
 }
 
 function computeRegrant(

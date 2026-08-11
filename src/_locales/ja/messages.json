@@ -2700,6 +2700,18 @@
   "fulltext_checklist_groupNarrowed": {
     "message": "2. 担当グループ: $1（$2件）を表示中"
   },
+  "fulltext_checklist_groupOk": {
+    "message": "2. 担当グループ: $1 のみ表示中（$2件）"
+  },
+  "fulltext_checklist_groupExtra": {
+    "message": "2. 担当グループ: 担当外の $1 も表示中（$2件）"
+  },
+  "fulltext_checklist_groupMissing": {
+    "message": "2. 担当グループ: 担当の $1 が表示から外れています（$2件）"
+  },
+  "fulltext_checklist_groupFixBtn": {
+    "message": "担当グループだけ表示"
+  },
   "fulltext_checklist_groupAll": {
     "message": "2. 担当グループ: 全候補を表示中（$1件）"
   },

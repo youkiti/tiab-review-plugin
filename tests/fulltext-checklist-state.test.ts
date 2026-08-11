@@ -58,41 +58,103 @@ test('担当グループ: 割り振り未設定なら非表示', () => {
     assert.equal(state.group.visible, false);
 });
 
-test('担当グループ: 自分の担当セットが選択と交差していれば narrowed=true でそのグループIDを返す', () => {
+test('担当グループ: 担当のみ選択していれば kind=ok', () => {
     const state = computeFulltextChecklistState(baseInput({
         assignment: ASSIGNMENT_CONFIGURED,
-        selectedFulltextSets: new Set(['ft-group-3', 'unassigned']),
+        selectedFulltextSets: new Set(['ft-group-3']),
         userEmail: 'carol@example.com',
         visibleCandidateCount: 34,
     }));
     assert.equal(state.group.visible, true);
-    assert.equal(state.group.narrowed, true);
-    assert.deepEqual(state.group.groupIds, ['ft-group-3']);
+    assert.equal(state.group.kind, 'ok');
+    assert.deepEqual(state.group.myGroupIds, ['ft-group-3']);
+    assert.deepEqual(state.group.extraGroupIds, []);
+    assert.deepEqual(state.group.missingGroupIds, []);
     assert.equal(state.group.visibleCount, 34);
 });
 
-test('担当グループ: 自分の担当セットが無い（管理者等）場合は narrowed=false', () => {
+test('担当グループ: unassigned を選択に含めても比較から除外されて kind=ok のまま', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-3', 'unassigned']),
+        userEmail: 'carol@example.com',
+    }));
+    assert.equal(state.group.kind, 'ok');
+    assert.deepEqual(state.group.myGroupIds, ['ft-group-3']);
+});
+
+test('担当グループ: 担当セットが無い（管理者等）場合は kind=all', () => {
     const state = computeFulltextChecklistState(baseInput({
         assignment: ASSIGNMENT_CONFIGURED,
         selectedFulltextSets: new Set(['ft-group-1', 'ft-group-2', 'ft-group-3']),
         userEmail: 'admin@example.com', // reviewerMap に無いユーザー
     }));
     assert.equal(state.group.visible, true);
-    assert.equal(state.group.narrowed, false);
-    assert.deepEqual(state.group.groupIds, []);
+    assert.equal(state.group.kind, 'all');
+    assert.deepEqual(state.group.myGroupIds, []);
 });
 
-test('担当グループ: 担当セットはあるが選択から外れている（交差なし）場合は narrowed=false', () => {
+test('担当グループ: 担当＋担当外を選択している場合は kind=extra（extraGroupIdsが正しい）', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-3', 'ft-group-1']), // carolの担当は ft-group-3
+        userEmail: 'carol@example.com',
+    }));
+    assert.equal(state.group.kind, 'extra');
+    assert.deepEqual(state.group.extraGroupIds, ['ft-group-1']);
+    assert.deepEqual(state.group.missingGroupIds, []);
+});
+
+test('担当グループ: 担当セットが選択から外れている場合は kind=missing', () => {
     const state = computeFulltextChecklistState(baseInput({
         assignment: ASSIGNMENT_CONFIGURED,
         selectedFulltextSets: new Set(['ft-group-1']), // carolの担当は ft-group-3
         userEmail: 'carol@example.com',
     }));
-    assert.equal(state.group.narrowed, false);
-    assert.deepEqual(state.group.groupIds, []);
+    assert.equal(state.group.kind, 'missing');
+    assert.deepEqual(state.group.missingGroupIds, ['ft-group-3']);
 });
 
-test('担当グループ: 複数グループを担当し両方選択中なら両方返す（昇順ソート）', () => {
+test('担当グループ: 担当が外れていて担当外も選択中なら missing が優先される', () => {
+    const assignment: FulltextAssignmentConfig = {
+        status: 'configured',
+        groupCount: 3,
+        reviewerMap: {
+            'ft-group-1': ['dave@example.com'],
+            'ft-group-2': ['dave@example.com'],
+            'ft-group-3': ['carol@example.com'],
+        },
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        assignment,
+        selectedFulltextSets: new Set(['ft-group-1', 'ft-group-3']), // daveの担当は1,2。1は選択、2は外れ、3(担当外)は選択
+        userEmail: 'dave@example.com',
+    }));
+    assert.equal(state.group.kind, 'missing');
+    assert.deepEqual(state.group.missingGroupIds, ['ft-group-2']);
+    assert.deepEqual(state.group.extraGroupIds, ['ft-group-3']);
+});
+
+test('担当グループ: 選択が空なら kind=missing', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(),
+        userEmail: 'carol@example.com',
+    }));
+    assert.equal(state.group.kind, 'missing');
+    assert.deepEqual(state.group.missingGroupIds, ['ft-group-3']);
+});
+
+test('担当グループ: mySets が空（担当なしユーザー）なら選択が何であっても kind=all', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-1']),
+        userEmail: 'owner@example.com',
+    }));
+    assert.equal(state.group.kind, 'all');
+});
+
+test('担当グループ: 複数グループを担当し両方選択中なら myGroupIds は両方（昇順ソート）', () => {
     const assignment: FulltextAssignmentConfig = {
         status: 'configured',
         groupCount: 3,
@@ -107,7 +169,94 @@ test('担当グループ: 複数グループを担当し両方選択中なら両
         selectedFulltextSets: new Set(['ft-group-2', 'ft-group-1']),
         userEmail: 'dave@example.com',
     }));
-    assert.deepEqual(state.group.groupIds, ['ft-group-1', 'ft-group-2']);
+    assert.equal(state.group.kind, 'ok');
+    assert.deepEqual(state.group.myGroupIds, ['ft-group-1', 'ft-group-2']);
+});
+
+test('担当グループ: groupCount縮小後の陳腐化した担当キーしか無い場合は kind=all で永久に赤にならない', () => {
+    const assignment: FulltextAssignmentConfig = {
+        status: 'configured',
+        groupCount: 2,
+        reviewerMap: {
+            'ft-group-3': ['carol@example.com'], // groupCount=2 を超える陳腐化したキー（Configシート編集で残存）
+        },
+    };
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount: 0,
+        totalCachedCount: 20,
+        checkedAt: '2026-08-10T01:00:00.000Z',
+        freshness: 'session',
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        assignment,
+        selectedFulltextSets: new Set(['ft-group-1', 'ft-group-2']),
+        userEmail: 'carol@example.com',
+        regrantResult: result,
+        decidedCount: 34,
+        visibleCandidateCount: 34,
+    }));
+    assert.equal(state.group.kind, 'all');
+    assert.deepEqual(state.group.myGroupIds, []);
+    assert.equal(state.allComplete, true);
+});
+
+test('担当グループ: 担当なしユーザーが一部グループだけ選択している場合は narrowed=true', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-1']),
+        userEmail: 'owner@example.com', // reviewerMap に無いユーザー
+    }));
+    assert.equal(state.group.kind, 'all');
+    assert.equal(state.group.narrowed, true);
+    assert.deepEqual(state.group.selectedGroupIds, ['ft-group-1']);
+});
+
+test('担当グループ: 担当なしユーザーが全グループを選択している場合は narrowed=false', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-1', 'ft-group-2', 'ft-group-3']),
+        userEmail: 'owner@example.com',
+    }));
+    assert.equal(state.group.kind, 'all');
+    assert.equal(state.group.narrowed, false);
+});
+
+test('allComplete: 担当グループが kind=extra なら他が完了状態でも false', () => {
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount: 0,
+        totalCachedCount: 20,
+        checkedAt: '2026-08-10T01:00:00.000Z',
+        freshness: 'session',
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-3', 'ft-group-1']), // carolの担当は ft-group-3 + 担当外
+        userEmail: 'carol@example.com',
+        regrantResult: result,
+        decidedCount: 34,
+        visibleCandidateCount: 34,
+    }));
+    assert.equal(state.group.kind, 'extra');
+    assert.equal(state.allComplete, false);
+});
+
+test('allComplete: 担当グループが kind=missing なら他が完了状態でも false', () => {
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount: 0,
+        totalCachedCount: 20,
+        checkedAt: '2026-08-10T01:00:00.000Z',
+        freshness: 'session',
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        assignment: ASSIGNMENT_CONFIGURED,
+        selectedFulltextSets: new Set(['ft-group-1']), // carolの担当は ft-group-3
+        userEmail: 'carol@example.com',
+        regrantResult: result,
+        decidedCount: 34,
+        visibleCandidateCount: 34,
+    }));
+    assert.equal(state.group.kind, 'missing');
+    assert.equal(state.allComplete, false);
 });
 
 // ---------------------------------------------------------------------------
