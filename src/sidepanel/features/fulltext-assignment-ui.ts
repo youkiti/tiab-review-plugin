@@ -264,6 +264,16 @@ export async function initializeFulltextAssignmentSelection(spreadsheetId: strin
     state.setSelectedFulltextSets(selected);
 }
 
+/**
+ * 担当外グループを表示中/担当グループが選択から外れている状態を、担当グループだけの選択に戻す。
+ * チェックリスト項目2の修復ボタン（fulltext-checklist.ts）から呼ぶ。
+ */
+export async function resetFulltextSetSelectionToMine(): Promise<void> {
+    state.setSelectedFulltextSets(initialSelectedFulltextSets(state.fulltextAssignment, state.userEmail));
+    await persistSelectedFulltextSets();
+    if (_rerenderTab) _rerenderTab();
+}
+
 /** フルテキストタブの割り振り状態行を描画する（renderFulltextTab から呼ぶ） */
 export function renderFulltextAssignmentRow(): void {
     const line = dom.fulltextAssignmentLine;

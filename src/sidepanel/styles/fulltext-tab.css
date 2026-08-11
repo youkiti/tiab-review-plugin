@@ -191,8 +191,16 @@
     flex-wrap: wrap;
 }
 
+.fulltext-checklist-row--ok {
+    color: #1e7e34;
+}
+
 .fulltext-checklist-row--warn {
     color: #8a6d3b;
+}
+
+.fulltext-checklist-row--error {
+    color: #c0392b;
 }
 
 .fulltext-checklist-icon {
