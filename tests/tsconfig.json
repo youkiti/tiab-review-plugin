@@ -28,6 +28,8 @@
         "../src/lib/ai-evidence-empty-reason.ts",
         "../src/lib/fulltext-candidates.ts",
         "../src/lib/fulltext-checklist-state.ts",
-        "../src/lib/fulltext-rule-editor.ts"
+        "../src/lib/fulltext-rule-editor.ts",
+        "../src/lib/exclude-reasons.ts",
+        "../src/lib/fulltext-consensus.ts"
     ]
 }

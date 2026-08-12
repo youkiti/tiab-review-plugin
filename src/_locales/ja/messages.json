@@ -551,6 +551,18 @@
   "fulltext_aiIntro": {
     "message": "全文を確保済み（Drive保存）かつ未AI判定の候補を、Geminiに全文PDFを渡して一括判定します。AIは独立した判定者として保存され、人間レビューとは別票になります。"
   },
+  "fulltext_aiScope": {
+    "message": "対象範囲"
+  },
+  "fulltext_aiScopeProject": {
+    "message": "プロジェクト全体（既定）"
+  },
+  "fulltext_aiScopeAssigned": {
+    "message": "自分の担当分のみ"
+  },
+  "fulltext_aiScopeNote": {
+    "message": "AIは人間とは独立した判定者なので、既定ではプロジェクト全体の全文確保済みPDFを対象にします（フルテキスト担当割り振り・担当セットの絞り込みを無視）。自分の担当分だけ試したいときは切り替えてください。"
+  },
   "fulltext_aiModel": {
     "message": "モデル"
   },
@@ -568,6 +580,18 @@
   },
   "fulltext_aiTargetSub": {
     "message": "全文確保済み合計: $1 件"
+  },
+  "fulltext_aiTargetJudged": {
+    "message": "採用ラウンドで判定済みのため除外: $1 件（別ラウンドとしてやり直すには「判定ラウンド」で「採用なし」を選ぶ）"
+  },
+  "fulltext_aiTargetAssignedShare": {
+    "message": "うち自分の担当分: $1 件"
+  },
+  "fulltext_aiDriveDeniedHint": {
+    "message": "$1 件は Drive の読み取り権限が無く判定できませんでした（他のメンバーがアップロードしたPDF）。候補リストの「読み取り権限を確認」でまとめて付与してから再実行してください。"
+  },
+  "fulltext_aiJudgedRefetchFailed": {
+    "message": "判定済み文献の再取得に失敗しました。画面を開いた時点の情報で実行します（判定が重複する可能性があります）"
   },
   "fulltext_aiProgress": {
     "message": "$1 / $2 完了（成功 $3 ・ 失敗 $4）"
@@ -662,8 +686,8 @@
   "fulltext_prismaPending": {
     "message": "未判定: $1件"
   },
-  "fulltext_prismaConflict": {
-    "message": "うち不一致: $1件"
+  "fulltext_prismaUnresolved": {
+    "message": "未解消の不一致: $1件"
   },
   "fulltext_prismaExclReasons": {
     "message": "除外理由の内訳"
@@ -672,7 +696,73 @@
     "message": "候補がありません。"
   },
   "fulltext_resultConflictBadge": {
-    "message": "不一致"
+    "message": "判定不一致"
+  },
+  "fulltext_resultReasonConflictBadge": {
+    "message": "理由不一致"
+  },
+  "fulltext_conflictsHead": {
+    "message": "不一致の解消"
+  },
+  "fulltext_conflictsSummary": {
+    "message": "未解消 $1件 / 対象 $2件"
+  },
+  "fulltext_conflictsEmpty": {
+    "message": "現在、判定者間の不一致はありません。"
+  },
+  "fulltext_conflictUnresolved": {
+    "message": "未解決"
+  },
+  "fulltext_conflictResolved": {
+    "message": "裁定済み"
+  },
+  "fulltext_conflictDecisionInclude": {
+    "message": "組み入れ"
+  },
+  "fulltext_conflictDecisionExclude": {
+    "message": "除外"
+  },
+  "fulltext_conflictDecisionMaybe": {
+    "message": "保留"
+  },
+  "fulltext_conflictDecisionPending": {
+    "message": "未判定"
+  },
+  "fulltext_conflictAdjudicatedBy": {
+    "message": "裁定: $1（$2）"
+  },
+  "fulltext_conflictOpenPdf": {
+    "message": "PDFを開く"
+  },
+  "fulltext_conflictResolveHead": {
+    "message": "この不一致を裁定する"
+  },
+  "fulltext_conflictRedoHead": {
+    "message": "裁定をやり直す"
+  },
+  "fulltext_conflictAdjudicateInclude": {
+    "message": "組み入れで確定"
+  },
+  "fulltext_conflictAdjudicateMaybe": {
+    "message": "保留で確定"
+  },
+  "fulltext_conflictAdjudicateExclude": {
+    "message": "除外で確定"
+  },
+  "fulltext_conflictReasonPlaceholder": {
+    "message": "除外理由を選択…"
+  },
+  "fulltext_conflictReasonPriorityNote": {
+    "message": "複数当てはまるときは上（番号が小さい方）を選ぶ ─ 判定時と同じ規則です"
+  },
+  "fulltext_conflictReasonRequired": {
+    "message": "除外理由を選択してください。"
+  },
+  "fulltext_conflictAdjudicateSaved": {
+    "message": "裁定を保存しました。"
+  },
+  "fulltext_conflictAdjudicateSaveFailed": {
+    "message": "裁定の保存に失敗しました（権限を確認してください）。"
   },
   "fulltext_exportNoData": {
     "message": "エクスポートする候補がありません。"
@@ -1283,6 +1373,9 @@
   },
   "reviewer_self": {
     "message": "$1 (自分)"
+  },
+  "reviewer_adjudication": {
+    "message": "⚖ 裁定（$1）"
   },
   "reviewer_mlAutoLabel": {
     "message": "🤖 ML(自動)"

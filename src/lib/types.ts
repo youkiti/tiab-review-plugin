@@ -301,6 +301,27 @@ export interface FulltextLlmDecisionNote {
 }
 
 /**
+ * 裁定票の note フィールドに保存する構造（Decisions タブ）。
+ * 「不一致の解消」UIで確定したときのスナップショットを保存し、後から
+ * 「誰が・いつ・どの票を見て裁定したか」を追跡できるようにする。
+ * reviewer_id は adjudicationReviewerId()（src/lib/fulltext-consensus.ts）で組み立てる
+ * 'adjudication:{email}' 形式。判定者選択（judge selector）には出さない特別扱いの票。
+ */
+export interface FulltextAdjudicationVoteSnapshot {
+    judge: string;                                        // reviewer_id（裁定時点のキー。'llm:...' も含む）
+    decision: 'include' | 'exclude' | 'maybe' | 'pending';
+    reason?: string;
+    note?: string;
+}
+
+export interface FulltextAdjudicationNote {
+    type: 'fulltext_adjudication';
+    adjudicated_by: string;                              // 裁定者 email
+    adjudicated_at: string;                               // ISO 8601
+    votes: FulltextAdjudicationVoteSnapshot[];             // 裁定時点の各判定者の票
+}
+
+/**
  * バッチ処理の進捗状態
  */
 export interface LlmBatchProgress {

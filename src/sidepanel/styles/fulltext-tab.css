@@ -709,6 +709,216 @@
 .fulltext-judge-chip.chip-maybe   { color: #b9770e; background: #fef9e7; }
 .fulltext-judge-chip.chip-pending { color: #aab7b8; background: #f2f4f4; }
 
+.fulltext-result-reason-conflict {
+    font-size: 11px;
+    font-weight: 600;
+    color: #b9770e;
+    background: #fef5e7;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.fulltext-result-adjudicated {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e8449;
+    background: #d5f5e3;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+/* ===== 不一致の解消（判定後レビュー内） ===== */
+
+.fulltext-conflicts {
+    border: 1px solid #e0b4b0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: #fef9f8;
+}
+
+.fulltext-conflicts-head {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e44ad;
+    margin-bottom: 4px;
+}
+
+.fulltext-conflicts-summary {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.fulltext-conflicts-empty {
+    font-size: 12px;
+    color: #999;
+    padding: 8px 0;
+}
+
+.fulltext-conflicts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fulltext-conflict-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0 10px;
+}
+
+.fulltext-conflict-item.unresolved {
+    border-color: #e0b4b0;
+}
+
+.fulltext-conflict-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 0;
+    cursor: pointer;
+    list-style: none;
+    font-size: 13px;
+    color: #2c3e50;
+}
+
+.fulltext-conflict-summary::-webkit-details-marker {
+    display: none;
+}
+
+.fulltext-conflict-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fulltext-conflict-badges {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.fulltext-conflict-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.fulltext-conflict-status.status-unresolved { background: #fdedec; color: #b03a2e; }
+.fulltext-conflict-status.status-resolved   { background: #d5f5e3; color: #1e8449; }
+
+.fulltext-conflict-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.fulltext-conflict-badge.badge-decision { background: #f5eef8; color: #8e44ad; }
+.fulltext-conflict-badge.badge-reason   { background: #fef5e7; color: #b9770e; }
+
+.fulltext-conflict-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0 10px;
+    border-top: 1px solid #eee;
+}
+
+.fulltext-conflict-votes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-conflict-vote-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.fulltext-conflict-vote-judge {
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 120px;
+}
+
+.fulltext-conflict-vote-decision { color: #555; }
+.fulltext-conflict-vote-reason { color: #b03a2e; }
+.fulltext-conflict-vote-note { color: #777; font-style: italic; }
+
+.fulltext-conflict-adjudicated-info {
+    font-size: 12px;
+    color: #1e8449;
+    background: #eafaf1;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.fulltext-conflict-open-btn {
+    align-self: flex-start;
+}
+
+.fulltext-conflict-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px dashed #e0e0e0;
+    padding-top: 8px;
+}
+
+.fulltext-conflict-controls-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+}
+
+.fulltext-conflict-controls-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.fulltext-conflict-controls-exclude-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.fulltext-conflict-reason-select {
+    flex: 1;
+    min-width: 120px;
+    padding: 4px 6px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* 除外理由の優先順位ルール。スクリーニング側（fulltext.css の .ft-reason-priority-note）と揃える */
+.fulltext-conflict-reason-priority-note {
+    font-size: 11px;
+    color: #8a6d00;
+    background: #fff8e1;
+    border: 1px solid #f0dda0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    line-height: 1.4;
+}
+
 /* ===== AI判定タブ ===== */
 .fulltext-ai {
     display: flex;
@@ -738,6 +948,27 @@
     font-size: 12px;
     font-weight: 600;
     color: #34495e;
+}
+
+.fulltext-ai-scope-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.fulltext-ai-scope-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #34495e;
+    cursor: pointer;
+}
+
+.fulltext-ai-scope-note {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
 }
 
 .fulltext-ai-model {

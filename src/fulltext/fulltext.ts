@@ -35,6 +35,7 @@ import {
 } from '../lib/drive-api';
 import { getClientVersion } from '../lib/client-version';
 import { t } from '../lib/i18n';
+import { EXCLUDE_REASON_VALUES, excludeReasonLabel } from '../lib/exclude-reasons';
 import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
@@ -135,18 +136,6 @@ let reasonPointerDown = false;
 // select の外で離した（クリック不成立）場合に、表示と保存を一致させる
 // 保存だけを行うための判定に使う。
 let reasonChangedByPointer = false;
-
-// 除外理由の選択肢（fulltext.html の <select> のオプション順と一致させる）。
-// 数字キー 1〜7 のショートカット割り当てに使う。
-const REASON_VALUES = [
-    'population',
-    'intervention',
-    'comparator',
-    'outcome',
-    'study_design',
-    'duplicate',
-    'other',
-] as const;
 
 // ハイライト表示状態（このアプリはスクリーニング用ハイライトのみ。デフォルトON）
 let highlightEnabled = true;
@@ -433,16 +422,6 @@ function renderDecisionPanel(): void {
     updateSaveButton();
 }
 
-const EXCLUDE_REASON_LABELS: Record<string, string> = {
-    population: 'Population 不適合',
-    intervention: 'Intervention 不適合',
-    comparator: 'Comparator 不適合',
-    outcome: 'Outcome 不適合',
-    study_design: 'Study design 不適合',
-    duplicate: '重複',
-    other: 'その他',
-};
-
 const AI_DECISION_LABELS: Record<string, string> = {
     include: '組み入れ',
     exclude: '除外',
@@ -509,7 +488,7 @@ function renderAiSummary(): void {
     const decLabel = AI_DECISION_LABELS[decision.decision] ?? decision.decision;
     const pct = Math.round((note.include_probability ?? 0) * 100);
     const reasonCat = note.exclude_reason_category
-        ? `（${EXCLUDE_REASON_LABELS[note.exclude_reason_category] ?? note.exclude_reason_category}）`
+        ? `（${excludeReasonLabel(note.exclude_reason_category)}）`
         : '';
 
     banner.innerHTML = '';
@@ -685,10 +664,14 @@ function focusReasonNote(): void {
     }
 }
 
-/** 数字キー（1〜7）で除外理由を選び、保存して次へ進む */
+/**
+ * 数字キー（1〜7）で除外理由を選び、保存して次へ進む。
+ * 除外理由の選択肢は src/lib/exclude-reasons.ts の EXCLUDE_REASON_VALUES が唯一の定義
+ * （fulltext.html の <select> のオプション順もこれと一致させること）。
+ */
 function selectReasonByIndex(n: number): void {
     const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
-    const value = REASON_VALUES[n - 1];
+    const value = EXCLUDE_REASON_VALUES[n - 1];
     if (!select || value === undefined) return;
     select.value = value;
     void commitReasonAndAdvance();
@@ -1459,7 +1442,7 @@ function renderContextPanel(ref: Reference): void {
     if (tiab) {
         tiabRow.dataset.decision = tiab.decision;
         const parts = [`自分のTiAb判定: ${AI_DECISION_LABELS[tiab.decision] ?? tiab.decision}`];
-        if (tiab.reason) parts.push(EXCLUDE_REASON_LABELS[tiab.reason] ?? tiab.reason);
+        if (tiab.reason) parts.push(excludeReasonLabel(tiab.reason));
         if (tiab.note) parts.push(tiab.note);
         tiabRow.textContent = parts.join(' · ');
     } else {

@@ -551,6 +551,18 @@
   "fulltext_aiIntro": {
     "message": "Batch-judge candidates whose full text is secured (saved to Drive) and not yet AI-judged by sending the whole PDF to Gemini. The AI is stored as an independent reviewer, separate from human review."
   },
+  "fulltext_aiScope": {
+    "message": "Scope"
+  },
+  "fulltext_aiScopeProject": {
+    "message": "Whole project (default)"
+  },
+  "fulltext_aiScopeAssigned": {
+    "message": "Only my assigned references"
+  },
+  "fulltext_aiScopeNote": {
+    "message": "The AI is an independent reviewer, so by default every full-text-secured PDF in the project is judged (full-text assignment and set filters are ignored). Switch this if you only want to try your own assigned references."
+  },
   "fulltext_aiModel": {
     "message": "Model"
   },
@@ -568,6 +580,18 @@
   },
   "fulltext_aiTargetSub": {
     "message": "Full text secured total: $1"
+  },
+  "fulltext_aiTargetJudged": {
+    "message": "Excluded because the adopted round already judged them: $1 (choose \"None\" under Judging rounds to redo them as a new round)"
+  },
+  "fulltext_aiTargetAssignedShare": {
+    "message": "Of which assigned to me: $1"
+  },
+  "fulltext_aiDriveDeniedHint": {
+    "message": "$1 references could not be judged because Drive read access is not granted (PDFs uploaded by other members). Use \"Check read access\" in the candidate list to grant them, then run again."
+  },
+  "fulltext_aiJudgedRefetchFailed": {
+    "message": "Could not refresh which references were already judged. Running with the snapshot from when this tab was opened (judgments may be duplicated)."
   },
   "fulltext_aiProgress": {
     "message": "$1 / $2 done (ok $3 / failed $4)"
@@ -662,8 +686,8 @@
   "fulltext_prismaPending": {
     "message": "Undecided: $1"
   },
-  "fulltext_prismaConflict": {
-    "message": "Conflicts: $1"
+  "fulltext_prismaUnresolved": {
+    "message": "Unresolved: $1"
   },
   "fulltext_prismaExclReasons": {
     "message": "Exclusion reasons"
@@ -672,7 +696,73 @@
     "message": "No candidates."
   },
   "fulltext_resultConflictBadge": {
-    "message": "Conflict"
+    "message": "Decision conflict"
+  },
+  "fulltext_resultReasonConflictBadge": {
+    "message": "Reason conflict"
+  },
+  "fulltext_conflictsHead": {
+    "message": "Resolve conflicts"
+  },
+  "fulltext_conflictsSummary": {
+    "message": "$1 unresolved of $2"
+  },
+  "fulltext_conflictsEmpty": {
+    "message": "No disagreements between judges right now."
+  },
+  "fulltext_conflictUnresolved": {
+    "message": "Unresolved"
+  },
+  "fulltext_conflictResolved": {
+    "message": "Adjudicated"
+  },
+  "fulltext_conflictDecisionInclude": {
+    "message": "Include"
+  },
+  "fulltext_conflictDecisionExclude": {
+    "message": "Exclude"
+  },
+  "fulltext_conflictDecisionMaybe": {
+    "message": "Maybe"
+  },
+  "fulltext_conflictDecisionPending": {
+    "message": "Pending"
+  },
+  "fulltext_conflictAdjudicatedBy": {
+    "message": "Adjudicated by $1 ($2)"
+  },
+  "fulltext_conflictOpenPdf": {
+    "message": "Open PDF"
+  },
+  "fulltext_conflictResolveHead": {
+    "message": "Resolve this disagreement"
+  },
+  "fulltext_conflictRedoHead": {
+    "message": "Redo adjudication"
+  },
+  "fulltext_conflictAdjudicateInclude": {
+    "message": "Confirm as Include"
+  },
+  "fulltext_conflictAdjudicateMaybe": {
+    "message": "Confirm as Maybe"
+  },
+  "fulltext_conflictAdjudicateExclude": {
+    "message": "Confirm as Exclude"
+  },
+  "fulltext_conflictReasonPlaceholder": {
+    "message": "Select exclusion reason…"
+  },
+  "fulltext_conflictReasonPriorityNote": {
+    "message": "When multiple reasons apply, choose the one higher on the list (the lower number) — the same rule screeners follow."
+  },
+  "fulltext_conflictReasonRequired": {
+    "message": "Please select an exclusion reason."
+  },
+  "fulltext_conflictAdjudicateSaved": {
+    "message": "Adjudication saved."
+  },
+  "fulltext_conflictAdjudicateSaveFailed": {
+    "message": "Failed to save the adjudication (check your permissions)."
   },
   "fulltext_exportNoData": {
     "message": "No candidates to export."
@@ -1283,6 +1373,9 @@
   },
   "reviewer_self": {
     "message": "$1 (you)"
+  },
+  "reviewer_adjudication": {
+    "message": "⚖ Adjudication ($1)"
   },
   "reviewer_mlAutoLabel": {
     "message": "🤖 ML(auto)"

@@ -86,7 +86,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | --------------- | -------------------------------------- | ---- |
 | decision_id     | 判定ID（UUID、判定イベントごとに新規発番） | ✓   |
 | ref_id          | 文献ID（Referencesと結合）             | ✓   |
-| reviewer_id     | 判定者（email）                        | ✓   |
+| reviewer_id     | 判定者（email）。ただしフルテキストの裁定票は `adjudication:{email}` という特別な形式を使う（下記「フルテキストの不一致解消（裁定）」参照） | ✓   |
 | decision        | include / exclude / maybe              | ✓   |
 | reason          | 除外理由（excludeの場合必須）          |      |
 | labels          | (廃止)                                 |      |
@@ -104,6 +104,53 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **ML自動判定・LLM判定は従来どおり既存行を更新する**（pending→confirm の行更新と `deleteFulltextAiRound` のラウンド管理を壊さないため）
 - **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止（変更なし）
 - スプレッドシートの列定義は変更していないため、既存プロジェクトはそのまま動作する
+
+### フルテキストの不一致解消（裁定）
+
+判定者間の不一致（判定不一致・理由不一致）を、判定後レビュー画面の「不一致の解消」セクションから
+その場で確定できる（`src/sidepanel/features/fulltext-results.ts` の `renderConflicts` /
+`buildConflictItem` / `handleAdjudicate`）。**`state.isKeyOpened === true`（キー開封後）のときだけ表示**する。
+ブラインド中は他レビュアーの人間票がそもそもクライアントに配られない（`filterDecisionsForBlind`）ため、
+不一致の検出自体が成立しないため。
+
+**合議計算は純関数に集約**: OR合議・不一致検出・裁定の反映は `src/lib/fulltext-consensus.ts` の
+`computeFulltextConsensus()` に切り出している。`fulltext-results.ts` は DOM/state に依存する層のため
+テストできない。純関数側のテストは `tests/fulltext-consensus.test.ts`。
+
+- `conflict`: 非pendingの判定値（include/exclude/maybe）が2種類以上（従来どおりの「判定不一致」）
+- `reasonConflict`: 全員 exclude で有効な除外理由が2種類以上（`hasExcludeReasonConflict` を使う）。
+  判定自体は一致していても理由が割れているケースを判定不一致とは別枠で検出する
+- `unresolved`: `(conflict || reasonConflict) && !adjudicated`。裁定票があれば、生の不一致（`conflict`/
+  `reasonConflict`）自体は残っていても「解消済み」として扱う
+
+**裁定票の仕様**（Decisions タブへ1行追記する）:
+
+- `reviewer_id = 'adjudication:{email}'`（`adjudicationReviewerId()`）。裁定は誰でも可能なため
+  複数人が裁定でき、誰がいつ裁定したかは行として記録に残る
+- `screening_phase = 'fulltext'`
+- `decision` / `reason` は裁定で確定した最終判定・除外理由
+- `note` に JSON（`FulltextAdjudicationNote` 型、`src/lib/types.ts`）でスナップショットを保存する:
+  `type: 'fulltext_adjudication'`、`adjudicated_by`（裁定者email）、`adjudicated_at`（ISO 8601）、
+  `votes`（裁定時点の各判定者の判定・理由・メモの配列）
+- **`client_version` は `getClientVersion('-human-adjudication')` を使うこと。**
+  `isHumanDecision()`（`client-version.ts`）は `clientVersion.includes('-human')` で判定するため、
+  このサフィックスなら `saveDecision` の追記専用（append-only）経路に乗り、裁定のやり直し（再確定）が
+  別行として履歴に残る。`-human` を含まないサフィックス（例えば `-adjudication` 単体）にすると
+  upsert 経路に落ち、過去の裁定が上書きされて履歴が消えるため使わないこと
+- 裁定票が複数（同一裁定者の再確定、または別の裁定者による裁定）存在する場合、
+  `computeFulltextConsensus()` は `decided_at` が最新のものを最終として採用する
+
+**裁定票は判定者選択（judge selector）のチェックボックス一覧に出さない。**
+`collectJudges()`（`fulltext-results.ts`）が `isAdjudicationKey()` で除外している。
+判定者選択に出てしまうと、チェックを外した瞬間に裁定票が合議計算から消えて裁定そのものが
+無効化されてしまうため。
+
+`getReviewerLabel()`（`src/sidepanel/features/screening/reviewer-utils.ts`、TiAb画面とも共有される関数）は
+`adjudication:` キーを「⚖ 裁定（email）」と表示する分岐を持つ。既存の `llm:` / `ml:` 分岐の挙動は変えていない。
+
+**「完了が見える」導線**: PRISMA集計・エクスポート前確認は生の `conflict` ではなく
+**未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
+CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
 
 #### Config タブ（プロジェクト設定）
 
@@ -229,7 +276,19 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 
    - **プロバイダ**: Gemini のみ（スキャン画像PDFもネイティブにOCR/読解。`gemini-fulltext.ts`）
    - **UI**: フルテキストタブを3分割（候補リスト / **AI判定** / 判定後レビュー）。AI判定タブは**一括処理専用**
-   - **対象**: `fulltext_status='cached'`（Drive保存済み）かつ未AI判定の候補。PDFを inline_data で丸ごと送信
+   - **対象**: `fulltext_status='cached'`（Drive保存済み）かつ採用ラウンドで未AI判定の候補。PDFを inline_data で丸ごと送信。
+     対象決定ロジックは `src/lib/fulltext-ai-target.ts`（純粋関数）に集約する
+     - **対象範囲の既定はプロジェクト全体**（`scope='project'` = `getProjectFulltextCandidateList()`）。
+       AIは人間とは独立した判定者なので、人間側の分業（フルテキスト担当割り振り・担当セット絞り込み）では対象を狭めない。
+       管理者が自分では読まない文献も含めて一括AI判定できる必要がある（2026-08 の要望）。
+       「自分の担当分のみ」（従来の `getVisibleFulltextCandidateList()` 基準）はラジオで選べる
+     - **「AI判定済みか」は Decisions タブを読んで判定する**（`collectAiJudgedRefIds`）。
+       Blind 中（key_opened=FALSE）は `ReferenceWithStatus.allFulltextDecisions` が空になるため、
+       参照側の票から導くと常に「未判定」に見え、同じPDFを何度も課金して判定してしまう
+     - 除外に使うのは**採用ラウンド**（Config `fulltext_ai_active_round`）のみ。採用ラウンドが無ければ除外しない
+       （別モデルでラウンドをもう1本作れる）。件数表示には「判定済みのため除外: N件」を併記し、0件表示の理由を追えるようにする
+     - **実行直前（`handleStartAiBatch`）は Decisions を読み直してサーバーの真値で対象を確定する**。
+       TiAb バッチ（`getJudgedRefIdsForBatches`）と同じ理由で、他レビュアーが直前に実行した分を取りこぼさないため
    - **保存**: AIは独立した判定者として確定保存（`reviewer_id='llm:{model}@{timestamp}'`, `screening_phase='fulltext'`）。
      `note` に `FulltextLlmDecisionNote`(JSON: decision根拠 evidence[quote/page/bbox] 等) を格納
    - **PDFハイライト**（`fulltext.html` + `pdf-renderer.ts`）: cached PDF を PDF.js でテキストレイヤー付き描画し、
@@ -252,7 +311,8 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
    - TiAb エクスポートメニューとフルテキスト結果ビューから、Methods / Results / PRISMA 2020 フロー数値の英語下書きをモーダル表示し、セクションごとにコピー可能
    - 数値は `import_stats`・判定データ・判定者選択から自動挿入。ツールが持たない情報（不一致の解消方法など）は `[ ]` で残す
    - 未判定・保留・不一致が残る場合や、インポート統計のないファイル（重複除去後の件数に `*` 付与）は警告を表示
-   - PRISMA の数値・論文用テキスト・CSV/RIS エクスポートはログインユーザーに依存させず `getProjectFulltextCandidateList()`（`state.allReferences` 基準）でプロジェクト全体を集計する。候補一覧・入手状況・一括OA検索・AI一括判定は「自分が作業する対象」なので担当割り振り込みの `getVisibleFulltextCandidateList()` / 割り振りのみの `getFulltextCandidateList()` を使い分けてよいが、非管理者の `state.references` はTiAb担当セットで絞られているため論文用集計には使わない
+   - PRISMA の数値・論文用テキスト・CSV/RIS エクスポートはログインユーザーに依存させず `getProjectFulltextCandidateList()`（`state.allReferences` 基準）でプロジェクト全体を集計する。候補一覧・入手状況・一括OA検索は「自分が読む対象」なので担当割り振り込みの `getVisibleFulltextCandidateList()` / 割り振りのみの `getFulltextCandidateList()` を使い分けてよいが、非管理者の `state.references` はTiAb担当セットで絞られているため論文用集計には使わない。**フルテキストAI一括判定は「人間が読む対象」ではないので既定でプロジェクト全体**（機能要件8参照）
+   - `state.allReferences` を見る画面を足したら、判定後に references を再読込する処理（`fulltext-ai.ts` の `reloadReferences` など）でも `state.setAllReferences()` を呼ぶこと。`syncSetReferences()` だけだと絞り込み前の全文献が古いままになる
 
 ### キーボードショートカット
 
@@ -277,6 +337,14 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **競合時の優先順位**: 同時編集が発生した場合は `decided_at` の新しい判定を優先（Last Write Wins）
 - **アクセス制御**: 編集権限が必要。対象スプレッドシートはGoogle Drive上で管理
 - **判定理由**: 任意入力。バリデーションは行わない
+- **フルテキストの除外理由（PRISMA区分）は並び順そのものが優先順位**。複数当てはまる場合は番号の小さい理由を選ぶ。
+  理由が判定者間で割れると裁定（不一致解消）の手間が発生するため、割れにくくする規則として運用する
+  - 並び・ラベル（UI用の日本語／論文用の英語）の唯一の定義は `src/lib/exclude-reasons.ts`。
+    `fulltext.html` の `<select>` だけは DOM 側の定義なので、順序と value を手で一致させること
+  - 集計の代表理由は `pickPrimaryExcludeReason()` が最小番号を採る。
+    以前は「最初に見つかった非空の理由」で**判定者の列挙順に依存**していた（誰が先に判定したかでPRISMAの内訳が動いていた）
+  - フルテキストAI判定のプロンプトにも同じ規則を入れている（`gemini-fulltext.ts`）。
+    AI票も判定者として合議に入るため、揃えないとAI票が理由不一致を量産する
 
 ## インポート規約
 

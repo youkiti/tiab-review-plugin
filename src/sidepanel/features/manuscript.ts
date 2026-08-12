@@ -24,23 +24,14 @@ import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo } from '../../lib/sheets-api';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
+import { EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
+import type { ExcludeReason } from '../../lib/exclude-reasons';
 
 export type ManuscriptPhase = 'tiab' | 'fulltext';
 
-// PICOS 除外理由 → PRISMA フロー図向け英語ラベル
-const REASON_LABELS_EN: Record<string, string> = {
-    population: 'Ineligible population',
-    intervention: 'Ineligible intervention',
-    comparator: 'Ineligible comparator',
-    outcome: 'Ineligible outcome',
-    study_design: 'Ineligible study design',
-    duplicate: 'Duplicate report',
-    other: 'Other reasons',
-};
-
 function reasonLabelEn(reason: string): string {
     if (!reason) return 'Reason not recorded';
-    return REASON_LABELS_EN[reason] ?? reason;
+    return EXCLUDE_REASON_LABELS_EN[reason as ExcludeReason] ?? reason;
 }
 
 /** 文献の全判定を集める（allDecisions + myDecision、重複排除） */
@@ -405,9 +396,9 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     if (phase === 'tiab') {
         const unscreened = countUnscreenedTiab();
         if (unscreened > 0) warnings.push(t('manuscript_warnUnscreened', String(unscreened)));
-    } else if (summary && (summary.pending > 0 || summary.maybe > 0 || summary.conflict > 0)) {
+    } else if (summary && (summary.pending > 0 || summary.maybe > 0 || summary.unresolved > 0)) {
         warnings.push(t('manuscript_warnUnresolved', [
-            String(summary.pending), String(summary.maybe), String(summary.conflict),
+            String(summary.pending), String(summary.maybe), String(summary.unresolved),
         ]));
     }
     if (!id.statsComplete) warnings.push(t('manuscript_warnNoStats'));

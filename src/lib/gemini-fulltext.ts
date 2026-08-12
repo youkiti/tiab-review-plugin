@@ -19,6 +19,7 @@ import {
     type GeminiPart,
 } from './gemini-api';
 import { PROMPT_VERSION } from './prompt-templates';
+import { EXCLUDE_REASON_VALUES } from './exclude-reasons';
 
 // inline_data でPDFを送る場合のサイズ上限（リクエスト全体が約20MB制限のため余裕を見て18MB）。
 // これを超えるPDFは Files API 経由が必要だが、まずは inline で運用しガードする。
@@ -45,8 +46,9 @@ const FULLTEXT_JUDGE_SCHEMA = {
         },
         exclude_reason_category: {
             type: 'string',
-            enum: ['population', 'intervention', 'comparator', 'outcome', 'study_design', 'duplicate', 'other'],
-            description: '除外時のPRISMA区分（除外でない場合は省略可）',
+            enum: [...EXCLUDE_REASON_VALUES],
+            description: '除外時のPRISMA区分（除外でない場合は省略可）。列挙順が優先順位（先頭ほど上位）。'
+                + '複数当てはまる場合は最も上位（番号の小さい）区分を1つだけ選ぶこと。',
         },
         evidence: {
             type: 'array',
@@ -97,7 +99,8 @@ export function buildFulltextPrompt(screeningPrompt: string, outputLanguage: str
 - **decision**: include（組み入れ）/ exclude（除外）/ maybe（判断保留）のいずれか
 - **include_probability**: 組み入れになる確率（0.0〜1.0）
 - **reason**: 判定の理由を${lang}で簡潔に。除外の場合は「どの基準（P/I/C/O/研究デザイン等）に、本文のどの記述で外れたか」を具体的に書く。
-- **exclude_reason_category**: 除外の場合のみ、PRISMA区分（population/intervention/comparator/outcome/study_design/duplicate/other）を選ぶ。
+- **exclude_reason_category**: 除外の場合のみ、PRISMA区分（population/intervention/comparator/outcome/study_design/duplicate/other、この順が優先順位）を選ぶ。
+  複数の区分に当てはまる場合は、最も上位（番号の小さい）区分を1つだけ選ぶこと。
 - **evidence**: 判定の決め手になった本文の抜粋を2〜5件挙げる。
   - **quote**: 本文の原文をそのまま正確に抜粋する（改変・要約しない）。1〜2文程度。
   - **page**: その抜粋があるPDFのページ番号（1始まり）を必ず付ける。
