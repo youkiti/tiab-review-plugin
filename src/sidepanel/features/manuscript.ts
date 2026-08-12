@@ -24,23 +24,14 @@ import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo } from '../../lib/sheets-api';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
+import { EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
+import type { ExcludeReason } from '../../lib/exclude-reasons';
 
 export type ManuscriptPhase = 'tiab' | 'fulltext';
 
-// PICOS 除外理由 → PRISMA フロー図向け英語ラベル
-const REASON_LABELS_EN: Record<string, string> = {
-    population: 'Ineligible population',
-    intervention: 'Ineligible intervention',
-    comparator: 'Ineligible comparator',
-    outcome: 'Ineligible outcome',
-    study_design: 'Ineligible study design',
-    duplicate: 'Duplicate report',
-    other: 'Other reasons',
-};
-
 function reasonLabelEn(reason: string): string {
     if (!reason) return 'Reason not recorded';
-    return REASON_LABELS_EN[reason] ?? reason;
+    return EXCLUDE_REASON_LABELS_EN[reason as ExcludeReason] ?? reason;
 }
 
 /** 文献の全判定を集める（allDecisions + myDecision、重複排除） */

@@ -458,6 +458,18 @@ body {
     color: #666;
 }
 
+/* 除外理由の優先順位ルール。選ぶ前から常に見えている静的テキストで伝える
+   （選択は数字キー/クリックで即座に次の文献へ進むため、選択後の注意は誰にも見えない） */
+.ft-reason-priority-note {
+    font-size: 11px;
+    color: #8a6d00;
+    background: #fff8e1;
+    border: 1px solid #f0dda0;
+    border-radius: 4px;
+    padding: 4px 8px;
+    line-height: 1.4;
+}
+
 .ft-reason-select,
 .ft-reason-note {
     border: 1px solid #ddd;

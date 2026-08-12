@@ -23,20 +23,10 @@ import { getReviewerLabel } from './screening/reviewer-utils';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
 import { renderFulltextAi } from './fulltext-ai';
+import { excludeReasonLabel, pickPrimaryExcludeReason } from '../../lib/exclude-reasons';
 import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
 
 type ConsensusDecision = 'include' | 'exclude' | 'maybe' | 'pending';
-
-// PICOS 除外理由ラベル（fulltext.html の選択肢と一致）
-const REASON_LABELS: Record<string, string> = {
-    population: 'Population 不適合',
-    intervention: 'Intervention 不適合',
-    comparator: 'Comparator 不適合',
-    outcome: 'Outcome 不適合',
-    study_design: 'Study design 不適合',
-    duplicate: '重複',
-    other: 'その他',
-};
 
 const DECISION_ICON: Record<ConsensusDecision, string> = {
     include: '✓',
@@ -64,7 +54,7 @@ export function isFulltextResultsMode(): boolean {
 
 function reasonLabel(reason: string): string {
     if (!reason) return '(理由未記入)';
-    return REASON_LABELS[reason] ?? reason;
+    return excludeReasonLabel(reason);
 }
 
 /** 入手状態（未記録は not_retrieved 扱い） */
@@ -157,10 +147,13 @@ function computeConsensus(ref: ReferenceWithStatus, judges: Set<string>): Consen
     return { decision, conflict: values.size >= 2, excludeReasons };
 }
 
-/** 除外記録の代表理由（最初の非空理由、無ければ other 相当の空） */
+/**
+ * 除外記録の代表理由。番号が最小（＝優先順位が上位）の理由を選ぶ。
+ * 以前は「最初に見つかった非空の理由」＝判定者の列挙順に依存していたが、
+ * pickPrimaryExcludeReason（src/lib/exclude-reasons.ts）に委譲して決定論的にする。
+ */
 function representativeReason(c: Consensus): string {
-    const withReason = c.excludeReasons.find(r => r.reason);
-    return withReason ? withReason.reason : '';
+    return pickPrimaryExcludeReason(c.excludeReasons.map(r => r.reason));
 }
 
 // ---------------------------------------------------------------------------
