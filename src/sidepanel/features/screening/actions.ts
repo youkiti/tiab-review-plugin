@@ -378,6 +378,10 @@ export async function handleKeyToggle() {
             state.clearReviewHistory();
             syncSetIsKeyOpened(false);
             syncSetReferences(refs);
+            // プロジェクト全体を見る表示（フルテキストの結果ビュー = PRISMA・判定者一覧・
+            // 不一致の解消・エクスポート）は state.allReferences を読むため、こちらも必ず更新する。
+            // 更新しないと、Blindへ戻した後も他レビュアーの判定が結果ビューに残り続ける。
+            state.setAllReferences(refs);
 
             // レビュアーフィルターをクリア（Store経由）
             syncSetAvailableReviewers(new Set());
@@ -423,6 +427,9 @@ export async function handleKeyToggle() {
             state.clearReviewHistory();
             syncSetIsKeyOpened(true);
             syncSetReferences(refs);
+            // 上と同じ理由。開封直後にフルテキストの結果ビューを開くと、更新しない限り
+            // ブラインド中のスナップショット（自分の判定だけ）で不一致0件と表示されてしまう。
+            state.setAllReferences(refs);
 
             // レビュアーを抽出
             const reviewers = new Set<string>();
