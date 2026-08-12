@@ -686,8 +686,8 @@
   "fulltext_prismaPending": {
     "message": "未判定: $1件"
   },
-  "fulltext_prismaConflict": {
-    "message": "うち不一致: $1件"
+  "fulltext_prismaUnresolved": {
+    "message": "未解消の不一致: $1件"
   },
   "fulltext_prismaExclReasons": {
     "message": "除外理由の内訳"
@@ -696,7 +696,73 @@
     "message": "候補がありません。"
   },
   "fulltext_resultConflictBadge": {
-    "message": "不一致"
+    "message": "判定不一致"
+  },
+  "fulltext_resultReasonConflictBadge": {
+    "message": "理由不一致"
+  },
+  "fulltext_conflictsHead": {
+    "message": "不一致の解消"
+  },
+  "fulltext_conflictsSummary": {
+    "message": "未解消 $1件 / 対象 $2件"
+  },
+  "fulltext_conflictsEmpty": {
+    "message": "現在、判定者間の不一致はありません。"
+  },
+  "fulltext_conflictUnresolved": {
+    "message": "未解決"
+  },
+  "fulltext_conflictResolved": {
+    "message": "裁定済み"
+  },
+  "fulltext_conflictDecisionInclude": {
+    "message": "組み入れ"
+  },
+  "fulltext_conflictDecisionExclude": {
+    "message": "除外"
+  },
+  "fulltext_conflictDecisionMaybe": {
+    "message": "保留"
+  },
+  "fulltext_conflictDecisionPending": {
+    "message": "未判定"
+  },
+  "fulltext_conflictAdjudicatedBy": {
+    "message": "裁定: $1（$2）"
+  },
+  "fulltext_conflictOpenPdf": {
+    "message": "PDFを開く"
+  },
+  "fulltext_conflictResolveHead": {
+    "message": "この不一致を裁定する"
+  },
+  "fulltext_conflictRedoHead": {
+    "message": "裁定をやり直す"
+  },
+  "fulltext_conflictAdjudicateInclude": {
+    "message": "組み入れで確定"
+  },
+  "fulltext_conflictAdjudicateMaybe": {
+    "message": "保留で確定"
+  },
+  "fulltext_conflictAdjudicateExclude": {
+    "message": "除外で確定"
+  },
+  "fulltext_conflictReasonPlaceholder": {
+    "message": "除外理由を選択…"
+  },
+  "fulltext_conflictReasonPriorityNote": {
+    "message": "複数当てはまるときは上（番号が小さい方）を選ぶ ─ 判定時と同じ規則です"
+  },
+  "fulltext_conflictReasonRequired": {
+    "message": "除外理由を選択してください。"
+  },
+  "fulltext_conflictAdjudicateSaved": {
+    "message": "裁定を保存しました。"
+  },
+  "fulltext_conflictAdjudicateSaveFailed": {
+    "message": "裁定の保存に失敗しました（権限を確認してください）。"
   },
   "fulltext_exportNoData": {
     "message": "エクスポートする候補がありません。"
@@ -1307,6 +1373,9 @@
   },
   "reviewer_self": {
     "message": "$1 (自分)"
+  },
+  "reviewer_adjudication": {
+    "message": "⚖ 裁定（$1）"
   },
   "reviewer_mlAutoLabel": {
     "message": "🤖 ML(自動)"

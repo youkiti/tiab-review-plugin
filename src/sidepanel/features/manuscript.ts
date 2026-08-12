@@ -396,9 +396,9 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     if (phase === 'tiab') {
         const unscreened = countUnscreenedTiab();
         if (unscreened > 0) warnings.push(t('manuscript_warnUnscreened', String(unscreened)));
-    } else if (summary && (summary.pending > 0 || summary.maybe > 0 || summary.conflict > 0)) {
+    } else if (summary && (summary.pending > 0 || summary.maybe > 0 || summary.unresolved > 0)) {
         warnings.push(t('manuscript_warnUnresolved', [
-            String(summary.pending), String(summary.maybe), String(summary.conflict),
+            String(summary.pending), String(summary.maybe), String(summary.unresolved),
         ]));
     }
     if (!id.statsComplete) warnings.push(t('manuscript_warnNoStats'));

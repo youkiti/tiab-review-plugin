@@ -2,6 +2,7 @@ import type { Decision } from '../../../lib/types';
 import { state } from '../../state';
 import { isHumanDecision, isConfirmedMlDecision as isConfirmedMl, isMlDecision } from '../../../lib/client-version';
 import { t } from '../../../lib/i18n';
+import { isAdjudicationKey, adjudicationEmail } from '../../../lib/fulltext-consensus';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -55,6 +56,12 @@ export function isMlReviewerKey(key: string): boolean {
  * @param hasBothManualAndMl treatMlAsManualがオンで手動とML両方の判定がある場合true
  */
 export function getReviewerLabel(key: string, userEmail: string, hasBothManualAndMl = false): string {
+    // フルテキストの裁定票（不一致解消UIで確定した票）。TiAb画面ではこのキーは出現しないが、
+    // 共有関数のため既存の llm: / ml: 分岐より前に独立した分岐として扱う（挙動は変えない）。
+    if (isAdjudicationKey(key)) {
+        return t('reviewer_adjudication', adjudicationEmail(key));
+    }
+
     if (isLlmReviewerKey(key)) {
         const parts = key.split('@');
         let aiLabel = '🤖 AI';

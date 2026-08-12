@@ -22,11 +22,23 @@ import { getProjectFulltextCandidateList } from './screening/filters';
 import { getReviewerLabel } from './screening/reviewer-utils';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
-import { renderFulltextAi } from './fulltext-ai';
-import { excludeReasonLabel, pickPrimaryExcludeReason } from '../../lib/exclude-reasons';
-import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
-
-type ConsensusDecision = 'include' | 'exclude' | 'maybe' | 'pending';
+import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './fulltext-ai';
+import { excludeReasonLabel, EXCLUDE_REASON_VALUES } from '../../lib/exclude-reasons';
+import { getClientVersion } from '../../lib/client-version';
+import { saveDecision } from '../../lib/sheets-api';
+import {
+    computeFulltextConsensus,
+    isAdjudicationKey,
+    adjudicationReviewerId,
+} from '../../lib/fulltext-consensus';
+import type { ConsensusDecision, FulltextVote, FulltextConsensusResult } from '../../lib/fulltext-consensus';
+import type {
+    ReferenceWithStatus,
+    Decision,
+    FulltextStatus,
+    FulltextAdjudicationNote,
+    FulltextAdjudicationVoteSnapshot,
+} from '../../lib/types';
 
 const DECISION_ICON: Record<ConsensusDecision, string> = {
     include: '✓',
@@ -90,11 +102,19 @@ function judgeDecisionMap(ref: ReferenceWithStatus): Map<string, Decision> {
     return map;
 }
 
-/** 全候補から判定者キーを収集（ヒトを先、AI(llm:)を後ろにソート） */
+/**
+ * 全候補から判定者キーを収集（ヒトを先、AI(llm:)を後ろにソート）。
+ * 裁定票（adjudication:）は判定者選択（チェックボックス）の対象から除外する。
+ * ここでチェックを外せてしまうと、選択判定者に依存する合議計算から裁定票そのものが
+ * 消えてしまい、裁定が無効化されてしまうため。
+ */
 function collectJudges(candidates: ReferenceWithStatus[]): string[] {
     const set = new Set<string>();
     for (const r of candidates) {
-        for (const key of judgeDecisionMap(r).keys()) set.add(key);
+        for (const key of judgeDecisionMap(r).keys()) {
+            if (isAdjudicationKey(key)) continue;
+            set.add(key);
+        }
     }
     if (set.size === 0 && state.userEmail) set.add(state.userEmail);
     return [...set].sort((a, b) => {
@@ -113,47 +133,25 @@ function effectiveJudges(allJudges: string[]): Set<string> {
     return eff;
 }
 
-interface Consensus {
-    decision: ConsensusDecision;
-    conflict: boolean;
-    // 除外判定を出した判定者の理由（PRISMA内訳・CSV用）
-    excludeReasons: Array<{ judge: string; reason: string; note?: string }>;
-}
-
 /**
- * 選択判定者の OR 合議。
- * - 誰か1人でも include → include
- * - そうでなく誰か maybe → maybe
- * - そうでなく誰か exclude → exclude
- * - 全員 pending/判定なし → pending
- * 不一致 = 非pendingの判定値が2種類以上
+ * ある文献について、合議計算（src/lib/fulltext-consensus.ts）に渡す票配列を組み立てる。
+ * - 通常の判定者票: judges（チェックボックスで選択中の判定者集合）に含まれるものだけを渡す
+ * - 裁定票（adjudication:）: judges の選択に関わらず常に含める
+ *   （判定者選択のチェックボックスに出ないため、外して無効化される心配がない）
  */
-function computeConsensus(ref: ReferenceWithStatus, judges: Set<string>): Consensus {
+function buildVotesForConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextVote[] {
     const map = judgeDecisionMap(ref);
-    const values = new Set<string>();
-    const excludeReasons: Consensus['excludeReasons'] = [];
-    for (const key of judges) {
-        const d = map.get(key);
-        if (!d || d.decision === 'pending') continue;
-        values.add(d.decision);
-        if (d.decision === 'exclude') {
-            excludeReasons.push({ judge: key, reason: d.reason || '', note: d.note });
-        }
+    const votes: FulltextVote[] = [];
+    for (const [key, d] of map) {
+        if (!isAdjudicationKey(key) && !judges.has(key)) continue;
+        votes.push({ judge: key, decision: d.decision, reason: d.reason, note: d.note, decidedAt: d.decided_at });
     }
-    let decision: ConsensusDecision = 'pending';
-    if (values.has('include')) decision = 'include';
-    else if (values.has('maybe')) decision = 'maybe';
-    else if (values.has('exclude')) decision = 'exclude';
-    return { decision, conflict: values.size >= 2, excludeReasons };
+    return votes;
 }
 
-/**
- * 除外記録の代表理由。番号が最小（＝優先順位が上位）の理由を選ぶ。
- * 以前は「最初に見つかった非空の理由」＝判定者の列挙順に依存していたが、
- * pickPrimaryExcludeReason（src/lib/exclude-reasons.ts）に委譲して決定論的にする。
- */
-function representativeReason(c: Consensus): string {
-    return pickPrimaryExcludeReason(c.excludeReasons.map(r => r.reason));
+/** 選択判定者＋裁定票から合議結果を計算する（表示・エクスポート双方の唯一の入口） */
+function getConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextConsensusResult {
+    return computeFulltextConsensus(buildVotesForConsensus(ref, judges));
 }
 
 // ---------------------------------------------------------------------------
@@ -168,6 +166,7 @@ export function renderFulltextResults(): void {
 
     renderJudgeSelector(allJudges, judges);
     renderPrisma(candidates, judges);
+    renderConflicts(candidates, judges);
     renderResultsList(candidates, judges);
 }
 
@@ -224,7 +223,14 @@ function handleJudgeToggle(allJudges: string[], key: string, checked: boolean): 
     renderFulltextResults();
 }
 
-/** フルテキスト相の集計サマリ（結果ビューのPRISMA表示・論文用テキスト生成で共用） */
+/**
+ * フルテキスト相の集計サマリ（結果ビューのPRISMA表示・論文用テキスト生成で共用）
+ *
+ * conflict と reasonConflict は意図的に別枠で持つ（決してマージしないこと）。
+ * `conflict` は論文原稿の "Disagreements between screeners (n = …)" にそのまま使われる数値であり、
+ * SR の報告慣行では screener 間の disagreement は組入/除外などの「判定」不一致を指す。
+ * ここに理由だけの相違（reasonConflict）を混ぜると、論文で報告する数字の意味が変わってしまう。
+ */
 export interface FulltextResultsSummary {
     sought: number;        // 候補（Reports sought for retrieval）
     obtained: number;      // 入手済（Reports assessed for eligibility）
@@ -233,7 +239,9 @@ export interface FulltextResultsSummary {
     exclude: number;
     maybe: number;
     pending: number;
-    conflict: number;
+    conflict: number;       // 判定不一致のみ（裁定済みも含む生の件数）
+    reasonConflict: number; // 理由不一致のみ（裁定済みも含む生の件数）。conflict とは合算しない
+    unresolved: number;     // うち未解消（(conflict||reasonConflict) && !adjudicated）
     reasons: Array<{ reason: string; count: number }>;  // 除外理由（件数降順、生キー）
     judges: string[];      // 集計に使った判定者キー
 }
@@ -241,17 +249,18 @@ export interface FulltextResultsSummary {
 function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): FulltextResultsSummary {
     const obtained = candidates.filter(isObtained).length;
 
-    let inc = 0, exc = 0, maybe = 0, pend = 0, conflict = 0;
+    let inc = 0, exc = 0, maybe = 0, pend = 0, conflict = 0, reasonConflict = 0, unresolved = 0;
     const reasonCounts = new Map<string, number>();
     for (const r of candidates) {
-        const c = computeConsensus(r, judges);
+        const c = getConsensus(r, judges);
         if (c.conflict) conflict++;
+        if (c.reasonConflict) reasonConflict++;
+        if (c.unresolved) unresolved++;
         switch (c.decision) {
             case 'include': inc++; break;
             case 'exclude':
                 exc++;
-                { const key = representativeReason(c);
-                  reasonCounts.set(key, (reasonCounts.get(key) ?? 0) + 1); }
+                reasonCounts.set(c.primaryReason, (reasonCounts.get(c.primaryReason) ?? 0) + 1);
                 break;
             case 'maybe': maybe++; break;
             default: pend++;
@@ -267,6 +276,8 @@ function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): Full
         maybe,
         pending: pend,
         conflict,
+        reasonConflict,
+        unresolved,
         reasons: [...reasonCounts.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([reason, count]) => ({ reason, count })),
@@ -285,7 +296,7 @@ export function getFulltextResultsSummary(): FulltextResultsSummary {
 
 function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): void {
     const s = summarize(candidates, judges);
-    const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, conflict } = s;
+    const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, unresolved } = s;
 
     const lines: string[] = [];
     lines.push(`<div class="fulltext-prisma-title">${escapeHtml(t('fulltext_prismaTitle'))}</div>`);
@@ -296,7 +307,8 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
     lines.push(prismaCell(t('fulltext_prismaExclude', String(exc)), 'exclude'));
     lines.push(prismaCell(t('fulltext_prismaMaybe', String(maybe)), 'maybe'));
     lines.push(prismaCell(t('fulltext_prismaPending', String(pend)), 'pending'));
-    if (conflict > 0) lines.push(prismaCell(t('fulltext_prismaConflict', String(conflict)), 'conflict'));
+    // 「不一致」は裁定済みなら完了扱いにするため、生の conflict ではなく未解消件数を出す
+    if (unresolved > 0) lines.push(prismaCell(t('fulltext_prismaUnresolved', String(unresolved)), 'conflict'));
     lines.push('</div>');
 
     if (s.reasons.length > 0) {
@@ -341,7 +353,7 @@ function renderResultsList(candidates: ReferenceWithStatus[], judges: Set<string
 
 function buildResultRow(ref: ReferenceWithStatus, orderedJudges: string[]): HTMLElement {
     const judgeSet = new Set(orderedJudges);
-    const c = computeConsensus(ref, judgeSet);
+    const c = getConsensus(ref, judgeSet);
     const map = judgeDecisionMap(ref);
 
     const row = document.createElement('div');
@@ -359,12 +371,17 @@ function buildResultRow(ref: ReferenceWithStatus, orderedJudges: string[]): HTML
         return `<span class="fulltext-judge-chip chip-${dec}" title="${escapeHtml(label)}">${DECISION_ICON[dec]}</span>`;
     }).join('');
 
-    const conflictBadge = c.conflict
-        ? `<span class="fulltext-result-conflict">${escapeHtml(t('fulltext_resultConflictBadge'))}</span>`
-        : '';
+    // 裁定済みなら解決済みバッジのみ、未裁定なら判定不一致・理由不一致を区別して出す
+    let badges = '';
+    if (c.adjudicated) {
+        badges = `<span class="fulltext-result-adjudicated">${escapeHtml(t('fulltext_conflictResolved'))}</span>`;
+    } else {
+        if (c.conflict) badges += `<span class="fulltext-result-conflict">${escapeHtml(t('fulltext_resultConflictBadge'))}</span>`;
+        if (c.reasonConflict) badges += `<span class="fulltext-result-reason-conflict">${escapeHtml(t('fulltext_resultReasonConflictBadge'))}</span>`;
+    }
 
-    const reasonLine = c.decision === 'exclude' && representativeReason(c)
-        ? `<span class="fulltext-result-reason">${escapeHtml(reasonLabel(representativeReason(c)))}</span>`
+    const reasonLine = c.decision === 'exclude' && c.primaryReason
+        ? `<span class="fulltext-result-reason">${escapeHtml(reasonLabel(c.primaryReason))}</span>`
         : '';
 
     row.innerHTML = `
@@ -372,7 +389,7 @@ function buildResultRow(ref: ReferenceWithStatus, orderedJudges: string[]): HTML
         <span class="fulltext-result-body">
             <span class="fulltext-result-title">${escapeHtml(ref.title || ref.ref_id)}</span>
             <span class="fulltext-result-meta">${escapeHtml(metaParts.join(' · '))}</span>
-            <span class="fulltext-result-footer">${conflictBadge}${reasonLine}<span class="fulltext-result-chips">${chips}</span></span>
+            <span class="fulltext-result-footer">${badges}${reasonLine}<span class="fulltext-result-chips">${chips}</span></span>
         </span>
     `;
 
@@ -384,6 +401,278 @@ function buildResultRow(ref: ReferenceWithStatus, orderedJudges: string[]): HTML
         chrome.tabs.create({ url });
     });
     return row;
+}
+
+// ---------------------------------------------------------------------------
+// 不一致の解消（判定後レビュー内の新セクション）
+//
+// キー開封後（state.isKeyOpened）だけ表示する。ブラインド中は他レビュアーの人間票が
+// そもそもクライアントに配られない（filterDecisionsForBlind）ため、不一致の検出自体が成立しない。
+//
+// 一覧は「判定不一致・理由不一致のいずれかがある文献」を対象にする（裁定済みも含む）。
+// 裁定前は「未解決」、裁定済みは裁定者・日時を表示し、その場でやり直し（再確定）もできる。
+// ---------------------------------------------------------------------------
+
+function decisionText(d: ConsensusDecision): string {
+    switch (d) {
+        case 'include': return t('fulltext_conflictDecisionInclude');
+        case 'exclude': return t('fulltext_conflictDecisionExclude');
+        case 'maybe': return t('fulltext_conflictDecisionMaybe');
+        default: return t('fulltext_conflictDecisionPending');
+    }
+}
+
+/**
+ * 票のメモ表示用テキスト。LLM判定の note は evidence 等を含む JSON 文字列
+ * （FulltextLlmDecisionNote）のため、そのまま出すとJSONが丸見えになる。
+ * その場合は人間可読な reason フィールドだけを取り出す。パース失敗時は生テキストにフォールバックする。
+ */
+function voteNoteText(judge: string, note: string | undefined): string {
+    if (!note) return '';
+    if (judge.startsWith('llm:') && note.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(note);
+            if (typeof parsed.reason === 'string' && parsed.reason.trim()) return parsed.reason;
+        } catch {
+            // JSON以外・想定外の形の note はそのまま表示にフォールバックする
+        }
+    }
+    return note;
+}
+
+function formatAdjudicatedAt(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+function renderConflicts(candidates: ReferenceWithStatus[], judges: Set<string>): void {
+    const host = dom.fulltextConflictsDiv;
+    const listDiv = dom.fulltextConflictsListDiv;
+    const summaryDiv = dom.fulltextConflictsSummaryDiv;
+
+    const visible = state.isKeyOpened;
+    host.classList.toggle('hidden', !visible);
+    if (!visible) {
+        listDiv.innerHTML = '';
+        summaryDiv.textContent = '';
+        return;
+    }
+
+    const items = candidates
+        .map(ref => {
+            const votes = buildVotesForConsensus(ref, judges);
+            return { ref, votes, consensus: computeFulltextConsensus(votes) };
+        })
+        .filter(({ consensus }) => consensus.conflict || consensus.reasonConflict);
+
+    // 未解決を先に出す
+    items.sort((a, b) => Number(b.consensus.unresolved) - Number(a.consensus.unresolved));
+
+    const unresolvedCount = items.filter(i => i.consensus.unresolved).length;
+    summaryDiv.textContent = t('fulltext_conflictsSummary', [String(unresolvedCount), String(items.length)]);
+
+    listDiv.innerHTML = '';
+    if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'fulltext-conflicts-empty';
+        empty.textContent = t('fulltext_conflictsEmpty');
+        listDiv.appendChild(empty);
+        return;
+    }
+
+    for (const { ref, votes, consensus } of items) {
+        listDiv.appendChild(buildConflictItem(ref, votes, consensus));
+    }
+}
+
+function buildConflictItem(
+    ref: ReferenceWithStatus,
+    votes: FulltextVote[],
+    consensus: FulltextConsensusResult
+): HTMLElement {
+    const details = document.createElement('details');
+    details.className = `fulltext-conflict-item ${consensus.unresolved ? 'unresolved' : 'resolved'}`;
+
+    const summary = document.createElement('summary');
+    summary.className = 'fulltext-conflict-summary';
+    const badgeParts: string[] = [];
+    badgeParts.push(consensus.unresolved
+        ? `<span class="fulltext-conflict-status status-unresolved">${escapeHtml(t('fulltext_conflictUnresolved'))}</span>`
+        : `<span class="fulltext-conflict-status status-resolved">${escapeHtml(t('fulltext_conflictResolved'))}</span>`);
+    if (consensus.conflict) {
+        badgeParts.push(`<span class="fulltext-conflict-badge badge-decision">${escapeHtml(t('fulltext_resultConflictBadge'))}</span>`);
+    }
+    if (consensus.reasonConflict) {
+        badgeParts.push(`<span class="fulltext-conflict-badge badge-reason">${escapeHtml(t('fulltext_resultReasonConflictBadge'))}</span>`);
+    }
+    summary.innerHTML = `
+        <span class="fulltext-conflict-title">${escapeHtml(ref.title || ref.ref_id)}</span>
+        <span class="fulltext-conflict-badges">${badgeParts.join('')}</span>
+    `;
+    details.appendChild(summary);
+
+    const body = document.createElement('div');
+    body.className = 'fulltext-conflict-body';
+
+    // 各判定者の判定・理由・メモを並べて表示（裁定票自体は「判定者」として出さず、下の裁定済み情報で示す）
+    const voteList = document.createElement('div');
+    voteList.className = 'fulltext-conflict-votes';
+    for (const v of votes) {
+        if (isAdjudicationKey(v.judge)) continue;
+        const row = document.createElement('div');
+        row.className = `fulltext-conflict-vote-row vote-${v.decision}`;
+        const noteText = voteNoteText(v.judge, v.note);
+        row.innerHTML = `
+            <span class="fulltext-conflict-vote-judge">${escapeHtml(getReviewerLabel(v.judge, state.userEmail))}</span>
+            <span class="fulltext-conflict-vote-decision">${DECISION_ICON[v.decision]} ${escapeHtml(decisionText(v.decision))}</span>
+            ${v.decision === 'exclude' && v.reason ? `<span class="fulltext-conflict-vote-reason">${escapeHtml(reasonLabel(v.reason))}</span>` : ''}
+            ${noteText ? `<span class="fulltext-conflict-vote-note">${escapeHtml(noteText)}</span>` : ''}
+        `;
+        voteList.appendChild(row);
+    }
+    body.appendChild(voteList);
+
+    if (consensus.adjudicated) {
+        const info = document.createElement('div');
+        info.className = 'fulltext-conflict-adjudicated-info';
+        info.textContent = t('fulltext_conflictAdjudicatedBy', [
+            consensus.adjudicatedBy || '',
+            formatAdjudicatedAt(consensus.adjudicatedAt),
+        ]);
+        body.appendChild(info);
+    }
+
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'btn btn-small btn-secondary fulltext-conflict-open-btn';
+    openBtn.textContent = t('fulltext_conflictOpenPdf');
+    openBtn.addEventListener('click', () => {
+        const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(ref.ref_id)}`;
+        chrome.tabs.create({ url });
+    });
+    body.appendChild(openBtn);
+
+    body.appendChild(buildAdjudicationControls(ref, votes, consensus.adjudicated));
+
+    details.appendChild(body);
+    return details;
+}
+
+function buildAdjudicationControls(ref: ReferenceWithStatus, votes: FulltextVote[], alreadyAdjudicated: boolean): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'fulltext-conflict-controls';
+
+    const head = document.createElement('div');
+    head.className = 'fulltext-conflict-controls-head';
+    head.textContent = t(alreadyAdjudicated ? 'fulltext_conflictRedoHead' : 'fulltext_conflictResolveHead');
+    wrap.appendChild(head);
+
+    const buttonsRow = document.createElement('div');
+    buttonsRow.className = 'fulltext-conflict-controls-buttons';
+
+    const btnInclude = document.createElement('button');
+    btnInclude.type = 'button';
+    btnInclude.className = 'btn btn-small btn-include';
+    btnInclude.textContent = t('fulltext_conflictAdjudicateInclude');
+    btnInclude.addEventListener('click', () => { void handleAdjudicate(ref, 'include', undefined, votes); });
+    buttonsRow.appendChild(btnInclude);
+
+    const btnMaybe = document.createElement('button');
+    btnMaybe.type = 'button';
+    btnMaybe.className = 'btn btn-small btn-maybe';
+    btnMaybe.textContent = t('fulltext_conflictAdjudicateMaybe');
+    btnMaybe.addEventListener('click', () => { void handleAdjudicate(ref, 'maybe', undefined, votes); });
+    buttonsRow.appendChild(btnMaybe);
+
+    wrap.appendChild(buttonsRow);
+
+    // 除外理由の優先順位ルール（スクリーニング側 .ft-reason-priority-note と同趣旨）。
+    // 最終的な理由を決める裁定の場面でこそ効くルールなので、理由セレクトの直前に明示する。
+    const reasonPriorityNote = document.createElement('div');
+    reasonPriorityNote.className = 'fulltext-conflict-reason-priority-note';
+    reasonPriorityNote.textContent = t('fulltext_conflictReasonPriorityNote');
+    wrap.appendChild(reasonPriorityNote);
+
+    const excludeRow = document.createElement('div');
+    excludeRow.className = 'fulltext-conflict-controls-exclude-row';
+
+    const reasonSelect = document.createElement('select');
+    reasonSelect.className = 'fulltext-conflict-reason-select';
+    const placeholderOpt = document.createElement('option');
+    placeholderOpt.value = '';
+    placeholderOpt.textContent = t('fulltext_conflictReasonPlaceholder');
+    reasonSelect.appendChild(placeholderOpt);
+    EXCLUDE_REASON_VALUES.forEach((value, idx) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = `${idx + 1}. ${excludeReasonLabel(value)}`;
+        reasonSelect.appendChild(opt);
+    });
+
+    const btnExclude = document.createElement('button');
+    btnExclude.type = 'button';
+    btnExclude.className = 'btn btn-small btn-exclude';
+    btnExclude.textContent = t('fulltext_conflictAdjudicateExclude');
+    btnExclude.addEventListener('click', () => { void handleAdjudicate(ref, 'exclude', reasonSelect.value, votes); });
+
+    excludeRow.appendChild(reasonSelect);
+    excludeRow.appendChild(btnExclude);
+    wrap.appendChild(excludeRow);
+
+    return wrap;
+}
+
+/** 裁定を確定して保存する。裁定票は追記専用経路（-human-adjudication）に乗り、やり直しの履歴も残る。 */
+async function handleAdjudicate(
+    ref: ReferenceWithStatus,
+    decision: 'include' | 'exclude' | 'maybe',
+    reason: string | undefined,
+    votes: FulltextVote[]
+): Promise<void> {
+    const email = state.userEmail;
+    if (!email) return;
+
+    if (decision === 'exclude' && !reason) {
+        showToast(t('fulltext_conflictReasonRequired'), 3000);
+        return;
+    }
+
+    const snapshot: FulltextAdjudicationVoteSnapshot[] = votes
+        .filter(v => !isAdjudicationKey(v.judge))
+        .map(v => ({ judge: v.judge, decision: v.decision, reason: v.reason, note: v.note }));
+
+    const now = new Date().toISOString();
+    const note: FulltextAdjudicationNote = {
+        type: 'fulltext_adjudication',
+        adjudicated_by: email,
+        adjudicated_at: now,
+        votes: snapshot,
+    };
+
+    const decisionObj: Decision = {
+        decision_id: crypto.randomUUID(),
+        ref_id: ref.ref_id,
+        reviewer_id: adjudicationReviewerId(email),
+        decision,
+        reason: decision === 'exclude' ? reason : undefined,
+        note: JSON.stringify(note),
+        decided_at: now,
+        client_version: getClientVersion('-human-adjudication'),
+        screening_phase: 'fulltext',
+    };
+
+    try {
+        await saveDecision(state.spreadsheetId, decisionObj);
+        showToast(t('fulltext_conflictAdjudicateSaved'), 3000);
+        // 既存の参照再読込パターン（fulltext-ai.ts の reloadReferences）を再利用して state を更新し、
+        // 合議表示（結果一覧・PRISMA・この不一致解消セクション自体）を最新化する
+        await reloadFulltextReferences(state.spreadsheetId);
+        renderFulltextResults();
+    } catch (err) {
+        console.error('[fulltext-results] adjudication save failed:', err);
+        showToast(t('fulltext_conflictAdjudicateSaveFailed'), 4000);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -418,9 +707,10 @@ function preExportGuard(candidates: ReferenceWithStatus[], judges: Set<string>):
         showToast(t('fulltext_exportNoJudge'), 3000);
         return false;
     }
-    const conflicts = candidates.filter(r => computeConsensus(r, judges).conflict).length;
-    if (conflicts > 0) {
-        if (!window.confirm(t('fulltext_exportConflictConfirm', String(conflicts)))) {
+    // 裁定済みの不一致は解消済みとして扱い、未解消のものだけを確認対象にする
+    const unresolvedCount = candidates.filter(r => getConsensus(r, judges).unresolved).length;
+    if (unresolvedCount > 0) {
+        if (!window.confirm(t('fulltext_exportConflictConfirm', String(unresolvedCount)))) {
             return false;
         }
     }
@@ -438,15 +728,16 @@ function handleExportCsv(): void {
 
     const headers = [
         'ref_id', 'title', 'year', 'journal', 'doi', 'pmid',
-        'fulltext_status', 'consensus', 'conflict', 'exclusion_reason', 'note',
+        'fulltext_status', 'consensus', 'conflict', 'reason_conflict', 'adjudicated', 'adjudicated_by',
+        'exclusion_reason', 'note',
         ...judgeLabels,
     ];
     const rows: string[] = [headers.map(escapeCSVField).join(',')];
 
     for (const ref of candidates) {
-        const c = computeConsensus(ref, judges);
+        const c = getConsensus(ref, judges);
         const map = judgeDecisionMap(ref);
-        const note = c.excludeReasons.map(r => r.note).filter(Boolean).join(' / ');
+        const note = c.excludeReasons.map(r => voteNoteText(r.judge, r.note)).filter(Boolean).join(' / ');
         const base = [
             ref.ref_id,
             ref.title || '',
@@ -457,7 +748,10 @@ function handleExportCsv(): void {
             retrievalStatus(ref),
             c.decision,
             c.conflict ? 'yes' : 'no',
-            representativeReason(c),
+            c.reasonConflict ? 'yes' : 'no',
+            c.adjudicated ? 'yes' : 'no',
+            c.adjudicatedBy || '',
+            c.primaryReason,
             note,
         ];
         const perJudge = orderedJudges.map(j => map.get(j)?.decision ?? '');
@@ -475,8 +769,8 @@ function handleExportRis(): void {
     const judges = effectiveJudges(allJudges);
     if (!preExportGuard(candidates, judges)) return;
 
-    // RIS は最終的な組み入れ集合（OR合議で include）を出力
-    const included = candidates.filter(r => computeConsensus(r, judges).decision === 'include');
+    // RIS は最終的な組み入れ集合（裁定があればそれを優先、無ければOR合議で include）を出力
+    const included = candidates.filter(r => getConsensus(r, judges).decision === 'include');
     if (included.length === 0) {
         showToast(t('fulltext_exportNoData'), 3000);
         return;

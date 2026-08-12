@@ -686,8 +686,8 @@
   "fulltext_prismaPending": {
     "message": "Undecided: $1"
   },
-  "fulltext_prismaConflict": {
-    "message": "Conflicts: $1"
+  "fulltext_prismaUnresolved": {
+    "message": "Unresolved: $1"
   },
   "fulltext_prismaExclReasons": {
     "message": "Exclusion reasons"
@@ -696,7 +696,73 @@
     "message": "No candidates."
   },
   "fulltext_resultConflictBadge": {
-    "message": "Conflict"
+    "message": "Decision conflict"
+  },
+  "fulltext_resultReasonConflictBadge": {
+    "message": "Reason conflict"
+  },
+  "fulltext_conflictsHead": {
+    "message": "Resolve conflicts"
+  },
+  "fulltext_conflictsSummary": {
+    "message": "$1 unresolved of $2"
+  },
+  "fulltext_conflictsEmpty": {
+    "message": "No disagreements between judges right now."
+  },
+  "fulltext_conflictUnresolved": {
+    "message": "Unresolved"
+  },
+  "fulltext_conflictResolved": {
+    "message": "Adjudicated"
+  },
+  "fulltext_conflictDecisionInclude": {
+    "message": "Include"
+  },
+  "fulltext_conflictDecisionExclude": {
+    "message": "Exclude"
+  },
+  "fulltext_conflictDecisionMaybe": {
+    "message": "Maybe"
+  },
+  "fulltext_conflictDecisionPending": {
+    "message": "Pending"
+  },
+  "fulltext_conflictAdjudicatedBy": {
+    "message": "Adjudicated by $1 ($2)"
+  },
+  "fulltext_conflictOpenPdf": {
+    "message": "Open PDF"
+  },
+  "fulltext_conflictResolveHead": {
+    "message": "Resolve this disagreement"
+  },
+  "fulltext_conflictRedoHead": {
+    "message": "Redo adjudication"
+  },
+  "fulltext_conflictAdjudicateInclude": {
+    "message": "Confirm as Include"
+  },
+  "fulltext_conflictAdjudicateMaybe": {
+    "message": "Confirm as Maybe"
+  },
+  "fulltext_conflictAdjudicateExclude": {
+    "message": "Confirm as Exclude"
+  },
+  "fulltext_conflictReasonPlaceholder": {
+    "message": "Select exclusion reason…"
+  },
+  "fulltext_conflictReasonPriorityNote": {
+    "message": "When multiple reasons apply, choose the one higher on the list (the lower number) — the same rule screeners follow."
+  },
+  "fulltext_conflictReasonRequired": {
+    "message": "Please select an exclusion reason."
+  },
+  "fulltext_conflictAdjudicateSaved": {
+    "message": "Adjudication saved."
+  },
+  "fulltext_conflictAdjudicateSaveFailed": {
+    "message": "Failed to save the adjudication (check your permissions)."
   },
   "fulltext_exportNoData": {
     "message": "No candidates to export."
@@ -1307,6 +1373,9 @@
   },
   "reviewer_self": {
     "message": "$1 (you)"
+  },
+  "reviewer_adjudication": {
+    "message": "⚖ Adjudication ($1)"
   },
   "reviewer_mlAutoLabel": {
     "message": "🤖 ML(auto)"

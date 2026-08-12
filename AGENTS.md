@@ -86,7 +86,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | --------------- | -------------------------------------- | ---- |
 | decision_id     | 判定ID（UUID、判定イベントごとに新規発番） | ✓   |
 | ref_id          | 文献ID（Referencesと結合）             | ✓   |
-| reviewer_id     | 判定者（email）                        | ✓   |
+| reviewer_id     | 判定者（email）。ただしフルテキストの裁定票は `adjudication:{email}` という特別な形式を使う（下記「フルテキストの不一致解消（裁定）」参照） | ✓   |
 | decision        | include / exclude / maybe              | ✓   |
 | reason          | 除外理由（excludeの場合必須）          |      |
 | labels          | (廃止)                                 |      |
@@ -104,6 +104,53 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **ML自動判定・LLM判定は従来どおり既存行を更新する**（pending→confirm の行更新と `deleteFulltextAiRound` のラウンド管理を壊さないため）
 - **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止（変更なし）
 - スプレッドシートの列定義は変更していないため、既存プロジェクトはそのまま動作する
+
+### フルテキストの不一致解消（裁定）
+
+判定者間の不一致（判定不一致・理由不一致）を、判定後レビュー画面の「不一致の解消」セクションから
+その場で確定できる（`src/sidepanel/features/fulltext-results.ts` の `renderConflicts` /
+`buildConflictItem` / `handleAdjudicate`）。**`state.isKeyOpened === true`（キー開封後）のときだけ表示**する。
+ブラインド中は他レビュアーの人間票がそもそもクライアントに配られない（`filterDecisionsForBlind`）ため、
+不一致の検出自体が成立しないため。
+
+**合議計算は純関数に集約**: OR合議・不一致検出・裁定の反映は `src/lib/fulltext-consensus.ts` の
+`computeFulltextConsensus()` に切り出している。`fulltext-results.ts` は DOM/state に依存する層のため
+テストできない。純関数側のテストは `tests/fulltext-consensus.test.ts`。
+
+- `conflict`: 非pendingの判定値（include/exclude/maybe）が2種類以上（従来どおりの「判定不一致」）
+- `reasonConflict`: 全員 exclude で有効な除外理由が2種類以上（`hasExcludeReasonConflict` を使う）。
+  判定自体は一致していても理由が割れているケースを判定不一致とは別枠で検出する
+- `unresolved`: `(conflict || reasonConflict) && !adjudicated`。裁定票があれば、生の不一致（`conflict`/
+  `reasonConflict`）自体は残っていても「解消済み」として扱う
+
+**裁定票の仕様**（Decisions タブへ1行追記する）:
+
+- `reviewer_id = 'adjudication:{email}'`（`adjudicationReviewerId()`）。裁定は誰でも可能なため
+  複数人が裁定でき、誰がいつ裁定したかは行として記録に残る
+- `screening_phase = 'fulltext'`
+- `decision` / `reason` は裁定で確定した最終判定・除外理由
+- `note` に JSON（`FulltextAdjudicationNote` 型、`src/lib/types.ts`）でスナップショットを保存する:
+  `type: 'fulltext_adjudication'`、`adjudicated_by`（裁定者email）、`adjudicated_at`（ISO 8601）、
+  `votes`（裁定時点の各判定者の判定・理由・メモの配列）
+- **`client_version` は `getClientVersion('-human-adjudication')` を使うこと。**
+  `isHumanDecision()`（`client-version.ts`）は `clientVersion.includes('-human')` で判定するため、
+  このサフィックスなら `saveDecision` の追記専用（append-only）経路に乗り、裁定のやり直し（再確定）が
+  別行として履歴に残る。`-human` を含まないサフィックス（例えば `-adjudication` 単体）にすると
+  upsert 経路に落ち、過去の裁定が上書きされて履歴が消えるため使わないこと
+- 裁定票が複数（同一裁定者の再確定、または別の裁定者による裁定）存在する場合、
+  `computeFulltextConsensus()` は `decided_at` が最新のものを最終として採用する
+
+**裁定票は判定者選択（judge selector）のチェックボックス一覧に出さない。**
+`collectJudges()`（`fulltext-results.ts`）が `isAdjudicationKey()` で除外している。
+判定者選択に出てしまうと、チェックを外した瞬間に裁定票が合議計算から消えて裁定そのものが
+無効化されてしまうため。
+
+`getReviewerLabel()`（`src/sidepanel/features/screening/reviewer-utils.ts`、TiAb画面とも共有される関数）は
+`adjudication:` キーを「⚖ 裁定（email）」と表示する分岐を持つ。既存の `llm:` / `ml:` 分岐の挙動は変えていない。
+
+**「完了が見える」導線**: PRISMA集計・エクスポート前確認は生の `conflict` ではなく
+**未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
+CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
 
 #### Config タブ（プロジェクト設定）
 

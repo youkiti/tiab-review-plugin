@@ -575,8 +575,11 @@ function normalizeDecision(output: FulltextJudgeOutput): 'include' | 'exclude' |
     return output.include_probability >= 0.5 ? 'include' : 'exclude';
 }
 
-/** 参照を再読込して state を更新する（refreshReferencesAfterBatch と同じロジック） */
-async function reloadReferences(spreadsheetId: string): Promise<void> {
+/**
+ * 参照を再読込して state を更新する（refreshReferencesAfterBatch と同じロジック）。
+ * fulltext-results.ts の裁定票保存後の再読込からも呼ばれる（同じ処理を書き起こさず、この経路を共有する）。
+ */
+export async function reloadReferences(spreadsheetId: string): Promise<void> {
     try {
         const userEmail = state.userEmail;
         const isKeyOpened = state.isKeyOpened;

@@ -222,6 +222,10 @@ const domElements = {
     get fulltextJudgeList() { return getElement<HTMLElement>('fulltext-judge-list'); },
     get fulltextJudgeHint() { return getElement<HTMLElement>('fulltext-judge-hint'); },
     get fulltextPrismaDiv() { return getElement<HTMLElement>('fulltext-prisma'); },
+    // 不一致の解消（キー開封後のみ表示。fulltext-results.ts の renderConflicts が描画）
+    get fulltextConflictsDiv() { return getElement<HTMLElement>('fulltext-conflicts'); },
+    get fulltextConflictsSummaryDiv() { return getElement<HTMLElement>('fulltext-conflicts-summary'); },
+    get fulltextConflictsListDiv() { return getElement<HTMLElement>('fulltext-conflicts-list'); },
     get fulltextResultsListDiv() { return getElement<HTMLElement>('fulltext-results-list'); },
     get fulltextExportCsvBtn() { return getElement<HTMLButtonElement>('fulltext-export-csv-btn'); },
     get fulltextExportRisBtn() { return getElement<HTMLButtonElement>('fulltext-export-ris-btn'); },
