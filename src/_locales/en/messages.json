@@ -1186,6 +1186,24 @@
   "share_inviteNoProject": {
     "message": "Please open a project first"
   },
+  "share_linkShareWarningWriter": {
+    "message": "⚠ Anyone with the link can edit this data. If the URL leaks, third parties can view and tamper with review decisions. Add all members to individual sharing first, then change the Drive sharing setting to \"Restricted\" (removing link sharing first will lock out current members)."
+  },
+  "share_linkShareWarningReader": {
+    "message": "⚠ Anyone with the link can view this data. If the URL leaks, third parties can view and leak review decisions. Add all members to individual sharing first, then change the Drive sharing setting to \"Restricted\" (removing link sharing first will lock out current members)."
+  },
+  "share_folderShareFailedTitle": {
+    "message": "Sharing added (folder needs manual sharing)"
+  },
+  "share_folderShareFailedBody": {
+    "message": "The spreadsheet has been shared with $1, so they can start the TiAb review right away. However, the PDF folder could not be shared automatically due to a Google Drive permission constraint (the app can only operate on files it has been individually granted access to). Please have the owner share the folder directly on Google Drive."
+  },
+  "share_folderShareFailedOwnerLine": {
+    "message": "Folder owner: $1"
+  },
+  "share_folderOpenDriveBtn": {
+    "message": "Open folder in Drive"
+  },
   "import_duplicate": {
     "message": "File \"$1\" has already been imported"
   },

@@ -1186,6 +1186,24 @@
   "share_inviteNoProject": {
     "message": "プロジェクトを開いてから実行してください"
   },
+  "share_linkShareWarningWriter": {
+    "message": "⚠ リンクを知っている全員が編集できる設定です。URLを知っていれば第三者でも判定データを閲覧・改ざんできます。全メンバーを個別共有に追加したうえで、Driveの共有設定を『制限付き』に変更してください（先にリンク共有を解除するとメンバーがアクセスできなくなります）"
+  },
+  "share_linkShareWarningReader": {
+    "message": "⚠ リンクを知っている全員が閲覧できる設定です。URLを知っていれば第三者でも判定データを閲覧・流出させることができます。全メンバーを個別共有に追加したうえで、Driveの共有設定を『制限付き』に変更してください（先にリンク共有を解除するとメンバーがアクセスできなくなります）"
+  },
+  "share_folderShareFailedTitle": {
+    "message": "共有を追加しました（フォルダは手動共有が必要です）"
+  },
+  "share_folderShareFailedBody": {
+    "message": "スプレッドシートは $1 さんと共有済みです。TiAbレビューはすぐに開始できます。ただしPDFフォルダは、Googleドライブの権限の仕組み（アプリから個別に許可されたファイルしか操作できない制約）により、アプリから自動で共有することができませんでした。オーナーがGoogle Driveでフォルダを直接共有してください。"
+  },
+  "share_folderShareFailedOwnerLine": {
+    "message": "フォルダのオーナー: $1"
+  },
+  "share_folderOpenDriveBtn": {
+    "message": "フォルダをDriveで開く"
+  },
   "import_duplicate": {
     "message": "ファイル \"$1\" は既にインポート済みです"
   },

@@ -6,6 +6,7 @@
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast } from '../ui/feedback';
+import { showModal, hideModal } from '../ui/modal';
 import {
     addPermission,
     deletePermission,
@@ -17,12 +18,14 @@ import {
     type SpreadsheetPermission,
 } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
+import { platform } from '../../platform';
 import { addShareEmailToHistory, getShareEmailHistory, mergeShareEmailsToHistory } from '../../lib/share-email-history';
 import { buildInviteMessage } from '../../lib/share-invite';
 import {
     canRemovePermission,
     classifyPermissionRemovalError,
     findRemovableUserPermission,
+    mergePermissionsForDisplay,
     resolveRemovalTargets,
     summarizeRemovalOutcome,
     type PermissionRemovalFailure,
@@ -97,7 +100,91 @@ async function resolveShareFolderId(spreadsheetId: string): Promise<string | nul
 }
 
 /**
+ * プロジェクトのオーナー（role==='owner'）の emailAddress を解決する。
+ * フォルダの権限一覧を優先し、読めない場合（drive.file未付与で403等）は
+ * スプレッドシートの権限一覧へフォールバックする（招待者はPicker付与済みで必ず読める。
+ * フォルダとスプレッドシートのオーナーは通常同一）。どちらも取れなければ undefined を返し、
+ * フォルダ共有失敗モーダルではオーナーのメール表示を省略する。
+ */
+async function resolveProjectOwnerEmail(folderId: string, spreadsheetId: string): Promise<string | undefined> {
+    const ownerOf = (permissions: SpreadsheetPermission[]): string | undefined =>
+        permissions.find(p => p.role === 'owner' && p.emailAddress)?.emailAddress;
+    try {
+        const owner = ownerOf(await getFilePermissions(folderId));
+        if (owner) return owner;
+    } catch (error) {
+        console.warn('Failed to resolve folder owner email:', error);
+    }
+    try {
+        return ownerOf(await getSpreadsheetPermissions(spreadsheetId));
+    } catch (error) {
+        console.warn('Failed to resolve spreadsheet owner email:', error);
+        return undefined;
+    }
+}
+
+/**
+ * フォルダ共有がベストエフォートで失敗したときの案内モーダル。
+ *
+ * drive.file の制約上、フォルダに他メンバーがアップロードした子ファイルが1つでもあると
+ * permissions.create は誰が実行しても（オーナーでも）403になる（AGENTS.md参照）。
+ * 事前検知はできないため、失敗したその場でユーザーへ手動共有の導線を出す。
+ * スプレッドシート共有は既にこの時点で成功しているため、エラー扱い（トースト）にはしない。
+ * 失敗時のAPIエラーメッセージはパースしない（英語文言依存は脆いため）。
+ */
+async function showFolderShareFailureModal(folderId: string, email: string): Promise<void> {
+    const ownerEmail = await resolveProjectOwnerEmail(folderId, state.spreadsheetId);
+
+    const body = document.createElement('div');
+
+    const summary = document.createElement('p');
+    summary.textContent = t('share_folderShareFailedBody', email);
+    body.appendChild(summary);
+
+    if (ownerEmail) {
+        const ownerLine = document.createElement('p');
+        ownerLine.textContent = t('share_folderShareFailedOwnerLine', ownerEmail);
+        body.appendChild(ownerLine);
+    }
+
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.gap = '0.5em';
+    footer.style.justifyContent = 'flex-end';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn btn-outline';
+    closeBtn.textContent = t('common_close');
+    closeBtn.addEventListener('click', () => hideModal());
+    footer.appendChild(closeBtn);
+
+    const openDriveBtn = document.createElement('button');
+    openDriveBtn.type = 'button';
+    openDriveBtn.className = 'btn btn-primary';
+    openDriveBtn.textContent = t('share_folderOpenDriveBtn');
+    openDriveBtn.addEventListener('click', () => {
+        // sharing.ts はWeb版ビルドにも入るため chrome.tabs.create は直接呼ばず、
+        // プラットフォーム抽象（拡張=chrome.tabs.create / Web=window.open）経由で開く。
+        platform().openExternal(`https://drive.google.com/drive/folders/${folderId}`);
+    });
+    footer.appendChild(openDriveBtn);
+
+    showModal({
+        title: t('share_folderShareFailedTitle'),
+        body,
+        footer,
+    });
+}
+
+/**
  * 共有設定を追加
+ *
+ * スプレッドシートを先に個別共有し（招待者はPickerでスプレッドシートを開いておりアプリ付与を
+ * 必ず持つため、ほぼ確実に成功する）、招待文つきの通知メールもこちらに載せる。
+ * プロジェクトフォルダがあれば、フォルダ共有はベストエフォートで追加実行する
+ * （drive.fileの制約上、他メンバーのアップロード後は誰が実行しても403になりうるため。
+ * AGENTS.md参照）。フォルダ側が失敗しても招待全体は失敗にせず、案内モーダルを出す。
  */
 export async function handleShare() {
     const email = dom.shareEmailInput.value.trim();
@@ -113,21 +200,33 @@ export async function handleShare() {
         dom.shareSubmitBtn.disabled = true;
         dom.shareSubmitBtn.textContent = '...';
 
-        // プロジェクトフォルダがあればフォルダごと共有する。
-        // フォルダ権限は下方向に継承されるため、スプレッドシート・fulltext・全PDFを
-        // 一括で編集可能にできる（PDFは著作権物なので公開リンクは使わずメンバー限定）。
-        // フォルダを持たない既存プロジェクトは従来どおりスプレッドシート単体を共有する。
         const folderId = await resolveShareFolderId(state.spreadsheetId);
 
-        // フォルダ共有時、Driveの既定通知メールは「フォルダを共有しました」としか表示されず、
-        // スプレッドシートURLも拡張のインストール手順も載らない（スプレッドシート単体共有の場合と
-        // 違い、共有相手はどこから作業を始めればよいか分からなくなる）。そのため招待文テンプレートを
-        // 通知メール本文に載せる。spreadsheetIdが無い場合（想定外だが防御的に）は従来どおり
-        // Drive既定の通知文のみとする。
+        // 1. スプレッドシートを個別共有（招待文つき通知）。
+        //    これが失敗したら（メールアドレス不正等の真のエラー）従来どおり
+        //    share_addError トーストで終了し、フォルダ共有は試みない。
         const message = state.spreadsheetId ? buildInviteMessage(state.spreadsheetId) : undefined;
-        await addPermission(folderId || state.spreadsheetId, email, 'writer', message);
+        await addPermission(state.spreadsheetId, email, 'writer', message);
 
-        showToast(t('share_added', email));
+        // 2. フォルダがあればベストエフォートで共有する。通知メールは抑制する
+        //    （スプレッドシート側の招待文つき通知と二重に届かないようにするため）。
+        let folderShareFailed = false;
+        if (folderId) {
+            try {
+                await addPermission(folderId, email, 'writer', undefined, { sendNotificationEmail: false });
+            } catch (folderError) {
+                console.warn('Folder share failed (best-effort; likely drive.file child-file constraint):', folderError);
+                folderShareFailed = true;
+                await showFolderShareFailureModal(folderId, email);
+            }
+        }
+
+        // フォルダ共有が失敗した場合は案内モーダルが「共有を追加しました」の役割を兼ねるため、
+        // 通常のトーストは出さない（両方出すと冗長・混乱を招く）。
+        if (!folderShareFailed) {
+            showToast(t('share_added', email));
+        }
+
         dom.shareEmailInput.value = '';
 
         // suggestion履歴に追加。今追加したメールは候補から消えるよう除外リストに含めて再描画する
@@ -184,7 +283,27 @@ export async function copyInviteTemplate() {
 }
 
 /**
+ * リンク共有（type='anyone'）の警告バナーを組み立てる。
+ * writer は赤系（改ざんリスク）、reader は黄系（閲覧・流出リスク）。
+ * どちらの文言にも「先に全メンバーを個別共有へ追加してから制限付きに変更する」という
+ * 順番（先にリンク共有を切るとメンバーが締め出される）を含める。
+ */
+function buildLinkShareWarning(role: 'writer' | 'reader'): HTMLElement {
+    const div = document.createElement('div');
+    div.className = `share-link-warning share-link-warning--${role}`;
+    div.textContent = role === 'writer'
+        ? t('share_linkShareWarningWriter')
+        : t('share_linkShareWarningReader');
+    return div;
+}
+
+/**
  * 共有ユーザーリストを読み込み
+ *
+ * フォルダ権限・スプレッドシート権限の両方を取得してマージ表示する
+ * （`mergePermissionsForDisplay`、純関数は `src/lib/share-permissions.ts`）。
+ * どちらか一方が取得失敗しても他方だけで表示を続ける（従来の縮退思想を維持）。
+ * リンク共有（type='anyone'）が見つかった場合は、リストの先頭に警告を表示する。
  */
 export async function loadSharedUsers() {
     const spreadsheetId = state.spreadsheetId;
@@ -196,24 +315,29 @@ export async function loadSharedUsers() {
         // 管理者権限チェック（fallback含む。従来どおりスプレッドシートIDで判定する）
         const isAdmin = await isUserAdmin(spreadsheetId, userEmail);
 
-        // 権限一覧の取得対象は共有先に合わせる（フォルダがあればフォルダ優先。handleShareと同じ規則）。
-        // 取得に失敗した場合は従来どおりスプレッドシート単体の一覧にフォールバックする。
         const folderId = await resolveShareFolderId(spreadsheetId);
-        const primaryTarget = folderId || spreadsheetId;
 
-        let permissions: SpreadsheetPermission[] = [];
-        try {
-            permissions = await getFilePermissions(primaryTarget);
-        } catch (e) {
-            console.warn('Failed to load permissions list from primary target, falling back to spreadsheet:', e);
+        // フォルダ・スプレッドシートの権限をそれぞれ独立して取得する。
+        // 片方が失敗（403等）しても、取得できた方だけでマージ表示を続ける。
+        let folderPermissions: SpreadsheetPermission[] | null = null;
+        if (folderId) {
             try {
-                permissions = await getSpreadsheetPermissions(spreadsheetId);
-            } catch (fallbackError) {
-                console.warn('Failed to load permissions list (likely due to scope):', fallbackError);
+                folderPermissions = await getFilePermissions(folderId);
+            } catch (e) {
+                console.warn('Failed to load folder permissions list:', e);
             }
         }
 
-        if (permissions.length === 0) {
+        let sheetPermissions: SpreadsheetPermission[] | null = null;
+        try {
+            sheetPermissions = await getSpreadsheetPermissions(spreadsheetId);
+        } catch (e) {
+            console.warn('Failed to load spreadsheet permissions list:', e);
+        }
+
+        const { users: permissions, linkShare } = mergePermissionsForDisplay(folderPermissions, sheetPermissions);
+
+        if (permissions.length === 0 && !linkShare) {
             if (isAdmin) {
                 // Adminだがリストが見れない場合
                 dom.sharedUsersList.innerHTML = '';
@@ -240,6 +364,11 @@ export async function loadSharedUsers() {
         }
 
         dom.sharedUsersList.innerHTML = '';
+
+        if (linkShare) {
+            dom.sharedUsersList.appendChild(buildLinkShareWarning(linkShare.role));
+        }
+
         permissions.forEach(p => {
             const div = document.createElement('div');
             div.className = 'shared-user-item';

@@ -16,6 +16,7 @@ export interface DrivePermissionLike {
     role: string;
     type?: string;
     emailAddress?: string;
+    displayName?: string;
 }
 
 /**
@@ -114,6 +115,95 @@ export function permissionRemovalMessageKey(failure: PermissionRemovalFailure): 
         default:
             return 'share_removeErrorUnknown';
     }
+}
+
+/**
+ * 共有リスト表示用にマージした1ユーザー分の権限情報。
+ * `DrivePermissionLike` と異なり、表示に必要な role/emailAddress を必須にしている
+ * （マージ時に role 不明・emailAddress 無しの権限は除外済みのため）。
+ */
+export interface MergedSharePermission {
+    id?: string;
+    role: 'owner' | 'writer' | 'reader';
+    type?: string;
+    emailAddress: string;
+    displayName?: string;
+}
+
+/** リンク共有（type='anyone'）の検出結果。null は「リンク共有なし」。 */
+export interface LinkSharePermission {
+    role: 'writer' | 'reader';
+}
+
+/** mergePermissionsForDisplay の戻り値 */
+export interface MergedPermissionsForDisplay {
+    /** type='anyone' を除いた、メールアドレスでマージ済みのユーザー権限一覧 */
+    users: MergedSharePermission[];
+    /** リンク共有（type='anyone'）が存在する場合のみ非null */
+    linkShare: LinkSharePermission | null;
+}
+
+/** role の強さ（owner > writer > reader）。同一メールのマージで強い方を残すために使う */
+const ROLE_STRENGTH: Record<'owner' | 'writer' | 'reader', number> = {
+    owner: 3,
+    writer: 2,
+    reader: 1,
+};
+
+function isDisplayableRole(role: string): role is 'owner' | 'writer' | 'reader' {
+    return role === 'owner' || role === 'writer' || role === 'reader';
+}
+
+/**
+ * フォルダ権限とスプレッドシート権限をマージし、共有リスト表示用の形にする純粋関数。
+ *
+ * `loadSharedUsers`（フォルダ・スプレッドシートの両方の権限をマージ表示する）から使う。
+ * DOM/fetch には依存しない（このモジュールの既存方針を踏襲）。
+ *
+ * - `type === 'anyone'`（リンク共有）は users から除外し、`linkShare` として別枠で返す。
+ *   role は writer 系（writer/owner）なら 'writer'、それ以外なら 'reader' に正規化する。
+ *   フォルダ・スプレッドシート双方に別々の anyone 権限が付いているケースも想定し、
+ *   どちらか一方でも writer 相当があれば 'writer' を優先する
+ * - `emailAddress` が無い権限（グループ・ドメイン共有等）や、role が
+ *   owner/writer/reader のいずれでもない権限（commenter 等）は users から除外する
+ * - 同一メール（大文字小文字を無視）がフォルダ・スプレッドシート双方に存在する場合は、
+ *   強い方の role（owner > writer > reader）で1行にまとめる
+ * - `folderPerms` / `sheetPerms` は片方または両方が null/undefined/空配列でもよい
+ *   （取得に失敗した側は呼び出し元が null を渡す想定。縮退時も残った側だけで表示できる）
+ */
+export function mergePermissionsForDisplay(
+    folderPerms: DrivePermissionLike[] | null | undefined,
+    sheetPerms: DrivePermissionLike[] | null | undefined
+): MergedPermissionsForDisplay {
+    const all = [...(folderPerms ?? []), ...(sheetPerms ?? [])];
+
+    const anyonePerms = all.filter(p => p.type === 'anyone');
+    let linkShare: LinkSharePermission | null = null;
+    if (anyonePerms.length > 0) {
+        const hasWriter = anyonePerms.some(p => p.role === 'writer' || p.role === 'owner');
+        linkShare = { role: hasWriter ? 'writer' : 'reader' };
+    }
+
+    const byEmail = new Map<string, MergedSharePermission>();
+    for (const p of all) {
+        if (p.type === 'anyone') continue;
+        if (!p.emailAddress) continue;
+        if (!isDisplayableRole(p.role)) continue;
+
+        const key = p.emailAddress.trim().toLowerCase();
+        const existing = byEmail.get(key);
+        if (!existing || ROLE_STRENGTH[p.role] > ROLE_STRENGTH[existing.role]) {
+            byEmail.set(key, {
+                id: p.id,
+                role: p.role,
+                type: p.type,
+                emailAddress: p.emailAddress,
+                displayName: p.displayName,
+            });
+        }
+    }
+
+    return { users: Array.from(byEmail.values()), linkShare };
 }
 
 /** handleRemoveShare の結果トーストを組み立てるための判定結果 */
