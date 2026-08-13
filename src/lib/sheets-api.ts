@@ -2234,6 +2234,22 @@ function truncateEmailMessageForQuery(message: string, budget: number): string {
 }
 
 /**
+ * addPermission のオプション引数（後方互換のため第5引数のオプションオブジェクトとして追加）。
+ */
+export interface AddPermissionOptions {
+    /**
+     * Driveの共有通知メールを送るかどうか。省略時はDriveの既定挙動
+     * （emailMessage指定時は通知あり、未指定時はDriveの既定＝type=userなら通知あり）に従う。
+     * false を明示すると、emailMessage の有無にかかわらず sendNotificationEmail=false を
+     * クエリへ付ける（emailMessageを載せていても通知自体を送らないなら本文は届かないため、
+     * 明示指定を優先する）。共有先を複数回に分けて呼ぶフロー（例: スプレッドシートに
+     * 招待文つきで共有した後、同じ相手へフォルダもベストエフォートで共有する）で、
+     * 通知メールが2通届くのを防ぐ用途。
+     */
+    sendNotificationEmail?: boolean;
+}
+
+/**
  * 共有設定を追加（Google Drive API）
  *
  * @param fileId 共有対象のファイル/フォルダID
@@ -2250,12 +2266,15 @@ function truncateEmailMessageForQuery(message: string, budget: number): string {
  *   明示する）。emailMessage 未指定時はクエリを一切付けず、従来と同一のリクエストにする。
  *   URL長制限に配慮し、エンコード後の長さが EMAIL_MESSAGE_ENCODED_BUDGET を超える場合は
  *   末尾を切り詰める。
+ * @param options 通知抑制など追加オプション（省略時は既存呼び出しと同一挙動。後方互換）。
+ *   詳細は {@link AddPermissionOptions} を参照。
  */
 export async function addPermission(
     fileId: string,
     emailAddress: string,
     role: 'writer' | 'reader' = 'writer',
-    emailMessage?: string
+    emailMessage?: string,
+    options?: AddPermissionOptions
 ): Promise<void> {
     const token = await getAuthToken();
 
@@ -2275,7 +2294,13 @@ export async function addPermission(
     let queryString = '';
     if (emailMessage) {
         const truncated = truncateEmailMessageForQuery(emailMessage, EMAIL_MESSAGE_ENCODED_BUDGET);
-        queryString = `?emailMessage=${encodeURIComponent(truncated)}&sendNotificationEmail=true`;
+        const sendNotificationEmail = options?.sendNotificationEmail === false ? 'false' : 'true';
+        queryString = `?emailMessage=${encodeURIComponent(truncated)}&sendNotificationEmail=${sendNotificationEmail}`;
+    } else if (options?.sendNotificationEmail === false) {
+        // emailMessage が無い場合のみ、明示的な通知抑制指定を反映する。
+        // 未指定（options自体が無い、または sendNotificationEmail が無い）ときは
+        // 従来どおりクエリを一切付けない（Drive既定の通知ありの挙動を変えない）。
+        queryString = '?sendNotificationEmail=false';
     }
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`;
 

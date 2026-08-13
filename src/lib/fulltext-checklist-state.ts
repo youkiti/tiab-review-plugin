@@ -90,6 +90,38 @@ export interface FulltextChecklistProgressState {
 }
 
 // ---------------------------------------------------------------------------
+// 項目5: リンク共有の検出（管理者のみ）
+//
+// 実プロジェクトでは共有ボタンを使わず Google 側で手動の「リンクを知っている全員が
+// 編集可」運用がされていたことがあった（AGENTS.md「共有フロー」参照）。共有リストの
+// 警告バナー（mergePermissionsForDisplay の linkShare）と同じ判定をチェックリストにも
+// 出し、管理者がフルテキストタブを開いた時点でも気づけるようにする。
+// ---------------------------------------------------------------------------
+
+export interface FulltextChecklistLinkShareState {
+    visible: boolean;
+    /** 非表示（visible=false）のときは常に null */
+    role: 'writer' | 'reader' | null;
+}
+
+// ---------------------------------------------------------------------------
+// 項目6: フォルダ共有のズレ検出（管理者のみ）
+//
+// 「招待はしたがフォルダ共有がdrive.fileの制約でベストエフォート失敗していた」
+// 「Google側で手動共有した際に一部レビュアーを含め忘れた」等に管理者が気づけるように、
+// フォルダの実際の権限一覧と「本来レビューに参加するはずのメンバー」を突き合わせる。
+// ---------------------------------------------------------------------------
+
+export type FulltextChecklistFolderShareKind = 'ok' | 'missing';
+
+export interface FulltextChecklistFolderShareState {
+    visible: boolean;
+    kind: FulltextChecklistFolderShareKind;
+    /** フォルダ権限に見当たらない知られたレビュアーのメール（昇順。kind='missing' のとき使う） */
+    missingEmails: string[];
+}
+
+// ---------------------------------------------------------------------------
 // 全体
 // ---------------------------------------------------------------------------
 
@@ -98,6 +130,8 @@ export interface FulltextChecklistState {
     group: FulltextChecklistGroupState;
     regrant: FulltextChecklistRegrantState;
     progress: FulltextChecklistProgressState;
+    linkShare: FulltextChecklistLinkShareState;
+    folderShare: FulltextChecklistFolderShareState;
     /** 表示中の全項目が完了（✅ or 情報のみ）なら true。折りたたみ判定に使う */
     allComplete: boolean;
 }
@@ -116,6 +150,26 @@ export interface FulltextChecklistInput {
     regrantAvailable: boolean;
     /** 直近のチェック結果（未確認なら null） */
     regrantResult: FulltextRegrantKnownResult | null;
+    /** 項目5・6（管理者向け）の表示可否 */
+    isAdmin: boolean;
+    /**
+     * mergePermissionsForDisplay（src/lib/share-permissions.ts）の linkShare.role をそのまま渡す。
+     * リンク共有が無ければ null。
+     */
+    linkShareRole: 'writer' | 'reader' | null;
+    /**
+     * プロジェクトフォルダの権限一覧（emailAddress群）。フォルダが無い/読めない（403等）場合は
+     * null（このとき項目6は非表示。エラー表示にはしない）。
+     */
+    folderPermissionEmails: string[] | null;
+    /**
+     * ブラインドセーフな「本来レビューに参加するはずのメンバー」一覧。
+     * Decisions の reviewer_id から集めてはいけない（Blind中は他人の human 票が
+     * クライアントに配られないため人によって結果が変わる）。呼び出し元は Config 由来
+     * （TiAb: state.assignmentConfig.reviewerMap ＋ フルテキスト: state.fulltextAssignment.reviewerMap）
+     * の和集合を渡すこと。空配列なら項目6は非表示。
+     */
+    knownReviewerEmails: string[];
 }
 
 /**
@@ -139,15 +193,20 @@ export function computeFulltextChecklistState(input: FulltextChecklistInput): Fu
         total: input.visibleCandidateCount,
         complete: input.decidedCount >= input.visibleCandidateCount,
     };
+    const linkShare = computeLinkShare(input.isAdmin, input.linkShareRole);
+    const folderShare = computeFolderShare(input.isAdmin, input.folderPermissionEmails, input.knownReviewerEmails);
 
     // 項目1は常に情報表示のみなので折りたたみを妨げない。項目2は赤（extra/missing）なら妨げる。
-    // 項目3・4は表示中なら完了必須。
+    // 項目3・4は表示中なら完了必須。項目5（リンク共有）は表示されている時点で常に要対応、
+    // 項目6（フォルダ共有ズレ）は kind='missing' のときだけ妨げる。
     const allComplete =
         (!group.visible || group.kind === 'ok' || group.kind === 'all') &&
         (!regrant.visible || regrant.kind === 'ok') &&
-        progress.complete;
+        progress.complete &&
+        !linkShare.visible &&
+        (!folderShare.visible || folderShare.kind === 'ok');
 
-    return { version, group, regrant, progress, allComplete };
+    return { version, group, regrant, progress, linkShare, folderShare, allComplete };
 }
 
 function computeVersion(version: string | null): FulltextChecklistVersionState {
@@ -237,5 +296,42 @@ function computeRegrant(
         unreadableCount: result.unreadableCount,
         totalCachedCount: result.totalCachedCount,
         checkedAt: result.checkedAt,
+    };
+}
+
+function computeLinkShare(isAdmin: boolean, role: 'writer' | 'reader' | null): FulltextChecklistLinkShareState {
+    if (!isAdmin || role === null) {
+        return { visible: false, role: null };
+    }
+    return { visible: true, role };
+}
+
+function computeFolderShare(
+    isAdmin: boolean,
+    folderPermissionEmails: string[] | null,
+    knownReviewerEmails: string[]
+): FulltextChecklistFolderShareState {
+    // フォルダ権限が読めない（drive.file未付与で403等）場合、それは「異常」ではなく
+    // 「アプリからは判定できない」状態なので、エラー表示にせず項目ごと非表示にする
+    // （AGENTS.mdの「読めないときは黙って出さない」縮退方針）。
+    if (!isAdmin || folderPermissionEmails === null || knownReviewerEmails.length === 0) {
+        return { visible: false, kind: 'ok', missingEmails: [] };
+    }
+
+    const normalizedFolderEmails = new Set(folderPermissionEmails.map((e) => e.trim().toLowerCase()));
+    const seen = new Set<string>();
+    const missingEmails: string[] = [];
+    for (const email of knownReviewerEmails) {
+        const normalized = email.trim().toLowerCase();
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        if (!normalizedFolderEmails.has(normalized)) missingEmails.push(email);
+    }
+    missingEmails.sort();
+
+    return {
+        visible: true,
+        kind: missingEmails.length > 0 ? 'missing' : 'ok',
+        missingEmails,
     };
 }

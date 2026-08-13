@@ -1175,7 +1175,7 @@
     "message": "Copies an invitation (install link, spreadsheet URL, and usage guide) to the clipboard to send to collaborators"
   },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Launch the TiAb Review Plugin from the extensions button, then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Launch the TiAb Review Plugin from the extensions button, then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -1185,6 +1185,24 @@
   },
   "share_inviteNoProject": {
     "message": "Please open a project first"
+  },
+  "share_linkShareWarningWriter": {
+    "message": "⚠ Anyone with the link can edit this data. If the URL leaks, third parties can view and tamper with review decisions. Add all members to individual sharing first, then change the Drive sharing setting to \"Restricted\" (removing link sharing first will lock out current members)."
+  },
+  "share_linkShareWarningReader": {
+    "message": "⚠ Anyone with the link can view this data. If the URL leaks, third parties can view and leak review decisions. Add all members to individual sharing first, then change the Drive sharing setting to \"Restricted\" (removing link sharing first will lock out current members)."
+  },
+  "share_folderShareFailedTitle": {
+    "message": "Sharing added (folder needs manual sharing)"
+  },
+  "share_folderShareFailedBody": {
+    "message": "The spreadsheet has been shared with $1, so they can start the TiAb review right away. However, the PDF folder could not be shared automatically due to a Google Drive permission constraint (the app can only operate on files it has been individually granted access to). Please have the owner share the folder directly on Google Drive."
+  },
+  "share_folderShareFailedOwnerLine": {
+    "message": "Folder owner: $1"
+  },
+  "share_folderOpenDriveBtn": {
+    "message": "Open folder in Drive"
   },
   "import_duplicate": {
     "message": "File \"$1\" has already been imported"
@@ -2837,6 +2855,15 @@
   },
   "fulltext_checklist_progress": {
     "message": "4. Decisions: $1 / $2"
+  },
+  "fulltext_checklist_linkShareOpenBtn": {
+    "message": "Open sharing settings in Drive"
+  },
+  "fulltext_checklist_folderShareOk": {
+    "message": "Folder sharing: shared with all assigned reviewers"
+  },
+  "fulltext_checklist_folderShareMissing": {
+    "message": "Folder sharing: not shared with $1"
   },
   "webapp_editionLabel": {
     "message": "(Browser)"
