@@ -30,6 +30,10 @@ function baseInput(overrides: Partial<FulltextChecklistInput> = {}): FulltextChe
         decidedCount: 12,
         regrantAvailable: true,
         regrantResult: null,
+        isAdmin: false,
+        linkShareRole: null,
+        folderPermissionEmails: null,
+        knownReviewerEmails: [],
         ...overrides,
     };
 }
@@ -341,6 +345,131 @@ test('判定進捗: done === total は complete=true', () => {
 test('判定進捗: 候補0件（0/0）は vacuously complete=true', () => {
     const state = computeFulltextChecklistState(baseInput({ decidedCount: 0, visibleCandidateCount: 0 }));
     assert.equal(state.progress.complete, true);
+});
+
+// ---------------------------------------------------------------------------
+// 項目5: リンク共有の検出（管理者のみ）
+// ---------------------------------------------------------------------------
+
+test('リンク共有: 非管理者は非表示', () => {
+    const state = computeFulltextChecklistState(baseInput({ isAdmin: false, linkShareRole: 'writer' }));
+    assert.equal(state.linkShare.visible, false);
+    assert.equal(state.linkShare.role, null);
+});
+
+test('リンク共有: 管理者でも linkShareRole が null なら非表示', () => {
+    const state = computeFulltextChecklistState(baseInput({ isAdmin: true, linkShareRole: null }));
+    assert.equal(state.linkShare.visible, false);
+    assert.equal(state.linkShare.role, null);
+});
+
+test('リンク共有: 管理者 かつ writer は表示・role=writer', () => {
+    const state = computeFulltextChecklistState(baseInput({ isAdmin: true, linkShareRole: 'writer' }));
+    assert.equal(state.linkShare.visible, true);
+    assert.equal(state.linkShare.role, 'writer');
+});
+
+test('リンク共有: 管理者 かつ reader は表示・role=reader', () => {
+    const state = computeFulltextChecklistState(baseInput({ isAdmin: true, linkShareRole: 'reader' }));
+    assert.equal(state.linkShare.visible, true);
+    assert.equal(state.linkShare.role, 'reader');
+});
+
+// ---------------------------------------------------------------------------
+// 項目6: フォルダ共有のズレ検出（管理者のみ）
+// ---------------------------------------------------------------------------
+
+test('フォルダ共有ズレ: 非管理者は非表示', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: false,
+        folderPermissionEmails: ['alice@example.com'],
+        knownReviewerEmails: ['alice@example.com', 'bob@example.com'],
+    }));
+    assert.equal(state.folderShare.visible, false);
+});
+
+test('フォルダ共有ズレ: folderPermissionEmails が null（読めない）なら非表示', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: null,
+        knownReviewerEmails: ['alice@example.com'],
+    }));
+    assert.equal(state.folderShare.visible, false);
+});
+
+test('フォルダ共有ズレ: knownReviewerEmails が空なら非表示', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: ['alice@example.com'],
+        knownReviewerEmails: [],
+    }));
+    assert.equal(state.folderShare.visible, false);
+});
+
+test('フォルダ共有ズレ: 全員フォルダ権限にいれば kind=ok', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: ['alice@example.com', 'bob@example.com'],
+        knownReviewerEmails: ['alice@example.com', 'bob@example.com'],
+    }));
+    assert.equal(state.folderShare.visible, true);
+    assert.equal(state.folderShare.kind, 'ok');
+    assert.deepEqual(state.folderShare.missingEmails, []);
+});
+
+test('フォルダ共有ズレ: フォルダ権限に居ないレビュアーがいれば kind=missing・列挙される', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: ['alice@example.com'],
+        knownReviewerEmails: ['alice@example.com', 'bob@example.com', 'carol@example.com'],
+    }));
+    assert.equal(state.folderShare.kind, 'missing');
+    assert.deepEqual(state.folderShare.missingEmails, ['bob@example.com', 'carol@example.com']);
+});
+
+test('フォルダ共有ズレ: メールの比較は大文字小文字を無視する', () => {
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: ['Alice@Example.com'],
+        knownReviewerEmails: ['alice@example.com'],
+    }));
+    assert.equal(state.folderShare.kind, 'ok');
+    assert.deepEqual(state.folderShare.missingEmails, []);
+});
+
+test('allComplete: リンク共有が表示中（writer/reader問わず）なら他が完了状態でも false', () => {
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount: 0,
+        totalCachedCount: 20,
+        checkedAt: '2026-08-10T01:00:00.000Z',
+        freshness: 'session',
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        linkShareRole: 'reader',
+        regrantResult: result,
+        decidedCount: 34,
+        visibleCandidateCount: 34,
+    }));
+    assert.equal(state.allComplete, false);
+});
+
+test('allComplete: フォルダ共有ズレが kind=missing なら他が完了状態でも false', () => {
+    const result: FulltextRegrantKnownResult = {
+        unreadableCount: 0,
+        totalCachedCount: 20,
+        checkedAt: '2026-08-10T01:00:00.000Z',
+        freshness: 'session',
+    };
+    const state = computeFulltextChecklistState(baseInput({
+        isAdmin: true,
+        folderPermissionEmails: ['alice@example.com'],
+        knownReviewerEmails: ['alice@example.com', 'bob@example.com'],
+        regrantResult: result,
+        decidedCount: 34,
+        visibleCandidateCount: 34,
+    }));
+    assert.equal(state.allComplete, false);
 });
 
 // ---------------------------------------------------------------------------

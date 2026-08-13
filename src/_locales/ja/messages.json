@@ -1175,7 +1175,7 @@
     "message": "共同研究者に送る案内文（インストール先・スプレッドシートURL・操作ガイド）をクリップボードへコピーします"
   },
   "share_inviteTemplate": {
-    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. 拡張機能ボタンから、TiAb Review Pluginを立ち上げ、プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. 拡張機能ボタンから、TiAb Review Pluginを立ち上げ、プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "招待文をコピーしました"
@@ -2855,6 +2855,15 @@
   },
   "fulltext_checklist_progress": {
     "message": "4. 判定: $1 / $2 件"
+  },
+  "fulltext_checklist_linkShareOpenBtn": {
+    "message": "Driveで共有設定を開く"
+  },
+  "fulltext_checklist_folderShareOk": {
+    "message": "フォルダ共有: 担当レビュアー全員に共有されています"
+  },
+  "fulltext_checklist_folderShareMissing": {
+    "message": "フォルダ共有: $1 がフォルダに未共有です"
   },
   "webapp_editionLabel": {
     "message": "(ブラウザ版)"

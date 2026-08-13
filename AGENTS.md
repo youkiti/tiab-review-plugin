@@ -738,6 +738,12 @@ Drive アクセスを扱うコードでは次を守ること:
 
 **リンク共有（`type: 'anyone'`）の検出と警告**: 実プロジェクトでは共有ボタンを使わず、Google側で手動の「リンクを知っている全員が編集可」運用がされていたことがあった。リンク共有はURLが漏れれば第三者が判定データを閲覧・改ざん（reader権限なら閲覧・流出）できるため、`mergePermissionsForDisplay` は `type==='anyone'` の権限を通常のユーザー一覧から分離し、`linkShare`（`{ role: 'writer' | 'reader' }`）として返す。`loadSharedUsers` はこれを共有リストの先頭に警告バナーとして表示する（writer=赤系、reader=黄系）。**警告文言には必ず「先に全メンバーを個別共有へ追加してから、Driveの共有設定を『制限付き』に変更する」という順番を明記する**。この順番を書かないと、警告に従ってリンク共有を先に解除した瞬間に、リンク経由でアクセスしていた現役メンバーが締め出されてしまうため。
 
+**セットアップチェックリストへの反映（管理者向け2項目）**: 共有リストの警告は管理者がその画面を開かないと気づけないため、フルテキストタブ先頭の「セットアップチェックリスト」（`src/lib/fulltext-checklist-state.ts` / `src/sidepanel/features/fulltext-checklist.ts`）にも管理者専用の2項目を追加している（非管理者には出さない）。
+
+- **リンク共有の検出**: 上記 `mergePermissionsForDisplay` の `linkShare` をそのまま再利用し、判定ロジックを二重化しない。writer=error（赤）、reader=warn（黄）。アクションはスプレッドシートのURLを `platform().openExternal()` で開く「Driveで共有設定を開く」ボタン
+- **フォルダ共有のズレ検出**: フォルダの実際の権限一覧（`getFilePermissions(projectFolderId)`）に、「本来レビューに参加するはずのメンバー」が見当たらない場合に警告する。**このメンバー一覧の出所がブラインドセーフの要**: Decisions の `reviewer_id` から集めてはいけない（Blind中は他人の human 票がクライアントに配られないため、集計すると人によって missing の結果が変わってしまう）。代わりに全員に同じ値が見える Config 由来の割り振り設定（TiAb: `state.assignmentConfig.reviewerMap` ＋ フルテキスト: `state.fulltextAssignment.reviewerMap`）の和集合を使う。フォルダ権限が読めない（drive.file未付与で403等）場合は「異常」ではなく「アプリからは判定できない」状態なので、項目ごと黙って非表示にする（エラー表示にしない。上記の縮退方針と同じ）
+- フォルダ・スプレッドシートの権限取得はDrive APIの読み取りクォータ対象のため、チェックリストの再描画のたびに叩かず、spreadsheetId単位でモジュール内キャッシュする（429対策）
+
 ### OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）
 
 拡張版は `chrome.identity.launchWebAuthFlow` + **implicit フロー（`response_type=token`）** を使う。GCPダッシュボードに「安全なフローの使用」警告が出るが、**これは現状で唯一成立する選択肢であり、認可コード + PKCE への移行は Google 側の制約で不可能**。2026-07-16 に実機検証済み（Issue #26）。同じ検討を蒸し返さないこと。

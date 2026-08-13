@@ -1175,7 +1175,7 @@
     "message": "Copies an invitation (install link, spreadsheet URL, and usage guide) to the clipboard to send to collaborators"
   },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Launch the TiAb Review Plugin from the extensions button, then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Launch the TiAb Review Plugin from the extensions button, then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -2855,6 +2855,15 @@
   },
   "fulltext_checklist_progress": {
     "message": "4. Decisions: $1 / $2"
+  },
+  "fulltext_checklist_linkShareOpenBtn": {
+    "message": "Open sharing settings in Drive"
+  },
+  "fulltext_checklist_folderShareOk": {
+    "message": "Folder sharing: shared with all assigned reviewers"
+  },
+  "fulltext_checklist_folderShareMissing": {
+    "message": "Folder sharing: not shared with $1"
   },
   "webapp_editionLabel": {
     "message": "(Browser)"
