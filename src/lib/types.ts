@@ -332,6 +332,10 @@ export interface LlmBatchProgress {
     parseErrorFallback: number;  // LLM 出力解析失敗で確率 1.0 として保存した件数
     isRunning: boolean;
     currentRefId?: string;
+    // --- 429 適応スロットリングの観測用フィールド（UI の「減速中」表示に使う） ---
+    rateLimitHits: number;       // 429 (レート制限) を受けた累計回数
+    currentConcurrency: number;  // 現在の実効並列度（429 のたびに半減、連続成功で1段ずつ回復）
+    throttled: boolean;          // 429 を受けて既定の並列度/スロット滞在時間より速度を落としている状態か
 }
 
 // API Tier関連の型定義
