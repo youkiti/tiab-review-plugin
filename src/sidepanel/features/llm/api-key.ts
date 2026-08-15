@@ -63,6 +63,8 @@ async function notifyApiKeyChanged(): Promise<void> {
 
 /**
  * Tier セレクタの表示を最新の manualTier に同期
+ * free / tier1 / tier2 / tier3 いずれも常にセレクタで表示し、手動で上書きできるようにする
+ * （Tier 1/2/3 は APIキーだけでは自動判定できないため、自動判定はあくまで初期値の提案）
  */
 export async function refreshTierSelector(): Promise<void> {
     const manualTier = await getManualTier();
@@ -72,26 +74,26 @@ export async function refreshTierSelector(): Promise<void> {
     }
 
     dom.tierSection.classList.remove('hidden');
-
-    if (manualTier === 'free') {
-        dom.tierFixedDisplay.textContent = t('llm_tierFree');
-        dom.tierFixedDisplay.classList.remove('hidden');
-        dom.tierSelect.classList.add('hidden');
-    } else {
-        dom.tierFixedDisplay.classList.add('hidden');
-        dom.tierSelect.classList.remove('hidden');
-        dom.tierSelect.value = manualTier;
-    }
+    dom.tierSelect.classList.remove('hidden');
+    dom.tierSelect.value = manualTier;
 }
+
+/** ManualTier ごとのローカライズ表示名 i18n キー */
+const TIER_LABEL_KEYS: Record<ManualTier, string> = {
+    free: 'llm_tierFree',
+    tier1: 'llm_tierTier1',
+    tier2: 'llm_tierTier2',
+    tier3: 'llm_tierTier3',
+};
 
 /**
  * Tier セレクタの変更を保存
  */
 export async function handleTierChange(): Promise<void> {
     const value = dom.tierSelect.value;
-    if (value === 'tier1' || value === 'tier2' || value === 'tier3') {
+    if (value === 'free' || value === 'tier1' || value === 'tier2' || value === 'tier3') {
         await saveManualTier(value as ManualTier);
-        showToast(t('llm_tierSaved', value));
+        showToast(t('llm_tierSaved', t(TIER_LABEL_KEYS[value as ManualTier])));
     }
 }
 
@@ -172,16 +174,14 @@ export async function handleApiKeyAutoSave() {
         return;
     }
 
-    // 手動 tier を初期化:
-    // - free 検出 → 'free' に固定
-    // - paid 検出 → 既存の手動指定があれば維持、無ければ tier1 をデフォルト
+    // 手動 tier の初期化:
+    // 自動判定の結果はあくまで「初期値の提案」。保存済みの手動設定がある場合は上書きせず、
+    // 既存ユーザーの設定を維持する。未設定のときだけ初期値を入れる:
+    // - paid → tier1
+    // - free / unknown → free（unknown は判定不能なので安全側の無料として扱う）
     const existingManual = await getManualTier();
-    if (result.tier === 'free') {
-        await saveManualTier('free');
-    } else if (result.tier === 'paid') {
-        if (!existingManual || existingManual === 'free') {
-            await saveManualTier('tier1');
-        }
+    if (!existingManual) {
+        await saveManualTier(result.tier === 'paid' ? 'tier1' : 'free');
     }
 
     // 保存設定に応じて保存
@@ -206,11 +206,28 @@ export async function handleApiKeyAutoSave() {
     }
     dom.apiKeyStatus.className = 'api-key-status success';
 
-    // 無料版の場合は警告を表示
+    // トーストは「検出結果」ではなく「実際に適用される手動設定」に合わせて出す。
+    // existingManual が設定済みなら、上の初期化では上書きしていない（＝それがそのまま適用される）ので、
+    // 検出結果とは無関係に existingManual の速度で実行される。ここで検出結果だけを見て
+    // 「制限されます」等と言い切ると、保存済み設定と食い違うときに嘘の案内になる（#88 の再発防止）。
     if (result.tier === 'free') {
-        showToast(t('llm_freeTierWarning'), 5000);
-        console.log(`[handleApiKeyAutoSave] Free tier detected. Available models: ${result.availableModels.join(', ')}`);
+        if (!existingManual || existingManual === 'free') {
+            // 今回 free が適用される（新規保存 or 既に free 設定済み）→ 従来通りの速度警告で正しい
+            showToast(t('llm_freeTierWarning'), 5000);
+        } else {
+            // 無料キーなのに手動設定（tier1/2/3）が優先され、そちらのまま維持される
+            showToast(t('llm_freeTierManualOverrideWarning', t(TIER_LABEL_KEYS[existingManual])), 6000);
+        }
+    } else if (result.tier === 'unknown') {
+        if (!existingManual) {
+            // 今回 free が適用される（安全側のデフォルト）→ 従来通り
+            showToast(t('llm_tierUnknownWarning'), 5000);
+        } else {
+            // 既存の手動設定がそのまま維持される。速度への言及はしない（判定不能なので誤解を招く）
+            showToast(t('llm_tierUnknownManualKeptWarning', t(TIER_LABEL_KEYS[existingManual])), 5000);
+        }
     }
+    console.log(`[handleApiKeyAutoSave] Detected tier: ${result.tier}. Available models: ${result.availableModels.join(', ')}`);
 
     await refreshTierSelector();
     await notifyApiKeyChanged();

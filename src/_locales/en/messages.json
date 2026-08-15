@@ -1534,7 +1534,7 @@
     "message": "Plan:"
   },
   "llm_tierFree": {
-    "message": "Free plan (auto-detected)"
+    "message": "Free plan (15 RPM)"
   },
   "llm_tierTier1": {
     "message": "Tier 1 (300 RPM)"
@@ -1547,6 +1547,18 @@
   },
   "llm_tierSaved": {
     "message": "Plan updated ($1)"
+  },
+  "llm_tierCheckLink": {
+    "message": "Check your rate limits / tier on AI Studio ↗"
+  },
+  "llm_tierUnknownWarning": {
+    "message": "Could not automatically determine your API key's plan (free/paid). Running at free-plan speed for safety. If you know your plan, select it manually from the selector above."
+  },
+  "llm_freeTierManualOverrideWarning": {
+    "message": "Detected a free-tier API key, but your plan is manually set to $1 and will stay that way. Selecting a paid tier with a free-tier key causes frequent rate-limit errors. Consider switching to the free plan in the selector above."
+  },
+  "llm_tierUnknownManualKeptWarning": {
+    "message": "Could not automatically determine your API key's plan (free/paid). Keeping your current manual setting ($1)."
   },
   "llm_batchPending": {
     "message": "AI pending:"
@@ -2620,7 +2632,7 @@
     "message": "Paste your protocol's inclusion/exclusion criteria here as-is.\nClick 'Optimize criteria' and the AI will turn it into a screening prompt."
   },
   "llm_tip_tier": {
-    "message": "Select your Gemini API tier. Parallel requests and save batch size are derived automatically from this tier.\n\n■ How to check your tier\n1. Open https://aistudio.google.com/usage\n2. See the current tier under \"Billing\"\n\n■ Tier overview\n• Tier 1: instant after enabling billing (300 RPM)\n• Tier 2: cumulative $100 + 3 days after first payment (2,000 RPM)\n• Tier 3: cumulative $1,000 + 30 days (4,000+ RPM)\n\nA wrong selection causes frequent rate-limit errors. If unsure, choose Tier 1."
+    "message": "Select your Gemini API tier. Parallel requests and save batch size are derived automatically from this tier.\n\nFree/paid is auto-detected when you enter an API key, but that is only an initial suggestion. Whether you're on Tier 1, 2, or 3 cannot be auto-detected from the API key alone (Google has no dedicated endpoint for this), so please select it manually.\n\n■ How to check your tier\n1. Open https://aistudio.google.com/usage\n2. See the current tier under \"Billing\"\n\n■ Tier overview\n• Free plan: no billing enabled (15 RPM)\n• Tier 1: instant after enabling billing (300 RPM)\n• Tier 2: cumulative $100 + 3 days after first payment (2,000 RPM)\n• Tier 3: cumulative $1,000 + 30 days (4,000+ RPM)\n\nA wrong selection causes frequent rate-limit errors. If unsure, choose the free plan."
   },
   "llm_tip_maxCount": {
     "message": "Maximum number of pending references to process in this run.\nFor example, if 10,000 references are pending and you choose 100, only the first 100 will be processed and the remaining 9,900 will be carried over to subsequent runs.\nChoose \"All\" to process every pending reference."

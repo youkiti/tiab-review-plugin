@@ -350,14 +350,26 @@ export interface LlmBatchProgress {
 
 /**
  * API キーテスト時の自動分類結果（Free / Paid の二値）
- * Gemini API は「Tier いくつか」を返さないため、可視モデル数で粗く分類する
+ * `batchGenerateContent` に空 requests の batch を送るプローブ（`detectTierByBatchProbe()`,
+ * `src/lib/gemini-api.ts`）の応答から判定する。判定できなかった場合は `unknown`。
  */
 export type ApiTier = 'free' | 'paid' | 'unknown';
 
 /**
+ * `batchGenerateContent` プローブ（`detectTierByBatchProbe()` / `classifyTierProbeResponse()`）
+ * の分類結果。`ApiTier` との違いに注意:
+ * - `invalid_key` は「キー自体が不正」を表す状態であり、tier（無料/有料）ではない。
+ *   `ApiTier` にはこの値は無い（`testApiKeyWithTier()` 側で `isValid: false` にマッピングする）。
+ * - `unknown` はプローブが一過性の失敗（タイムアウト・想定外レスポンス等）で判定できなかったことを表す。
+ *   `free`/`paid` と誤断定しないための安全側の値。
+ */
+export type DetectedTier = 'free' | 'paid' | 'invalid_key' | 'unknown';
+
+/**
  * ユーザが手動で指定する詳細 tier
- * - free: 自動判定で確定（変更不可）
- * - tier1/tier2/tier3: paid 検出時にユーザが選択
+ * 4値すべてを常にセレクタから選択・上書きできる（Tier 1/2/3 はもちろん、free も含めて自動判定は
+ * 確定情報ではない）。`ApiTier` の自動判定結果は、この値が未設定のときだけ入る「初期値の提案」
+ * （paid → tier1、free/unknown → free）にすぎず、既存の手動設定があれば上書きしない。
  */
 export type ManualTier = 'free' | 'tier1' | 'tier2' | 'tier3';
 

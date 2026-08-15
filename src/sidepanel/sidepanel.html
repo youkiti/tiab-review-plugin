@@ -428,15 +428,20 @@
                         </label>
                     </div>
                     <div id="api-key-status" class="api-key-status"></div>
-                    <div id="tier-section" class="setting-row tier-section hidden">
-                        <label data-i18n="llm_tierLabel"></label>
-                        <span class="help-icon" data-i18n-tooltip="llm_tip_tier" tabindex="0">?</span>
-                        <span id="tier-fixed-display" class="tier-fixed-display hidden"></span>
-                        <select id="tier-select" class="hidden">
-                            <option value="tier1" data-i18n="llm_tierTier1"></option>
-                            <option value="tier2" data-i18n="llm_tierTier2"></option>
-                            <option value="tier3" data-i18n="llm_tierTier3"></option>
-                        </select>
+                    <div id="tier-section" class="tier-section hidden">
+                        <div class="setting-row">
+                            <label data-i18n="llm_tierLabel"></label>
+                            <span class="help-icon" data-i18n-tooltip="llm_tip_tier" tabindex="0">?</span>
+                            <select id="tier-select" class="hidden">
+                                <option value="free" data-i18n="llm_tierFree"></option>
+                                <option value="tier1" data-i18n="llm_tierTier1"></option>
+                                <option value="tier2" data-i18n="llm_tierTier2"></option>
+                                <option value="tier3" data-i18n="llm_tierTier3"></option>
+                            </select>
+                        </div>
+                        <div class="setting-row setting-row-secondary">
+                            <a id="tier-check-link" href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer" data-i18n="llm_tierCheckLink"></a>
+                        </div>
                     </div>
                 </div>
             </div>

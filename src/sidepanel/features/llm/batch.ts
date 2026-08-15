@@ -69,11 +69,13 @@ export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
 
 /**
  * 現在の手動 tier 設定とモデル ID からバッチ実行プロファイルを取得
- * 未設定の場合は安全側で tier1 を採用
+ * 未設定の場合は安全側（＝最も低並列）の free を採用する。
+ * tier1 をデフォルトにすると、判定不能なユーザーが実際には無料キーだった場合に
+ * 高並列でレート制限を叩き続けることになるため危険側に倒れていた。
  * モデル別に上書きがある場合はそちら（例: gemini-2.5-flash-lite は高並列）を優先
  */
 async function resolveBatchProfile(modelId?: string): Promise<BatchProfile> {
-    const manualTier = (await getManualTier()) || 'tier1';
+    const manualTier = (await getManualTier()) || 'free';
     return getBatchProfile(manualTier, modelId);
 }
 

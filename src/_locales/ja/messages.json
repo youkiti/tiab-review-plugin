@@ -1534,7 +1534,7 @@
     "message": "プラン:"
   },
   "llm_tierFree": {
-    "message": "無料プラン（自動判定）"
+    "message": "無料プラン（15 RPM）"
   },
   "llm_tierTier1": {
     "message": "Tier 1（300 RPM）"
@@ -1547,6 +1547,18 @@
   },
   "llm_tierSaved": {
     "message": "プランを更新しました ($1)"
+  },
+  "llm_tierCheckLink": {
+    "message": "AI Studio でレート制限・Tierを確認 ↗"
+  },
+  "llm_tierUnknownWarning": {
+    "message": "APIキーのプラン（無料/有料）を自動判定できませんでした。安全のため無料プラン相当の速度で実行します。プランが分かる場合は上のセレクタから手動で選択してください"
+  },
+  "llm_freeTierManualOverrideWarning": {
+    "message": "無料プランのAPIキーを検出しましたが、プランは手動で $1 に設定されているためそのまま維持します。無料キーで有料 Tier を選ぶとレート制限エラーが頻発します。上のセレクタから無料プランへの変更をご検討ください"
+  },
+  "llm_tierUnknownManualKeptWarning": {
+    "message": "APIキーのプラン（無料/有料）を自動判定できませんでした。現在の手動設定（$1）のまま実行します"
   },
   "llm_batchPending": {
     "message": "AI未判定:"
@@ -2620,7 +2632,7 @@
     "message": "プロトコルや申請書の組み入れ・除外基準をそのまま貼り付けてください。\n「基準を最適化」を押すと、AIが判定用プロンプトに整形します。"
   },
   "llm_tip_tier": {
-    "message": "Gemini API の料金プラン（Tier）を選択します。並列実行数と保存単位は Tier から自動的に決まります。\n\n■ Tier の確認方法\n1. https://aistudio.google.com/usage を開く\n2. 「Billing」セクションで現在の Tier を確認\n\n■ Tier 概要\n• Tier 1: 課金有効化で即時取得（300 RPM）\n• Tier 2: 累計支払い $100 + 初回支払い後 3日経過（2,000 RPM）\n• Tier 3: 累計支払い $1,000 + 30日経過（4,000+ RPM）\n\n選択を間違えるとレート超過エラーが頻発します。不明な場合は Tier 1 を選んでください。"
+    "message": "Gemini API の料金プラン（Tier）を選択します。並列実行数と保存単位は Tier から自動的に決まります。\n\nAPIキー入力時に無料/有料は自動判定されますが、あくまで初期値の提案です。Tier 1/2/3 のどれに該当するかはAPIキーだけからは自動判定できない（Google側に専用エンドポイントが存在しない）ため、必ず手動で選択してください。\n\n■ Tier の確認方法\n1. https://aistudio.google.com/usage を開く\n2. 「Billing」セクションで現在の Tier を確認\n\n■ Tier 概要\n• 無料プラン: 課金未設定（15 RPM）\n• Tier 1: 課金有効化で即時取得（300 RPM）\n• Tier 2: 累計支払い $100 + 初回支払い後 3日経過（2,000 RPM）\n• Tier 3: 累計支払い $1,000 + 30日経過（4,000+ RPM）\n\n選択を間違えるとレート超過エラーが頻発します。不明な場合は無料プランを選んでください。"
   },
   "llm_tip_maxCount": {
     "message": "今回の実行で処理する未判定文献の最大件数です。\n未判定が10,000件あって100を選んだ場合、上から100件だけ判定し、残り9,900件は次回以降に持ち越されます。\n「すべて」を選ぶと未判定文献を全件処理します。"
