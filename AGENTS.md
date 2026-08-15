@@ -242,6 +242,23 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 7. **LLMスクリーニング支援**
 
    - **APIキー設定**: Gemini / OpenRouter APIキーの保存・管理 (provider 別に独立保管)
+   - **Gemini APIキーの無料/有料判定**（`detectTierByBatchProbe()` / `classifyTierProbeResponse()`, `src/lib/gemini-api.ts`）:
+     `batchGenerateContent` に requests が空の batch を送るプローブで判定する（1リクエスト・課金ゼロ、バッチジョブは作られない）。
+     `400 FAILED_PRECONDITION` → free（課金チェックが body 検証より先に走る）、
+     `400 INVALID_ARGUMENT` + message に "inlined requests"/"input file" → paid（body 検証まで進む）。
+     一過性の失敗（タイムアウト・想定外レスポンス等）は必ず `unknown`（安全側の free 扱い）に倒し、`paid` と誤断定しない。
+     **`models.list` のモデル件数では判定できない**（無料キーでも50件前後返るため実測で無効。旧実装の「5件以下=無料」分岐は
+     事実上「常に有料」と誤判定していた）。集合差分・レスポンスヘッダ・`cachedContents.create` 等も実測で否定済み
+     （詳細: `experiments/gemini-tier-detection/report.md`）。蒸し返さないこと。
+   - **Tier 1/2/3 の自動判定は原理的に不可能**（APIキーだけで Tier を返す公式エンドポイントが無く、
+     Cloud Billing 等は OAuth + IAM が必須）。手動選択（`ManualTier` セレクタ）に頼るしかない。
+     自動判定（free/paid）は保存済みの手動設定が無い場合の**初期値の提案**にすぎない
+   - **429 の `quotaId` に含まれる `FreeTier` を tier のロックに使ってはいけない**。有料 Tier 2/3 の
+     プロジェクトが FreeTier バケットへルーティングされて 429 になる報告があり、これで tier を固定すると
+     有料ユーザーを無料に縛ってしまう。`isFreeTierQuota`（PR #87 の 429 適応スロットリング）は**減速の根拠にのみ**使う
+   - この判定器は公式APIの仕様ではなく entitlement チェックの実行順序という副作用を観測しているため、
+     Google が将来 Batch API を無料枠に開放すると「全キーを paid と誤判定する」方向に壊れるリスクがある。
+     そのため PR #87 の 429 適応スロットリングを安全網として併設している
    - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
    - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ

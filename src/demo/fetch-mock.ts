@@ -15,7 +15,7 @@ import {
     listSheets,
     getStoreSpreadsheetTitle,
 } from './sheet-store';
-import { buildDemoModelsListBody, buildStreamGenerateContentResponseText } from './gemini-fixtures';
+import { buildDemoModelsListBody, buildStreamGenerateContentResponseText, buildDemoBatchProbeErrorBody } from './gemini-fixtures';
 import {
     DEMO_SPREADSHEET_ID,
     DEMO_SPREADSHEET_TITLE,
@@ -346,7 +346,8 @@ function routeGoogleApis(pathname: string, url: URL, method: string, body: any):
 // ============================================================
 
 /**
- * `/v1beta/models` および `/v1beta/models/{model}:streamGenerateContent` のみ対応する。
+ * `/v1beta/models`、`/v1beta/models/{model}:streamGenerateContent`、
+ * `/v1beta/models/{model}:batchGenerateContent`（tier プローブ）に対応する。
  * APIキーの値そのものは一切検証しない（デモでは何を入力しても通す）。
  */
 function routeGeminiApi(pathname: string, method: string, body: any): Response | null {
@@ -364,6 +365,14 @@ function routeGeminiApi(pathname: string, method: string, body: any): Response |
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
+    }
+
+    // gemini-api.ts の detectTierByBatchProbe() が投げる tier 判定プローブ。
+    // 常に「有料キー」の実測シグネチャを返す（デモを低速モードに落とさないため）。
+    const batchMatch = pathname.match(/^\/v1beta\/models\/([^:]+):batchGenerateContent$/);
+    if (batchMatch) {
+        if (method !== 'POST') return null;
+        return jsonResponse(400, buildDemoBatchProbeErrorBody());
     }
 
     return null;

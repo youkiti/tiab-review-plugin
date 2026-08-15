@@ -293,7 +293,6 @@ const domElements = {
 
     // LLM Tier
     get tierSection() { return getElement<HTMLElement>('tier-section'); },
-    get tierFixedDisplay() { return getElement<HTMLElement>('tier-fixed-display'); },
     get tierSelect() { return getElement<HTMLSelectElement>('tier-select'); },
 
     // LLM Batch

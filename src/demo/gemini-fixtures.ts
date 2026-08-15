@@ -8,7 +8,13 @@
 
 import type { LlmEvidence } from '../lib/types';
 
-/** モデル一覧（testApiKeyWithTier が「5件超 = 有料枠」と判定できるよう6件以上返す） */
+/**
+ * モデル一覧。
+ * tier 判定はもう models.list のモデル数では行わない（無料キーでも50件前後返るため実測で
+ * 無効と判明）。ここでの件数は単に「デモの models.list 応答として妥当な件数」という意味しか
+ * 持たない。tier の判定は buildDemoBatchProbeErrorBody() が模す batchGenerateContent プローブ
+ * が担う（fetch-mock.ts の routeGeminiApi 参照）。
+ */
 const DEMO_MODEL_NAMES = [
     'models/gemini-3.1-flash-lite',
     'models/gemini-3-flash-preview',
@@ -22,6 +28,23 @@ const DEMO_MODEL_NAMES = [
 
 export function buildDemoModelsListBody(): { models: { name: string }[] } {
     return { models: DEMO_MODEL_NAMES.map((name) => ({ name })) };
+}
+
+/**
+ * `batchGenerateContent` プローブ（tier 判定、gemini-api.ts の detectTierByBatchProbe）に対する
+ * デモ応答。有料キーの実測シグネチャ（400 + INVALID_ARGUMENT + "non-empty list of inlined
+ * requests" を含む message）を返し、classifyTierProbeResponse() が 'paid' と判定するようにする。
+ * デモでは実際のAPIキーの真偽を検証しないため、常にこの応答を返してよい
+ * （free 相当を返すと、バッチ処理が RPM 5 の低速モード（約13秒/件）に落ちてしまう）。
+ */
+export function buildDemoBatchProbeErrorBody(): { error: { code: number; message: string; status: string } } {
+    return {
+        error: {
+            code: 400,
+            message: 'Invalid JSON payload received. Must specify either an input file or a non-empty list of inlined requests.',
+            status: 'INVALID_ARGUMENT',
+        },
+    };
 }
 
 const INCLUDE_KEYWORDS = ['randomized', 'meta-analysis'];

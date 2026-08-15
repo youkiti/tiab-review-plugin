@@ -1,6 +1,6 @@
 // gemini-api.ts - Gemini API クライアント
 
-import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, UsageMetadata, LlmModelResponseMetadata } from './types';
+import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, DetectedTier, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { getEffectiveApiKey } from './storage';
 import { t } from './i18n';
 
@@ -653,17 +653,93 @@ ${protocolText}
 }
 
 /**
+ * `batchGenerateContent` プローブのレスポンスから tier を分類する純関数。
+ *
+ * 判定条件（実測: experiments/gemini-tier-detection/report.md）:
+ * - 400 + FAILED_PRECONDITION → free（無料キーは課金チェックが body 検証より先に走る）
+ * - 400 + INVALID_ARGUMENT かつ message が "inlined requests" または "input file" を含む
+ *   → paid（有料キーは body 検証まで進む）
+ * - message が "API key not valid" を含む → invalid_key
+ * - それ以外・空/非JSONボディ・想定外の組み合わせ → unknown
+ *
+ * 重要: 一過性の失敗を絶対に paid と断定しないこと。この判定器は公式APIではなく
+ * entitlement（課金チェックの実行順序）の副作用を観測しているため、Google が将来
+ * Batch API を無料枠に開放すると「全キーを paid と誤判定する」危険な方向に壊れる。
+ * 想定外のレスポンスは必ず unknown に倒す。
+ */
+export function classifyTierProbeResponse(httpStatus: number, bodyText: string): DetectedTier {
+    let json: unknown;
+    try {
+        json = bodyText ? JSON.parse(bodyText) : undefined;
+    } catch {
+        json = undefined;
+    }
+
+    const errorObj = extractErrorObject(json) as { message?: unknown; status?: unknown } | undefined;
+    const status = typeof errorObj?.status === 'string' ? errorObj.status : undefined;
+    // rawMessage を使用（parseGeminiErrorPayload と異なり複数行判定は不要なため生値のまま参照する）
+    const message = typeof errorObj?.message === 'string' ? errorObj.message : '';
+
+    if (/API key not valid/i.test(message)) return 'invalid_key';
+    if (httpStatus === 400 && status === 'FAILED_PRECONDITION') return 'free';
+    if (httpStatus === 400 && status === 'INVALID_ARGUMENT' && /inlined requests|input file/i.test(message)) return 'paid';
+    return 'unknown';
+}
+
+/**
+ * `batchGenerateContent` に requests が空の batch を送り、free/paid を1リクエストで判定する。
+ * どちらの結果でもバッチジョブは作られないため課金ゼロ・後片付け不要。
+ *
+ * APIキーは `x-goog-api-key` ヘッダで送る（URL クエリ `?key=` は使わない。エラー時の
+ * URL 表示経路でキーがログに載るのを避けるため。AGENTS.md 規約9）。
+ */
+export async function detectTierByBatchProbe(
+    apiKey: string,
+    model = 'gemini-flash-lite-latest',
+    timeoutMs = 10000,
+): Promise<DetectedTier> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(`${GEMINI_API_BASE}/${model}:batchGenerateContent`, {
+            method: 'POST',
+            headers: {
+                'x-goog-api-key': apiKey,
+                'content-type': 'application/json',
+            },
+            // requests を意図的に空にする → 有料キーでもバッチジョブは作られない
+            body: JSON.stringify({ batch: { display_name: 'tier-probe' } }),
+            signal: controller.signal,
+        });
+        const bodyText = await response.text();
+        return classifyTierProbeResponse(response.status, bodyText);
+    } catch (error) {
+        // fetch 例外・abort（タイムアウト）はすべて unknown。APIキー/URLはログに出さない。
+        console.error('[detectTierByBatchProbe] Probe failed:', error instanceof Error ? error.message : error);
+        return 'unknown';
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
  * APIキーの有効性とtierをテスト
- * models.list APIでモデル一覧を取得し、モデル数でtierを判定
+ *
+ * models.list はキーの有効性確認と availableModels の取得のために使う
+ * （モデル数による tier 判定は実測で無効と判明したため廃止: 無料キーでも50件前後返るため
+ * 「5件以下なら無料」という分岐は事実上常に false になり「常に有料」と誤判定していた。
+ * 詳細: experiments/gemini-tier-detection/report.md）。
+ * tier 自体は `detectTierByBatchProbe()`（batchGenerateContent プローブ）で判定する。
  */
 export async function testApiKeyWithTier(apiKey: string): Promise<ApiKeyTestResult> {
-    const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const modelsUrl = GEMINI_API_BASE;
 
     try {
         const response = await fetch(modelsUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
             },
         });
 
@@ -679,20 +755,15 @@ export async function testApiKeyWithTier(apiKey: string): Promise<ApiKeyTestResu
         const models = data.models || [];
         const modelNames: string[] = models.map((m: { name: string }) => m.name);
 
-        // モデル数でtierを判定
-        // 無料版: 2-3モデル程度（gemini-2.5-flash, gemini-2.5-flash-lite など）
-        // 有料版: より多くのモデル（10以上）
-        let tier: ApiTier = 'unknown';
-        if (modelNames.length <= 5) {
-            tier = 'free';
-        } else if (modelNames.length > 5) {
-            tier = 'paid';
-        }
+        const detected = await detectTierByBatchProbe(apiKey);
+        const isValid = detected !== 'invalid_key';
+        const tier: ApiTier = detected === 'free' || detected === 'paid' ? detected : 'unknown';
 
+        // APIキーは絶対にログへ出さない
         console.log(`[testApiKeyWithTier] Models: ${modelNames.length}, Tier: ${tier}`);
 
         return {
-            isValid: true,
+            isValid,
             tier,
             availableModels: modelNames,
         };
