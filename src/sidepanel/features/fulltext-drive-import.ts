@@ -171,9 +171,9 @@ interface ValidatedFile {
 }
 
 /**
- * 共有ドライブ（`meta.driveId` が入っている）は**ブロックしない**。
+ * 共有ドライブ上のファイルは**ブロックしない**。
  *
- * この分岐はかつて `meta.driveId` で共有ドライブを弾いていたが、`getDriveFileMetadata()` の
+ * この分岐はかつて `meta.driveId`（現在は取得していない）で共有ドライブを弾いていたが、`getDriveFileMetadata()` の
  * `files.get` に `supportsAllDrives` が無かったため `driveId` を読む前に 404 で throw しており、
  * 一度も到達していなかった（2026-08-15 実測）。パラメータを全経路へ付けた時点でこの分岐は
  * 生きたコードに変わり、**実測では読める共有ドライブ上のPDFを新たに弾き始める**ため、

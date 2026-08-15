@@ -790,9 +790,11 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 **実装（フェーズ1で対応済み）**
 
-- **Drive API を叩くURLは必ず `withSharedDriveParams()`（`src/lib/drive-shared-drive.ts`）を通すこと。** 呼び出しごとに要否を判断せず**全経路へ機械的に付ける**方針にしている。`item`（単一リソース）は `supportsAllDrives`、`list`（`files.list`）は `includeItemsFromAllDrives` も付く。マイドライブのファイルには無害なので出し分けはしない。`corpora=drive&driveId=` を足す実装を新設しないこと
+- **Drive API は `driveFetch()`（`src/lib/drive-shared-drive.ts`）以外から叩かないこと。`fetch()` で直接叩いてはならない。** 共有ドライブ用パラメータと `Authorization` ヘッダをここで必ず付ける。呼び出しごとに要否を判断せず**全経路へ機械的に付ける**方針にしている。`item`（単一リソース）は `supportsAllDrives`、`kind: 'list'`（`files.list`）は `includeItemsFromAllDrives` も付く。マイドライブのファイルには無害なので出し分けはしない。`corpora=drive&driveId=` を足す実装を新設しないこと
+  - パラメータ組み立て自体は純粋関数 `withSharedDriveParams()` に分離してある（テスト対象）
+  - 認証トークンは呼び出し側から渡す。`drive-shared-drive.ts` が `sheets-api.ts` の `getAuthToken` を import すると循環参照になるため
 - 適用先は `src/lib/drive-api.ts` の13箇所と **`src/lib/sheets-api.ts` の5箇所**（`getRecentSpreadsheets` の `files.list`、permissions の list/create/delete、`isUserAdmin` の capabilities）。特に `getRecentSpreadsheets` は `files.list` なので、欠けると**共有ドライブ上のスプレッドシートが一覧から黙って消える**
-- **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は URL を直接見張る `tests/drive-shared-drive.test.ts` で検出する
+- **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は `tests/drive-shared-drive.test.ts` で検出する。実際に飛ぶ URL を見張るテストに加え、**`drive-api.ts` のソースに `fetch(` の直呼びが残っていないことを機械的に検査**している（新しい経路が `driveFetch` を通さずに増えた瞬間に落ちる）
 - **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
 - **共有ドライブ上のPDF → マイドライブの fulltext フォルダへの `files.copy` は未測定**（測ったのは逆向き）。事前にブロックせず、失敗したら copy 本体のエラーをそのまま見せる形にしている
 - **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。全経路にパラメータが付いて初めて 404 が未付与を意味する。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること

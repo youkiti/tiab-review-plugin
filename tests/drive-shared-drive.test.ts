@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { setPlatform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
-import { withSharedDriveParams } from '../src/lib/drive-shared-drive';
+import { withSharedDriveParams, driveFetch } from '../src/lib/drive-shared-drive';
 import { getDriveFileMetadata, listAccessibleFileIdsInFolder, downloadDriveFile } from '../src/lib/drive-api';
 
 // 共有ドライブ（Shared drives）配下のファイルは、Drive API v3 の
@@ -64,6 +66,78 @@ test('withSharedDriveParams: クエリが無いURLには ? で繋ぐ', () => {
     assert.equal(
         withSharedDriveParams('https://x/files/abc'),
         'https://x/files/abc?supportsAllDrives=true'
+    );
+});
+
+// ---------------------------------------------------------------------------
+// driveFetch: Drive API を叩く唯一の入口
+// ---------------------------------------------------------------------------
+
+/** driveFetch へ渡した (url, init) を記録するfetchスタブ */
+function stubFetchCapturing(): { calls: Array<{ url: string; init: RequestInit }> } {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({ url: typeof input === 'string' ? input : input.toString(), init: init ?? {} });
+        return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+    return { calls };
+}
+
+test('driveFetch: 共有ドライブ用パラメータと Authorization ヘッダを必ず付ける', async () => {
+    const { calls } = stubFetchCapturing();
+    await driveFetch('https://x/files/abc?fields=id', {}, { token: 'tok' });
+
+    assert.equal(calls[0].url, 'https://x/files/abc?fields=id&supportsAllDrives=true');
+    assert.equal(new Headers(calls[0].init.headers).get('Authorization'), 'Bearer tok');
+});
+
+test('driveFetch: kind に list を渡すと includeItemsFromAllDrives も付く', async () => {
+    const { calls } = stubFetchCapturing();
+    await driveFetch('https://x/files?q=a', {}, { token: 'tok', kind: 'list' });
+
+    assert.equal(calls[0].url, 'https://x/files?q=a&supportsAllDrives=true&includeItemsFromAllDrives=true');
+});
+
+test('driveFetch: 呼び出し側の method / headers / body はそのまま透過する', async () => {
+    const { calls } = stubFetchCapturing();
+    await driveFetch(
+        'https://x/files',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"a":1}' },
+        { token: 'tok' }
+    );
+
+    const { init } = calls[0];
+    assert.equal(init.method, 'POST');
+    assert.equal(init.body, '{"a":1}');
+    const headers = new Headers(init.headers);
+    assert.equal(headers.get('Content-Type'), 'application/json');
+    // Authorization を上書き注入しても他のヘッダは落ちないこと
+    assert.equal(headers.get('Authorization'), 'Bearer tok');
+});
+
+// ---------------------------------------------------------------------------
+// 直呼びの禁止（Issue #95 の完了条件）
+//
+// パラメータ付与を呼び出し側の判断に委ねると、新しく増えた経路で必ず取りこぼす。
+// しかも files.list の欠落は HTTP 200 + 0件という「エラーにならない壊れ方」をするため、
+// 通常のテストではすり抜ける。ソースを直接見張って、経路が増えた瞬間に落とす。
+// ---------------------------------------------------------------------------
+
+test('drive-api.ts に fetch() の直呼びが残っていない（driveFetch 経由のみ）', () => {
+    const source = readFileSync(join(process.cwd(), 'src', 'lib', 'drive-api.ts'), 'utf8');
+    // コメント中の記述を拾わないよう除去する。URL の "://" を先に退避してから
+    // 行コメントを落とす（https:// を行コメント開始と誤認しないため）。
+    const code = source
+        .replace(/:\/\//g, ':__SCHEME__')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+    // driveFetch( / getResp = await driveFetch( などは前方に識別子文字が付くため除外される
+    const directCalls = code.match(/(?<![A-Za-z0-9_$])fetch\s*\(/g) ?? [];
+
+    assert.deepEqual(
+        directCalls,
+        [],
+        'Drive API は driveFetch() 経由で呼ぶこと（supportsAllDrives が落ちると共有ドライブで silent に壊れる）'
     );
 });
 
