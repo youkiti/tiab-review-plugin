@@ -21,8 +21,11 @@
  * 4. 実行履歴（LLM_Executions）に「どの担当セットを対象にしたか」を残せるよう、
  *    選択された ref_id 群からセットIDを逆引きするヘルパーも提供する。
  *
- * このモジュールは純関数のみで、DOM・state・chrome API に依存しない。
+ * このモジュールは純関数のみで、DOM・state・chrome API に依存しない
+ * （LlmConfig は型のみの参照であり実行時の依存にはならない）。
  */
+
+import type { LlmConfig } from './types';
 
 /** AI一括判定の対象の決め方 */
 export type LlmTargetMode = 'all' | 'selection';
@@ -156,4 +159,41 @@ export function collectSetIdsForRefs<T extends TargetSelectionRef>(
 /** 選択件数が Config セルの保存上限を超えているか */
 export function exceedsTargetRefIdLimit(count: number): boolean {
     return count > LLM_TARGET_REF_ID_LIMIT;
+}
+
+/**
+ * 絞り込み結果 filteredRefs のうち、実際に画面へ描画されている先頭 visibleLimit 件の
+ * ref_id を返す。「表示中を全選択」ボタン用: 絞り込み結果の全件ではなく、ユーザーの目に
+ * 見えている分（ページングで描画済みの分）だけを選択対象にする。
+ */
+export function selectVisibleRefIds<T extends TargetSelectionRef>(
+    filteredRefs: readonly T[],
+    visibleLimit: number
+): string[] {
+    return filteredRefs.slice(0, visibleLimit).map(ref => ref.ref_id);
+}
+
+/**
+ * Config シートへの書き込み順（1件ずつの Partial<LlmConfig>）を返す。
+ *
+ * tryUpdateLlmConfig（src/lib/sheets-api.ts）は渡された updates を Object.entries() で
+ * 回し、キー1個につき1回 updateRange を逐次実行する。つまり2キーの更新は「独立した2回の
+ * HTTPリクエスト」であり、途中で失敗すると中途半端な状態がシートに残りうる。
+ * そこで、方向によらず「失敗しても安全側（従来どおり全件対象）に倒れる」順序を明示的に返す。
+ *
+ * - 対象を絞り込む方向（mode: 'selection'）→ ref_ids を先に書き、mode を後に書く。
+ *   途中で失敗すれば mode は 'all' のまま残り、絞り込みは反映されない（安全側）。
+ * - 対象を全件へ戻す方向（mode: 'all'）→ mode を先に書き、ref_ids を後に書く。
+ *   途中で失敗すれば mode='all' が先に確定しており、ref_ids の中身（前回値）は無視される（安全側）。
+ *
+ * オブジェクトリテラルのキー列挙順に暗黙で依存しないよう、必ずこの配列の順番どおりに
+ * 1件ずつ await して呼び出し側で書き込むこと。
+ */
+export function buildTargetConfigUpdates(
+    mode: LlmTargetMode,
+    serializedRefIds: string
+): Partial<LlmConfig>[] {
+    const refIdsUpdate: Partial<LlmConfig> = { llm_target_ref_ids: serializedRefIds };
+    const modeUpdate: Partial<LlmConfig> = { llm_target_mode: mode };
+    return mode === 'selection' ? [refIdsUpdate, modeUpdate] : [modeUpdate, refIdsUpdate];
 }

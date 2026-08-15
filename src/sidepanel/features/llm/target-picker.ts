@@ -23,6 +23,8 @@ import {
     collectRefIdsBySet,
     serializeTargetRefIds,
     exceedsTargetRefIdLimit,
+    selectVisibleRefIds,
+    buildTargetConfigUpdates,
     LLM_TARGET_REF_ID_LIMIT,
 } from '../../../lib/llm-target-selection';
 import { updateBatchTargetCount } from './batch';
@@ -139,6 +141,12 @@ export function openTargetPicker(): void {
     const footer = document.createElement('div');
     footer.className = 'target-picker-footer';
 
+    // 上限超過エラー（フッター内。通常は非表示）。
+    // トーストは .modal-backdrop（z-index:2000）の下に隠れて見えないため、
+    // モーダル内に常設の要素を用意しておき、超過している間だけ表示する
+    const limitError = document.createElement('div');
+    limitError.className = 'target-picker-limit-error hidden';
+
     const selectVisibleBtn = document.createElement('button');
     selectVisibleBtn.type = 'button';
     selectVisibleBtn.className = 'btn btn-outline btn-small';
@@ -157,6 +165,7 @@ export function openTargetPicker(): void {
     confirmBtn.className = 'btn btn-primary btn-small';
     confirmBtn.textContent = t('llm_targetPickerConfirm');
 
+    footer.appendChild(limitError);
     footer.appendChild(selectVisibleBtn);
     footer.appendChild(clearAllBtn);
     footer.appendChild(countLabel);
@@ -245,6 +254,18 @@ export function openTargetPicker(): void {
 
     function updateFooterCount(): void {
         countLabel.textContent = t('llm_targetPickerSelectedCount', String(draft.size));
+        updateLimitError();
+    }
+
+    /** 選択件数が上限を超えている間だけフッター内にエラーを表示し、戻れば自動で消す */
+    function updateLimitError(): void {
+        if (exceedsTargetRefIdLimit(draft.size)) {
+            limitError.textContent = t('llm_targetLimitExceeded', String(LLM_TARGET_REF_ID_LIMIT));
+            limitError.classList.remove('hidden');
+        } else {
+            limitError.classList.add('hidden');
+            limitError.textContent = '';
+        }
     }
 
     function updateSelectSetBtn(): void {
@@ -259,26 +280,38 @@ export function openTargetPicker(): void {
 
     async function handleConfirm(): Promise<void> {
         if (exceedsTargetRefIdLimit(draft.size)) {
-            showToast(t('llm_targetLimitExceeded', String(LLM_TARGET_REF_ID_LIMIT)));
+            // トーストは modal-backdrop の下に隠れて見えないため、モーダル内のエラー表示で知らせる
+            // （updateFooterCount 経由で既に表示されているはずだが、念のためここでも同期する）
+            updateLimitError();
             return;
         }
 
         const mode = draft.size > 0 ? 'selection' : 'all';
         const serializedRefIds = serializeTargetRefIds(draft);
+
+        // 保存に失敗した場合に巻き戻せるよう、書き込み前の値を退避しておく
+        const previousRefIds = state.llmTargetRefIds;
+        const previousMode = state.llmTargetMode;
+        const previousConfig = state.llmConfig;
+
         state.setLlmTargetRefIds(new Set(draft));
         state.setLlmTargetMode(mode);
-        // Config シートへの保存成否によらず、state.llmConfig もシートと同じ内容へ同期する
-        // （食い違いを残さないため。保存に失敗した場合はこの後 toast で知らせる）
+        // 保存が成功する前提で、先に state.llmConfig もシートと同じ内容へ同期する。
+        // 保存に失敗した場合は catch 側で旧値へ巻き戻すため、ここでの同期が最終形になるとは限らない
         syncSetLlmConfig({ ...state.llmConfig, llm_target_mode: mode, llm_target_ref_ids: serializedRefIds });
 
         try {
-            await updateLlmConfig(state.spreadsheetId, {
-                llm_target_mode: mode,
-                llm_target_ref_ids: serializedRefIds,
-            });
+            // tryUpdateLlmConfig はキーごとに1回ずつ逐次書き込むため、途中で落ちても安全側に
+            // 倒れるよう書き込み順を明示的に分ける（buildTargetConfigUpdates 参照）
+            for (const update of buildTargetConfigUpdates(mode, serializedRefIds)) {
+                await updateLlmConfig(state.spreadsheetId, update);
+            }
         } catch (error) {
-            // UI状態（state）は保持したまま、保存失敗だけを知らせる
+            // 保存に失敗したので、表示とシートが食い違わないよう state・llmConfig を保存前の値へ巻き戻す
             console.error('[target-picker] Failed to save target selection:', error);
+            state.setLlmTargetRefIds(previousRefIds);
+            state.setLlmTargetMode(previousMode);
+            syncSetLlmConfig(previousConfig);
             showToast(t('llm_targetSaveFailed', (error as Error).message));
         }
 
@@ -319,8 +352,9 @@ export function openTargetPicker(): void {
     });
 
     selectVisibleBtn.addEventListener('click', () => {
-        for (const ref of getFilteredRefs()) {
-            draft.add(ref.ref_id);
+        // 絞り込み結果全件ではなく、実際に画面へ描画済みの visibleLimit 件だけを選択する
+        for (const refId of selectVisibleRefIds(getFilteredRefs(), visibleLimit)) {
+            draft.add(refId);
         }
         renderList();
         updateFooterCount();
@@ -350,18 +384,30 @@ export function openTargetPicker(): void {
  * 対象選択を解除して全件モードへ戻す
  */
 export async function handleClearTargetSelection(): Promise<void> {
+    // 保存に失敗した場合に巻き戻せるよう、書き込み前の値を退避しておく
+    const previousRefIds = state.llmTargetRefIds;
+    const previousMode = state.llmTargetMode;
+    const previousConfig = state.llmConfig;
+
     state.setLlmTargetRefIds(new Set());
     state.setLlmTargetMode('all');
-    // Config シートへの保存成否によらず、state.llmConfig もシートと同じ内容へ同期する
+    // 保存が成功する前提で、先に state.llmConfig もシートと同じ内容へ同期する。
+    // 保存に失敗した場合は catch 側で旧値へ巻き戻すため、ここでの同期が最終形になるとは限らない
     syncSetLlmConfig({ ...state.llmConfig, llm_target_mode: 'all', llm_target_ref_ids: '' });
 
     try {
-        await updateLlmConfig(state.spreadsheetId, {
-            llm_target_mode: 'all',
-            llm_target_ref_ids: '',
-        });
+        // 全件へ戻す方向なので mode を先に書き、ref_ids を後に書く（buildTargetConfigUpdates 参照）。
+        // 現状 mode='all' のときは常に ref_ids='' なので実質1パターンだが、書き込み順の方針を
+        // handleConfirm と揃えて明示しておく
+        for (const update of buildTargetConfigUpdates('all', '')) {
+            await updateLlmConfig(state.spreadsheetId, update);
+        }
     } catch (error) {
+        // 保存に失敗したので、表示とシートが食い違わないよう state・llmConfig を保存前の値へ巻き戻す
         console.error('[target-picker] Failed to clear target selection:', error);
+        state.setLlmTargetRefIds(previousRefIds);
+        state.setLlmTargetMode(previousMode);
+        syncSetLlmConfig(previousConfig);
         showToast(t('llm_targetSaveFailed', (error as Error).message));
     }
 

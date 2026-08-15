@@ -282,6 +282,17 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
      - **選択は Config シートに保存**（`llm_target_mode` / `llm_target_ref_ids`）。チームで同じ対象集合を
        再現できるようにするため。ref_id は UUID なので1セル5万字上限から約1,350件が物理上限で、
        余裕を見て**1,000件で頭打ち**（`LLM_TARGET_REF_ID_LIMIT`）
+     - **`updateLlmConfig` は複数キーを渡しても「1回の書き込み」にはならない**。`tryUpdateLlmConfig`
+       （`sheets-api.ts`）は updates を `Object.entries()` で回し、**キー1個につき1回 `updateRange` を
+       逐次実行する**。途中で失敗すると中途半端な状態がシートに残るため、`llm_target_mode` と
+       `llm_target_ref_ids` のように意味が結びついた2キーは、**失敗しても安全側（＝従来どおり全件対象）へ
+       倒れる順序**で1件ずつ書くこと。順序は方向で変わる（絞り込む `selection` 方向は ref_ids → mode、
+       全件へ戻す `all` 方向は mode → ref_ids）。順序決定は `buildTargetConfigUpdates`
+       （`llm-target-selection.ts`）に集約してテストしている。オブジェクトリテラルのキー順に暗黙で
+       依存する書き方はしないこと
+     - **保存に失敗したら state を保存前の値へ巻き戻す**。`switchToTab('llm')` は毎回
+       `initializeLlmSection()` を呼んでシートから設定を読み直すため、state だけ新しい値のまま残すと
+       タブを往復しただけで表示が黙って戻る（トーストは既に消えている）
      - **実行履歴に対象を記録**: `LLM_Executions` の `target_mode` / `target_sets` / `target_selected_count`。
        後から「この Run は calibration の50件を対象にした」と論文に書けるようにするため
      - **非管理者の `state.references` は担当セットで絞られている**ため、他人の担当分の ref_id が選択に

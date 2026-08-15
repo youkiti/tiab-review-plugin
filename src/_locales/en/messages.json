@@ -1636,7 +1636,7 @@
     "message": "You can select up to $1 items as the target"
   },
   "llm_targetSaveFailed": {
-    "message": "Failed to save the target selection: $1"
+    "message": "Save failed, so the target selection was not changed: $1"
   },
   "llm_targetPickerTitle": {
     "message": "Select target references"

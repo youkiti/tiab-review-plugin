@@ -9,6 +9,8 @@ import {
     collectRefIdsBySet,
     collectSetIdsForRefs,
     exceedsTargetRefIdLimit,
+    selectVisibleRefIds,
+    buildTargetConfigUpdates,
     DEFAULT_LLM_TARGET_MODE,
     LLM_TARGET_REF_ID_LIMIT,
 } from '../src/lib/llm-target-selection';
@@ -227,4 +229,51 @@ test('対比: 全件モード相当（母集合を絞らず実行上限 100 を�
     const targets = selectBatchTargetsByJudgedRefIds(refs, '100', new Set());
 
     assert.equal(targets.length, 100);
+});
+
+// ---------------------------------------------------------------------------
+// selectVisibleRefIds
+// ---------------------------------------------------------------------------
+
+test('selectVisibleRefIds は絞り込み結果のうち先頭 visibleLimit 件の ref_id だけを返す', () => {
+    const refs = [ref('a'), ref('b'), ref('c'), ref('d')];
+    assert.deepEqual(selectVisibleRefIds(refs, 2), ['a', 'b']);
+});
+
+test('selectVisibleRefIds は絞り込み結果が visibleLimit 以下なら全件を返す', () => {
+    const refs = [ref('a'), ref('b')];
+    assert.deepEqual(selectVisibleRefIds(refs, 200), ['a', 'b']);
+});
+
+test('selectVisibleRefIds は空配列に対して空配列を返す', () => {
+    assert.deepEqual(selectVisibleRefIds([], 200), []);
+});
+
+// ---------------------------------------------------------------------------
+// buildTargetConfigUpdates
+// ---------------------------------------------------------------------------
+
+test('buildTargetConfigUpdates は selection への変更時、ref_ids を先・mode を後の順で返す', () => {
+    const updates = buildTargetConfigUpdates('selection', 'a,b,c');
+    assert.deepEqual(updates, [
+        { llm_target_ref_ids: 'a,b,c' },
+        { llm_target_mode: 'selection' },
+    ]);
+});
+
+test('buildTargetConfigUpdates は all への変更時、mode を先・ref_ids を後の順で返す', () => {
+    const updates = buildTargetConfigUpdates('all', '');
+    assert.deepEqual(updates, [
+        { llm_target_mode: 'all' },
+        { llm_target_ref_ids: '' },
+    ]);
+});
+
+test('buildTargetConfigUpdates が返す各要素は必ず1キーだけを持つ（1回のHTTPリクエスト＝1キーに対応させるため）', () => {
+    for (const update of buildTargetConfigUpdates('selection', 'x')) {
+        assert.equal(Object.keys(update).length, 1);
+    }
+    for (const update of buildTargetConfigUpdates('all', '')) {
+        assert.equal(Object.keys(update).length, 1);
+    }
 });

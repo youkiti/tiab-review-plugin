@@ -1636,7 +1636,7 @@
     "message": "対象に指定できるのは $1 件までです"
   },
   "llm_targetSaveFailed": {
-    "message": "対象の保存に失敗しました: $1"
+    "message": "保存に失敗したため対象選択は変更されていません: $1"
   },
   "llm_targetPickerTitle": {
     "message": "対象レコードを選択"

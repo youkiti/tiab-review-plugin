@@ -1039,6 +1039,17 @@
     width: 100%;
 }
 
+/* 上限超過エラー。既存の .optimize-status.error と同じ配色（赤系）に揃える */
+.target-picker-limit-error {
+    flex-basis: 100%;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #c62828;
+    background: #fce8e6;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
 .target-picker-count {
     flex: 1 1 auto;
     text-align: right;
