@@ -756,6 +756,37 @@ Drive アクセスを扱うコードでは次を守ること:
 - **`files.copy`（`POST /files/{id}/copy`）でも同じで、`drive.file` 未付与のフォルダを `parents` に指定して複製でき、指定した親も尊重される。** コピー元は Picker で付与済みである必要がある（実フローと同じ前提）。**他人所有＋共有フォルダでのみ実測**（自己所有では未実測）（`scripts/drive-file-probe/`、Issue #68 / PR #70）
 - **子ファイルを作成しても、親フォルダ自体には `drive.file` は付与されない**（作成後も親フォルダの `files.get` は404のまま。複製でも同じことを確認した）
 
+#### 共有ドライブ（Shared drives）で実測して確定した挙動（2026-08-15。再検証不要）
+
+Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-drive-*` シナリオで実測した（レポートは `output/2026-08-15T06-*`）。測定は Google Workspace の共有ドライブ上に Drive UI で手作業に作ったフィクスチャに対し、そのドライブのメンバーとして実施した。
+
+**Drive API v3 のパラメータ要否（付与済みのファイル・フォルダに対して）**
+
+| API | `supportsAllDrives`（list は `includeItemsFromAllDrives` も） | 付けなかったときの失敗の仕方 |
+| --- | --- | --- |
+| `files.get`（メタデータ） | **必須** | 404 `notFound` |
+| `files.list` | **必須** | **HTTP 200 + 0件**（silent） |
+| `files.create` | **必須** | 404 `File not found: <folderId>` |
+| `files.copy` | **必須** | 404 同上 |
+| `alt=media`（実体取得） | **不要** | — |
+
+- **`alt=media` だけが例外。** 付与さえあればパラメータ無しで本物の PDF が返る（`application/pdf`、先頭 `%PDF-`）。**「メタデータは読めないのに実体は読める」という非対称が実在する**ので、`files.get` の成否で `alt=media` の可否を推定してはならない
+- **`files.list` の失敗が最も危険。** パラメータが無いと 200 + 0件を返し、「フォルダが空」と区別がつかない。`listAccessibleFileIdsInFolder()` がこれに乗っているため、パラメータを付けないと共有ドライブでは**常に「読めるファイルは1つも無い」と誤答**する
+- **`files.list` は過大報告しない。** パラメータを付けた場合、返るのは付与済みのファイルだけ。3本入りフォルダで 0本付与→0件、1本付与→1件、と混合状態でも確認済み。マイドライブと同じ意味論で信頼してよい
+- **書き込みは既存の性質がそのまま成立する。** パラメータさえ付ければ、`drive.file` 未付与の共有ドライブフォルダを `parents` に指定して `files.create` / `files.copy` できる。`files.get` で取り直した `parents` も指定どおりで、マイドライブ直下へ逃げることはない。書き込みの副作用で親フォルダが付与されることも無い（4回の書き込み後も親は404のまま）
+- **`corpora=drive&driveId=` の追加指定は不要。** `supportsAllDrives` + `includeItemsFromAllDrives` だけで共有ドライブ配下に到達する
+
+**Picker の挙動（`setEnableDrives(true)` 無し＝現行仕様）**
+
+- **共有ドライブへナビゲーションから辿る導線は無い**（左メニューに共有ドライブの項目が出ない）
+- **しかし共有ドライブ上のファイルは既定の一覧に直接現れ、選択でき、`drive.file` の付与も成立する。** 選択した ID と対象 ID の機械照合で確認済み
+- したがって **Issue #80 が前提としていた「Picker に一切出てこないため詰む・迂回策が無い」は誤り**。`setEnableDrives(true)` は必須の修正ではなく、ナビゲーション性の改善である
+
+**実装への含意**
+
+- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の `meta.driveId` による共有ドライブ判定は到達不能な死んだコード。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無いため、`driveId` を読む前に 404 で throw する。`fulltext_importErrorSharedDrive` は一度も表示されていない
+- **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。パラメータを全経路に付けて初めて 404 が未付与を意味するようになる。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
+
 #### 読めなくなった PDF の復旧（対策 C'）
 
 上記の帰結として、フォルダ単位での一括付与は成立しない。代わりに **Picker の複数選択で1セッションにまとめて再付与する**（`fulltext-regrant.ts`）。Picker の一覧表示は `drive.file` ではなく**ユーザー自身の Drive 権限**を使うため、fulltext フォルダに Drive 共有さえされていれば、共同研究者にも他人がアップロードした PDF が見えて選択できる（＝ Drive 共有は付与経路ではないが、Picker で選ぶための前提にはなる）。
