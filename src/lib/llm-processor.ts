@@ -163,9 +163,10 @@ export interface BatchProcessOptions {
      * 429 適応スロットリングの詳細設定（省略時は RateLimitGovernor の既定値を使う）。
      * minConcurrency: 並列度の下限 / maxSlotDwellMs: スロット滞在時間の上限 /
      * recoverAfterSuccesses: この件数だけ連続成功したら1段回復 /
-     * fallbackCooldownMs: retryAfterMs が取れない429のクールダウン既定値 / jitterMs: クールダウンの乱数幅
+     * fallbackCooldownMs: retryAfterMs が取れない429のクールダウン既定値 /
+     * maxCooldownMs: クールダウン待ちの上限（1(a)） / jitterMs: waitForSlot の乱数幅
      */
-    governorOptions?: Pick<RateLimitGovernorOptions, 'minConcurrency' | 'maxSlotDwellMs' | 'recoverAfterSuccesses' | 'fallbackCooldownMs' | 'jitterMs'>;
+    governorOptions?: Pick<RateLimitGovernorOptions, 'minConcurrency' | 'maxSlotDwellMs' | 'recoverAfterSuccesses' | 'fallbackCooldownMs' | 'maxCooldownMs' | 'jitterMs'>;
 }
 
 /**
@@ -187,24 +188,78 @@ export interface BatchProcessResult {
 }
 
 type ProcessOutcome =
-    | { success: true; decision: Decision; refId: string; isFallback: boolean; responseMetadata?: LlmModelResponseMetadata }
-    | { success: false; decision: null; refId: string };
+    | { success: true; decision: Decision; refId: string; isFallback: boolean; responseMetadata?: LlmModelResponseMetadata; aborted?: false }
+    | { success: false; decision: null; refId: string; aborted?: false }
+    // 中断（Stop）で待機中に打ち切られた場合。フォールバック判定（pending / include_probability=1.0）を
+    // 書いてはいけないので、成功/フォールバックとは別の形にする（1(c)）
+    | { success: false; decision: null; refId: string; aborted: true };
 
 /**
  * メッセージ内レート制限シグナルの検出パターン。
- * OpenRouter/OpenAI の実装は現状 `` `OpenRouter API error 429: ...` `` /
- * `` `OpenAI API error 429: ...` `` (providers/openrouter.ts, providers/openai.ts) の形で
- * 429 を投げる。裸の `\b429\b` は使わない — この検出経路には JSON パース失敗時に
- * モデルの生成テキスト・抄録の抜粋がそのまま連結されて流れてくる
- * （例: `error_geminiJsonParseFailed: ...n = 429 patients...` や
- * `` `OpenRouter: JSON パース失敗。先頭200文字=...429...` ``）ため、本文中に偶然
- * "429" という数字が含まれるだけで誤ってレート制限と判定してしまう（並列度が不要に
- * 半減し、クールダウンが立ってしまう）。明示的なレート制限シグナルの語だけに絞る。
+ *
+ * 自然言語表現（`rate limit` のような空白区切りの語）は使わない — この検出経路には
+ * JSON パース失敗時にモデルの生成テキスト・抄録の抜粋がそのまま連結されて流れてくる
+ * （例: gemini-api.ts の `error_geminiJsonParseFailed: ...` + `fullText.substring(0,100)`、
+ * providers/openrouter.ts の `` `OpenRouter: JSON パース失敗。先頭200文字=...` ``）。
+ * 薬理・生理の抄録には `rate limiting step` / `flow rate limitation` のような語が頻出し、
+ * 空白区切りの `rate limit` はこれらに誤ってマッチしてしまう（ハイフン付きの
+ * `rate-limiting` はマッチしないので実際に踏んだ実例あり）。そのため、抄録には出てこない
+ * アンダースコア付きのコード名・明示的な HTTP シグナルだけに絞る:
+ * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI 実装
+ *   (providers/openrouter.ts, providers/openai.ts) が投げる形
+ * - `RESOURCE_EXHAUSTED`: Gemini のステータス文字列
+ * - `rate_limit_exceeded`: providers/openai.ts が投げる
+ *   `OpenAI: リクエストが失敗しました (code=rate_limit_exceeded): ...` の形
  */
-const RATE_LIMIT_MESSAGE_PATTERN = /API error 429|Too Many Requests|RESOURCE_EXHAUSTED|rate limit/i;
+const RATE_LIMIT_MESSAGE_PATTERN = /API error 429|Too Many Requests|RESOURCE_EXHAUSTED|rate_limit_exceeded/i;
 
 /**
- * エラーが 429 (レート制限) かどうかを判定し、可能なら retryAfterMs を取り出す。
+ * クールダウン待ちの既定上限 (ms)。RateLimitGovernor のクールダウン（1(a)）にも、
+ * processWithRetry の 5xx バックオフ（11番: retryAfterMs をヒントに使うが無検証では
+ * 信頼しない）にも共通で使う。サーバの retryAfterMs（RPD枯渇時など）をそのまま使うと
+ * 全ワーカーが長時間固まってしまうため。
+ */
+const DEFAULT_MAX_COOLDOWN_MS = 60000;
+
+/**
+ * sleep と abort を競争させる。abort が先に来たら sleep の残りを待たずに即座に解決する。
+ * - `signal` が undefined の場合は普通に `sleepFn(ms)` を待つだけ
+ * - 呼び出し時点で既に aborted の場合は `sleepFn` を呼ばずに即座に解決する
+ * - abort リスナは必ず外す（1件の文献処理につき何度も呼ばれるため、外し忘れるとリスナが
+ *   際限なく積み上がる）
+ */
+async function sleepOrAbort(
+    ms: number,
+    sleepFn: (ms: number) => Promise<void>,
+    signal?: AbortSignal
+): Promise<void> {
+    if (!signal) {
+        await sleepFn(ms);
+        return;
+    }
+    if (signal.aborted) {
+        return;
+    }
+    await new Promise<void>((resolve, reject) => {
+        const onAbort = () => {
+            signal.removeEventListener('abort', onAbort);
+            resolve();
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
+        sleepFn(ms).then(() => {
+            signal.removeEventListener('abort', onAbort);
+            resolve();
+        }).catch((err) => {
+            signal.removeEventListener('abort', onAbort);
+            reject(err);
+        });
+    });
+}
+
+/**
+ * エラーが 429 (レート制限) かどうかを判定する。retryAfterMs は 429 か否かに関わらず、
+ * エラーオブジェクトに載っていればそのまま返す（11番: gemini-api.ts は 5xx にも
+ * RetryInfo 由来の retryAfterMs を詰めることがあるため、429 以外のバックオフにも使う）。
  *
  * GeminiApiError（gemini-api.ts）は status / retryAfterMs をフィールドとして直接持つので
  * そのまま拾える。OpenRouter/OpenAI 実装は status を持たない Error しか投げないため、
@@ -215,12 +270,9 @@ const RATE_LIMIT_MESSAGE_PATTERN = /API error 429|Too Many Requests|RESOURCE_EXH
 function detectRateLimit(error: unknown): { isRateLimit: boolean; retryAfterMs?: number } {
     if (error && typeof error === 'object') {
         const err = error as { status?: number; retryAfterMs?: number; message?: string };
-        if (err.status === 429) {
-            return { isRateLimit: true, retryAfterMs: err.retryAfterMs };
-        }
-        if (typeof err.message === 'string' && RATE_LIMIT_MESSAGE_PATTERN.test(err.message)) {
-            return { isRateLimit: true, retryAfterMs: err.retryAfterMs };
-        }
+        const isRateLimit = err.status === 429
+            || (typeof err.message === 'string' && RATE_LIMIT_MESSAGE_PATTERN.test(err.message));
+        return { isRateLimit, retryAfterMs: err.retryAfterMs };
     }
     return { isRateLimit: false };
 }
@@ -234,15 +286,24 @@ interface ProcessWithRetryDeps {
     sleepFn: (ms: number) => Promise<void>;
     maxRetries?: number;             // 429 以外の既定リトライ上限（既定2）
     maxRetriesOnRateLimit?: number;  // 429 のリトライ上限（既定5、429以外より緩める）
-    maxCumulativeWaitMs?: number;    // 1件あたりの累積待ち時間の上限（既定3分）
+    // 1件あたりの累積待ち時間の上限（既定3分）。プロバイダ内部のリトライ待ちは見えない
+    // （例: providers/openrouter.ts:213-230 は内部で 5s+10s の2回リトライを持つため、
+    // 外側からは1試行あたり15秒が不可視）ので、実際の待ちはこの上限より長くなりうる
+    maxCumulativeWaitMs?: number;
+    maxCooldownMs?: number;          // 429以外(5xx等)のバックオフ上限（既定 DEFAULT_MAX_COOLDOWN_MS）
+    abortSignal?: AbortSignal;       // Stop による中断（1(b)）
 }
 
 /**
  * 1件の文献を処理（リトライ付き）
- * - 429 (レート制限) 以外は指数バックオフで最大2回（既定）リトライ
+ * - 429 (レート制限) 以外は指数バックオフで最大2回（既定）リトライ。サーバの retryAfterMs
+ *   （5xx にも詰まることがある。11番）があればそちらを優先し、無ければ 5秒, 10秒…
+ *   いずれも maxCooldownMs でクランプする（サーバ値を無検証で信頼しない）
  * - 429 は共有ガバナー (deps.governor) のクールダウンに従って待ち、最大5回（既定）まで
  *   リトライする。ただし1件あたりの累積待ち時間が上限（既定3分）を超えたら諦める
- * 全リトライ失敗時は include_probability=1.0 のフォールバック判定を返す
+ * - deps.abortSignal が中断されたら、待機中であっても即座に打ち切る。この場合は
+ *   フォールバック判定を書かず aborted:true を返す（1(c): Stop した文献に AI 判定を残さない）
+ * 全リトライ失敗時（中断以外）は include_probability=1.0 のフォールバック判定を返す
  *  （SR で組入候補の見逃しを防ぐ安全側設計。この挙動は変更しない）
  */
 async function processWithRetry(
@@ -258,14 +319,23 @@ async function processWithRetry(
     const maxRetries = deps.maxRetries ?? 2;
     const maxRetriesOnRateLimit = deps.maxRetriesOnRateLimit ?? 5;
     const maxCumulativeWaitMs = deps.maxCumulativeWaitMs ?? 3 * 60 * 1000;
+    const maxCooldownMs = deps.maxCooldownMs ?? DEFAULT_MAX_COOLDOWN_MS;
+    const abortSignal = deps.abortSignal;
 
     let lastErrorMessage = 'Unknown error';
     let cumulativeWaitMs = 0;
     const providerId = resolveProviderId(modelConfig.model, AVAILABLE_MODELS);
+    const aborted = (): ProcessOutcome => ({ success: false, decision: null, refId: ref.ref_id, aborted: true });
 
     for (let attempt = 0; ; attempt++) {
-        // 送信前に共有クールダウンを尊重する（他ワーカーが 429 を受けていても足並みを揃える）
-        await deps.governor.waitForSlot();
+        if (abortSignal?.aborted) return aborted();
+
+        // 送信前に共有クールダウンを尊重する（他ワーカーが 429 を受けていても足並みを揃える）。
+        // waitForSlot は実際に待った ms を返すので、他ワーカーが立てたクールダウンで寝た分も
+        // 含めて累積待ち時間へ積む（6番: 429分岐側では予測値を積まないことで二重計上を避ける）
+        const waited = await deps.governor.waitForSlot(abortSignal);
+        cumulativeWaitMs += waited;
+        if (abortSignal?.aborted) return aborted();
 
         try {
             const { output, usageMetadata, responseMetadata } = await deps.screenFn(providerId, {
@@ -307,30 +377,35 @@ async function processWithRetry(
 
             const rateLimit = detectRateLimit(error);
             if (rateLimit.isRateLimit) {
-                // 429: 並列度・スロット滞在時間を絞り、共有クールダウンを立てる（他ワーカーにも効く）
+                // 429: 並列度・スロット滞在時間を絞り、共有クールダウンを立てる（他ワーカーにも効く）。
+                // 実際の待機・累積計上は次ループ冒頭の governor.waitForSlot() に任せる（6番）
                 const waitMs = deps.governor.recordRateLimit(rateLimit.retryAfterMs);
                 if (attempt >= maxRetriesOnRateLimit || cumulativeWaitMs + waitMs > maxCumulativeWaitMs) {
                     console.warn(`[processWithRetry] Rate limit retry budget exhausted for ${ref.ref_id} (attempt=${attempt + 1}, cumulativeWaitMs=${cumulativeWaitMs + waitMs}ms). Falling back.`);
                     break;
                 }
-                cumulativeWaitMs += waitMs;
                 console.log(`[processWithRetry] 429 for ${ref.ref_id}. Shared cooldown ~${waitMs}ms (attempt ${attempt + 1}/${maxRetriesOnRateLimit}).`);
-                continue; // 実際の待機は次ループ冒頭の governor.waitForSlot() に任せる
+                continue;
             }
 
             if (attempt >= maxRetries) {
                 console.error(`[processWithRetry] Failed after ${maxRetries} retries for ${ref.ref_id}:`, error);
                 break;
             }
-            // 指数バックオフ: 5秒, 10秒（429 以外のフォールバック）
-            const delay = 5000 * Math.pow(2, attempt);
+            // 指数バックオフ: サーバの retryAfterMs があれば優先（11番: 5xx にも詰まることがある）、
+            // 無ければ 5秒, 10秒…。いずれも maxCooldownMs でクランプする
+            const backoff = rateLimit.retryAfterMs !== undefined && rateLimit.retryAfterMs > 0
+                ? rateLimit.retryAfterMs
+                : 5000 * Math.pow(2, attempt);
+            const delay = Math.min(backoff, maxCooldownMs);
             if (cumulativeWaitMs + delay > maxCumulativeWaitMs) {
                 console.warn(`[processWithRetry] Cumulative wait budget exhausted for ${ref.ref_id}. Falling back.`);
                 break;
             }
-            cumulativeWaitMs += delay;
             console.log(`[processWithRetry] Retry ${attempt + 1}/${maxRetries} for ${ref.ref_id} after ${delay}ms. Reason: ${lastErrorMessage}`);
-            await deps.sleepFn(delay);
+            await sleepOrAbort(delay, deps.sleepFn, abortSignal);
+            if (abortSignal?.aborted) return aborted();
+            cumulativeWaitMs += delay;
         }
     }
 
@@ -411,10 +486,23 @@ export interface RateLimitGovernorOptions {
     initialConcurrency: number;
     initialSlotDwellMs: number;
     minConcurrency?: number;          // 並列度の下限（既定1）
-    maxSlotDwellMs?: number;          // スロット滞在時間の上限（既定13000ms = 無料プロファイル相当）
+    // スロット滞在時間の上限（既定13000ms = 無料プロファイル相当）。
+    // initialSlotDwellMs より小さい値を渡しても、コンストラクタで initialSlotDwellMs まで
+    // 引き上げる（10番: そうしないと 429 で dwell が initialSlotDwellMs → maxSlotDwellMs と
+    // 逆に「速くなる」「isThrottled が false を返す」という潜在バグになる）
+    maxSlotDwellMs?: number;
     recoverAfterSuccesses?: number;   // この件数だけ連続成功したら1段だけ回復（既定20）
     fallbackCooldownMs?: number;      // retryAfterMs が取れない429のクールダウン既定値（既定5000ms）
-    jitterMs?: number;                // クールダウンに乗せる乱数の幅（サンダリングハード回避、既定500ms）
+    // クールダウン待ちの上限（既定 DEFAULT_MAX_COOLDOWN_MS=60000ms）。RPD枯渇等でサーバの
+    // retryAfterMs が巨大な値を返しても、ここでクランプして全ワーカーが長時間固まるのを防ぐ（1(a)）
+    maxCooldownMs?: number;
+    // waitForSlot() が実際に待つ長さに乗せる乱数の幅（既定500ms）。
+    // 9番: recordRateLimit ではなく waitForSlot 側で乗せることで、共有の絶対時刻
+    // cooldownUntilValue は1つでも各ワーカーの起床タイミングをばらけさせ、サンダリングハードを避ける
+    jitterMs?: number;
+    // 429/5xx でクールダウンを立てた・延長した時点で呼ばれる（5番）。processBatch はこれで
+    // progress を最新化して onProgress を叩き、クールダウン中の無言停止を防ぐ
+    onThrottleChange?: () => void;
     now?: () => number;               // テスト用: 時刻取得の注入（既定 Date.now）
     sleepFn?: (ms: number) => Promise<void>; // テスト用: sleep実装の注入（既定 setTimeout ベース）
     random?: () => number;            // テスト用: 乱数生成の注入（既定 Math.random）
@@ -433,7 +521,9 @@ export class RateLimitGovernor {
     private readonly maxSlotDwellMs: number;
     private readonly recoverAfterSuccesses: number;
     private readonly fallbackCooldownMs: number;
+    private readonly maxCooldownMs: number;
     private readonly jitterMs: number;
+    private readonly onThrottleChange?: () => void;
     private readonly now: () => number;
     private readonly sleepFn: (ms: number) => Promise<void>;
     private readonly random: () => number;
@@ -444,10 +534,13 @@ export class RateLimitGovernor {
         this.concurrencyValue = this.initialConcurrency;
         this.slotDwellMsValue = this.initialSlotDwellMs;
         this.minConcurrency = options.minConcurrency ?? 1;
-        this.maxSlotDwellMs = options.maxSlotDwellMs ?? 13000;
+        // 10番: maxSlotDwellMs が initialSlotDwellMs を下回るプロファイルが来ても引き上げる
+        this.maxSlotDwellMs = Math.max(options.maxSlotDwellMs ?? 13000, this.initialSlotDwellMs);
         this.recoverAfterSuccesses = options.recoverAfterSuccesses ?? 20;
         this.fallbackCooldownMs = options.fallbackCooldownMs ?? 5000;
+        this.maxCooldownMs = options.maxCooldownMs ?? DEFAULT_MAX_COOLDOWN_MS;
         this.jitterMs = options.jitterMs ?? 500;
+        this.onThrottleChange = options.onThrottleChange;
         this.now = options.now ?? Date.now;
         this.sleepFn = options.sleepFn ?? sleep;
         this.random = options.random ?? Math.random;
@@ -472,24 +565,39 @@ export class RateLimitGovernor {
     }
 
     /**
-     * 429 受信時に呼ぶ。並列度を半減（下限 minConcurrency）・スロット滞在時間を倍
-     * （上限 maxSlotDwellMs）にし、共有クールダウンを延長する。
+     * 429 受信時に呼ぶ。共有クールダウンを延長し、まだクールダウン中でなければ
+     * （＝新しいレート制限エピソードの最初の1回だけ）並列度を半減（下限 minConcurrency）・
+     * スロット滞在時間を倍（上限 maxSlotDwellMs）にする（3番: 「1エピソード1減少」）。
+     * 既にクールダウン中に他ワーカーが立て続けに 429 を報告しても、rateLimitHits の計上と
+     * クールダウンの延長（より遠い方を採用）は毎回行うが、並列度・滞在時間の減少はスキップする。
+     * これをしないと、Tier誤判定などで並列ワーカーが同時に同じ 429 を踏んだとき
+     * 並列度・滞在時間が一気に下限/上限まで落ち、実効レートが空きクォータより
+     * 大幅に遅くなってしまう。
+     *
      * 戻り値は「このワーカーが次に waitForSlot() したときに実際に待つおおよその ms」
-     * （他ワーカーが既により長いクールダウンを設定していれば、そちらが優先される）。
+     * （他ワーカーが既により長いクールダウンを設定していれば、そちらが優先される。
+     * jitter は含まない。jitter は waitForSlot() 側で乗せる。9番）。
      */
     recordRateLimit(retryAfterMs?: number): number {
+        const now = this.now();
+        const alreadyCoolingDown = now < this.cooldownUntilValue;
+
         this.rateLimitHitsValue++;
         this.consecutiveSuccesses = 0;
-        this.concurrencyValue = Math.max(this.minConcurrency, Math.floor(this.concurrencyValue / 2));
-        const doubled = this.slotDwellMsValue > 0 ? this.slotDwellMsValue * 2 : 1000;
-        this.slotDwellMsValue = Math.min(this.maxSlotDwellMs, doubled);
+        if (!alreadyCoolingDown) {
+            this.concurrencyValue = Math.max(this.minConcurrency, Math.floor(this.concurrencyValue / 2));
+            const doubled = this.slotDwellMsValue > 0 ? this.slotDwellMsValue * 2 : 1000;
+            this.slotDwellMsValue = Math.min(this.maxSlotDwellMs, doubled);
+        }
 
-        const waitMs = retryAfterMs !== undefined && retryAfterMs > 0 ? retryAfterMs : this.fallbackCooldownMs;
-        const jitter = this.jitterMs > 0 ? Math.floor(this.random() * this.jitterMs) : 0;
-        const candidate = this.now() + waitMs + jitter;
+        // retryAfterMs はサーバ値を無検証で信頼せず、上限でクランプする（1(a)）
+        const waitMsRaw = retryAfterMs !== undefined && retryAfterMs > 0 ? retryAfterMs : this.fallbackCooldownMs;
+        const waitMs = Math.min(waitMsRaw, this.maxCooldownMs);
+        const candidate = now + waitMs;
         // 複数ワーカーがほぼ同時に 429 を受けても、より遠い（安全側の）クールダウンだけを延長する
         this.cooldownUntilValue = Math.max(this.cooldownUntilValue, candidate);
-        return Math.max(0, this.cooldownUntilValue - this.now());
+        this.onThrottleChange?.();
+        return Math.max(0, this.cooldownUntilValue - now);
     }
 
     /**
@@ -509,12 +617,21 @@ export class RateLimitGovernor {
         this.slotDwellMsValue = Math.max(this.initialSlotDwellMs, halved);
     }
 
-    /** クールダウン中なら残り時間だけ待つ。送信直前に全ワーカーが呼ぶ */
-    async waitForSlot(): Promise<void> {
+    /**
+     * クールダウン中なら残り時間だけ待つ。送信直前に全ワーカーが呼ぶ。
+     * jitter はここで乗せる（9番: recordRateLimit ではなくここで乗せることで、共有の絶対時刻
+     * cooldownUntilValue は1つでも各ワーカーの起床タイミングをばらけさせる）。
+     * abortSignal を渡すと待機中の中断にも即座に反応する（1(b)）。
+     * 戻り値は実際に待った ms（6番: processWithRetry の cumulativeWaitMs 会計に使う）。
+     */
+    async waitForSlot(abortSignal?: AbortSignal): Promise<number> {
         const remaining = this.cooldownUntilValue - this.now();
-        if (remaining > 0) {
-            await this.sleepFn(remaining);
-        }
+        if (remaining <= 0) return 0;
+        const jitter = this.jitterMs > 0 ? Math.floor(this.random() * this.jitterMs) : 0;
+        const waitMs = remaining + jitter;
+        const before = this.now();
+        await sleepOrAbort(waitMs, this.sleepFn, abortSignal);
+        return Math.max(0, this.now() - before);
     }
 }
 
@@ -550,6 +667,34 @@ export async function processBatch(
     const concurrency = Math.max(rateLimit.concurrency, 1);
     const slotDwellMs = Math.max(rateLimit.delayBetweenRequests, 0);
     const saveBatchSize = Math.max(options.batchSize, 1);
+    const maxCooldownMs = options.governorOptions?.maxCooldownMs ?? DEFAULT_MAX_COOLDOWN_MS;
+
+    const sleepFn = options.sleepFn ?? sleep;
+    const screenFn = options.screenFn ?? screenWithProvider;
+
+    // governor 構築前に計算できる初期値で progress を作る（この時点では governor.rateLimitHits 等と
+    // 同じ値になる: rateLimitHits=0, currentConcurrency=initialConcurrency, throttled=false）
+    const progress: LlmBatchProgress = {
+        total: references.length,
+        processed: 0,
+        succeeded: 0,
+        failed: 0,
+        parseErrorFallback: 0,
+        isRunning: true,
+        rateLimitHits: 0,
+        currentConcurrency: concurrency,
+        throttled: false,
+    };
+
+    // 429/5xx でクールダウンが立った・延長された時点で progress を最新化して onProgress を叩く。
+    // クールダウン中はワーカーが寝ているだけで他に onProgress を呼ぶ箇所が無いため、
+    // これが無いとクールダウン開始と同時に UI が無言停止する（5番）
+    const syncProgressFromGovernor = (): void => {
+        progress.rateLimitHits = governor.rateLimitHits;
+        progress.currentConcurrency = governor.concurrency;
+        progress.throttled = governor.isThrottled;
+        options.onProgress?.(progress);
+    };
 
     // 429 適応スロットリング: 全ワーカーが共有する状態（クールダウン・並列度・スロット滞在時間）
     const governor = new RateLimitGovernor({
@@ -558,22 +703,9 @@ export async function processBatch(
         now: options.now,
         sleepFn: options.sleepFn,
         random: options.random,
+        onThrottleChange: syncProgressFromGovernor,
         ...options.governorOptions,
     });
-    const sleepFn = options.sleepFn ?? sleep;
-    const screenFn = options.screenFn ?? screenWithProvider;
-
-    const progress: LlmBatchProgress = {
-        total: references.length,
-        processed: 0,
-        succeeded: 0,
-        failed: 0,
-        parseErrorFallback: 0,
-        isRunning: true,
-        rateLimitHits: governor.rateLimitHits,
-        currentConcurrency: governor.concurrency,
-        throttled: governor.isThrottled,
-    };
 
     console.log(`[processBatch] concurrency=${concurrency}, slotDwell=${slotDwellMs}ms, saveBatchSize=${saveBatchSize}`);
 
@@ -613,11 +745,18 @@ export async function processBatch(
                 executionId,
                 options.model,
                 timestamp,
-                { governor, screenFn, sleepFn }
+                { governor, screenFn, sleepFn, abortSignal: options.abortSignal, maxCooldownMs }
             );
 
             // 429 適応スロットリングで並列度が変わっていたら Semaphore にも反映する
             sem.setLimit(governor.concurrency);
+
+            if (result.aborted) {
+                // 1(c): 中断（Stop）された文献にはフォールバック判定を書かない。
+                // decision が無いので、既存の noDecisionRefIds 経由でそのまま failedRefIds に入る
+                // （進捗も加算しない: processed++ / failed++ どちらもしない）
+                return;
+            }
 
             progress.processed++;
             if (result.success && result.decision) {
@@ -640,20 +779,17 @@ export async function processBatch(
                 progress.failed++;
             }
 
-            progress.rateLimitHits = governor.rateLimitHits;
-            progress.currentConcurrency = governor.concurrency;
-            progress.throttled = governor.isThrottled;
-            options.onProgress?.(progress);
+            syncProgressFromGovernor();
 
             if (pendingForSave.length >= saveBatchSize) {
                 scheduleFlush();
             }
 
             // スロットを最低 slotDwellMs 確保することで、簡易的に RPM をクランプ
-            // （429 を受けると governor.slotDwellMs が動的に伸びる）
+            // （429 を受けると governor.slotDwellMs が動的に伸びる）。dwell 中の中断にも対応する（2番）
             const dwellMs = governor.slotDwellMs;
             if (dwellMs > 0) {
-                await sleepFn(dwellMs);
+                await sleepOrAbort(dwellMs, sleepFn, options.abortSignal);
             }
         } finally {
             sem.release();
@@ -668,10 +804,7 @@ export async function processBatch(
 
     progress.isRunning = false;
     progress.currentRefId = undefined;
-    progress.rateLimitHits = governor.rateLimitHits;
-    progress.currentConcurrency = governor.concurrency;
-    progress.throttled = governor.isThrottled;
-    options.onProgress?.(progress);
+    syncProgressFromGovernor();
 
     if (firstSaveError) {
         throw firstSaveError;

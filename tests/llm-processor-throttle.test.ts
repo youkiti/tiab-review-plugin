@@ -134,6 +134,143 @@ test('RateLimitGovernor.isThrottled: 既に下限/上限のプロファイル（
     assert.equal(gov.isThrottled, false, 'クールダウンが明ければ throttled ではなくなる');
 });
 
+test('RateLimitGovernor.recordRateLimit: retryAfterMs が巨大でも maxCooldownMs（既定60000ms）でクランプする（1(a)）', () => {
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 300,
+        now: () => 0, random: () => 0,
+    });
+    gov.recordRateLimit(3600000); // RPD枯渇等で1時間分のヒントが来ても
+    assert.equal(gov.cooldownUntil, 60000);
+});
+
+test('RateLimitGovernor.recordRateLimit: maxCooldownMs を明示指定すればそちらが優先される', () => {
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 300,
+        now: () => 0, random: () => 0, maxCooldownMs: 20000,
+    });
+    gov.recordRateLimit(3600000);
+    assert.equal(gov.cooldownUntil, 20000);
+});
+
+test('RateLimitGovernor.recordRateLimit: クールダウン中の追加429は rateLimitHits だけ増え、並列度・滞在時間は減らさない（3番: 1エピソード1減少）', () => {
+    const clock = createClock();
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 300,
+        now: clock.now, random: () => 0,
+    });
+    gov.recordRateLimit(8000); // 1回目（新しいエピソード）: concurrency 10->5, slotDwell 300->600
+    assert.equal(gov.concurrency, 5);
+    assert.equal(gov.slotDwellMs, 600);
+    assert.equal(gov.rateLimitHits, 1);
+
+    gov.recordRateLimit(1000); // まだ8000msのクールダウンの途中（同じエピソード）
+    assert.equal(gov.concurrency, 5, '既にクールダウン中なので減少しない');
+    assert.equal(gov.slotDwellMs, 600, '既にクールダウン中なので減少しない');
+    assert.equal(gov.rateLimitHits, 2, 'rateLimitHits の計上とクールダウン延長は毎回行う');
+
+    clock.advance(8000); // クールダウンが明ける
+    gov.recordRateLimit(1000); // 新しいエピソード
+    assert.equal(gov.concurrency, 2, 'floor(5/2)=2');
+    assert.equal(gov.slotDwellMs, 1200);
+    assert.equal(gov.rateLimitHits, 3);
+});
+
+test('RateLimitGovernor.recordRateLimit: onThrottleChange をクールダウンを立てる/延長するたびに呼ぶ（5番）', () => {
+    const clock = createClock();
+    let calls = 0;
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 300,
+        now: clock.now, random: () => 0,
+        onThrottleChange: () => { calls++; },
+    });
+    gov.recordRateLimit(1000);
+    assert.equal(calls, 1);
+    gov.recordRateLimit(500); // クールダウン中の延長でも呼ばれる
+    assert.equal(calls, 2);
+});
+
+test('RateLimitGovernor: maxSlotDwellMs が initialSlotDwellMs 未満のプロファイルでも、下回らないよう引き上げられる（10番）', () => {
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 4, initialSlotDwellMs: 15000,
+        maxSlotDwellMs: 13000, // 誤って initialSlotDwellMs より小さい値を渡した想定
+        now: () => 0, random: () => 0,
+    });
+    gov.recordRateLimit(1000);
+    // 引き上げられていなければ min(13000, 30000)=13000 に「速くなって」しまう（潜在バグ）
+    assert.equal(gov.slotDwellMs, 15000);
+});
+
+test('RateLimitGovernor.waitForSlot: 待つ長さに jitterMs 分の乱数を乗せる。recordRateLimit 自体の絶対時刻にはジッタを乗せない（9番）', async () => {
+    const clock = createClock();
+    const waited: number[] = [];
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 0,
+        now: clock.now, random: () => 0.4, jitterMs: 1000,
+        sleepFn: async (ms) => { waited.push(ms); clock.advance(ms); },
+    });
+    gov.recordRateLimit(8000);
+    assert.equal(gov.cooldownUntil, 8000, 'recordRateLimit 自体はジッタを乗せない絶対時刻');
+    await gov.waitForSlot();
+    assert.deepEqual(waited, [8400], 'waitForSlot が待つ長さは remaining(8000) + floor(0.4*1000)=400');
+});
+
+test('RateLimitGovernor.waitForSlot: 戻り値は実際に待った ms（6番: processWithRetry の cumulativeWaitMs 会計に使う）', async () => {
+    const clock = createClock();
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 10, initialSlotDwellMs: 0,
+        now: clock.now, random: () => 0,
+        sleepFn: async (ms) => { clock.advance(ms); },
+    });
+    gov.recordRateLimit(5000);
+    const waited = await gov.waitForSlot();
+    assert.equal(waited, 5000);
+    const waitedAgain = await gov.waitForSlot();
+    assert.equal(waitedAgain, 0, 'クールダウンが明けていれば 0');
+});
+
+test('RateLimitGovernor.waitForSlot: 他ワーカー(worker A)が立てたクールダウンを worker B が寝た分の ms をそのまま返す（6番・(e)の核心部分）', async () => {
+    const clock = createClock();
+    const waited: number[] = [];
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 2, initialSlotDwellMs: 0,
+        now: clock.now, random: () => 0,
+        sleepFn: async (ms) => { waited.push(ms); clock.advance(ms); },
+    });
+    // worker A が 429 を受けてクールダウンを立てる（自分では待たずに次の処理へ進んだ想定）
+    gov.recordRateLimit(9000);
+    // worker B は自分では 429 を受けていないが、送信前に共有クールダウンを尊重して待つ
+    const waitedByB = await gov.waitForSlot();
+    assert.equal(waitedByB, 9000, 'worker A のクールダウン残り時間をそのまま返す');
+    assert.deepEqual(waited, [9000]);
+});
+
+test('RateLimitGovernor.waitForSlot: abortSignal を渡すと、sleepFn が自然には解決しなくても即座に返る（1(b)）', async () => {
+    const clock = createClock();
+    let sleepCalls = 0;
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 1, initialSlotDwellMs: 0,
+        now: clock.now, random: () => 0,
+        sleepFn: () => { sleepCalls++; return new Promise<void>(() => {}); }, // 自然には解決しない
+    });
+    gov.recordRateLimit(9000);
+    const controller = new AbortController();
+    const pending = gov.waitForSlot(controller.signal);
+    controller.abort();
+    await pending; // abort が無ければ絶対にハングするので、これが解決すること自体が検証になる
+    assert.equal(sleepCalls, 1);
+});
+
+test('RateLimitGovernor.waitForSlot: sleepFn が reject すると、ハングせず例外が伝播する', async () => {
+    const gov = new RateLimitGovernor({
+        initialConcurrency: 1, initialSlotDwellMs: 0,
+        now: () => 0, random: () => 0,
+        sleepFn: () => Promise.reject(new Error('sleep failed')),
+    });
+    gov.recordRateLimit(9000); // cooldownUntil = 9000 なので waitForSlot は実際に sleepFn を呼ぶ
+    const controller = new AbortController(); // aborted ではない signal を渡し、signal 分岐（new Promise 側）を通す
+    await assert.rejects(() => gov.waitForSlot(controller.signal), /sleep failed/);
+});
+
 // ===========================================================================
 // processBatch への配線確認（screenFn/now/sleepFn/random を全て注入してオフライン化）
 // ===========================================================================
@@ -153,6 +290,15 @@ function makeSuccessResult(title: string): LlmScreenResult {
 function rateLimitedError(retryAfterMs: number): GeminiApiError {
     return new GeminiApiError('rate limited', {
         status: 429,
+        code: 'api_error',
+        retryable: true,
+        retryAfterMs,
+    });
+}
+
+function serverErrorWithRetryAfter(status: number, retryAfterMs: number): GeminiApiError {
+    return new GeminiApiError('server error', {
+        status,
         code: 'api_error',
         retryable: true,
         retryAfterMs,
@@ -244,7 +390,9 @@ test('processBatch: concurrency=4 で1件だけ429を受けると、並列度が
 test('processBatch: 429 の累積待ちが上限 (既定3分) を超えたら、429以外より緩い最大5回リトライの途中でも安全側フォールバックへ落ちる', async () => {
     const clock = createClock();
     let callCount = 0;
-    // 常に429を返す（retryAfterMs=70秒。3回目の待機で累積 210秒 > 180秒の上限を超える）
+    // 常に429を返す（retryAfterMs=70秒だが、maxCooldownMs=既定60秒でクランプされるため
+    // 実際の待ちは1回あたり60秒。180秒の累積上限を超えるには4回目の待機予測が必要
+    // （実待ち60秒×3回=180秒の時点ではまだ「超えていない」ため、4回目の呼び出しで打ち切られる）
     const screenFn = async (): Promise<LlmScreenResult> => {
         callCount++;
         throw rateLimitedError(70000);
@@ -267,8 +415,8 @@ test('processBatch: 429 の累積待ちが上限 (既定3分) を超えたら、
         }
     );
 
-    // 累積待ち上限で打ち切られるため、既定の429リトライ上限(5回=6コール)より少ない3コールで諦める
-    assert.equal(callCount, 3);
+    // 累積待ち上限で打ち切られるため、既定の429リトライ上限(5回=6コール)より少ない4コールで諦める
+    assert.equal(callCount, 4);
     assert.equal(result.successCount, 0);
     assert.equal(result.fallbackCount, 1);
     assert.equal(result.failCount, 0);
@@ -426,4 +574,247 @@ test('processBatch: 429を2回挟んでも、連続成功が閾値に達する�
     const finalProgress = progressSnapshots[progressSnapshots.length - 1];
     assert.equal(finalProgress.rateLimitHits, 2);
     assert.equal(finalProgress.throttled, true, 'まだ初期値まで回復していない');
+});
+
+// ===========================================================================
+// PR #87 レビュー指摘の追加テスト（1(a)(b)(c) / 4+8 / 5 / 6 / 9 / 10）
+// ===========================================================================
+
+test('processBatch: (a) サーバが巨大な retryAfterMs（例3600000ms）を返しても、実際の待ちは既定の maxCooldownMs (60000ms) を超えない', async () => {
+    const clock = createClock();
+    const waitedMs: number[] = [];
+    let callCount = 0;
+    const screenFn = async (): Promise<LlmScreenResult> => {
+        callCount++;
+        if (callCount === 1) throw rateLimitedError(3600000); // RPD枯渇等で1時間分のヒントが来た想定
+        return makeSuccessResult('A');
+    };
+
+    const result = await processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn,
+            now: clock.now,
+            sleepFn: async (ms: number) => { waitedMs.push(ms); clock.advance(ms); },
+            random: () => 0,
+        }
+    );
+
+    assert.equal(result.successCount, 1);
+    assert.ok(waitedMs.length > 0, '少なくとも1回は待っている');
+    assert.ok(waitedMs.every(ms => ms <= 60000), `全ての待ちが maxCooldownMs 以下であること: ${JSON.stringify(waitedMs)}`);
+    assert.ok(waitedMs.some(ms => ms > 0), 'クールダウン待ち自体は発生していること');
+});
+
+test('processBatch: (b) abortSignal による中断がクールダウン待ち中に効き、中断された文献にフォールバック判定を保存しない（1(b)(c)、2番）', async () => {
+    // sleepFn は自然には解決しない「詰まった」実装にし、abort だけが待機を終わらせられることを検証する。
+    // 実時間・実タイマーは一切使わない（呼ばれた時点で待機開始を検知し、その後 abort する）
+    let resolveWaitingStarted: (() => void) | null = null;
+    const waitingStarted = new Promise<void>((resolve) => { resolveWaitingStarted = resolve; });
+    const sleepCalls: number[] = [];
+    const stuckSleepFn = (ms: number): Promise<void> => {
+        sleepCalls.push(ms);
+        resolveWaitingStarted?.();
+        return new Promise<void>(() => {}); // abort だけが待機を終わらせる
+    };
+
+    const controller = new AbortController();
+    const screenFn = async (): Promise<LlmScreenResult> => {
+        throw rateLimitedError(3600000); // 常に429（クランプ後も60秒相当の待ちが発生する想定）
+    };
+
+    const batchPromise = processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn,
+            now: () => 0, // クールダウン待ちの残りが常に一定になるよう固定する
+            sleepFn: stuckSleepFn,
+            random: () => 0,
+            abortSignal: controller.signal,
+        }
+    );
+
+    await waitingStarted; // governor.waitForSlot() 内で（クールダウン待ちに）止まるまで待つ
+    assert.ok(sleepCalls.length >= 1, 'クールダウン待ちに入っていること');
+    controller.abort();
+
+    const result = await batchPromise; // abort が効かなければ永久にハングするので、これが返ること自体が検証
+
+    assert.equal(result.decisions.length, 0, '中断された文献のフォールバック判定が保存されていない');
+    assert.equal(result.successCount, 0);
+    assert.equal(result.fallbackCount, 0);
+    assert.equal(result.failCount, 0, 'progress.failed も加算されない（aborted は processed にも failed にも数えない）');
+    assert.deepEqual(result.failedRefIds, ['ref-A'], '中断された ref は noDecisionRefIds 経由で failedRefIds に入る');
+});
+
+test('processBatch: (d) 抄録断片の "rate limiting step" / "flow rate limitation" は 429 と誤判定されないが、OpenAI の rate_limit_exceeded は 429 として検知される（4+8番）', async () => {
+    // 誤検知防止: 薬理・生理の抄録に頻出する空白区切りの "rate limit..." はマッチしない
+    const clockA = createClock();
+    let falsePositiveCallCount = 0;
+    const screenFnFalsePositive = async (): Promise<LlmScreenResult> => {
+        falsePositiveCallCount++;
+        const message = falsePositiveCallCount % 2 === 1
+            ? 'error_geminiJsonParseFailed: ...the rate limiting step of glycolysis is catalyzed by...'
+            : 'error_geminiJsonParseFailed: ...flow rate limitation was observed in the distal segment...';
+        throw new Error(message);
+    };
+    const resultFalsePositive = await processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn: screenFnFalsePositive,
+            now: clockA.now,
+            sleepFn: async (ms: number) => { clockA.advance(ms); },
+            random: () => 0,
+        }
+    );
+    // 429用の緩いリトライ予算（既定5回=6コール）ではなく、通常エラーの既定2回（=3コール）で打ち切られる
+    assert.equal(falsePositiveCallCount, 3, `誤って429として扱われていないこと`);
+    assert.equal(resultFalsePositive.fallbackCount, 1);
+
+    // 検知漏れ防止: providers/openai.ts が投げる "code=rate_limit_exceeded" は検知される
+    const clockB = createClock();
+    let softFailCallCount = 0;
+    const screenFnOpenAiSoftFail = async (): Promise<LlmScreenResult> => {
+        softFailCallCount++;
+        throw new Error('OpenAI: リクエストが失敗しました (code=rate_limit_exceeded): Rate limit reached');
+    };
+    const resultOpenAi = await processBatch(
+        [makeRef('B')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gpt-5.6-terra',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn: screenFnOpenAiSoftFail,
+            now: clockB.now,
+            sleepFn: async (ms: number) => { clockB.advance(ms); },
+            random: () => 0,
+        }
+    );
+    // 429として検知されるため、既定5回=6コールのリトライ予算が適用される
+    assert.equal(softFailCallCount, 6, 'rate_limit_exceeded が429として検知されていること');
+    assert.equal(resultOpenAi.fallbackCount, 1);
+});
+
+test('processBatch: (5番) 429を受けてクールダウンが立った瞬間（＝完了より前）に onProgress が呼ばれ、UIの無言停止を防ぐ', async () => {
+    const clock = createClock();
+    let callCount = 0;
+    const screenFn = async (): Promise<LlmScreenResult> => {
+        callCount++;
+        if (callCount === 1) throw rateLimitedError(9000);
+        return makeSuccessResult('A');
+    };
+    const progressSnapshots: LlmBatchProgress[] = [];
+    await processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn,
+            now: clock.now,
+            sleepFn: async (ms: number) => { clock.advance(ms); },
+            random: () => 0,
+            onProgress: (p) => progressSnapshots.push({ ...p }),
+        }
+    );
+    // 完了（processed=1）より前に、クールダウン検出時点の progress
+    // （processed=0, rateLimitHits=1, throttled=true）が onProgress へ飛んでいること
+    const preCompletionThrottleSnapshot = progressSnapshots.find(p => p.processed === 0 && p.rateLimitHits === 1);
+    assert.ok(preCompletionThrottleSnapshot, `snapshots=${JSON.stringify(progressSnapshots)}`);
+    assert.equal(preCompletionThrottleSnapshot!.throttled, true);
+});
+
+test('processBatch: 5xx (429以外) で retryAfterMs が指定されていれば、固定バックオフではなく retryAfterMs をそのまま使う', async () => {
+    const clock = createClock();
+    const waitedMs: number[] = [];
+    let callCount = 0;
+    const screenFn = async (): Promise<LlmScreenResult> => {
+        callCount++;
+        throw serverErrorWithRetryAfter(500, 2000);
+    };
+
+    const result = await processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn,
+            now: clock.now,
+            sleepFn: async (ms: number) => { waitedMs.push(ms); clock.advance(ms); },
+            random: () => 0,
+        }
+    );
+
+    // 429以外の既定リトライ上限（既定2回=3コール）で打ち切られる（429の緩い予算=6コールではない）
+    assert.equal(callCount, 3);
+    assert.equal(result.fallbackCount, 1);
+    // 固定バックオフ (5000, 10000) ではなく retryAfterMs (2000) がそのまま使われている
+    assert.ok(waitedMs.some(ms => ms === 2000), `retryAfterMs がそのまま使われていること: ${JSON.stringify(waitedMs)}`);
+    assert.ok(waitedMs.every(ms => ms !== 5000 && ms !== 10000), `固定バックオフが使われていないこと: ${JSON.stringify(waitedMs)}`);
+});
+
+test('processBatch: 5xx (429以外) の retryAfterMs が巨大でも、maxCooldownMs（既定60000ms）でクランプされる', async () => {
+    const clock = createClock();
+    const waitedMs: number[] = [];
+    let callCount = 0;
+    const screenFn = async (): Promise<LlmScreenResult> => {
+        callCount++;
+        throw serverErrorWithRetryAfter(500, 3600000); // 1時間という巨大な retryAfterMs
+    };
+
+    const result = await processBatch(
+        [makeRef('A')],
+        {
+            batchSize: 10,
+            screeningPrompt: 'prompt',
+            model: 'gemini-3.1-flash-lite',
+            temperature: 0,
+            outputLanguage: 'ja',
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            timestamp: new Date('2026-08-15T00:00:00Z'),
+            screenFn,
+            now: clock.now,
+            sleepFn: async (ms: number) => { waitedMs.push(ms); clock.advance(ms); },
+            random: () => 0,
+        }
+    );
+
+    assert.equal(callCount, 3, '429として扱われていないこと（既定2回=3コールで打ち切られる）');
+    assert.equal(result.fallbackCount, 1);
+    assert.ok(waitedMs.some(ms => ms === 60000), `maxCooldownMs (60000) でクランプされていること: ${JSON.stringify(waitedMs)}`);
+    assert.ok(waitedMs.every(ms => ms !== 3600000), `retryAfterMs がそのまま使われていないこと: ${JSON.stringify(waitedMs)}`);
 });
