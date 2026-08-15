@@ -297,6 +297,10 @@ const domElements = {
     get tierSelect() { return getElement<HTMLSelectElement>('tier-select'); },
 
     // LLM Batch
+    get batchTargetSummary() { return getElement<HTMLElement>('batch-target-summary'); },
+    get batchTargetEditBtn() { return getElement<HTMLButtonElement>('batch-target-edit-btn'); },
+    get batchTargetClearBtn() { return getElement<HTMLButtonElement>('batch-target-clear-btn'); },
+    get batchTargetNote() { return getElement<HTMLElement>('batch-target-note'); },
     get batchMaxCountSelect() { return getElement<HTMLSelectElement>('batch-max-count-select'); },
     get batchTargetCount() { return getElement<HTMLElement>('batch-target-count'); },
     get batchPlannedCount() { return getElement<HTMLElement>('batch-planned-count'); },

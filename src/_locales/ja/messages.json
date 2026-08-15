@@ -1608,6 +1608,90 @@
   "llm_batchNoTarget": {
     "message": "処理対象の文献がありません"
   },
+  "llm_targetLabel": {
+    "message": "対象:"
+  },
+  "llm_tip_target": {
+    "message": "AIに判定させる文献を限定できます。人間がお試しスクリーニングしたのと同じ集合をAIに投げると、判定の一致度を比較できます"
+  },
+  "llm_targetEditBtn": {
+    "message": "選択..."
+  },
+  "llm_targetClearBtn": {
+    "message": "解除"
+  },
+  "llm_targetAll": {
+    "message": "全件（$1件）"
+  },
+  "llm_targetSelected": {
+    "message": "選択した $1 件"
+  },
+  "llm_targetMissingNote": {
+    "message": "選択のうち $1 件はこのプロジェクトに見つからないため除外されます"
+  },
+  "llm_targetJudgedNote": {
+    "message": "選択のうち $1 件はこの設定のAI実行（Run）で判定済みのため除外されます"
+  },
+  "llm_targetLimitExceeded": {
+    "message": "対象に指定できるのは $1 件までです"
+  },
+  "llm_targetSaveFailed": {
+    "message": "対象の保存に失敗しました: $1"
+  },
+  "llm_targetPickerTitle": {
+    "message": "対象レコードを選択"
+  },
+  "llm_targetPickerSetLabel": {
+    "message": "担当セット:"
+  },
+  "llm_targetPickerSetAll": {
+    "message": "すべて"
+  },
+  "llm_targetPickerSelectSet": {
+    "message": "このセットを全選択（$1件）"
+  },
+  "llm_targetPickerSearchPlaceholder": {
+    "message": "タイトル・抄録を検索"
+  },
+  "llm_targetPickerViewAll": {
+    "message": "すべて表示"
+  },
+  "llm_targetPickerViewSelected": {
+    "message": "選択済みのみ"
+  },
+  "llm_targetPickerViewUnselected": {
+    "message": "未選択のみ"
+  },
+  "llm_targetPickerSelectVisible": {
+    "message": "表示中を全選択"
+  },
+  "llm_targetPickerClearAll": {
+    "message": "すべて解除"
+  },
+  "llm_targetPickerShowing": {
+    "message": "表示 $1 / $2 件"
+  },
+  "llm_targetPickerMore": {
+    "message": "もっと見る"
+  },
+  "llm_targetPickerSelectedCount": {
+    "message": "選択 $1 件"
+  },
+  "llm_targetPickerConfirm": {
+    "message": "確定する"
+  },
+  "llm_targetPickerEmpty": {
+    "message": "該当する文献がありません"
+  },
+  "llm_targetPickerNoTitle": {
+    "message": "(タイトルなし)"
+  },
+  "llm_targetPickerPending": {
+    "message": "未判定"
+  },
+  "llm_targetPickerBlindNote": {
+    "message": "⚠️ Blind中のため、他レビュアーの判定状況は表示されません"
+  },
   "llm_screeningPromptRequired": {
     "message": "スクリーニング基準を設定してください"
   },

@@ -63,6 +63,8 @@ import {
     setLoadDataAndShowScreening as setLoadDataAndShowScreeningForBatch,
 } from './batch';
 import { handleRecoverOrphans } from './recovery';
+import { openTargetPicker, handleClearTargetSelection } from './target-picker';
+import { parseTargetRefIds } from '../../../lib/llm-target-selection';
 
 /**
  * プロンプト入力中の対象件数再計算をデバウンスする
@@ -257,6 +259,8 @@ export function setupLlmEventListeners() {
     dom.retryFailedBtn?.addEventListener('click', handleRetryFailed);
     dom.batchMaxCountSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
     dom.batchRestartRunBtn?.addEventListener('click', () => { void handleToggleRestartRun(); });
+    dom.batchTargetEditBtn?.addEventListener('click', openTargetPicker);
+    dom.batchTargetClearBtn?.addEventListener('click', () => { void handleClearTargetSelection(); });
 
     // 閾値調整
     dom.thresholdSlider?.addEventListener('input', handleThresholdChange);
@@ -317,6 +321,10 @@ export async function initializeLlmSection() {
             const llmConfig = await getLlmConfig(spreadsheetId);
             // Store経由で両方に同期
             syncSetLlmConfig(llmConfig);
+
+            // AI一括判定の対象選択（担当セット・個別選択）を復元
+            state.setLlmTargetMode(llmConfig.llm_target_mode);
+            state.setLlmTargetRefIds(new Set(parseTargetRefIds(llmConfig.llm_target_ref_ids)));
 
             // UI更新: 保存済みモデルが鍵未設定で除外されている場合は先頭にフォールバック
             const savedModel = llmConfig.llm_model;

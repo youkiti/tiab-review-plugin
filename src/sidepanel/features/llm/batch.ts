@@ -52,7 +52,13 @@ import {
     resolveBatchLimit,
     selectBatchTargetsByJudgedRefIds,
     pickRunByConfigHash,
+    BATCH_MAX_COUNT_ALL,
 } from '../../../lib/llm-batch-target';
+import {
+    resolveSelectedRefs,
+    countTargetSelection,
+    collectSetIdsForRefs,
+} from '../../../lib/llm-target-selection';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -109,6 +115,13 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
 
 
 // バッチ対象の判定ロジックは src/lib/llm-batch-target.ts（純粋関数・テスト対象）に集約している
+
+/** 対象モードを反映したバッチ対象の母集合を返す */
+function getBatchBaseRefs() {
+    return state.llmTargetMode === 'selection'
+        ? resolveSelectedRefs(state.references, state.llmTargetRefIds)
+        : state.references;
+}
 
 /**
  * 現在の UI 設定から config_hash を計算する
@@ -196,15 +209,46 @@ async function refreshReferencesAfterBatch(spreadsheetId: string): Promise<void>
  */
 export async function updateBatchTargetCount() {
     const { run, judgedBatchIds } = await resolveTargetRun();
+    const isSelectionMode = state.llmTargetMode === 'selection';
 
-    const eligibleCount = state.references.filter(ref => isBatchEligible(ref, judgedBatchIds)).length;
+    const baseRefs = getBatchBaseRefs();
+    const eligibleCount = baseRefs.filter(ref => isBatchEligible(ref, judgedBatchIds)).length;
     dom.batchTargetCount.textContent = eligibleCount.toString();
 
-    const limit = resolveBatchLimit(dom.batchMaxCountSelect.value);
+    // 選択モードでは実行上限を適用しない（選んだ分は全部投げる）
+    const limit = isSelectionMode ? null : resolveBatchLimit(dom.batchMaxCountSelect.value);
     const plannedCount = limit === null ? eligibleCount : Math.min(eligibleCount, limit);
     dom.batchPlannedCount.textContent = plannedCount.toString();
+    dom.batchMaxCountSelect.disabled = isSelectionMode;
 
-    renderBatchRunMode(run, state.references.length - eligibleCount);
+    // 対象サマリ・解除ボタン
+    dom.batchTargetSummary.textContent = isSelectionMode
+        ? t('llm_targetSelected', String(state.llmTargetRefIds.size))
+        : t('llm_targetAll', String(state.references.length));
+    dom.batchTargetClearBtn.classList.toggle('hidden', !isSelectionMode);
+
+    // 選択モードの注記: 手元に無い ref_id・この Run で既に判定済みの件数を案内する
+    if (isSelectionMode) {
+        const breakdown = countTargetSelection(
+            state.references,
+            state.llmTargetRefIds,
+            ref => !isBatchEligible(ref, judgedBatchIds)
+        );
+        const notes: string[] = [];
+        const missingCount = breakdown.selected - breakdown.available;
+        if (missingCount > 0) {
+            notes.push(t('llm_targetMissingNote', String(missingCount)));
+        }
+        if (breakdown.alreadyJudged > 0) {
+            notes.push(t('llm_targetJudgedNote', String(breakdown.alreadyJudged)));
+        }
+        dom.batchTargetNote.textContent = notes.join(' ');
+        dom.batchTargetNote.classList.toggle('hidden', notes.length === 0);
+    } else {
+        dom.batchTargetNote.classList.add('hidden');
+    }
+
+    renderBatchRunMode(run, baseRefs.length - eligibleCount);
 }
 
 /**
@@ -316,7 +360,12 @@ export async function handleStartBatch() {
         const judgedRefIds = await getJudgedRefIdsForBatches(spreadsheetId, judgedBatchIds);
 
         // 対象文献を取得（この Run で未判定のもの・件数上限を適用。人間の判定有無では絞り込まない）
-        targetRefs = selectBatchTargetsByJudgedRefIds(state.references, dom.batchMaxCountSelect.value, judgedRefIds);
+        // 選択モードでは対象の母集合を選択済み ref_id に差し替え、実行上限は無視して選んだ分を全部投げる
+        const baseRefs = getBatchBaseRefs();
+        const maxCountValue = state.llmTargetMode === 'selection'
+            ? BATCH_MAX_COUNT_ALL
+            : dom.batchMaxCountSelect.value;
+        targetRefs = selectBatchTargetsByJudgedRefIds(baseRefs, maxCountValue, judgedRefIds);
     } catch (error) {
         console.error('[handleStartBatch] Failed to resolve run:', error);
         showToast(t('llm_batchError', (error as Error).message));
@@ -410,6 +459,11 @@ export async function handleStartBatch() {
             modelConfig.temperature,
             modelConfig.topP,
             modelConfig.thinkingLevel,
+            {
+                mode: state.llmTargetMode,
+                sets: collectSetIdsForRefs(targetRefs, getReferenceAssignmentSet).join(','),
+                selectedCount: state.llmTargetMode === 'selection' ? state.llmTargetRefIds.size : undefined,
+            },
         );
         // execution_id 内の timestamp とシート上の timestamp 列を揃えておく
         initialExecution.timestamp = timestamp.toISOString();

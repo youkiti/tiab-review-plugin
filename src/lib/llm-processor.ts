@@ -13,6 +13,7 @@ import type {
     UsageMetadata,
     LlmModelResponseMetadata,
 } from './types';
+import type { LlmTargetMode } from './llm-target-selection';
 import { RATE_LIMIT_PAID } from './types';
 import { GeminiModelConfig, AVAILABLE_MODELS } from './gemini-api';
 import { resolveProviderId, screenWithProvider } from './llm-provider';
@@ -540,7 +541,8 @@ export function createLlmExecution(
     // Model parameters
     temperature?: number,
     topP?: number,
-    thinkingLevel?: string
+    thinkingLevel?: string,
+    targetMeta?: { mode: LlmTargetMode; sets?: string; selectedCount?: number }
 ): LlmExecution {
     return {
         execution_id: executionId,
@@ -559,6 +561,11 @@ export function createLlmExecution(
         exclude_count: excludeCount,
         status,
         is_active: isActive,
+        ...(targetMeta ? {
+            target_mode: targetMeta.mode,
+            target_sets: targetMeta.sets,
+            target_selected_count: targetMeta.selectedCount,
+        } : {}),
     };
 }
 

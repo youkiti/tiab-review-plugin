@@ -271,6 +271,24 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
      - **基準最適化（`handleOptimizeCriteria`）後は `updateBatchTargetCount()` を明示的に呼ぶ**。
        最適化結果はプロンプト・判定基準をプログラムから代入するため `input` イベントが発火せず、
        config_hash が変わって別Runになったのに対象件数・実行モード表示が古いRunのまま残ってしまう
+     - **対象の限定**: 既定は従来どおり全件（`state.references`）。人間がお試しスクリーニングした集合と
+       同じものをAIに判定させたいという要望（2026-08）に応えるため、担当セット単位＋個別チェックボックスで
+       対象 ref_id を限定できる。対象決定の純粋ロジックは `src/lib/llm-target-selection.ts`、
+       UIは `src/sidepanel/features/llm/target-picker.ts`
+     - **選択は config_hash に含めない**。含めると対象を変えるたびに別Runが生まれ、「中断からの再開」
+       「新規にやり直す」が壊れるため。同じ設定なら対象を絞っても同じRunの続きとして扱われる
+     - **選択モードでは実行上限（10/50/100/500/すべて）を無視**して選んだ分を全部投げる。
+       「100件選んだのに上限50で切られた」という事故を防ぐため。UI側では上限セレクトをdisabledにする
+     - **選択は Config シートに保存**（`llm_target_mode` / `llm_target_ref_ids`）。チームで同じ対象集合を
+       再現できるようにするため。ref_id は UUID なので1セル5万字上限から約1,350件が物理上限で、
+       余裕を見て**1,000件で頭打ち**（`LLM_TARGET_REF_ID_LIMIT`）
+     - **実行履歴に対象を記録**: `LLM_Executions` の `target_mode` / `target_sets` / `target_selected_count`。
+       後から「この Run は calibration の50件を対象にした」と論文に書けるようにするため
+     - **非管理者の `state.references` は担当セットで絞られている**ため、他人の担当分の ref_id が選択に
+       含まれていても対象から落ちる。件数の内訳（見つからない件数・この Run で判定済みの件数）をUIに出して
+       0件表示の理由を追えるようにしている
+     - Blind 中は他レビュアーの判定がクライアントに配られないため、モーダルの判定状態表示は自分の判定のみ。
+       **判定状態は表示専用で、選択の絞り込み条件には使っていない**
    - **結果表示**: LLMの判定結果・理由の表示
 8. **フルテキストAI判定（PDF全文）**
 
