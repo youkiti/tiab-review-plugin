@@ -141,14 +141,36 @@ async function readBody(resp) {
     }
 }
 
-function buildMeasureUrl(kind, id) {
+/**
+ * options.allDrives（既定 false）を立てると、共有ドライブ配下のファイルを読むのに
+ * 必要とされる Drive API v3 のパラメータを付与する（meta/media は supportsAllDrives=true、
+ * list はそれに加えて includeItemsFromAllDrives=true）。list はさらに options.driveId が
+ * あれば corpora=drive&driveId=<driveId> も付与する（共有ドライブ配下の files.list に
+ * この指定が要るかどうかが未確定なため、有無どちらも測れるようにしてある）。
+ * allDrives / driveId のどちらも指定しない呼び出し（既存3シナリオ）では、meta の fields に
+ * driveId を追加した点を除き、これまでと同じURLになる。
+ */
+function buildMeasureUrl(kind, id, options = {}) {
+    const { allDrives = false, driveId } = options;
     switch (kind) {
-        case 'meta':
-            return `${DRIVE_API_BASE}/files/${encodeURIComponent(id)}?fields=id,name,mimeType,trashed,parents`;
-        case 'media':
-            return `${DRIVE_API_BASE}/files/${encodeURIComponent(id)}?alt=media`;
-        case 'list':
-            return `${DRIVE_API_BASE}/files?q=${encodeURIComponent(`'${id}' in parents and trashed=false`)}&fields=${encodeURIComponent('files(id,name,mimeType)')}`;
+        case 'meta': {
+            // driveId は共有ドライブ配下かどうかの判定と、list の corpora=drive 用の
+            // driveId 取得に要るため常に取得する。
+            let url = `${DRIVE_API_BASE}/files/${encodeURIComponent(id)}?fields=id,name,mimeType,trashed,parents,driveId`;
+            if (allDrives) url += '&supportsAllDrives=true';
+            return url;
+        }
+        case 'media': {
+            let url = `${DRIVE_API_BASE}/files/${encodeURIComponent(id)}?alt=media`;
+            if (allDrives) url += '&supportsAllDrives=true';
+            return url;
+        }
+        case 'list': {
+            let url = `${DRIVE_API_BASE}/files?q=${encodeURIComponent(`'${id}' in parents and trashed=false`)}&fields=${encodeURIComponent('files(id,name,mimeType)')}`;
+            if (allDrives) url += '&supportsAllDrives=true&includeItemsFromAllDrives=true';
+            if (driveId) url += `&corpora=drive&driveId=${encodeURIComponent(driveId)}`;
+            return url;
+        }
         default:
             throw new Error(`未知の kind です: ${kind}`);
     }
@@ -176,9 +198,9 @@ function getErrorReason(body) {
  * summary は一目でわかる要約文字列（list は件数「N件」、meta はファイル名、media は
  * Content-Length 由来のバイト数「N bytes」。いずれも失敗時はエラー理由、取得できなければ空文字）。
  */
-async function measureOne({ label, kind, id }) {
+async function measureOne({ label, kind, id, allDrives, driveId }) {
     if (!accessToken) throw new Error('サインインしていません');
-    const url = buildMeasureUrl(kind, id);
+    const url = buildMeasureUrl(kind, id, { allDrives, driveId });
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     let body;
     let summary;
@@ -208,7 +230,7 @@ async function measureOne({ label, kind, id }) {
             summary = getErrorReason(body);
         }
     }
-    return { label, kind, id, status: resp.status, ok: resp.ok, body, summary };
+    return { label, kind, id, allDrives: !!allDrives, corporaDriveId: driveId, status: resp.status, ok: resp.ok, body, summary };
 }
 
 async function measure(targets) {
@@ -224,6 +246,12 @@ async function measure(targets) {
  * Picker を開く。selectFolder / mimeTypes / parentId は google.picker.DocsView の
  * setIncludeFolders + setSelectFolderEnabled / setMimeTypes / setParent に対応する。
  * setDeveloperKey と setAppId の両方を設定しないと drive.file の付与が起きないため必須。
+ *
+ * options.enableDrives（既定 false）: view.setEnableDrives(true) を呼び、共有ドライブを
+ * Picker に表示させるかどうかを切り替える。GitHub Issue #80 で「共有ドライブが Picker に
+ * 出ないため詰む」と推測されている挙動を、有無どちらでも実機確認できるようにするため。
+ * options.multiSelect（既定 false）: PickerBuilder に MULTISELECT_ENABLED を有効化する。
+ * 複数ファイルのうち一部だけを選ばせる測定（shared-drive-list シナリオ）に要る。
  */
 async function openPicker(options = {}) {
     if (!accessToken) throw new Error('サインインしていません');
@@ -237,11 +265,14 @@ async function openPicker(options = {}) {
             }
             if (options.mimeTypes) view.setMimeTypes(options.mimeTypes);
             if (options.parentId) view.setParent(options.parentId);
-            const picker = new google.picker.PickerBuilder()
+            if (options.enableDrives) view.setEnableDrives(true);
+            const builder = new google.picker.PickerBuilder()
                 .setDeveloperKey(config.PICKER_API_KEY)
                 .setAppId(config.GCP_PROJECT_NUMBER)
                 .setOAuthToken(accessToken)
-                .addView(view)
+                .addView(view);
+            if (options.multiSelect) builder.enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+            const picker = builder
                 .setCallback((data) => {
                     const action = data[google.picker.Response.ACTION];
                     if (action === google.picker.Action.PICKED) {
@@ -270,8 +301,9 @@ async function openPicker(options = {}) {
 /**
  * 予備API: Drive へ小さなファイルをアップロードする（今後のシナリオ用）。
  * content は文字列を想定（テキスト or 小さいバイナリで十分な用途向け）。
+ * allDrives（既定 false）を立てると supportsAllDrives=true を付与する。
  */
-async function uploadFile({ folderId, name, content }) {
+async function uploadFile({ folderId, name, content, allDrives }) {
     if (!accessToken) throw new Error('サインインしていません');
     const boundary = `probe_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const metadata = JSON.stringify({
@@ -283,7 +315,9 @@ async function uploadFile({ folderId, name, content }) {
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
         `--${boundary}\r\nContent-Type: text/plain\r\n\r\n${content ?? ''}\r\n` +
         `--${boundary}--`;
-    const resp = await fetch(`${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,name,webViewLink`, {
+    let url = `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,name,webViewLink`;
+    if (allDrives) url += '&supportsAllDrives=true';
+    const resp = await fetch(url, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -301,20 +335,20 @@ async function uploadFile({ folderId, name, content }) {
  * リクエストボディに appProperties も含めて送る。
  * fields に parents を含めているのが本質: 複製先が本当に指定した folderId になっているか
  * （Drive が黙って別の場所へ複製していないか）をレスポンスから直接確認するため。
+ * allDrives（既定 false）を立てると supportsAllDrives=true を付与する。
  */
-async function copyFile({ sourceFileId, folderId, name, appProperties }) {
+async function copyFile({ sourceFileId, folderId, name, appProperties, allDrives }) {
     if (!accessToken) throw new Error('サインインしていません');
-    const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,name,parents,webViewLink`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name, parents: [folderId], appProperties }),
-        }
-    );
+    let url = `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,name,parents,webViewLink`;
+    if (allDrives) url += '&supportsAllDrives=true';
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, parents: [folderId], appProperties }),
+    });
     const data = await readBody(resp);
     return { status: resp.status, ok: resp.ok, body: data };
 }
