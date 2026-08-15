@@ -193,10 +193,17 @@ function getErrorReason(body) {
 /**
  * ターゲット1件を測定する。
  * 戻り値の body は、meta/list なら成功・失敗いずれも取得した JSON（非JSONならテキスト）。
- * media は成功時は読み捨てて undefined（status/ok だけを見る）、失敗時のみ summary の
- * エラー理由を出すために本文を読む。
+ * media は成功時も Content-Type と本文の先頭64バイトだけを読む（実体は読み切らない）。
+ * 失敗時のみ summary のエラー理由を出すために本文を読む。
  * summary は一目でわかる要約文字列（list は件数「N件」、meta はファイル名、media は
- * Content-Length 由来のバイト数「N bytes」。いずれも失敗時はエラー理由、取得できなければ空文字）。
+ * バイト数・Content-Type・先頭バイト。いずれも失敗時はエラー理由、取得できなければ空文字）。
+ *
+ * media で先頭バイトまで見る理由: `alt=media` は googleusercontent.com へリダイレクトしうるため、
+ * 「HTTP 200 なのに中身が PDF ではない（エラーページ等）」が起こりうる。status と ok だけを見ると
+ * それを成功と誤読する。実測でも未付与のはずのファイルが `alt=media` + supportsAllDrives で
+ * 200 を返した例があり（output/2026-08-15T05-36-07）、中身の判別が要る。
+ * 本体の downloadDriveFile()（src/lib/drive-api.ts）も resp.ok だけを見て blob を返しているため、
+ * ここで得た知見はそのまま本体の判定条件の設計に効く。
  */
 async function measureOne({ label, kind, id, allDrives, driveId }) {
     if (!accessToken) throw new Error('サインインしていません');
@@ -204,19 +211,31 @@ async function measureOne({ label, kind, id, allDrives, driveId }) {
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     let body;
     let summary;
+    // media 専用の観測値。meta/list では undefined のままにする。
+    let contentType;
+    let head = '';
+    let isPdf;
     if (kind === 'media') {
         if (resp.ok) {
-            // ファイル実体は読まずに読み捨てる。見るのは status と Content-Length のみ。
-            if (resp.body?.cancel) {
-                try {
-                    await resp.body.cancel();
-                } catch {
-                    // 読み捨て失敗は無視してよい（測定結果には影響しない）
-                }
-            }
-            body = undefined;
+            contentType = resp.headers.get('content-type') ?? '';
             const contentLength = resp.headers.get('content-length');
-            summary = contentLength ? `${contentLength} bytes` : '';
+            // 先頭の1チャンクだけ読んで実体を判別し、残りは読まずに捨てる。
+            // PDF なら本文は `%PDF-` で始まる。HTML のエラーページ等はここで露見する。
+            try {
+                const reader = resp.body?.getReader?.();
+                if (reader) {
+                    const { value } = await reader.read();
+                    if (value) head = new TextDecoder().decode(value.slice(0, 64));
+                    await reader.cancel();
+                }
+            } catch {
+                // 先頭が読めなくても status/Content-Type は測定できているので続行する
+            }
+            isPdf = head.startsWith('%PDF-');
+            body = undefined;
+            summary =
+                `${contentLength ? `${contentLength} bytes` : 'サイズ不明'} / ${contentType || 'Content-Type不明'}` +
+                ` / ${isPdf ? 'PDF実体' : `PDFではない（先頭: ${JSON.stringify(head.slice(0, 24))}）`}`;
         } else {
             // 404 と 403 の区別はステータスでできるが、理由を summary に出すには本文が要る。
             body = await readBody(resp);
@@ -230,7 +249,13 @@ async function measureOne({ label, kind, id, allDrives, driveId }) {
             summary = getErrorReason(body);
         }
     }
-    return { label, kind, id, allDrives: !!allDrives, corporaDriveId: driveId, status: resp.status, ok: resp.ok, body, summary };
+    return {
+        label, kind, id,
+        allDrives: !!allDrives, corporaDriveId: driveId,
+        status: resp.status, ok: resp.ok, body, summary,
+        // media の成功時のみ入る（raw.json に残して後から中身を検証できるようにする）
+        contentType, head: head || undefined, isPdf,
+    };
 }
 
 async function measure(targets) {
