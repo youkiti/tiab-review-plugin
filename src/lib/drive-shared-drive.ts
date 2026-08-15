@@ -46,3 +46,31 @@ export function withSharedDriveParams(url: string, kind: DriveCallKind = 'item')
         : 'supportsAllDrives=true';
     return `${url}${separator}${params}`;
 }
+
+export interface DriveFetchOptions {
+    /** OAuth アクセストークン。`Authorization: Bearer` ヘッダとして載せる */
+    token: string;
+    /** 呼び出し種別。`files.list` だけ 'list'（既定は 'item'） */
+    kind?: DriveCallKind;
+}
+
+/**
+ * Drive API を叩く唯一の入口。共有ドライブ対応パラメータと Authorization ヘッダを
+ * ここで必ず付ける。
+ *
+ * **Drive API を `fetch()` で直接叩かないこと。** パラメータの付与を呼び出し側の
+ * 判断に委ねると、新しく増えた経路で必ず取りこぼす。しかも `files.list` の欠落は
+ * HTTP 200 + 0件という「エラーにならない壊れ方」をするため、テストもレビューも
+ * すり抜けて共有ドライブ利用者の環境でだけ silent に誤動作する（Issue #95）。
+ * `drive-api.ts` に `fetch(` の直呼びが残っていないことは
+ * `tests/drive-shared-drive.test.ts` で機械的に見張っている。
+ *
+ * 認証トークンは呼び出し側から受け取る（このモジュールが `sheets-api.ts` の
+ * `getAuthToken` を import すると、`sheets-api.ts` → `drive-shared-drive.ts` と
+ * 循環参照になるため）。
+ */
+export function driveFetch(url: string, init: RequestInit, opts: DriveFetchOptions): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', `Bearer ${opts.token}`);
+    return fetch(withSharedDriveParams(url, opts.kind ?? 'item'), { ...init, headers });
+}

@@ -17,7 +17,7 @@ import {
     saveProjectDriveFolderId,
 } from './sheets-api';
 import type { ImportedCopyMatch } from './drive-import-action';
-import { withSharedDriveParams } from './drive-shared-drive';
+import { driveFetch } from './drive-shared-drive';
 import { t } from './i18n';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
@@ -134,9 +134,10 @@ export async function resolveFolderState(folderId: string): Promise<FolderAccess
     let resp: Response;
     try {
         const token = await getAuthToken();
-        resp = await fetch(
-            withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`),
-            { headers: { 'Authorization': `Bearer ${token}` } }
+        resp = await driveFetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`,
+            {},
+            { token }
         );
     } catch {
         return 'transient-error';
@@ -201,9 +202,10 @@ export function extractDriveFileId(url: string): string | null {
  */
 export async function downloadDriveFile(fileId: string): Promise<Blob> {
     const token = await getAuthToken();
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`),
-        { headers: { 'Authorization': `Bearer ${token}` } }
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
+        {},
+        { token }
     );
     if (!resp.ok) {
         // 403/404 は「PDFが無い」のではなく「別アカウントがアップロードしたPDFで
@@ -224,16 +226,14 @@ export async function downloadDriveFile(fileId: string): Promise<Blob> {
  */
 export async function deleteDriveFile(fileId: string): Promise<void> {
     const token = await getAuthToken();
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}`),
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}`,
         {
             method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ trashed: true }),
-        }
+        },
+        { token }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -258,14 +258,15 @@ async function createFolder(name: string, parentId?: string, colorRgb?: string):
     if (parentId) metadata.parents = [parentId];
     if (colorRgb) metadata.folderColorRgb = colorRgb;
 
-    const resp = await fetch(withSharedDriveParams(`${DRIVE_API_BASE}/files?fields=id`), {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files?fields=id`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata),
         },
-        body: JSON.stringify(metadata),
-    });
+        { token }
+    );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
         throw new Error(`Driveフォルダの作成に失敗しました: ${error?.error?.message || resp.statusText}`);
@@ -288,9 +289,10 @@ async function findFolderInRoot(name: string): Promise<string | null> {
             "'root' in parents",
             'trashed=false',
         ].join(' and ');
-        const resp = await fetch(
-            withSharedDriveParams(`${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`, 'list'),
-            { headers: { 'Authorization': `Bearer ${token}` } }
+        const resp = await driveFetch(
+            `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`,
+            {},
+            { token, kind: 'list' }
         );
         if (!resp.ok) return null;
         const data = await resp.json() as { files?: Array<{ id: string }> };
@@ -317,9 +319,10 @@ export async function ensureAppRootFolder(): Promise<string> {
 async function moveFileToFolder(fileId: string, parentId: string): Promise<void> {
     const token = await getAuthToken();
     // 現在の親（通常は 'root'）を取得して removeParents に渡す
-    const getResp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=parents`),
-        { headers: { 'Authorization': `Bearer ${token}` } }
+    const getResp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=parents`,
+        {},
+        { token }
     );
     let removeParents = '';
     if (getResp.ok) {
@@ -330,16 +333,14 @@ async function moveFileToFolder(fileId: string, parentId: string): Promise<void>
     const params = new URLSearchParams({ addParents: parentId, fields: 'id,parents' });
     if (removeParents) params.set('removeParents', removeParents);
 
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${params.toString()}`),
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${params.toString()}`,
         {
             method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({}),
-        }
+        },
+        { token }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -359,9 +360,10 @@ async function assertSpreadsheetOwnedByCurrentUser(spreadsheetId: string): Promi
     const token = await getAuthToken();
     let resp: Response;
     try {
-        resp = await fetch(
-            withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(spreadsheetId)}?fields=ownedByMe`),
-            { headers: { 'Authorization': `Bearer ${token}` } }
+        resp = await driveFetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(spreadsheetId)}?fields=ownedByMe`,
+            {},
+            { token }
         );
     } catch {
         throw new DriveTransientError(spreadsheetId);
@@ -507,16 +509,14 @@ export async function uploadPdfToDrive(
         `\r\n--${boundary}--`,
     ]);
 
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,webViewLink`),
+    const resp = await driveFetch(
+        `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,webViewLink`,
         {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': `multipart/related; boundary=${boundary}`,
-            },
+            headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
             body,
-        }
+        },
+        { token }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -542,9 +542,10 @@ export async function uploadPdfToDrive(
 export async function getDriveFileMetadata(fileId: string): Promise<DriveFileMetadata> {
     const token = await getAuthToken();
     const fields = 'id,name,mimeType,size,parents,trashed,capabilities(canCopy,canTrash),appProperties';
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`),
-        { headers: { 'Authorization': `Bearer ${token}` } }
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`,
+        {},
+        { token }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -567,16 +568,14 @@ export async function copyPdfToFulltextFolder(
     appProperties: Record<string, string>
 ): Promise<DriveFileInfo> {
     const token = await getAuthToken();
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`),
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`,
         {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: fileName, parents: [folderId], appProperties }),
-        }
+        },
+        { token }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -638,9 +637,10 @@ export async function findImportedCopy(
     const token = await getAuthToken();
     const q = buildImportedCopyQuery(sourceFileId, spreadsheetId);
     const fields = 'files(id,webViewLink,appProperties)';
-    const resp = await fetch(
-        withSharedDriveParams(`${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=1`, 'list'),
-        { headers: { 'Authorization': `Bearer ${token}` } }
+    const resp = await driveFetch(
+        `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=1`,
+        {},
+        { token, kind: 'list' }
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
@@ -681,7 +681,7 @@ const MAX_FOLDER_LIST_PAGES = 20;
  *   つまり Drive 側から「読めないファイル」を列挙する経路はこの API しか無い。
  * - **共有ドライブでは `supportsAllDrives` + `includeItemsFromAllDrives` が必須**（2026-08-15 実測）。
  *   欠けていると 200 + 0件を返すため「フォルダが空」と区別が付かず、共有ドライブ上のPDFを
- *   常に「読めない」と誤判定して無駄な再付与Pickerを出す。`withSharedDriveParams` を外さないこと。
+ *   常に「読めない」と誤判定して無駄な再付与Pickerを出す。`driveFetch` の `kind: 'list'` を外さないこと。
  *
  * PDFが1000件を超えるプロジェクトで取りこぼすと「読めない」と誤判定し無駄なPickerを
  * 出してしまうため、nextPageToken は MAX_FOLDER_LIST_PAGES に達するまで追う。上限に達した
@@ -705,9 +705,11 @@ export async function listAccessibleFileIdsInFolder(folderId: string): Promise<S
 
         let resp: Response;
         try {
-            resp = await fetch(withSharedDriveParams(`${DRIVE_API_BASE}/files?${params.toString()}`, 'list'), {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            resp = await driveFetch(
+                `${DRIVE_API_BASE}/files?${params.toString()}`,
+                {},
+                { token, kind: 'list' }
+            );
         } catch {
             throw new DriveTransientError(folderId);
         }

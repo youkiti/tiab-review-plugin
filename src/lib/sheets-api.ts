@@ -10,7 +10,7 @@ import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
-import { withSharedDriveParams } from './drive-shared-drive';
+import { driveFetch } from './drive-shared-drive';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { isHumanDecision, isConfirmedMlDecision } from './client-version';
 
@@ -191,18 +191,11 @@ export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpre
 
     const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet'");
     const fields = encodeURIComponent('files(id,name,modifiedTime)');
-    const url = withSharedDriveParams(
-        `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`,
-        'list'
-    );
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`;
 
     console.log('[getRecentSpreadsheets] Fetching:', url);
 
-    const response = await fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
+    const response = await driveFetch(url, {}, { token, kind: 'list' });
 
     console.log('[getRecentSpreadsheets] Response status:', response.status);
 
@@ -2142,15 +2135,10 @@ export interface SpreadsheetPermission {
 export async function getFilePermissions(fileId: string): Promise<SpreadsheetPermission[]> {
     const token = await getAuthToken();
 
-    const response = await fetch(
-        withSharedDriveParams(
-            `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,role,type,emailAddress,displayName)`
-        ),
-        {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        }
+    const response = await driveFetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,role,type,emailAddress,displayName)`,
+        {},
+        { token }
     );
 
     if (!response.ok) {
@@ -2197,16 +2185,10 @@ export class DrivePermissionError extends Error {
 export async function deletePermission(fileId: string, permissionId: string): Promise<void> {
     const token = await getAuthToken();
 
-    const response = await fetch(
-        withSharedDriveParams(
-            `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`
-        ),
-        {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        }
+    const response = await driveFetch(
+        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`,
+        { method: 'DELETE' },
+        { token }
     );
 
     if (!response.ok) {
@@ -2312,20 +2294,16 @@ export async function addPermission(
         // 従来どおりクエリを一切付けない（Drive既定の通知ありの挙動を変えない）。
         queryString = '?sendNotificationEmail=false';
     }
-    const url = withSharedDriveParams(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`
-    );
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`;
 
-    const response = await fetch(
+    const response = await driveFetch(
         url,
         {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
-        }
+        },
+        { token }
     );
 
     if (!response.ok) {
@@ -2363,15 +2341,10 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
         // 方法2: Capabilities API (Fallback)
         console.log('[isUserAdmin] Trying capabilities fallback...');
         const token = await getAuthToken();
-        const response = await fetch(
-            withSharedDriveParams(
-                `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=capabilities(canEdit,canShare)`
-            ),
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            }
+        const response = await driveFetch(
+            `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=capabilities(canEdit,canShare)`,
+            {},
+            { token }
         );
 
         console.log('[isUserAdmin] Capabilities response status:', response.status);
