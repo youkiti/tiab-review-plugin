@@ -54,7 +54,10 @@ test.afterEach(() => {
     globalThis.fetch = originalFetch;
 });
 
-test('addPermission: emailMessage未指定時はURLにクエリが付かず、ボディも従来どおり', async () => {
+// 注: URL には共有ドライブ対応の supportsAllDrives=true が常に付く（withSharedDriveParams）。
+// このテストが見張っているのは「emailMessage / sendNotificationEmail がクエリに載るか」なので、
+// 「クエリが1つも無い」ではなくキー単位で不在を確認する。
+test('addPermission: emailMessage未指定時は通知系クエリが付かず、ボディも従来どおり', async () => {
     let requestUrl = '';
     let requestBodyText = '';
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -65,8 +68,12 @@ test('addPermission: emailMessage未指定時はURLにクエリが付かず、�
 
     await addPermission('file1', 'reviewer@example.com', 'writer');
 
-    assert.equal(requestUrl.includes('?'), false);
-    assert.equal(requestUrl, 'https://www.googleapis.com/drive/v3/files/file1/permissions');
+    assert.equal(requestUrl.includes('emailMessage'), false);
+    assert.equal(requestUrl.includes('sendNotificationEmail'), false);
+    assert.equal(
+        requestUrl,
+        'https://www.googleapis.com/drive/v3/files/file1/permissions?supportsAllDrives=true'
+    );
 
     const sentBody = JSON.parse(requestBodyText);
     assert.equal('emailMessage' in sentBody, false);

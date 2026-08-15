@@ -2787,9 +2787,6 @@
   "fulltext_importErrorNoCopyPermission": {
     "message": "コピーする権限がありません"
   },
-  "fulltext_importErrorSharedDrive": {
-    "message": "共有ドライブのファイルは未対応です"
-  },
   "fulltext_importErrorMetaFailed": {
     "message": "ファイル情報の取得に失敗しました: $1"
   },

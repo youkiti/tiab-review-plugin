@@ -183,7 +183,11 @@ test('deletePermission: DELETEメソッドと正しいURLでfetchを呼ぶ', asy
     await deletePermission('file1', 'perm1');
 
     assert.equal(requestMethod, 'DELETE');
-    assert.equal(requestUrl, 'https://www.googleapis.com/drive/v3/files/file1/permissions/perm1');
+    // supportsAllDrives=true は共有ドライブ対応で全 Drive API 呼び出しに付く（withSharedDriveParams）
+    assert.equal(
+        requestUrl,
+        'https://www.googleapis.com/drive/v3/files/file1/permissions/perm1?supportsAllDrives=true'
+    );
 });
 
 test('deletePermission: 204で正常に解決する', async () => {

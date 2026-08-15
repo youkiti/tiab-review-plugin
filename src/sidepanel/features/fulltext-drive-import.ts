@@ -170,8 +170,22 @@ interface ValidatedFile {
     existingCopyRefId?: string;
 }
 
+/**
+ * 共有ドライブ（`meta.driveId` が入っている）は**ブロックしない**。
+ *
+ * この分岐はかつて `meta.driveId` で共有ドライブを弾いていたが、`getDriveFileMetadata()` の
+ * `files.get` に `supportsAllDrives` が無かったため `driveId` を読む前に 404 で throw しており、
+ * 一度も到達していなかった（2026-08-15 実測）。パラメータを全経路へ付けた時点でこの分岐は
+ * 生きたコードに変わり、**実測では読める共有ドライブ上のPDFを新たに弾き始める**ため、
+ * パラメータ付与とセットで削除した。
+ *
+ * 実測で分かっているのは「付与済みなら共有ドライブ上のファイルもメタデータ・実体とも読める」
+ * ことまでで、**共有ドライブ上のPDFをマイドライブの fulltext フォルダへ `files.copy` する経路は
+ * 直接は測定していない**（測定したのは逆向き＝マイドライブ→共有ドライブ）。ここで事前に弾くより、
+ * 失敗したら copy 本体のエラーがそのまま出る方が実態に合うと判断している。
+ * 詳細は AGENTS.md「共有ドライブ（Shared drives）で実測して確定した挙動」。
+ */
 function classifyBlockedReason(meta: DriveFileMetadata): string | null {
-    if (meta.driveId) return t('fulltext_importErrorSharedDrive');
     if (meta.trashed) return t('fulltext_importErrorTrashed');
     if (meta.mimeType !== 'application/pdf') return t('fulltext_importErrorNotPdf', meta.mimeType || '?');
     if (!meta.capabilities?.canCopy) return t('fulltext_importErrorNoCopyPermission');

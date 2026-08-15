@@ -756,9 +756,13 @@ Drive アクセスを扱うコードでは次を守ること:
 - **`files.copy`（`POST /files/{id}/copy`）でも同じで、`drive.file` 未付与のフォルダを `parents` に指定して複製でき、指定した親も尊重される。** コピー元は Picker で付与済みである必要がある（実フローと同じ前提）。**他人所有＋共有フォルダでのみ実測**（自己所有では未実測）（`scripts/drive-file-probe/`、Issue #68 / PR #70）
 - **子ファイルを作成しても、親フォルダ自体には `drive.file` は付与されない**（作成後も親フォルダの `files.get` は404のまま。複製でも同じことを確認した）
 
-#### 共有ドライブ（Shared drives）で実測して確定した挙動（2026-08-15。再検証不要）
+#### 共有ドライブ（Shared drives）で実測して確定した挙動（2026-08-15）
 
-Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-drive-*` シナリオで実測した（レポートは `output/2026-08-15T06-*`）。測定は Google Workspace の共有ドライブ上に Drive UI で手作業に作ったフィクスチャに対し、そのドライブのメンバーとして実施した。
+Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-drive-*` シナリオで実測した。測定は Google Workspace の共有ドライブ上に Drive UI で手作業に作ったフィクスチャに対し、そのドライブのメンバーとして実施した。
+
+**「再検証不要」なのは下記「Drive API v3 のパラメータ要否」だけ**。これは Drive API の仕様なので確定扱いでよい。**Picker の節は UI の挙動であり、Google 側の変更を受けるうえ本番と同じ構成では測っていない**（後述）ので、前提として使うときは実機で確かめること。
+
+生の測定レポートは実行した端末の `scripts/drive-file-probe/output/2026-08-15T06-*` にあり、`output/` は `.gitignore` 済みのためリポジトリには入っていない。**再現したい場合はレポートを探すのではなく、`scripts/drive-file-probe/README.md` の手順でシナリオを実行し直すこと**（フィクスチャの作り方も README にある）。
 
 **Drive API v3 のパラメータ要否（付与済みのファイル・フォルダに対して）**
 
@@ -770,7 +774,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 | `files.copy` | **必須** | 404 同上 |
 | `alt=media`（実体取得） | **不要** | — |
 
-- **`alt=media` だけが例外。** 付与さえあればパラメータ無しで本物の PDF が返る（`application/pdf`、先頭 `%PDF-`）。**「メタデータは読めないのに実体は読める」という非対称が実在する**ので、`files.get` の成否で `alt=media` の可否を推定してはならない
+- **`alt=media` だけが例外。** 付与さえあればパラメータ無しで本物の PDF が返る（`application/pdf`、先頭 `%PDF-`）。**「メタデータは読めないのに実体は読める」という非対称が実在する**ので、`files.get` の成否で `alt=media` の可否を推定してはならない。**ただし「不要」であって「付けてはいけない」ではない**（同じ測定で `alt=media` + `supportsAllDrives` も成功を確認済み）。実装は例外を作らず一律で付ける方針にしている（後述）
 - **`files.list` の失敗が最も危険。** パラメータが無いと 200 + 0件を返し、「フォルダが空」と区別がつかない。`listAccessibleFileIdsInFolder()` がこれに乗っているため、パラメータを付けないと共有ドライブでは**常に「読めるファイルは1つも無い」と誤答**する
 - **`files.list` は過大報告しない。** パラメータを付けた場合、返るのは付与済みのファイルだけ。3本入りフォルダで 0本付与→0件、1本付与→1件、と混合状態でも確認済み。マイドライブと同じ意味論で信頼してよい
 - **書き込みは既存の性質がそのまま成立する。** パラメータさえ付ければ、`drive.file` 未付与の共有ドライブフォルダを `parents` に指定して `files.create` / `files.copy` できる。`files.get` で取り直した `parents` も指定どおりで、マイドライブ直下へ逃げることはない。書き込みの副作用で親フォルダが付与されることも無い（4回の書き込み後も親は404のまま）
@@ -778,14 +782,20 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 **Picker の挙動（`setEnableDrives(true)` 無し＝現行仕様）**
 
+**この節だけは本番と同じ構成で測っていない。** 測定ハーネス（`scripts/drive-file-probe/probe.js` の `openPicker`）は `DocsView` 1枚だが、本体（`src/webapp/picker.ts` の `buildDocsViews`）は自分所有ビュー + `setOwnedByMe(false)` の共有アイテムビューの2枚構成で、PDFモードではさらに `setParent(fulltextフォルダ)` を掛けている。`setParent` を掛けた状態で共有ドライブ上のファイルがどう見えるかは**未測定**。
+
 - **共有ドライブへナビゲーションから辿る導線は無い**（左メニューに共有ドライブの項目が出ない）
-- **しかし共有ドライブ上のファイルは既定の一覧に直接現れ、選択でき、`drive.file` の付与も成立する。** 選択した ID と対象 ID の機械照合で確認済み
+- **しかし共有ドライブ上のファイルは既定の一覧に直接現れ、選択でき、`drive.file` の付与も成立する。** 選択した ID と対象 ID の機械照合で確認済み。**付与が成立すること自体は Google 側の挙動なので、ビュー構成が違っても変わらない**
 - したがって **Issue #80 が前提としていた「Picker に一切出てこないため詰む・迂回策が無い」は誤り**。`setEnableDrives(true)` は必須の修正ではなく、ナビゲーション性の改善である
 
-**実装への含意**
+**実装（フェーズ1で対応済み）**
 
-- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の `meta.driveId` による共有ドライブ判定は到達不能な死んだコード。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無いため、`driveId` を読む前に 404 で throw する。`fulltext_importErrorSharedDrive` は一度も表示されていない
-- **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。パラメータを全経路に付けて初めて 404 が未付与を意味するようになる。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
+- **Drive API を叩くURLは必ず `withSharedDriveParams()`（`src/lib/drive-shared-drive.ts`）を通すこと。** 呼び出しごとに要否を判断せず**全経路へ機械的に付ける**方針にしている。`item`（単一リソース）は `supportsAllDrives`、`list`（`files.list`）は `includeItemsFromAllDrives` も付く。マイドライブのファイルには無害なので出し分けはしない。`corpora=drive&driveId=` を足す実装を新設しないこと
+- 適用先は `src/lib/drive-api.ts` の13箇所と **`src/lib/sheets-api.ts` の5箇所**（`getRecentSpreadsheets` の `files.list`、permissions の list/create/delete、`isUserAdmin` の capabilities）。特に `getRecentSpreadsheets` は `files.list` なので、欠けると**共有ドライブ上のスプレッドシートが一覧から黙って消える**
+- **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は URL を直接見張る `tests/drive-shared-drive.test.ts` で検出する
+- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
+- **共有ドライブ上のPDF → マイドライブの fulltext フォルダへの `files.copy` は未測定**（測ったのは逆向き）。事前にブロックせず、失敗したら copy 本体のエラーをそのまま見せる形にしている
+- **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。全経路にパラメータが付いて初めて 404 が未付与を意味する。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
 
 #### 読めなくなった PDF の復旧（対策 C'）
 

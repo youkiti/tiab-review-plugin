@@ -17,6 +17,7 @@ import {
     saveProjectDriveFolderId,
 } from './sheets-api';
 import type { ImportedCopyMatch } from './drive-import-action';
+import { withSharedDriveParams } from './drive-shared-drive';
 import { t } from './i18n';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
@@ -45,8 +46,6 @@ export interface DriveFileMetadata {
     trashed: boolean;
     capabilities?: { canCopy?: boolean; canTrash?: boolean };
     appProperties?: Record<string, string>;
-    /** 共有ドライブ配下のファイルにのみ付与される。マイドライブのファイルには存在しない。 */
-    driveId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +135,7 @@ export async function resolveFolderState(folderId: string): Promise<FolderAccess
     try {
         const token = await getAuthToken();
         resp = await fetch(
-            `${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`,
+            withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(folderId)}?fields=id,trashed`),
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
     } catch {
@@ -203,7 +202,7 @@ export function extractDriveFileId(url: string): string | null {
 export async function downloadDriveFile(fileId: string): Promise<Blob> {
     const token = await getAuthToken();
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`),
         { headers: { 'Authorization': `Bearer ${token}` } }
     );
     if (!resp.ok) {
@@ -226,7 +225,7 @@ export async function downloadDriveFile(fileId: string): Promise<Blob> {
 export async function deleteDriveFile(fileId: string): Promise<void> {
     const token = await getAuthToken();
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}`),
         {
             method: 'PATCH',
             headers: {
@@ -259,7 +258,7 @@ async function createFolder(name: string, parentId?: string, colorRgb?: string):
     if (parentId) metadata.parents = [parentId];
     if (colorRgb) metadata.folderColorRgb = colorRgb;
 
-    const resp = await fetch(`${DRIVE_API_BASE}/files?fields=id`, {
+    const resp = await fetch(withSharedDriveParams(`${DRIVE_API_BASE}/files?fields=id`), {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -290,7 +289,7 @@ async function findFolderInRoot(name: string): Promise<string | null> {
             'trashed=false',
         ].join(' and ');
         const resp = await fetch(
-            `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`,
+            withSharedDriveParams(`${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`, 'list'),
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
         if (!resp.ok) return null;
@@ -319,7 +318,7 @@ async function moveFileToFolder(fileId: string, parentId: string): Promise<void>
     const token = await getAuthToken();
     // 現在の親（通常は 'root'）を取得して removeParents に渡す
     const getResp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=parents`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=parents`),
         { headers: { 'Authorization': `Bearer ${token}` } }
     );
     let removeParents = '';
@@ -332,7 +331,7 @@ async function moveFileToFolder(fileId: string, parentId: string): Promise<void>
     if (removeParents) params.set('removeParents', removeParents);
 
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${params.toString()}`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?${params.toString()}`),
         {
             method: 'PATCH',
             headers: {
@@ -361,7 +360,7 @@ async function assertSpreadsheetOwnedByCurrentUser(spreadsheetId: string): Promi
     let resp: Response;
     try {
         resp = await fetch(
-            `${DRIVE_API_BASE}/files/${encodeURIComponent(spreadsheetId)}?fields=ownedByMe`,
+            withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(spreadsheetId)}?fields=ownedByMe`),
             { headers: { 'Authorization': `Bearer ${token}` } }
         );
     } catch {
@@ -509,7 +508,7 @@ export async function uploadPdfToDrive(
     ]);
 
     const resp = await fetch(
-        `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,webViewLink`,
+        withSharedDriveParams(`${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,webViewLink`),
         {
             method: 'POST',
             headers: {
@@ -536,14 +535,15 @@ export async function uploadPdfToDrive(
 /**
  * Drive ファイルのメタデータを取得する（Picker選択直後の検証用）。
  * Picker自体のMIME絞り込みは信用せず、mimeType の再確認や canCopy/canTrash の確認に使う。
- * driveId は共有ドライブ配下のファイルにのみ付与されるため、Shared Drive検出にも使う
- * （V1はMy Drive限定。共有ドライブは検出してブロックする）。
+ * 共有ドライブ配下のファイルも対象（かつては driveId で検出してブロックしていたが、
+ * その分岐は到達不能なうえ実測と矛盾していたため撤去した。fulltext-drive-import.ts の
+ * classifyBlockedReason 参照）。
  */
 export async function getDriveFileMetadata(fileId: string): Promise<DriveFileMetadata> {
     const token = await getAuthToken();
-    const fields = 'id,name,mimeType,size,parents,trashed,driveId,capabilities(canCopy,canTrash),appProperties';
+    const fields = 'id,name,mimeType,size,parents,trashed,capabilities(canCopy,canTrash),appProperties';
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`),
         { headers: { 'Authorization': `Bearer ${token}` } }
     );
     if (!resp.ok) {
@@ -568,7 +568,7 @@ export async function copyPdfToFulltextFolder(
 ): Promise<DriveFileInfo> {
     const token = await getAuthToken();
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files/${encodeURIComponent(sourceFileId)}/copy?fields=id,webViewLink`),
         {
             method: 'POST',
             headers: {
@@ -639,7 +639,7 @@ export async function findImportedCopy(
     const q = buildImportedCopyQuery(sourceFileId, spreadsheetId);
     const fields = 'files(id,webViewLink,appProperties)';
     const resp = await fetch(
-        `${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=1`,
+        withSharedDriveParams(`${DRIVE_API_BASE}/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&pageSize=1`, 'list'),
         { headers: { 'Authorization': `Bearer ${token}` } }
     );
     if (!resp.ok) {
@@ -679,6 +679,9 @@ const MAX_FOLDER_LIST_PAGES = 20;
  *   ここで得られた files[] の中身だけを「読める/読めない」の根拠にしてよい。
  * - Picker でフォルダを選択しても配下ファイルへは一切カスケードしない（別途確定済みの事実）。
  *   つまり Drive 側から「読めないファイル」を列挙する経路はこの API しか無い。
+ * - **共有ドライブでは `supportsAllDrives` + `includeItemsFromAllDrives` が必須**（2026-08-15 実測）。
+ *   欠けていると 200 + 0件を返すため「フォルダが空」と区別が付かず、共有ドライブ上のPDFを
+ *   常に「読めない」と誤判定して無駄な再付与Pickerを出す。`withSharedDriveParams` を外さないこと。
  *
  * PDFが1000件を超えるプロジェクトで取りこぼすと「読めない」と誤判定し無駄なPickerを
  * 出してしまうため、nextPageToken は MAX_FOLDER_LIST_PAGES に達するまで追う。上限に達した
@@ -702,7 +705,7 @@ export async function listAccessibleFileIdsInFolder(folderId: string): Promise<S
 
         let resp: Response;
         try {
-            resp = await fetch(`${DRIVE_API_BASE}/files?${params.toString()}`, {
+            resp = await fetch(withSharedDriveParams(`${DRIVE_API_BASE}/files?${params.toString()}`, 'list'), {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
         } catch {
