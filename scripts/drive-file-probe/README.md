@@ -41,6 +41,21 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
   検証済みだが、`files.copy` は別エンドポイントのため未検証。実装側の該当箇所は
   `src/lib/drive-api.ts` の `copyPdfToFulltextFolder()`。必要な `--input`: `folderId`（未付与フォルダの
   ID）, `sourceFileId`（複製元となる未付与PDFのID）。
+- **`shared-drive-grant`**（`scenarios/shared-drive-grant.mjs`）: 共有ドライブ上のファイルに対して
+  ①Picker が共有ドライブを表示するか ②Picker 選択で `drive.file` の付与が起きるか ③付与後
+  `supportsAllDrives` 無しでも読めるのかを測定する（GitHub Issue #80 フェーズ0）。「共有ドライブが
+  読めない」原因が未付与なのかパラメータ欠落なのかを区別する。必要な `--input`: `folderId`（共有ドライブ
+  上の未付与フォルダのID）, `fileId`（フォルダ内の未付与PDFのID）。
+- **`shared-drive-list`**（`scenarios/shared-drive-list.mjs`）: 本体の
+  `listAccessibleFileIdsInFolder()`（`src/lib/drive-api.ts:689`）に相当する「フォルダ配下の付与済み
+  ファイル一覧」が共有ドライブで機能するか、機能するにはどのパラメータ（`supportsAllDrives` /
+  `includeItemsFromAllDrives` / `corpora=drive&driveId=...`）が要るかを測定する（GitHub Issue #80
+  フェーズ0）。必要な `--input`: `folderId`（共有ドライブ上の未付与フォルダのID）, `fileIds`（フォルダ内の
+  未付与PDF3本のIDをカンマ区切りで指定）。
+- **`shared-drive-write`**（`scenarios/shared-drive-write.mjs`）: 未付与フォルダへ `files.create` /
+  `files.copy` で書き込めるという既存3シナリオの性質が、共有ドライブ配下のフォルダでも成り立つかを
+  測定する（GitHub Issue #80 フェーズ0）。必要な `--input`: `folderId`（共有ドライブ上の**空の**未付与
+  フォルダのID）, `sourceFileId`（**マイドライブ上の**未付与PDFのID）。
 
 ## 前提
 
@@ -76,6 +91,24 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
   共有アイテム側に置くと選択時に見つけられず手間取るため。また、実際の取り込みフロー（アプリの
   本番機能）でも取り込む側は自分の Drive にある PDF を選ぶため、そちらの方が実条件にも合います）。
 
+### 共有ドライブ版のフィクスチャ
+
+`shared-drive-grant` / `shared-drive-list` / `shared-drive-write` の3シナリオには、共有ドライブ
+（Shared drives）上のフォルダ・PDF が要ります。**共有ドライブは Google Workspace の Business
+Standard プラン以上でないと作成できません**（個人アカウントや下位プランでは共有ドライブ自体が
+作れないため、このシナリオは実行できません）。
+
+共有ドライブを1つ作成し、その中に次の構成をあらかじめ用意してください（いずれも Drive UI で
+手作業に作成し、拡張機能やこのハーネス経由では作らないこと。上記「フィクスチャの作り方」の
+注意がそのまま当てはまります）。
+
+- フォルダ + 未付与PDF 1本（`shared-drive-grant` 用）
+- フォルダ + 未付与PDF 3本（`shared-drive-list` 用）
+- **空の**フォルダ（`shared-drive-write` 用のコピー先。中身は不要）
+
+加えて、マイドライブに未付与PDF 1本（`shared-drive-write` のコピー元。コピー先の共有ドライブ
+フォルダには置かないこと）。
+
 ## 実行例
 
 ```bash
@@ -89,6 +122,19 @@ node scripts/drive-file-probe/run.mjs --scenario folder-cascade --profile owner 
 # copy-to-ungranted-folder シナリオを実行する
 node scripts/drive-file-probe/run.mjs --scenario copy-to-ungranted-folder --profile owner \
   --input folderId=<未付与フォルダのID> --input sourceFileId=<複製元の未付与PDFのID>
+
+# shared-drive-grant シナリオを実行する
+node scripts/drive-file-probe/run.mjs --scenario shared-drive-grant --profile owner \
+  --input folderId=<共有ドライブ上の未付与フォルダのID> --input fileId=<フォルダ内の未付与PDFのID>
+
+# shared-drive-list シナリオを実行する
+node scripts/drive-file-probe/run.mjs --scenario shared-drive-list --profile owner \
+  --input folderId=<共有ドライブ上の未付与フォルダのID> \
+  --input fileIds=<未付与PDF1のID>,<未付与PDF2のID>,<未付与PDF3のID>
+
+# shared-drive-write シナリオを実行する
+node scripts/drive-file-probe/run.mjs --scenario shared-drive-write --profile owner \
+  --input folderId=<共有ドライブ上の空の未付与フォルダのID> --input sourceFileId=<マイドライブ上の未付与PDFのID>
 ```
 
 - `--profile <name>`: 永続プロファイルディレクトリ `profile/<name>/` を使う（既定 `default`）。
@@ -140,10 +186,10 @@ export default {
 | --- | --- |
 | `ctx.input` | `--input` で渡された値のオブジェクト（`{ folderId: '...' }` 等）。 |
 | `await ctx.signIn()` | `#signin` ボタンをクリックしてサインインする。`window.__probe.state.signedIn` が `true` になるまで最大5分ポーリングで待つ。完了するとメールアドレスを返す。 |
-| `await ctx.measure(label, targets)` | `window.__probe.measure(targets)` をページ内で実行し、結果を記録してターミナルにも表で出す。`targets` は `[{ label, kind, id }]`（`kind` は `'meta'` / `'media'` / `'list'`）。戻り値は `[{ label, kind, id, status, ok, body }]`。 |
-| `await ctx.upload(label, { folderId, name, content })` | `window.__probe.uploadFile({ folderId, name, content })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, webViewLink }`）。 |
-| `await ctx.copy(label, { sourceFileId, folderId, name, appProperties })` | `window.__probe.copyFile({ sourceFileId, folderId, name, appProperties })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, parents, webViewLink }`）。 |
-| `await ctx.pick(options, instruction)` | `#open-picker` をクリックして Picker を開く。`instruction`（日本語）をターミナルへ表示し、`window.__probe.state.pickResult` が入るまで最大5分ポーリングで待つ。`options` は `{ selectFolder, mimeTypes, parentId }`。キャンセルされていたら例外を投げる。 |
+| `await ctx.measure(label, targets)` | `window.__probe.measure(targets)` をページ内で実行し、結果を記録してターミナルにも表で出す。`targets` は `[{ label, kind, id, allDrives, driveId }]`（`kind` は `'meta'` / `'media'` / `'list'`。`allDrives` は既定 false で、共有ドライブ用パラメータ（`supportsAllDrives` 等）を付けるかどうか。`driveId` は `list` のみ有効で、指定すると `corpora=drive&driveId=<driveId>` を追加する）。戻り値は `[{ label, kind, id, allDrives, corporaDriveId, status, ok, body, summary }]`。`allDrives` はそのターゲットで `supportsAllDrives` 等を付けたかどうかの実測フラグ。`corporaDriveId` は**リクエストに指定した** `corpora=drive&driveId=` の値であり、ファイルが実際に属する共有ドライブのID（レスポンス側の `body.driveId`）とは別物なので混同しないこと（`driveId` を指定しなかったターゲットでは `undefined`）。 |
+| `await ctx.upload(label, { folderId, name, content, allDrives })` | `window.__probe.uploadFile({ folderId, name, content, allDrives })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, webViewLink }`）。`allDrives`（既定 false）を立てると `supportsAllDrives=true` を付与する。 |
+| `await ctx.copy(label, { sourceFileId, folderId, name, appProperties, allDrives })` | `window.__probe.copyFile({ sourceFileId, folderId, name, appProperties, allDrives })` をページ内で実行し、結果を記録してターミナルにも表で出す。戻り値は `{ status, ok, body }`（成功時の `body` は `{ id, name, parents, webViewLink }`）。`allDrives`（既定 false）を立てると `supportsAllDrives=true` を付与する。 |
+| `await ctx.pick(options, instruction, pickOpts)` | `#open-picker` をクリックして Picker を開く。`instruction`（日本語）をターミナルへ表示し、`window.__probe.state.pickResult` が入るまで最大5分ポーリングで待つ。`options` は `{ selectFolder, mimeTypes, parentId, enableDrives, multiSelect }`（`enableDrives` は共有ドライブを Picker に表示するか、`multiSelect` は複数選択を許可するか。いずれも既定 false）。`pickOpts.allowCancel`（既定 false）を立てるとキャンセルを正常系として扱い `null` を返す。未指定時はキャンセルされると例外を投げる。 |
 | `await ctx.ask(question)` | ターミナルから人間に一行入力させ、trim して返す。 |
 | `ctx.note(text)` | `report.md` へ地の文として追記する。 |
 | `ctx.fail(message)` | 前提が崩れたときに測定を中断する。`report.md` に `[中断] <message>` を残して処理を止める（クラッシュとしては扱わない）。 |

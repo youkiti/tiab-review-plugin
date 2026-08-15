@@ -194,8 +194,11 @@ function buildCtx({ page, inputs, log }) {
          * window.__probe.uploadFile({ folderId, name, content }) をページ内で実行し、
          * 結果を記録・表示する。measure() と同じ「1引数のオブジェクトを渡す」書式に揃える。
          */
-        async upload(label, { folderId, name, content }) {
-            const result = await page.evaluate((t) => window.__probe.uploadFile(t), { folderId, name, content });
+        async upload(label, { folderId, name, content, allDrives }) {
+            const result = await page.evaluate(
+                (t) => window.__probe.uploadFile(t),
+                { folderId, name, content, allDrives }
+            );
             console.log(`\n=== アップロード: ${label} ===`);
             console.table([
                 {
@@ -212,7 +215,7 @@ function buildCtx({ page, inputs, log }) {
             log.push({
                 type: 'upload',
                 label,
-                params: { folderId, name, content },
+                params: { folderId, name, content, allDrives },
                 result,
                 at: new Date().toISOString(),
             });
@@ -223,10 +226,10 @@ function buildCtx({ page, inputs, log }) {
          * window.__probe.copyFile({ sourceFileId, folderId, name, appProperties }) をページ内で
          * 実行し、結果を記録・表示する。upload() と同じ「1引数のオブジェクトを渡す」書式に揃える。
          */
-        async copy(label, { sourceFileId, folderId, name, appProperties }) {
+        async copy(label, { sourceFileId, folderId, name, appProperties, allDrives }) {
             const result = await page.evaluate(
                 (t) => window.__probe.copyFile(t),
-                { sourceFileId, folderId, name, appProperties }
+                { sourceFileId, folderId, name, appProperties, allDrives }
             );
             console.log(`\n=== 複製: ${label} ===`);
             console.table([
@@ -245,7 +248,7 @@ function buildCtx({ page, inputs, log }) {
             log.push({
                 type: 'copy',
                 label,
-                params: { sourceFileId, folderId, name, appProperties },
+                params: { sourceFileId, folderId, name, appProperties, allDrives },
                 result,
                 at: new Date().toISOString(),
             });
@@ -256,10 +259,19 @@ function buildCtx({ page, inputs, log }) {
          * #open-picker を page.click() で開く。Picker は docs.google.com の
          * クロスオリジン iframe なので、中身をセレクタで自動操作しようとせず、
          * 人間がクリックする前提で待つだけの設計にしてある。
+         *
+         * pickOpts.allowCancel（既定 false）を立てると、キャンセルを例外ではなく
+         * 正常系として扱い null を返す。「Picker に共有ドライブが出ないことを人間に
+         * 確認してもらい、そのままキャンセルさせる」といった測定に使う。
+         * 未指定時は従来どおりキャンセルで例外を投げる。
          */
-        async pick(options, instruction) {
+        async pick(options, instruction, pickOpts = {}) {
+            const { allowCancel = false } = pickOpts;
             console.log('\n=== Picker 操作が必要です ===');
             console.log(instruction);
+            if (options?.enableDrives) {
+                console.log('（enableDrives: 有効 — 共有ドライブが表示される設定の Picker です）');
+            }
             console.log('（最大5分待機します）');
             await page.evaluate((opts) => {
                 window.__probe.pickOptions = opts;
@@ -268,8 +280,9 @@ function buildCtx({ page, inputs, log }) {
             await page.click('#open-picker');
             await waitForPageCondition(() => !!window.__probe.state.pickResult, 5 * 60 * 1000, 'Picker 操作');
             const result = await page.evaluate(() => window.__probe.state.pickResult);
-            log.push({ type: 'pick', options, instruction, result, at: new Date().toISOString() });
+            log.push({ type: 'pick', options, instruction, result, allowCancel, at: new Date().toISOString() });
             if (result && result.cancelled) {
+                if (allowCancel) return null;
                 throw new Error('Picker がキャンセルされました。');
             }
             return result;
@@ -342,6 +355,9 @@ function renderReport({ scenario, opts, log, aborted, abortMessage, startedAt, f
             case 'pick':
                 lines.push('## Picker 操作');
                 lines.push('');
+                // enableDrives の有無は人間が後から見て「どちらの Picker だったか」を
+                // 取り違えると測定が無意味になるため、ハーネス側で必ず記録する。
+                lines.push(`- enableDrives: ${entry.options?.enableDrives ? '有効' : '無効'}`);
                 lines.push(`- 案内文: ${entry.instruction}`);
                 lines.push(`- 選択結果: \`${JSON.stringify(entry.result)}\``);
                 lines.push('');
