@@ -1,5 +1,5 @@
 import { getMessage } from '../platform/web/i18n';
-import { isExtensionRedirectUri } from '../lib/picker-url';
+import { isExtensionRedirectUri, isSharedDrivesRequested, PICKER_DRIVES_PARAM } from '../lib/picker-url';
 
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 declare const __PICKER_API_KEY__: string;
@@ -109,17 +109,29 @@ function returnGrantedCountToExtension(redirectUri: string, count: number): void
  * （片方だけに適用すると、オーナー本人か共有を受けた側かのどちらかで従来どおり出てこない）。
  * ラベルはビューごとに異なる値のため configure の外で個別に設定する。既定ラベルのままだと
  * 同名タブが2つ並んで見分けが付かなくなるため（PR #77）。
+ *
+ * enableDrives は共有ドライブ（Shared drives）をビューの対象に含めるかどうか（Issue #80）。
+ * **2枚とも同じ値を適用する。** 共有ドライブ上のファイルは組織（ドライブ自身）が所有し、
+ * 個人オーナーが存在しないため `ownedByMe` のどちら側に落ちるかが自明でなく、片方だけに
+ * 適用すると環境によって出たり出なかったりする不安定な状態を作りうるため。
  */
 function buildDocsViews(
     viewId: google.picker.ViewId,
     configure: (view: google.picker.DocsView) => void,
+    enableDrives: boolean,
 ): [google.picker.DocsView, google.picker.DocsView] {
+    const applyDrives = (view: google.picker.DocsView): void => {
+        // 無効時は呼ばない（既定の挙動をそのまま維持し、setEnableDrives(false) の解釈に依存しないため）
+        if (enableDrives) view.setEnableDrives(true);
+    };
     const ownedView = new google.picker.DocsView(viewId);
     ownedView.setLabel(t('picker_ownedViewLabel'));
+    applyDrives(ownedView);
     configure(ownedView);
     const sharedView = new google.picker.DocsView(viewId);
     sharedView.setOwnedByMe(false);
     sharedView.setLabel(t('picker_sharedViewLabel'));
+    applyDrives(sharedView);
     configure(sharedView);
     return [ownedView, sharedView];
 }
@@ -131,11 +143,11 @@ function buildDocsViews(
  * 共有アイテムビューも addView する（Issue #75）。
  * PICKED/CANCEL のいずれも window.location.href で拡張機能のリダイレクトURIへ遷移して結果を返す。
  */
-function openPdfPicker(token: string, folderId: string | null, redirectUri: string): void {
+function openPdfPicker(token: string, folderId: string | null, redirectUri: string, enableDrives: boolean): void {
     const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.DOCS, (view) => {
         view.setMimeTypes('application/pdf');
         if (folderId) view.setParent(folderId);
-    });
+    }, enableDrives);
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
@@ -179,11 +191,11 @@ function openPdfPicker(token: string, folderId: string | null, redirectUri: stri
  * フルテキスト用フォルダはプロジェクトのオーナーが所有し共同研究者に共有される運用のため、
  * openPdfPicker と同様に共有アイテムビューも addView する（Issue #75）。
  */
-function openRegrantPicker(token: string, folderId: string | null, redirectUri: string): void {
+function openRegrantPicker(token: string, folderId: string | null, redirectUri: string, enableDrives: boolean): void {
     const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.DOCS, (view) => {
         view.setMimeTypes('application/pdf');
         if (folderId) view.setParent(folderId);
-    });
+    }, enableDrives);
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
@@ -215,10 +227,10 @@ function openRegrantPicker(token: string, folderId: string | null, redirectUri: 
  * fileId が指定されている場合は両方のビューに setFileIds する（片方だけだと、
  * シートのオーナーか共有を受けた側かのどちらかで従来どおり出てこないままになる）。
  */
-function openPicker(token: string, fileId: string | null): void {
+function openPicker(token: string, fileId: string | null, enableDrives: boolean): void {
     const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.SPREADSHEETS, (view) => {
         if (fileId) view.setFileIds(fileId);
-    });
+    }, enableDrives);
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const picker = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
@@ -255,6 +267,10 @@ async function start(ignoreFileId = false): Promise<void> {
     const fileId = ignoreFileId ? null : params.get('fileId');
     const expectedEmail = params.get('email');
     const redirectUri = (isPdfMode || isRegrantMode) ? params.get('redirect') : null;
+    // 共有ドライブ対応は拡張機能が drives=1 を明示的に渡したときだけ有効にする。
+    // Pickerページは GitHub Pages から配信され旧バージョンの拡張機能にも即時反映されるため、
+    // ページ側で無条件に有効化しない（詳細は picker-url.ts の PICKER_DRIVES_PARAM）。
+    const enableDrives = isSharedDrivesRequested(params.get(PICKER_DRIVES_PARAM));
 
     // PDF/再付与モードは redirect が有効な拡張機能URIであることを fail-fast で検証する。
     // ここで弾かないと、ユーザーがGoogleサインイン→同意→ファイル選択まで終えた後に
@@ -278,11 +294,11 @@ async function start(ignoreFileId = false): Promise<void> {
         await loadPicker();
         if (isPdfMode) {
             // 上のfail-fastチェックを通過しているため、ここでは redirectUri は非nullかつ有効。
-            openPdfPicker(token, params.get('folderId'), redirectUri!);
+            openPdfPicker(token, params.get('folderId'), redirectUri!, enableDrives);
         } else if (isRegrantMode) {
-            openRegrantPicker(token, params.get('folderId'), redirectUri!);
+            openRegrantPicker(token, params.get('folderId'), redirectUri!, enableDrives);
         } else {
-            openPicker(token, fileId);
+            openPicker(token, fileId, enableDrives);
         }
     } catch (error) {
         setStatus(t('picker_error', (error as Error).message));

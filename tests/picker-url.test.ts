@@ -5,17 +5,19 @@ import {
     buildPdfPickerUrl,
     buildRegrantPickerUrl,
     isExtensionRedirectUri,
+    isSharedDrivesRequested,
     PICKER_PAGE_URL,
 } from '../src/lib/picker-url';
 
 test('buildPickerUrl uses URL fragment for fileId and email', () => {
     const url = buildPickerUrl('sheet_123', 'reviewer@example.com', 'https://example.test/picker.html');
-    assert.equal(url, 'https://example.test/picker.html#fileId=sheet_123&email=reviewer%40example.com');
+    assert.equal(url, 'https://example.test/picker.html#fileId=sheet_123&email=reviewer%40example.com&drives=1');
     assert.equal(url.includes('?'), false);
 });
 
-test('buildPickerUrl omits empty fragment when no values are provided', () => {
-    assert.equal(buildPickerUrl(undefined, undefined), PICKER_PAGE_URL);
+test('buildPickerUrl still passes drives=1 when no other values are provided', () => {
+    // Issue #80: drives は拡張機能側の能力表明なので、他のパラメータの有無に関わらず必ず付ける
+    assert.equal(buildPickerUrl(undefined, undefined), `${PICKER_PAGE_URL}#drives=1`);
 });
 
 test('buildPdfPickerUrl sets mode=pdf and passes redirect/folderId/email via fragment', () => {
@@ -27,7 +29,7 @@ test('buildPdfPickerUrl sets mode=pdf and passes redirect/folderId/email via fra
     });
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=pdf&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com'
+        'https://example.test/picker.html#mode=pdf&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1'
     );
     assert.equal(url.includes('?'), false);
 });
@@ -39,7 +41,7 @@ test('buildPdfPickerUrl omits folderId/email when not provided', () => {
     });
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=pdf&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F'
+        'https://example.test/picker.html#mode=pdf&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F&drives=1'
     );
 });
 
@@ -52,7 +54,7 @@ test('buildRegrantPickerUrl sets mode=regrant and passes redirect/folderId/email
     });
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com'
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1'
     );
     assert.equal(url.includes('?'), false);
 });
@@ -65,8 +67,22 @@ test('buildRegrantPickerUrl omits email when not provided (folderId is always re
     });
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F&folderId=folder_2'
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F&folderId=folder_2&drives=1'
     );
+});
+
+test('isSharedDrivesRequested enables shared drives only for the exact flag value', () => {
+    assert.equal(isSharedDrivesRequested('1'), true);
+});
+
+test('isSharedDrivesRequested falls back to disabled for anything else', () => {
+    // 旧バージョンの拡張機能（drives を渡さない）は null になる。ここが true に倒れると
+    // GitHub Pages への配信だけで全ユーザーの挙動が変わってしまう（Issue #80 のゲートの要）
+    assert.equal(isSharedDrivesRequested(null), false);
+    assert.equal(isSharedDrivesRequested(undefined), false);
+    assert.equal(isSharedDrivesRequested(''), false);
+    assert.equal(isSharedDrivesRequested('0'), false);
+    assert.equal(isSharedDrivesRequested('true'), false);
 });
 
 test('isExtensionRedirectUri accepts valid 32-char chromiumapp.org redirect URIs', () => {

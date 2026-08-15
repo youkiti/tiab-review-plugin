@@ -18,6 +18,10 @@ declare namespace google.picker {
         // Picker上のタブに表示される見出し。既定ラベルのままだと、マイドライブ向けビューと
         // 共有アイテム向けビューが同名タブになり見分けが付かないため設定する。
         setLabel(label: string): DocsView;
+        // true で共有ドライブ（Shared drives）をビューの対象に含める。既定では共有ドライブへ辿る
+        // ナビゲーションが左メニューに出ない（Issue #80）。共有ドライブ上のファイル自体は既定でも
+        // 一覧に現れて選択・付与ができるため、これは必須の修正ではなくナビゲーション性の改善。
+        setEnableDrives(enable: boolean): DocsView;
     }
 
     class PickerBuilder {

@@ -780,7 +780,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **書き込みは既存の性質がそのまま成立する。** パラメータさえ付ければ、`drive.file` 未付与の共有ドライブフォルダを `parents` に指定して `files.create` / `files.copy` できる。`files.get` で取り直した `parents` も指定どおりで、マイドライブ直下へ逃げることはない。書き込みの副作用で親フォルダが付与されることも無い（4回の書き込み後も親は404のまま）
 - **`corpora=drive&driveId=` の追加指定は不要。** `supportsAllDrives` + `includeItemsFromAllDrives` だけで共有ドライブ配下に到達する
 
-**Picker の挙動（`setEnableDrives(true)` 無し＝現行仕様）**
+**Picker の挙動（`setEnableDrives(true)` 無しの状態で測定。フェーズ4の前提となったベースライン）**
 
 **この節だけは本番と同じ構成で測っていない。** 測定ハーネス（`scripts/drive-file-probe/probe.js` の `openPicker`）は `DocsView` 1枚だが、本体（`src/webapp/picker.ts` の `buildDocsViews`）は自分所有ビュー + `setOwnedByMe(false)` の共有アイテムビューの2枚構成で、PDFモードではさらに `setParent(fulltextフォルダ)` を掛けている。`setParent` を掛けた状態で共有ドライブ上のファイルがどう見えるかは**未測定**。
 
@@ -796,6 +796,15 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
 - **共有ドライブ上のPDF → マイドライブの fulltext フォルダへの `files.copy` は未測定**（測ったのは逆向き）。事前にブロックせず、失敗したら copy 本体のエラーをそのまま見せる形にしている
 - **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。全経路にパラメータが付いて初めて 404 が未付与を意味する。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
+
+**実装（フェーズ4: Picker の `setEnableDrives`）**
+
+- `buildDocsViews()`（`src/webapp/picker.ts`）は **`drives=1` がURLフラグメントで渡されたときだけ** `setEnableDrives(true)` を適用する。pdf / regrant / スプレッドシートの3モードすべてが同じ経路を通る
+- **ページ側で無条件に有効化してはならない。** Pickerページは GitHub Pages（`docs/app/`）から配信されており、拡張機能とはロールアウトが独立している。配信物を差し替えた瞬間、**旧バージョンの拡張機能を使っている全ユーザーにも反映される**。フラグメントでゲートしておけば配信順序に依存せず、ロールバックも拡張機能のビルド側で完結する
+- フラグ名とゲート判定は `src/lib/picker-url.ts`（`PICKER_DRIVES_PARAM` / `isSharedDrivesRequested()`）に集約し、`tests/picker-url.test.ts` で固定している。**`'1'` 以外は全て無効に倒す**（`null` = フラグを渡さない旧拡張機能を有効側に倒さないため）
+- `setEnableDrives(true)` は**2枚のビュー（自分所有・`setOwnedByMe(false)`）の両方**に適用する。共有ドライブ上のファイルは組織（ドライブ自身）が所有し個人オーナーが存在しないため、`ownedByMe` のどちら側に落ちるかが自明でない。片方だけに適用すると環境によって出たり出なかったりする
+- **この変更で新たに選べるようになるファイルは無い。** 上の測定のとおり、共有ドライブ上のファイルは `setEnableDrives` 無しでも一覧に現れて選択・付与ができる。効果はナビゲーション（左メニューから共有ドライブを辿れる）に限られる
+- **`setEnableDrives(true)` を付けたときに共有ドライブがナビゲーションに現れるかは未測定のまま**（フェーズ0の測定ではフィクスチャが先に消費され2回目の Picker に到達しなかった）。実機で確認すること
 
 #### 読めなくなった PDF の復旧（対策 C'）
 
