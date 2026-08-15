@@ -683,6 +683,11 @@ let lastReportedRateLimitHits = 0;
 /** 新しいバッチ実行を開始する直前に呼ぶ（前回実行の検出回数を持ち越さないため） */
 function resetThrottleNoticeState(): void {
     lastReportedRateLimitHits = 0;
+    // 7番: バナー要素自体も隠す。トーストのラッチだけ戻しても、前回実行の「検出N回」が
+    // 今回の1件目が終わるまで表示され続けてしまうため
+    if (throttleNoticeEl) {
+        throttleNoticeEl.classList.add('hidden');
+    }
 }
 
 /**
@@ -714,9 +719,19 @@ export function updateBatchProgress(progress: LlmBatchProgress) {
     dom.batchFailCount.textContent = progress.failed.toString();
     dom.batchFallbackCount.textContent = progress.parseErrorFallback.toString();
 
-    // 429 適応スロットリングで速度を落としている間だけ「減速中」を表示する
+    // 429 適応スロットリングで速度を落としている間だけ「減速中」を表示する。
+    // isThrottled は「並列度が既定未満 or 滞在時間が既定超 or クールダウン中」なので、
+    // 無料プロファイル（並列度・滞在時間が既にクランプ済みで変化しない）でもクールダウン中は
+    // true になる。onThrottleChange → syncProgressFromGovernor により、クールダウンが立った
+    // 瞬間に throttled=true の progress が飛ぶため、「1件完了時にしかサンプリングされないから
+    // 無料枠ユーザーに出ない」という問題は既に解消済み。クールダウンが明けるとバナーが消えるが、
+    // これは「実際に減速していない」ことを正しく表している（429ごとに出たり消えたりするのが正しい挙動）。
+    // rateLimitHits > 0 だけでは一度でも429を踏むと実行終了までバナーが出っぱなしになり、
+    // 「続行しています」という現在進行形の文言と矛盾するため使わない。
+    // 実行終了後（isRunning=false）は隠す（7番: 完全回復していない状態のまま実行が終わっても、
+    // 次のバッチ開始までバナーが残らないように）
     const throttleNotice = getOrCreateThrottleNotice();
-    if (progress.throttled) {
+    if (progress.isRunning && progress.throttled) {
         throttleNotice.textContent = t('llm_batchThrottled', String(progress.rateLimitHits));
         throttleNotice.classList.remove('hidden');
     } else {
