@@ -1,0 +1,15 @@
+{"ts":"2026-08-14T23:58:05.055Z","test":"detector","subject":"free","iteration":0,"tier":"free","status":"FAILED_PRECONDITION","elapsedMs":268,"message":"Precondition check failed."}
+{"ts":"2026-08-14T23:58:05.464Z","test":"detector","subject":"free","iteration":1,"tier":"free","status":"FAILED_PRECONDITION","elapsedMs":104,"message":"Precondition check failed."}
+{"ts":"2026-08-14T23:58:05.880Z","test":"detector","subject":"free","iteration":2,"tier":"free","status":"FAILED_PRECONDITION","elapsedMs":103,"message":"Precondition check failed."}
+{"ts":"2026-08-14T23:58:06.296Z","test":"detector","subject":"free","iteration":3,"tier":"free","status":"FAILED_PRECONDITION","elapsedMs":102,"message":"Precondition check failed."}
+{"ts":"2026-08-14T23:58:06.732Z","test":"detector","subject":"free","iteration":4,"tier":"free","status":"FAILED_PRECONDITION","elapsedMs":125,"message":"Precondition check failed."}
+{"ts":"2026-08-14T23:58:07.565Z","test":"detector","subject":"paid","iteration":0,"tier":"paid","status":"INVALID_ARGUMENT","elapsedMs":515,"message":"Must specify either an input file or a non-empty list of inlined requests"}
+{"ts":"2026-08-14T23:58:08.395Z","test":"detector","subject":"paid","iteration":1,"tier":"paid","status":"INVALID_ARGUMENT","elapsedMs":518,"message":"Must specify either an input file or a non-empty list of inlined requests"}
+{"ts":"2026-08-14T23:58:09.245Z","test":"detector","subject":"paid","iteration":2,"tier":"paid","status":"INVALID_ARGUMENT","elapsedMs":535,"message":"Must specify either an input file or a non-empty list of inlined requests"}
+{"ts":"2026-08-14T23:58:10.067Z","test":"detector","subject":"paid","iteration":3,"tier":"paid","status":"INVALID_ARGUMENT","elapsedMs":514,"message":"Must specify either an input file or a non-empty list of inlined requests"}
+{"ts":"2026-08-14T23:58:10.898Z","test":"detector","subject":"paid","iteration":4,"tier":"paid","status":"INVALID_ARGUMENT","elapsedMs":518,"message":"Must specify either an input file or a non-empty list of inlined requests"}
+{"ts":"2026-08-14T23:58:11.263Z","test":"detector_negative","name":"不正キー","tier":"invalid_key","status":"INVALID_ARGUMENT","elapsedMs":55,"message":"API key not valid. Please pass a valid API key."}
+{"ts":"2026-08-14T23:58:11.323Z","test":"detector_negative","name":"空文字キー","tier":"unknown","status":"PERMISSION_DENIED","elapsedMs":58,"message":"Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API."}
+{"ts":"2026-08-14T23:58:12.028Z","test":"detector_models","model":"gemini-2.5-flash","free":"free","paid":"paid","freeStatus":"FAILED_PRECONDITION","paidStatus":"INVALID_ARGUMENT"}
+{"ts":"2026-08-14T23:58:12.882Z","test":"detector_models","model":"gemini-3.1-flash-lite","free":"free","paid":"paid","freeStatus":"FAILED_PRECONDITION","paidStatus":"INVALID_ARGUMENT"}
+{"ts":"2026-08-14T23:58:13.648Z","test":"detector_models","model":"gemini-2.5-flash-lite","free":"free","paid":"paid","freeStatus":"FAILED_PRECONDITION","paidStatus":"INVALID_ARGUMENT"}
