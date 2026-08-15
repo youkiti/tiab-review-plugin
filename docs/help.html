@@ -204,6 +204,11 @@
             max-width: 340px;
         }
 
+        /* 縦横比が極端に縦長な画像用（例: AIタブ全景 1000x2000px）。本文幅いっぱいに広がらないよう狭める */
+        .help-img-figure.help-img-tall {
+            max-width: 300px;
+        }
+
         .faq-item {
             margin-bottom: 24px;
         }
@@ -774,6 +779,14 @@
                         OpenRouter API Key / 🔑 OpenAI API Key) and keys are stored independently. You only need a key
                         for at least one provider to use AI screening.</span>
                 </p>
+                <figure class="help-img-figure help-img-tall">
+                    <img class="help-img" src="images/faq-gemini/01-ai-tab-overview.png"
+                        alt="Overview of the AI tab settings screen, showing one API key card per provider">
+                    <figcaption>
+                        <span class="ja">AIタブの設定画面。プロバイダごとにAPIキーのカードが並ぶ</span>
+                        <span class="en">The AI tab's settings screen, with one API key card per provider</span>
+                    </figcaption>
+                </figure>
                 <p>
                     <span class="ja">1. Gemini: <a href="https://aistudio.google.com/app/apikey" target="_blank">Google
                             AI Studio</a> から API キーを取得します（<a href="https://ai.google.dev/gemini-api/docs/api-key"

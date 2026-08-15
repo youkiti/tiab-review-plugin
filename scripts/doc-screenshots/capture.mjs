@@ -3,16 +3,16 @@
 //
 // 使い方:
 //   npm run build:demo
-//   node scripts/doc-screenshots/capture.mjs [--out <出力ディレクトリ>] [--lang ja|en]
+//   npm run docs:screenshots -- [--out <出力ディレクトリ>] [--lang ja|en]
 //
 // 実データ・実アカウント・実APIキーを一切使わず、デモビルド（dist-demo/）を
 // Playwright で開いて撮る。拡張機能のロード方式は video/scripts/record.mjs と同じ
 // （launchPersistentContext + --load-extension）。
 //
 // 撮影対象はサイドパネル相当の縦長ビューポートで、原則「カード単位」で切り出す。
-// 全景が要る画面（一括実行の進捗など）だけページ全体を撮る。
+// 全景が要る画面（AIタブ全体の見取り図など）だけページ全体を撮る。
 
-import { mkdirSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -29,12 +29,34 @@ const DEVICE_SCALE_FACTOR = 2;
 // デモビルドの Gemini モックが受け付けるダミーキー（実キーではない）
 const DEMO_API_KEY = 'AIzaDemoKey1234567890';
 
+// 期待する出力ファイル一覧。docs/help.html がこの番号込みのファイル名を直接参照しているため、
+// 途中で1枚足す/消してもファイル名がズレないよう shot() には完全な名前を渡す。
+// 05 は「一括実行の進捗（完了状態）」を撮っていたが help.html から参照されなくなったため削除した、
+// 意図的な欠番（歯抜けのままにし、以降の番号はリネームしない）。
+const EXPECTED_SHOTS = [
+    '01-ai-tab-overview.png',
+    '02-api-key-card-empty.png',
+    '03-api-key-card-verified.png',
+    '04-model-select.png',
+    '06-threshold-section.png',
+    '07-history-run-pending.png',
+    '08-history-run-confirmed.png',
+];
+
 function parseArgs(argv) {
     const args = { out: path.join(REPO_ROOT, 'docs/images/faq-gemini'), lang: 'ja' };
     for (let i = 0; i < argv.length; i += 1) {
-        if (argv[i] === '--out') args.out = path.resolve(argv[++i]);
-        else if (argv[i] === '--lang') args.lang = argv[++i];
-        else throw new Error(`不明な引数: ${argv[i]}`);
+        if (argv[i] === '--out') {
+            const value = argv[++i];
+            if (value === undefined) throw new Error('--out には出力ディレクトリを指定してください');
+            args.out = path.resolve(value);
+        } else if (argv[i] === '--lang') {
+            const value = argv[++i];
+            if (value !== 'ja' && value !== 'en') throw new Error('--lang には ja または en を指定してください');
+            args.lang = value;
+        } else {
+            throw new Error(`不明な引数: ${argv[i]}`);
+        }
     }
     return args;
 }
@@ -61,10 +83,9 @@ async function main() {
         ],
     });
 
-    let shotIndex = 0;
+    // name は番号込みの完全なファイル名（拡張子なし）を渡す。EXPECTED_SHOTS と対応させること。
     const shot = async (name, target) => {
-        shotIndex += 1;
-        const file = path.join(outDir, `${String(shotIndex).padStart(2, '0')}-${name}.png`);
+        const file = path.join(outDir, `${name}.png`);
         await target.screenshot({ path: file });
         console.log(`撮影: ${path.relative(REPO_ROOT, file)}`);
     };
@@ -109,23 +130,23 @@ async function main() {
         await sleep(500);
 
         // 01: AIタブの全景（どこにAPIキーカードがあるか）
-        await shot('ai-tab-overview', page);
+        await shot('01-ai-tab-overview', page);
 
         // 02: APIキーカード（未入力）
         await expandCard(apiKeyCard);
-        await shot('api-key-card-empty', apiKeyCard);
+        await shot('02-api-key-card-empty', apiKeyCard);
 
         // 03: キー入力後（検証OK + プラン表示）
         await page.locator('#gemini-api-key').fill(DEMO_API_KEY);
         await page.locator('#gemini-api-key').dispatchEvent('change');
         await page.locator('#api-key-status').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
         await sleep(1200);
-        await shot('api-key-card-verified', apiKeyCard);
+        await shot('03-api-key-card-verified', apiKeyCard);
 
         // 04: 詳細設定（モデル選択）
         const detailCard = page.locator('.llm-card.collapsible', { has: page.locator('#llm-model-select') });
         await expandCard(detailCard);
-        await shot('model-select', detailCard);
+        await shot('04-model-select', detailCard);
 
         // --- 一括実行 ---
         await page.locator('#start-batch-btn').scrollIntoViewIfNeeded();
@@ -133,22 +154,21 @@ async function main() {
         await page.locator('#batch-progress:not(.hidden)').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
         await sleep(800);
 
-        // 05: 実行中の進捗
-        await page.locator('#batch-progress').scrollIntoViewIfNeeded();
-        await shot('batch-progress', page.locator('#batch-progress'));
+        // 05 は欠番（help.html から参照されなくなったため撮影自体を廃止。EXPECTED_SHOTS 参照）。
+        // ただし以降の 06（閾値セクション）に到達するため、一括実行の開始と進捗待ちは維持する。
 
         // 06: 閾値確認セクション（ここを確定しないと pending のまま）
         const thresholdSection = page.locator('#threshold-section');
         await page.locator('#threshold-section:not(.hidden)').waitFor({ state: 'visible', timeout: 120000 });
         await sleep(800);
         await thresholdSection.scrollIntoViewIfNeeded();
-        await shot('threshold-section', thresholdSection);
+        await shot('06-threshold-section', thresholdSection);
 
         // 07: 履歴の Run カード（閾値を確定する前 = 「未確定」表示）
         const historyCard = page.locator('.llm-card.collapsible', { has: page.locator('#execution-history') });
         await expandCard(historyCard);
         await sleep(500);
-        await shot('history-run-pending', historyCard);
+        await shot('07-history-run-pending', historyCard);
 
         // 08: 閾値を確定したあとの履歴（確定済み表示との対比用）
         const confirmBtn = page.locator('#confirm-threshold-btn');
@@ -157,12 +177,26 @@ async function main() {
             await page.locator('#toast.show').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
             await sleep(2500); // confirm() ダイアログの dismiss と履歴再読込を待つ
             await expandCard(historyCard);
-            await shot('history-run-confirmed', historyCard);
+            await shot('08-history-run-confirmed', historyCard);
         } else {
             console.warn('確定ボタンが見つからないため 08 はスキップしました');
         }
 
-        console.log(`\n完了: ${shotIndex} 枚を ${path.relative(REPO_ROOT, outDir)} に出力しました`);
+        // 期待した全ファイルが揃っているか検証する（08 のスキップもここで検知され非ゼロ終了する）
+        const missing = EXPECTED_SHOTS.filter((f) => !existsSync(path.join(outDir, f)));
+        if (missing.length > 0) {
+            throw new Error(`期待したスクリーンショットが揃いませんでした: ${missing.join(', ')}`);
+        }
+
+        // 撮影が全部成功した後にだけ、EXPECTED_SHOTS に含まれない古い png を掃除する。
+        // 撮影前に消すと、途中で落ちたときに git 管理下の既存画像が消えたまま残ってしまうため。
+        const staleFiles = readdirSync(outDir).filter((f) => f.endsWith('.png') && !EXPECTED_SHOTS.includes(f));
+        for (const f of staleFiles) rmSync(path.join(outDir, f));
+        if (staleFiles.length > 0) {
+            console.log(`削除: 不要になった .png ${staleFiles.length} 枚（${staleFiles.join(', ')}）を ${path.relative(REPO_ROOT, outDir)} から削除しました`);
+        }
+
+        console.log(`\n完了: ${EXPECTED_SHOTS.length} 枚を ${path.relative(REPO_ROOT, outDir)} に出力しました`);
     } finally {
         await context.close().catch(() => {});
         rmSync(profileDir, { recursive: true, force: true });
