@@ -1,5 +1,7 @@
 // types.ts - 型定義
 
+import type { LlmTargetMode } from './llm-target-selection';
+
 /**
  * フルテキストの入手状態
  * - not_retrieved: 未取得（省略時も同じ扱い）
@@ -116,6 +118,8 @@ export interface LlmConfig {
     llm_include_threshold: number;
     llm_max_output_tokens: number;
     llm_output_language: string;
+    llm_target_mode: LlmTargetMode;    // AI一括判定の対象の決め方（'all' | 'selection'）
+    llm_target_ref_ids: string;        // 選択モード時の対象 ref_id（カンマ区切り。未設定は空文字）
 }
 
 /**
@@ -158,6 +162,10 @@ export interface LlmExecution {
     status: 'pending' | 'confirmed';  // 確定状態（Run 側を正とする）
     is_active: boolean;               // 判定に使用するか（Run 側を正とする）
     run_id?: string;                  // 所属 Run の ID（移行前は空）
+    // 対象選択（既存行には無い列なので undefined を許容）
+    target_mode?: LlmTargetMode;      // 実行時の対象モード
+    target_sets?: string;             // 対象に含まれた担当セットIDのカンマ区切り（例 'calibration'）
+    target_selected_count?: number;   // 選択モードで選ばれていた件数
 }
 
 /**

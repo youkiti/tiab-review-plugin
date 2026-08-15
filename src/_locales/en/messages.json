@@ -1614,6 +1614,90 @@
   "llm_batchNoTarget": {
     "message": "No references to process"
   },
+  "llm_targetLabel": {
+    "message": "Target:"
+  },
+  "llm_tip_target": {
+    "message": "Limit which references the AI judges. Sending the AI the same set humans piloted lets you compare agreement"
+  },
+  "llm_targetEditBtn": {
+    "message": "Select..."
+  },
+  "llm_targetClearBtn": {
+    "message": "Clear"
+  },
+  "llm_targetAll": {
+    "message": "All ($1 items)"
+  },
+  "llm_targetSelected": {
+    "message": "$1 selected"
+  },
+  "llm_targetMissingNote": {
+    "message": "$1 of the selected items are not found in this project and will be excluded"
+  },
+  "llm_targetJudgedNote": {
+    "message": "$1 of the selected items are already judged by this run and will be excluded"
+  },
+  "llm_targetLimitExceeded": {
+    "message": "You can select up to $1 items as the target"
+  },
+  "llm_targetSaveFailed": {
+    "message": "Save failed, so the target selection was not changed: $1"
+  },
+  "llm_targetPickerTitle": {
+    "message": "Select target references"
+  },
+  "llm_targetPickerSetLabel": {
+    "message": "Assigned set:"
+  },
+  "llm_targetPickerSetAll": {
+    "message": "All"
+  },
+  "llm_targetPickerSelectSet": {
+    "message": "Select this set ($1 items)"
+  },
+  "llm_targetPickerSearchPlaceholder": {
+    "message": "Search title & abstract"
+  },
+  "llm_targetPickerViewAll": {
+    "message": "Show all"
+  },
+  "llm_targetPickerViewSelected": {
+    "message": "Selected only"
+  },
+  "llm_targetPickerViewUnselected": {
+    "message": "Unselected only"
+  },
+  "llm_targetPickerSelectVisible": {
+    "message": "Select visible"
+  },
+  "llm_targetPickerClearAll": {
+    "message": "Clear all"
+  },
+  "llm_targetPickerShowing": {
+    "message": "Showing $1 / $2 items"
+  },
+  "llm_targetPickerMore": {
+    "message": "Show more"
+  },
+  "llm_targetPickerSelectedCount": {
+    "message": "$1 selected"
+  },
+  "llm_targetPickerConfirm": {
+    "message": "Confirm"
+  },
+  "llm_targetPickerEmpty": {
+    "message": "No matching references"
+  },
+  "llm_targetPickerNoTitle": {
+    "message": "(untitled)"
+  },
+  "llm_targetPickerPending": {
+    "message": "Pending"
+  },
+  "llm_targetPickerBlindNote": {
+    "message": "⚠️ Blinded: other reviewers' decisions are not shown"
+  },
   "llm_screeningPromptRequired": {
     "message": "Please set screening criteria"
   },

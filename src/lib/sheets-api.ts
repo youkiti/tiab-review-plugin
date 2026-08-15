@@ -6,6 +6,7 @@ import { t } from './i18n';
 import { platform } from '../platform';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } from './llm-batch-target';
+import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './llm-target-selection';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
@@ -66,7 +67,8 @@ const LLM_EXECUTIONS_HEADERS = [
     'criteria_snapshot', 'screening_prompt', 'include_threshold',
     'target_count', 'include_count', 'exclude_count',
     'status', 'is_active', 'run_id',
-    'requested_model', 'model_version', 'response_id'
+    'requested_model', 'model_version', 'response_id',
+    'target_mode', 'target_sets', 'target_selected_count'
 ];
 
 // LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
@@ -2753,6 +2755,8 @@ export const DEFAULT_LLM_CONFIG: LlmConfig = {
     llm_include_threshold: 0.3,
     llm_max_output_tokens: 2048,
     llm_output_language: 'ja',
+    llm_target_mode: 'all',
+    llm_target_ref_ids: '',
 };
 
 /**
@@ -2769,6 +2773,8 @@ const LLM_CONFIG_KEYS = [
     'llm_include_threshold',
     'llm_max_output_tokens',
     'llm_output_language',
+    'llm_target_mode',
+    'llm_target_ref_ids',
 ];
 
 /**
@@ -2822,6 +2828,13 @@ export async function getLlmConfig(spreadsheetId: string): Promise<LlmConfig> {
                     break;
                 case 'llm_output_language':
                     config.llm_output_language = value;
+                    break;
+                case 'llm_target_mode':
+                    config.llm_target_mode = parseLlmTargetMode(value);
+                    break;
+                case 'llm_target_ref_ids':
+                    // シート直編集で混じる改行・重複・空白をここで正規化する
+                    config.llm_target_ref_ids = serializeTargetRefIds(parseTargetRefIds(value));
                     break;
             }
         }
@@ -2992,6 +3005,9 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.requested_model ?? execution.model,
         execution.model_version ?? '',
         execution.response_id ?? '',
+        execution.target_mode ?? '',
+        execution.target_sets ?? '',
+        execution.target_selected_count?.toString() ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -3043,6 +3059,13 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                         break;
                     case 'run_id':
                         execution[header] = value || undefined;
+                        break;
+                    case 'target_selected_count':
+                        // 0 と未設定を区別したいので `|| 0` にはしない
+                        execution[header] = value ? parseInt(value, 10) : undefined;
+                        break;
+                    case 'target_mode':
+                        execution[header] = value ? parseLlmTargetMode(value) : undefined;
                         break;
                     default:
                         execution[header] = value || '';

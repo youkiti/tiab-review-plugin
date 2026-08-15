@@ -595,6 +595,15 @@
             <div class="llm-card">
                 <h4 data-i18n="llm_batchTitle"></h4>
 
+                <!-- 対象: 既定は全件。人間のお試しスクリーニングと同じ集合をAIに投げたいときに限定する -->
+                <div class="setting-row batch-target-row">
+                    <label data-i18n="llm_targetLabel"></label>
+                    <span class="help-icon" data-i18n-tooltip="llm_tip_target" tabindex="0">?</span>
+                    <span id="batch-target-summary" class="batch-target-summary"></span>
+                    <button type="button" id="batch-target-edit-btn" class="btn btn-outline btn-xsmall" data-i18n="llm_targetEditBtn"></button>
+                    <button type="button" id="batch-target-clear-btn" class="btn btn-outline btn-xsmall hidden" data-i18n="llm_targetClearBtn"></button>
+                </div>
+
                 <div class="setting-row">
                     <label data-i18n="llm_batchMaxCountLabel"></label>
                     <span class="help-icon" data-i18n-tooltip="llm_tip_maxCount" tabindex="0">?</span>
@@ -611,6 +620,7 @@
                     <span data-i18n="llm_batchPending"></span> <span id="batch-target-count">0</span>
                     / <span data-i18n="llm_batchPlanned"></span> <span id="batch-planned-count">0</span>
                 </div>
+                <div id="batch-target-note" class="batch-target-note hidden"></div>
 
                 <div id="batch-run-mode" class="batch-run-mode hidden">
                     <span id="batch-run-mode-text"></span>

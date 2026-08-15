@@ -9,6 +9,8 @@ import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../lib/fulltext-assignment';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
+import type { LlmTargetMode } from '../lib/llm-target-selection';
+import { DEFAULT_LLM_TARGET_MODE } from '../lib/llm-target-selection';
 
 // ========== Private State Variables ==========
 
@@ -87,6 +89,10 @@ let _llmRuns: LlmRun[] = [];
 let _llmExecutions: LlmExecution[] = [];
 // 「新規にやり直す」モード。ONの間は既存 Run を再利用せず、新しい Run として全文献を対象にする
 let _forceNewLlmRun = false;
+// AI一括判定の対象の決め方（'all'=従来どおり全件 / 'selection'=担当セット・個別選択で限定）
+let _llmTargetMode: LlmTargetMode = DEFAULT_LLM_TARGET_MODE;
+// selection モード時に対象とする ref_id 集合
+let _llmTargetRefIds: Set<string> = new Set();
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
@@ -292,6 +298,12 @@ export const state = {
     get forceNewLlmRun() { return _forceNewLlmRun; },
     setForceNewLlmRun(force: boolean) { _forceNewLlmRun = force; },
 
+    get llmTargetMode() { return _llmTargetMode; },
+    setLlmTargetMode(mode: LlmTargetMode) { _llmTargetMode = mode; },
+
+    get llmTargetRefIds() { return _llmTargetRefIds; },
+    setLlmTargetRefIds(refIds: Set<string>) { _llmTargetRefIds = refIds; },
+
     get failedRefIds() { return _failedRefIds; },
     setFailedRefIds(ids: string[]) { _failedRefIds = ids; },
     clearFailedRefIds() { _failedRefIds = []; },
@@ -350,6 +362,8 @@ export const state = {
         _llmRuns = [];
         _llmExecutions = [];
         _forceNewLlmRun = false;
+        _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
+        _llmTargetRefIds = new Set();
         _failedRefIds = [];
         _mlState = createInitialMlState();
     },
@@ -374,6 +388,8 @@ export const state = {
         _activeTermFilters = [];
         _enabledReviewers.clear();
         _availableReviewers.clear();
+        _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
+        _llmTargetRefIds = new Set();
         _mlState = createInitialMlState();  // ML状態もリセット
     },
 };
