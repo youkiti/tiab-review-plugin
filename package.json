@@ -24,7 +24,8 @@
         "video:setup": "bash video/scripts/setup.sh",
         "video:record": "node video/scripts/record.mjs",
         "video:tts": "node video/scripts/tts.mjs",
-        "video:assemble": "node video/scripts/assemble.mjs"
+        "video:assemble": "node video/scripts/assemble.mjs",
+        "docs:screenshots": "node scripts/doc-screenshots/capture.mjs"
     },
     "devDependencies": {
         "@types/chrome": "^0.0.260",

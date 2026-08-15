@@ -171,6 +171,44 @@
             font-family: 'Consolas', 'Monaco', monospace;
         }
 
+        /* ヘルプ内スクリーンショット */
+        .help-img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .help-img-figure {
+            margin: 12px 0;
+        }
+
+        .help-img-figure figcaption {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .help-img-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 12px 0;
+        }
+
+        .help-img-row .help-img-figure {
+            flex: 1 1 260px;
+            margin: 0;
+            max-width: 340px;
+        }
+
+        /* 縦横比が極端に縦長な画像用（例: AIタブ全景 1000x2000px）。本文幅いっぱいに広がらないよう狭める */
+        .help-img-figure.help-img-tall {
+            max-width: 300px;
+        }
+
         .faq-item {
             margin-bottom: 24px;
         }
@@ -741,6 +779,14 @@
                         OpenRouter API Key / 🔑 OpenAI API Key) and keys are stored independently. You only need a key
                         for at least one provider to use AI screening.</span>
                 </p>
+                <figure class="help-img-figure help-img-tall">
+                    <img class="help-img" src="images/faq-gemini/01-ai-tab-overview.png"
+                        alt="Overview of the AI tab settings screen, showing one API key card per provider">
+                    <figcaption>
+                        <span class="ja">AIタブの設定画面。プロバイダごとにAPIキーのカードが並ぶ</span>
+                        <span class="en">The AI tab's settings screen, with one API key card per provider</span>
+                    </figcaption>
+                </figure>
                 <p>
                     <span class="ja">1. Gemini: <a href="https://aistudio.google.com/app/apikey" target="_blank">Google
                             AI Studio</a> から API キーを取得します（<a href="https://ai.google.dev/gemini-api/docs/api-key"
@@ -760,6 +806,73 @@
                         4. Enter the key in the matching card — it is saved automatically (there is no separate
                         "Save" button).</span>
                 </p>
+
+                <h3 id="ai-screening-gemini-key">
+                    <span class="ja">Gemini APIキーの設定（無料枠と有料枠）</span>
+                    <span class="en">Setting Up a Gemini API Key (Free vs. Paid Tier)</span>
+                </h3>
+                <p>
+                    <span class="ja">「🤖 AI」タブの設定（⚙️）にある「🔑 Gemini APIキー」カードにキーを入力すると保存され、下図のようにプラン表示（Tier）が現れます（取得方法は上の「APIキーのセットアップ」を参照）。</span>
+                    <span class="en">Enter your key in the "🔑 Gemini API Key" card under the "🤖 AI" tab's settings
+                        (⚙️) — it is saved and a plan (Tier) indicator appears, as shown below (see "API Key Setup"
+                        above for how to obtain a key).</span>
+                </p>
+                <div class="help-img-row">
+                    <figure class="help-img-figure">
+                        <img class="help-img" src="images/faq-gemini/02-api-key-card-empty.png"
+                            alt="Gemini API key card before a key is entered">
+                        <figcaption>
+                            <span class="ja">キー未入力</span>
+                            <span class="en">Before entering a key</span>
+                        </figcaption>
+                    </figure>
+                    <figure class="help-img-figure">
+                        <img class="help-img" src="images/faq-gemini/03-api-key-card-verified.png"
+                            alt="Gemini API key card after verification, showing the plan indicator">
+                        <figcaption>
+                            <span class="ja">キー確認済み（プラン表示あり）</span>
+                            <span class="en">Key verified (plan indicator shown)</span>
+                        </figcaption>
+                    </figure>
+                </div>
+                <p>
+                    <span class="ja"><strong>無料枠と有料枠の違い:</strong> 無料キーでもそのまま使えますが、<code>gemini-3.1-flash-lite</code>
+                        で<strong>15リクエスト/分</strong>という制限があります（2026年8月時点の実測値）。文献数の多いレビューではこの上限に達しやすく、処理に時間がかかります。<strong>制限に達しても拡張はエラーで止まらず、自動的に速度を落として処理を続けます</strong>（本バージョンからの変更点。詳しくは次の「AI判定が画面に出ないとき」参照）。速度を上げたい場合は、Google
+                        Cloud側でそのAPIキーのプロジェクトの課金を有効にしてください。1日あたりの上限（RPD）は未検証のため、正確な数値はここには書かず、<a
+                            href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank">Google公式のレート制限ドキュメント</a>
+                        を参照してください。</span>
+                    <span class="en"><strong>Free vs. paid tier:</strong> A free key works out of the box, but is
+                        limited to <strong>15 requests/minute</strong> for <code>gemini-3.1-flash-lite</code>
+                        (measured August 2026). Large reviews hit this limit often and take longer to process.
+                        <strong>When the limit is hit, the extension no longer stops with an error — it
+                            automatically slows down and keeps going</strong> (new in this version; see "When AI
+                        decisions don't show up" below for more). To go faster, enable billing on the Google Cloud
+                        project behind your API key. The daily limit (RPD) has not been measured, so rather than
+                        guessing a number here, see Google's official
+                        <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank">rate limits
+                            documentation</a>.</span>
+                </p>
+                <div class="note" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin: 12px 0;">
+                    <p>
+                        <span class="ja">⚠️ 拡張機能の「プラン」自動判定は、モデル一覧のAPI応答だけを見て有料/無料を推定しているため、<strong>無料キーでも「Tier
+                                1」のような有料表示になることがあります</strong>（上のスクリーンショットもその例です。この誤判定自体は今回のバージョンでは修正していません）。プラン表示が実際と違っていても、無料枠のレート制限に実際に当たった場合は自動で減速するので、実行自体は問題なく完了します。</span>
+                        <span class="en">⚠️ The extension's automatic "plan" detection only looks at the models-list
+                            API response to guess free vs. paid, so <strong>a free key can still show as "Tier 1" or
+                                similar</strong> (as in the screenshot above — this misdetection itself is not fixed
+                            in this version). Even when the plan display is wrong, hitting the actual free-tier rate
+                            limit still triggers automatic slowdown, so the run still completes.</span>
+                    </p>
+                </div>
+                <p>
+                    <span class="ja">モデルは「⚙️
+                        詳細設定」で選べます（各選択肢にRecall・コストの目安が表示されます）。速度重視なら既定のFlash-Lite系のままで問題ありません。</span>
+                    <span class="en">Choose the model under "⚙️ Advanced Settings" (each option shows approximate
+                        recall and cost). For speed, the default Flash-Lite model works well.</span>
+                </p>
+                <figure class="help-img-figure">
+                    <img class="help-img" src="images/faq-gemini/04-model-select.png"
+                        alt="Model selection dropdown in Advanced Settings">
+                </figure>
 
                 <h3>
                     <span class="ja">モデル選択とカスタムモデル</span>
@@ -800,12 +913,62 @@
                         "Assignment Sets" inside Settings (⚙️).</span>
                 </p>
                 <p>
-                    <span class="ja">初めて実行する場合（まだ確定していないRun）は、一括実行が終わると画面下部にInclude閾値を確認するエリアが表示されます。「💾 閾値を確定して判断をGoogleスプレッドシートに保存」ボタンをクリックして初めて、判定がDecisionsシートへ確定保存されます。このステップを行わないと、判定は未確定のままになるので注意してください。</span>
+                    <span class="ja">初めて実行する場合（まだ確定していないRun）は、一括実行が終わると画面下部にInclude閾値を確認するエリアが表示されます。「💾 閾値を確定して判断をGoogleスプレッドシートに保存」ボタンをクリックして初めて、判定がDecisionsシートへ確定保存されます。このステップを行わないと、判定は未確定のままになるので注意してください（詳しくは次の「AI判定が画面に出ないとき」参照）。</span>
                     <span class="en">The first time you run a batch (an unconfirmed Run), an area to review the
                         Include threshold appears at the bottom of the screen once the batch finishes. Decisions are
                         only confirmed and saved to the Decisions sheet once you click "💾 Confirm Threshold &amp;
-                        Save to Google Spreadsheet" — skipping this step leaves the decisions unconfirmed.</span>
+                        Save to Google Spreadsheet" — skipping this step leaves the decisions unconfirmed (see "When
+                        AI decisions don't show up" below for details).</span>
                 </p>
+
+                <h3 id="ai-screening-pending">
+                    <span class="ja">AI判定が画面に出ないとき（pendingのまま）</span>
+                    <span class="en">When AI Decisions Don't Show Up (Stuck as "pending")</span>
+                </h3>
+                <p>
+                    <span class="ja">AI判定は、<strong>Include閾値を確定するまでDecisionsシート上で
+                            <code>pending</code> のまま</strong>で、画面上の判定にも反映されません。実際に判定として使われるのは「確定済み」かつ「判定に使用」に選ばれているRunだけです。一括実行の直後に「判定が全部pendingのまま」に見えたら、まずこの閾値確定を行ったかどうかを確認してください。</span>
+                    <span class="en">AI decisions stay as <strong><code>pending</code> in the Decisions sheet until
+                            you confirm the Include threshold</strong>, and are not reflected in the on-screen
+                        decisions until then. Only a Run that is both confirmed and selected as "in use" actually
+                        feeds decisions. If everything looks stuck as "pending" right after a batch finishes, check
+                        first whether you completed this threshold-confirmation step.</span>
+                </p>
+                <p>
+                    <span class="ja"><strong>1. 一括実行の直後:</strong> 画面下部に「📊 閾値調整」カードが表示されます。Include閾値を確認し、「💾
+                        閾値を確定して判断をGoogleスプレッドシートに保存」をクリックしてください。これを押すまでは確定保存されません。</span>
+                    <span class="en"><strong>1. Right after a batch finishes:</strong> a "📊 Threshold Adjustment"
+                        card appears at the bottom of the screen. Review the Include threshold and click "💾 Confirm
+                        Threshold &amp; Save to Google Spreadsheet" — nothing is confirmed until you do.</span>
+                </p>
+                <figure class="help-img-figure">
+                    <img class="help-img" src="images/faq-gemini/06-threshold-section.png"
+                        alt="Threshold adjustment card with the confirm-and-save button">
+                </figure>
+                <p>
+                    <span class="ja"><strong>2. 確定し忘れた場合:</strong>
+                        画面を離れてしまっても、「実行履歴」にそのRunが<strong>「未確定」</strong>のバッジ付きで残ります。まだ判定には使われていません。後からでも「閾値を設定」ボタンから同じ手順で確定できます。</span>
+                    <span class="en"><strong>2. If you forgot to confirm:</strong> even after leaving the page, the
+                        Run remains in "Execution History" with an <strong>"unconfirmed"</strong> badge — its
+                        decisions are not yet in use. You can confirm it later by clicking "Set Threshold" on that
+                        Run, following the same steps.</span>
+                </p>
+                <figure class="help-img-figure">
+                    <img class="help-img" src="images/faq-gemini/07-history-run-pending.png"
+                        alt="Unconfirmed Run card in execution history, with a Set Threshold button">
+                </figure>
+                <p>
+                    <span class="ja"><strong>3. 確定済みのRun:</strong>
+                        バッジが消え、「判定に使用」のラジオボタンが表示されます。これが選択されているRunの判定だけが、画面・PRISMA集計・エクスポートに反映されます。</span>
+                    <span class="en"><strong>3. A confirmed Run:</strong> the badge disappears and a "Use for
+                        decisions" radio button appears instead. Only the Run with this radio button selected feeds
+                        its decisions into the screen, PRISMA counts, and exports.</span>
+                </p>
+                <figure class="help-img-figure">
+                    <img class="help-img" src="images/faq-gemini/08-history-run-confirmed.png"
+                        alt="Confirmed Run card with the 'use for decisions' radio button selected">
+                </figure>
+
                 <div class="note"
                     style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-top: 16px;">
                     <p>
@@ -1473,6 +1636,47 @@
                         <span class="en">A: Only candidates whose PDF is already saved to Google Drive (cached) and
                             that have not yet been AI-screened are eligible. For references that are link-only or not
                             yet retrieved, save the PDF to Drive first, then run AI screening.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: AI判定を実行したのに、判定が pending のままです</span>
+                        <span class="en">Q: I ran AI screening, but decisions are stuck as "pending"</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 多くの場合、Include閾値の確定が未了です。「<a
+                                href="#ai-screening-pending">AI判定が画面に出ないとき（pendingのまま）</a>」の手順に沿って、実行履歴からそのRunを確定してください。それでも解決しない場合は、Decisionsシートの該当行の
+                            note に <code>parse_error</code>
+                            が入っていないか確認してください。入っていればAPI呼び出し自体が失敗しています（同じnote内の <code>error_message</code>
+                            に理由が記録されています）。</span>
+                        <span class="en">A: In most cases, the Include threshold has not been confirmed yet. Follow
+                            the steps in "<a href="#ai-screening-pending">When AI Decisions Don't Show Up (Stuck as
+                                "pending")</a>" to confirm that Run from Execution History. If that doesn't resolve
+                            it, check whether the corresponding row's note in the Decisions sheet contains
+                            <code>parse_error</code> — if it does, the API call itself failed (the reason is recorded
+                            in <code>error_message</code> in the same note).</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: 無料の Gemini APIキーでも使えますか？</span>
+                        <span class="en">Q: Can I use a free Gemini API key?</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 使えますが、<code>gemini-3.1-flash-lite</code>
+                            で15リクエスト/分という制限があり、大きなレビューでは時間がかかります。制限に当たると拡張が自動で速度を落として処理を継続します（エラーで止まりません）。速度が必要な場合は、Google
+                            Cloud側でそのAPIキーのプロジェクトの課金を有効にしてください。1日あたりの上限（RPD）は未検証のため、<a
+                                href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank">Google公式のレート制限ドキュメント</a>
+                            を参照してください。</span>
+                        <span class="en">A: Yes, but <code>gemini-3.1-flash-lite</code> is limited to 15
+                            requests/minute, so large reviews take longer. When the limit is hit, the extension
+                            automatically slows down and keeps going (it does not stop with an error). If you need
+                            more speed, enable billing on the Google Cloud project behind your API key. The daily
+                            limit (RPD) has not been measured — see Google's official
+                            <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank">rate limits
+                                documentation</a> for that.</span>
                     </p>
                 </div>
             </section>

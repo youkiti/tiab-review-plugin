@@ -1581,6 +1581,12 @@
   "llm_batchFallbackNotice": {
     "message": "⚠️ $1 item(s) could not be parsed by the LLM and were saved as probability 1.0 (always reviewed). They are not filtered by the threshold."
   },
+  "llm_batchThrottled": {
+    "message": "⏱️ Rate limit detected — automatically slowing down and continuing (detected $1 time(s))"
+  },
+  "llm_batchRateLimitDetected": {
+    "message": "Rate limit detected. Automatically slowing down and continuing."
+  },
   "llm_batchMaxCountLabel": {
     "message": "Run limit:"
   },

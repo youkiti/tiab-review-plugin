@@ -19,6 +19,7 @@
         "../src/lib/llm-config-hash.ts",
         "../src/lib/llm-batch-target.ts",
         "../src/lib/llm-provider.ts",
+        "../src/lib/llm-processor.ts",
         "../src/lib/providers/openrouter.ts",
         "./**/*.ts",
         "../src/lib/picker-url.ts",

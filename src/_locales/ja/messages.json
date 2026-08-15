@@ -1581,6 +1581,12 @@
   "llm_batchFallbackNotice": {
     "message": "⚠️ $1件はLLM出力を解析できなかったため、確率1.0（必ずレビュー）として保存しました。閾値ではフィルタされません。"
   },
+  "llm_batchThrottled": {
+    "message": "⏱️ レート制限を検出したため、自動で処理速度を落として続行しています（検出$1回）"
+  },
+  "llm_batchRateLimitDetected": {
+    "message": "レート制限を検出しました。自動で速度を落として処理を続けます"
+  },
   "llm_batchMaxCountLabel": {
     "message": "実行上限:"
   },
