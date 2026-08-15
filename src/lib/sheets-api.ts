@@ -10,6 +10,7 @@ import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
+import { withSharedDriveParams } from './drive-shared-drive';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { isHumanDecision, isConfirmedMlDecision } from './client-version';
 
@@ -190,7 +191,10 @@ export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpre
 
     const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet'");
     const fields = encodeURIComponent('files(id,name,modifiedTime)');
-    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`;
+    const url = withSharedDriveParams(
+        `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`,
+        'list'
+    );
 
     console.log('[getRecentSpreadsheets] Fetching:', url);
 
@@ -2139,7 +2143,9 @@ export async function getFilePermissions(fileId: string): Promise<SpreadsheetPer
     const token = await getAuthToken();
 
     const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,role,type,emailAddress,displayName)`,
+        withSharedDriveParams(
+            `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,role,type,emailAddress,displayName)`
+        ),
         {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -2192,7 +2198,9 @@ export async function deletePermission(fileId: string, permissionId: string): Pr
     const token = await getAuthToken();
 
     const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`,
+        withSharedDriveParams(
+            `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`
+        ),
         {
             method: 'DELETE',
             headers: {
@@ -2304,7 +2312,9 @@ export async function addPermission(
         // 従来どおりクエリを一切付けない（Drive既定の通知ありの挙動を変えない）。
         queryString = '?sendNotificationEmail=false';
     }
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`;
+    const url = withSharedDriveParams(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/permissions${queryString}`
+    );
 
     const response = await fetch(
         url,
@@ -2354,7 +2364,9 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
         console.log('[isUserAdmin] Trying capabilities fallback...');
         const token = await getAuthToken();
         const response = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=capabilities(canEdit,canShare)`,
+            withSharedDriveParams(
+                `https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=capabilities(canEdit,canShare)`
+            ),
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,

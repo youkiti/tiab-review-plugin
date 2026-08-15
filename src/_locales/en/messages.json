@@ -2787,9 +2787,6 @@
   "fulltext_importErrorNoCopyPermission": {
     "message": "You don't have permission to copy this file"
   },
-  "fulltext_importErrorSharedDrive": {
-    "message": "Files in shared drives are not supported"
-  },
   "fulltext_importErrorMetaFailed": {
     "message": "Failed to fetch file information: $1"
   },

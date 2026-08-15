@@ -249,7 +249,8 @@ function buildDriveMock(opts: {
         }
 
         // フォルダ作成（createFolder）: 呼ばれたこと自体を calls で検証する
-        if (method === 'POST' && url === `${DRIVE_API_BASE}/files?fields=id`) {
+        // 共有ドライブ対応パラメータ（withSharedDriveParams）が末尾に付くため前方一致で見る
+        if (method === 'POST' && url.startsWith(`${DRIVE_API_BASE}/files?fields=id`)) {
             return new Response(JSON.stringify({ id: 'new-folder-id' }), { status: 200 });
         }
 
