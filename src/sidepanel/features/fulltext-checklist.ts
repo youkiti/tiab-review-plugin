@@ -25,7 +25,9 @@ import { getFulltextSetLabel } from '../../lib/fulltext-assignment';
 import {
     computeFulltextChecklistState,
     regrantResultKey,
+    type FulltextChecklistFolderShareState,
     type FulltextChecklistGroupState,
+    type FulltextChecklistLinkShareState,
     type FulltextChecklistProgressState,
     type FulltextChecklistRegrantState,
     type FulltextRegrantKnownResult,
@@ -33,6 +35,9 @@ import {
 import { onRegrantResult, triggerFulltextRegrantCheck } from './fulltext-regrant';
 import { resetFulltextSetSelectionToMine } from './fulltext-assignment-ui';
 import type { ReferenceWithStatus } from '../../lib/types';
+import { getFilePermissions, getProjectDriveFolderId, getSpreadsheetPermissions, type SpreadsheetPermission } from '../../lib/sheets-api';
+import { mergePermissionsForDisplay } from '../../lib/share-permissions';
+import { buildSpreadsheetUrl } from '../../lib/share-invite';
 
 // 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
 // （プロジェクト × アカウントごとに保持）。
@@ -60,6 +65,103 @@ let lastCandidates: ReferenceWithStatus[] = [];
 // null = 手動操作なし（allComplete から自動決定）。プロジェクト or アカウント切替でリセットする。
 let manualOpenOverride: boolean | null = null;
 let lastRegrantResultKey = '';
+
+// ---------------------------------------------------------------------------
+// 項目5・6（管理者向け: リンク共有検出・フォルダ共有ズレ検出）用の権限データ
+//
+// フォルダ・スプレッドシートの権限一覧はDrive APIの読み取りクォータ対象のため、
+// チェックリストの再描画（判定保存・フィルタ変更のたびに走る）のたびに叩くと
+// 429を踏む（AGENTS.mdの429対策の思想）。spreadsheetId単位でモジュール内キャッシュし、
+// プロジェクトが変わったときだけ取り直す。管理者以外は使わないため取得自体を行わない。
+// ---------------------------------------------------------------------------
+
+interface FulltextChecklistPermissionsSnapshot {
+    linkShareRole: 'writer' | 'reader' | null;
+    folderPermissionEmails: string[] | null;
+    /** 「フォルダをDriveで開く」ボタンの遷移先。フォルダが無い/読めない場合は null */
+    folderId: string | null;
+}
+
+let permissionsSnapshot: FulltextChecklistPermissionsSnapshot | null = null;
+let permissionsSnapshotSpreadsheetId = '';
+let permissionsSnapshotLoading = false;
+
+/** プロジェクトごとに1回だけフォルダ・スプレッドシートの権限を取得し、結果をキャッシュする */
+function ensurePermissionsSnapshotLoaded(spreadsheetId: string, isAdmin: boolean): void {
+    if (!isAdmin) return; // 管理者以外の画面には出さないため取得しない
+    if (permissionsSnapshotSpreadsheetId === spreadsheetId && (permissionsSnapshot !== null || permissionsSnapshotLoading)) return;
+
+    permissionsSnapshotSpreadsheetId = spreadsheetId;
+    permissionsSnapshot = null;
+    permissionsSnapshotLoading = true;
+
+    void loadPermissionsSnapshot(spreadsheetId).then((snapshot) => {
+        // 取得中にプロジェクトが切り替わっていたら、古い結果は捨てて再描画もしない
+        if (permissionsSnapshotSpreadsheetId !== spreadsheetId) return;
+        permissionsSnapshot = snapshot;
+        permissionsSnapshotLoading = false;
+        renderFulltextChecklist(lastCandidates);
+    }).catch((error) => {
+        console.warn('[fulltext-checklist] 共有権限の取得に失敗:', error);
+        permissionsSnapshotLoading = false;
+    });
+}
+
+async function loadPermissionsSnapshot(spreadsheetId: string): Promise<FulltextChecklistPermissionsSnapshot> {
+    let folderId: string | null = null;
+    let folderPermissions: SpreadsheetPermission[] | null = null;
+    try {
+        folderId = await getProjectDriveFolderId(spreadsheetId);
+        if (folderId) {
+            folderPermissions = await getFilePermissions(folderId);
+        }
+    } catch (error) {
+        console.warn('[fulltext-checklist] フォルダ権限の取得に失敗:', error);
+        folderPermissions = null;
+    }
+
+    let sheetPermissions: SpreadsheetPermission[] | null = null;
+    try {
+        sheetPermissions = await getSpreadsheetPermissions(spreadsheetId);
+    } catch (error) {
+        console.warn('[fulltext-checklist] スプレッドシート権限の取得に失敗:', error);
+    }
+
+    // リンク共有の判定は共有リスト（sharing.ts）と同じ純粋関数を再利用し、判定ロジックを二重化しない
+    const { linkShare } = mergePermissionsForDisplay(folderPermissions, sheetPermissions);
+    const folderPermissionEmails = folderPermissions
+        ? folderPermissions.map((p) => p.emailAddress).filter((e): e is string => typeof e === 'string' && e.length > 0)
+        : null;
+
+    return {
+        linkShareRole: linkShare?.role ?? null,
+        folderPermissionEmails,
+        folderId,
+    };
+}
+
+/**
+ * ブラインドセーフな「本来レビューに参加するはずのメンバー」一覧（重複除去はしない。
+ * lib側の computeFolderShare が大文字小文字を無視して重複を吸収する）。
+ *
+ * Decisions の reviewer_id からは集めない。Blind中は他人の human 票がクライアントに
+ * 配られないため、これを使うと人によって missingEmails の結果が変わってしまう
+ * （ブラインドセーフの要。AGENTS.md 参照）。代わりに全員に同じ値が見える Config 由来の
+ * 割り振り設定（TiAb: state.assignmentConfig.reviewerMap ＋ フルテキスト:
+ * state.fulltextAssignment.reviewerMap）の和集合を使う。
+ */
+function knownReviewerEmailsFromConfig(): string[] {
+    const emails: string[] = [];
+    for (const reviewerMap of [state.assignmentConfig.reviewerMap, state.fulltextAssignment.reviewerMap]) {
+        for (const reviewers of Object.values(reviewerMap || {})) {
+            for (const email of reviewers || []) {
+                const trimmed = (email || '').trim();
+                if (trimmed) emails.push(trimmed);
+            }
+        }
+    }
+    return emails;
+}
 
 function ensureStoredResultsLoaded(): void {
     if (storedResultsLoaded) return;
@@ -152,6 +254,8 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         return;
     }
 
+    ensurePermissionsSnapshotLoaded(state.spreadsheetId, state.isAdmin);
+
     const key = regrantResultKey(state.spreadsheetId, state.userEmail);
 
     // プロジェクトまたはアカウントが切り替わったら手動開閉の記憶をリセット
@@ -171,6 +275,10 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         ? { ...stored, freshness: confirmedThisSession.has(key) ? 'session' : 'persisted' }
         : null;
 
+    // permissionsSnapshot は spreadsheetId 単位のキャッシュ。取得中/未取得（このプロジェクトでの
+    // フェッチがまだ完了していない）場合は null 扱いにする（=項目5・6は取得完了まで非表示）。
+    const snapshot = permissionsSnapshotSpreadsheetId === state.spreadsheetId ? permissionsSnapshot : null;
+
     const checklist = computeFulltextChecklistState({
         version: getVersionForDisplay(),
         assignment: state.fulltextAssignment,
@@ -180,6 +288,10 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         decidedCount: myFulltextDecidedCount(candidates),
         regrantAvailable,
         regrantResult,
+        isAdmin: state.isAdmin,
+        linkShareRole: snapshot?.linkShareRole ?? null,
+        folderPermissionEmails: snapshot?.folderPermissionEmails ?? null,
+        knownReviewerEmails: knownReviewerEmailsFromConfig(),
     });
 
     host.classList.remove('hidden');
@@ -189,6 +301,8 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         checklist.group.visible ? buildGroupRow(checklist.group) : null,
         checklist.regrant.visible ? buildRegrantRow(checklist.regrant) : null,
         buildProgressRow(checklist.progress),
+        checklist.linkShare.visible ? buildLinkShareRow(checklist.linkShare) : null,
+        checklist.folderShare.visible ? buildFolderShareRow(checklist.folderShare, snapshot?.folderId ?? null) : null,
     ].filter((el): el is HTMLElement => el !== null)));
 }
 
@@ -295,6 +409,50 @@ function buildRegrantRow(r: FulltextChecklistRegrantState): HTMLElement {
     btn.textContent = btnLabel;
     btn.addEventListener('click', () => triggerFulltextRegrantCheck());
     row.appendChild(btn);
+    return row;
+}
+
+/**
+ * リンク共有（type='anyone'）警告行。共有リストの警告バナー（sharing.ts の
+ * buildLinkShareWarning）と同じ i18n キー（share_linkShareWarningWriter/Reader）を再利用し、
+ * 文言を二重管理しない。writer は error（赤）、reader は warn（黄）。
+ */
+function buildLinkShareRow(l: FulltextChecklistLinkShareState): HTMLElement {
+    const text = l.role === 'writer' ? t('share_linkShareWarningWriter') : t('share_linkShareWarningReader');
+    const row = buildRow(l.role === 'writer' ? 'error' : 'warn', text);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-xsmall btn-outline fulltext-checklist-action-btn';
+    btn.textContent = t('fulltext_checklist_linkShareOpenBtn');
+    btn.addEventListener('click', () => {
+        platform().openExternal(buildSpreadsheetUrl(state.spreadsheetId));
+    });
+    row.appendChild(btn);
+    return row;
+}
+
+/**
+ * フォルダ共有のズレ検出行。フォルダの実権限一覧に、Config由来の割り振り設定
+ * （ブラインドセーフ。knownReviewerEmailsFromConfig 参照）にいる担当者が
+ * 見当たらない場合に警告する。
+ */
+function buildFolderShareRow(f: FulltextChecklistFolderShareState, folderId: string | null): HTMLElement {
+    if (f.kind === 'ok') {
+        return buildRow('ok', t('fulltext_checklist_folderShareOk'));
+    }
+
+    const row = buildRow('warn', t('fulltext_checklist_folderShareMissing', f.missingEmails.join(', ')));
+    if (folderId) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-xsmall btn-outline fulltext-checklist-action-btn';
+        btn.textContent = t('share_folderOpenDriveBtn');
+        btn.addEventListener('click', () => {
+            platform().openExternal(`https://drive.google.com/drive/folders/${folderId}`);
+        });
+        row.appendChild(btn);
+    }
     return row;
 }
 

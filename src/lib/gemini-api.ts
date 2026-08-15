@@ -27,12 +27,21 @@ interface GeminiApiErrorOptions {
     status?: number;
     code: string;
     retryable: boolean;
+    /** 429 (RESOURCE_EXHAUSTED) の RetryInfo/メッセージから抽出した待機時間 (ms)。取得できなければ undefined */
+    retryAfterMs?: number;
+    /** QuotaFailure.violations[].quotaId（判明した場合のみ） */
+    quotaId?: string;
+    /** quotaId に "FreeTier" を含むかどうか（無料枠クォータ超過の判定） */
+    isFreeTierQuota?: boolean;
 }
 
-class GeminiApiError extends Error {
+export class GeminiApiError extends Error {
     status?: number;
     code: string;
     retryable: boolean;
+    retryAfterMs?: number;
+    quotaId?: string;
+    isFreeTierQuota: boolean;
 
     constructor(message: string, options: GeminiApiErrorOptions) {
         super(message);
@@ -40,7 +49,108 @@ class GeminiApiError extends Error {
         this.status = options.status;
         this.code = options.code;
         this.retryable = options.retryable;
+        this.retryAfterMs = options.retryAfterMs;
+        this.quotaId = options.quotaId;
+        this.isFreeTierQuota = options.isFreeTierQuota ?? false;
     }
+}
+
+/** Gemini エラーの `details[]` に含まれる @type（RetryInfo / QuotaFailure） */
+const RETRY_INFO_TYPE = 'type.googleapis.com/google.rpc.RetryInfo';
+const QUOTA_FAILURE_TYPE = 'type.googleapis.com/google.rpc.QuotaFailure';
+
+export interface ParsedGeminiError {
+    /** エラーメッセージの1行目相当（ユーザー表示用。URL/キーは含まれない） */
+    message?: string;
+    /** 429 の再試行までの待機時間 (ms)。RetryInfo → message の順で抽出。どちらも無ければ undefined */
+    retryAfterMs?: number;
+    /** QuotaFailure.violations[0].quotaId */
+    quotaId?: string;
+    /** quotaId に "FreeTier" を含む違反が1件でもあれば true */
+    isFreeTierQuota: boolean;
+}
+
+/**
+ * `"8s"` / `"8.7s"` 形式の RetryInfo.retryDelay を ms に変換する。
+ * 形式が想定外なら undefined を返す（例外を投げない）。
+ */
+function parseRetryDelaySeconds(retryDelay: unknown): number | undefined {
+    if (typeof retryDelay !== 'string') return undefined;
+    const match = retryDelay.match(/^(\d+(?:\.\d+)?)s$/);
+    if (!match) return undefined;
+    return Number(match[1]);
+}
+
+/**
+ * message 中の "Please retry in 8.710506329s." のような文言から秒数を抽出する。
+ * RetryInfo が details に無い場合のフォールバック。
+ */
+function parseRetryDelayFromMessage(message: string): number | undefined {
+    const match = message.match(/retry in\s+(\d+(?:\.\d+)?)s/i);
+    if (!match) return undefined;
+    return Number(match[1]);
+}
+
+function secondsToMs(seconds: number | undefined): number | undefined {
+    if (seconds === undefined || !Number.isFinite(seconds)) return undefined;
+    return Math.round(seconds * 1000);
+}
+
+/**
+ * Gemini API のエラーボディを解析する純関数。
+ *
+ * streamGenerateContent は配列形式 `[{"error":{...}}]` で、通常のエンドポイントは
+ * オブジェクト形式 `{"error":{...}}` でエラーを返す。両方に対応する。
+ * 壊れたボディ・空ボディが渡されても例外を投げず、抽出できないフィールドは undefined を返す
+ * （message の statusText フォールバックは呼び出し側の責務）。
+ *
+ * message にはクォータのドキュメントURL（例: https://ai.google.dev/gemini-api/docs/rate-limits ,
+ * https://ai.dev/rate-limit）が含まれることが実測で確認されている（Google 公式ドキュメントへの
+ * 案内リンクであり機密情報ではない）。一方、APIキーを含む**リクエストURL**（呼び出し元の
+ * fetch() に渡した URL）はこの関数の入力（エラーボディ）に含まれないため、返り値にも含まれない。
+ */
+export function parseGeminiErrorPayload(rawBody: unknown): ParsedGeminiError {
+    const errorObj = extractErrorObject(rawBody);
+    const rawMessage = typeof errorObj?.message === 'string' ? errorObj.message : undefined;
+    const message = rawMessage ? rawMessage.split('\n')[0].trim() : undefined;
+
+    const details = Array.isArray(errorObj?.details) ? errorObj!.details as unknown[] : [];
+
+    const retryInfo = details.find(
+        (d): d is { '@type': string; retryDelay?: unknown } =>
+            typeof d === 'object' && d !== null && (d as { '@type'?: unknown })['@type'] === RETRY_INFO_TYPE
+    );
+    let retryAfterMs = retryInfo ? secondsToMs(parseRetryDelaySeconds(retryInfo.retryDelay)) : undefined;
+    if (retryAfterMs === undefined && rawMessage) {
+        retryAfterMs = secondsToMs(parseRetryDelayFromMessage(rawMessage));
+    }
+
+    const quotaFailure = details.find(
+        (d): d is { '@type': string; violations?: unknown } =>
+            typeof d === 'object' && d !== null && (d as { '@type'?: unknown })['@type'] === QUOTA_FAILURE_TYPE
+    );
+    const violations = Array.isArray(quotaFailure?.violations) ? quotaFailure!.violations as unknown[] : [];
+    const quotaIds = violations
+        .map(v => (typeof v === 'object' && v !== null ? (v as { quotaId?: unknown }).quotaId : undefined))
+        .filter((id): id is string => typeof id === 'string');
+    const quotaId = quotaIds[0];
+    const isFreeTierQuota = quotaIds.some(id => id.includes('FreeTier'));
+
+    return { message, retryAfterMs, quotaId, isFreeTierQuota };
+}
+
+function extractErrorObject(rawBody: unknown): { message?: unknown; details?: unknown } | undefined {
+    if (Array.isArray(rawBody)) {
+        const first = rawBody[0];
+        if (first && typeof first === 'object' && 'error' in first) {
+            return (first as { error?: unknown }).error as { message?: unknown; details?: unknown } | undefined;
+        }
+        return undefined;
+    }
+    if (rawBody && typeof rawBody === 'object' && 'error' in rawBody) {
+        return (rawBody as { error?: unknown }).error as { message?: unknown; details?: unknown } | undefined;
+    }
+    return undefined;
 }
 
 export interface CriteriaConversionOptions {
@@ -249,12 +359,18 @@ export async function callGeminiApiWithParts<T>(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.error?.message || response.statusText;
+            // streamGenerateContent は配列 `[{"error":{...}}]`、それ以外はオブジェクト
+            // `{"error":{...}}` でエラーを返す。壊れたボディでも例外を投げないよう .catch で吸収する。
+            const errorData = await response.json().catch(() => undefined);
+            const parsedError = parseGeminiErrorPayload(errorData);
+            const errorMessage = parsedError.message || response.statusText;
             throw new GeminiApiError(t('error_geminiApi', errorMessage), {
                 status: response.status,
                 code: 'api_error',
                 retryable: response.status === 429 || response.status >= 500,
+                retryAfterMs: parsedError.retryAfterMs,
+                quotaId: parsedError.quotaId,
+                isFreeTierQuota: parsedError.isFreeTierQuota,
             });
         }
 

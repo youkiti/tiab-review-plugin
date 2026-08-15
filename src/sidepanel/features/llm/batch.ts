@@ -334,6 +334,7 @@ export async function handleStartBatch() {
     dom.batchProgressDiv.classList.remove('hidden');
     dom.thresholdSection.classList.add('hidden');
     dom.thresholdCompleteMessage.textContent = '';
+    resetThrottleNoticeState();
 
     // AbortControllerを作成
     const abortController = new AbortController();
@@ -597,6 +598,7 @@ export async function handleRetryFailed() {
     dom.startBatchBtn.classList.add('hidden');
     dom.stopBatchBtn.classList.remove('hidden');
     dom.batchProgressDiv.classList.remove('hidden');
+    resetThrottleNoticeState();
 
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
@@ -652,6 +654,54 @@ export async function handleRetryFailed() {
     }
 }
 
+// 429 適応スロットリングの「減速中」表示用の要素キャッシュ。
+// sidepanel.html 側に静的なプレースホルダを増やさず batch.ts 側だけで完結させるため、
+// 初回の updateBatchProgress 呼び出し時に dom.batchProgressDiv の子として動的に生成する。
+let throttleNoticeEl: HTMLElement | null = null;
+
+function getOrCreateThrottleNotice(): HTMLElement {
+    if (throttleNoticeEl && throttleNoticeEl.isConnected) {
+        return throttleNoticeEl;
+    }
+    const el = document.createElement('div');
+    el.id = 'batch-throttle-notice';
+    // execution-status.pending は実行履歴の「未確定」バッジで使っている既存スタイル
+    // （amber系の小さいバッジ）を流用し、新規CSSを追加せずに視認性を確保する
+    el.className = 'execution-status pending hidden';
+    el.style.display = 'block';
+    el.style.marginTop = '8px';
+    el.style.textAlign = 'center';
+    dom.batchProgressDiv.appendChild(el);
+    throttleNoticeEl = el;
+    return el;
+}
+
+// レート制限検出トーストを1バッチ実行につき1回だけ出すための直前値。
+// handleStartBatch / handleRetryFailed の開始時にリセットする。
+let lastReportedRateLimitHits = 0;
+
+/** 新しいバッチ実行を開始する直前に呼ぶ（前回実行の検出回数を持ち越さないため） */
+function resetThrottleNoticeState(): void {
+    lastReportedRateLimitHits = 0;
+    // 7番: バナー要素自体も隠す。トーストのラッチだけ戻しても、前回実行の「検出N回」が
+    // 今回の1件目が終わるまで表示され続けてしまうため
+    if (throttleNoticeEl) {
+        throttleNoticeEl.classList.add('hidden');
+    }
+}
+
+/**
+ * rateLimitHits が 0 → 1 に変わった最初のタイミングで1回だけトーストを出す。
+ * isFreeTierQuota は LlmBatchProgress からは見えない（GeminiApiError 側のフィールドのため）
+ * ので、ここでは「無料枠だ」とは断定せず、レート制限を検出して自動調整したことだけを伝える。
+ */
+function maybeShowRateLimitToast(progress: LlmBatchProgress): void {
+    if (progress.rateLimitHits > 0 && lastReportedRateLimitHits === 0) {
+        showToast(t('llm_batchRateLimitDetected'), 6000);
+    }
+    lastReportedRateLimitHits = progress.rateLimitHits;
+}
+
 /**
  * バッチ進捗を更新
  */
@@ -668,6 +718,27 @@ export function updateBatchProgress(progress: LlmBatchProgress) {
     dom.batchSuccessCount.textContent = progress.succeeded.toString();
     dom.batchFailCount.textContent = progress.failed.toString();
     dom.batchFallbackCount.textContent = progress.parseErrorFallback.toString();
+
+    // 429 適応スロットリングで速度を落としている間だけ「減速中」を表示する。
+    // isThrottled は「並列度が既定未満 or 滞在時間が既定超 or クールダウン中」なので、
+    // 無料プロファイル（並列度・滞在時間が既にクランプ済みで変化しない）でもクールダウン中は
+    // true になる。onThrottleChange → syncProgressFromGovernor により、クールダウンが立った
+    // 瞬間に throttled=true の progress が飛ぶため、「1件完了時にしかサンプリングされないから
+    // 無料枠ユーザーに出ない」という問題は既に解消済み。クールダウンが明けるとバナーが消えるが、
+    // これは「実際に減速していない」ことを正しく表している（429ごとに出たり消えたりするのが正しい挙動）。
+    // rateLimitHits > 0 だけでは一度でも429を踏むと実行終了までバナーが出っぱなしになり、
+    // 「続行しています」という現在進行形の文言と矛盾するため使わない。
+    // 実行終了後（isRunning=false）は隠す（7番: 完全回復していない状態のまま実行が終わっても、
+    // 次のバッチ開始までバナーが残らないように）
+    const throttleNotice = getOrCreateThrottleNotice();
+    if (progress.isRunning && progress.throttled) {
+        throttleNotice.textContent = t('llm_batchThrottled', String(progress.rateLimitHits));
+        throttleNotice.classList.remove('hidden');
+    } else {
+        throttleNotice.classList.add('hidden');
+    }
+
+    maybeShowRateLimitToast(progress);
 }
 
 /**

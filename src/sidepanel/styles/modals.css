@@ -108,6 +108,25 @@
     overflow-y: auto;
 }
 
+/* リンク共有（type='anyone'）検出時の警告バナー。writer=赤系、reader=黄系 */
+.share-link-warning {
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+}
+
+.share-link-warning--writer {
+    background: #fce8e6;
+    color: #c5221f;
+}
+
+.share-link-warning--reader {
+    background: #fef7e0;
+    color: #b06000;
+}
+
 .share-copy-invite-btn {
     margin-top: 8px;
     width: 100%;
