@@ -448,6 +448,9 @@ function applyOutcome(
     ref: ReferenceWithStatus,
     outcome: FulltextFetchOutcome
 ): { fulltextUrl: string; status: FulltextStatus } {
+    // OA検索経由の取得はDrive直接取り込みではないため、Drive取り込み元/コピーIDは必ずクリアする
+    ref.fulltext_drive_source_id = undefined;
+    ref.fulltext_drive_copy_id = undefined;
     if (outcome.kind === 'cached') {
         ref.fulltext_url = outcome.url;
         ref.fulltext_status = 'cached';
@@ -493,7 +496,7 @@ async function handleBulkFetch(): Promise<void> {
         throw err;
     }));
 
-    const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }> = [];
+    const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus; driveSource: null }> = [];
     const flush = async () => {
         if (pendingWrites.length === 0) return;
         const batch = pendingWrites.splice(0);
@@ -524,7 +527,7 @@ async function handleBulkFetch(): Promise<void> {
             }
 
             const write = applyOutcome(ref, outcome);
-            pendingWrites.push({ refId: ref.ref_id, ...write });
+            pendingWrites.push({ refId: ref.ref_id, driveSource: null, ...write });
             if (outcome.kind === 'cached') cachedCount++;
             else if (outcome.kind === 'linked') linkedCount++;
             else noneCount++;
@@ -568,7 +571,7 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
             }
         );
         const write = applyOutcome(ref, outcome);
-        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status);
+        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status, null);
         renderFulltextTab();
     } catch (err) {
         showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
@@ -608,7 +611,10 @@ async function handleUploadChange(): Promise<void> {
         const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
         ref.fulltext_url = info.webViewLink;
         ref.fulltext_status = 'cached';
-        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, info.webViewLink, 'cached');
+        // ローカルPDFの手動アップロードはDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
+        ref.fulltext_drive_source_id = undefined;
+        ref.fulltext_drive_copy_id = undefined;
+        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, info.webViewLink, 'cached', null);
         renderFulltextTab();
         showToast(t('fulltext_uploadDone'), 3000);
     } catch (err) {

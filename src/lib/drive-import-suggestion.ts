@@ -2,14 +2,21 @@
  * drive-import-suggestion.ts - 「Driveへ直接置かれたPDFの取り込み」対応付けモーダルの
  * 既定値（プリセット）を決める判定（純関数）
  *
- * 背景（Phase 1 の既知の問題。根本原因の修正は Phase 2 で別途行う）:
+ * 背景（Phase 1 の既知の問題。根本原因は Issue #73 Phase 2 で対応済み）:
  * OAuth スコープが drive.file のため、共同研究者からは他人が確保した cached コピーが
  * Drive API 越しには見えない（files.list が HTTP 200 + 空配列を返す）。そのため
- * classifyImportState() は他人が既に取り込んだPDFでも「未取り込み(none)」を返す。
+ * Phase 1 時点の classifyImportState() は、他人が既に取り込んだPDFでも
+ * 「未取り込み(none)」を返していた。
  * 呼び出し側は対応付け候補（mappableRefs）を cached を除外して作るため、本来対応付ける
  * べき cached 済み文献が候補から外れており、その状態でファイル名マッチの findBestMatch
  * （pdf-title-match.ts）が走ると、別の似たタイトルの未取り込み文献をスコア0.6以上で拾って
  * 既定値にプリセットしてしまう（気付かず実行すると別文献へ誤って対応付けられる）。
+ *
+ * **このモジュール自体の役割は今も有効**: Phase 2 で「取り込み済みか」の真値が References
+ * シート（W/X列）へ移ったため、クレームが有効な文献では classifyDriveImportState が 'done' を
+ * 返して likely-imported のガード自体に到達しなくなった。しかし旧版クライアントが取り込んだ
+ * まま W/X が空の未バックフィル分では、上記の cached 除外→誤マッチの問題が依然として起こり
+ * うるため、このガードは残す必要がある（詳細は drive-import-claim.ts / drive-import-classify.ts）。
  *
  * ここでは findBestMatch を cached も含めた全 targets に対して実行し直し、最良マッチが
  * 本来の対応付け先である cached 済み文献であれば、既定値をプリセットせず「他のメンバーが

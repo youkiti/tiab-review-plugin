@@ -24,6 +24,7 @@ import {
     DEMO_SEED_TIMESTAMP,
     DEMO_HUMAN_CLIENT_VERSION,
     DEMO_FULLTEXT_DRIVE_FILE_ID,
+    DEMO_FULLTEXT_SOURCE_FILE_ID,
 } from './constants';
 
 // 以下2つの定数は src/lib/sheets-api.ts の REFERENCES_HEADERS / DECISIONS_HEADERS と
@@ -35,6 +36,7 @@ const REFERENCES_HEADERS = [
     'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
+    'fulltext_drive_source_id', 'fulltext_drive_copy_id',
 ];
 
 const DECISIONS_HEADERS = [
@@ -80,6 +82,10 @@ function buildRealDemoReferences(): Reference[] {
         if (refNumber === 1) {
             built.fulltext_status = 'cached';
             built.fulltext_url = `https://drive.google.com/file/d/${DEMO_FULLTEXT_DRIVE_FILE_ID}/view`;
+            // Drive直接取り込みを経て cached になったデモ行として、取り込み元PDFとコピーの両IDも入れておく
+            // （DEMO_FULLTEXT_DRIVE_FILE_ID は fulltext_url が指す「コピー」のIDなので copy 側に使う）
+            built.fulltext_drive_source_id = DEMO_FULLTEXT_SOURCE_FILE_ID;
+            built.fulltext_drive_copy_id = DEMO_FULLTEXT_DRIVE_FILE_ID;
         }
         return built;
     });

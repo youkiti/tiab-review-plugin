@@ -118,7 +118,7 @@ function installMockFetch(mockState: MockState) {
             const requestUrl = new URL(url);
             const ranges = requestUrl.searchParams.getAll('ranges');
             const valueRanges = ranges.map((range) => {
-                if (range === 'References!A:V') return { values: mockState.referencesValues };
+                if (range === 'References!A:X') return { values: mockState.referencesValues };
                 if (range === 'Decisions!A:K') return { values: mockState.decisionsValues };
                 if (range === 'Config!A:B') return { values: mockState.configValues };
                 throw new Error(`Unhandled mock batchGet range: ${range}`);

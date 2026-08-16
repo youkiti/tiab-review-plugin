@@ -467,6 +467,9 @@
   "fulltext_sheetSaveError": {
     "message": "保存エラー: $1"
   },
+  "fulltext_driveColumnsConflict": {
+    "message": "References シートのW/X列が独自データと衝突しているため、Drive取り込み列を更新できません（現在のヘッダー: \"$1\" / \"$2\"）。W/X列のヘッダー名を fulltext_drive_source_id / fulltext_drive_copy_id に変更するか、独自の列を別の位置へ移動してください。"
+  },
   "fulltext_badgeCached": {
     "message": "🟢 Drive保存済み"
   },
@@ -2863,7 +2866,7 @@
     "message": "以前の取り込みが未完了です（コピー済み・シート未反映）。このまま実行するとこのファイルを再利用してシートのみ更新します。"
   },
   "fulltext_importLikelyImportedNotice": {
-    "message": "この PDF は「$1」として既に取り込み済みの可能性があります。他のメンバーが取り込んだコピーはあなたからは見えないため、未取り込みと表示されています。取り込み済みであれば「スキップ」のままにしてください。"
+    "message": "この PDF は「$1」として既に取り込み済みの可能性があります。まだ移行が済んでいない古い取り込み分では、他のメンバーが取り込んだコピーが未取り込みと表示されることがあります。取り込み済みであれば「スキップ」のままにしてください。"
   },
   "fulltext_importBadgeImported": {
     "message": "✓ 取り込み済み"

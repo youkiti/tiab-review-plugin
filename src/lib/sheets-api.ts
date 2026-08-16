@@ -13,6 +13,8 @@ import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './ful
 import { driveFetch } from './drive-shared-drive';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { isHumanDecision, isConfirmedMlDecision } from './client-version';
+import { buildFulltextUrlUpdateData, validateFulltextDriveHeaders } from './fulltext-drive-write';
+import type { FulltextUrlUpdateEntry } from './fulltext-drive-write';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -125,12 +127,16 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 };
 
 // References タブのヘッダー
+// 【重要】新しい列は必ず末尾に追加すること。途中挿入すると既存プロジェクトのシートで列がずれる。
+// fulltext_drive_source_id（W列）/ fulltext_drive_copy_id（X列）は Issue #73 Phase 2 で追加した、
+// Drive直接取り込みの冪等性判定用の列（詳細は updateReferenceFulltextUrls の JSDoc を参照）。
 const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
-    'fulltext_url', 'fulltext_status', 'fulltext_set'
+    'fulltext_url', 'fulltext_status', 'fulltext_set',
+    'fulltext_drive_source_id', 'fulltext_drive_copy_id'
 ];
 
 
@@ -283,14 +289,30 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
 
         // ヘッダーが不足している場合（例: 古いバージョンで作成されたシート）
         if (currentHeaders.length < REFERENCES_HEADERS.length) {
-            console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
+            // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）をユーザーが既に
+            // 独自ヘッダー名で使っていないか、上書きする前に検証する。
+            // getSheetValues は末尾の空セルを省いて返す仕様のため、currentHeaders.length >= 23
+            // は「W1が非空」であることと同値。23列だけ足した最もありがちな構成では
+            // この検証をしないと W1 のユーザー独自名を fulltext_drive_source_id に無警告で
+            // 改名してしまい、直後の書き込みで W 列のデータごと上書きしてしまう（実測で再現済み）。
+            const driveHeaderCheck = validateFulltextDriveHeaders(currentHeaders);
+            if (!driveHeaderCheck.ok) {
+                console.warn(
+                    '[ensureHeaders] Skipping References header expansion: W/X columns conflict with user-defined headers',
+                    { actualW: driveHeaderCheck.actualW, actualX: driveHeaderCheck.actualX }
+                );
+            } else {
+                console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
 
-            // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
-            // 一致しなくても、このアプリで管理する以上は更新して良いとする
+                // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
+                // A〜V列は一致しなくても、このアプリで管理する以上は更新して良いとする。
+                // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）だけは例外で、
+                // 一致しない場合はこの else に入らず（上の driveHeaderCheck.ok により）更新しない
 
-            // 行1全体を更新
-            await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
-            console.log('[ensureHeaders] Headers updated');
+                // 行1全体を更新
+                await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
+                console.log('[ensureHeaders] Headers updated');
+            }
         }
     } catch (error) {
         console.error('[ensureHeaders] Error:', error);
@@ -315,6 +337,65 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
         console.error('[ensureHeaders] Decisions error:', error);
         // エラーはログ出力のみで、処理は続行させる（接続をブロックしない）
     }
+}
+
+/** ensureFulltextDriveColumnsOnce() の判定結果。usable=false のとき actualW/actualX に実際のヘッダー名が入る */
+interface FulltextDriveColumnsStatus {
+    usable: boolean;
+    actualW: string;
+    actualX: string;
+}
+
+// spreadsheetId → ensureFulltextDriveColumnsOnce() の実行結果 Promise。
+// セッション内で同一スプレッドシートへの2回目以降の書き込みが Sheets を読み直さないための memo。
+const fulltextDriveColumnsReadyBySpreadsheetId = new Map<string, Promise<FulltextDriveColumnsStatus>>();
+
+/**
+ * References!W/X（fulltext_drive_source_id/fulltext_drive_copy_id）が書き込み可能かどうかを、
+ * 書き込み前に一度だけ判定する。
+ *
+ * 1. ensureHeaders() で列不足（旧22列シート等）を24列へ拡張する
+ * 2. 拡張後もW/Xのヘッダーが期待名と一致しない場合（ユーザーが独自の23列目以降を追加していた等）は
+ *    usable=false を返す。呼び出し側（updateReferenceFulltextUrls）はこれを見て、
+ *    Drive直接取り込み（driveSource が非null）を伴う場合のみ fail-fast でエラーにし、
+ *    それ以外（OA検索・手動アップロード等、driveSource=null）は W/X を書かずに T:U だけ書く
+ *    （この関数自体は throw しない。書き込み可否の判定だけに専念する）。
+ *
+ * fulltext ページ（src/fulltext/fulltext.ts）はサイドパネル接続時の ensureHeaders() を経由しないため、
+ * この関数がW/X列を保証する唯一の経路になる。書き込みのたびに Sheets を読み直さないよう
+ * spreadsheetId 単位でメモ化するが、**メモ化するのは usable=true（正常）の結果だけ**。
+ * usable=false（ユーザー独自列と衝突）をキャッシュしてしまうと、エラーメッセージの指示どおり
+ * ユーザーがシートの列名を直しても、拡張機能を再読み込みするまで反映されない。衝突している
+ * 間は呼び出しのたびに ensureHeaders() + ヘッダー読み取りが走ることになるが、稀なケースなので
+ * 許容する。読み取り自体が失敗した場合も同様にメモを残さず、次回呼び出しで再試行できるようにする。
+ */
+function ensureFulltextDriveColumnsOnce(spreadsheetId: string): Promise<FulltextDriveColumnsStatus> {
+    const cached = fulltextDriveColumnsReadyBySpreadsheetId.get(spreadsheetId);
+    if (cached) return cached;
+
+    const promise = (async (): Promise<FulltextDriveColumnsStatus> => {
+        await ensureHeaders(spreadsheetId);
+        const headerValues = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:X1`);
+        const check = validateFulltextDriveHeaders(headerValues[0] ?? []);
+        return { usable: check.ok, actualW: check.actualW, actualX: check.actualX };
+    })().then((result) => {
+        if (!result.usable) {
+            // 衝突が解消されたかもしれないため、次回呼び出しで再判定できるようキャッシュに残さない
+            fulltextDriveColumnsReadyBySpreadsheetId.delete(spreadsheetId);
+        }
+        return result;
+    }).catch((error) => {
+        fulltextDriveColumnsReadyBySpreadsheetId.delete(spreadsheetId);
+        throw error;
+    });
+
+    fulltextDriveColumnsReadyBySpreadsheetId.set(spreadsheetId, promise);
+    return promise;
+}
+
+/** テスト用: ensureFulltextDriveColumnsOnce() のメモ化キャッシュを破棄する */
+export function invalidateFulltextDriveColumnsMemo(): void {
+    fulltextDriveColumnsReadyBySpreadsheetId.clear();
 }
 
 /**
@@ -615,7 +696,7 @@ function parseReferenceValues(values: string[][]): Reference[] {
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:V`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
     return parseReferenceValues(values);
 }
 
@@ -653,30 +734,65 @@ export async function addReferences(spreadsheetId: string, references: Reference
 }
 
 /**
- * 文献の fulltext_url と fulltext_status を更新する（OA URL 解決後に呼び出す）
+ * 文献の fulltext_url / fulltext_status と、Drive直接取り込みの冪等性の真値
+ * （fulltext_drive_source_id / fulltext_drive_copy_id）を更新する（OA URL 解決後・
+ * Drive直接取り込み後に呼び出す）。
  *
  * REFERENCES_HEADERS での列位置:
- *   fulltext_url   = 20列目 (T列, 0-indexed: 19)
- *   fulltext_status = 21列目 (U列, 0-indexed: 20)
+ *   fulltext_url             = 20列目 (T列, 0-indexed: 19)
+ *   fulltext_status          = 21列目 (U列, 0-indexed: 20)
+ *   fulltext_set             = 22列目 (V列, 0-indexed: 21) ※ここでは触れない
+ *   fulltext_drive_source_id = 23列目 (W列, 0-indexed: 22)
+ *   fulltext_drive_copy_id   = 24列目 (X列, 0-indexed: 23)
+ *
+ * driveSource は Driveへ直接置かれたPDFの取り込み（fulltext-drive-import.ts）でのみ値を持つ。
+ * それ以外の経路は必ず null を渡し、W/X 列を空文字でクリアする（省略ではなくクリア。
+ * 詳細は FulltextUrlUpdateEntry の JSDoc を参照）。
  */
 export async function updateReferenceFulltextUrl(
     spreadsheetId: string,
     refId: string,
     fulltextUrl: string,
-    status: FulltextStatus
+    status: FulltextStatus,
+    driveSource: FulltextUrlUpdateEntry['driveSource']
 ): Promise<void> {
-    await updateReferenceFulltextUrls(spreadsheetId, [{ refId, fulltextUrl, status }]);
+    await updateReferenceFulltextUrls(spreadsheetId, [{ refId, fulltextUrl, status, driveSource }]);
 }
 
 /**
- * 複数文献の fulltext_url / fulltext_status をまとめて更新する（一括OA検索用）
- * ref_id 列の読み取り1回 + values:batchUpdate 1回で済ませ、APIクォータを節約する。
+ * 複数文献の fulltext_url / fulltext_status / fulltext_drive_source_id / fulltext_drive_copy_id を
+ * まとめて更新する（一括OA検索・Drive直接取り込み等で使用）。
+ * ref_id 列の読み取り1回 + values:batchUpdate 1回（T:U と、可能な場合は W:X の2つの非連続レンジ×件数）
+ * で済ませ、APIクォータを節約する。V列（fulltext_set）は触れない。
+ *
+ * W/X 列が書き込み可能かどうかは ensureFulltextDriveColumnsOnce() で判定する
+ * （fulltext ページは ensureHeaders() を経由しないため、ここが唯一の保証経路になる）。
+ * ヘッダーがユーザー独自の別用途と衝突している場合（usable=false）の扱いは2通り:
+ *   - 今回の updates に driveSource が非null のエントリ（Drive直接取り込み）が1件でもあれば、
+ *     クレームを記録できず機能が成立しないため fail-fast でエラーを投げ、何も書き込まない
+ *   - driveSource が全件 null（OA検索・手動アップロード等）なら、T:U だけを書き W:X はスキップする。
+ *     ヘッダー不一致時の W/X は「我々のクレームが元から存在しない」状態なので、書かないことが
+ *     安全側（クリアし忘れによる誤判定は起こり得ず、逆に空文字を書くとユーザーの独自データを破壊する）
  */
 export async function updateReferenceFulltextUrls(
     spreadsheetId: string,
-    updates: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus }>
+    updates: FulltextUrlUpdateEntry[]
 ): Promise<void> {
     if (updates.length === 0) return;
+
+    const columnsStatus = await ensureFulltextDriveColumnsOnce(spreadsheetId);
+    let includeDriveColumns = columnsStatus.usable;
+    if (!columnsStatus.usable) {
+        if (updates.some(u => u.driveSource !== null)) {
+            throw new Error(t('fulltext_driveColumnsConflict', [columnsStatus.actualW, columnsStatus.actualX]));
+        }
+        console.warn(
+            '[updateReferenceFulltextUrls] References の W/X 列がユーザー独自列と衝突しているため、' +
+            'Drive取り込み列（fulltext_drive_source_id/fulltext_drive_copy_id）の更新をスキップしました:',
+            { actualW: columnsStatus.actualW, actualX: columnsStatus.actualX }
+        );
+        includeDriveColumns = false;
+    }
 
     // ref_id 列 (A列) で行番号を特定
     const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
@@ -685,12 +801,7 @@ export async function updateReferenceFulltextUrls(
         if (i > 0 && row[0]) rowByRefId.set(row[0], i + 1); // 1-indexed (ヘッダー行=1)
     });
 
-    const data = updates
-        .filter(u => rowByRefId.has(u.refId))
-        .map(u => ({
-            range: `${REFERENCES_SHEET}!T${rowByRefId.get(u.refId)}:U${rowByRefId.get(u.refId)}`,
-            values: [[u.fulltextUrl, u.status]],
-        }));
+    const data = buildFulltextUrlUpdateData(updates, rowByRefId, REFERENCES_SHEET, includeDriveColumns);
     if (data.length === 0) return;
 
     const token = await getAuthToken();
@@ -711,34 +822,140 @@ export async function updateReferenceFulltextUrls(
     }
 }
 
+/** 対象文献のフルテキスト状態（Drive直接取り込みの取り込み元/コピーIDを含む） */
+export interface ReferenceFulltextRowState {
+    status: FulltextStatus;
+    url: string;
+    sourceFileId: string;
+    copyFileId: string;
+}
+
+/** ある source PDF（fulltext_drive_source_id）を取り込み元として持つ、1文献分のクレーム */
+export interface FulltextSourceClaim {
+    refId: string;
+    copyId: string;
+    status: FulltextStatus;
+    url: string;
+}
+
 /**
- * 指定した文献の fulltext_status と fulltext_url を最新値で読み直す。
+ * source ID・ref_id の両方から引ける、全行分のフルテキスト取り込みスナップショット。
+ * classifyDriveImportState（drive-import-classify.ts）の入力に使う。
+ */
+export interface FulltextClaimsSnapshot {
+    /**
+     * source ID（fulltext_drive_source_id）→ その source を取り込み元とする全文献のクレーム配列。
+     * W列（fulltext_drive_source_id）が空の行は含まれない（クレームが無い行のため）。
+     */
+    bySourceId: Map<string, FulltextSourceClaim[]>;
+    /**
+     * ref_id → その行の現在のフルテキスト状態。W/X列の有無に関わらず**全行**を含む
+     * （bySourceId と違い、W列が空の行も含む）。「Driveコピーは見えているがクレームが
+     * 無い（＝本Issue修正前に取り込まれた既存ファイル）」行の現在URLを引くために必要。
+     */
+    byRefId: Map<string, ReferenceFulltextRowState>;
+}
+
+/**
+ * getReferenceFulltextState / getFulltextClaimsSnapshot の共通実装。
+ * References!A:A（ref_id列）と References!T:X（fulltext_url/status/set/source_id/copy_id）を
+ * values:batchGet で1リクエストにまとめて読み、全行を横断した状態を組み立てる。
+ * V列（fulltext_set）は読み込むが無視する（フルテキスト担当割り振りはここでは扱わない）。
+ * 巨大な abstract 列等を含む References!A:X 全体を毎回読むより軽量。
+ *
+ * targetRefId を渡した場合のみ、その ref_id の行状態（target）もあわせて拾う
+ * （target は byRefId.get(targetRefId) と同じ値になるが、既存の戻り値契約
+ * （行が見つからなければ undefined）を壊さないための専用フィールドとして残す）。
+ * byRefId は常に全行ぶん構築する（行スキャン自体は既に全行を回っているため、
+ * マップを1つ増やすだけで追加のAPI呼び出しは発生しない。ロジックの二重実装を避けるため、
+ * 行スキャンはこの1関数に集約する）。
+ *
+ * buildBySourceId=false（既定 true）を渡すと、「source ID → クレーム配列」の逆引きマップ
+ * （bySourceId）を組み立てない。getReferenceFulltextState は target（対象1行の状態）しか
+ * 使わないため、呼ばれるたびに全行分の bySourceId を組み立てては捨てていた無駄を避ける。
+ */
+async function scanFulltextRows(
+    spreadsheetId: string,
+    targetRefId?: string,
+    buildBySourceId: boolean = true
+): Promise<{
+    target: ReferenceFulltextRowState | undefined;
+    bySourceId: Map<string, FulltextSourceClaim[]>;
+    byRefId: Map<string, ReferenceFulltextRowState>;
+}> {
+    const [idColumn, twxValues] = await getSheetValuesBatch(spreadsheetId, [
+        `${REFERENCES_SHEET}!A:A`,
+        `${REFERENCES_SHEET}!T:X`,
+    ]);
+
+    let target: ReferenceFulltextRowState | undefined;
+    const bySourceId = new Map<string, FulltextSourceClaim[]>();
+    const byRefId = new Map<string, ReferenceFulltextRowState>();
+
+    for (let i = 1; i < idColumn.length; i++) {
+        const rowRefId = idColumn[i][0];
+        if (!rowRefId) continue;
+
+        // Sheets は末尾の空セルを省いて返すため、A列より短い場合がある
+        const row = twxValues[i] ?? [];
+        const url = row[0] || '';
+        const status = (row[1] || 'not_retrieved') as FulltextStatus;
+        // row[2] = fulltext_set（V列）は無視する
+        const sourceFileId = row[3] || '';
+        const copyFileId = row[4] || '';
+        const rowState: ReferenceFulltextRowState = { status, url, sourceFileId, copyFileId };
+
+        byRefId.set(rowRefId, rowState);
+        if (targetRefId !== undefined && rowRefId === targetRefId) {
+            target = rowState;
+        }
+        if (buildBySourceId && sourceFileId) {
+            const claims = bySourceId.get(sourceFileId) ?? [];
+            claims.push({ refId: rowRefId, copyId: copyFileId, status, url });
+            bySourceId.set(sourceFileId, claims);
+        }
+    }
+
+    return { target, bySourceId, byRefId };
+}
+
+/**
+ * 対象文献の fulltext_status / fulltext_url / Drive取り込み元・コピーIDを最新値で読み直す。
  * Driveへ直接置かれたPDFの取り込み実行時、files.copy 成功後・シート書き込み前に
  * 「他のユーザーが自分より先に同じ文献へ取り込み済みでないか」を確認するために使う
  * （楽観ロック相当。競合していれば呼び出し側は上書きせずコピーをゴミ箱へ戻す。
  * URLまで返すのは、cached済みのURLが自分がこれから書こうとしているコピーと同一かどうか
  * ＝「応答喪失後の再試行」かどうかを呼び出し側で判定するために必要なため）。
- * ref_id 列(A列)で行を特定してから T:U（fulltext_url/fulltext_status）だけを読むため、
- * 巨大な abstract 列等を含む References!A:U 全体を毎回読むより軽量。
- * 該当行が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること）。
+ *
+ * 対象行が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること。従来の
+ * 戻り値契約を維持）。全行を横断した逆引きマップ（bySourceId/byRefId）が必要な場合は
+ * getFulltextClaimsSnapshot を使うこと（唯一の呼び出し側 fulltext-drive-import.ts は
+ * 対象1行の状態しか使わないため、ここでは組み立てない）。
  */
 export async function getReferenceFulltextState(
     spreadsheetId: string,
     refId: string
-): Promise<{ status: FulltextStatus; url: string } | undefined> {
-    const idColumn = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:A`);
-    let rowIndex = -1;
-    for (let i = 1; i < idColumn.length; i++) {
-        if (idColumn[i][0] === refId) {
-            rowIndex = i + 1; // 1-indexed（ヘッダー行=1）
-            break;
-        }
-    }
-    if (rowIndex === -1) return undefined;
+): Promise<ReferenceFulltextRowState | undefined> {
+    const { target } = await scanFulltextRows(spreadsheetId, refId, false);
+    return target;
+}
 
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!T${rowIndex}:U${rowIndex}`);
-    const row = values[0] ?? [];
-    return { url: row[0] || '', status: (row[1] || 'not_retrieved') as FulltextStatus };
+/**
+ * 「source ID → 取り込みクレーム配列」と「ref_id → 行状態」の両方の逆引きマップを取得する。
+ * Driveへ直接置かれたPDFの取り込みで、Picker選択直後（実行前の表示フェーズ）に
+ * クレームマップを鮮度よく取り直すために使う（fulltext-drive-import.ts）。
+ * ファイルごとに取り直すとN+1になるため、選択確定後に1回だけ呼ぶこと。
+ * getReferenceFulltextState と行スキャンのロジックは共通化しており（scanFulltextRows）、
+ * 二重実装にはなっていない。
+ *
+ * byRefId は classifyDriveImportState の判定順2（Driveコピーのみ見えている場合の
+ * フォールバック）で使う。bySourceId だけでは W/X が空の行（本Issue修正前に取り込まれた
+ * 既存ファイル）の現在状態を引けず、「実は取り込み済みなのに未完了と誤表示される」退行に
+ * なるため、byRefId（全行対象）を別途用意している。
+ */
+export async function getFulltextClaimsSnapshot(spreadsheetId: string): Promise<FulltextClaimsSnapshot> {
+    const { bySourceId, byRefId } = await scanFulltextRows(spreadsheetId);
+    return { bySourceId, byRefId };
 }
 
 /**
@@ -1779,7 +1996,7 @@ async function updateReferenceColumnByRefId(
 
     await ensureHeaders(spreadsheetId);
 
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:V`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
     if (values.length <= 1) return;
 
     const headers = values[0];
@@ -1994,7 +2211,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
 }> {
     try {
         const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
-            `${REFERENCES_SHEET}!A:V`,
+            `${REFERENCES_SHEET}!A:X`,
             `${DECISIONS_SHEET}!A:K`,
             `${CONFIG_SHEET}!A:B`,
         ]);
@@ -2012,7 +2229,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
         if ((error as Error).message.includes('Unable to parse range')) {
             console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
             const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
-                `${REFERENCES_SHEET}!A:V`,
+                `${REFERENCES_SHEET}!A:X`,
                 `${DECISIONS_SHEET}!A:K`,
             ]);
             const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));

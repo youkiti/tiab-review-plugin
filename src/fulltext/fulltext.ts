@@ -963,22 +963,25 @@ async function handleResolve(token?: number): Promise<void> {
             }
         );
 
+        // OA検索経由の取得はDrive直接取り込みではないため、Drive取り込み元/コピーIDは必ずクリアする
+        ref.fulltext_drive_source_id = undefined;
+        ref.fulltext_drive_copy_id = undefined;
         if (outcome.kind === 'cached') {
             ref.fulltext_url = outcome.url;
             ref.fulltext_status = 'cached';
-            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'cached')
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'cached', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             if (!stale()) { await showCachedPdf(outcome.url, token); updateToolbarMode(); }
         } else if (outcome.kind === 'linked') {
             ref.fulltext_url = outcome.url;
             ref.fulltext_status = 'retrieved';
-            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'retrieved')
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'retrieved', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             if (!stale()) showResolvedUrl(outcome.url, outcome.source);
         } else {
             // OA全文は無い → 論文ページ（出版社/PubMed）を枠内に埋め込み表示
             ref.fulltext_status = 'unavailable';
-            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, '', 'unavailable')
+            updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, '', 'unavailable', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             if (!stale()) await showArticlePage();
         }
@@ -1011,9 +1014,12 @@ async function openLinkedInline(url: string, source: OaSource | 'cached' | 'link
         try {
             const folderId = await ensureFulltextFolder(spreadsheetId);
             const info = await uploadPdfToDrive(folderId, buildPdfFileName(currentRef), blob);
-            await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, info.webViewLink, 'cached');
+            await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, info.webViewLink, 'cached', null);
             currentRef.fulltext_url = info.webViewLink;
             currentRef.fulltext_status = 'cached';
+            // クリックされたリンクの自動保存はDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
+            currentRef.fulltext_drive_source_id = undefined;
+            currentRef.fulltext_drive_copy_id = undefined;
             await showCachedPdf(info.webViewLink);
             updateToolbarMode();
             showFeedback('PDFをDriveに保存しました');
@@ -1193,9 +1199,12 @@ async function handleDeletePdf(): Promise<void> {
         if (fileId) {
             await deleteDriveFile(fileId);
         }
-        await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, '', 'not_retrieved');
+        await updateReferenceFulltextUrl(spreadsheetId, currentRef.ref_id, '', 'not_retrieved', null);
         currentRef.fulltext_url = '';
         currentRef.fulltext_status = 'not_retrieved';
+        // 削除時はDrive取り込み元/コピーIDも必ずクリアする（ゴミ箱送りのコピーを取り込み済みと誤判定させないため）
+        currentRef.fulltext_drive_source_id = undefined;
+        currentRef.fulltext_drive_copy_id = undefined;
         showPlaceholder('PDFを削除しました。\n上の「⬆ PDFをアップロード」から再取得してください。');
         updateToolbarMode();
     } catch (err) {
@@ -1228,9 +1237,12 @@ async function uploadPdfFile(file: File): Promise<void> {
     try {
         const folderId = await ensureFulltextFolder(spreadsheetId);
         const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
-        await updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, info.webViewLink, 'cached');
+        await updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, info.webViewLink, 'cached', null);
         ref.fulltext_url = info.webViewLink;
         ref.fulltext_status = 'cached';
+        // ローカルPDFの手動アップロードはDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
+        ref.fulltext_drive_source_id = undefined;
+        ref.fulltext_drive_copy_id = undefined;
         // アップロード中に別文献へ移っていたら描画はせず、状態更新のみ
         if (ref === currentRef) {
             await showCachedPdf(info.webViewLink);

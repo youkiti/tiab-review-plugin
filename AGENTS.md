@@ -79,6 +79,10 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | dedupe_key      | 重複検出キー（後述）                                |      |
 | fulltext_url    | フルテキストURL（OA / ブラウザアタッチ）            |      |
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
+| fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
+| fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
+
+**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
 #### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
@@ -861,6 +865,28 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - Drive のエラー本文は**フィールドごとに語彙が違う**ので混ぜて照合しないこと。`errors[].reason` は Drive 独自の camelCase（`userRateLimitExceeded`）、`error.status` は gRPC 由来の SCREAMING_SNAKE_CASE（`RESOURCE_EXHAUSTED` / `PERMISSION_DENIED`）。同じ集合で両方を照合すると常に不一致になり、`errors[]` を含まない形の 403 でレート制限を取りこぼす。`errors[].domain === 'usageLimits'` は reason 名より安定した signal なので併用する
 
 > 関連: `isUserAdmin()`（`sheets-api.ts`）は role が **owner または writer** で `true` を返す。共同研究者は編集者として招待されるため、**`isAdmin` ではオーナーと共同研究者を区別できない**。オーナー限定の分岐が必要な場合は別の識別子を用意すること。
+
+#### Drive直接取り込みの「取り込み済み」判定は二段構え（Issue #73 Phase 2・変更禁止）
+
+`drive.file` スコープでは他人が作成したDriveコピーが見えないため（上記参照）、「このソースPDFは取り込み済みか」の真値をDriveの`appProperties`だけに置くと、コピー作成者本人以外からは常に「未取り込み」に見える（Issue #71 症状1・2）。そのため真値は References シートへ移し、`appProperties` はベストエフォートの補助情報として残す二段構えにしている。
+
+| 問い | 真値の置き場 | 有効範囲 |
+| --- | --- | --- |
+| このソースPDFは取り込み済みか | References の `fulltext_drive_source_id`/`fulltext_drive_copy_id`（W/X列） | 全メンバー |
+| 再利用できるコピー実体があるか | Drive の `appProperties`（sourceFileId/refId/spreadsheetId） | コピー作成者本人のみ（中断復帰用） |
+
+**`appProperties` は廃止できない**: 真値をSheets単独にすると `reuse-and-update`（`files.copy` 成功→シート更新前に中断、からの再開）が成立しない。source IDを書くのも「シート更新」の一部なので、同じ中断点でsource IDも一緒に失われ、中断のたびに新規コピーが1つ増えてしまう。「files.copy は成功したが Sheets 更新は失敗した」という部分障害の間は `appProperties` だけが手がかりという残存制約は変わらない。
+
+- **書き込みは `T:U` と `W:X` の2つの非連続レンジを同一 `values:batchUpdate` に積む（`fulltext-drive-write.ts`）。`T:X` の連続レンジにしてはならない**（V列 `fulltext_set`＝フルテキスト担当割り振りを消してしまう）
+- **`updateReferenceFulltextUrl(s)` の `driveSource` は必須引数**。Drive直接取り込みだけが実値を渡し、残り9経路（OA取得・手動アップロード・リンクPDF自動保存・PDF削除等）は必ず `null` を渡してW/Xをクリアすること。**クリアし忘れると、Drive側 `findImportedCopy` のクエリが持っていた `trashed=false` の暗黙保証がシート側の真値には無いため、ゴミ箱にあるコピーを「取り込み済み」と誤判定する**
+- **クレームの自己検証**（`drive-import-claim.ts` の `isFulltextClaimValid`）: シートのクレームが有効なのは `status === 'cached'` かつ `fulltext_url` 非空 かつ `extractDriveFileId(fulltext_url) === fulltext_drive_copy_id` の3条件をすべて満たすときだけ。旧バージョンの拡張は `T:U` しか書かずW/Xをクリアしないため、「誰かがDrive取り込み→旧版ユーザーがOA取得や差し替えでPDFを交換」という自動更新ラグ中の操作で「別PDFのURL＋古いsource ID」が同じ行に共存しうる。URLとコピーIDの食い違いでそうしたクレームは自動的に失効する
+- **W/X書き込み前のヘッダー検証**（`validateFulltextDriveHeaders()`、spreadsheetId単位でメモ化）。ユーザーが独自の23列目以降を足していた場合、Drive直接取り込みはfail-fastでエラー、それ以外の経路はW/Xをスキップして`T:U`だけ書く（独自データを空文字で壊さないため）。**`ensureHeaders`（`sheets-api.ts`）も同じ `validateFulltextDriveHeaders()` でガードする**（PR #105 実機確認で発覚した回帰の修正）。両方に要るのは目的が違うため:
+  - `ensureFulltextDriveColumnsOnce`（`updateReferenceFulltextUrls` の前段）側は、フルテキストページ（`src/fulltext/fulltext.ts`）がサイドパネル接続時の `ensureHeaders` を経由しないための、W/X書き込み前の唯一の保証経路
+  - `ensureHeaders` 側は、**ユーザー独自のヘッダー名を改名しない**ための保護。`ensureHeaders` は「References のヘッダーが `REFERENCES_HEADERS.length`(=24) 未満なら A1:Z1 をヘッダー定義で丸ごと上書き」する実装のため、検証なしだと独自列を1本だけ（23列）足しているシートで W1 のユーザー独自名を `fulltext_drive_source_id` に無警告で改名してしまい、直後の `ensureFulltextDriveColumnsOnce` の検証が「改名後の名前」を見て `usable=true` と誤判定し、以後W列へsource IDを書き込んでユーザーのデータを上書きする（独自列が2本＝24列なら列数比較で発火しないため実害なし。**一番ありがちな「1列だけ足した」構成でだけ防げていなかった**）
+  - **検証は `ensureHeaders` のヘッダー行書き込みの前に置くこと**。後に置くと自分が改名した結果を検証することになり、常に一致して素通りする
+- **表示用3値判定は純関数化**（`drive-import-classify.ts` の `classifyDriveImportState`）。逆引きを `state.references`（非管理者では担当分に絞られている）から全行スナップショット（`getFulltextClaimsSnapshot`）へ移し、担当外文献へ取り込まれたPDFが「未完了」と誤表示される既存バグを修正した。判定順2のフォールバックはW列が空の行も引けるようref_id起点のマップ（`byRefId`）を使う（本Issue以前に取り込まれた既存ファイルがすべて該当するため、source ID起点のマップだと誤って未完了になる）。Picker で選択が確定した直後にクレームのスナップショットを1回だけ取り直す（`state.allReferences` はロード時のスナップショットのため）。ファイルごとに取り直すとN+1になる
+- **バックフィル（`shouldBackfillDriveColumns`）は実行フェーズのみ**（表示フェーズからは書かない）。表示判定はロード済みスナップショット依存で、判定と書き込みの間に他ユーザーがPDFを削除・差し替えると古いsource IDを新しいPDFに結び付けてしまう。Sheetsの原子性は1リクエスト内のみでread-check-writeのCASにはならない。条件は `status===cached`・`appProperties.refId` 一致・URL一致の3つが揃い、かつW/Xが空のときだけ
+- **後方互換**: 新規取り込み分は修正後から一貫して記録できる。既存分はコピーを検索できるユーザー（主に作成者）による段階的バックフィルで埋まっていく。作成者が不在の既存コピーは自動復元できない可能性がある
 
 ### 共有フロー: なぜ「スプレッドシート先行＋フォルダはベストエフォート」なのか（2026-08 事故対応）
 
