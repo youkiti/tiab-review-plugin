@@ -105,6 +105,13 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - **他者の判定**: 他の `reviewer_id` の判定行は上書き禁止（変更なし）
 - スプレッドシートの列定義は変更していないため、既存プロジェクトはそのまま動作する
 
+**Decisions を横断する処理は `screening_phase` を必ず見ること**: TiAb のAI判定もフルテキストAI判定も `reviewer_id` は同じ `llm:{model}@{timestamp}` 形式を使い、区別は `screening_phase`（`'tiab'` 省略可 / `'fulltext'`）だけでつく。`reviewer_id.startsWith('llm:')` のような前方一致だけで横断すると TiAb とフルテキストが混ざる。実際に既存コードが2箇所で踏んでいた（Issue #62 で修正済み）:
+
+- `findOrphanedExecutions`（`src/sidepanel/features/llm/recovery.ts`）が `screening_phase` を見ておらず、フルテキストAI判定のラウンドを TiAb の「孤立判定」として誤検出していた。復旧を実行すると `execution_type='batch_screening'` の偽の行が作られ、`migrateLegacyExecutionsToRuns` が Run に束ねて TiAb の active 判定に混ざりうる
+- `loadExecutionHistory`（`src/sidepanel/features/llm/batch.ts`）が `execution_type` を二値の三項演算子で扱っていたため、フルテキストの実行履歴が「判定基準生成」という誤ったラベルで TiAb の実行履歴一覧に混入していた
+
+教訓: `execution_type` や `reviewer_id` を分岐に使うときは、二値前提の三項演算子ではなく明示的な除外／網羅を書くこと。
+
 ### フルテキストの不一致解消（裁定）
 
 判定者間の不一致（判定不一致・理由不一致）を、判定後レビュー画面の「不一致の解消」セクションから
@@ -183,6 +190,13 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 
 - `page` / `offset_start` / `offset_end`: PDF.js TextContent ベースの文字オフセット（主キー）
 - `context_before` / `context_after`: 前後50文字（オフセット失敗時のフォールバック）
+
+#### LLM_Executions タブ（列は末尾追記しかできない）
+
+`saveLlmExecution`（`src/lib/sheets-api.ts`）は行を**位置ベース**で組み立てて `appendRows` する。ヘッダ名は見ていない。既存シートのヘッダは `ensureLlmExecutionsSheet` が不足列を**末尾へ追記**する形でしか育たない。したがって `LLM_EXECUTIONS_HEADERS` の途中に列を挿入すると、既存プロジェクトのシートで列がずれて壊れる。**新しい列は必ず配列の末尾に足すこと。**
+
+- 読み取り側（`getLlmExecutions` / `updateLlmExecution`）はヘッダ駆動なので、新しい列の型変換が必要なら `getLlmExecutions` の `switch (header)` に case を足す
+- `src/demo/seed.ts` に `REFERENCES_HEADERS` / `DECISIONS_HEADERS` / `LLM_EXECUTIONS_HEADERS` / `LLM_RUNS_HEADERS` のミラーがあり、**実際に drift していた**（Issue #62 時点で `LLM_EXECUTIONS_HEADERS` のミラーが `target_mode` / `target_sets` / `target_selected_count` の3列ぶん古かった）。列を変更したら両方を確認すること
 
 ## 機能要件
 
