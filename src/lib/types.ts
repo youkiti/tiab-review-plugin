@@ -34,6 +34,8 @@ export interface Reference {
     fulltext_url?: string;    // フルテキストURL (Driveキャッシュ / OA直リンク)
     fulltext_status?: FulltextStatus;
     fulltext_set?: string;    // フルテキスト担当セットID (ft-group-N)
+    fulltext_drive_source_id?: string; // 取り込み元PDFのDriveファイルID（Drive直接取り込みのみ）
+    fulltext_drive_copy_id?: string;   // そのとき作成/再利用したコピーのDriveファイルID
 }
 
 /**

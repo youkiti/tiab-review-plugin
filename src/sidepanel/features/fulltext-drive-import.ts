@@ -644,7 +644,7 @@ async function importOneFile(
 
     let sheetState: SheetFulltextState | undefined;
     try {
-        sheetState = await getReferenceFulltextState(state.spreadsheetId, refId);
+        sheetState = (await getReferenceFulltextState(state.spreadsheetId, refId)).target;
     } catch (err) {
         return errorResult(file, refId, refTitle, err);
     }
@@ -675,7 +675,7 @@ async function importOneFile(
     // 2. コピー確保後、書き込み直前にもう一度シート状態を読み直す
     let postState: SheetFulltextState | undefined;
     try {
-        postState = await getReferenceFulltextState(state.spreadsheetId, refId);
+        postState = (await getReferenceFulltextState(state.spreadsheetId, refId)).target;
     } catch (err) {
         if (createdByThisAttempt) await safeTrash(copy.id);
         return errorResult(file, refId, refTitle, err);
@@ -691,13 +691,18 @@ async function importOneFile(
 
     // postAction === 'reuse-and-update'（＝「確保済みのcopyでシートを更新する」の意）
     try {
-        await updateReferenceFulltextUrl(state.spreadsheetId, refId, copy.webViewLink, 'cached');
+        await updateReferenceFulltextUrl(
+            state.spreadsheetId, refId, copy.webViewLink, 'cached',
+            { sourceFileId: file.id, copyFileId: copy.id }
+        );
     } catch (err) {
         // 作成/再利用したコピーは残す（appProperties経由で次回このrefIdへ再利用されるため孤立コピーにはならない）
         return errorResult(file, refId, refTitle, err);
     }
     ref.fulltext_url = copy.webViewLink;
     ref.fulltext_status = 'cached';
+    ref.fulltext_drive_source_id = file.id;
+    ref.fulltext_drive_copy_id = copy.id;
     return { file, refId, refTitle, outcome: 'success', message: t('fulltext_importResultSuccess') };
 }
 

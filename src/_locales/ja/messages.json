@@ -467,6 +467,9 @@
   "fulltext_sheetSaveError": {
     "message": "保存エラー: $1"
   },
+  "fulltext_driveColumnsConflict": {
+    "message": "References シートのW/X列が独自データと衝突しているため、Drive取り込み列を更新できません（現在のヘッダー: \"$1\" / \"$2\"）。W/X列のヘッダー名を fulltext_drive_source_id / fulltext_drive_copy_id に変更するか、独自の列を別の位置へ移動してください。"
+  },
   "fulltext_badgeCached": {
     "message": "🟢 Drive保存済み"
   },

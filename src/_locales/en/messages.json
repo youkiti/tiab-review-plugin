@@ -467,6 +467,9 @@
   "fulltext_sheetSaveError": {
     "message": "Save error: $1"
   },
+  "fulltext_driveColumnsConflict": {
+    "message": "Can't update the Drive import columns because References sheet columns W/X are used for something else (current headers: \"$1\" / \"$2\"). Rename columns W/X to fulltext_drive_source_id / fulltext_drive_copy_id, or move your custom columns elsewhere."
+  },
   "fulltext_badgeCached": {
     "message": "🟢 Saved to Drive"
   },

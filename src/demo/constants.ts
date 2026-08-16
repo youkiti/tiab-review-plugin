@@ -39,8 +39,20 @@ export const DEMO_HUMAN_CLIENT_VERSION = 'demo-0.0.0-human';
  * フルテキストデモ用の Drive ファイルID（fake）。
  * extractDriveFileId()（src/lib/drive-api.ts）は `[\w-]+` を許可するためハイフン付きでも
  * 問題なくパースできる。demo-ref-001 の fulltext_url はこのIDを含む Drive リンクにする。
+ *
+ * これは「取り込み後にfulltextフォルダへ作成されたコピー」のIDであり、
+ * fulltext_drive_copy_id（References の X列）に相当する。取り込み元PDFそのもののID
+ * （fulltext_drive_source_id、W列）は別物のため DEMO_FULLTEXT_SOURCE_FILE_ID を使うこと。
  */
 export const DEMO_FULLTEXT_DRIVE_FILE_ID = 'demo-pdf-001';
+
+/**
+ * フルテキストデモ用の「取り込み元PDF」の Drive ファイルID（fake）。
+ * Driveへ直接置かれたPDFの取り込み（fulltext-drive-import.ts）で source として選択される
+ * ファイルのIDに相当し、References の fulltext_drive_source_id（W列）へ入れる。
+ * DEMO_FULLTEXT_DRIVE_FILE_ID（取り込み後のコピーのID、X列）とは別物なので混同しないこと。
+ */
+export const DEMO_FULLTEXT_SOURCE_FILE_ID = 'demo-pdf-source-001';
 
 /**
  * バンドル同梱の全文デモPDF（video/fixtures/demo-paper.pdf）の、拡張機能パッケージ内での
