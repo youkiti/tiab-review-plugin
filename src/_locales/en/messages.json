@@ -2778,6 +2778,27 @@
   "fulltext_driveTransientError": {
     "message": "A temporary error occurred while accessing Drive. Please wait a moment and try again."
   },
+  "fulltext_pdfPaneTitle": {
+    "message": "This PDF cannot be displayed"
+  },
+  "fulltext_pdfPaneNotGranted": {
+    "message": "The account you are signed in with has not been granted read access to this PDF.\nPDFs uploaded by other members cannot be read by the extension until you select them again in Google Picker (sharing them in Drive does not grant access).\nUse \"Restore read access\" below to select them again. If it still cannot be read, the file may have been deleted from Drive."
+  },
+  "fulltext_pdfPaneLoadFailed": {
+    "message": "Could not retrieve the PDF. Please wait a moment and try again."
+  },
+  "fulltext_pdfPaneRegrantBtn": {
+    "message": "Restore read access"
+  },
+  "fulltext_pdfPaneRetryBtn": {
+    "message": "Retry"
+  },
+  "fulltext_pdfPaneOpenInDriveBtn": {
+    "message": "Open in Drive"
+  },
+  "fulltext_pdfPaneOpenInDriveNote": {
+    "message": "\"Open in Drive\" uses your browser's Google session, so it works if the file is shared with you in Drive. It opens in a separate tab, so highlights and AI evidence are not available there."
+  },
   "fulltext_importErrorNotPdf": {
     "message": "Not a PDF ($1)"
   },

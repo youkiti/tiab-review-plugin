@@ -21,6 +21,7 @@ import {
     saveDecision,
     updateReferenceFulltextUrl,
     isUserAdmin,
+    getFulltextDriveFolderId,
 } from '../lib/sheets-api';
 import { platform } from '../platform';
 import { retrieveAndCacheFulltext, fetchPdfResult } from '../lib/fulltext-retriever';
@@ -33,6 +34,9 @@ import {
     buildPdfFileName,
     describeDriveAccessError,
 } from '../lib/drive-api';
+import { runRegrantPickerFlow } from '../lib/drive-regrant-picker';
+import { describePdfLoadFailure } from '../lib/fulltext-pdf-access';
+import type { PdfLoadFailureView } from '../lib/fulltext-pdf-access';
 import { getClientVersion } from '../lib/client-version';
 import { t } from '../lib/i18n';
 import { EXCLUDE_REASON_VALUES, excludeReasonLabel } from '../lib/exclude-reasons';
@@ -1601,10 +1605,15 @@ function setUrlLabel(url: string, source: OaSource | 'cached' | 'linked'): void 
 
 /**
  * Drive保存済みPDFを左ペインに表示する。
- * 1. Drive API (alt=media) でPDFバイトを取得し blob URL を内蔵ビュワーで表示
- * 2. drive.file スコープ外（他レビュアーが保存したファイル等）で取得できない場合は
- *    Drive のプレビュー埋め込み (/preview) にフォールバック
+ * 1. Drive API (alt=media) でPDFバイトを取得し PDF.js で描画（失敗時のみ内蔵ビュワー）
+ * 2. 取得できない場合は失敗の種別に応じた復旧案内を出す（showPdfAccessFailure）
  * 3. Drive 以外のURL（タブアタッチで手入力した直リンク等）は従来のリンク表示
+ *
+ * **Drive のプレビュー埋め込み (/preview) へフォールバックしてはいけない（Issue #69）。**
+ * Drive は `/preview` に `frame-ancestors https://drive.google.com` を返すため
+ * `chrome-extension://` のページからは構造的に埋め込めず、拡張機能側の CSP 設定でも
+ * 上書きできない。以前はここでフォールバックしていたが、実際には無言で空のペインに
+ * なるだけだった（エラー表示すら出ない）。
  */
 async function showCachedPdf(url: string, token?: number): Promise<void> {
     const fileId = extractDriveFileId(url);
@@ -1626,9 +1635,8 @@ async function showCachedPdf(url: string, token?: number): Promise<void> {
         if (!blob && prefetched) blob = await downloadDriveFile(fileId); // 先読みが失敗していた場合の再取得
     } catch (err) {
         if (token !== undefined && isStale(token)) return;
-        console.warn('[fulltext] Drive APIでのPDF取得に失敗、プレビュー埋め込みへフォールバック:', err);
-        showPdfFrame(`https://drive.google.com/file/d/${fileId}/preview`);
-        setUrlLabel(url, 'cached');
+        console.warn('[fulltext] DriveからのPDF取得に失敗:', err);
+        showPdfAccessFailure(err, url, fileId);
         return;
     }
 
@@ -1636,8 +1644,9 @@ async function showCachedPdf(url: string, token?: number): Promise<void> {
     if (token !== undefined && isStale(token)) return;
 
     if (!blob) {
-        showPdfFrame(`https://drive.google.com/file/d/${fileId}/preview`);
-        setUrlLabel(url, 'cached');
+        // downloadDriveFile は Blob を返すか投げるかのどちらかなので通常ここには来ない。
+        // 来た場合は原因が分からないため、未付与と断定せず「再試行」案内に倒す。
+        showPdfAccessFailure(null, url, fileId);
         return;
     }
 
@@ -1655,6 +1664,121 @@ async function showCachedPdf(url: string, token?: number): Promise<void> {
         showPdfFrame(currentPdfObjectUrl);
         setUrlLabel(url, 'cached');
     }
+}
+
+// ---------------------------------------------------------------------------
+// PDF取得に失敗したときの復旧導線（Issue #69）
+//
+// 「読めない」を無言の空ペインにせず、原因（未付与 / 認証切れ / 一時エラー）に応じた
+// 案内と復旧導線を出す。主導線は再付与（Picker）で、これは drive.file が
+// 「アプリ×ユーザー×ファイル」単位でしか付与されず、Picker での選択以外に
+// 付与経路が無いため（AGENTS.md「drive.file の 403/404 は『無い』ではなく
+// 『このユーザーに未付与』」参照）。
+// ---------------------------------------------------------------------------
+
+/** PDF取得に失敗した理由をペインに表示する（フレーム類は全て畳む） */
+function showPdfAccessFailure(error: unknown, url: string, fileId: string): void {
+    const view = describePdfLoadFailure(error);
+    hideArticleFrame();
+    hidePdfFrame();
+    hideCanvasContainer();
+    hideSavePdfButton();
+
+    const placeholder = document.getElementById('ft-pdf-placeholder');
+    if (placeholder) {
+        placeholder.style.display = '';
+        placeholder.replaceChildren(buildPdfAccessFailurePanel(view, url, fileId, currentRef?.ref_id));
+    }
+    setUrlLabel(url, 'cached');
+    // PDFを出せなくても、AI判定の根拠カード（quote＋ページ番号）は参照できるようにする
+    renderAiCardsFallback();
+}
+
+function buildPdfAccessFailurePanel(
+    view: PdfLoadFailureView,
+    url: string,
+    fileId: string,
+    refId?: string
+): HTMLElement {
+    const panel = document.createElement('div');
+    panel.className = 'ft-pdf-error-panel';
+
+    const title = document.createElement('div');
+    title.className = 'ft-pdf-error-title';
+    title.textContent = t('fulltext_pdfPaneTitle');
+
+    const message = document.createElement('div');
+    message.className = 'ft-pdf-error-message';
+    appendTextWithBreaks(message, t(view.messageKey));
+
+    const actions = document.createElement('div');
+    actions.className = 'ft-pdf-error-actions';
+
+    if (view.showRegrant) {
+        const regrantBtn = document.createElement('button');
+        regrantBtn.className = 'btn btn-primary btn-small';
+        regrantBtn.textContent = t('fulltext_pdfPaneRegrantBtn');
+        regrantBtn.addEventListener('click', () => { void handlePdfRegrantClick(regrantBtn, url, refId); });
+        actions.appendChild(regrantBtn);
+    }
+
+    if (view.showRetry) {
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn btn-primary btn-small';
+        retryBtn.textContent = t('fulltext_pdfPaneRetryBtn');
+        retryBtn.addEventListener('click', () => { void retryCachedPdf(url, refId); });
+        actions.appendChild(retryBtn);
+    }
+
+    // 副次導線: ブラウザのGoogleセッションで開く。Drive 側で共有されていれば読めるが、
+    // 別タブのDriveビュワーになるためハイライト・AI判定の根拠表示は使えない。
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn btn-small';
+    openBtn.textContent = t('fulltext_pdfPaneOpenInDriveBtn');
+    openBtn.addEventListener('click', () => {
+        platform().openExternal(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`);
+    });
+    actions.appendChild(openBtn);
+
+    const note = document.createElement('div');
+    note.className = 'ft-pdf-error-note';
+    note.textContent = t('fulltext_pdfPaneOpenInDriveNote');
+
+    panel.append(title, message, actions, note);
+    return panel;
+}
+
+/**
+ * 再付与（Picker）を起動し、閉じたら同じPDFをもう一度読みに行く。
+ * キャンセルでも再取得する（「選択」を押した時点でサーバー側の付与は確定しており、
+ * キャンセル判定自体が best-effort なため）。
+ */
+async function handlePdfRegrantClick(btn: HTMLButtonElement, url: string, refId?: string): Promise<void> {
+    btn.disabled = true;
+    try {
+        const folderId = await getFulltextDriveFolderId(spreadsheetId);
+        if (!folderId) {
+            showFeedback(t('fulltext_regrantNoFolder'), true);
+            return;
+        }
+        const outcome = await runRegrantPickerFlow({ folderId, email: userEmail });
+        if (outcome.status === 'parse-error') showFeedback(t('fulltext_regrantParseError'), true);
+        await retryCachedPdf(url, refId);
+    } catch (err) {
+        console.warn('[fulltext] 読み取り権限の復旧に失敗:', err);
+        showFeedback(describeDriveAccessError(err) ?? t('fulltext_regrantError', (err as Error).message), true);
+    } finally {
+        // 再取得で描画し直すとこのボタン自体が捨てられるが、失敗して残った場合に押し直せるよう戻す
+        btn.disabled = false;
+    }
+}
+
+/** 同じ文献を表示したままPDFだけ読み直す（失敗した先読み結果は捨てる） */
+async function retryCachedPdf(url: string, refId?: string): Promise<void> {
+    // 押している間に別の文献へ移っていたら、その文献の表示を壊さないよう何もしない
+    if (refId && currentRef?.ref_id !== refId) return;
+    if (refId) pdfPrefetch.delete(refId);
+    await showCachedPdf(url, ++loadToken);
 }
 
 // ---------------------------------------------------------------------------

@@ -231,6 +231,50 @@ body {
     word-break: break-all;
 }
 
+/* PDF取得に失敗したときの復旧導線パネル（Issue #69）。
+   Driveプレビュー埋め込みは CSP frame-ancestors で埋め込めないため、
+   空のペインの代わりにここへ原因と復旧手段を出す。 */
+.ft-pdf-error-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    max-width: 460px;
+    text-align: center;
+}
+
+.ft-pdf-error-panel .ft-pdf-error-title {
+    color: #444;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ft-pdf-error-panel .ft-pdf-error-message {
+    color: #555;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.ft-pdf-error-panel .ft-pdf-error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.ft-pdf-error-panel .ft-pdf-error-actions .btn {
+    cursor: pointer;
+}
+
+.ft-pdf-error-panel .ft-pdf-error-note {
+    color: #888;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: left;
+}
+
 /* PDFドラッグ&ドロップ用オーバーレイ。
    dragenter時に最前面（iframeの上）へ出して drop を奪う。 */
 .ft-drop-overlay {

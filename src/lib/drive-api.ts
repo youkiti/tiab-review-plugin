@@ -156,12 +156,19 @@ export async function resolveFolderState(folderId: string): Promise<FolderAccess
 }
 
 /**
- * resolveFolderState の非 accessible/trashed 状態を、対応する型付きエラーへ変換する。
+ * classifyDriveApiStatus / resolveFolderState の非 ok（非 accessible/trashed）状態を、
+ * 対応する型付きエラーへ変換する。
+ * ステータス分類そのものは classifyDriveApiStatus() だけが持ち、呼び出し側は
+ * 「401 なら」「403/404 なら」という分岐を自前で書かないこと（判定器を二重に持たないため）。
  */
-function toDriveFolderError(fileId: string, state: 'inaccessible' | 'auth-error' | 'transient-error'): Error {
+function toDriveApiError(
+    fileId: string,
+    state: 'inaccessible' | 'auth-error' | 'transient-error',
+    status?: number
+): Error {
     if (state === 'auth-error') return new DriveAuthError(fileId);
     if (state === 'transient-error') return new DriveTransientError(fileId);
-    return new DriveAccessDeniedError(fileId);
+    return new DriveAccessDeniedError(fileId, status);
 }
 
 /**
@@ -197,25 +204,43 @@ export function extractDriveFileId(url: string): string | null {
 
 /**
  * Drive ファイルの実体（PDFバイト）をダウンロードする。
- * drive.file スコープのため、本拡張で保存したファイル以外は 404 になりうる
- * （その場合は呼び出し側で Drive プレビュー埋め込みへフォールバックする）。
+ * drive.file スコープのため、本拡張で保存したファイル以外は 403/404 になりうる。
+ *
+ * 失敗は必ず型付きエラー（DriveAccessDeniedError / DriveAuthError / DriveTransientError）で投げる。
+ * 呼び出し側（フルテキストページの左ペイン）が「未付与だから再付与を案内する」と
+ * 「一時的な失敗だから再試行を案内する」を取り違えないための前提になっている（Issue #69）。
+ * ステータスの解釈は classifyDriveApiStatus() に委ね、ここで 401/403/404 を再実装しないこと。
  */
 export async function downloadDriveFile(fileId: string): Promise<Blob> {
     const token = await getAuthToken();
-    const resp = await driveFetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
-        {},
-        { token }
-    );
-    if (!resp.ok) {
-        // 403/404 は「PDFが無い」のではなく「別アカウントがアップロードしたPDFで
-        // drive.file スコープが無い」可能性が高い（原因を伝えるため型付きエラーにする）。
-        // 401 は認証切れ。呼び出し側のプレビュー埋め込みフォールバックは維持する
-        // （instanceof Error である限り既存の catch はそのまま動く）。
-        if (resp.status === 401) throw new DriveAuthError(fileId);
-        if (resp.status === 403 || resp.status === 404) throw new DriveAccessDeniedError(fileId, resp.status);
-        throw new Error(`DriveからのPDF取得に失敗しました (HTTP ${resp.status})`);
+
+    let resp: Response;
+    try {
+        resp = await driveFetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
+            {},
+            { token }
+        );
+    } catch (err) {
+        // ネットワーク例外。権限の問題と区別が付かないまま「未付与」と案内しないよう一時エラーへ倒す。
+        throw new DriveTransientError(fileId, `Drive API request failed: ${(err as Error).message}`);
     }
+
+    const statusClass = classifyDriveApiStatus(resp.status);
+    if (statusClass !== 'ok') throw toDriveApiError(fileId, statusClass, resp.status);
+
+    // HTTP 200 でも本文が HTML のことがある（Google のサインイン/エラーページを掴んだ場合）。
+    // そのまま返すと PDF.js が「壊れたPDF」として失敗し、原因が画面から辿れなくなるため
+    // アクセス不能として扱う。
+    const contentType = resp.headers.get('content-type') ?? '';
+    if (/^text\/html/i.test(contentType)) {
+        throw new DriveAccessDeniedError(
+            fileId,
+            resp.status,
+            `Drive returned an HTML body instead of file bytes (content-type: ${contentType})`
+        );
+    }
+
     return resp.blob();
 }
 
@@ -416,7 +441,7 @@ async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
         const folderState = await resolveFolderState(saved);
         if (folderState === 'accessible') return saved;
         if (folderState !== 'trashed') {
-            throw toDriveFolderError(saved, folderState);
+            throw toDriveApiError(saved, folderState);
         }
         // trashed: 確定した答えなので作り直してよい
     }
@@ -462,7 +487,7 @@ export async function ensureFulltextFolder(spreadsheetId: string): Promise<strin
             return saved;
         }
         if (folderState !== 'trashed') {
-            throw toDriveFolderError(saved, folderState);
+            throw toDriveApiError(saved, folderState);
         }
         // trashed: 確定した答えなので作り直してよい（project フォルダ側は ensureProjectFolder に委譲）
     }
