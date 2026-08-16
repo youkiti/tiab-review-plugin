@@ -1,0 +1,502 @@
+[
+  {
+    "decision_id": "3de51e3c-7f49-4fe6-a959-5cf9c89e3b24",
+    "ref_id": "Depression-SLIM-5",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "e7f5b5c5-1b47-42e6-90f1-46de04964f75",
+    "ref_id": "Depression-SLIM-10",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "2a087381-ce28-4b7b-b8e3-48e3d5389035",
+    "ref_id": "Depression-SLIM-8",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "3cd46778-4255-42b0-863c-d3fc70cd0ad9",
+    "ref_id": "Depression-SLIM-6",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "a86734cb-c9ac-47ff-9c56-ca44cc5e3700",
+    "ref_id": "Depression-SLIM-3",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "56da8b6f-e60a-4816-93fb-6c71526464da",
+    "ref_id": "Depression-SLIM-4",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "9d4fdb7f-5ac9-4360-8a02-bf04daac7e1c",
+    "ref_id": "Depression-SLIM-2",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "f91d25ae-bf7d-44bf-902a-2849b950bdcd",
+    "ref_id": "Depression-SLIM-1",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "440ae245-4f72-48d8-86e2-cdff2ff7e870",
+    "ref_id": "Depression-SLIM-9",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "998ddf2c-a270-47c9-840e-14d380d0c8ee",
+    "ref_id": "Depression-SLIM-7",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "175f9280-4e7a-47ab-8095-2cd3275683b3",
+    "ref_id": "Depression-SLIM-15",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "2ea73c99-ebb2-448d-939e-0f35d00d7356",
+    "ref_id": "Depression-SLIM-14",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "74f6fb78-b176-4193-8711-d49e29a7f1bb",
+    "ref_id": "Depression-SLIM-11",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "9e672c8e-c242-4962-907d-5b9ffdea16c1",
+    "ref_id": "Depression-SLIM-13",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "a93e4fb2-0f5f-4389-b0ae-031bf0a5275e",
+    "ref_id": "Depression-SLIM-12",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "16e1d644-6644-431c-8485-d771540ee1d2",
+    "ref_id": "Depression-SLIM-18",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "aea1667a-dc6a-4a7f-85b8-06690a90d4c6",
+    "ref_id": "Depression-SLIM-16",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "d7e26f4c-916e-4737-913b-807b9773359b",
+    "ref_id": "Depression-SLIM-19",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "c030a8e6-b78d-4a38-bbd1-7149a6a90e40",
+    "ref_id": "Depression-SLIM-17",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "25098ae5-7a53-4dde-95bf-90514e8b0fc2",
+    "ref_id": "Depression-SLIM-20",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "42333356-2d36-4a5b-995f-437796bad7bc",
+    "ref_id": "Depression-SLIM-22",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "76c88d38-0ed0-489b-8e92-db1914b5801d",
+    "ref_id": "Depression-SLIM-25",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "2b688049-2162-4272-83d5-68a4fa51f0c1",
+    "ref_id": "Depression-SLIM-26",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "b7e9ab8d-7816-4ed6-9f68-4da68df0fbb2",
+    "ref_id": "Depression-SLIM-23",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "51f70c27-f668-4d7a-a7f9-cde3c51a7ad1",
+    "ref_id": "Depression-SLIM-28",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "ad0956cd-bd57-43ce-9252-19ba7659bae8",
+    "ref_id": "Depression-SLIM-21",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "8acab70f-2699-46e7-860a-8e4d8aeda7be",
+    "ref_id": "Depression-SLIM-29",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "772c7485-ee5a-4ea0-9013-cc9ed33e598f",
+    "ref_id": "Depression-SLIM-24",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "441426a3-e196-4461-b6df-0098094459bd",
+    "ref_id": "Depression-SLIM-27",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "d1c2d12f-4514-4660-b0a3-ec3c8617f712",
+    "ref_id": "Depression-SLIM-30",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "953bd7db-8c54-4fa3-aa0e-fc6f97a6e3df",
+    "ref_id": "Depression-SLIM-35",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "06c5f94b-2bd7-4dad-808a-226d1dd66d58",
+    "ref_id": "Depression-SLIM-33",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "2396e4bd-d3bf-4dcb-904c-7d09d6c156bb",
+    "ref_id": "Depression-SLIM-36",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "a0428ae9-26a5-4ad0-b442-2b8c67368bc9",
+    "ref_id": "Depression-SLIM-38",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "81748111-ce87-4aae-b733-18c1f8bb27fd",
+    "ref_id": "Depression-SLIM-37",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "959c8b1e-2525-42ff-a2f1-561886aad870",
+    "ref_id": "Depression-SLIM-34",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "5d743d84-f30c-4b68-b2a8-3f32b5d3ead0",
+    "ref_id": "Depression-SLIM-31",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "32d31f7e-dd14-4ea4-897e-15c0a2fe72e2",
+    "ref_id": "Depression-SLIM-32",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "cbab9d0c-71a1-410a-98d3-d7bd42d89f91",
+    "ref_id": "Depression-SLIM-39",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "f24f9aad-d895-488a-8eeb-5bc2bd53951e",
+    "ref_id": "Depression-SLIM-40",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "859bdf3e-16c9-4e48-8094-12fd047ca9e2",
+    "ref_id": "Depression-SLIM-44",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "fd74a7dd-59d5-45f7-b306-5183419a7c88",
+    "ref_id": "Depression-SLIM-46",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "cd6d36ef-77f6-43fd-b5d3-9ab340436fff",
+    "ref_id": "Depression-SLIM-42",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "79ee8c1c-0222-4585-8dd8-59d1f6113ac4",
+    "ref_id": "Depression-SLIM-47",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "6ec5be77-8dfc-4c87-8318-f34f68a361eb",
+    "ref_id": "Depression-SLIM-48",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "38f966e7-e5bd-4251-9a4e-d37cabcea7a1",
+    "ref_id": "Depression-SLIM-45",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "2ace1a9e-e74e-4e90-a9f0-b765f60be1a9",
+    "ref_id": "Depression-SLIM-43",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "4a5d0cbc-7862-4949-a89d-72621492801d",
+    "ref_id": "Depression-SLIM-49",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "ac16c33d-f39b-477d-997c-52b495d7ed58",
+    "ref_id": "Depression-SLIM-41",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  },
+  {
+    "decision_id": "a7885741-bdbc-4fc7-854c-be2852010166",
+    "ref_id": "Depression-SLIM-50",
+    "reviewer_id": "llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z",
+    "decision": "pending",
+    "reason": "",
+    "note": "{\"type\":\"llm\",\"execution_id\":\"llm:gemini-3.7-flash@2026-08-16T08:10:41.284Z\",\"model\":\"gemini-3.7-flash\",\"requested_model\":\"gemini-3.7-flash\",\"include_probability\":1,\"reasons\":[\"LLM 出力が解析できませんでした (error_geminiApi)\"],\"evidence\":[],\"prompt_version\":\"v1.0.0\",\"parse_error\":true,\"error_message\":\"error_geminiApi\"}",
+    "decided_at": "2026-08-16T08:10:41.284Z",
+    "client_version": "unknown-llm"
+  }
+]

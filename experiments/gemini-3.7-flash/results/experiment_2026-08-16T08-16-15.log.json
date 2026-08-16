@@ -1,0 +1,87 @@
+{
+  "experimentId": "2026-08-16T08-16-15",
+  "startTime": "2026-08-16T08:16:15.106Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "E3",
+      "model": "gemini-3.7-flash",
+      "temperature": 1,
+      "topP": 0.95,
+      "thinkingLevel": "MEDIUM",
+      "maxOutputTokens": 16384
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 60,
+      "delayBetweenRequests": 50
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1993,
+    "failCount": 0,
+    "fallbackCount": 0,
+    "durationMs": 113322,
+    "avgTimePerItem": 56.86001003512293,
+    "modelVersions": [
+      "gemini-3.7-flash"
+    ],
+    "resumedFromJsonl": 0
+  },
+  "usage": {
+    "promptTokens": 979459,
+    "candidatesTokens": 266297,
+    "thoughtsTokens": 1275976,
+    "totalTokens": 2521732,
+    "samples": 1993,
+    "maxTokensTruncated": 0,
+    "parseErrorFallback": 0
+  },
+  "cost": {
+    "inputUSD": 0.73459425,
+    "outputUSD": 5.78352375,
+    "totalUSD": 6.518117999999999,
+    "usdPer1000Items": 3.2705057701956846
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 255,
+    "falsePositives": 134,
+    "trueNegatives": 1579,
+    "falseNegatives": 25,
+    "sensitivity": 0.9107142857142857,
+    "specificity": 0.9217746643315821,
+    "precision": 0.6555269922879178,
+    "fBetaScore": 0.9036785030831384
+  },
+  "endTime": "2026-08-16T08:18:08.489Z",
+  "consoleLog": [
+    "[2026-08-16T08:16:15.106Z] === Starting Experiment 2026-08-16T08-16-15 ===",
+    "[2026-08-16T08:16:15.106Z] Dataset: depression, Condition: E3, Tier: tier_max",
+    "[2026-08-16T08:16:15.115Z] 1993件の文献をdepressionから読み込み",
+    "[2026-08-16T08:16:15.116Z] ラベル分布: 陽性=280, 陰性=1713",
+    "[2026-08-16T08:16:15.116Z] 条件: {\"id\":\"E3\",\"model\":\"gemini-3.7-flash\",\"temperature\":1,\"topP\":0.95,\"thinkingLevel\":\"MEDIUM\",\"maxOutputTokens\":16384}",
+    "[2026-08-16T08:16:15.116Z] レート制限: concurrency=60, delay=50ms",
+    "[2026-08-16T08:16:15.117Z] --fresh 指定: 既存JSONLを C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.7-flash\\results\\depression_E3_items.jsonl.bak に退避して最初からやり直します",
+    "[2026-08-16T08:18:08.442Z] 今回セッション: 1993/1993 成功, フォールバック 0 (113.3秒)",
+    "[2026-08-16T08:18:08.442Z] 平均処理時間: 57ms/件",
+    "[2026-08-16T08:18:08.442Z] 実モデルバージョン: gemini-3.7-flash",
+    "[2026-08-16T08:18:08.442Z] 集計対象: 全1993件 (再開分 0件 + 今回処理分 1993件)",
+    "[2026-08-16T08:18:08.470Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.7-flash\\results\\decisions_2026-08-16T08-16-15.json",
+    "[2026-08-16T08:18:08.479Z] \n=== Token / Cost ===",
+    "[2026-08-16T08:18:08.479Z] prompt=979459, candidates=266297, thoughts=1275976, total=2521732",
+    "[2026-08-16T08:18:08.479Z] USD: input=$0.7346, output=$5.7835, total=$6.5181 ($3.271 / 1K件)",
+    "[2026-08-16T08:18:08.479Z] MAX_TOKENS で切り詰め: 0 件 (フォールバック総数 0 件中)",
+    "[2026-08-16T08:18:08.489Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-08-16T08:18:08.489Z] TP: 255, FP: 134",
+    "[2026-08-16T08:18:08.489Z] TN: 1579, FN: 25",
+    "[2026-08-16T08:18:08.489Z] Sensitivity: 91.07%",
+    "[2026-08-16T08:18:08.489Z] Specificity: 92.18%",
+    "[2026-08-16T08:18:08.489Z] Precision: 65.55%",
+    "[2026-08-16T08:18:08.489Z] Fβ(β=7): 90.37%"
+  ]
+}
