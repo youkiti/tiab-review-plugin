@@ -110,3 +110,13 @@ npx ts-node --project experiments/gemini-3.7-flash/tsconfig.json \
 
 - データセット: `scripts/asreview-baseline/datasets/depression_slim_labeled.json`
 - 既存実験: `experiments/report.md`（B4 チャンピオン）、`experiments/gemini-3.6-flash/report.md`（直前の同格モデル、フォールバック候補止まりの事例）、`experiments/gemini-3.5-flash/report.md`（2世代前、却下事例）
+
+## 実行結果（2026-08-16）
+
+本実行完了。最良条件 E3 (MEDIUM) でも depression Recall **91.07%**（E1 LOW は 90.71%）に留まり、B4（96.1%）・前世代 gemini-3.6-flash（94.6%）・現行デフォルト GA C1（93.6%）のいずれにも届かなかった。**判定: 却下（現行維持）**。
+
+- **E2 (MINIMAL) はモデル非対応**（HTTP 400 `INVALID_ARGUMENT`）と判明したため `config.json` の `excludedConditions` へ移動し、`run_phase1.ts` のフル実行対象から除外した。
+- **E4 (HIGH) は未実施**（ユーザー判断）。
+- Recall は前世代より下がったが Precision は大幅に上昇（除外方向への偏り）しており、感度最優先のスクリーニング用途とは相性が悪いことが分析で判明した。
+
+詳細は [report.md](report.md) を参照。

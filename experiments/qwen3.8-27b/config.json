@@ -12,7 +12,8 @@
     "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
     "rateLimits": {
         "gemini_tier_max": { "concurrency": 50, "delayBetweenRequests": 200 },
-        "openrouter_akashml": { "concurrency": 25, "delayBetweenRequests": 0 }
+        "openrouter_akashml": { "concurrency": 25, "delayBetweenRequests": 0 },
+        "openrouter_akashml_safe": { "concurrency": 10, "delayBetweenRequests": 200, "note": "Q1フル実行(1,993件)でopenrouter_akashml(concurrency 25)使用時に429が82件(4.1%)発生したため追加した安全側プロファイル。1,993件級の連続実行ではこちらを使う（詳細: plan.md 実行結果節 / report.md）。既存Q1/Q2条件のrateLimit値は実測の再現性を保つため変更していない。" }
     },
     "conditions": [
         {

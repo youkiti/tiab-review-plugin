@@ -1,0 +1,50 @@
+{
+  "experimentId": "Q1_2026-08-16T08-31-23",
+  "startTime": "2026-08-16T08:31:23.124Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "Q1",
+      "provider": "openrouter",
+      "model": "qwen/qwen3.8-27b",
+      "temperature": 0,
+      "reasoningEnabled": false,
+      "rateLimit": "openrouter_akashml",
+      "note": "非thinking。主軸条件"
+    },
+    "rateLimitName": "openrouter_akashml",
+    "rateLimitConfig": {
+      "concurrency": 25,
+      "delayBetweenRequests": 0
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1911,
+    "failCount": 82,
+    "durationMs": 1733207,
+    "avgTimePerItem": 869.6472654290015,
+    "tokensTotal": {
+      "prompt": 1248953,
+      "completion": 376090,
+      "reasoning": 0
+    },
+    "estimatedCostUsd": 1.76551685,
+    "resumedFromJsonl": 0
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 228,
+    "falsePositives": 79,
+    "trueNegatives": 1563,
+    "falseNegatives": 41,
+    "sensitivity": 0.8475836431226765,
+    "specificity": 0.9518879415347138,
+    "precision": 0.742671009771987,
+    "fBetaScore": 0.8451957295373665
+  },
+  "endTime": "2026-08-16T09:00:16.340Z"
+}

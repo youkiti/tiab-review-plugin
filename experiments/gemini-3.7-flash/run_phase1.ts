@@ -15,7 +15,11 @@ async function main() {
     // E4 (HIGH) は既定で除外（gemini-3.5-flash: HIGH で $104/データセット、
     // gemini-3.6-flash: HIGH で約$79/データセット と2世代連続で $20 閾値を大きく
     // 超過したため、疎通確認も実施しない）。
-    const conditions = ['E1', 'E2', 'E3'];
+    // E2 (MINIMAL) はモデル非対応のため除外（thinking_level=MINIMAL を送ると
+    // HTTP 400 INVALID_ARGUMENT「Thinking level MINIMAL is not supported for
+    // this model」。LOW/MEDIUM/HIGH は HTTP 200。詳細: report.md 5節、
+    // config.json の excludedConditions）。
+    const conditions = ['E1', 'E3'];
     const dataset = 'depression';
 
     console.log('=== Phase 1: depression で thinking_level 最適条件探索 ===');

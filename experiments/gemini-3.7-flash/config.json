@@ -54,13 +54,22 @@
     ],
     "excludedConditions": [
         {
+            "id": "E2",
+            "model": "gemini-3.7-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL",
+            "maxOutputTokens": 4096,
+            "reason": "モデル非対応のため実行不能。thinking_level=MINIMAL を送ると HTTP 400 INVALID_ARGUMENT、message: 'Thinking level MINIMAL is not supported for this model. Please retry with other thinking level.'（LOW/MEDIUM/HIGH はいずれも HTTP 200）。この事実に気づかず smoke (n=50) を実行したため全件がAPIエラー→フォールバック判定（include_probability=1.0）となり、見かけ上 Recall 100% / Precision 16.0% という無効な数値が出た。詳細は report.md 5節。"
+        },
+        {
             "id": "E4",
             "model": "gemini-3.7-flash",
             "temperature": 1.0,
             "topP": 0.95,
             "thinkingLevel": "HIGH",
             "maxOutputTokens": 32768,
-            "reason": "gemini-3.5-flash（HIGH で $104/データセット）・gemini-3.6-flash（HIGH で約$79/データセット）と2世代連続で $20 閾値を大きく超過したため、今回は疎通確認も実施しない。"
+            "reason": "gemini-3.5-flash（HIGH で $104/データセット）・gemini-3.6-flash（HIGH で約$79/データセット）と2世代連続で $20 閾値を大きく超過したため、今回は疎通確認も実施しない。ユーザー判断により今回は実施せず。"
         }
     ],
     "baselineResults": {

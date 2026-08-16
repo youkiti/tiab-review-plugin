@@ -193,6 +193,10 @@ npm run watch
 | `gemini-3.5-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MINIMAL | 93.2% | 54.6% | 91.9% | 31 | $1.93 |
 | `gemini-3.6-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 94.6% | 49.6% | 93.0% | 31 | $1.70 |
 | `gemini-3.5-flash-lite` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 91.8% | 64.4% | 91.0% | 5 | $0.41 |
+| `gemini-3.7-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MEDIUM | 91.1% | 65.6% | 90.4% | 57 | $3.27 |
+
+**所見**:
+- `gemini-3.7-flash` は入力/出力単価が前世代比半額（2026-12-31まで、以降は同額に改定予定）だが、Recall は 91.1%（最良条件）に留まり前世代・現行デフォルトのいずれにも届かず却下。thinking を上げても Recall はほぼ動かずコストだけ増える。詳細は [experiments/gemini-3.7-flash/report.md](experiments/gemini-3.7-flash/report.md)。
 
 ### OpenRouter モデル評価 (2026-05, depression 全1,993件)
 
@@ -203,12 +207,14 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 | **`gemini-3-flash-preview` (B4, 既存記録)** | Temp 1.0 / TopP 0.95 / Think LOW | **96.1%** | 53.4% | 95.0% | ≈300 | - | 約 $1.70 |
 | `qwen/qwen3-235b-a22b-2507` (Instruct) | Temp 0 | 93.9% | 47.9% | 92.2% | 650 | $0.135 | 約 $0.07 |
 | `deepseek/deepseek-v4-flash` | Temp 0 (内部 reasoning あり) | 91.1% | 68.0% | 90.5% | 1,319 | $0.756 | 約 $0.38 |
+| `qwen/qwen3.8-27b` (2026-08, 不採用) | Temp 0 / 非thinking | 85.0% | 73.7% | 84.7% | 870 | $1.844 | 約 $0.93 |
 
 **所見**:
 - 2026-05 時点で OpenRouter 経由の最新 Kimi / Qwen / DeepSeek / Grok 系を試したが、**Recall ≥ 95% (採用基準) を全件 1,993 で満たすモデルは無し**。既存 B4 (`gemini-3-flash-preview`) を上回るモデルは確認できなかった。
 - `qwen3-235b-a22b-2507` (Instruct) は B4 比 **コスト約 1/24** で Recall 93.9%。Recall を 2pp 譲っても圧倒的な低コストで一次スクリーニングしたい場合の「予算オプション」として有望。
 - `deepseek-v4-flash` は Recall 91.1% で採用基準未達。内部 reasoning でレイテンシ・コストとも `qwen` Instruct の数倍。
 - Thinking 系 (`qwen3-thinking-2507`, `kimi-k2-thinking`, `grok-4.3`) は 50〜300件サンプルでは Recall 100% を出すが、レイテンシ 16〜48 秒/件・コスト数倍〜十数倍で本番スケール非現実的。詳細は [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)。
+- `qwen/qwen3.8-27b`（2026-08-14リリース、同Qwen系列の小型27B版）は Recall 85.0%で235B Instruct（93.9%）を8.9pp下回り不採用。レイテンシも235Bの約18倍（870ms/件）。詳細は [experiments/qwen3.8-27b/report.md](experiments/qwen3.8-27b/report.md)。
 
 ### OpenAI gpt-5.6 モデル評価 (2026-07, depression 全1,993件)
 
