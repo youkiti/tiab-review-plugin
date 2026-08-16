@@ -1,0 +1,71 @@
+{
+    "description": "gemini-3.7-flash 評価実験 (thinking_level マトリクス: minimal/low/medium/high)",
+    "version": "1.0",
+    "model": "gemini-3.7-flash",
+    "pricing": {
+        "inputPerMTok": 0.75,
+        "outputPerMTok": 3.75,
+        "note": "公式価格 2026-08-16 時点。2026-12-31まで。2027-01-01 から $1.50/$7.50 へ改定"
+    },
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 60,
+            "delayBetweenRequests": 50
+        },
+        "tier_smoke": {
+            "concurrency": 10,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "E1",
+            "model": "gemini-3.7-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "maxOutputTokens": 8192
+        },
+        {
+            "id": "E2",
+            "model": "gemini-3.7-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MINIMAL",
+            "maxOutputTokens": 4096
+        },
+        {
+            "id": "E3",
+            "model": "gemini-3.7-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "MEDIUM",
+            "maxOutputTokens": 16384
+        }
+    ],
+    "excludedConditions": [
+        {
+            "id": "E4",
+            "model": "gemini-3.7-flash",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "HIGH",
+            "maxOutputTokens": 32768,
+            "reason": "gemini-3.5-flash（HIGH で $104/データセット）・gemini-3.6-flash（HIGH で約$79/データセット）と2世代連続で $20 閾値を大きく超過したため、今回は疎通確認も実施しない。"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11, "msPerItem": 300 }
+        }
+    }
+}
