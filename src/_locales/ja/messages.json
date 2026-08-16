@@ -2778,6 +2778,27 @@
   "fulltext_driveTransientError": {
     "message": "Drive への一時的なアクセスエラーが発生しました。しばらく時間をおいてから再試行してください。"
   },
+  "fulltext_pdfPaneTitle": {
+    "message": "このPDFを表示できません"
+  },
+  "fulltext_pdfPaneNotGranted": {
+    "message": "このPDFの読み取り権限が、いまログインしているアカウントに付与されていません。\n他のメンバーがアップロードしたPDFは、Google Picker で選び直すまで拡張機能から読めません（Drive で共有されていても付与されません）。\n下の「読み取り権限を復旧」から選び直してください。それでも読めない場合は、Drive から削除された可能性があります。"
+  },
+  "fulltext_pdfPaneLoadFailed": {
+    "message": "PDFを取得できませんでした。しばらく時間をおいてから再試行してください。"
+  },
+  "fulltext_pdfPaneRegrantBtn": {
+    "message": "読み取り権限を復旧"
+  },
+  "fulltext_pdfPaneRetryBtn": {
+    "message": "再試行"
+  },
+  "fulltext_pdfPaneOpenInDriveBtn": {
+    "message": "Drive で開く"
+  },
+  "fulltext_pdfPaneOpenInDriveNote": {
+    "message": "「Drive で開く」はブラウザのGoogleアカウントで表示するため、Drive で共有されていれば読めます。ただし別タブで開くので、ハイライトとAI判定の根拠表示は使えません。"
+  },
   "fulltext_importErrorNotPdf": {
     "message": "PDFではありません（$1）"
   },

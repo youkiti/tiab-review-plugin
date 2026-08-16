@@ -31,8 +31,7 @@ import { state } from '../state';
 import { t } from '../../lib/i18n';
 import { showToast } from '../ui/feedback';
 import { showModal, hideModal } from '../ui/modal';
-import { buildRegrantPickerUrl } from '../../lib/picker-url';
-import { parseRegrantPickerRedirect } from '../../lib/drive-picker-result';
+import { runRegrantPickerFlow } from '../../lib/drive-regrant-picker';
 import {
     listAccessibleFileIdsInFolder,
     describeDriveAccessError,
@@ -92,16 +91,6 @@ function setRegrantStatus(msg: string | null): void {
 }
 
 /**
- * chrome.identity.launchWebAuthFlow の失敗が「ユーザーがウィンドウを閉じた/キャンセルした」
- * ものかを、例外メッセージ（chrome.runtime.lastError由来）から best-effort で判定する。
- * fulltext-drive-import.ts の isUserCancelledAuthError と同じ判定（export されていないため
- * ここで小さく複製する）。
- */
-function isUserCancelledAuthError(message: string): boolean {
-    return /did not approve|cancel|closed the window|dismissed/i.test(message || '');
-}
-
-/**
  * 現在のユーザーが読めない cached 文献を検知する（副作用: files.list を1回〜複数回呼ぶ）。
  * 「folderId 直下に無い cached ファイル = 読めない」という前提と、それが崩れた場合の
  * 既知の限界（fulltextフォルダの作り直し後は偽陽性になりうる）は
@@ -113,38 +102,13 @@ async function detectUnreadable(folderId: string): Promise<CachedFulltextRef[]> 
 }
 
 /**
- * Pickerを開き、選択された（＝再付与された）件数を返す。
- * キャンセル・パース失敗は null を返すのみで例外は投げない（呼び出し側は再検知へ進む）。
+ * Pickerを開く（起動と解析は UI 非依存の drive-regrant-picker.ts に委ねる）。
+ * 解析失敗だけはこの層でトースト表示する。
  * launchWebAuthFlow 自体の失敗（キャンセル以外。ネットワークエラー等）は投げる。
  */
-async function runRegrantPickerFlow(folderId: string): Promise<number | null> {
-    const redirectUri = chrome.identity.getRedirectURL('picker');
-    const url = buildRegrantPickerUrl({ email: state.userEmail, redirectUri, folderId });
-
-    let redirectUrl: string | undefined;
-    try {
-        redirectUrl = await chrome.identity.launchWebAuthFlow({ url, interactive: true });
-    } catch (err) {
-        if (isUserCancelledAuthError((err as Error).message)) return null;
-        throw err;
-    }
-    if (!redirectUrl) return null;
-
-    // Pickerページの実装不備・想定外の遷移を疑い、拡張機能自身が発行したリダイレクトURIで
-    // 始まっていることを確認してから解析する。
-    if (!redirectUrl.startsWith(redirectUri)) {
-        console.warn('[fulltext-regrant] 想定外のリダイレクトURLを受信しました:', redirectUrl);
-        showToast(t('fulltext_regrantParseError'), 5000);
-        return null;
-    }
-
-    const parsed = parseRegrantPickerRedirect(redirectUrl);
-    if (parsed === null) {
-        showToast(t('fulltext_regrantParseError'), 5000);
-        return null;
-    }
-    if (parsed === 'cancelled') return null;
-    return parsed.granted;
+async function openRegrantPicker(folderId: string): Promise<void> {
+    const outcome = await runRegrantPickerFlow({ folderId, email: state.userEmail });
+    if (outcome.status === 'parse-error') showToast(t('fulltext_regrantParseError'), 5000);
 }
 
 // ---------------------------------------------------------------------------
@@ -234,11 +198,11 @@ async function handleRegrantClick(): Promise<void> {
         }
 
         setRegrantStatus(t('fulltext_regrantOpeningPicker'));
-        // 戻り値（選択件数）は表示に使わない。真値は再検知（下のdetectUnreadable）で取り直す
+        // 選択件数は表示に使わない。真値は再検知（下のdetectUnreadable）で取り直す
         // （runRegrantPickerFlow / picker.ts のコメント参照）。
         // キャンセル・パース失敗でもここで打ち切らず再検知へ進む（付与は既に起きている可能性があるため）。
         // launchWebAuthFlow自体が失敗した場合（キャンセル以外）はここで例外が飛び、catchへ抜ける。
-        await runRegrantPickerFlow(folderId);
+        await openRegrantPicker(folderId);
 
         setRegrantStatus(t('fulltext_regrantRechecking'));
         const afterUnreadable = await detectUnreadable(folderId);

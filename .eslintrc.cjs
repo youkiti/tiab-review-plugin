@@ -43,6 +43,10 @@ module.exports = {
         "src/lib/llm-processor.ts",
         "src/lib/providers/**",
         "src/lib/pdf-image-only.ts",
+        // chrome.identity.launchWebAuthFlow で Picker を開く再付与フロー。呼び出し元は
+        // サイドパネルとフルテキストページ（どちらも拡張専用）のみで、Web版は独自の
+        // Picker フローを持つため PlatformAdapter へは載せない。
+        "src/lib/drive-regrant-picker.ts",
         "src/sidepanel/sidepanel.ts",
         "src/sidepanel/features/llm/**",
         "src/sidepanel/features/ml/**",

@@ -119,6 +119,77 @@ export function classifyDriveApiStatus(status: number): 'ok' | 'auth-error' | 'i
     return 'transient-error';
 }
 
+/**
+ * Drive API が 403 を返したときのレスポンス本文（JSON）を見て、
+ * 「未付与/削除済み」ではなく一時的なレート制限であるかを判定する純粋関数。
+ *
+ * Drive は `userRateLimitExceeded` / `rateLimitExceeded` / `quotaExceeded` /
+ * `dailyLimitExceeded` / `sharingRateLimitExceeded` でも 403 を返す。本拡張は
+ * フルテキストPDFを最大3並列でプリフェッチするため現実に踏む。これを
+ * `classifyDriveApiStatus()` の分類（403/404 → inaccessible）のまま
+ * `DriveAccessDeniedError` にしてしまうと、drive.file を付与済みのオーナーに対して
+ * 「未付与または削除済み」と断定表示し、直しようのない再付与フローだけを
+ * 主導線にしてしまう（Issue #69 が防ごうとしている誤案内そのもの）。
+ *
+ * ダウンロード経路の `quotaExceeded` は「このファイルのダウンロード枠を使い切った」
+ * という時間で解ける状態であり、「未付与」ではないためここに含める。
+ *
+ * ステータスの4分類自体は `classifyDriveApiStatus()` だけが持つ方針を崩さないよう、
+ * この関数は「403 の中で一時エラーとそれ以外を切り分ける」補助としてのみ使うこと
+ * （401/403/404 の分岐をここで再実装しない）。
+ */
+export function isDriveRateLimitBody(body: unknown): boolean {
+    const RATE_LIMIT_REASONS = new Set([
+        'userRateLimitExceeded',
+        'rateLimitExceeded',
+        'quotaExceeded',
+        'dailyLimitExceeded',
+        'sharingRateLimitExceeded',
+    ]);
+
+    // error.status 用の語彙は errors[].reason とは別の集合にする。
+    // reason は Drive 独自の camelCase（userRateLimitExceeded 等）だが、error.status は
+    // gRPC 由来の SCREAMING_SNAKE_CASE（PERMISSION_DENIED / RESOURCE_EXHAUSTED / NOT_FOUND 等）で
+    // 語彙が異なる。RATE_LIMIT_REASONS を使い回して status と照合すると常に不一致になり、
+    // Drive が errors[] を含まない新形式（{"error":{"code":403,"status":"RESOURCE_EXHAUSTED",...}}）
+    // で403を返した場合にレート制限を検出できず、DriveAccessDeniedError（未付与誤案内）に
+    // 落ちてしまう（このPRが塞ごうとしている経路そのもの）。
+    const RATE_LIMIT_STATUSES = new Set(['RESOURCE_EXHAUSTED']);
+
+    if (!body || typeof body !== 'object') return false;
+    const error = (body as { error?: unknown }).error;
+    if (!error || typeof error !== 'object') return false;
+
+    const errors = (error as { errors?: unknown }).errors;
+    if (Array.isArray(errors)) {
+        for (const e of errors) {
+            if (e && typeof e === 'object') {
+                const reason = (e as { reason?: unknown }).reason;
+                if (typeof reason === 'string' && RATE_LIMIT_REASONS.has(reason)) return true;
+                // domain は reason より安定した signal。Drive のレート制限系エラーは定型で
+                // domain: 'usageLimits' を伴うため、未知の新しい reason 名が増えても拾える。
+                const domain = (e as { domain?: unknown }).domain;
+                if (domain === 'usageLimits') return true;
+            }
+        }
+    }
+
+    // 補助的に error.status も見る（errors[].reason/domain が無い/一致しない場合の保険）。
+    // status は SCREAMING_SNAKE_CASE の語彙なので RATE_LIMIT_STATUSES と照合すること
+    // （RATE_LIMIT_REASONS の camelCase とは絶対に混ぜない）。
+    const status = (error as { status?: unknown }).status;
+    if (typeof status === 'string' && RATE_LIMIT_STATUSES.has(status)) return true;
+
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') {
+        for (const reason of RATE_LIMIT_REASONS) {
+            if (message.includes(reason)) return true;
+        }
+    }
+
+    return false;
+}
+
 export type FolderAccessState = 'accessible' | 'trashed' | 'inaccessible' | 'auth-error' | 'transient-error';
 
 /**
@@ -156,12 +227,19 @@ export async function resolveFolderState(folderId: string): Promise<FolderAccess
 }
 
 /**
- * resolveFolderState の非 accessible/trashed 状態を、対応する型付きエラーへ変換する。
+ * classifyDriveApiStatus / resolveFolderState の非 ok（非 accessible/trashed）状態を、
+ * 対応する型付きエラーへ変換する。
+ * ステータス分類そのものは classifyDriveApiStatus() だけが持ち、呼び出し側は
+ * 「401 なら」「403/404 なら」という分岐を自前で書かないこと（判定器を二重に持たないため）。
  */
-function toDriveFolderError(fileId: string, state: 'inaccessible' | 'auth-error' | 'transient-error'): Error {
+function toDriveApiError(
+    fileId: string,
+    state: 'inaccessible' | 'auth-error' | 'transient-error',
+    status?: number
+): Error {
     if (state === 'auth-error') return new DriveAuthError(fileId);
     if (state === 'transient-error') return new DriveTransientError(fileId);
-    return new DriveAccessDeniedError(fileId);
+    return new DriveAccessDeniedError(fileId, status);
 }
 
 /**
@@ -197,25 +275,72 @@ export function extractDriveFileId(url: string): string | null {
 
 /**
  * Drive ファイルの実体（PDFバイト）をダウンロードする。
- * drive.file スコープのため、本拡張で保存したファイル以外は 404 になりうる
- * （その場合は呼び出し側で Drive プレビュー埋め込みへフォールバックする）。
+ * drive.file スコープのため、本拡張で保存したファイル以外は 403/404 になりうる。
+ *
+ * 失敗は必ず型付きエラー（DriveAccessDeniedError / DriveAuthError / DriveTransientError）で投げる。
+ * 呼び出し側（フルテキストページの左ペイン）が「未付与だから再付与を案内する」と
+ * 「一時的な失敗だから再試行を案内する」を取り違えないための前提になっている（Issue #69）。
+ * ステータスの解釈は classifyDriveApiStatus() に委ね、ここで 401/403/404 を再実装しないこと。
+ * 例外は 403 のみ: レート制限（isDriveRateLimitBody()）かどうかを本文で補助的に見て
+ * transient-error 側へ倒す（「403は常にinaccessible」という4分類自体は変えない）。
  */
 export async function downloadDriveFile(fileId: string): Promise<Blob> {
-    const token = await getAuthToken();
-    const resp = await driveFetch(
-        `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
-        {},
-        { token }
-    );
-    if (!resp.ok) {
-        // 403/404 は「PDFが無い」のではなく「別アカウントがアップロードしたPDFで
-        // drive.file スコープが無い」可能性が高い（原因を伝えるため型付きエラーにする）。
-        // 401 は認証切れ。呼び出し側のプレビュー埋め込みフォールバックは維持する
-        // （instanceof Error である限り既存の catch はそのまま動く）。
-        if (resp.status === 401) throw new DriveAuthError(fileId);
-        if (resp.status === 403 || resp.status === 404) throw new DriveAccessDeniedError(fileId, resp.status);
-        throw new Error(`DriveからのPDF取得に失敗しました (HTTP ${resp.status})`);
+    let token: string;
+    try {
+        token = await getAuthToken();
+    } catch (err) {
+        // トークン取得の失敗（失効・service worker往復の失敗等）を素の Error のまま漏らすと、
+        // 呼び出し側で kind:'unknown'（「時間をおいて再試行」）に落ちてしまう。
+        // 本来は再ログインで解ける auth-error なので、ここで型付きエラーに変換する。
+        throw new DriveAuthError(fileId, `Drive API token acquisition failed: ${(err as Error).message}`);
     }
+
+    let resp: Response;
+    try {
+        resp = await driveFetch(
+            `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
+            {},
+            { token }
+        );
+    } catch (err) {
+        // ネットワーク例外。権限の問題と区別が付かないまま「未付与」と案内しないよう一時エラーへ倒す。
+        throw new DriveTransientError(fileId, `Drive API request failed: ${(err as Error).message}`);
+    }
+
+    const statusClass = classifyDriveApiStatus(resp.status);
+    if (statusClass !== 'ok') {
+        if (statusClass === 'inaccessible' && resp.status === 403) {
+            // 404はレート制限では来ないため本文を読まない。403のみ、本文JSONを見て
+            // レート制限（userRateLimitExceeded等）なら一時エラーへ倒す（Issue #69）。
+            // 本文の読み取り/パースに失敗した場合は安全側（従来どおりDriveAccessDeniedError）に倒す。
+            let rateLimited = false;
+            try {
+                const body: unknown = await resp.json();
+                rateLimited = isDriveRateLimitBody(body);
+            } catch {
+                rateLimited = false;
+            }
+            if (rateLimited) {
+                throw new DriveTransientError(fileId, 'Drive API rate limit exceeded (403); retry later');
+            }
+        }
+        throw toDriveApiError(fileId, statusClass, resp.status);
+    }
+
+    // HTTP 200 でも本文が HTML のことがある（Google のサインイン/エラーページを掴んだ場合）。
+    // サインインページを掴んでいるならトークンが有効に効いていない状態であり、これは
+    // 「未付与」の断定（DriveAccessDeniedError、再試行ボタン無し）よりも「認証切れ」
+    // （DriveAuthError、再ログインで解ける可能性あり・再試行も出す）として扱うほうが
+    // 実害が小さい。そのまま返すと PDF.js が「壊れたPDF」として失敗し、原因が画面から
+    // 辿れなくなる点も変わらないため、いずれにせよここで弾く。
+    const contentType = resp.headers.get('content-type') ?? '';
+    if (/^text\/html/i.test(contentType)) {
+        throw new DriveAuthError(
+            fileId,
+            `Drive returned an HTML body instead of file bytes (content-type: ${contentType}); likely a Google sign-in/error page`
+        );
+    }
+
     return resp.blob();
 }
 
@@ -416,7 +541,7 @@ async function ensureProjectFolder(spreadsheetId: string): Promise<string> {
         const folderState = await resolveFolderState(saved);
         if (folderState === 'accessible') return saved;
         if (folderState !== 'trashed') {
-            throw toDriveFolderError(saved, folderState);
+            throw toDriveApiError(saved, folderState);
         }
         // trashed: 確定した答えなので作り直してよい
     }
@@ -462,7 +587,7 @@ export async function ensureFulltextFolder(spreadsheetId: string): Promise<strin
             return saved;
         }
         if (folderState !== 'trashed') {
-            throw toDriveFolderError(saved, folderState);
+            throw toDriveApiError(saved, folderState);
         }
         // trashed: 確定した答えなので作り直してよい（project フォルダ側は ensureProjectFolder に委譲）
     }

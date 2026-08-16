@@ -32,6 +32,7 @@ import { showModal, hideModal } from '../ui/modal';
 import { getFulltextCandidateList } from './screening/filters';
 import { buildPdfPickerUrl } from '../../lib/picker-url';
 import { parsePdfPickerRedirect, validatePickedFiles, MAX_PICKED_FILES } from '../../lib/drive-picker-result';
+import { isUserCancelledAuthError } from '../../lib/drive-regrant-picker';
 import type { PickedDriveFile } from '../../lib/drive-picker-result';
 import { resolveMappingSuggestion } from '../../lib/drive-import-suggestion';
 import type { MappingSuggestionTarget } from '../../lib/drive-import-suggestion';
@@ -85,15 +86,6 @@ function setDriveImportStatus(msg: string | null): void {
 function formatBytes(bytes: number): string {
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)}MB`;
-}
-
-/**
- * chrome.identity.launchWebAuthFlow の失敗が「ユーザーがウィンドウを閉じた/キャンセルした」
- * ものかを、例外メッセージ（chrome.runtime.lastError由来）から best-effort で判定する。
- * 該当すればサイレントに終了し、それ以外（ネットワークエラー等）はエラー表示する。
- */
-function isUserCancelledAuthError(message: string): boolean {
-    return /did not approve|cancel|closed the window|dismissed/i.test(message || '');
 }
 
 // ---------------------------------------------------------------------------
