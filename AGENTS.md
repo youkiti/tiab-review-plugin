@@ -963,6 +963,21 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
    - ロジック: `experiments/runner.ts`
    - 結果: `experiments/results/`にJSONとして保存
 
+#### 実験ディレクトリを追加するときの落とし穴
+
+モデル評価は `experiments/<モデル名>/`（`plan.md` / `config.json` / `runner.ts` / `summarize.ts`）を1モデル1ディレクトリで作る慣行になっている。既存ディレクトリを複製して始めるときに踏むものを挙げる。
+
+- **`experiments/` は CI の型検査・lint の対象外。** ルートの `tsconfig.json` は `include` が `src/**/*` のみ、`npm run lint` も `eslint src/**/*.ts` のみを見る。つまり実験コードが壊れていても CI ゲートは緑のまま通る。追加・変更したら各ディレクトリの tsconfig で個別に検査すること:
+
+  ```bash
+  npx tsc --noEmit --project experiments/<ディレクトリ>/tsconfig.json
+  ```
+
+- **その検査では `worker-client.ts` の `import.meta` エラーが必ず1件出る。これは既存の事象で、自分の変更が壊したわけではない。** 各実験の tsconfig が `rootDir: "../.."` を指定して `src/` 全体を巻き込むために起きる。切り分けたいときは未変更の既存ディレクトリ（例: `experiments/gemini-3.6-flash/tsconfig.json`）に対して同じコマンドを流し、同一のエラーが再現することを確認する。**新規ファイル起因のエラーが0件であること**を判断基準にすること。
+- **`ts-node` は devDependencies に入っていない。** 各 `plan.md` が案内している `npx ts-node ...` は、初回実行時にレジストリからのダウンロードが走る（オフラインでは失敗する）。
+- **数百〜数千回の外部API呼び出しを伴うランナーは、1件ごとの永続化と再開をセットで実装すること。** 全件終わってから一括保存する作りだと、途中で落ちた時点で全部消える。あわせて、**リトライ枯渇時のフォールバック判定（`include_probability=1.0`）を「判定済み」として永続化しないこと。** 再開時にスキップされて、一過性のAPI失敗が偽の陽性として主指標の Recall に恒久的に焼き付く（`experiments/gemini-3.7-flash/runner.ts` の `appendJsonlResults` が対処例）。
+- **`run_all.ts` 系は `--only` を省略すると `config.conditions` を全部回す。** 参照用のベースライン条件（既に公開済みの数値を再導出するだけの条件）を残しているディレクトリでは、`--only` 無しの実行が無駄な課金になる。
+
 ## 注意事項
 
 - **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別 Webアプリで実装する（アーキテクチャ方針セクション参照）
