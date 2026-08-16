@@ -824,26 +824,46 @@ export interface ReferenceFulltextStateResult {
 }
 
 /**
- * 全文献の fulltext_status / fulltext_url / Drive取り込み元・コピーIDを最新値で読み直す。
- * Driveへ直接置かれたPDFの取り込み実行時、files.copy 成功後・シート書き込み前に
- * 「他のユーザーが自分より先に同じ文献へ取り込み済みでないか」を確認するために使う
- * （楽観ロック相当。競合していれば呼び出し側は上書きせずコピーをゴミ箱へ戻す。
- * URLまで返すのは、cached済みのURLが自分がこれから書こうとしているコピーと同一かどうか
- * ＝「応答喪失後の再試行」かどうかを呼び出し側で判定するために必要なため）。
- *
- * References!A:A（ref_id列）と References!T:X（fulltext_url/status/set/source_id/copy_id）を
- * values:batchGet で1リクエストにまとめて読む。V列（fulltext_set）は読み込むが無視する
- * （フルテキスト担当割り振りはここでは扱わない）。巨大な abstract 列等を含む
- * References!A:X 全体を毎回読むより軽量。
- *
- * 対象行（target）が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること。
- * 従来の戻り値契約を維持）。あわせて、全行を横断した「source ID → 取り込みクレーム配列」の
- * 逆引きマップ（bySourceId）も返す。
+ * source ID・ref_id の両方から引ける、全行分のフルテキスト取り込みスナップショット。
+ * classifyDriveImportState（drive-import-classify.ts）の入力に使う。
  */
-export async function getReferenceFulltextState(
+export interface FulltextClaimsSnapshot {
+    /**
+     * source ID（fulltext_drive_source_id）→ その source を取り込み元とする全文献のクレーム配列。
+     * W列（fulltext_drive_source_id）が空の行は含まれない（クレームが無い行のため）。
+     */
+    bySourceId: Map<string, FulltextSourceClaim[]>;
+    /**
+     * ref_id → その行の現在のフルテキスト状態。W/X列の有無に関わらず**全行**を含む
+     * （bySourceId と違い、W列が空の行も含む）。「Driveコピーは見えているがクレームが
+     * 無い（＝本Issue修正前に取り込まれた既存ファイル）」行の現在URLを引くために必要。
+     */
+    byRefId: Map<string, ReferenceFulltextRowState>;
+}
+
+/**
+ * getReferenceFulltextState / getFulltextClaimsSnapshot の共通実装。
+ * References!A:A（ref_id列）と References!T:X（fulltext_url/status/set/source_id/copy_id）を
+ * values:batchGet で1リクエストにまとめて読み、全行を横断した2つの逆引きマップ
+ * （source ID → クレーム配列の bySourceId、ref_id → 行状態の byRefId）を組み立てる。
+ * V列（fulltext_set）は読み込むが無視する（フルテキスト担当割り振りはここでは扱わない）。
+ * 巨大な abstract 列等を含む References!A:X 全体を毎回読むより軽量。
+ *
+ * targetRefId を渡した場合のみ、その ref_id の行状態（target）もあわせて拾う
+ * （target は byRefId.get(targetRefId) と同じ値になるが、既存の戻り値契約
+ * （行が見つからなければ undefined）を壊さないための専用フィールドとして残す）。
+ * byRefId は常に全行ぶん構築する（行スキャン自体は既に全行を回っているため、
+ * マップを1つ増やすだけで追加のAPI呼び出しは発生しない。ロジックの二重実装を避けるため、
+ * 行スキャンはこの1関数に集約する）。
+ */
+async function scanFulltextRows(
     spreadsheetId: string,
-    refId: string
-): Promise<ReferenceFulltextStateResult> {
+    targetRefId?: string
+): Promise<{
+    target: ReferenceFulltextRowState | undefined;
+    bySourceId: Map<string, FulltextSourceClaim[]>;
+    byRefId: Map<string, ReferenceFulltextRowState>;
+}> {
     const [idColumn, twxValues] = await getSheetValuesBatch(spreadsheetId, [
         `${REFERENCES_SHEET}!A:A`,
         `${REFERENCES_SHEET}!T:X`,
@@ -851,6 +871,7 @@ export async function getReferenceFulltextState(
 
     let target: ReferenceFulltextRowState | undefined;
     const bySourceId = new Map<string, FulltextSourceClaim[]>();
+    const byRefId = new Map<string, ReferenceFulltextRowState>();
 
     for (let i = 1; i < idColumn.length; i++) {
         const rowRefId = idColumn[i][0];
@@ -863,9 +884,11 @@ export async function getReferenceFulltextState(
         // row[2] = fulltext_set（V列）は無視する
         const sourceFileId = row[3] || '';
         const copyFileId = row[4] || '';
+        const rowState: ReferenceFulltextRowState = { status, url, sourceFileId, copyFileId };
 
-        if (rowRefId === refId) {
-            target = { status, url, sourceFileId, copyFileId };
+        byRefId.set(rowRefId, rowState);
+        if (targetRefId !== undefined && rowRefId === targetRefId) {
+            target = rowState;
         }
         if (sourceFileId) {
             const claims = bySourceId.get(sourceFileId) ?? [];
@@ -874,7 +897,45 @@ export async function getReferenceFulltextState(
         }
     }
 
+    return { target, bySourceId, byRefId };
+}
+
+/**
+ * 全文献の fulltext_status / fulltext_url / Drive取り込み元・コピーIDを最新値で読み直す。
+ * Driveへ直接置かれたPDFの取り込み実行時、files.copy 成功後・シート書き込み前に
+ * 「他のユーザーが自分より先に同じ文献へ取り込み済みでないか」を確認するために使う
+ * （楽観ロック相当。競合していれば呼び出し側は上書きせずコピーをゴミ箱へ戻す。
+ * URLまで返すのは、cached済みのURLが自分がこれから書こうとしているコピーと同一かどうか
+ * ＝「応答喪失後の再試行」かどうかを呼び出し側で判定するために必要なため）。
+ *
+ * 対象行（target）が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること。
+ * 従来の戻り値契約を維持）。あわせて、全行を横断した「source ID → 取り込みクレーム配列」の
+ * 逆引きマップ（bySourceId）も返す。
+ */
+export async function getReferenceFulltextState(
+    spreadsheetId: string,
+    refId: string
+): Promise<ReferenceFulltextStateResult> {
+    const { target, bySourceId } = await scanFulltextRows(spreadsheetId, refId);
     return { target, bySourceId };
+}
+
+/**
+ * 「source ID → 取り込みクレーム配列」と「ref_id → 行状態」の両方の逆引きマップを取得する。
+ * Driveへ直接置かれたPDFの取り込みで、Picker選択直後（実行前の表示フェーズ）に
+ * クレームマップを鮮度よく取り直すために使う（fulltext-drive-import.ts）。
+ * ファイルごとに取り直すとN+1になるため、選択確定後に1回だけ呼ぶこと。
+ * getReferenceFulltextState と行スキャンのロジックは共通化しており（scanFulltextRows）、
+ * 二重実装にはなっていない。
+ *
+ * byRefId は classifyDriveImportState の判定順2（Driveコピーのみ見えている場合の
+ * フォールバック）で使う。bySourceId だけでは W/X が空の行（本Issue修正前に取り込まれた
+ * 既存ファイル）の現在状態を引けず、「実は取り込み済みなのに未完了と誤表示される」退行に
+ * なるため、byRefId（全行対象）を別途用意している。
+ */
+export async function getFulltextClaimsSnapshot(spreadsheetId: string): Promise<FulltextClaimsSnapshot> {
+    const { bySourceId, byRefId } = await scanFulltextRows(spreadsheetId);
+    return { bySourceId, byRefId };
 }
 
 /**

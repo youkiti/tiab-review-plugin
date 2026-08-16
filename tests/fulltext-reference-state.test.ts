@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     getReferenceFulltextState,
+    getFulltextClaimsSnapshot,
     updateReferenceFulltextUrls,
     invalidateFulltextDriveColumnsMemo,
 } from '../src/lib/sheets-api';
@@ -183,6 +184,53 @@ test('getReferenceFulltextState: 逆引きマップは同一 source ID の複数
     assert.deepEqual(byRefId.get('ref1'), { refId: 'ref1', copyId: 'copy-1', status: 'cached', url: 'url1' });
     assert.deepEqual(byRefId.get('ref2'), { refId: 'ref2', copyId: 'copy-2', status: 'cached', url: 'url2' });
     assert.equal(result.bySourceId.get('other-source')?.length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// getFulltextClaimsSnapshot（Picker選択直後の再取得用。行スキャンはgetReferenceFulltextStateと共通化）
+// ---------------------------------------------------------------------------
+
+test('getFulltextClaimsSnapshot: values:batchGet を1回だけ呼び、bySourceIdはgetReferenceFulltextStateと同じ内容を返す', async () => {
+    const idColumnRows = [['ref_id'], ['ref1'], ['ref2'], ['ref3']];
+    const twxRows = [
+        ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
+        ['url1', 'cached', '', 'shared-source', 'copy-1'],
+        ['url2', 'cached', '', 'shared-source', 'copy-2'],
+        ['url3', 'cached', '', 'other-source', 'copy-3'],
+    ];
+    const calls = installBatchGetMock(idColumnRows, twxRows);
+
+    const snapshot = await getFulltextClaimsSnapshot('sheet-a');
+
+    const batchGetCalls = calls.filter((c) => c.url.includes('/values:batchGet'));
+    assert.equal(batchGetCalls.length, 1);
+    assert.equal(snapshot.bySourceId.get('shared-source')?.length, 2);
+    assert.equal(snapshot.bySourceId.get('other-source')?.length, 1);
+});
+
+test('getFulltextClaimsSnapshot: byRefId はW/X列が空の行も含め全行を対象にする（退行防止: 本Issue修正前に取り込まれた既存ファイル対策）', async () => {
+    // すなわち byRefId は bySourceId 由来ではなく、行スキャン自体から独立に全行ぶん組み立てられる
+    // ことを検証する（bySourceId は sourceFileId が空の行を除外するため、それ由来では作れない）。
+    const idColumnRows = [['ref_id'], ['ref1'], ['ref2']];
+    const twxRows = [
+        ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
+        // ref1: 本Issue修正前にDrive取り込み済み。W/X列は空のまま（旧版クライアントの書き込み）
+        ['https://drive.google.com/file/d/legacy-copy/view', 'cached', '', '', ''],
+        // ref2: W/X列ありの新形式
+        ['url2', 'cached', '', 'source-2', 'copy-2'],
+    ];
+    installBatchGetMock(idColumnRows, twxRows);
+
+    const snapshot = await getFulltextClaimsSnapshot('sheet-a');
+
+    assert.deepEqual(snapshot.byRefId.get('ref1'), {
+        status: 'cached', url: 'https://drive.google.com/file/d/legacy-copy/view', sourceFileId: '', copyFileId: '',
+    });
+    assert.deepEqual(snapshot.byRefId.get('ref2'), {
+        status: 'cached', url: 'url2', sourceFileId: 'source-2', copyFileId: 'copy-2',
+    });
+    // bySourceId には W/X が空の ref1 は登場しない（クレーム扱いされない）
+    assert.equal(snapshot.bySourceId.has(''), false);
 });
 
 // ---------------------------------------------------------------------------

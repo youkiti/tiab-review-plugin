@@ -36,8 +36,9 @@ import { isUserCancelledAuthError } from '../../lib/drive-regrant-picker';
 import type { PickedDriveFile } from '../../lib/drive-picker-result';
 import { resolveMappingSuggestion } from '../../lib/drive-import-suggestion';
 import type { MappingSuggestionTarget } from '../../lib/drive-import-suggestion';
-import { resolveImportAction } from '../../lib/drive-import-action';
+import { resolveImportAction, shouldBackfillDriveColumns } from '../../lib/drive-import-action';
 import type { ImportedCopyMatch, SheetFulltextState, ImportAction } from '../../lib/drive-import-action';
+import { classifyDriveImportState } from '../../lib/drive-import-classify';
 import {
     ensureFulltextFolder,
     getDriveFileMetadata,
@@ -51,8 +52,10 @@ import type { DriveFileMetadata, DriveFileInfo } from '../../lib/drive-api';
 import {
     getProjectDriveFolderId,
     getReferenceFulltextState,
+    getFulltextClaimsSnapshot,
     updateReferenceFulltextUrl,
 } from '../../lib/sheets-api';
+import type { FulltextClaimsSnapshot } from '../../lib/sheets-api';
 import type { ReferenceWithStatus } from '../../lib/types';
 
 const MAX_SIZE_WARN_BYTES = 50 * 1024 * 1024; // 50MB
@@ -191,31 +194,31 @@ interface ImportStateClassification {
 
 /**
  * 既存コピーの有無と、シートへの反映状況から3状態を判定する（検証フェーズ・表示専用）。
- * state.references（読み込み済みの一覧）で判定するため追加のAPI呼び出しは発生しない
- * （resolveImportAction が 'already-done' を返す場合のみ「done」。それ以外は全て
- * 「incomplete」= 対応付け可能な行にする。実行直前にはこことは独立に再チェックする）。
- * findImportedCopy 自体の失敗は fail-open（'none'扱いで通常の対応付けフローへ進める）。
+ * 判定の純関数本体は drive-import-classify.ts の classifyDriveImportState に切り出してある
+ * （担当・可視性に依存しない全メンバー共通の判定。詳細は同モジュールの冒頭コメント参照）。
+ * ここでは Drive検索（findImportedCopy）を呼び、クレームスナップショット（claimsSnapshot、
+ * validateAndCheckFiles 経由で1回だけ取得済み）と組み合わせて渡すだけの薄い層。
+ * findImportedCopy 自体の失敗は fail-open（existingCopy=nullとして続行。クレーム判定は
+ * Drive検索に依存しないため、Drive側が失敗してもクレーム由来の done 判定は生きる）。
  */
-async function classifyImportState(fileId: string): Promise<ImportStateClassification> {
+async function classifyImportState(
+    fileId: string,
+    claimsSnapshot: FulltextClaimsSnapshot
+): Promise<ImportStateClassification> {
     let existingCopy: ImportedCopyMatch | null = null;
     try {
         existingCopy = await findImportedCopy(fileId, state.spreadsheetId);
     } catch (err) {
-        console.warn('[fulltext-drive-import] 冪等性チェック（表示用）に失敗:', fileId, err);
-        return { state: 'none' };
+        console.warn('[fulltext-drive-import] 冪等性チェック（表示用）に失敗（fail-open: クレーム判定へ続行）:', fileId, err);
     }
-    if (!existingCopy) return { state: 'none' };
-    if (!existingCopy.refId) return { state: 'incomplete', existingCopy };
-
-    const ref = state.references.find(r => r.ref_id === existingCopy!.refId);
-    const sheetState: SheetFulltextState | undefined = ref
-        ? { status: ref.fulltext_status ?? 'not_retrieved', url: ref.fulltext_url ?? '' }
-        : undefined;
-    const action = resolveImportAction(existingCopy, sheetState, existingCopy.refId);
-    return { state: action === 'already-done' ? 'done' : 'incomplete', existingCopy };
+    const claims = claimsSnapshot.bySourceId.get(fileId) ?? [];
+    return classifyDriveImportState(fileId, claims, existingCopy, claimsSnapshot.byRefId);
 }
 
-async function validateAndCheckFiles(files: PickedDriveFile[]): Promise<ValidatedFile[]> {
+async function validateAndCheckFiles(
+    files: PickedDriveFile[],
+    claimsSnapshot: FulltextClaimsSnapshot
+): Promise<ValidatedFile[]> {
     const results: ValidatedFile[] = [];
     for (const file of files) {
         let meta: DriveFileMetadata;
@@ -245,7 +248,7 @@ async function validateAndCheckFiles(files: PickedDriveFile[]): Promise<Validate
         let importState: 'none' | 'incomplete' | 'done' = 'none';
         let existingCopy: ImportedCopyMatch | undefined;
         if (!blockedReason) {
-            const classification = await classifyImportState(file.id);
+            const classification = await classifyImportState(file.id, claimsSnapshot);
             importState = classification.state;
             existingCopy = classification.existingCopy;
         }
@@ -605,9 +608,13 @@ function toShortCircuitResult(
         };
     }
     if (action === 'already-done') {
-        // シートは既にこのコピーを指している（応答喪失後の再試行等）。書き込み不要でそのまま成功扱い
+        // シートは既にこのコピーを指している（応答喪失後の再試行、または他人が同じsourceを
+        // 先に取り込み済み。どちらもmatchedByに関わらずローカル state 側の見た目は同じ）。
+        // 書き込み不要でそのまま成功扱い。ローカル state もシートの真値で揃えておく。
         ref.fulltext_url = sheetState!.url;
         ref.fulltext_status = 'cached';
+        ref.fulltext_drive_source_id = sheetState!.sourceFileId || undefined;
+        ref.fulltext_drive_copy_id = sheetState!.copyFileId || undefined;
         return { file, refId, refTitle, outcome: 'success', message: t('fulltext_importResultSuccess') };
     }
     if (action === 'conflict-keep') {
@@ -617,12 +624,48 @@ function toShortCircuitResult(
 }
 
 /**
+ * バックフィル（Issue #73 Phase 2 Step 5・実行フェーズのみ）。
+ * matchedBy==='url'（＝Driveコピーが見えている作成者本人）の already-done で、対象行の
+ * W/Xが空の場合にのみ、直前に読み直したサーバーの真値（sheetState/existingCopy）を使って
+ * fulltext_drive_source_id/copy_id を埋める。旧版クライアントがT:Uだけ書いた行を、
+ * 新版クライアントが取り込みを再確認したタイミングで自己修復する。
+ *
+ * **表示フェーズからは絶対に呼ばないこと**（呼び出し元は実行フェーズの importOneFile のみ）。
+ * 書き込み条件の判定（3条件）は shouldBackfillDriveColumns に切り出し純関数として
+ * テストしている。ベストエフォート: 失敗しても取り込み結果は success のままにし、
+ * 例外は握り潰して console.warn に留める（ユーザーには見せない）。
+ */
+async function backfillDriveColumnsIfEmpty(
+    file: ValidatedFile,
+    refId: string,
+    sheetState: SheetFulltextState,
+    existingCopy: ImportedCopyMatch,
+    ref: ReferenceWithStatus
+): Promise<void> {
+    if (!shouldBackfillDriveColumns(refId, sheetState, existingCopy)) return;
+    try {
+        await updateReferenceFulltextUrl(
+            state.spreadsheetId, refId, sheetState.url, sheetState.status,
+            { sourceFileId: file.id, copyFileId: existingCopy.id }
+        );
+        ref.fulltext_drive_source_id = file.id;
+        ref.fulltext_drive_copy_id = existingCopy.id;
+    } catch (err) {
+        console.warn('[fulltext-drive-import] W/X列（クレーム）のバックフィルに失敗（ベストエフォート、取り込み結果には影響しない）:', refId, err);
+    }
+}
+
+/**
  * 1ファイル分の取り込みを実行する。resolveImportAction を2回呼ぶ:
  *  1回目（実行直前）: 既存コピー・シート状態から「再利用/新規コピー/何もしない」を決める
  *  2回目（コピー確保後）: files.copy 自体に時間がかかるため、書き込み直前に再度シート状態を
  *    読み直して競合（他ユーザーが先にcached済み）や消失（Referenceの行が無い）を検出する
  * 削除してよいのは「今回このattemptで新規作成したコピー」だけ。再利用した既存コピーは
  * 競合が判明しても絶対に削除しない。
+ *
+ * 残存する二段構えについて: 「files.copy は成功したが Sheets 更新に失敗した」という部分障害の
+ * 間は Drive の appProperties だけが頼りになる。詳細は drive-import-action.ts 冒頭コメント参照
+ * （Sheetsが全メンバー向けの真値、Driveは作成者本人向けの中断復帰用ベストエフォート）。
  */
 async function importOneFile(
     file: ValidatedFile,
@@ -649,9 +692,18 @@ async function importOneFile(
         return errorResult(file, refId, refTitle, err);
     }
 
-    const preAction = resolveImportAction(existingCopy, sheetState, refId);
+    const preResult = resolveImportAction(existingCopy, sheetState, refId, file.id);
+    const preAction = preResult.action;
     const preShortCircuit = toShortCircuitResult(preAction, file, ref, refId, refTitle, sheetState);
-    if (preShortCircuit) return preShortCircuit;
+    if (preShortCircuit) {
+        if (preAction === 'already-done' && preResult.matchedBy === 'url' && existingCopy && sheetState) {
+            // 直前に読み直したサーバーの真値なので、ここでのみバックフィルしてよい（表示フェーズ厳禁）。
+            // toShortCircuitResult が先に ref.fulltext_drive_source_id/copy_id を（空の）sheetState
+            // で埋めているため、バックフィルは必ずその後に呼び、上書きされないようにする。
+            await backfillDriveColumnsIfEmpty(file, refId, sheetState, existingCopy, ref);
+        }
+        return preShortCircuit;
+    }
 
     // ここに来るのは 'reuse-and-update'（refId一致の既存コピーを再利用） | 'copy-and-update'（新規コピー）
     let copy: DriveFileInfo;
@@ -681,13 +733,31 @@ async function importOneFile(
         return errorResult(file, refId, refTitle, err);
     }
 
-    const postAction = resolveImportAction({ id: copy.id, webViewLink: copy.webViewLink, refId }, postState, refId);
-    if (postAction === 'conflict-keep' || postAction === 'error') {
+    const postCopy: ImportedCopyMatch = { id: copy.id, webViewLink: copy.webViewLink, refId };
+    const postResult = resolveImportAction(postCopy, postState, refId, file.id);
+    const postAction = postResult.action;
+    if (
+        createdByThisAttempt
+        && (
+            postAction === 'conflict-keep'
+            || postAction === 'error'
+            // 他人が同一source×同一refIdへ我々より先に取り込みを完了させていた（レース）。
+            // 今回このattemptで作った新規コピーは孤立するため後始末する
+            // （matchedBy==='url' の場合は今回作った/再利用したcopyがそのまま正なので消さない）
+            || (postAction === 'already-done' && postResult.matchedBy === 'source-id')
+        )
+    ) {
         // 今回新規作成した分のみ後始末する（再利用した既存コピーは絶対に削除しない）
-        if (createdByThisAttempt) await safeTrash(copy.id);
+        await safeTrash(copy.id);
     }
     const postShortCircuit = toShortCircuitResult(postAction, file, ref, refId, refTitle, postState);
-    if (postShortCircuit) return postShortCircuit;
+    if (postShortCircuit) {
+        if (postAction === 'already-done' && postResult.matchedBy === 'url' && postState) {
+            // toShortCircuitResult の後に呼ぶ理由は上の pre チェック側と同じ（上書き防止）
+            await backfillDriveColumnsIfEmpty(file, refId, postState, postCopy, ref);
+        }
+        return postShortCircuit;
+    }
 
     // postAction === 'reuse-and-update'（＝「確保済みのcopyでシートを更新する」の意）
     try {
@@ -984,7 +1054,19 @@ async function handleImportFromDriveClick(): Promise<void> {
         }
 
         setDriveImportStatus(t('fulltext_driveImportValidating'));
-        const validated = await validateAndCheckFiles(picked);
+        // state.allReferences は画面ロード時のスナップショットなので、選択確定直後に
+        // クレームスナップショット（source ID→クレーム配列 と ref_id→行状態の両方）だけ
+        // Sheetsから1回だけ取り直す（ファイルごとに取り直すとN+1になるため、ここでまとめて取得する）。
+        // 失敗しても表示フェーズをブロックしない: fail-open で両マップとも空にし、
+        // 従来のDrive検索ベースの判定（classifyDriveImportStateの2.以降）へフォールバックする。
+        let claimsSnapshot: FulltextClaimsSnapshot;
+        try {
+            claimsSnapshot = await getFulltextClaimsSnapshot(state.spreadsheetId);
+        } catch (err) {
+            console.warn('[fulltext-drive-import] クレームスナップショットの再取得に失敗（fail-open: Drive検索ベースの判定へ続行）:', err);
+            claimsSnapshot = { bySourceId: new Map(), byRefId: new Map() };
+        }
+        const validated = await validateAndCheckFiles(picked, claimsSnapshot);
         setDriveImportStatus(null);
         openMappingModal(validated);
         modalOpened = true;
