@@ -36,6 +36,7 @@ import {
     deleteFulltextAiRound,
     saveLlmExecution,
     updateLlmExecution,
+    getLlmExecutions,
 } from '../../lib/sheets-api';
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
 import {
@@ -68,6 +69,11 @@ import {
     LlmCallError,
     type FulltextAiFailureKind,
 } from '../../lib/fulltext-ai-failures';
+import {
+    deriveRounds,
+    mergeRoundsWithExecutions,
+    type AiRoundWithExecution,
+} from '../../lib/fulltext-ai-rounds';
 import type { LlmConfig } from '../../lib/types';
 import type {
     ReferenceWithStatus,
@@ -185,41 +191,33 @@ function syncScopeRadios(): void {
 // 判定ラウンド: 採用ラジオ + 削除（TiAb の Run 履歴に相当）
 // ---------------------------------------------------------------------------
 
-interface AiRound {
-    reviewerId: string;
-    model: string;
-    timestamp: string;
-    include: number;
-    exclude: number;
-    maybe: number;
-    total: number;
-}
+// AiRound / deriveRounds は src/lib/fulltext-ai-rounds.ts へ移した
+// （Decisions由来のラウンドと LLM_Executions の実行履歴を結合する純関数を DOM から切り離すため）。
 
-/** fulltext フェーズの llm: 判定を reviewer_id 単位のラウンドへ集約する */
-function deriveRounds(decisions: Decision[]): AiRound[] {
-    const map = new Map<string, AiRound>();
-    for (const d of decisions) {
-        if ((d.screening_phase ?? 'tiab') !== 'fulltext') continue;
-        const rid = (d.reviewer_id || '').trim();
-        if (!rid.startsWith('llm:')) continue;
-        let r = map.get(rid);
-        if (!r) {
-            const body = rid.slice('llm:'.length);
-            const at = body.lastIndexOf('@'); // ISO タイムスタンプに '@' は含まれない
-            r = {
-                reviewerId: rid,
-                model: at >= 0 ? body.slice(0, at) : body,
-                timestamp: at >= 0 ? body.slice(at + 1) : '',
-                include: 0, exclude: 0, maybe: 0, total: 0,
-            };
-            map.set(rid, r);
-        }
-        r.total++;
-        if (d.decision === 'include') r.include++;
-        else if (d.decision === 'exclude') r.exclude++;
-        else if (d.decision === 'maybe') r.maybe++;
-    }
-    return [...map.values()].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+/** 失敗種別 → i18n キーの対応。UI表示専用（純関数側の分類ロジックとは分離する） */
+const FAILURE_KIND_I18N_KEY: Record<FulltextAiFailureKind, string> = {
+    drive_denied: 'fulltext_aiFailureKindDriveDenied',
+    drive_not_found: 'fulltext_aiFailureKindDriveNotFound',
+    drive_auth: 'fulltext_aiFailureKindDriveAuth',
+    drive_transient: 'fulltext_aiFailureKindDriveTransient',
+    no_drive_url: 'fulltext_aiFailureKindNoDriveUrl',
+    pdf: 'fulltext_aiFailureKindPdf',
+    llm: 'fulltext_aiFailureKindLlm',
+    other: 'fulltext_aiFailureKindOther',
+};
+
+// シート直編集等で内訳に混入しうる未知キーを弾くための既知順序（表示順を安定させる）
+const FAILURE_KIND_ORDER: FulltextAiFailureKind[] = [
+    'drive_denied', 'drive_not_found', 'drive_auth', 'drive_transient',
+    'no_drive_url', 'pdf', 'llm', 'other',
+];
+
+/** 失敗内訳を「理由: 件数」の読める文へ組み立てる（対処が分かる文言は FAILURE_KIND_I18N_KEY 側で用意） */
+function formatFailureBreakdown(breakdown: Partial<Record<FulltextAiFailureKind, number>>): string {
+    return FAILURE_KIND_ORDER
+        .filter(kind => (breakdown[kind] ?? 0) > 0)
+        .map(kind => `${t(FAILURE_KIND_I18N_KEY[kind])}: ${breakdown[kind]}`)
+        .join(', ');
 }
 
 /** ISO 文字列を読みやすい日時へ（失敗時は原文） */
@@ -258,7 +256,18 @@ async function renderRounds(): Promise<void> {
         return;
     }
 
-    const rounds = deriveRounds(decisions);
+    // 実行履歴（失敗件数・内訳等）は付加情報にすぎないため、取得に失敗しても
+    // ラウンド一覧そのものは従来どおり表示する（Decisions取得失敗とは別枠でcatchする）。
+    // 全件失敗したラウンドは Decisions に1行も無いため、失敗時は「実行履歴のみのラウンド」が
+    // 一覧から抜け落ちるが、それ以外の表示（採用ラジオ等）は維持できる。
+    let executions: LlmExecution[] = [];
+    try {
+        executions = await getLlmExecutions(state.spreadsheetId);
+    } catch (err) {
+        console.warn('[fulltext-ai] 実行履歴の取得に失敗:', err);
+    }
+
+    const rounds = mergeRoundsWithExecutions(deriveRounds(decisions), executions);
     container.innerHTML = '';
 
     if (rounds.length === 0) {
@@ -302,10 +311,15 @@ function buildNoneRow(active: string | null): HTMLElement {
 }
 
 /** 1ラウンドの行（採用ラジオ・情報・削除ボタン） */
-function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
+function buildRoundRow(r: AiRoundWithExecution, active: string | null): HTMLElement {
     const row = document.createElement('div');
     row.className = 'fulltext-ai-round-row';
     if (r.reviewerId === active) row.classList.add('active');
+
+    // 0件成功のラウンド（executions側にしか無い＝全件失敗）は、採用しても Decisions に
+    // 票が無く意味がなく、削除しても消す行が無いため採用ラジオ・削除ボタンを無効化する
+    const zeroSuccess = r.total === 0;
+    if (zeroSuccess) row.classList.add('zero-success');
 
     const main = document.createElement('label');
     main.className = 'fulltext-ai-round-main';
@@ -314,6 +328,8 @@ function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
     radio.type = 'radio';
     radio.name = 'ft-ai-round';
     radio.checked = r.reviewerId === active;
+    radio.disabled = zeroSuccess;
+    if (zeroSuccess) radio.title = t('fulltext_aiRoundZeroSuccessHint');
     radio.addEventListener('change', () => { if (radio.checked) void adoptRound(r.reviewerId); });
 
     const info = document.createElement('span');
@@ -326,12 +342,32 @@ function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
     counts.textContent = t('fulltext_aiRoundCounts', [String(r.include), String(r.exclude), String(r.maybe), String(r.total)]);
     info.append(title, counts);
 
+    // 失敗件数・内訳（1件以上あるときだけ表示）。「ファイルが壊れている」ではなく
+    // 「実行したアカウントから読み取れなかった」旨が伝わるよう、対処が分かる文言にする
+    // （FAILURE_KIND_I18N_KEY / formatFailureBreakdown 参照）
+    if (r.failedCount > 0) {
+        const failed = document.createElement('span');
+        failed.className = 'fulltext-ai-round-failed';
+        failed.textContent = t('fulltext_aiRoundFailed', [String(r.failedCount), formatFailureBreakdown(r.failureBreakdown)]);
+        info.appendChild(failed);
+    }
+
+    // 0件成功の理由をラウンド行自体に明示する（無効化しただけだと理由が分からないため）
+    if (zeroSuccess) {
+        const zeroNotice = document.createElement('span');
+        zeroNotice.className = 'fulltext-ai-round-zero-notice';
+        zeroNotice.textContent = t('fulltext_aiRoundZeroSuccessHint');
+        info.appendChild(zeroNotice);
+    }
+
     main.append(radio, info);
 
     const del = document.createElement('button');
     del.className = 'fulltext-ai-round-delete';
     del.textContent = t('fulltext_aiRoundDelete');
-    del.addEventListener('click', () => { void deleteRound(r.reviewerId); });
+    del.disabled = zeroSuccess;
+    if (zeroSuccess) del.title = t('fulltext_aiRoundZeroSuccessHint');
+    del.addEventListener('click', () => { if (!zeroSuccess) void deleteRound(r.reviewerId); });
 
     row.append(main, del);
     return row;

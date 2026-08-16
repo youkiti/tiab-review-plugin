@@ -650,6 +650,36 @@
   "fulltext_aiRoundNone": {
     "message": "None adopted"
   },
+  "fulltext_aiRoundFailed": {
+    "message": "$1 failed ($2)"
+  },
+  "fulltext_aiRoundZeroSuccessHint": {
+    "message": "This run had 0 successful judgments, so it can’t be adopted or deleted (only the execution record remains)"
+  },
+  "fulltext_aiFailureKindDriveDenied": {
+    "message": "Executing account lacks Drive read access"
+  },
+  "fulltext_aiFailureKindDriveNotFound": {
+    "message": "File not found in Drive from the executing account"
+  },
+  "fulltext_aiFailureKindDriveAuth": {
+    "message": "Authentication expired (re-login required)"
+  },
+  "fulltext_aiFailureKindDriveTransient": {
+    "message": "Temporary failure (retry later)"
+  },
+  "fulltext_aiFailureKindNoDriveUrl": {
+    "message": "No Drive PDF registered"
+  },
+  "fulltext_aiFailureKindPdf": {
+    "message": "Failed to read the PDF"
+  },
+  "fulltext_aiFailureKindLlm": {
+    "message": "AI call failed"
+  },
+  "fulltext_aiFailureKindOther": {
+    "message": "Other failure"
+  },
   "fulltext_resultsJudgesHead": {
     "message": "Judges to aggregate (min 1; include = OR)"
   },

@@ -1160,6 +1160,27 @@
     background: #fdedec;
 }
 
+.fulltext-ai-round-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.fulltext-ai-round-failed {
+    font-size: 11px;
+    color: #c0392b;
+    white-space: normal;
+}
+
+.fulltext-ai-round-row.zero-success {
+    background: #fbfbfb;
+}
+
+.fulltext-ai-round-zero-notice {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+}
+
 /* ===== Driveへ直接置かれたPDFの取り込み: 対応付けモーダル ===== */
 
 .modal-content:has(.ft-import-modal) {

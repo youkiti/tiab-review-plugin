@@ -337,6 +337,20 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
        TiAb バッチ（`getJudgedRefIdsForBatches`）と同じ理由で、他レビュアーが直前に実行した分を取りこぼさないため
    - **保存**: AIは独立した判定者として確定保存（`reviewer_id='llm:{model}@{timestamp}'`, `screening_phase='fulltext'`）。
      `note` に `FulltextLlmDecisionNote`(JSON: decision根拠 evidence[quote/page/bbox] 等) を格納
+   - **実行履歴**（Issue #62）: `handleStartAiBatch` は `LLM_Executions` へ
+     `execution_type='fulltext_batch_screening'` の行を2フェーズで書く（開始時に `status='pending'`
+     で先書き→終了時に `status='confirmed'` へ確定）。`execution_id` は `reviewer_id`（ラウンドID）と同一。
+     全件失敗して Decisions に1行も残らなくても「実行したが0件成功だった」という事実がこの行として残る。
+     TiAb 用の列に加え `executed_by`（実行アカウント）・`maybe_count`（フルテキストは3値判定）・
+     `failed_count`・`failure_breakdown`（`src/lib/fulltext-ai-failures.ts` の
+     `FulltextAiFailureKind` 別内訳をJSON文字列化したもの）を持つ。
+     **`is_active` は使わず、採用状態は常に Config の `fulltext_ai_active_round` が正**（常に `false` 固定で保存する）。
+     **TiAb の Run/Batch モデルには載せない**: `loadExecutionHistory`（`llm/batch.ts`）は
+     `fulltext_batch_screening` 行を TiAb の実行履歴一覧から除外し、`findOrphanedExecutions`
+     （`llm/recovery.ts`、孤立判定の復旧）は `screening_phase==='fulltext'` の判定行を対象から除外する
+     （reviewer_id の形式が `llm:{model}@{timestamp}` で TiAb と同じため、除外しないと誤検出・混入する）。
+     フルテキストの実行履歴自体は AI判定タブのラウンド一覧（`src/lib/fulltext-ai-rounds.ts` の
+     `mergeRoundsWithExecutions` が Decisions由来のラウンドと結合する）で表示する
    - **PDFハイライト**（`fulltext.html` + `pdf-renderer.ts`）: cached PDF を PDF.js でテキストレイヤー付き描画し、
      evidence を **経路A: quote文字列マッチ → 経路B: 正規化bbox → ページ送り** の順で段階的にハイライト。
      スキャン画像PDFはテキストレイヤーが無いため bbox（AIの領域推定）を使う旨をUIに明示

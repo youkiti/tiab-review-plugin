@@ -33,6 +33,7 @@
         "../src/lib/fulltext-rule-editor.ts",
         "../src/lib/exclude-reasons.ts",
         "../src/lib/fulltext-consensus.ts",
-        "../src/lib/fulltext-ai-failures.ts"
+        "../src/lib/fulltext-ai-failures.ts",
+        "../src/lib/fulltext-ai-rounds.ts"
     ]
 }

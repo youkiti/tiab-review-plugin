@@ -74,6 +74,12 @@ export async function findOrphanedExecutions(spreadsheetId: string): Promise<Orp
     for (const { decision } of allDecisions) {
         const id = decision.reviewer_id;
         if (!id.startsWith('llm:')) continue;
+        // フルテキストAI判定（screening_phase='fulltext'）も reviewer_id が
+        // `llm:{model}@{timestamp}` 形式なので、ここで見分けないと孤立判定として
+        // 誤検出される。フルテキストAI判定は別枠の実行履歴（execution_type=
+        // 'fulltext_batch_screening'）を持ち、TiAb の Run/Batch モデルには載せない
+        // 対象なので、ここでは除外する（Issue #62）。
+        if ((decision.screening_phase ?? 'tiab') === 'fulltext') continue;
         if (existingIds.has(id)) continue;
 
         const bucket = buckets.get(id) ?? { count: 0 };
