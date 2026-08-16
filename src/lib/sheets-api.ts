@@ -363,8 +363,11 @@ const fulltextDriveColumnsReadyBySpreadsheetId = new Map<string, Promise<Fulltex
  *
  * fulltext ページ（src/fulltext/fulltext.ts）はサイドパネル接続時の ensureHeaders() を経由しないため、
  * この関数がW/X列を保証する唯一の経路になる。書き込みのたびに Sheets を読み直さないよう
- * spreadsheetId 単位でメモ化する（セッション内では初回のみ実行）。読み取り自体が失敗した場合は
- * メモを残さず、次回呼び出しで再試行できるようにする。
+ * spreadsheetId 単位でメモ化するが、**メモ化するのは usable=true（正常）の結果だけ**。
+ * usable=false（ユーザー独自列と衝突）をキャッシュしてしまうと、エラーメッセージの指示どおり
+ * ユーザーがシートの列名を直しても、拡張機能を再読み込みするまで反映されない。衝突している
+ * 間は呼び出しのたびに ensureHeaders() + ヘッダー読み取りが走ることになるが、稀なケースなので
+ * 許容する。読み取り自体が失敗した場合も同様にメモを残さず、次回呼び出しで再試行できるようにする。
  */
 function ensureFulltextDriveColumnsOnce(spreadsheetId: string): Promise<FulltextDriveColumnsStatus> {
     const cached = fulltextDriveColumnsReadyBySpreadsheetId.get(spreadsheetId);
@@ -375,7 +378,13 @@ function ensureFulltextDriveColumnsOnce(spreadsheetId: string): Promise<Fulltext
         const headerValues = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:X1`);
         const check = validateFulltextDriveHeaders(headerValues[0] ?? []);
         return { usable: check.ok, actualW: check.actualW, actualX: check.actualX };
-    })().catch((error) => {
+    })().then((result) => {
+        if (!result.usable) {
+            // 衝突が解消されたかもしれないため、次回呼び出しで再判定できるようキャッシュに残さない
+            fulltextDriveColumnsReadyBySpreadsheetId.delete(spreadsheetId);
+        }
+        return result;
+    }).catch((error) => {
         fulltextDriveColumnsReadyBySpreadsheetId.delete(spreadsheetId);
         throw error;
     });
@@ -829,16 +838,6 @@ export interface FulltextSourceClaim {
     url: string;
 }
 
-export interface ReferenceFulltextStateResult {
-    /** 対象 ref_id の行状態。行が見つからない場合は undefined（従来と同じ契約） */
-    target: ReferenceFulltextRowState | undefined;
-    /**
-     * source ID（fulltext_drive_source_id）→ その source を取り込み元とする全文献のクレーム配列。
-     * 同一 source PDF を複数文献へ取り込むケースは現行仕様で許容されているため、1対1マップにはしない。
-     */
-    bySourceId: Map<string, FulltextSourceClaim[]>;
-}
-
 /**
  * source ID・ref_id の両方から引ける、全行分のフルテキスト取り込みスナップショット。
  * classifyDriveImportState（drive-import-classify.ts）の入力に使う。
@@ -860,8 +859,7 @@ export interface FulltextClaimsSnapshot {
 /**
  * getReferenceFulltextState / getFulltextClaimsSnapshot の共通実装。
  * References!A:A（ref_id列）と References!T:X（fulltext_url/status/set/source_id/copy_id）を
- * values:batchGet で1リクエストにまとめて読み、全行を横断した2つの逆引きマップ
- * （source ID → クレーム配列の bySourceId、ref_id → 行状態の byRefId）を組み立てる。
+ * values:batchGet で1リクエストにまとめて読み、全行を横断した状態を組み立てる。
  * V列（fulltext_set）は読み込むが無視する（フルテキスト担当割り振りはここでは扱わない）。
  * 巨大な abstract 列等を含む References!A:X 全体を毎回読むより軽量。
  *
@@ -871,10 +869,15 @@ export interface FulltextClaimsSnapshot {
  * byRefId は常に全行ぶん構築する（行スキャン自体は既に全行を回っているため、
  * マップを1つ増やすだけで追加のAPI呼び出しは発生しない。ロジックの二重実装を避けるため、
  * 行スキャンはこの1関数に集約する）。
+ *
+ * buildBySourceId=false（既定 true）を渡すと、「source ID → クレーム配列」の逆引きマップ
+ * （bySourceId）を組み立てない。getReferenceFulltextState は target（対象1行の状態）しか
+ * 使わないため、呼ばれるたびに全行分の bySourceId を組み立てては捨てていた無駄を避ける。
  */
 async function scanFulltextRows(
     spreadsheetId: string,
-    targetRefId?: string
+    targetRefId?: string,
+    buildBySourceId: boolean = true
 ): Promise<{
     target: ReferenceFulltextRowState | undefined;
     bySourceId: Map<string, FulltextSourceClaim[]>;
@@ -906,7 +909,7 @@ async function scanFulltextRows(
         if (targetRefId !== undefined && rowRefId === targetRefId) {
             target = rowState;
         }
-        if (sourceFileId) {
+        if (buildBySourceId && sourceFileId) {
             const claims = bySourceId.get(sourceFileId) ?? [];
             claims.push({ refId: rowRefId, copyId: copyFileId, status, url });
             bySourceId.set(sourceFileId, claims);
@@ -917,23 +920,24 @@ async function scanFulltextRows(
 }
 
 /**
- * 全文献の fulltext_status / fulltext_url / Drive取り込み元・コピーIDを最新値で読み直す。
+ * 対象文献の fulltext_status / fulltext_url / Drive取り込み元・コピーIDを最新値で読み直す。
  * Driveへ直接置かれたPDFの取り込み実行時、files.copy 成功後・シート書き込み前に
  * 「他のユーザーが自分より先に同じ文献へ取り込み済みでないか」を確認するために使う
  * （楽観ロック相当。競合していれば呼び出し側は上書きせずコピーをゴミ箱へ戻す。
  * URLまで返すのは、cached済みのURLが自分がこれから書こうとしているコピーと同一かどうか
  * ＝「応答喪失後の再試行」かどうかを呼び出し側で判定するために必要なため）。
  *
- * 対象行（target）が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること。
- * 従来の戻り値契約を維持）。あわせて、全行を横断した「source ID → 取り込みクレーム配列」の
- * 逆引きマップ（bySourceId）も返す。
+ * 対象行が見つからない場合は undefined を返す（呼び出し側はエラー扱いにすること。従来の
+ * 戻り値契約を維持）。全行を横断した逆引きマップ（bySourceId/byRefId）が必要な場合は
+ * getFulltextClaimsSnapshot を使うこと（唯一の呼び出し側 fulltext-drive-import.ts は
+ * 対象1行の状態しか使わないため、ここでは組み立てない）。
  */
 export async function getReferenceFulltextState(
     spreadsheetId: string,
     refId: string
-): Promise<ReferenceFulltextStateResult> {
-    const { target, bySourceId } = await scanFulltextRows(spreadsheetId, refId);
-    return { target, bySourceId };
+): Promise<ReferenceFulltextRowState | undefined> {
+    const { target } = await scanFulltextRows(spreadsheetId, refId, false);
+    return target;
 }
 
 /**

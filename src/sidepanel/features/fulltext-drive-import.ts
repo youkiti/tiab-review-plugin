@@ -687,7 +687,7 @@ async function importOneFile(
 
     let sheetState: SheetFulltextState | undefined;
     try {
-        sheetState = (await getReferenceFulltextState(state.spreadsheetId, refId)).target;
+        sheetState = await getReferenceFulltextState(state.spreadsheetId, refId);
     } catch (err) {
         return errorResult(file, refId, refTitle, err);
     }
@@ -727,7 +727,7 @@ async function importOneFile(
     // 2. コピー確保後、書き込み直前にもう一度シート状態を読み直す
     let postState: SheetFulltextState | undefined;
     try {
-        postState = (await getReferenceFulltextState(state.spreadsheetId, refId)).target;
+        postState = await getReferenceFulltextState(state.spreadsheetId, refId);
     } catch (err) {
         if (createdByThisAttempt) await safeTrash(copy.id);
         return errorResult(file, refId, refTitle, err);

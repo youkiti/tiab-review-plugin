@@ -12,9 +12,11 @@ import type { FulltextUrlUpdateEntry } from '../src/lib/fulltext-drive-write';
 
 // Issue #73 Phase 2（データ層チャンク）のデータ層テスト。
 // - getReferenceFulltextState: values:batchGet を1回だけ呼ぶこと、行対応の正しさ、
-//   末尾の空セル・旧22列ヘッダーのシートで落ちないこと、逆引きマップの複数クレーム保持
+//   末尾の空セル・旧22列ヘッダーのシートで落ちないこと（戻り値は対象行の状態のみ。
+//   bySourceId は使わないため組み立てない。逆引きマップの検証は getFulltextClaimsSnapshot 側）
 // - updateReferenceFulltextUrls: 実際に送る HTTP body（data のレンジ構成）の検証、
-//   ensureFulltextDriveColumnsOnce() のメモ化（2回目以降はヘッダー系読み取りが増えないこと）
+//   ensureFulltextDriveColumnsOnce() のメモ化（usable=true は2回目以降ヘッダー系読み取りが
+//   増えないこと。usable=false はキャッシュされず毎回再判定されること）
 //
 // fetch モックの方式は tests/decision-history.test.ts を踏襲する。
 
@@ -97,12 +99,12 @@ test('getReferenceFulltextState: 行対応が正しく target に反映される
 
     const result = await getReferenceFulltextState('sheet-a', 'ref2');
 
-    assert.deepEqual(result.target, {
+    assert.deepEqual(result, {
         status: 'retrieved', url: 'url2', sourceFileId: 'source-2', copyFileId: 'copy-2',
     });
 });
 
-test('getReferenceFulltextState: 対象行が見つからない場合 target は undefined（従来契約の維持）', async () => {
+test('getReferenceFulltextState: 対象行が見つからない場合 undefined（従来契約の維持）', async () => {
     const idColumnRows = [['ref_id'], ['ref1']];
     const twxRows = [
         ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
@@ -112,7 +114,7 @@ test('getReferenceFulltextState: 対象行が見つからない場合 target は
 
     const result = await getReferenceFulltextState('sheet-a', 'ref-not-exist');
 
-    assert.equal(result.target, undefined);
+    assert.equal(result, undefined);
 });
 
 test('getReferenceFulltextState: 末尾の空セル（Sheets が省いて返す短い行）でも落ちない', async () => {
@@ -127,7 +129,7 @@ test('getReferenceFulltextState: 末尾の空セル（Sheets が省いて返す�
 
     const result = await getReferenceFulltextState('sheet-a', 'ref2');
 
-    assert.deepEqual(result.target, {
+    assert.deepEqual(result, {
         status: 'not_retrieved', url: '', sourceFileId: '', copyFileId: '',
     });
 });
@@ -144,7 +146,7 @@ test('getReferenceFulltextState: A:A より T:X の方が短い配列で返っ�
 
     const result = await getReferenceFulltextState('sheet-a', 'ref3');
 
-    assert.deepEqual(result.target, {
+    assert.deepEqual(result, {
         status: 'not_retrieved', url: '', sourceFileId: '', copyFileId: '',
     });
 });
@@ -160,37 +162,16 @@ test('getReferenceFulltextState: 旧22列ヘッダーのシート（W/X が存�
 
     const result = await getReferenceFulltextState('sheet-a', 'ref1');
 
-    assert.deepEqual(result.target, {
+    assert.deepEqual(result, {
         status: 'cached', url: 'url1', sourceFileId: '', copyFileId: '',
     });
-});
-
-test('getReferenceFulltextState: 逆引きマップは同一 source ID の複数クレームを配列で保持する', async () => {
-    const idColumnRows = [['ref_id'], ['ref1'], ['ref2'], ['ref3']];
-    const twxRows = [
-        ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
-        ['url1', 'cached', '', 'shared-source', 'copy-1'],
-        ['url2', 'cached', '', 'shared-source', 'copy-2'],
-        ['url3', 'cached', '', 'other-source', 'copy-3'],
-    ];
-    installBatchGetMock(idColumnRows, twxRows);
-
-    const result = await getReferenceFulltextState('sheet-a', 'ref1');
-
-    const claims = result.bySourceId.get('shared-source');
-    assert.ok(claims);
-    assert.equal(claims!.length, 2, '同一 source ID を持つ2文献分のクレームが両方保持されること');
-    const byRefId = new Map(claims!.map((c) => [c.refId, c]));
-    assert.deepEqual(byRefId.get('ref1'), { refId: 'ref1', copyId: 'copy-1', status: 'cached', url: 'url1' });
-    assert.deepEqual(byRefId.get('ref2'), { refId: 'ref2', copyId: 'copy-2', status: 'cached', url: 'url2' });
-    assert.equal(result.bySourceId.get('other-source')?.length, 1);
 });
 
 // ---------------------------------------------------------------------------
 // getFulltextClaimsSnapshot（Picker選択直後の再取得用。行スキャンはgetReferenceFulltextStateと共通化）
 // ---------------------------------------------------------------------------
 
-test('getFulltextClaimsSnapshot: values:batchGet を1回だけ呼び、bySourceIdはgetReferenceFulltextStateと同じ内容を返す', async () => {
+test('getFulltextClaimsSnapshot: values:batchGet を1回だけ呼ぶこと', async () => {
     const idColumnRows = [['ref_id'], ['ref1'], ['ref2'], ['ref3']];
     const twxRows = [
         ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
@@ -205,6 +186,29 @@ test('getFulltextClaimsSnapshot: values:batchGet を1回だけ呼び、bySourceI
     const batchGetCalls = calls.filter((c) => c.url.includes('/values:batchGet'));
     assert.equal(batchGetCalls.length, 1);
     assert.equal(snapshot.bySourceId.get('shared-source')?.length, 2);
+    assert.equal(snapshot.bySourceId.get('other-source')?.length, 1);
+});
+
+test('getFulltextClaimsSnapshot: bySourceId は同一 source ID の複数クレームを配列で保持する', async () => {
+    // getReferenceFulltextState は対象行の状態しか返さなくなったため（bySourceId は組み立てない）、
+    // この逆引きマップの詳細検証は唯一 bySourceId を返す getFulltextClaimsSnapshot 側で行う。
+    const idColumnRows = [['ref_id'], ['ref1'], ['ref2'], ['ref3']];
+    const twxRows = [
+        ['fulltext_url', 'fulltext_status', 'fulltext_set', 'fulltext_drive_source_id', 'fulltext_drive_copy_id'],
+        ['url1', 'cached', '', 'shared-source', 'copy-1'],
+        ['url2', 'cached', '', 'shared-source', 'copy-2'],
+        ['url3', 'cached', '', 'other-source', 'copy-3'],
+    ];
+    installBatchGetMock(idColumnRows, twxRows);
+
+    const snapshot = await getFulltextClaimsSnapshot('sheet-a');
+
+    const claims = snapshot.bySourceId.get('shared-source');
+    assert.ok(claims);
+    assert.equal(claims!.length, 2, '同一 source ID を持つ2文献分のクレームが両方保持されること');
+    const byRefId = new Map(claims!.map((c) => [c.refId, c]));
+    assert.deepEqual(byRefId.get('ref1'), { refId: 'ref1', copyId: 'copy-1', status: 'cached', url: 'url1' });
+    assert.deepEqual(byRefId.get('ref2'), { refId: 'ref2', copyId: 'copy-2', status: 'cached', url: 'url2' });
     assert.equal(snapshot.bySourceId.get('other-source')?.length, 1);
 });
 
@@ -419,4 +423,41 @@ test('updateReferenceFulltextUrls: W/X列が別用途と衝突していて drive
     );
 
     assert.equal(mockState.batchUpdateBodies.length, 0, 'Drive直接取り込みはクレームを記録できないため、fail-fastで何も書き込まれないこと');
+});
+
+test('updateReferenceFulltextUrls: usable=false（W/X衝突）はメモ化されず、2回目も同じだけヘッダー系読み取りが走る', async () => {
+    // 指摘4の回帰修正: usable=false をキャッシュすると、ユーザーがエラーメッセージの指示どおり
+    // シートの列名を直しても拡張機能を再読み込みするまで反映されない。usable=false は
+    // 毎回再判定されるべき（usable=true のときだけ2回目以降の読み取りが増えない従来挙動を維持する）。
+    const mockState = createUpdateMockState({
+        referencesHeaderRow: [
+            ...REFERENCES_HEADERS_ROW.slice(0, 22),
+            'my_custom_column', 'another_custom_column',
+        ],
+    });
+    installUpdateMock(mockState);
+    const originalWarn = console.warn;
+    console.warn = () => {};
+
+    const countHeaderReads = () =>
+        countCalls(mockState, (u) => u.includes('References!A1%3AZ1'), 'GET')
+        + countCalls(mockState, (u) => u.includes('References!A1%3AX1'), 'GET')
+        + countCalls(mockState, (u) => u.includes('Decisions!A1%3AZ1'), 'GET');
+
+    try {
+        // OA経路（driveSource=null）は衝突していても T:U だけ書いて成功する
+        await updateReferenceFulltextUrls('sheet-update-5', [
+            { refId: 'ref1', fulltextUrl: 'u1', status: 'cached', driveSource: null },
+        ]);
+        const afterFirst = countHeaderReads();
+        assert.equal(afterFirst, 3, '初回はReferences/Decisionsのヘッダー読み取り+検証読み取りで3回');
+
+        await updateReferenceFulltextUrls('sheet-update-5', [
+            { refId: 'ref2', fulltextUrl: 'u2', status: 'cached', driveSource: null },
+        ]);
+        const afterSecond = countHeaderReads();
+        assert.equal(afterSecond, 6, 'usable=false はキャッシュされず、2回目も1回目と同じ回数だけヘッダー系読み取りが走ること（正常系のメモ化と対照的）');
+    } finally {
+        console.warn = originalWarn;
+    }
 });
