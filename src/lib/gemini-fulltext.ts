@@ -20,6 +20,7 @@ import {
 } from './gemini-api';
 import { PROMPT_VERSION } from './prompt-templates';
 import { EXCLUDE_REASON_VALUES } from './exclude-reasons';
+import { PdfTooLargeError } from './fulltext-ai-failures';
 
 // inline_data でPDFを送る場合のサイズ上限（リクエスト全体が約20MB制限のため余裕を見て18MB）。
 // これを超えるPDFは Files API 経由が必要だが、まずは inline で運用しガードする。
@@ -127,7 +128,10 @@ export async function judgeFulltext(
 ): Promise<{ output: FulltextJudgeOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
     const bytes = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
     if (bytes.byteLength > MAX_INLINE_PDF_BYTES) {
-        throw new Error(`PDFが大きすぎます（${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB）。inline送信の上限は約18MBです。`);
+        // Gemini呼び出し（fetch）に至る前の、PDF側の検証失敗。GeminiApiError と見分けが付くように
+        // 専用のエラークラスを投げる（分類は fulltext-ai-failures.ts の classifyFulltextAiFailure）。
+        // UI表示に使うメッセージなので文言は変更しないこと。
+        throw new PdfTooLargeError(`PDFが大きすぎます（${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB）。inline送信の上限は約18MBです。`);
     }
 
     const base64 = bytesToBase64(bytes);

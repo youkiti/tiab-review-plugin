@@ -1282,11 +1282,6 @@ export async function loadExecutionHistory() {
             : new Set<string>();
         syncSetActiveLlmExecutionIds(activeBatchIds);
 
-        if (executions.length === 0 && runs.length === 0) {
-            dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
-            return;
-        }
-
         // バッチを Run でグループ化（run_id が無いものは migration 待ちとしてスキップ）
         const batchesByRunId = new Map<string, Awaited<ReturnType<typeof getLlmExecutions>>>();
         const standaloneExecs: Awaited<ReturnType<typeof getLlmExecutions>> = [];
@@ -1296,6 +1291,12 @@ export async function loadExecutionHistory() {
                 const list = batchesByRunId.get(exec.run_id) ?? [];
                 list.push(exec);
                 batchesByRunId.set(exec.run_id, list);
+            } else if (exec.execution_type === 'fulltext_batch_screening') {
+                // フルテキストAI判定の実行履歴は TiAb の Run/Batch モデルには載せない
+                // （AGENTS.md「フルテキストAI判定」参照）。TiAb の実行履歴一覧に混ぜると
+                // 「判定基準生成」という誤ったラベルで表示されてしまう（else 分岐が
+                // batch_screening 以外を全部「判定基準生成」扱いする二値三項のため）。
+                // フルテキストの実行履歴は AI判定タブのラウンド一覧（fulltext-ai.ts）で見せる。
             } else {
                 standaloneExecs.push(exec);
             }
@@ -1313,6 +1314,16 @@ export async function loadExecutionHistory() {
 
         for (const exec of standaloneExecs) {
             items.push({ kind: 'standalone', exec, sortDate: new Date(exec.timestamp).getTime() });
+        }
+
+        // 空判定は items（TiAb の実行履歴として実際に表示する項目）に対して行う。
+        // executions/runs 全体で判定すると、フルテキストAI判定の行しか無いプロジェクト
+        // （TiAb のAI判定を一度も使っていない）で早期returnせず、その後のグルーピングで
+        // fulltext_batch_screening が全部除外されて items が空になり、プレースホルダーすら
+        // 出ない空白になってしまう（PR #102 レビュー指摘）
+        if (items.length === 0) {
+            dom.executionHistory.innerHTML = `<p class="placeholder-text">${t('llm_historyEmpty')}</p>`;
+            return;
         }
 
         // 最新活動順にソート、上位 10 件

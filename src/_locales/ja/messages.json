@@ -614,6 +614,9 @@
   "fulltext_aiErrNoDrive": {
     "message": "DriveのPDFファイルIDを取得できませんでした"
   },
+  "fulltext_aiExecutionLogFailed": {
+    "message": "実行履歴の記録に失敗しました（判定結果自体には影響ありません）"
+  },
   "fulltext_aiRoundsHead": {
     "message": "判定ラウンド（採用するものを選択）"
   },
@@ -646,6 +649,45 @@
   },
   "fulltext_aiRoundNone": {
     "message": "採用なし"
+  },
+  "fulltext_aiRoundFailed": {
+    "message": "失敗 $1 件（$2）"
+  },
+  "fulltext_aiRoundZeroSuccessHint": {
+    "message": "この実行は0件成功のため採用・削除できません（実行記録のみが残っています）"
+  },
+  "fulltext_aiRoundExecutedBy": {
+    "message": "実行: $1"
+  },
+  "fulltext_aiRoundProcessed": {
+    "message": "処理済み $1/$2 件"
+  },
+  "fulltext_aiRoundProcessedIncomplete": {
+    "message": "処理済み $1/$2 件（未完了）"
+  },
+  "fulltext_aiFailureKindDriveDenied": {
+    "message": "実行アカウントに Drive の閲覧権限が付与されていない"
+  },
+  "fulltext_aiFailureKindDriveNotFound": {
+    "message": "実行アカウントから Drive 上でファイルが見つからない"
+  },
+  "fulltext_aiFailureKindDriveAuth": {
+    "message": "認証切れ（再ログインが必要）"
+  },
+  "fulltext_aiFailureKindDriveTransient": {
+    "message": "一時的な失敗（時間をおいて再実行）"
+  },
+  "fulltext_aiFailureKindNoDriveUrl": {
+    "message": "DriveのPDFが未登録"
+  },
+  "fulltext_aiFailureKindPdf": {
+    "message": "PDFの読み取りに失敗"
+  },
+  "fulltext_aiFailureKindLlm": {
+    "message": "AI呼び出しに失敗"
+  },
+  "fulltext_aiFailureKindOther": {
+    "message": "その他の失敗"
   },
   "fulltext_resultsJudgesHead": {
     "message": "集計に使う判定者（最小1人・組み入れはOR）"

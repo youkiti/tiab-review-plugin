@@ -142,7 +142,7 @@ export interface LlmCriteria {
  */
 export interface LlmExecution {
     execution_id: string;
-    execution_type: 'prompt_generation' | 'batch_screening';
+    execution_type: 'prompt_generation' | 'batch_screening' | 'fulltext_batch_screening';
     timestamp: string;
     model: string;
     requested_model?: string;
@@ -166,6 +166,14 @@ export interface LlmExecution {
     target_mode?: LlmTargetMode;      // 実行時の対象モード
     target_sets?: string;             // 対象に含まれた担当セットIDのカンマ区切り（例 'calibration'）
     target_selected_count?: number;   // 選択モードで選ばれていた件数
+    // フルテキストAI一括判定の実行履歴用（既存行には無い列なので undefined を許容）
+    executed_by?: string;             // 実行アカウント（メールアドレス）
+    maybe_count?: number;             // フルテキストは include/exclude/maybe の3値判定。TiAb 実行では空
+    failed_count?: number;            // 失敗総数
+    // 失敗内訳のJSON文字列（例 '{"drive_denied":3,"llm":1}'）。オブジェクトではなくstring型にしているのは
+    // updateLlmExecution がヘッダ駆動で行を組み立てており、オブジェクト型にすると criteria_snapshot の
+    // ような特別扱いの分岐を追加で足す必要が出るため（sheets-api.ts 側の実装コメント参照）
+    failure_breakdown?: string;
 }
 
 /**

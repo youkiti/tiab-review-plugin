@@ -1140,6 +1140,21 @@
     color: #888;
 }
 
+.fulltext-ai-round-executed-by {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed.incomplete {
+    color: #c0392b;
+    font-weight: 600;
+}
+
 .fulltext-ai-round-none {
     font-size: 12px;
     color: #777;
@@ -1158,6 +1173,27 @@
 
 .fulltext-ai-round-delete:hover {
     background: #fdedec;
+}
+
+.fulltext-ai-round-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.fulltext-ai-round-failed {
+    font-size: 11px;
+    color: #c0392b;
+    white-space: normal;
+}
+
+.fulltext-ai-round-row.zero-success {
+    background: #fbfbfb;
+}
+
+.fulltext-ai-round-zero-notice {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
 }
 
 /* ===== Driveへ直接置かれたPDFの取り込み: 対応付けモーダル ===== */

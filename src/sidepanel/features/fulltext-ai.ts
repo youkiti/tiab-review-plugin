@@ -34,6 +34,9 @@ import {
     getFulltextAiActiveRound,
     setFulltextAiActiveRound,
     deleteFulltextAiRound,
+    saveLlmExecution,
+    updateLlmExecution,
+    getLlmExecutions,
 } from '../../lib/sheets-api';
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
 import {
@@ -57,12 +60,27 @@ import {
     selectFulltextAiTargets,
     type FulltextAiScope,
 } from '../../lib/fulltext-ai-target';
+import {
+    classifyFulltextAiFailure,
+    summarizeFailures,
+    serializeFailureBreakdown,
+    NoDriveUrlError,
+    PdfReadError,
+    LlmCallError,
+    type FulltextAiFailureKind,
+} from '../../lib/fulltext-ai-failures';
+import {
+    deriveRounds,
+    mergeRoundsWithExecutions,
+    type AiRoundWithExecution,
+} from '../../lib/fulltext-ai-rounds';
 import type { LlmConfig } from '../../lib/types';
 import type {
     ReferenceWithStatus,
     Decision,
     FulltextLlmDecisionNote,
     FulltextJudgeOutput,
+    LlmExecution,
 } from '../../lib/types';
 
 // バッチ実行の中断フラグ
@@ -173,41 +191,33 @@ function syncScopeRadios(): void {
 // 判定ラウンド: 採用ラジオ + 削除（TiAb の Run 履歴に相当）
 // ---------------------------------------------------------------------------
 
-interface AiRound {
-    reviewerId: string;
-    model: string;
-    timestamp: string;
-    include: number;
-    exclude: number;
-    maybe: number;
-    total: number;
-}
+// AiRound / deriveRounds は src/lib/fulltext-ai-rounds.ts へ移した
+// （Decisions由来のラウンドと LLM_Executions の実行履歴を結合する純関数を DOM から切り離すため）。
 
-/** fulltext フェーズの llm: 判定を reviewer_id 単位のラウンドへ集約する */
-function deriveRounds(decisions: Decision[]): AiRound[] {
-    const map = new Map<string, AiRound>();
-    for (const d of decisions) {
-        if ((d.screening_phase ?? 'tiab') !== 'fulltext') continue;
-        const rid = (d.reviewer_id || '').trim();
-        if (!rid.startsWith('llm:')) continue;
-        let r = map.get(rid);
-        if (!r) {
-            const body = rid.slice('llm:'.length);
-            const at = body.lastIndexOf('@'); // ISO タイムスタンプに '@' は含まれない
-            r = {
-                reviewerId: rid,
-                model: at >= 0 ? body.slice(0, at) : body,
-                timestamp: at >= 0 ? body.slice(at + 1) : '',
-                include: 0, exclude: 0, maybe: 0, total: 0,
-            };
-            map.set(rid, r);
-        }
-        r.total++;
-        if (d.decision === 'include') r.include++;
-        else if (d.decision === 'exclude') r.exclude++;
-        else if (d.decision === 'maybe') r.maybe++;
-    }
-    return [...map.values()].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+/** 失敗種別 → i18n キーの対応。UI表示専用（純関数側の分類ロジックとは分離する） */
+const FAILURE_KIND_I18N_KEY: Record<FulltextAiFailureKind, string> = {
+    drive_denied: 'fulltext_aiFailureKindDriveDenied',
+    drive_not_found: 'fulltext_aiFailureKindDriveNotFound',
+    drive_auth: 'fulltext_aiFailureKindDriveAuth',
+    drive_transient: 'fulltext_aiFailureKindDriveTransient',
+    no_drive_url: 'fulltext_aiFailureKindNoDriveUrl',
+    pdf: 'fulltext_aiFailureKindPdf',
+    llm: 'fulltext_aiFailureKindLlm',
+    other: 'fulltext_aiFailureKindOther',
+};
+
+// シート直編集等で内訳に混入しうる未知キーを弾くための既知順序（表示順を安定させる）
+const FAILURE_KIND_ORDER: FulltextAiFailureKind[] = [
+    'drive_denied', 'drive_not_found', 'drive_auth', 'drive_transient',
+    'no_drive_url', 'pdf', 'llm', 'other',
+];
+
+/** 失敗内訳を「理由: 件数」の読める文へ組み立てる（対処が分かる文言は FAILURE_KIND_I18N_KEY 側で用意） */
+function formatFailureBreakdown(breakdown: Partial<Record<FulltextAiFailureKind, number>>): string {
+    return FAILURE_KIND_ORDER
+        .filter(kind => (breakdown[kind] ?? 0) > 0)
+        .map(kind => `${t(FAILURE_KIND_I18N_KEY[kind])}: ${breakdown[kind]}`)
+        .join(', ');
 }
 
 /** ISO 文字列を読みやすい日時へ（失敗時は原文） */
@@ -246,7 +256,18 @@ async function renderRounds(): Promise<void> {
         return;
     }
 
-    const rounds = deriveRounds(decisions);
+    // 実行履歴（失敗件数・内訳等）は付加情報にすぎないため、取得に失敗しても
+    // ラウンド一覧そのものは従来どおり表示する（Decisions取得失敗とは別枠でcatchする）。
+    // 全件失敗したラウンドは Decisions に1行も無いため、失敗時は「実行履歴のみのラウンド」が
+    // 一覧から抜け落ちるが、それ以外の表示（採用ラジオ等）は維持できる。
+    let executions: LlmExecution[] = [];
+    try {
+        executions = await getLlmExecutions(state.spreadsheetId);
+    } catch (err) {
+        console.warn('[fulltext-ai] 実行履歴の取得に失敗:', err);
+    }
+
+    const rounds = mergeRoundsWithExecutions(deriveRounds(decisions), executions);
     container.innerHTML = '';
 
     if (rounds.length === 0) {
@@ -290,10 +311,15 @@ function buildNoneRow(active: string | null): HTMLElement {
 }
 
 /** 1ラウンドの行（採用ラジオ・情報・削除ボタン） */
-function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
+function buildRoundRow(r: AiRoundWithExecution, active: string | null): HTMLElement {
     const row = document.createElement('div');
     row.className = 'fulltext-ai-round-row';
     if (r.reviewerId === active) row.classList.add('active');
+
+    // 0件成功のラウンド（executions側にしか無い＝全件失敗）は、採用しても Decisions に
+    // 票が無く意味がなく、削除しても消す行が無いため採用ラジオ・削除ボタンを無効化する
+    const zeroSuccess = r.total === 0;
+    if (zeroSuccess) row.classList.add('zero-success');
 
     const main = document.createElement('label');
     main.className = 'fulltext-ai-round-main';
@@ -302,6 +328,8 @@ function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
     radio.type = 'radio';
     radio.name = 'ft-ai-round';
     radio.checked = r.reviewerId === active;
+    radio.disabled = zeroSuccess;
+    if (zeroSuccess) radio.title = t('fulltext_aiRoundZeroSuccessHint');
     radio.addEventListener('change', () => { if (radio.checked) void adoptRound(r.reviewerId); });
 
     const info = document.createElement('span');
@@ -309,17 +337,63 @@ function buildRoundRow(r: AiRound, active: string | null): HTMLElement {
     const title = document.createElement('span');
     title.className = 'fulltext-ai-round-title';
     title.textContent = `${r.model} · ${formatTimestamp(r.timestamp)}`;
+    info.appendChild(title);
+
+    // 実行者（Drive の失敗は実行者固有の事実。drive.file は「アプリ×ユーザー×ファイル」単位の
+    // 付与なので、どのアカウントで権限を付与し直せば良いかはここに出さないと特定できない）
+    // executedBy が無い（実行履歴の無い過去のラウンド）ときは何も出さない
+    if (r.executedBy) {
+        const executedBy = document.createElement('span');
+        executedBy.className = 'fulltext-ai-round-executed-by';
+        executedBy.textContent = t('fulltext_aiRoundExecutedBy', r.executedBy);
+        info.appendChild(executedBy);
+    }
+
     const counts = document.createElement('span');
     counts.className = 'fulltext-ai-round-counts';
     counts.textContent = t('fulltext_aiRoundCounts', [String(r.include), String(r.exclude), String(r.maybe), String(r.total)]);
-    info.append(title, counts);
+    info.appendChild(counts);
+
+    // 処理済み/対象件数（実行履歴があるラウンドのみ）。isIncomplete のときは未完了である旨も添える。
+    // 新しい列は足さず、実行履歴側の件数から導出した値（PR #102 レビュー指摘: 中断した実行が
+    // 完了実行と見分けが付かない問題への対応。詳細は fulltext-ai-rounds.ts の processedCount/
+    // isIncomplete のコメント参照）
+    if (r.hasExecution && r.targetCount !== null) {
+        const processed = document.createElement('span');
+        processed.className = 'fulltext-ai-round-processed';
+        if (r.isIncomplete) processed.classList.add('incomplete');
+        processed.textContent = r.isIncomplete
+            ? t('fulltext_aiRoundProcessedIncomplete', [String(r.processedCount), String(r.targetCount)])
+            : t('fulltext_aiRoundProcessed', [String(r.processedCount), String(r.targetCount)]);
+        info.appendChild(processed);
+    }
+
+    // 失敗件数・内訳（1件以上あるときだけ表示）。「ファイルが壊れている」ではなく
+    // 「実行したアカウントから読み取れなかった」旨が伝わるよう、対処が分かる文言にする
+    // （FAILURE_KIND_I18N_KEY / formatFailureBreakdown 参照）
+    if (r.failedCount > 0) {
+        const failed = document.createElement('span');
+        failed.className = 'fulltext-ai-round-failed';
+        failed.textContent = t('fulltext_aiRoundFailed', [String(r.failedCount), formatFailureBreakdown(r.failureBreakdown)]);
+        info.appendChild(failed);
+    }
+
+    // 0件成功の理由をラウンド行自体に明示する（無効化しただけだと理由が分からないため）
+    if (zeroSuccess) {
+        const zeroNotice = document.createElement('span');
+        zeroNotice.className = 'fulltext-ai-round-zero-notice';
+        zeroNotice.textContent = t('fulltext_aiRoundZeroSuccessHint');
+        info.appendChild(zeroNotice);
+    }
 
     main.append(radio, info);
 
     const del = document.createElement('button');
     del.className = 'fulltext-ai-round-delete';
     del.textContent = t('fulltext_aiRoundDelete');
-    del.addEventListener('click', () => { void deleteRound(r.reviewerId); });
+    del.disabled = zeroSuccess;
+    if (zeroSuccess) del.title = t('fulltext_aiRoundZeroSuccessHint');
+    del.addEventListener('click', () => { if (!zeroSuccess) void deleteRound(r.reviewerId); });
 
     row.append(main, del);
     return row;
@@ -449,11 +523,58 @@ async function handleStartAiBatch(): Promise<void> {
     setScopeRadiosDisabled(true);
     if (refetchFailed) appendLog(t('fulltext_aiJudgedRefetchFailed'), 'log-warn');
 
+    // 実行履歴（LLM_Executions）に開始行を先書きする。中断・全件失敗でも「実行した」事実が
+    // 残るようにするのが本Issueの主眼。References/Decisions タブは一切触らない
+    // （fulltext_status を書き換えると候補プールから全員分外れ、Decisions に失敗行を書くと
+    //   κ算出とラウンド管理が壊れるため）。
+    const initialExecution: LlmExecution = {
+        execution_id: executionId,
+        execution_type: 'fulltext_batch_screening',
+        timestamp: batchTimestamp.toISOString(),
+        model: modelConfig.model,
+        requested_model: modelId,
+        temperature: modelConfig.temperature,
+        topP: modelConfig.topP,
+        thinkingLevel: modelConfig.thinkingLevel,
+        // フルテキストAI判定の判定基準は TiAb の criteria_snapshot（LlmCriteria）とそのまま
+        // 対応しない。buildEffectivePrompt() は llm_criteria をプロンプト生成の入力の1つとして
+        // 使っているため、それが読み込み済みならスナップショットとして入れる。無ければ
+        // （PICO等のテンプレートを使わずプロンプトを直接編集した場合など）意味のある値が無いので null。
+        criteria_snapshot: state.llmConfig?.llm_criteria ?? null,
+        screening_prompt: screeningPrompt,
+        include_threshold: 0, // フルテキストは3値(include/exclude/maybe)判定で閾値の概念が無いため未使用
+        target_count: targets.length,
+        include_count: 0,
+        exclude_count: 0,
+        maybe_count: 0,
+        status: 'pending',
+        // フルテキストAI判定の採用状態は Config の fulltext_ai_active_round が正であり、
+        // LLM_Executions.is_active と二重管理しないため常に false 固定にする
+        is_active: false,
+        executed_by: state.userEmail,
+    };
+    // 開始行の保存に成功したか（終了時の記録方法をこれで分岐する。must-fix 3 参照）
+    let executionLogWritten = false;
+    try {
+        await saveLlmExecution(spreadsheetId, initialExecution);
+        executionLogWritten = true;
+    } catch (err) {
+        // 履歴の書き込み失敗は判定結果より軽い。判定処理自体は止めず、警告として出すだけにする
+        console.warn('[fulltext-ai] 実行履歴（開始）の保存に失敗:', err);
+        appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
+    }
+
     let done = 0, ok = 0, ng = 0;
     // Drive の読み取り権限が無くて落ちた件数（drive.file は「アプリ×ユーザー×ファイル」単位の
     // 付与なので、他メンバーがアップロードしたPDFは読めない。プロジェクト全体を対象にすると
-    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）
+    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）。
+    // 定義上 failureKinds の drive_denied + drive_not_found の件数と一致するはずなので、
+    // 分類ロジック（classifyFulltextAiFailure）側だけを直して乖離させないこと。
     let driveDenied = 0;
+    // include/exclude/maybe の内訳（実行履歴の include_count/exclude_count/maybe_count に使う）
+    const decisionCounts: Record<'include' | 'exclude' | 'maybe', number> = { include: 0, exclude: 0, maybe: 0 };
+    // 失敗種別ごとの内訳（実行履歴の failure_breakdown に使う）
+    const failureKinds: FulltextAiFailureKind[] = [];
     updateProgress(0, targets.length, 0, 0);
     appendLog(t('fulltext_aiStarted', String(targets.length)));
 
@@ -464,12 +585,14 @@ async function handleStartAiBatch(): Promise<void> {
                 break;
             }
             try {
-                await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
+                const decision = await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
                 ok++;
+                decisionCounts[decision]++;
                 appendLog(`✓ ${ref.title || ref.ref_id}`, 'log-ok');
             } catch (err) {
                 ng++;
                 if (err instanceof DriveAccessDeniedError) driveDenied++;
+                failureKinds.push(classifyFulltextAiFailure(err));
                 const msg = err instanceof Error ? err.message : String(err);
                 appendLog(`✕ ${ref.title || ref.ref_id} — ${describeDriveAccessError(err) ?? msg}`, 'log-err');
             } finally {
@@ -487,6 +610,40 @@ async function handleStartAiBatch(): Promise<void> {
                 console.warn('[fulltext-ai] 自動採用に失敗:', err);
             }
         }
+
+        // 実行履歴を確定させる。中断・全件失敗でも「実行したが0件成功だった」という事実自体を
+        // 残すのが本Issueの主眼なので、条件を付けず必ず更新を試みる（失敗しても判定処理は止めない）。
+        const { failedCount, breakdown } = summarizeFailures(failureKinds);
+        const finalCounts = {
+            include_count: decisionCounts.include,
+            exclude_count: decisionCounts.exclude,
+            maybe_count: decisionCounts.maybe,
+            failed_count: failedCount,
+            failure_breakdown: serializeFailureBreakdown(breakdown),
+        };
+        try {
+            if (executionLogWritten) {
+                await updateLlmExecution(spreadsheetId, executionId, {
+                    ...finalCounts,
+                    status: 'confirmed',
+                });
+            } else {
+                // 開始行の保存に失敗していると updateLlmExecution は対象行が無いため必ず
+                // 「Execution not found」で失敗し、この Run の履歴が1行も残らなくなる。
+                // 開始失敗の典型はネットワーク瞬断で、判定が終わる頃には回復していることが
+                // 多いため、確定値を入れた行をここで新規作成するフォールバックで履歴を救う。
+                await saveLlmExecution(spreadsheetId, {
+                    ...initialExecution,
+                    ...finalCounts,
+                    status: 'confirmed',
+                });
+            }
+        } catch (err) {
+            // フォールバック経路もさらに失敗しうるが、判定処理自体は止めず警告に留める
+            console.warn('[fulltext-ai] 実行履歴（終了）の記録に失敗:', err);
+            appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
+        }
+
         // 判定結果を反映するため参照を再読込
         await reloadReferences(spreadsheetId);
         dom.fulltextAiStartBtn.classList.remove('hidden');
@@ -506,7 +663,7 @@ async function handleStartAiBatch(): Promise<void> {
     }
 }
 
-/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する */
+/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。保存した最終判定を返す */
 async function judgeOne(
     ref: ReferenceWithStatus,
     screeningPrompt: string,
@@ -515,12 +672,22 @@ async function judgeOne(
     executionId: string,
     requestedModel: string,
     spreadsheetId: string
-): Promise<void> {
+): Promise<'include' | 'exclude' | 'maybe'> {
     const fileId = ref.fulltext_url ? extractDriveFileId(ref.fulltext_url) : null;
-    if (!fileId) throw new Error(t('fulltext_aiErrNoDrive'));
+    // i18n文言（t()）に依存したエラーだと表示言語が変わったときに分類が壊れるため、
+    // 専用のエラークラス（classifyFulltextAiFailure で判別）を投げる。UI表示文言は
+    // 呼び出し側（handleStartAiBatch）が describeDriveAccessError() 経由/フォールバックで組み立てる
+    if (!fileId) throw new NoDriveUrlError(t('fulltext_aiErrNoDrive'));
 
     const blob = await downloadDriveFile(fileId);
-    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bytes: Uint8Array;
+    try {
+        bytes = new Uint8Array(await blob.arrayBuffer());
+    } catch (err) {
+        // Driveからのダウンロード自体は成功しているので、ここでの失敗はDriveアクセスの問題ではなく
+        // PDFバイト列としての読み取り失敗（破損ファイル等）として分類する
+        throw new PdfReadError(err);
+    }
 
     // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
@@ -531,9 +698,21 @@ async function judgeOne(
         console.warn('[fulltext-ai] image-only detection failed:', err);
     }
 
-    const { output, usageMetadata, responseMetadata } = await judgeFulltext(
-        bytes, screeningPrompt, modelConfig
-    );
+    type JudgeFulltextResult = Awaited<ReturnType<typeof judgeFulltext>>;
+    let output: JudgeFulltextResult['output'];
+    let usageMetadata: JudgeFulltextResult['usageMetadata'];
+    let responseMetadata: JudgeFulltextResult['responseMetadata'];
+    try {
+        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(bytes, screeningPrompt, modelConfig));
+    } catch (err) {
+        // judgeFulltext は PDFサイズ超過（PdfTooLargeError）や Gemini API 呼び出し失敗
+        // （GeminiApiError）等、既に分類可能なエラーはそのまま投げてくる。
+        // それ以外（レスポンスボディが空、ネットワーク例外等の未分類エラー）は
+        // classifyFulltextAiFailure だと 'other' に落ちてしまい、Gemini呼び出し中に起きた
+        // 失敗だという実態が実行履歴から読み取れなくなるため、ここで LlmCallError にラップし直す
+        // （メッセージ・原因は保持するのでログ表示は変わらない）。
+        throw classifyFulltextAiFailure(err) === 'other' ? new LlmCallError(err) : err;
+    }
 
     const note: FulltextLlmDecisionNote = {
         type: 'llm_fulltext',
@@ -551,11 +730,12 @@ async function judgeOne(
         usageMetadata,
     };
 
+    const normalizedDecision = normalizeDecision(output);
     const decision: Decision = {
         decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: reviewerId,
-        decision: normalizeDecision(output),
+        decision: normalizedDecision,
         // 除外時は Decisions の reason 列に PRISMA 区分を入れる（人間判定と同じ運用）
         reason: output.decision === 'exclude' ? (output.exclude_reason_category || 'other') : undefined,
         note: JSON.stringify(note),
@@ -565,6 +745,7 @@ async function judgeOne(
     };
 
     await saveDecision(spreadsheetId, decision);
+    return normalizedDecision;
 }
 
 /** 出力の decision を最終決定に正規化（maybe はそのまま保持） */
