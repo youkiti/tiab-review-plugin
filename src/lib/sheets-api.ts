@@ -289,14 +289,30 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
 
         // ヘッダーが不足している場合（例: 古いバージョンで作成されたシート）
         if (currentHeaders.length < REFERENCES_HEADERS.length) {
-            console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
+            // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）をユーザーが既に
+            // 独自ヘッダー名で使っていないか、上書きする前に検証する。
+            // getSheetValues は末尾の空セルを省いて返す仕様のため、currentHeaders.length >= 23
+            // は「W1が非空」であることと同値。23列だけ足した最もありがちな構成では
+            // この検証をしないと W1 のユーザー独自名を fulltext_drive_source_id に無警告で
+            // 改名してしまい、直後の書き込みで W 列のデータごと上書きしてしまう（実測で再現済み）。
+            const driveHeaderCheck = validateFulltextDriveHeaders(currentHeaders);
+            if (!driveHeaderCheck.ok) {
+                console.warn(
+                    '[ensureHeaders] Skipping References header expansion: W/X columns conflict with user-defined headers',
+                    { actualW: driveHeaderCheck.actualW, actualX: driveHeaderCheck.actualX }
+                );
+            } else {
+                console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
 
-            // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
-            // 一致しなくても、このアプリで管理する以上は更新して良いとする
+                // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
+                // A〜V列は一致しなくても、このアプリで管理する以上は更新して良いとする。
+                // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）だけは例外で、
+                // 一致しない場合はこの else に入らず（上の driveHeaderCheck.ok により）更新しない
 
-            // 行1全体を更新
-            await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
-            console.log('[ensureHeaders] Headers updated');
+                // 行1全体を更新
+                await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
+                console.log('[ensureHeaders] Headers updated');
+            }
         }
     } catch (error) {
         console.error('[ensureHeaders] Error:', error);
