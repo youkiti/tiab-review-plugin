@@ -42,7 +42,7 @@
 
 ### レイテンシに関する重要な留意点
 
-`qwen3.8-27b` の実レイテンシ（約11.8秒/件）は、先行評価した `qwen/qwen3-235b-a22b-2507`（650ms/件）の**約18倍**、B4（≈300ms/件）と比較すると**さらに大きな差**になる。並列処理（concurrency 25）で吸収できる範囲だが、**採用判定のレイテンシ列では `qwen3.8-27b` は最初から B4・235B Instruct のいずれにも負けている**点をレポートで明記する。Recall/コストで優位でも、レイテンシ面での採用理由にはならない。
+`qwen3.8-27b` の逐次レイテンシ（約11.8秒/件、1リクエストの往復時間）は並列処理（concurrency 25）で吸収する前提の数値であり、先行評価した `qwen/qwen3-235b-a22b-2507` のスループット値（650ms/件、並列後の実効値）と直接割り算できる指標ではない。フル実行後の実測では `qwen3.8-27b` のスループットは870ms/件（Q1、[report.md](report.md) 6.3節）で、235Bのスループット比では約1.3倍にとどまる。ただし**指標を揃えても `qwen3.8-27b` は B4・235B Instruct のいずれにも負けている**点はレポートで明記する。Recall/コストで優位でも、レイテンシ面での採用理由にはならない。
 
 ## データセット
 
@@ -127,3 +127,12 @@ npx ts-node --project experiments/qwen3.8-27b/tsconfig.json experiments/qwen3.8-
 
 - データセット: `scripts/asreview-baseline/datasets/depression_slim_labeled.json`
 - 比較対象: [experiments/report.md](../report.md)（B4）、[experiments/openrouter-bench/report.md](../openrouter-bench/report.md)（`qwen/qwen3-235b-a22b-2507` 等の先行評価）
+
+## 実行結果（2026-08-16）
+
+Q1（非thinking, Temp 0, フル実行 1,993件）の最終確定値: Recall **85.00%** / Precision 73.68% / Fβ(7) 84.74%。**判定: 不採用**（先行の `qwen/qwen3-235b-a22b-2507` の93.9%を8.9pp下回る）。
+
+- **429エラー**: Q1 初回パスで1,993件中82件（4.1%）が HTTP 429 で失敗したが、中断耐性の再開機能で未処理分だけ再試行して解消した。1,993件級の連続実行では `openrouter_akashml`（concurrency 25）は強気すぎると判断し、より安全な `openrouter_akashml_safe`（concurrency 10, delayBetweenRequests 200）を `config.json` に追加した。
+- **Q2（reasoning=low）は48/50で中断**。理由はコストではなくスループット（終盤の失速により全件外挿で約12時間の見込み）。部分データ（n=48）はコストゲート自体は通過していたが（全件外挿$9.49）、統計的有意性がないため精度の判断には使わない。
+
+詳細は [report.md](report.md) を参照。
