@@ -1,0 +1,57 @@
+{
+    "description": "qwen/qwen3.8-27b (OpenRouter, AkashML/bf16) を depression データセットで評価",
+    "version": "1.0",
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "rateLimits": {
+        "gemini_tier_max": { "concurrency": 50, "delayBetweenRequests": 200 },
+        "openrouter_akashml": { "concurrency": 25, "delayBetweenRequests": 0 }
+    },
+    "conditions": [
+        {
+            "id": "REF-B",
+            "provider": "gemini",
+            "model": "gemini-3-flash-preview",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "rateLimit": "gemini_tier_max",
+            "note": "既存B4相当のベースライン。depression での既知値 Recall≈0.96 / Precision≈0.53"
+        },
+        {
+            "id": "Q1",
+            "provider": "openrouter",
+            "model": "qwen/qwen3.8-27b",
+            "temperature": 0,
+            "reasoningEnabled": false,
+            "rateLimit": "openrouter_akashml",
+            "note": "非thinking。主軸条件"
+        },
+        {
+            "id": "Q2",
+            "provider": "openrouter",
+            "model": "qwen/qwen3.8-27b",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "reasoningEffort": "low",
+            "rateLimit": "openrouter_akashml",
+            "note": "reasoning low。smoke → コストゲート判定してからフル実行"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4_existing": { "recall": 0.96, "precision": 0.53, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11 }
+        }
+    },
+    "pricing": {
+        "gemini-3-flash-preview": { "inputPerMillion": 0.30, "outputPerMillion": 2.50, "note": "概算。Google公開価格に合わせて更新可" },
+        "qwen/qwen3.8-27b": { "inputPerMillion": 0.45, "outputPerMillion": 3.20, "note": "OpenRouter公開価格 2026-08-16 時点。AkashML(bf16)" }
+    }
+}
