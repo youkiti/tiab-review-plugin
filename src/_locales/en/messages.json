@@ -614,6 +614,9 @@
   "fulltext_aiErrNoDrive": {
     "message": "Could not resolve the Drive PDF file ID"
   },
+  "fulltext_aiExecutionLogFailed": {
+    "message": "Failed to record the execution history (the judgment results themselves are unaffected)"
+  },
   "fulltext_aiRoundsHead": {
     "message": "Judgment rounds (select which to adopt)"
   },

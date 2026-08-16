@@ -62,6 +62,10 @@ const LLM_RUNS_SHEET = 'LLM_Runs';
 
 // LLM_Executionsシートのヘッダー
 // run_id は Run/Batch 分離後に追加された列。既存シートに無い場合は ensureLlmExecutionsSheet で末尾に追加される。
+//
+// 【重要】新しい列は必ず末尾に追加すること。saveLlmExecution() は row 配列を位置ベースで
+// 組み立てており、既存シートのヘッダは「元の並び + ensureLlmExecutionsSheet が末尾へ追記した
+// 不足列」という形にしかならない。途中挿入すると既存プロジェクトのシートで列がずれる。
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
     'temperature', 'topP', 'thinkingLevel',  // Model parameters
@@ -69,7 +73,9 @@ const LLM_EXECUTIONS_HEADERS = [
     'target_count', 'include_count', 'exclude_count',
     'status', 'is_active', 'run_id',
     'requested_model', 'model_version', 'response_id',
-    'target_mode', 'target_sets', 'target_selected_count'
+    'target_mode', 'target_sets', 'target_selected_count',
+    // フルテキストAI一括判定の実行履歴用（Issue #62）。ここより前には絶対に挿入しないこと。
+    'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown'
 ];
 
 // LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
@@ -2993,6 +2999,10 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.target_mode ?? '',
         execution.target_sets ?? '',
         execution.target_selected_count?.toString() ?? '',
+        execution.executed_by ?? '',
+        execution.maybe_count?.toString() ?? '',
+        execution.failed_count?.toString() ?? '',
+        execution.failure_breakdown ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -3046,6 +3056,8 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                         execution[header] = value || undefined;
                         break;
                     case 'target_selected_count':
+                    case 'maybe_count':
+                    case 'failed_count':
                         // 0 と未設定を区別したいので `|| 0` にはしない
                         execution[header] = value ? parseInt(value, 10) : undefined;
                         break;
@@ -3066,6 +3078,12 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
 
 /**
  * LLM実行履歴を更新
+ *
+ * newRow の組み立ては下の headers.map(...) がヘッダ駆動で行っており、
+ * criteria_snapshot / is_active 以外の値は「数値なら toString()、それ以外は String()」
+ * という一般則で素通しする。failure_breakdown を LlmExecution 側で string 型
+ * （JSON文字列）にしているのはこの一般則にそのまま乗せるためで、オブジェクト型にすると
+ * criteria_snapshot のような特別扱いの分岐をここに追加する必要が出てしまう。
  */
 export async function updateLlmExecution(
     spreadsheetId: string,

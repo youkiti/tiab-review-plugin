@@ -34,6 +34,8 @@ import {
     getFulltextAiActiveRound,
     setFulltextAiActiveRound,
     deleteFulltextAiRound,
+    saveLlmExecution,
+    updateLlmExecution,
 } from '../../lib/sheets-api';
 import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
 import {
@@ -57,12 +59,22 @@ import {
     selectFulltextAiTargets,
     type FulltextAiScope,
 } from '../../lib/fulltext-ai-target';
+import {
+    classifyFulltextAiFailure,
+    summarizeFailures,
+    serializeFailureBreakdown,
+    NoDriveUrlError,
+    PdfReadError,
+    LlmCallError,
+    type FulltextAiFailureKind,
+} from '../../lib/fulltext-ai-failures';
 import type { LlmConfig } from '../../lib/types';
 import type {
     ReferenceWithStatus,
     Decision,
     FulltextLlmDecisionNote,
     FulltextJudgeOutput,
+    LlmExecution,
 } from '../../lib/types';
 
 // バッチ実行の中断フラグ
@@ -449,11 +461,58 @@ async function handleStartAiBatch(): Promise<void> {
     setScopeRadiosDisabled(true);
     if (refetchFailed) appendLog(t('fulltext_aiJudgedRefetchFailed'), 'log-warn');
 
+    // 実行履歴（LLM_Executions）に開始行を先書きする。中断・全件失敗でも「実行した」事実が
+    // 残るようにするのが本Issueの主眼。References/Decisions タブは一切触らない
+    // （fulltext_status を書き換えると候補プールから全員分外れ、Decisions に失敗行を書くと
+    //   κ算出とラウンド管理が壊れるため）。
+    const initialExecution: LlmExecution = {
+        execution_id: executionId,
+        execution_type: 'fulltext_batch_screening',
+        timestamp: batchTimestamp.toISOString(),
+        model: modelConfig.model,
+        requested_model: modelId,
+        temperature: modelConfig.temperature,
+        topP: modelConfig.topP,
+        thinkingLevel: modelConfig.thinkingLevel,
+        // フルテキストAI判定の判定基準は TiAb の criteria_snapshot（LlmCriteria）とそのまま
+        // 対応しない。buildEffectivePrompt() は llm_criteria をプロンプト生成の入力の1つとして
+        // 使っているため、それが読み込み済みならスナップショットとして入れる。無ければ
+        // （PICO等のテンプレートを使わずプロンプトを直接編集した場合など）意味のある値が無いので null。
+        criteria_snapshot: state.llmConfig?.llm_criteria ?? null,
+        screening_prompt: screeningPrompt,
+        include_threshold: 0, // フルテキストは3値(include/exclude/maybe)判定で閾値の概念が無いため未使用
+        target_count: targets.length,
+        include_count: 0,
+        exclude_count: 0,
+        maybe_count: 0,
+        status: 'pending',
+        // フルテキストAI判定の採用状態は Config の fulltext_ai_active_round が正であり、
+        // LLM_Executions.is_active と二重管理しないため常に false 固定にする
+        is_active: false,
+        executed_by: state.userEmail,
+    };
+    // 開始行の保存に成功したか（終了時の記録方法をこれで分岐する。must-fix 3 参照）
+    let executionLogWritten = false;
+    try {
+        await saveLlmExecution(spreadsheetId, initialExecution);
+        executionLogWritten = true;
+    } catch (err) {
+        // 履歴の書き込み失敗は判定結果より軽い。判定処理自体は止めず、警告として出すだけにする
+        console.warn('[fulltext-ai] 実行履歴（開始）の保存に失敗:', err);
+        appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
+    }
+
     let done = 0, ok = 0, ng = 0;
     // Drive の読み取り権限が無くて落ちた件数（drive.file は「アプリ×ユーザー×ファイル」単位の
     // 付与なので、他メンバーがアップロードしたPDFは読めない。プロジェクト全体を対象にすると
-    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）
+    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）。
+    // 定義上 failureKinds の drive_denied + drive_not_found の件数と一致するはずなので、
+    // 分類ロジック（classifyFulltextAiFailure）側だけを直して乖離させないこと。
     let driveDenied = 0;
+    // include/exclude/maybe の内訳（実行履歴の include_count/exclude_count/maybe_count に使う）
+    const decisionCounts: Record<'include' | 'exclude' | 'maybe', number> = { include: 0, exclude: 0, maybe: 0 };
+    // 失敗種別ごとの内訳（実行履歴の failure_breakdown に使う）
+    const failureKinds: FulltextAiFailureKind[] = [];
     updateProgress(0, targets.length, 0, 0);
     appendLog(t('fulltext_aiStarted', String(targets.length)));
 
@@ -464,12 +523,14 @@ async function handleStartAiBatch(): Promise<void> {
                 break;
             }
             try {
-                await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
+                const decision = await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
                 ok++;
+                decisionCounts[decision]++;
                 appendLog(`✓ ${ref.title || ref.ref_id}`, 'log-ok');
             } catch (err) {
                 ng++;
                 if (err instanceof DriveAccessDeniedError) driveDenied++;
+                failureKinds.push(classifyFulltextAiFailure(err));
                 const msg = err instanceof Error ? err.message : String(err);
                 appendLog(`✕ ${ref.title || ref.ref_id} — ${describeDriveAccessError(err) ?? msg}`, 'log-err');
             } finally {
@@ -487,6 +548,40 @@ async function handleStartAiBatch(): Promise<void> {
                 console.warn('[fulltext-ai] 自動採用に失敗:', err);
             }
         }
+
+        // 実行履歴を確定させる。中断・全件失敗でも「実行したが0件成功だった」という事実自体を
+        // 残すのが本Issueの主眼なので、条件を付けず必ず更新を試みる（失敗しても判定処理は止めない）。
+        const { failedCount, breakdown } = summarizeFailures(failureKinds);
+        const finalCounts = {
+            include_count: decisionCounts.include,
+            exclude_count: decisionCounts.exclude,
+            maybe_count: decisionCounts.maybe,
+            failed_count: failedCount,
+            failure_breakdown: serializeFailureBreakdown(breakdown),
+        };
+        try {
+            if (executionLogWritten) {
+                await updateLlmExecution(spreadsheetId, executionId, {
+                    ...finalCounts,
+                    status: 'confirmed',
+                });
+            } else {
+                // 開始行の保存に失敗していると updateLlmExecution は対象行が無いため必ず
+                // 「Execution not found」で失敗し、この Run の履歴が1行も残らなくなる。
+                // 開始失敗の典型はネットワーク瞬断で、判定が終わる頃には回復していることが
+                // 多いため、確定値を入れた行をここで新規作成するフォールバックで履歴を救う。
+                await saveLlmExecution(spreadsheetId, {
+                    ...initialExecution,
+                    ...finalCounts,
+                    status: 'confirmed',
+                });
+            }
+        } catch (err) {
+            // フォールバック経路もさらに失敗しうるが、判定処理自体は止めず警告に留める
+            console.warn('[fulltext-ai] 実行履歴（終了）の記録に失敗:', err);
+            appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
+        }
+
         // 判定結果を反映するため参照を再読込
         await reloadReferences(spreadsheetId);
         dom.fulltextAiStartBtn.classList.remove('hidden');
@@ -506,7 +601,7 @@ async function handleStartAiBatch(): Promise<void> {
     }
 }
 
-/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する */
+/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。保存した最終判定を返す */
 async function judgeOne(
     ref: ReferenceWithStatus,
     screeningPrompt: string,
@@ -515,12 +610,22 @@ async function judgeOne(
     executionId: string,
     requestedModel: string,
     spreadsheetId: string
-): Promise<void> {
+): Promise<'include' | 'exclude' | 'maybe'> {
     const fileId = ref.fulltext_url ? extractDriveFileId(ref.fulltext_url) : null;
-    if (!fileId) throw new Error(t('fulltext_aiErrNoDrive'));
+    // i18n文言（t()）に依存したエラーだと表示言語が変わったときに分類が壊れるため、
+    // 専用のエラークラス（classifyFulltextAiFailure で判別）を投げる。UI表示文言は
+    // 呼び出し側（handleStartAiBatch）が describeDriveAccessError() 経由/フォールバックで組み立てる
+    if (!fileId) throw new NoDriveUrlError(t('fulltext_aiErrNoDrive'));
 
     const blob = await downloadDriveFile(fileId);
-    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bytes: Uint8Array;
+    try {
+        bytes = new Uint8Array(await blob.arrayBuffer());
+    } catch (err) {
+        // Driveからのダウンロード自体は成功しているので、ここでの失敗はDriveアクセスの問題ではなく
+        // PDFバイト列としての読み取り失敗（破損ファイル等）として分類する
+        throw new PdfReadError(err);
+    }
 
     // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
@@ -531,9 +636,21 @@ async function judgeOne(
         console.warn('[fulltext-ai] image-only detection failed:', err);
     }
 
-    const { output, usageMetadata, responseMetadata } = await judgeFulltext(
-        bytes, screeningPrompt, modelConfig
-    );
+    type JudgeFulltextResult = Awaited<ReturnType<typeof judgeFulltext>>;
+    let output: JudgeFulltextResult['output'];
+    let usageMetadata: JudgeFulltextResult['usageMetadata'];
+    let responseMetadata: JudgeFulltextResult['responseMetadata'];
+    try {
+        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(bytes, screeningPrompt, modelConfig));
+    } catch (err) {
+        // judgeFulltext は PDFサイズ超過（PdfTooLargeError）や Gemini API 呼び出し失敗
+        // （GeminiApiError）等、既に分類可能なエラーはそのまま投げてくる。
+        // それ以外（レスポンスボディが空、ネットワーク例外等の未分類エラー）は
+        // classifyFulltextAiFailure だと 'other' に落ちてしまい、Gemini呼び出し中に起きた
+        // 失敗だという実態が実行履歴から読み取れなくなるため、ここで LlmCallError にラップし直す
+        // （メッセージ・原因は保持するのでログ表示は変わらない）。
+        throw classifyFulltextAiFailure(err) === 'other' ? new LlmCallError(err) : err;
+    }
 
     const note: FulltextLlmDecisionNote = {
         type: 'llm_fulltext',
@@ -551,11 +668,12 @@ async function judgeOne(
         usageMetadata,
     };
 
+    const normalizedDecision = normalizeDecision(output);
     const decision: Decision = {
         decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: reviewerId,
-        decision: normalizeDecision(output),
+        decision: normalizedDecision,
         // 除外時は Decisions の reason 列に PRISMA 区分を入れる（人間判定と同じ運用）
         reason: output.decision === 'exclude' ? (output.exclude_reason_category || 'other') : undefined,
         note: JSON.stringify(note),
@@ -565,6 +683,7 @@ async function judgeOne(
     };
 
     await saveDecision(spreadsheetId, decision);
+    return normalizedDecision;
 }
 
 /** 出力の decision を最終決定に正規化（maybe はそのまま保持） */

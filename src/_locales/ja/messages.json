@@ -614,6 +614,9 @@
   "fulltext_aiErrNoDrive": {
     "message": "DriveのPDFファイルIDを取得できませんでした"
   },
+  "fulltext_aiExecutionLogFailed": {
+    "message": "実行履歴の記録に失敗しました（判定結果自体には影響ありません）"
+  },
   "fulltext_aiRoundsHead": {
     "message": "判定ラウンド（採用するものを選択）"
   },

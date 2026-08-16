@@ -42,6 +42,7 @@ const DECISIONS_HEADERS = [
     'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
 ];
 
+// sheets-api.ts の LLM_EXECUTIONS_HEADERS と完全一致させること（末尾追記のみ許容）。
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
     'temperature', 'topP', 'thinkingLevel',
@@ -49,6 +50,8 @@ const LLM_EXECUTIONS_HEADERS = [
     'target_count', 'include_count', 'exclude_count',
     'status', 'is_active', 'run_id',
     'requested_model', 'model_version', 'response_id',
+    'target_mode', 'target_sets', 'target_selected_count',
+    'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
 ];
 
 const LLM_RUNS_HEADERS = [
