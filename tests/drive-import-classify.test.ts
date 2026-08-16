@@ -74,6 +74,34 @@ test('classifyDriveImportState: existingCopyがある場合はそちらを優先
 });
 
 // ---------------------------------------------------------------------------
+// 1ソースPDF＝1文献（PR #105 レビュー指摘3で確定した表示フェーズの仕様）
+// ---------------------------------------------------------------------------
+
+test('classifyDriveImportState [仕様]: 既に別文献へ取り込まれたソースPDFは、2件目の文献へ対応付けようとしても done（＝対応付け候補から外れる）', () => {
+    // データ層の bySourceId がクレームを配列で持つのは「無効なクレームに紛れた有効な1件を
+    // 取りこぼさないため」であって、同一sourceの複数文献への対応付けを表示フェーズで
+    // 支援するためではない。実行フェーズの resolveImportAction は別文献への copy-and-update を
+    // 今も許容しているが、表示フェーズはここで止める（本Issue以前からコピー作成者本人には
+    // 掛かっていた制限を全メンバーへ揃えたもの）。
+    const claimForOtherRef = claim({ refId: 'ref-1', copyId: 'copy-1', url: 'https://drive.google.com/file/d/copy-1/view' });
+    const result = classifyDriveImportState(SOURCE, [claimForOtherRef], null, EMPTY_BY_REF_ID);
+    assert.equal(result.state, 'done');
+    // UI（fulltext_importAlreadyMappedNotice）が「どの文献へ取り込まれたか」を出せるよう、
+    // done では常に取り込み先の refId を返すこと。これが無いと done 行は行き止まりに見える。
+    assert.equal(result.existingCopy?.refId, 'ref-1');
+});
+
+test('classifyDriveImportState [仕様]: 取り込み先の文献のPDFを削除してクレームが消えれば、同じソースPDFを再び選べる（none へ戻る）', () => {
+    // 「2件目へ対応付け直したい」場合の逃げ道。削除経路は driveSource: null を渡してW/Xを
+    // クリアするため、その source を指すクレームがスナップショットから消える。
+    const byRefId = new Map([
+        ['ref-1', rowState({ status: 'not_retrieved', url: '' })],
+    ]);
+    const result = classifyDriveImportState(SOURCE, [], null, byRefId);
+    assert.equal(result.state, 'none');
+});
+
+// ---------------------------------------------------------------------------
 // 判定順2（Driveコピーのみ・クレーム無し）のフォールバック
 // ---------------------------------------------------------------------------
 

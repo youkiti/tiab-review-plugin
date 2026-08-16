@@ -2871,6 +2871,9 @@
   "fulltext_importBadgeImported": {
     "message": "✓ Already imported"
   },
+  "fulltext_importAlreadyMappedNotice": {
+    "message": "This PDF has already been imported into \"$1\". To map it to a different reference, first delete the full-text PDF of \"$1\"."
+  },
   "fulltext_importSkipOption": {
     "message": "Don't match (skip)"
   },

@@ -846,6 +846,14 @@ export interface FulltextClaimsSnapshot {
     /**
      * source ID（fulltext_drive_source_id）→ その source を取り込み元とする全文献のクレーム配列。
      * W列（fulltext_drive_source_id）が空の行は含まれない（クレームが無い行のため）。
+     *
+     * 1対1マップにせず配列で持つ理由は、**無効なクレームに紛れた有効なクレームを取りこぼさない
+     * ため**である（同一sourceを指す行が複数あるとき、片方が旧版クライアントのT:U単独書き込みで
+     * 失効していることがある。`isFulltextClaimValid` を通して有効な1件を選ぶ必要がある）。
+     * 実行フェーズの `resolveImportAction` が別文献への `copy-and-update` を許容している以上、
+     * 同一sourceの重複行はデータとして成立しうる。
+     * ただし**表示フェーズは「有効なクレームが1件でもあれば取り込み済み」**として扱い、
+     * 2件目の文献への対応付けは行わない（`drive-import-classify.ts` の冒頭コメント参照）。
      */
     bySourceId: Map<string, FulltextSourceClaim[]>;
     /**
