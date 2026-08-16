@@ -2866,7 +2866,7 @@
     "message": "A previous import attempt did not finish (the file was copied but the spreadsheet was not updated). Running this again will reuse that copy and only update the spreadsheet."
   },
   "fulltext_importLikelyImportedNotice": {
-    "message": "This PDF may already have been imported as \"$1\". Copies imported by other members are not visible to you, so it appears as not imported. Leave it as \"Skip\" if it has already been imported."
+    "message": "This PDF may already have been imported as \"$1\". For older imports that have not been migrated yet, a copy another member imported may still appear as not imported to you. Leave it as \"Skip\" if it has already been imported."
   },
   "fulltext_importBadgeImported": {
     "message": "✓ Already imported"
