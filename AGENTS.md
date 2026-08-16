@@ -828,7 +828,9 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - `auth-error` / `transient-error` / 分類不能 → 再試行を案内し、**未付与と断定しない**
 - 副次導線として「Drive で開く」（`platform().openExternal`）を併置する。ブラウザの Google セッションで読めるため即座の回避になるが、別タブの Drive ビュワーになるためハイライト・AI判定の根拠表示は使えない旨を明記する
 - **「未付与」と「Drive から完全に削除済み」は API から区別できない**（どちらも 403/404 で、`files.get` も同じ理由で失敗するため追加の問い合わせでも割れない）。文言で両方の可能性に触れ、切り分けは再付与の結果に委ねる（選び直しても読めないならもう存在しない）
-- `alt=media` は HTTP 200 でも本文が HTML のことがある（サインインページ等）。`downloadDriveFile()` は content-type で弾く。返してしまうと PDF.js が「壊れた PDF」として失敗し、原因が画面から辿れなくなる
+- `alt=media` は HTTP 200 でも本文が HTML のことがある（サインインページ等）。`downloadDriveFile()` は content-type で弾き、**`DriveAuthError`（認証切れ）として扱う**。サインインページを掴んでいるのはトークンが効いていない状態であり、「未付与」と断定して再試行を塞ぐ方が害が大きい。返してしまうと PDF.js が「壊れた PDF」として失敗し、原因が画面から辿れなくなる
+- **403 は「未付与」だけではない。レート制限でも 403 が返る**（`userRateLimitExceeded` / `rateLimitExceeded` / `quotaExceeded` など。ダウンロード経路の `quotaExceeded` は「このファイルのダウンロード枠を使い切った」＝時間で解ける状態であって未付与ではない）。本拡張はフルテキスト PDF を最大3並列でプリフェッチするため現実に踏む。`downloadDriveFile()` は 403 のときだけ本文を `isDriveRateLimitBody()` に通し、該当すれば `DriveTransientError` へ倒す（404 では本文を読まない。レート制限は 403 でしか来ない）。本文の読み取り・パースに失敗した場合は安全側で `DriveAccessDeniedError` のまま
+- Drive のエラー本文は**フィールドごとに語彙が違う**ので混ぜて照合しないこと。`errors[].reason` は Drive 独自の camelCase（`userRateLimitExceeded`）、`error.status` は gRPC 由来の SCREAMING_SNAKE_CASE（`RESOURCE_EXHAUSTED` / `PERMISSION_DENIED`）。同じ集合で両方を照合すると常に不一致になり、`errors[]` を含まない形の 403 でレート制限を取りこぼす。`errors[].domain === 'usageLimits'` は reason 名より安定した signal なので併用する
 
 > 関連: `isUserAdmin()`（`sheets-api.ts`）は role が **owner または writer** で `true` を返す。共同研究者は編集者として招待されるため、**`isAdmin` ではオーナーと共同研究者を区別できない**。オーナー限定の分岐が必要な場合は別の識別子を用意すること。
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { setPlatform } from '../src/platform';
+import { setPlatform, platform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
 import {
     classifyDriveApiStatus,
@@ -11,6 +11,8 @@ import {
     DriveTransientError,
     ensureFulltextFolder,
     setupProjectFolder,
+    downloadDriveFile,
+    isDriveRateLimitBody,
 } from '../src/lib/drive-api';
 import { getProjectDriveFolderId, getFulltextDriveFolderId, SheetsAccessDeniedError } from '../src/lib/sheets-api';
 
@@ -37,6 +39,7 @@ const mockPlatform: PlatformAdapter = {
 setPlatform(mockPlatform);
 
 const originalFetch = globalThis.fetch;
+const originalPlatform = platform();
 test.afterEach(() => {
     globalThis.fetch = originalFetch;
 });
@@ -356,5 +359,214 @@ test('setupProjectFolder: 所有者チェックが401なら認証エラーとし
     await assert.rejects(
         () => setupProjectFolder('sheet-1', 'Some Project'),
         (error: unknown) => error instanceof DriveAuthError
+    );
+});
+
+// ---------------------------------------------------------------------------
+// isDriveRateLimitBody: 403本文からレート制限を判定する純粋関数（Issue #69追加分）
+// ---------------------------------------------------------------------------
+
+test('isDriveRateLimitBody: errors[].reason が該当reasonならtrue（各reasonを確認）', () => {
+    for (const reason of [
+        'userRateLimitExceeded',
+        'rateLimitExceeded',
+        'quotaExceeded',
+        'dailyLimitExceeded',
+        'sharingRateLimitExceeded',
+    ]) {
+        const body = { error: { errors: [{ domain: 'usageLimits', reason, message: 'x' }] } };
+        assert.equal(isDriveRateLimitBody(body), true, `reason=${reason} で true になるはず`);
+    }
+});
+
+test('isDriveRateLimitBody: 通常の権限エラー(insufficientFilePermissions)はfalse', () => {
+    const body = {
+        error: {
+            errors: [{ domain: 'global', reason: 'insufficientFilePermissions', message: 'The user does not have sufficient permissions for file.' }],
+        },
+    };
+    assert.equal(isDriveRateLimitBody(body), false);
+});
+
+test('isDriveRateLimitBody: error.status はSCREAMING_SNAKE_CASEの語彙のみを拾う（camelCaseのreason語彙は拾わない）', () => {
+    // error.status は gRPC 由来の SCREAMING_SNAKE_CASE（RESOURCE_EXHAUSTED等）であり、
+    // errors[].reason の camelCase（rateLimitExceeded等）とは語彙が異なる。
+    // 実際のDriveレスポンスに 'rateLimitExceeded' という値の error.status は現れないため、
+    // camelCaseをそのまま status に入れても拾わないことを固定する。
+    assert.equal(isDriveRateLimitBody({ error: { status: 'rateLimitExceeded' } }), false);
+});
+
+test('isDriveRateLimitBody: error.status=RESOURCE_EXHAUSTEDはtrue（errors[]を含まない新形式403）', () => {
+    // Drive が errors[] を含まない {"error":{"code":403,"status":"RESOURCE_EXHAUSTED",...}} 形式で
+    // 403を返した場合でも一時エラーとして検出できることを固定する。
+    assert.equal(
+        isDriveRateLimitBody({ error: { code: 403, message: 'x', status: 'RESOURCE_EXHAUSTED' } }),
+        true
+    );
+});
+
+test('isDriveRateLimitBody: error.status=PERMISSION_DENIEDはfalse（権限エラーを一時エラーへ倒さない）', () => {
+    assert.equal(
+        isDriveRateLimitBody({ error: { code: 403, message: 'x', status: 'PERMISSION_DENIED' } }),
+        false
+    );
+});
+
+test('isDriveRateLimitBody: errors[].domain="usageLimits"は未知のreasonでもtrue（domainの方が安定したsignal）', () => {
+    // reason は今後増える可能性があるが、Drive のレート制限系エラーはdomain: 'usageLimits'が定型のため、
+    // 未知のreason名でもdomainだけで拾えることを固定する。
+    assert.equal(
+        isDriveRateLimitBody({ error: { errors: [{ domain: 'usageLimits', reason: 'someNewUnknownReason' }] } }),
+        true
+    );
+});
+
+test('isDriveRateLimitBody: errors[].domain="global"はfalse（usageLimits以外のdomainでは倒さない）', () => {
+    assert.equal(
+        isDriveRateLimitBody({ error: { errors: [{ domain: 'global', reason: 'insufficientFilePermissions' }] } }),
+        false
+    );
+});
+
+test('isDriveRateLimitBody: error.message からも補助的に判定する', () => {
+    assert.equal(isDriveRateLimitBody({ error: { message: 'User Rate Limit Exceeded' } }), false); // 大文字小文字違いは拾わない仕様の確認
+    assert.equal(isDriveRateLimitBody({ error: { message: 'Rate limit exceeded: userRateLimitExceeded for this user' } }), true);
+});
+
+test('isDriveRateLimitBody: null/非オブジェクト/errorフィールド無しはfalse（安全側）', () => {
+    assert.equal(isDriveRateLimitBody(null), false);
+    assert.equal(isDriveRateLimitBody(undefined), false);
+    assert.equal(isDriveRateLimitBody('not-json-shaped'), false);
+    assert.equal(isDriveRateLimitBody(123), false);
+    assert.equal(isDriveRateLimitBody({}), false);
+    assert.equal(isDriveRateLimitBody({ error: null }), false);
+    assert.equal(isDriveRateLimitBody({ error: {} }), false);
+});
+
+// ---------------------------------------------------------------------------
+// downloadDriveFile: 403のレート制限誤案内防止・auth-error分離・text/htmlガード（Issue #69）
+// ---------------------------------------------------------------------------
+
+function stubDownloadFetch(handler: (url: string) => Response | Promise<Response>) {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        return handler(url);
+    }) as typeof fetch;
+}
+
+test('downloadDriveFile: 403+userRateLimitExceeded本文はDriveTransientError（「未付与」と誤案内しない）', async () => {
+    // 本拡張は最大3並列でプリフェッチするため、付与済みのオーナーでもレート制限403を
+    // 現実に踏む。ここをDriveAccessDeniedErrorのままにすると「未付与または削除済み」と
+    // 断定表示され、再試行ボタンも出ず、直しようのないPickerフローだけが主導線になる
+    // （このPRが防ごうとしている誤案内そのもの）。
+    stubDownloadFetch(() => new Response(
+        JSON.stringify({ error: { errors: [{ reason: 'userRateLimitExceeded', message: 'User Rate Limit Exceeded' }] } }),
+        { status: 403 }
+    ));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveTransientError
+    );
+});
+
+test('downloadDriveFile: 403+errors[]を含まない新形式(status:RESOURCE_EXHAUSTED)本文はDriveTransientError', async () => {
+    // Drive が errors[] を含まない {"error":{"code":403,"status":"RESOURCE_EXHAUSTED",...}} 形式で
+    // 403を返した場合でも、レート制限として検出できDriveTransientErrorになることを固定する
+    // （errors[].reason の語彙で error.status を照合していた旧実装では検出できなかった）。
+    stubDownloadFetch(() => new Response(
+        JSON.stringify({ error: { code: 403, status: 'RESOURCE_EXHAUSTED', message: 'Rate limit exceeded' } }),
+        { status: 403 }
+    ));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveTransientError
+    );
+});
+
+test('downloadDriveFile: 403+通常の権限エラー本文(insufficientFilePermissions)はDriveAccessDeniedError', async () => {
+    stubDownloadFetch(() => new Response(
+        JSON.stringify({ error: { errors: [{ reason: 'insufficientFilePermissions', message: 'The user does not have sufficient permissions for file.' }] } }),
+        { status: 403 }
+    ));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveAccessDeniedError
+    );
+});
+
+test('downloadDriveFile: 403+本文がJSONとして壊れている場合はDriveAccessDeniedError（安全側）', async () => {
+    // 本文の読み取り/パースに失敗した場合にレート制限と誤判定して再試行だけを促すと、
+    // 本当に未付与のケースで直しようのない「再試行」を繰り返させてしまう。安全側に倒す。
+    stubDownloadFetch(() => new Response('not-json', { status: 403 }));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveAccessDeniedError
+    );
+});
+
+test('downloadDriveFile: 404はDriveAccessDeniedError（本文を読まない。レート制限は403でしか来ない）', async () => {
+    stubDownloadFetch(() => new Response(
+        JSON.stringify({ error: { errors: [{ reason: 'userRateLimitExceeded' }] } }),
+        { status: 404 }
+    ));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveAccessDeniedError
+    );
+});
+
+test('downloadDriveFile: getAuthToken()が失敗したらDriveAuthError（素のErrorを漏らさない）', async () => {
+    // downloadDriveFile() は docstring で「失敗は必ず型付きエラーで投げる」と宣言しているのに
+    // getAuthToken() がtryの外にあると、トークン失効時に素のErrorが抜けて呼び出し側で
+    // kind:'unknown'（「時間をおいて再試行」）に落ちてしまう。本来はauth-error（再ログイン案内）。
+    setPlatform({
+        ...mockPlatform,
+        getAuthToken: async () => { throw new Error('token expired'); },
+    });
+    try {
+        await assert.rejects(
+            () => downloadDriveFile('file-1'),
+            (error: unknown) => error instanceof DriveAuthError
+        );
+    } finally {
+        // 他のテストに影響しないよう必ず元のプラットフォームへ戻す
+        setPlatform(originalPlatform);
+    }
+});
+
+test('downloadDriveFile: 200+text/htmlはDriveAuthError（サインインページを掴んだ場合。未付与と断定しない）', async () => {
+    stubDownloadFetch(() => new Response('<html>sign in</html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+    }));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveAuthError
+    );
+});
+
+test('downloadDriveFile: 200+application/pdfはBlobを返す（正常系の退行防止）', async () => {
+    stubDownloadFetch(() => new Response(new Blob(['%PDF-1.4 fake'], { type: 'application/pdf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/pdf' },
+    }));
+    const blob = await downloadDriveFile('file-1');
+    assert.ok(blob instanceof Blob);
+    assert.equal(blob.type, 'application/pdf');
+});
+
+test('downloadDriveFile: 5xxはDriveTransientError', async () => {
+    stubDownloadFetch(() => new Response('{}', { status: 500 }));
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveTransientError
+    );
+});
+
+test('downloadDriveFile: ネットワーク例外はDriveTransientError', async () => {
+    globalThis.fetch = (async () => { throw new Error('network down'); }) as typeof fetch;
+    await assert.rejects(
+        () => downloadDriveFile('file-1'),
+        (error: unknown) => error instanceof DriveTransientError
     );
 });

@@ -1716,7 +1716,7 @@ function buildPdfAccessFailurePanel(
 
     if (view.showRegrant) {
         const regrantBtn = document.createElement('button');
-        regrantBtn.className = 'btn btn-primary btn-small';
+        regrantBtn.className = 'btn btn-primary';
         regrantBtn.textContent = t('fulltext_pdfPaneRegrantBtn');
         regrantBtn.addEventListener('click', () => { void handlePdfRegrantClick(regrantBtn, url, refId); });
         actions.appendChild(regrantBtn);
@@ -1724,7 +1724,7 @@ function buildPdfAccessFailurePanel(
 
     if (view.showRetry) {
         const retryBtn = document.createElement('button');
-        retryBtn.className = 'btn btn-primary btn-small';
+        retryBtn.className = 'btn btn-primary';
         retryBtn.textContent = t('fulltext_pdfPaneRetryBtn');
         retryBtn.addEventListener('click', () => { void retryCachedPdf(url, refId); });
         actions.appendChild(retryBtn);
@@ -1732,8 +1732,9 @@ function buildPdfAccessFailurePanel(
 
     // 副次導線: ブラウザのGoogleセッションで開く。Drive 側で共有されていれば読めるが、
     // 別タブのDriveビュワーになるためハイライト・AI判定の根拠表示は使えない。
+    // showArticleFallback（下部）の副次導線ボタンと見た目を揃えるため btn-secondary を使う。
     const openBtn = document.createElement('button');
-    openBtn.className = 'btn btn-small';
+    openBtn.className = 'btn btn-secondary';
     openBtn.textContent = t('fulltext_pdfPaneOpenInDriveBtn');
     openBtn.addEventListener('click', () => {
         platform().openExternal(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`);

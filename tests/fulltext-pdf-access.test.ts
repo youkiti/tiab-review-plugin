@@ -119,14 +119,18 @@ test('downloadDriveFile: ネットワーク例外は DriveTransientError', async
     await assert.rejects(downloadDriveFile('file-1'), DriveTransientError);
 });
 
-test('downloadDriveFile: 200でも本文がHTMLならファイル実体として扱わない', async () => {
+test('downloadDriveFile: 200でも本文がHTMLならファイル実体として扱わない（DriveAuthError）', async () => {
     // サインインページ等のHTMLをそのまま blob で返すと、PDF.js が「壊れたPDF」として
     // 失敗し、原因が画面から辿れなくなる。
+    // サインインページを掴んでいるのはトークンが有効に効いていない状態であり、
+    // 「未付与」の断定（DriveAccessDeniedError、再試行ボタン無し）よりも「認証切れ」
+    // （DriveAuthError、再ログインで解ける可能性あり）として扱うほうが実害が小さい
+    // （Issue #69 レビュー指摘）。
     stubFetch(new Response('<html>sign in</html>', {
         status: 200,
         headers: { 'content-type': 'text/html; charset=UTF-8' },
     }));
-    await assert.rejects(downloadDriveFile('file-1'), DriveAccessDeniedError);
+    await assert.rejects(downloadDriveFile('file-1'), DriveAuthError);
 });
 
 test('downloadDriveFile: PDFバイトはそのまま返す', async () => {
