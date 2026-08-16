@@ -1140,6 +1140,21 @@
     color: #888;
 }
 
+.fulltext-ai-round-executed-by {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed.incomplete {
+    color: #c0392b;
+    font-weight: 600;
+}
+
 .fulltext-ai-round-none {
     font-size: 12px;
     color: #777;

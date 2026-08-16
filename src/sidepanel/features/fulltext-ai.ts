@@ -337,10 +337,36 @@ function buildRoundRow(r: AiRoundWithExecution, active: string | null): HTMLElem
     const title = document.createElement('span');
     title.className = 'fulltext-ai-round-title';
     title.textContent = `${r.model} · ${formatTimestamp(r.timestamp)}`;
+    info.appendChild(title);
+
+    // 実行者（Drive の失敗は実行者固有の事実。drive.file は「アプリ×ユーザー×ファイル」単位の
+    // 付与なので、どのアカウントで権限を付与し直せば良いかはここに出さないと特定できない）
+    // executedBy が無い（実行履歴の無い過去のラウンド）ときは何も出さない
+    if (r.executedBy) {
+        const executedBy = document.createElement('span');
+        executedBy.className = 'fulltext-ai-round-executed-by';
+        executedBy.textContent = t('fulltext_aiRoundExecutedBy', r.executedBy);
+        info.appendChild(executedBy);
+    }
+
     const counts = document.createElement('span');
     counts.className = 'fulltext-ai-round-counts';
     counts.textContent = t('fulltext_aiRoundCounts', [String(r.include), String(r.exclude), String(r.maybe), String(r.total)]);
-    info.append(title, counts);
+    info.appendChild(counts);
+
+    // 処理済み/対象件数（実行履歴があるラウンドのみ）。isIncomplete のときは未完了である旨も添える。
+    // 新しい列は足さず、実行履歴側の件数から導出した値（PR #102 レビュー指摘: 中断した実行が
+    // 完了実行と見分けが付かない問題への対応。詳細は fulltext-ai-rounds.ts の processedCount/
+    // isIncomplete のコメント参照）
+    if (r.hasExecution && r.targetCount !== null) {
+        const processed = document.createElement('span');
+        processed.className = 'fulltext-ai-round-processed';
+        if (r.isIncomplete) processed.classList.add('incomplete');
+        processed.textContent = r.isIncomplete
+            ? t('fulltext_aiRoundProcessedIncomplete', [String(r.processedCount), String(r.targetCount)])
+            : t('fulltext_aiRoundProcessed', [String(r.processedCount), String(r.targetCount)]);
+        info.appendChild(processed);
+    }
 
     // 失敗件数・内訳（1件以上あるときだけ表示）。「ファイルが壊れている」ではなく
     // 「実行したアカウントから読み取れなかった」旨が伝わるよう、対処が分かる文言にする

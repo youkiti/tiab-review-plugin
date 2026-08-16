@@ -656,6 +656,15 @@
   "fulltext_aiRoundZeroSuccessHint": {
     "message": "This run had 0 successful judgments, so it can’t be adopted or deleted (only the execution record remains)"
   },
+  "fulltext_aiRoundExecutedBy": {
+    "message": "Run by: $1"
+  },
+  "fulltext_aiRoundProcessed": {
+    "message": "Processed $1/$2"
+  },
+  "fulltext_aiRoundProcessedIncomplete": {
+    "message": "Processed $1/$2 (incomplete)"
+  },
   "fulltext_aiFailureKindDriveDenied": {
     "message": "Executing account lacks Drive read access"
   },

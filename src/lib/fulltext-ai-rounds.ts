@@ -45,6 +45,25 @@ export interface AiRoundWithExecution extends AiRound {
     failedCount: number;
     /** 失敗種別ごとの内訳（対応する実行履歴が無い、または内訳未記録なら空） */
     failureBreakdown: Partial<Record<FulltextAiFailureKind, number>>;
+    /**
+     * 実行履歴側で処理済みの件数（include_count + exclude_count + maybe_count + failed_count）。
+     * 対応する実行履歴が無ければ0。
+     *
+     * Decisions由来の r.total は使わない: ユーザーが個別に判定を消すとズレるため、
+     * その実行が何件処理したかの記録としては使えない（AGENTS.md「is_active を使わず
+     * Config の fulltext_ai_active_round を正とする」のと同じ、値を1箇所にしか持たない方針）
+     */
+    processedCount: number;
+    /**
+     * targetCount に対して processedCount が届いていない（中断・予期しないエラー等で
+     * 途中で終わった）ラウンドかどうか。対応する実行履歴が無ければ false。
+     *
+     * 「中断」と「途中で予期しないエラーが出て抜けた」を区別する手段はデータ上無いため、
+     * この値は両者をまとめた中立な「未完了」判定として扱う。新しい列（例えば is_complete）は
+     * 追加せず、既存の件数列から導出する（二重管理を避けるため。上記 processedCount のコメント
+     * および AGENTS.md 参照）
+     */
+    isIncomplete: boolean;
 }
 
 /** fulltext フェーズの llm: 判定を reviewer_id 単位のラウンドへ集約する */
@@ -118,16 +137,22 @@ export function mergeRoundsWithExecutions(
                 executionStatus: null,
                 failedCount: 0,
                 failureBreakdown: {},
+                processedCount: 0,
+                isIncomplete: false,
             };
         }
+        const failedCount = exec.failed_count ?? 0;
+        const processedCount = exec.include_count + exec.exclude_count + (exec.maybe_count ?? 0) + failedCount;
         return {
             ...round,
             hasExecution: true,
             targetCount: exec.target_count,
             executedBy: exec.executed_by ?? null,
             executionStatus: exec.status,
-            failedCount: exec.failed_count ?? 0,
+            failedCount,
             failureBreakdown: parseFailureBreakdown(exec.failure_breakdown),
+            processedCount,
+            isIncomplete: processedCount < exec.target_count,
         };
     };
 

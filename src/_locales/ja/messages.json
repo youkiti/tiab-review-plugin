@@ -656,6 +656,15 @@
   "fulltext_aiRoundZeroSuccessHint": {
     "message": "この実行は0件成功のため採用・削除できません（実行記録のみが残っています）"
   },
+  "fulltext_aiRoundExecutedBy": {
+    "message": "実行: $1"
+  },
+  "fulltext_aiRoundProcessed": {
+    "message": "処理済み $1/$2 件"
+  },
+  "fulltext_aiRoundProcessedIncomplete": {
+    "message": "処理済み $1/$2 件（未完了）"
+  },
   "fulltext_aiFailureKindDriveDenied": {
     "message": "実行アカウントに Drive の閲覧権限が付与されていない"
   },

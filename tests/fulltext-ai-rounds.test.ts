@@ -171,6 +171,76 @@ test('mergeRoundsWithExecutions: 同一 execution_id の実行履歴が複数あ
     assert.equal(merged[0].failedCount, 5);
 });
 
+// ---------------------------------------------------------------------------
+// processedCount / isIncomplete（PR #102 レビュー指摘: 中断実行の判別）
+// ---------------------------------------------------------------------------
+
+test('mergeRoundsWithExecutions: 完了実行（processed === target）は isIncomplete === false', () => {
+    const rounds = deriveRounds([
+        makeDecision({ decision: 'include' }),
+        makeDecision({ decision: 'exclude' }),
+    ]);
+    const executions: LlmExecution[] = [
+        makeExecution({
+            target_count: 2,
+            include_count: 1,
+            exclude_count: 1,
+            maybe_count: 0,
+            failed_count: 0,
+            status: 'confirmed',
+        }),
+    ];
+    const merged = mergeRoundsWithExecutions(rounds, executions);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].processedCount, 2);
+    assert.equal(merged[0].isIncomplete, false);
+});
+
+test('mergeRoundsWithExecutions: 中断実行（processed < target）は isIncomplete === true', () => {
+    const rounds = deriveRounds([makeDecision({ decision: 'include' })]);
+    const executions: LlmExecution[] = [
+        makeExecution({
+            target_count: 10,
+            include_count: 1,
+            exclude_count: 0,
+            maybe_count: 0,
+            failed_count: 1,
+            status: 'confirmed',
+        }),
+    ];
+    const merged = mergeRoundsWithExecutions(rounds, executions);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].processedCount, 2);
+    assert.equal(merged[0].isIncomplete, true);
+});
+
+test('mergeRoundsWithExecutions: 実行履歴が無いラウンドは isIncomplete === false、processedCount は 0', () => {
+    const rounds = deriveRounds([makeDecision(), makeDecision({ decision: 'exclude' })]);
+    const merged = mergeRoundsWithExecutions(rounds, []);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].hasExecution, false);
+    assert.equal(merged[0].processedCount, 0);
+    assert.equal(merged[0].isIncomplete, false);
+});
+
+test('mergeRoundsWithExecutions: 全件失敗の実行（成功0・失敗N）は processedCount が失敗件数と一致する', () => {
+    const rounds: AiRound[] = [];
+    const executions: LlmExecution[] = [
+        makeExecution({
+            target_count: 5,
+            include_count: 0,
+            exclude_count: 0,
+            maybe_count: 0,
+            failed_count: 5,
+            status: 'confirmed',
+        }),
+    ];
+    const merged = mergeRoundsWithExecutions(rounds, executions);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].processedCount, 5);
+    assert.equal(merged[0].isIncomplete, false); // 5/5 なので完了扱い
+});
+
 test('mergeRoundsWithExecutions: ソート順（timestamp 降順）が維持される', () => {
     const rounds: AiRound[] = [
         { reviewerId: 'llm:model-a@2026-08-01T00:00:00.000Z', model: 'model-a', timestamp: '2026-08-01T00:00:00.000Z', include: 1, exclude: 0, maybe: 0, total: 1 },
