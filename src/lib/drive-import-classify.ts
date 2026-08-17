@@ -48,6 +48,21 @@ export interface DriveImportClassification {
  * bySourceId.get(sourceFileId) ?? [] を渡す想定）。判定順1専用の入力であり、W列
  * （fulltext_drive_source_id）が空の行は含まれない。
  *
+ * **1つのソースPDFを2件目の文献へ対応付けることはできない（表示フェーズの仕様。PR #105 指摘3）**:
+ * 判定順1は「有効なクレームが**1件でも**あれば done」なので、既にどこかの文献へ取り込まれた
+ * ソースPDFは対応付けモーダルで候補から外れる。データ層（sheets-api.ts の bySourceId）が
+ * クレームを配列で持つのは「同一sourceへの複数対応付けを表示フェーズで支援するため」ではなく、
+ * **無効化された古いクレームに紛れた有効なクレームを取りこぼさないため**である
+ * （実行フェーズの resolveImportAction は別文献への `copy-and-update` を今も許容しており、
+ * sourceFileId の重複自体はデータとして成立しうる）。
+ *
+ * この制限は本Issue以前からコピー作成者本人には掛かっていたもので（自分のコピーが
+ * findImportedCopy で見つかる → already-done → done → 除外）、それを全メンバーへ揃えた結果である。
+ * 作成者以外は「他人のコピーが見えない」というバグの副作用として対応付けできていたにすぎない。
+ * 2件目へ対応付け直したい場合は、先に1件目の文献のフルテキストPDFを削除する（削除経路が
+ * W/Xをクリアするためクレームが消え、再び 'none' として選べるようになる）。UI側はこの
+ * 逃げ道をユーザーへ案内すること（fulltext_importAlreadyMappedNotice）。
+ *
  * byRefId は**全行**分の現在の行状態（ref_id → {status,url,sourceFileId,copyFileId}）。
  * 判定順2のフォールバックはここから引く。claimsForSource（source ID起点）で代用すると、
  * W/X 列が空の行（本Issue #73 修正前に取り込まれた既存ファイル全て）が

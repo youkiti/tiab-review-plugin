@@ -279,6 +279,14 @@ interface MappingEntry {
     refId: string | null;
     /** ファイル名の最良マッチがcached済み文献だった場合の、そのマッチ先タイトル（既定値はプリセットしない） */
     likelyImportedTitle?: string;
+    /**
+     * importState==='done' の行で、そのPDFが既に取り込まれている文献のタイトル。
+     * done は対応付け候補から外れる（1ソースPDF＝1文献。drive-import-classify.ts 冒頭コメント参照）
+     * ため、「どこへ行ったか」と「対応付け直す方法」を示せないとユーザーからは行き止まりに見える。
+     * 取り込み先が担当外・ロード後に追加された等で state.allReferences から引けない場合は undefined
+     * （その場合はバッジのみで、当て推量のタイトルは出さない）。
+     */
+    importedIntoTitle?: string;
 }
 
 function openMappingModal(files: ValidatedFile[]): void {
@@ -296,9 +304,13 @@ function openMappingModal(files: ValidatedFile[]): void {
         isMappable: mappableRefIds.has(r.ref_id),
     }));
 
+    const titleByRefId = new Map(state.allReferences.map(r => [r.ref_id, r.title]));
+
     const entries: MappingEntry[] = files.map(file => {
-        if (file.blockedReason || file.importState === 'done') {
-            return { file, refId: null };
+        if (file.blockedReason) return { file, refId: null };
+        if (file.importState === 'done') {
+            const title = file.existingCopyRefId ? titleByRefId.get(file.existingCopyRefId) : undefined;
+            return { file, refId: null, importedIntoTitle: title || undefined };
         }
         // 「未完了の取り込み」は以前の対応付け(existingCopyRefId)を最優先の既定値にする。
         // その文献が既に別経路のコピーでcached済み等で候補から外れている場合はファイル名マッチへフォールバック。
@@ -420,6 +432,14 @@ function buildMappingRow(
         badge.className = 'ft-import-badge ft-import-badge--done';
         badge.textContent = t('fulltext_importBadgeImported');
         row.appendChild(badge);
+        if (entry.importedIntoTitle) {
+            // 取り込み先と、別文献へ対応付け直したい場合の逃げ道（先に取り込み先のPDFを削除する）を示す。
+            // done は対応付け候補から外れる仕様のため、これが無いと画面上は行き止まりに見える。
+            const notice = document.createElement('div');
+            notice.className = 'ft-import-row-notice';
+            notice.textContent = t('fulltext_importAlreadyMappedNotice', entry.importedIntoTitle);
+            row.appendChild(notice);
+        }
         if (entry.file.existingCopyLink) {
             const link = document.createElement('a');
             link.href = entry.file.existingCopyLink;

@@ -2871,6 +2871,9 @@
   "fulltext_importBadgeImported": {
     "message": "✓ 取り込み済み"
   },
+  "fulltext_importAlreadyMappedNotice": {
+    "message": "この PDF は「$1」へ取り込み済みです。別の文献へ対応付け直すには、先に「$1」のフルテキストPDFを削除してください。"
+  },
   "fulltext_importSkipOption": {
     "message": "対応付けない（スキップ）"
   },
