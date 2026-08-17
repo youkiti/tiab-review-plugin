@@ -23,6 +23,7 @@ import { getReviewerKey } from './reviewer-utils';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
 import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
+import { toggleReviewCriteriaModal, isCriteriaModalOpen } from '../review-criteria';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -485,6 +486,13 @@ export function handleKeydown(e: KeyboardEvent) {
 
     // 修飾キーなし
     if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+        // レビュー基準モーダルは「開いて、しばらく読む」常設UIのため、読んでいる最中の打鍵が
+        // 判定として記録され、追記専用のDecisionsタブに誤った履歴として残ってしまう事故が起きやすい。
+        // モーダル表示中は開閉トグル（c）以外はすべて無視する。
+        if (isCriteriaModalOpen() && e.key.toLowerCase() !== 'c') {
+            return;
+        }
+
         switch (e.key.toLowerCase()) {
             case 'i': // Include
                 handleDecision('include');
@@ -507,6 +515,10 @@ export function handleKeydown(e: KeyboardEvent) {
             case 'arrowleft': // Prev
             case 'k':
                 navigate(-1);
+                e.preventDefault();
+                break;
+            case 'c': // レビュー基準モーダルの開閉トグル
+                toggleReviewCriteriaModal();
                 e.preventDefault();
                 break;
         }

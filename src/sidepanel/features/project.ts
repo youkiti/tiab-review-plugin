@@ -57,6 +57,7 @@ import {
 } from '../store/compat';
 import { getFulltextSetsForUser } from '../../lib/fulltext-assignment';
 import { createInitialMlState } from '../../lib/ml/types';
+import { maybeShowCriteriaNotice } from './review-criteria';
 
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
@@ -478,6 +479,7 @@ export async function loadDataAndShowScreening() {
         syncSetFulltextPoolRule(configBundle.fulltextPoolRule);
         syncSetFulltextAssignment(configBundle.fulltextAssignment);
         state.setImportStats(configBundle.importStats);
+        state.setReviewCriteria(configBundle.reviewCriteria);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
         const activeRun = llmRuns
@@ -584,6 +586,10 @@ export async function loadDataAndShowScreening() {
         await initializeFulltextAssignmentSelection(spreadsheetId, userEmail);
         if (_renderCurrentReference) _renderCurrentReference();
         void maybeShowAssignmentWizard('load');
+        // 基準更新通知（案D）。画面表示は完了しているので await せず、失敗しても画面を壊さない
+        maybeShowCriteriaNotice().catch(error =>
+            console.error('[loadDataAndShowScreening] maybeShowCriteriaNotice error:', error)
+        );
 
         try {
             await flushDecisionQueue(spreadsheetId, userEmail, (queued) =>

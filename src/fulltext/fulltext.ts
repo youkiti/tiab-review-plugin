@@ -40,6 +40,9 @@ import type { PdfLoadFailureView } from '../lib/fulltext-pdf-access';
 import { getClientVersion } from '../lib/client-version';
 import { t } from '../lib/i18n';
 import { EXCLUDE_REASON_VALUES, excludeReasonLabel } from '../lib/exclude-reasons';
+import { needsCriteriaNotice } from '../lib/review-criteria';
+import type { ReviewCriteria } from '../lib/review-criteria';
+import { getCriteriaSeenAt, setCriteriaSeenAt } from '../lib/storage';
 import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
@@ -92,6 +95,11 @@ let keyOpened = false;
 
 // 採用中のフルテキストAI判定ラウンド（reviewer_id）。サマリ/ハイライトはこのラウンドを優先する。
 let aiActiveRound: string | null = null;
+
+// レビュー基準（組入・除外基準、Config タブ review_criteria）。
+// このページは閲覧専用（編集はサイドパネルに一本化）。読み込み時に一度だけ取得し、
+// 追加のAPIリクエストは発生させない（getFulltextPageData の1リクエストに乗せる）。
+let reviewCriteria: ReviewCriteria | null = null;
 
 // 現在ユーザーが管理者（編集権限）か。AI判定の開示トグルを出すかの判定に使う。
 let isAdmin = false;
@@ -188,6 +196,7 @@ async function initFulltextPage(): Promise<void> {
     ftAssignment = config.fulltextAssignment;
     keyOpened = config.keyOpened;
     aiActiveRound = config.fulltextAiActiveRound;
+    reviewCriteria = config.reviewCriteria;
 
     // 管理者判定（権限API）。失敗時は安全側で非管理者扱い。
     isAdmin = await isUserAdmin(spreadsheetId, userEmail).catch(() => false);
@@ -230,10 +239,16 @@ async function initFulltextPage(): Promise<void> {
     wireReplaceButtons();
     wireHighlightToggle();
     setupAiRevealToggle();
+    wireCriteriaModal();
     document.addEventListener('keydown', handleKeydown);
 
     // 最初の文献を表示
     await loadRef(refId);
+
+    // 案D: 基準が未読または更新後なら自動表示する（表示は完了しているので await せず、失敗しても画面を壊さない）
+    maybeShowCriteriaNotice().catch(err =>
+        console.error('[fulltext] maybeShowCriteriaNotice error:', err)
+    );
 }
 
 /**
@@ -1288,6 +1303,116 @@ function applyHighlightVisibility(): void {
 }
 
 // ---------------------------------------------------------------------------
+// レビュー基準（組入・除外基準）モーダル
+//
+// Config タブの review_criteria を閲覧専用で表示する（src/lib/review-criteria.ts）。
+// 編集導線はここには置かない（編集はサイドパネルに一本化し、二重実装を避ける方針）。
+// 汎用モーダル（ui/modal.ts）はサイドパネル専用のためこのページには無く、
+// ft- プレフィックスの専用モーダルマークアップを fulltext.html に新設している。
+// ---------------------------------------------------------------------------
+
+/** レビュー基準モーダルが今開いているか（backdrop の hidden クラスで判定） */
+function isCriteriaModalOpen(): boolean {
+    const backdrop = document.getElementById('ft-criteria-backdrop');
+    return !!backdrop && !backdrop.classList.contains('hidden');
+}
+
+/** パース不能な場合は元の文字列をそのまま返す（review-criteria.ts の formatUpdatedAt と同趣旨） */
+function formatCriteriaUpdatedAt(iso: string): string {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return date.toLocaleString();
+}
+
+/** モーダル本文を現在の reviewCriteria から描画する */
+function renderCriteriaModalBody(notice: boolean): void {
+    const body = document.getElementById('ft-criteria-body');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (notice) {
+        const banner = document.createElement('div');
+        banner.className = 'ft-criteria-notice-banner';
+        banner.textContent = 'レビュー基準が更新されました。';
+        body.appendChild(banner);
+    }
+
+    if (reviewCriteria === null) {
+        const empty = document.createElement('p');
+        empty.className = 'ft-criteria-empty';
+        empty.textContent = 'まだレビュー基準が登録されていません。サイドパネル（TiAb画面）の📋ボタンから登録できます。';
+        body.appendChild(empty);
+        return;
+    }
+
+    const textEl = document.createElement('div');
+    textEl.className = 'ft-criteria-text';
+    // CSS 側の white-space: pre-wrap で改行を表現するため textContent への代入だけでよい
+    textEl.textContent = reviewCriteria.text;
+    body.appendChild(textEl);
+
+    if (reviewCriteria.updated_by || reviewCriteria.updated_at) {
+        const meta = document.createElement('div');
+        meta.className = 'ft-criteria-meta';
+        const parts: string[] = [];
+        if (reviewCriteria.updated_by) parts.push(`更新者: ${reviewCriteria.updated_by}`);
+        if (reviewCriteria.updated_at) parts.push(`更新日時: ${formatCriteriaUpdatedAt(reviewCriteria.updated_at)}`);
+        meta.textContent = parts.join(' / ');
+        body.appendChild(meta);
+    }
+}
+
+/** レビュー基準モーダルを開く。notice=true で「基準が更新されました」の帯を先頭に表示する（案D） */
+function openCriteriaModal(notice: boolean): void {
+    renderCriteriaModalBody(notice);
+    document.getElementById('ft-criteria-backdrop')?.classList.remove('hidden');
+}
+
+/**
+ * レビュー基準モーダルを閉じる。
+ * 閉じた時点で既読化する（サイドパネルと同じキー・同じ関数 setCriteriaSeenAt を使い、
+ * 両画面で既読状態を共有する）。
+ */
+function closeCriteriaModal(): void {
+    const backdrop = document.getElementById('ft-criteria-backdrop');
+    if (!backdrop || backdrop.classList.contains('hidden')) return;
+    backdrop.classList.add('hidden');
+    void setCriteriaSeenAt(spreadsheetId, reviewCriteria?.updated_at ?? '');
+}
+
+/** キーボードショートカット（'c'）用: 開いていれば閉じ、閉じていれば開く */
+function toggleCriteriaModal(): void {
+    if (isCriteriaModalOpen()) {
+        closeCriteriaModal();
+    } else {
+        openCriteriaModal(false);
+    }
+}
+
+/**
+ * 案D: 基準が未読または更新後なら自動的にモーダルを表示する。
+ * 既読マーカーはサイドパネルと同じキー・同じ関数（storage.ts の get/setCriteriaSeenAt）を
+ * 使うため、両画面で既読状態を共有する。
+ */
+async function maybeShowCriteriaNotice(): Promise<void> {
+    if (!spreadsheetId) return;
+    const seenAt = await getCriteriaSeenAt(spreadsheetId);
+    if (needsCriteriaNotice(reviewCriteria, seenAt)) {
+        openCriteriaModal(true);
+    }
+}
+
+function wireCriteriaModal(): void {
+    document.getElementById('ft-criteria-btn')?.addEventListener('click', () => toggleCriteriaModal());
+    document.getElementById('ft-criteria-close-btn')?.addEventListener('click', () => closeCriteriaModal());
+    document.getElementById('ft-criteria-footer-close-btn')?.addEventListener('click', () => closeCriteriaModal());
+    // backdrop 自体のクリックのみで閉じる（中身のパネルへのクリックで閉じないよう target を見る）
+    document.getElementById('ft-criteria-backdrop')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeCriteriaModal();
+    });
+}
+
+// ---------------------------------------------------------------------------
 // キーボードショートカット（TiAbレビューと同一割り当て）
 // ---------------------------------------------------------------------------
 
@@ -1306,6 +1431,20 @@ function handleKeydown(e: KeyboardEvent): void {
     }
     // 修飾キー併用時は無効
     if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+    // レビュー基準モーダルは「開いて、しばらく読む」常設UIのため、読んでいる最中の打鍵が
+    // 判定として記録され、追記専用のDecisionsタブに誤った履歴として残ってしまう事故が起きやすい。
+    // モーダル表示中は開閉キー（c / Escape）以外はすべて無視する（数字キーによる除外理由確定より前）。
+    if (isCriteriaModalOpen()) {
+        if (e.key.toLowerCase() === 'c') {
+            toggleCriteriaModal();
+            e.preventDefault();
+        } else if (e.key === 'Escape') {
+            closeCriteriaModal();
+            e.preventDefault();
+        }
+        return;
+    }
 
     // 除外モード中は（selectからフォーカスが外れていても）数字キーで理由を選べる
     if (pendingDecision === 'exclude' && /^[1-7]$/.test(e.key)) {
@@ -1350,6 +1489,12 @@ function handleKeydown(e: KeyboardEvent): void {
             jumpToEvidence(-1);
             e.preventDefault();
             break;
+        case 'c': // レビュー基準（組入・除外基準）の表示/非表示
+            toggleCriteriaModal();
+            e.preventDefault();
+            break;
+        // Escape はモーダルが開いている間だけ意味を持つため、上のガードで処理済み
+        // （ここに到達する時点でモーダルは閉じているので、switch側では何もしない）
     }
 }
 

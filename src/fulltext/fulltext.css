@@ -776,7 +776,103 @@ body {
 
 .btn-primary   { background: #3498db; color: #fff; }
 .btn-secondary { background: #ecf0f1; color: #333; border: 1px solid #ccc; }
+.btn-outline   { background: #fff; color: #333; border: 1px solid #ccc; }
+.btn-small     { padding: 4px 10px; font-size: 12px; }
 
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: #666;
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.btn-icon:hover { color: #000; }
+
 .hidden { display: none !important; }
+
+/* レビュー基準（組入・除外基準）モーダル。閲覧専用（編集はサイドパネルに一本化）。
+   src/sidepanel の #modal-backdrop 構造・配色を踏襲しつつ ft- プレフィックスで独立させる。 */
+.ft-criteria-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.ft-criteria-content {
+    background: #fff;
+    width: 90%;
+    max-width: 480px;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ft-criteria-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ft-criteria-title {
+    margin: 0;
+    font-size: 15px;
+}
+
+.ft-criteria-body {
+    padding: 14px 16px;
+    overflow-y: auto;
+}
+
+.ft-criteria-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.ft-criteria-notice-banner {
+    font-size: 12px;
+    color: #b9770e;
+    background: #fef9e7;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 10px;
+}
+
+.ft-criteria-empty {
+    font-size: 13px;
+    color: #5f6368;
+    line-height: 1.6;
+}
+
+.ft-criteria-text {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #2c3e50;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ft-criteria-meta {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #7f8c8d;
+}

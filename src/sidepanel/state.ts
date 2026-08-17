@@ -5,6 +5,7 @@
 
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
+import type { ReviewCriteria } from '../lib/review-criteria';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../lib/fulltext-assignment';
@@ -57,6 +58,9 @@ let _selectedSourceFiles: Set<string> = new Set();
 
 // インポート統計（Configシート import_stats、PRISMA自動記入用）
 let _importStats: ImportStatsMap = {};
+
+// レビュー基準（Configシート review_criteria、未設定は null）
+let _reviewCriteria: ReviewCriteria | null = null;
 
 // 担当セットフィルター
 let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
@@ -213,6 +217,10 @@ export const state = {
     get importStats() { return _importStats; },
     setImportStats(stats: ImportStatsMap) { _importStats = stats; },
 
+    // ----- Review Criteria (組入・除外基準) -----
+    get reviewCriteria() { return _reviewCriteria; },
+    setReviewCriteria(criteria: ReviewCriteria | null) { _reviewCriteria = criteria; },
+
     // ----- Assignment Filters -----
     get assignmentConfig() { return _assignmentConfig; },
     setAssignmentConfig(config: AssignmentConfig) { _assignmentConfig = config; },
@@ -348,6 +356,7 @@ export const state = {
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
         _importStats = {};
+        _reviewCriteria = null;
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();
@@ -381,6 +390,7 @@ export const state = {
         _sourceFiles.clear();
         _selectedSourceFiles.clear();
         _importStats = {};
+        _reviewCriteria = null;
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();

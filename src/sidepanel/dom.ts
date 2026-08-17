@@ -145,6 +145,7 @@ const domElements = {
     get settingsSection() { return getElement<HTMLElement>('settings-section'); },
     get settingsBtnProject() { return getElement<HTMLButtonElement>('settings-btn-project'); },
     get settingsBtnScreening() { return getElement<HTMLButtonElement>('settings-btn-screening'); },
+    get criteriaBtnScreening() { return getElement<HTMLButtonElement>('criteria-btn-screening'); },
     get closeSettingsBtn() { return getElement<HTMLButtonElement>('close-settings-btn'); },
     get autoNavigateCheckbox() { return getElement<HTMLInputElement>('auto-navigate-checkbox'); },
     get showRecordCountCheckbox() { return getElement<HTMLInputElement>('show-record-count-checkbox'); },

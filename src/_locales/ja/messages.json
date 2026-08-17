@@ -3053,5 +3053,51 @@
   },
   "webapp_desktopNoticeClose": {
     "message": "閉じる"
+  },
+
+  "criteria_buttonTitle": {
+    "message": "レビュー基準（組入・除外基準）"
+  },
+  "criteria_modalTitle": {
+    "message": "レビュー基準"
+  },
+  "criteria_modalEditTitle": {
+    "message": "レビュー基準を編集"
+  },
+  "criteria_updatedNotice": {
+    "message": "基準が更新されました"
+  },
+  "criteria_emptyAdmin": {
+    "message": "まだレビュー基準が登録されていません。組入・除外基準を登録してください。"
+  },
+  "criteria_emptyNonAdmin": {
+    "message": "まだレビュー基準が登録されていません。管理者に登録を依頼してください。"
+  },
+  "criteria_registerButton": {
+    "message": "基準を登録"
+  },
+  "criteria_editButton": {
+    "message": "編集"
+  },
+  "criteria_updatedByLabel": {
+    "message": "更新者: $1"
+  },
+  "criteria_updatedAtLabel": {
+    "message": "更新日時: $1"
+  },
+  "criteria_textareaPlaceholder": {
+    "message": "組入・除外基準を自由記述で入力してください（例: Pの組入・除外、デザインの組入・除外 など）"
+  },
+  "criteria_importFromAiButton": {
+    "message": "AIタブの基準から取り込む"
+  },
+  "criteria_importConfirmOverwrite": {
+    "message": "入力済みの内容を上書きします。よろしいですか？"
+  },
+  "criteria_saved": {
+    "message": "レビュー基準をGoogleスプレッドシートに保存しました"
+  },
+  "criteria_saveError": {
+    "message": "レビュー基準の保存に失敗しました: $1"
   }
 }

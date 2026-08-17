@@ -22,6 +22,7 @@ import * as screeningRender from './features/screening/render';
 import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
+import * as reviewCriteria from './features/review-criteria';
 import { setupTeamProgressListeners } from './features/team-progress';
 import { flushDecisionQueue } from './utils/offline-queue';
 import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
@@ -154,6 +155,7 @@ export function bootstrapCommon(): void {
     // Settings
     dom.settingsBtnProject?.addEventListener('click', settings.showSettings);
     dom.settingsBtnScreening?.addEventListener('click', settings.showSettings);
+    dom.criteriaBtnScreening?.addEventListener('click', () => reviewCriteria.showReviewCriteriaModal());
     dom.mlSettingsBtn?.addEventListener('click', settings.showSettings);
     dom.closeSettingsBtn?.addEventListener('click', settings.hideSettings);
     dom.autoNavigateCheckbox?.addEventListener('change', settings.handleAutoNavigateChange);
