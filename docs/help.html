@@ -865,13 +865,21 @@
                 </p>
                 <div class="note" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin: 12px 0;">
                     <p>
-                        <span class="ja">⚠️ 拡張機能の「プラン」自動判定は、モデル一覧のAPI応答だけを見て有料/無料を推定しているため、<strong>無料キーでも「Tier
-                                1」のような有料表示になることがあります</strong>（上のスクリーンショットもその例です。この誤判定自体は今回のバージョンでは修正していません）。プラン表示が実際と違っていても、無料枠のレート制限に実際に当たった場合は自動で減速するので、実行自体は問題なく完了します。</span>
-                        <span class="en">⚠️ The extension's automatic "plan" detection only looks at the models-list
-                            API response to guess free vs. paid, so <strong>a free key can still show as "Tier 1" or
-                                similar</strong> (as in the screenshot above — this misdetection itself is not fixed
-                            in this version). Even when the plan display is wrong, hitting the actual free-tier rate
-                            limit still triggers automatic slowdown, so the run still completes.</span>
+                        <span class="ja">プランの自動判定は、Geminiのバッチ用APIへ中身が空のリクエストを1回だけ送るプローブで行います。このリクエストは必ずエラーで返るため、判定のためにバッチ処理そのものが実行されることはありません。<strong>無料キーと有料キーで返るエラーの種類が違うこと</strong>を利用して判定しており、モデル一覧の件数では判定しません（上のスクリーンショットは、この方式に変更する前に撮影したもので、表示が現在と異なる場合があります）。判定できなかった場合（一過性の通信エラーなど）は「有料」と決めつけず、<strong>無料プラン相当の速度で安全側に実行し、画面に警告を表示します</strong>。また、プランをすでに手動で選択している場合は、自動判定の結果で上書きしません（無料キーで有料Tierを手動選択したままにしていると警告が出ます。無料キーで有料Tierを選ぶとレート制限エラーが頻発するため）。プラン表示の下にある「AI Studio
+                            でレート制限・Tierを確認 ↗」リンクから、実際のTierをGoogle側で確認できます。</span>
+                        <span class="en">The automatic plan detection sends a single probe request with an empty
+                            body to Gemini's batch API. That request always comes back as an error, so no batch job
+                            is ever actually run for detection purposes, and <strong>free and paid keys return
+                                different kinds of error</strong> — that difference is what the detection uses. It no
+                            longer guesses from the number of models listed (the screenshot above was taken before
+                            this method was introduced, so its display may not match what you see now). When
+                            detection fails (e.g. a transient network error), the
+                            extension does not assume "paid" — it <strong>runs at free-plan speed for safety and
+                                shows a warning on screen</strong>. If you have already selected a plan manually, the
+                            automatic result never overrides it (a warning is shown if you keep a paid tier selected
+                            manually with a free-tier key, since that combination causes frequent rate-limit errors).
+                            The "Check your rate limits / tier on AI Studio ↗" link below the plan indicator lets you
+                            confirm the actual tier on Google's side.</span>
                     </p>
                 </div>
                 <p>
@@ -929,6 +937,27 @@
                         and have not yet been decided by any AI run (limited to your assigned set if assignment is
                         configured), using the selected model. Assignment can be configured by an admin from
                         "Assignment Sets" inside Settings (⚙️).</span>
+                </p>
+                <p>
+                    <span class="ja">実行ボタンの上にある「対象:」欄で、上記の絞り込みからさらに対象を限定できます。既定は「全件（N件）」で、これまでどおり自分の未判定分すべてが対象です。「選択...」ボタンを押すと対象レコード選択モーダル（「対象レコードを選択」）が開き、担当セットで絞り込む・このセットを全選択する・タイトルや抄録で検索する・すべて表示/選択済みのみ/未選択のみを切り替える・表示中を全選択する・すべて解除する、といった操作で対象を選んで「確定する」ボタンで確定します。「解除」ボタンを押すと選択を破棄して「全件」に戻ります。</span>
+                    <span class="en">The "Target:" field above the run button lets you narrow the target further,
+                        on top of the pending/assignment filtering above. It defaults to "All (N items)" — every
+                        pending reference of yours, as before. Clicking "Select..." opens the target-selection modal
+                        ("Select target references"), where you can filter by assigned set, select an entire set,
+                        search title/abstract, switch between showing all/selected only/unselected only, select all
+                        visible items, or clear all, then finalize with "Confirm". Clicking "Clear" discards the
+                        selection and reverts to "All".</span>
+                </p>
+                <p>
+                    <span class="ja">選択内容は個人ごとではなく<strong>プロジェクト共有の設定としてスプレッドシートのConfigへ保存され</strong>、実行のたびに再利用されます。そのため、他のメンバーが対象を絞ると自分の一括実行の対象も変わります。実行時には、選択したもののうち「このプロジェクトに見つからない」「この
+                        Runで判定済み」のものは自動的に除外され、その件数が注記されます。選択件数が上限（1,000件）を超えると警告が表示され、それ以上は選択できません。Blind中はこのモーダルに他レビュアーの判定状況が表示されません。</span>
+                    <span class="en">The selection is not per-user — it is saved to the spreadsheet's Config as a
+                        <strong>project-wide, shared setting</strong> and reused across runs. This means if another
+                        member narrows the target, it also changes the target of your own batch run. At run time, any
+                        selected items that are "not found in this project" or "already judged in this run" are
+                        automatically excluded, with a note showing how many. Selecting more than the limit (1,000
+                        items) shows a warning and blocks further selection. While blinded, this modal does not show
+                        other reviewers' decision status.</span>
                 </p>
                 <p>
                     <span class="ja">初めて実行する場合（まだ確定していないRun）は、一括実行が終わると画面下部にInclude閾値を確認するエリアが表示されます。「💾 閾値を確定して判断をGoogleスプレッドシートに保存」ボタンをクリックして初めて、判定がDecisionsシートへ確定保存されます。このステップを行わないと、判定は未確定のままになるので注意してください（詳しくは次の「AI判定が画面に出ないとき」参照）。</span>
@@ -1071,15 +1100,33 @@
                     <span class="en">Setup Checklist</span>
                 </h3>
                 <p>
-                    <span class="ja">候補リストの上部に、バージョン・担当グループ・PDF読み取り権限・判定進捗の4項目を状態から自動判定する
+                    <span class="ja">候補リストの上部に、バージョン・担当グループ・PDF読み取り権限・判定進捗の番号付き4項目を状態から自動判定する
                         「セットアップ」パネルが表示されます。特に「PDF読み取り権限」は、他のメンバーがアップロードしたPDFが drive.file
-                        スコープの制約で読めない問題（共有だけでは権限が付かない）をここから確認・一括付与できます。全項目が完了すると
+                        スコープの制約で読めない問題（共有だけでは権限が付かない）をここから確認・一括付与できます。管理者の画面では、状況に応じてこの4項目に加えて共有まわりのチェック行が追加で表示されます（下記）。全項目が完了すると
                         自動的に折りたたまれます。</span>
-                    <span class="en">Above the candidate list, a "Setup" panel automatically evaluates four items:
-                        version, your assigned group, PDF read permission, and screening progress. The "PDF read
-                        permission" item lets you check and batch-grant access to PDFs uploaded by other members (the
-                        drive.file scope means Drive sharing alone does not grant the app access). The panel collapses
-                        automatically once every item is complete.</span>
+                    <span class="en">Above the candidate list, a "Setup" panel automatically evaluates four numbered
+                        items: version, your assigned group, PDF read permission, and screening progress. The "PDF
+                        read permission" item lets you check and batch-grant access to PDFs uploaded by other members
+                        (the drive.file scope means Drive sharing alone does not grant the app access). On an admin's
+                        screen, additional sharing-related rows can appear below these four depending on the
+                        project's state (see below). The panel collapses automatically once every item is
+                        complete.</span>
+                </p>
+                <p>
+                    <span class="ja">管理者には、Google Driveの「リンクを知っている全員が編集/閲覧できる」共有設定を検出した場合に警告行が表示されます。この設定はURLを知っている第三者でも判定データへアクセスできてしまうため、<strong>先に全メンバーを個別共有へ追加したうえで</strong>、Driveの共有設定を「制限付き」に変更してください（先にリンク共有を解除すると、個別共有していないメンバーがアクセスできなくなります）。「Driveで共有設定を開く」ボタンから直接設定画面を開けます。</span>
+                    <span class="en">Admins see a warning row when an "Anyone with the link can edit/view" sharing
+                        setting is detected on Google Drive. Because that setting lets any third party who knows the
+                        URL access the review data, <strong>first add every member via individual sharing</strong>,
+                        then change the Drive sharing setting to "Restricted" (changing it in the other order locks
+                        out members who were only relying on the link). The "Open sharing settings in Drive" button
+                        opens the settings page directly.</span>
+                </p>
+                <p>
+                    <span class="ja">担当割り振りが設定されている場合、管理者にはさらにフォルダ共有の行が表示され、担当レビュアー全員にPDFフォルダが共有されているかを確認できます（未共有のメンバーがいれば名前が表示されます）。フォルダの権限一覧が取得できない場合（drive.fileが未付与など）は、この行自体が表示されません。</span>
+                    <span class="en">When an assignment is configured, admins also see a folder-sharing row that
+                        checks whether the PDF folder is shared with every assigned reviewer (showing the names of
+                        any who are missing). If the folder's permission list cannot be read (for example, drive.file
+                        access has not been granted), this row is not shown at all.</span>
                 </p>
 
                 <h3>
@@ -1133,13 +1180,36 @@
                     <span class="en">Importing PDFs Placed Directly in Drive</span>
                 </h3>
                 <p>
-                    <span class="ja">拡張機能を経由せずGoogle Driveフォルダへ直接保存したPDFは、そのままでは候補として認識されません。「Driveに直接置かれたPDFを取り込む」ボタンからPickerでPDFを選択すると、ファイル名やタイトルをもとに対応する文献の候補が自動的に提案されます。内容を確認して実行すると、プロジェクト用フォルダへPDFがコピーされ、対応する文献に紐付けられます。取り込み完了後は、元ファイルをゴミ箱へ移動するかどうかも選べます。</span>
+                    <span class="ja">拡張機能を経由せずGoogle Driveフォルダへ直接保存したPDFは、そのままでは候補として認識されません。「Driveに直接置かれたPDFを取り込む」ボタンからPickerでPDFを選択すると、ファイル名やタイトルをもとに対応する文献の候補が自動的に提案されます（Pickerでは共有ドライブ上のフォルダもナビゲーションから辿れます）。内容を確認して実行すると、プロジェクト用フォルダへPDFがコピーされ、対応する文献に紐付けられます。取り込み完了後は、元ファイルをゴミ箱へ移動するかどうかも選べます。</span>
                     <span class="en">PDFs saved directly to the Drive folder (without going through the extension)
                         are not automatically recognized as candidates. The "Import a PDF placed directly in Drive"
                         button opens a Picker to select PDFs, and the matching reference for each file is
-                        auto-suggested from its file name and title. After you review and confirm, the PDF is copied
-                        into the project folder and linked to the reference. You can also choose whether to move the
-                        original files to trash once the import succeeds.</span>
+                        auto-suggested from its file name and title (the Picker's navigation also lets you browse
+                        into shared drives). After you review and confirm, the PDF is copied into the project folder
+                        and linked to the reference. You can also choose whether to move the original files to trash
+                        once the import succeeds.</span>
+                </p>
+                <p>
+                    <span class="ja">取り込み済みかどうかの判定はReferencesシートに記録された値にもとづくため、<strong>誰が取り込んだかに関わらず全メンバーに同じ表示になります</strong>（以前は他メンバーが取り込んだPDFが自分の画面では「未取り込み」と表示されることがありました）。ただしこれはW/X列へ移行済みの取り込み分についてのみで、<strong>まだ移行が済んでいない古い取り込み分では、他メンバーが取り込んだコピーが自分の画面では「未取り込み」と表示されることがあります</strong>。その場合はPicker上に「既に取り込み済みの可能性があります」という注意が表示されるので、取り込み済みとみなして「スキップ」のままにしてください。また、<strong>1つのソースPDFは1つの文献にのみ対応付けられます</strong>。すでにどこかの文献へ取り込み済みのPDFはPicker選択後の候補から外れ、取り込み先の文献名と「対応付け直すには、先にその文献のフルテキストPDFを削除してください」という案内が表示されます。</span>
+                    <span class="en">Whether a file has already been imported is determined from values recorded in
+                        the References sheet, so <strong>every member sees the same status regardless of who imported
+                            it</strong> (previously, a PDF imported by another member could still show as "not
+                        imported" on your own screen). This only applies to imports that have been migrated to
+                        columns W/X, though — <strong>for older imports that have not been migrated yet, a copy
+                            another member imported may still appear as "not imported" to you</strong>. When that
+                        happens, the Picker shows a notice that the file "may already have been imported"; treat it
+                        as already imported and leave it as "Skip". Also, <strong>a single source PDF can only be
+                            mapped to one reference</strong>. A PDF already imported into some reference is excluded
+                        from the
+                        matching candidates after you select it in the Picker, and a notice shows the reference it
+                        was imported into along with the instruction to delete that reference's full-text PDF first
+                        if you want to remap it.</span>
+                </p>
+                <p>
+                    <span class="ja">なお、Referencesシートの取り込み先の列（W/X列）を独自データで使っている場合、Drive取り込み機能がその列を更新できず警告が表示されます。ヘッダー名を規定の名前に変更するか、独自の列を別の位置へ移動してください。</span>
+                    <span class="en">Note that if the References sheet's import-tracking columns (W/X) are used for
+                        your own data, the Drive import feature cannot update them and shows a warning. Either
+                        rename those headers to the expected names, or move your own columns elsewhere.</span>
                 </p>
 
                 <h3>
@@ -1190,6 +1260,19 @@
                             scanned, image-only PDFs (no text layer), a notice explains that highlight positions are
                             based on the AI's estimated region and may be less accurate.</span>
                     </li>
+                    <li>
+                        <span class="ja"><strong>PDFが表示できないとき</strong>：「このPDFを表示できません」というパネルが、原因に応じた文面とともに表示されます。多いのは、他のメンバーがアップロードしたPDFで、Driveで共有されていても
+                            <code>drive.file</code> スコープの制約により拡張機能からは読めないケースです。この場合は「読み取り権限を復旧」ボタンからGoogle
+                            Pickerで対象PDFを選び直すと読めるようになります。それ以外の一時的な取得失敗では「再試行」ボタンが使えます。「Drive で開く」ボタンはブラウザのGoogleセッションで別タブに開くため、共有されていれば読めますが、ハイライトとAI判定の根拠表示はそちらでは使えません。</span>
+                        <span class="en"><strong>When a PDF cannot be displayed</strong>: A "This PDF cannot be
+                            displayed" panel appears, with wording that varies by cause. The most common case is a PDF
+                            uploaded by another member — even if it is shared in Drive, the extension cannot read it
+                            due to the <code>drive.file</code> scope until you re-select it. Use the "Restore read
+                            access" button to pick the PDF again in Google Picker. For other, transient retrieval
+                            failures, a "Retry" button is available. The "Open in Drive" button opens the file in a
+                            separate tab using your browser's Google session — it works if the file is shared with
+                            you, but highlights and AI evidence are not available there.</span>
+                    </li>
                 </ul>
 
                 <h3>
@@ -1207,6 +1290,18 @@
                         you can switch which round is adopted later using radio buttons (including "None adopted"),
                         and this is not limited to admins. Only the adopted round's decisions drive PDF highlighting
                         and the post-decision review aggregation.</span>
+                </p>
+                <p>
+                    <span class="ja">ラウンド一覧の各カードには「実行: 実行者」と「処理済み N/M件」が表示され、途中で中断した実行は「（未完了）」付きで区別されます。失敗があった場合は「失敗
+                        N件（内訳）」として、Drive閲覧権限が未付与／ファイルが見つからない／認証切れ／一時的な失敗／DriveのPDFが未登録／PDF読み取り失敗／AI呼び出し失敗／その他、の8分類で内訳が表示されます。権限系の失敗は、セットアップチェックリストの「権限を確認する」「まとめて権限を付与」、またはPDF表示パネルの「読み取り権限を復旧」で対処し、一時的な失敗は時間をおいて再実行してください。0件成功だった実行は採用・削除ができず、実行記録だけが一覧に残ります。</span>
+                    <span class="en">Each card in the round list shows "Run by: &lt;name&gt;" and "Processed N/M",
+                        and a run that was interrupted midway is marked "(incomplete)". When there were failures, a
+                        "N failed (breakdown)" line lists them in eight categories: Drive read access not granted,
+                        file not found, authentication expired, temporary failure, no Drive PDF registered, PDF read
+                        failure, AI call failure, and other. Fix permission-related failures with "Check access" /
+                        "Grant access" on the setup checklist, or "Restore read access" on the PDF display panel,
+                        and retry temporary failures after a while. A run with zero successful decisions can't be
+                        adopted or deleted — only its execution record remains in the list.</span>
                 </p>
 
                 <h3>
