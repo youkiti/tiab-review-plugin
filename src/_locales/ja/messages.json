@@ -1220,7 +1220,7 @@
     "message": "共同研究者に送る案内文（インストール先・スプレッドシートURL・操作ガイド）をクリップボードへコピーします"
   },
   "share_inviteTemplate": {
-    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. 拡張機能ボタンから、TiAb Review Pluginを立ち上げ、プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Chromeの右上にあるパズルピースのアイコン（拡張機能ボタン）をクリックし、一覧の「TiAb Review Plugin」をクリックして立ち上げます。\n   プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "招待文をコピーしました"

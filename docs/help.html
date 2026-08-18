@@ -310,6 +310,10 @@
                     <span class="en">Table of Contents</span>
                 </h2>
                 <ul>
+                    <li><a href="#getting-started">
+                            <span class="ja">インストールと起動</span><span class="lang-sep"> / </span>
+                            <span class="en">Install and Launch</span>
+                        </a></li>
                     <li><a href="#login">
                             <span class="ja">ログイン画面</span><span class="lang-sep"> / </span>
                             <span class="en">Login Screen</span>
@@ -352,6 +356,97 @@
                         </a></li>
                 </ul>
             </nav>
+
+            <!-- インストールと起動 -->
+            <section id="getting-started" class="help-section">
+                <h2>
+                    <span class="ja">インストールと起動</span>
+                    <span class="en">Install and Launch</span>
+                </h2>
+                <p>
+                    <span class="ja">TiAb Review Plugin は Chrome
+                        の拡張機能です。インストールしただけでは画面は開きません。ブラウザのツールバーから起動する必要があります。</span>
+                    <span class="en">TiAb Review Plugin is a Chrome extension. Installing it does not open any window on
+                        its own — you launch it from the browser toolbar.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">1. 拡張機能をインストールする</span>
+                    <span class="en">1. Install the extension</span>
+                </h3>
+                <p>
+                    <span class="ja">Google Chrome（または Microsoft Edge などの Chromium 系ブラウザ）で <a
+                            href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                            target="_blank" rel="noopener">Chrome ウェブストアのページ</a> を開き、「Chrome に追加」をクリックします。</span>
+                    <span class="en">In Google Chrome (or a Chromium-based browser such as Microsoft Edge), open the <a
+                            href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
+                            target="_blank" rel="noopener">Chrome Web Store page</a> and click "Add to Chrome".</span>
+                </p>
+                <p>
+                    <span class="ja">インストールが終わってもタブや画面は開きません。「インストールできたはずなのに何も起こらない」という状態が正常です。続けて次の手順で起動してください。</span>
+                    <span class="en">No tab or window opens when the installation finishes. "Nothing happened even
+                        though it installed" is the expected state — continue with the next step to launch it.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">2. 拡張機能アイコンから起動する</span>
+                    <span class="en">2. Launch it from the extensions button</span>
+                </h3>
+                <p>
+                    <span class="ja">Chrome の右上（アドレスバーの右側）にあるパズルピースの形をしたアイコン🧩をクリックすると、「拡張機能」メニューが開きます。一覧の中の <strong>TiAb
+                            Review Plugin</strong> をクリックすると、画面の右側にサイドパネルが開きます。</span>
+                    <span class="en">Click the puzzle-piece icon 🧩 at the top right of Chrome (to the right of the
+                        address bar) to open the "Extensions" menu. Click <strong>TiAb Review Plugin</strong> in the
+                        list, and the side panel opens on the right-hand side of the window.</span>
+                </p>
+                <figure class="help-img-figure">
+                    <img class="help-img" src="images/getting-started/01-extensions-menu.png"
+                        alt="The Chrome extensions menu opened from the puzzle-piece icon, with TiAb Review Plugin in the list">
+                    <figcaption>
+                        <span class="ja">パズルピースのアイコン🧩をクリックすると開く「拡張機能」メニュー。一覧の TiAb Review Plugin
+                            をクリックすると起動します</span>
+                        <span class="en">The "Extensions" menu that opens from the puzzle-piece icon 🧩. Click TiAb
+                            Review Plugin in the list to launch it</span>
+                    </figcaption>
+                </figure>
+                <p>
+                    <span class="ja">拡張機能名の右にあるピンのアイコン📌をクリックしておくと、ツールバーにアイコンが常駐し、次回からは1クリックで起動できます。</span>
+                    <span class="en">Click the pin icon 📌 to the right of the extension name to keep it on the toolbar,
+                        so you can launch it with a single click next time.</span>
+                </p>
+                <p>
+                    <span class="ja">一覧に TiAb Review Plugin
+                        が見当たらない場合は、インストールが完了していない可能性があります。手順1のウェブストアのページを開き、ボタンが「Chrome から削除」になっていればインストール済みです。</span>
+                    <span class="en">If TiAb Review Plugin is not in the list, the installation may not have completed.
+                        Open the Web Store page from step 1 — if the button reads "Remove from Chrome", it is already
+                        installed.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">3. ログインしてプロジェクトに接続する</span>
+                    <span class="en">3. Sign in and connect to a project</span>
+                </h3>
+                <p>
+                    <span class="ja">サイドパネルが開いたら、<a href="#login">ログイン画面</a> の手順に進みます。共同研究者から招待された場合は、受け取ったスプレッドシートの
+                        URL を貼り付けて接続してください。</span>
+                    <span class="en">Once the side panel is open, continue with the <a href="#login">Login Screen</a>
+                        steps. If a collaborator invited you, paste the spreadsheet URL you received and connect.</span>
+                </p>
+
+                <h3>
+                    <span class="ja">文献ファイル（.nbib / .ris）の扱い</span>
+                    <span class="en">About reference files (.nbib / .ris)</span>
+                </h3>
+                <p>
+                    <span class="ja">PubMed などからダウンロードした <code>.nbib</code> や <code>.ris</code>
+                        のファイルは、ダブルクリックして開くファイルではありません。開こうとすると「このファイルは開けません」「再生できません」といったメッセージが出ることがありますが、故障ではありません。ダウンロードした状態のまま、拡張機能を起動して <a
+                            href="#screening">TiAbスクリーニング</a> の「インポート」から読み込んでください。</span>
+                    <span class="en">Files such as <code>.nbib</code> and <code>.ris</code> downloaded from PubMed are
+                        not meant to be opened by double-clicking. Your computer may say it cannot open or play the
+                        file, but nothing is broken. Leave the file where it downloaded, launch the extension, and load
+                        it from "Import" in <a href="#screening">TiAb Screening</a>.</span>
+                </p>
+            </section>
 
             <!-- ログイン画面 -->
             <section id="login" class="help-section">
@@ -1647,6 +1742,37 @@
                     <span class="ja">よくある質問</span>
                     <span class="en">FAQ</span>
                 </h2>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: インストールしたのに画面が開きません</span>
+                        <span class="en">Q: I installed it but nothing opens</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: 拡張機能はインストールしただけでは開きません。Chrome
+                            の右上にあるパズルピースのアイコン🧩をクリックし、一覧の「TiAb Review Plugin」をクリックすると起動します。詳しい手順とスクリーンショットは <a
+                                href="#getting-started">インストールと起動</a> をご覧ください。</span>
+                        <span class="en">A: Installing the extension does not open it. Click the puzzle-piece icon 🧩 at
+                            the top right of Chrome, then click "TiAb Review Plugin" in the list. See <a
+                                href="#getting-started">Install and Launch</a> for step-by-step screenshots.</span>
+                    </p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>
+                        <span class="ja">Q: ダウンロードした .nbib ファイルが「開けません／再生できません」と表示されます</span>
+                        <span class="en">Q: My downloaded .nbib file says it can't be opened or played</span>
+                    </h4>
+                    <p>
+                        <span class="ja">A: <code>.nbib</code> や <code>.ris</code>
+                            は、パソコンで直接開くためのファイルではないため、開こうとするとそうしたメッセージが出ます。ファイルは壊れていません。ダウンロードしたままの状態で、拡張機能を起動して「📁
+                            インポート」から読み込んでください（<a href="#getting-started">インストールと起動</a>）。</span>
+                        <span class="en">A: <code>.nbib</code> and <code>.ris</code> files are not meant to be opened
+                            directly on your computer, which is why you see that message. The file is not broken — leave
+                            it as downloaded, launch the extension, and load it from "📁 Import" (see <a
+                                href="#getting-started">Install and Launch</a>).</span>
+                    </p>
+                </div>
 
                 <div class="faq-item">
                     <h4>
