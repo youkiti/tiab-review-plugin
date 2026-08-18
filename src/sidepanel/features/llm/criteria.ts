@@ -199,3 +199,32 @@ export async function handleSaveCriteria() {
         dom.saveCriteriaBtn.disabled = false;
     }
 }
+
+/**
+ * 「レビュー基準をコピー」ボタンの表示を state.reviewCriteria の有無に合わせる。
+ *
+ * initializeLlmSection から呼ぶ（AIタブへ切り替えるたびに走るので、モーダル側で
+ * 基準を登録・更新した直後にもここで拾える）。
+ */
+export function updateImportReviewCriteriaVisibility() {
+    const hasCriteria = !!state.reviewCriteria?.text.trim();
+    dom.importReviewCriteriaBtn?.classList.toggle('hidden', !hasCriteria);
+}
+
+/**
+ * 人間向けレビュー基準をプロトコル欄へコピーする。
+ *
+ * 自動では流し込まない（41f89b2 参照）。ユーザーが押したときだけ入れる。
+ * 入力済みの内容がある場合は確認してから上書きする。
+ */
+export function handleImportReviewCriteria() {
+    const text = state.reviewCriteria?.text.trim();
+    // 基準が無いときはボタン自体を隠しているので、ここは念のための番人
+    if (!text) return;
+    if (dom.protocolTextInput.value.trim() !== '' && !confirm(t('criteria_importConfirmOverwrite'))) {
+        return;
+    }
+    dom.protocolTextInput.value = text;
+    // 保存は行わない。ここで入れた内容は「基準を保存」を押したときに llm_protocol_text になる。
+    dom.protocolTextInput.focus();
+}

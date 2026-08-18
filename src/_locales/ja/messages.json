@@ -978,7 +978,7 @@
     "message": "履歴 $1件中 $2件目"
   },
   "filter_aiHighlight": {
-    "message": "💡 AIの根拠をハイライト"
+    "message": "💡 AIハイライト"
   },
   "filter_includeDecision": {
     "message": "(🟢組み入れ判断)"
@@ -1528,7 +1528,10 @@
     "message": "📋 レビュー基準"
   },
   "llm_protocolInputLabel": {
-    "message": "【入力】プロトコルからコピペ:"
+    "message": "【入力】プロトコルからコピペしてください"
+  },
+  "llm_importReviewCriteriaButton": {
+    "message": "📋 抄録レビューの基準をコピー"
   },
   "llm_protocolPlaceholder": {
     "message": "プロトコルの組み入れ・除外基準をここにコピペしてください..."
@@ -3057,6 +3060,9 @@
 
   "criteria_buttonTitle": {
     "message": "レビュー基準（組入・除外基準）"
+  },
+  "criteria_buttonLabel": {
+    "message": "基準"
   },
   "criteria_modalTitle": {
     "message": "レビュー基準"

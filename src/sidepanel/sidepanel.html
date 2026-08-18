@@ -14,7 +14,7 @@
         <header class="header">
             <div id="header-title" class="header-title" style="cursor: pointer;" data-i18n-title="nav_backToProject">
                 <h1>TiAb Review</h1>
-                <span class="build-version">Build: 2026-08-17</span>
+                <span class="build-version">Build: 2026-08-18</span>
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
@@ -156,8 +156,10 @@
                     <h5>Reviewers</h5>
                     <div class="reviewer-list"></div>
                 </div>
-                <button id="criteria-btn-screening" class="btn btn-icon" data-i18n-title="criteria_buttonTitle">📋</button>
-                <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
+                <button id="criteria-btn-screening" class="btn btn-icon" data-i18n-title="criteria_buttonTitle">📋<span
+                        class="btn-icon-text" data-i18n="criteria_buttonLabel"></span></button>
+                <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️<span
+                        class="btn-icon-text" data-i18n="common_settings"></span></button>
                 <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
                 <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden"></div>
                 <a href="https://youkiti.github.io/tiab-review-plugin/help.html" target="_blank"
@@ -576,6 +578,9 @@
                 <div class="criteria-section">
                     <label data-i18n="llm_protocolInputLabel"></label>
                     <span class="help-icon" data-i18n-tooltip="llm_tip_protocol" tabindex="0">?</span>
+                    <button id="import-review-criteria-btn"
+                        class="btn btn-outline btn-small protocol-import-btn hidden"
+                        data-i18n="llm_importReviewCriteriaButton"></button>
                     <textarea id="protocol-text-input" rows="6"
                         data-i18n-placeholder="llm_protocolPlaceholder"></textarea>
                 </div>

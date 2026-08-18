@@ -49,6 +49,8 @@ import {
     handleOptimizeCriteria,
     renderOptimizedCriteria,
     handleSaveCriteria,
+    handleImportReviewCriteria,
+    updateImportReviewCriteriaVisibility,
 } from './criteria';
 import {
     updateBatchTargetCount,
@@ -250,6 +252,7 @@ export function setupLlmEventListeners() {
     dom.screeningPromptInput?.addEventListener('input', scheduleBatchTargetCountUpdate);
 
     // 基準最適化
+    dom.importReviewCriteriaBtn?.addEventListener('click', handleImportReviewCriteria);
     dom.optimizeCriteriaBtn?.addEventListener('click', handleOptimizeCriteria);
     dom.saveCriteriaBtn?.addEventListener('click', handleSaveCriteria);
 
@@ -339,6 +342,7 @@ export async function initializeLlmSection() {
             handleModelSelectChange();
             dom.llmLanguageSelect.value = llmConfig.llm_output_language;
             dom.protocolTextInput.value = llmConfig.llm_protocol_text;
+            updateImportReviewCriteriaVisibility();
             dom.thresholdSlider.value = llmConfig.llm_include_threshold.toString();
             dom.thresholdValueDisplay.textContent = llmConfig.llm_include_threshold.toFixed(2);
 

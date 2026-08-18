@@ -286,6 +286,7 @@ const domElements = {
     get llmNoModelHint() { return getElement<HTMLElement>('llm-no-model-hint'); },
     get llmLanguageSelect() { return getElement<HTMLSelectElement>('llm-language-select'); },
     get protocolTextInput() { return getElement<HTMLTextAreaElement>('protocol-text-input'); },
+    get importReviewCriteriaBtn() { return getElement<HTMLButtonElement>('import-review-criteria-btn'); },
     get optimizeCriteriaBtn() { return getElement<HTMLButtonElement>('optimize-criteria-btn'); },
     get optimizeStatusDiv() { return getElement<HTMLElement>('optimize-status'); },
     get optimizedCriteriaDisplay() { return getElement<HTMLElement>('optimized-criteria-display'); },

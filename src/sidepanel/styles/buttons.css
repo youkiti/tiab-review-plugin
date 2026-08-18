@@ -132,6 +132,13 @@
     background-color: #f1f3f4;
 }
 
+/* アイコンボタンに添えるラベル（📋 基準 / ⚙️ 設定）。絵文字だけでは意味が伝わらないため */
+.btn-icon-text {
+    margin-left: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
 /* ヘルプボタン（レビュー画面用） */
 .btn-help {
     margin-left: auto;

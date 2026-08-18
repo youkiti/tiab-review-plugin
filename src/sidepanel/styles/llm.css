@@ -224,6 +224,13 @@
     margin-bottom: 6px;
 }
 
+/* プロトコル欄の上に置く「抄録レビューの基準をコピー」ボタン。
+   ラベル行と入力欄のあいだに独立した行として並べる */
+.protocol-import-btn {
+    display: block;
+    margin-bottom: 6px;
+}
+
 .criteria-section textarea {
     width: 100%;
     padding: 10px 12px;

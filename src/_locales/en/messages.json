@@ -978,7 +978,7 @@
     "message": "$2 of $1 history"
   },
   "filter_aiHighlight": {
-    "message": "💡 Highlight AI evidence"
+    "message": "💡 AI highlight"
   },
   "filter_includeDecision": {
     "message": "(🟢 Include)"
@@ -1528,7 +1528,10 @@
     "message": "📋 Review Criteria"
   },
   "llm_protocolInputLabel": {
-    "message": "[Input] Copy & paste from protocol:"
+    "message": "[Input] Copy & paste from your protocol"
+  },
+  "llm_importReviewCriteriaButton": {
+    "message": "📋 Copy TiAb review criteria"
   },
   "llm_protocolPlaceholder": {
     "message": "Paste the inclusion/exclusion criteria from your protocol here..."
@@ -3057,6 +3060,9 @@
 
   "criteria_buttonTitle": {
     "message": "Review criteria (inclusion/exclusion)"
+  },
+  "criteria_buttonLabel": {
+    "message": "Criteria"
   },
   "criteria_modalTitle": {
     "message": "Review Criteria"
