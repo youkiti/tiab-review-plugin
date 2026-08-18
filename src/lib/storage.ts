@@ -1,5 +1,7 @@
 // storage.ts - ローカルストレージ管理（APIキー等）
 
+import { platform } from '../platform';
+
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
 const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
@@ -510,8 +512,6 @@ export async function removeCustomOpenRouterModel(modelId: string): Promise<void
 // 「このプロジェクトのレビュー基準を、どの updated_at まで見たか」を端末ローカルに保持する。
 // この機能は Web 版（docs/app/）でも動く必要があり、Web 版は localStorage 実装のため、
 // chrome.storage.local を直接使わず platform() アダプタ（storageGet/storageSet）経由で読み書きする。
-
-import { platform } from '../platform';
 
 /** Record<spreadsheetId, updated_at> のマップとして1キーに保存する */
 const CRITERIA_SEEN_STORAGE_KEY = 'criteria_seen';
