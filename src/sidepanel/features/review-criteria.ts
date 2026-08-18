@@ -30,6 +30,19 @@ export function isCriteriaModalOpen(): boolean {
 }
 
 /**
+ * 基準モーダルが今まさに編集モードかを DOM から判定する。
+ * modal.ts は汎用モーダルで開閉状態を公開しておらず、かつ showModal は
+ * currentOnClose を上書きするため、モジュール変数で追跡すると実状態とずれる。
+ * 「backdrop が表示されている」かつ「中身が編集モードの基準モーダルである」の両方を見る。
+ */
+export function isCriteriaEditMode(): boolean {
+    const backdrop = document.getElementById('modal-backdrop');
+    return !!backdrop
+        && !backdrop.classList.contains('hidden')
+        && !!backdrop.querySelector('.review-criteria-edit');
+}
+
+/**
  * 基準モーダルの close ハンドラ。
  * 表示された基準の updated_at を「見た」ものとして記録する（案D通知の既読化）。
  */
@@ -64,13 +77,25 @@ export function showReviewCriteriaModal(options: { notice?: boolean } = {}) {
 
 /**
  * キーボードショートカット（'c'）用: モーダルが開いていれば閉じ、閉じていれば開く。
+ * 編集モード中は未保存の入力を無言で失わないよう、キーでの開閉を受け付けない（no-op）。
+ * 閉じるには取消／保存ボタンを使う。
  */
 export function toggleReviewCriteriaModal() {
+    if (isCriteriaEditMode()) {
+        return;
+    }
     if (isCriteriaModalOpen()) {
         hideModal();
     } else {
         showReviewCriteriaModal();
     }
+}
+
+/**
+ * 基準モーダルを閉じる。actions.ts から ui/modal を直接 import させないためのラッパ。
+ */
+export function closeReviewCriteriaModal(): void {
+    hideModal();
 }
 
 /**
