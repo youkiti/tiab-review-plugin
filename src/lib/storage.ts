@@ -1,5 +1,7 @@
 // storage.ts - ローカルストレージ管理（APIキー等）
 
+import { platform } from '../platform';
+
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
 const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
@@ -504,4 +506,43 @@ export async function removeCustomOpenRouterModel(modelId: string): Promise<void
     const existing = await getCustomOpenRouterModels();
     const next = existing.filter(m => m.id !== modelId);
     await chrome.storage.local.set({ [OPENROUTER_CUSTOM_MODELS_KEY]: next });
+}
+
+// ========== レビュー基準の既読マーカー ==========
+// 「このプロジェクトのレビュー基準を、どの updated_at まで見たか」を端末ローカルに保持する。
+// この機能は Web 版（docs/app/）でも動く必要があり、Web 版は localStorage 実装のため、
+// chrome.storage.local を直接使わず platform() アダプタ（storageGet/storageSet）経由で読み書きする。
+
+/** Record<spreadsheetId, updated_at> のマップとして1キーに保存する */
+const CRITERIA_SEEN_STORAGE_KEY = 'criteria_seen';
+
+/**
+ * 指定プロジェクトのレビュー基準を見た時点の updated_at を返す（未読・壊れた値は null）。
+ * 壊れた値・型が違う値は握りつぶして null を返す（getGeminiApiKey と同じ方針）。
+ */
+export async function getCriteriaSeenAt(spreadsheetId: string): Promise<string | null> {
+    try {
+        const result = await platform().storageGet([CRITERIA_SEEN_STORAGE_KEY]);
+        const map = result[CRITERIA_SEEN_STORAGE_KEY];
+        if (!map || typeof map !== 'object') return null;
+        const value = (map as Record<string, unknown>)[spreadsheetId];
+        return typeof value === 'string' ? value : null;
+    } catch {
+        return null;
+    }
+}
+
+/** 指定プロジェクトのレビュー基準を見た時点の updated_at を記録する */
+export async function setCriteriaSeenAt(spreadsheetId: string, updatedAt: string): Promise<void> {
+    try {
+        const result = await platform().storageGet([CRITERIA_SEEN_STORAGE_KEY]);
+        const existing = result[CRITERIA_SEEN_STORAGE_KEY];
+        const map: Record<string, string> = existing && typeof existing === 'object'
+            ? { ...(existing as Record<string, string>) }
+            : {};
+        map[spreadsheetId] = updatedAt;
+        await platform().storageSet({ [CRITERIA_SEEN_STORAGE_KEY]: map });
+    } catch {
+        // 既読マーカーは UX 補助であり、保存に失敗しても致命的ではないため握りつぶす
+    }
 }

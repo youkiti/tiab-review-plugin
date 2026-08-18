@@ -434,6 +434,17 @@
                                 Team Workflow</a>" section for details</span>
                     </li>
                     <li>
+                        <span class="ja"><strong>📋 レビュー基準（組入・除外基準）</strong>: 組入・除外基準をモーダルで表示します。プロトコル文書を開かなくても基準を確認できます。登録・編集は管理者のみで、一般レビュアーは閲覧のみです。ショートカットキー
+                            <code>c</code> でも開閉できます。その端末で初めて基準を見るときと、基準が更新されたときに自動で表示されます。フルテキストスクリーニング画面にも同じボタンがあり、そちらは閲覧専用です</span>
+                        <span class="en"><strong>📋 Review criteria (inclusion/exclusion)</strong>: Show the
+                            inclusion/exclusion criteria in a modal, so you can check them without opening the
+                            protocol document. Only admins can register or edit them; other reviewers get view-only
+                            access. You can also toggle it with the <code>c</code> shortcut key. It opens
+                            automatically the first time you see the criteria on that device, and again whenever the
+                            criteria are updated. The same button is available on the full-text screening screen,
+                            where it is view-only</span>
+                    </li>
+                    <li>
                         <span class="ja"><strong>Blind on/off</strong>: スイッチOFF（既定）がブラインドレビュー（他のレビュアーの判定を非表示）、スイッチONがキー開封（ブラインド解除）です。管理者にのみ表示されます。詳細は「<a
                                 href="#sharing">共有とチーム運用</a>」章を参照してください</span>
                         <span class="en"><strong>Blind on/off</strong>: OFF (default) means blind review — other
@@ -1141,6 +1152,12 @@
                             work). Include saves and then automatically advances to the next candidate.</span>
                     </li>
                     <li>
+                        <span class="ja"><strong>レビュー基準</strong>：「📋 基準」ボタン（<code>c</code>キーでも開閉可）でレビュー基準（組入・除外基準）を参照できます。フルテキスト画面では閲覧専用で、編集はサイドパネル側から行います。</span>
+                        <span class="en"><strong>Review criteria</strong>: The 📋 button on the full-text screen (also
+                            toggled with the <code>c</code> key) lets you check the review criteria
+                            (inclusion/exclusion). It is view-only here; editing is done from the side panel.</span>
+                    </li>
+                    <li>
                         <span class="ja"><strong>除外理由</strong>：Excludeを選ぶと、理由（Population / Intervention / Comparator /
                             Outcome / Study design / Duplicate / Other、数字キー1〜7でも選択可）を選ぶエリアが表示されます。理由をクリック（または数字キーで確定）すると、保存されてそのまま自動的に次の候補へ進みます。</span>
                         <span class="en"><strong>Exclusion reason</strong>: Choosing Exclude shows a reason picker
@@ -1466,6 +1483,13 @@
                             <span class="en">Next reference</span>
                         </td>
                     </tr>
+                    <tr>
+                        <td><code>c</code></td>
+                        <td>
+                            <span class="ja">レビュー基準（組入・除外基準）の表示/非表示</span>
+                            <span class="en">Show/hide the review criteria (inclusion/exclusion)</span>
+                        </td>
+                    </tr>
                 </table>
                 <p>
                     <span class="ja">※ テキスト入力欄（メモ、検索など）にフォーカスがある場合は無効になります</span>
@@ -1474,10 +1498,12 @@
                 </p>
                 <p>
                     <span class="ja">※ フルテキストページ（新しいタブで開くPDF判定画面）でも同じ <code>i</code>/<code>e</code>/<code>m</code>
-                        が使えます。Excludeを選んだ後は数字キー（<code>1</code>〜<code>7</code>）で除外理由を選択できます。</span>
+                        が使えます。Excludeを選んだ後は数字キー（<code>1</code>〜<code>7</code>）で除外理由を選択できます。
+                        <code>c</code> もフルテキストページで使えますが、そちらは閲覧専用です。</span>
                     <span class="en">* The same <code>i</code>/<code>e</code>/<code>m</code> shortcuts also work on the
                         full-text page (the PDF decision screen that opens in a new tab). After choosing Exclude, use
-                        the number keys (<code>1</code>–<code>7</code>) to pick an exclusion reason.</span>
+                        the number keys (<code>1</code>–<code>7</code>) to pick an exclusion reason.
+                        <code>c</code> also works on the full-text page, but there it is view-only.</span>
                 </p>
             </section>
 

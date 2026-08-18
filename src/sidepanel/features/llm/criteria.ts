@@ -13,21 +13,10 @@ import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
+import { CRITERIA_FIELD_LABELS } from '../../../lib/review-criteria';
 
 // Store互換レイヤー（Phase 5）
 import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
-
-const CRITERIA_FIELD_LABELS: Record<string, { ja: string; en: string }> = {
-    P: { ja: '対象患者/集団', en: 'Population' },
-    I: { ja: '介入', en: 'Intervention' },
-    E: { ja: '曝露', en: 'Exposure' },
-    C: { ja: '比較対照', en: 'Comparator' },
-    O: { ja: 'アウトカム', en: 'Outcome' },
-    S: { ja: 'サンプル/セッティング', en: 'Sample/Setting' },
-    PI: { ja: '関心現象', en: 'Phenomenon of Interest' },
-    D: { ja: '研究デザイン', en: 'Design' },
-    R: { ja: '研究タイプ', en: 'Research Type' },
-};
 
 function isJapaneseOutput(): boolean {
     return dom.llmLanguageSelect.value.toLowerCase().startsWith('ja');

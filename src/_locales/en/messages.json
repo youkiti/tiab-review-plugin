@@ -3053,5 +3053,51 @@
   },
   "webapp_desktopNoticeClose": {
     "message": "Dismiss"
+  },
+
+  "criteria_buttonTitle": {
+    "message": "Review criteria (inclusion/exclusion)"
+  },
+  "criteria_modalTitle": {
+    "message": "Review Criteria"
+  },
+  "criteria_modalEditTitle": {
+    "message": "Edit Review Criteria"
+  },
+  "criteria_updatedNotice": {
+    "message": "Criteria have been updated"
+  },
+  "criteria_emptyAdmin": {
+    "message": "No review criteria have been registered yet. Please register the inclusion/exclusion criteria."
+  },
+  "criteria_emptyNonAdmin": {
+    "message": "No review criteria have been registered yet. Please ask an admin to register them."
+  },
+  "criteria_registerButton": {
+    "message": "Register criteria"
+  },
+  "criteria_editButton": {
+    "message": "Edit"
+  },
+  "criteria_updatedByLabel": {
+    "message": "Updated by: $1"
+  },
+  "criteria_updatedAtLabel": {
+    "message": "Updated at: $1"
+  },
+  "criteria_textareaPlaceholder": {
+    "message": "Enter the inclusion/exclusion criteria as free text (e.g. inclusion/exclusion for P, inclusion/exclusion for study design, etc.)"
+  },
+  "criteria_importFromAiButton": {
+    "message": "Import from AI tab criteria"
+  },
+  "criteria_importConfirmOverwrite": {
+    "message": "This will overwrite what you've already entered. Continue?"
+  },
+  "criteria_saved": {
+    "message": "Review criteria saved to Google Spreadsheet"
+  },
+  "criteria_saveError": {
+    "message": "Failed to save review criteria: $1"
   }
 }

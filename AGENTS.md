@@ -170,6 +170,8 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 - **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時は、管理ユーザーは読み込まれている全レビュアーの TiAb Include が1件でもある文献を候補とし、非管理ユーザーは既存の割り振りで見える文献のうち自分が TiAb Include した文献だけを候補とする。
   - **候補計算を判定票に依存させるとBlindで壊れる（2026-08 実事故）**: Blind中（key_opened=FALSE）は他人の human 票がクライアントへ配られないため、human voter を含むルールは自分以外のメンバーには常に0票＝候補0件と評価される。このため候補判定は `src/lib/fulltext-candidates.ts` に集約し、**担当割り振り設定済みの場合は References の `fulltext_set` 列（判定票非依存）を候補の一次ソース**にしている。候補系のロジックを触るときは必ずこのモジュールを経由し、`isInFulltextPool` を直接呼ぶ実装を新設しないこと。なお `mountRuleEditor` はキー未開封ではフォームを描画しないため、「キー未開封で保存」経路のガードは実質通らない。実際の事故経路は「開封してルール保存 → Blindへ戻す」で、警告は `handleKeyToggle` の CLOSE 側にある。
 - **import_stats**: インポート統計（JSON: `{"ファイル名": {identified, duplicates, imported_at}}`）。ファイルごとの解析件数（重複除去前）と重複スキップ数をインポート時に記録し、論文用テキスト（PRISMAフロー図の識別件数・重複除去数）の自動記入に使う。ソースファイル削除時は該当キーも削除する。
+- **review_criteria**: レビュー基準（組入・除外基準）を1本の自由記述テキストとして保存する（JSON: `{text, updated_at, updated_by}`。`src/lib/review-criteria.ts` の `ReviewCriteria` 型）。プロトコル文書を都度開かなくても、複数レビュアーがTiAb画面・フルテキスト画面から常設ボタン（📋 / ショートカット `c`）で参照できるようにするための**人間レビュアー向けの表示専用**設定。編集はサイドパネル（管理者のみ）に一本化しており、フルテキスト画面は閲覧専用。
+  - **AI 判定用の `llm_criteria`（PICO/PECO/SPIDER の構造化基準、`LLM_CONFIG_KEYS` 系）とは別物**。`llm_criteria` はAIへ渡すプロンプトの一部で `config_hash` の算出対象に入っているため、運用メモとしての `review_criteria` をここに混ぜると、基準の言い回しを直しただけで `config_hash` が変わり、同じ設定のはずの Run が新規Runとして扱われてしまう（「中断からの再開」「新規にやり直す」が壊れる）。両者は保存先キーを分け、`llm_config` 系の更新経路（`updateLlmConfig` 等）とは混ぜないこと。`llmCriteriaToText()` で `llm_criteria` の内容を `review_criteria` へ一方向コピー（インポート）する導線はあるが、逆はない。
 
 #### Annotations タブ（PDFアノテーション）
 
@@ -399,6 +401,7 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 - `m` : Maybe
 - `n` / `→` : 次へ
 - `p` / `←` : 前へ
+- `c` : レビュー基準（組入・除外基準）の表示/非表示
 
 ## 非機能要件
 

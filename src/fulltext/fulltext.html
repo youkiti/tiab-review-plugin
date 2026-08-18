@@ -15,6 +15,7 @@
             <div class="ft-header-left">
                 <button id="ft-close-btn" class="ft-close-btn" title="タブを閉じて一覧に戻る">← 閉じる</button>
                 <h1 class="ft-title">Full-text Screening</h1>
+                <button id="ft-criteria-btn" class="btn btn-secondary" title="レビュー基準（組入・除外基準）">📋 基準</button>
             </div>
             <div class="ft-header-right">
                 <span id="ft-overall" class="ft-overall" title="候補プール全体の判定進捗">
@@ -133,6 +134,21 @@
                 </div>
             </aside>
         </main>
+    </div>
+
+    <!-- レビュー基準（組入・除外基準）モーダル。閲覧専用（編集はサイドパネルに一本化）。
+         サイドパネルの #modal-backdrop 構造を踏襲しつつ ID は ft- プレフィックスで独立させる。 -->
+    <div id="ft-criteria-backdrop" class="ft-criteria-backdrop hidden">
+        <div class="ft-criteria-content">
+            <div class="ft-criteria-header">
+                <h3 id="ft-criteria-title" class="ft-criteria-title">レビュー基準（組入・除外基準）</h3>
+                <button id="ft-criteria-close-btn" class="btn-icon" title="閉じる (c / Esc)">✕</button>
+            </div>
+            <div id="ft-criteria-body" class="ft-criteria-body"></div>
+            <div class="ft-criteria-footer">
+                <button id="ft-criteria-footer-close-btn" class="btn btn-outline btn-small">閉じる</button>
+            </div>
+        </div>
     </div>
 
     <script src="fulltext.js"></script>

@@ -9,6 +9,8 @@ import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } f
 import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './llm-target-selection';
 import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
+import { parseReviewCriteria, serializeReviewCriteria } from './review-criteria';
+import type { ReviewCriteria } from './review-criteria';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
 import { driveFetch } from './drive-shared-drive';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
@@ -2055,6 +2057,8 @@ export interface ProjectConfigBundle {
     importStats: ImportStatsMap;
     // フルテキスト担当割り振り（未設定は status 'none' = 全員が全候補）
     fulltextAssignment: FulltextAssignmentConfig;
+    // レビュー基準（人間レビュアー向けの表示用。AI 判定用の llm_criteria とは別物）
+    reviewCriteria: ReviewCriteria | null;
 }
 
 /**
@@ -2080,6 +2084,7 @@ const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     fulltextEvidenceDisplay: 'neutral',
     importStats: {},
     fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
+    reviewCriteria: null,
 };
 
 /**
@@ -2120,6 +2125,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
     let fulltextAiActiveRound: string | null = null;
     let fulltextEvidenceDisplay: FulltextEvidenceDisplay = 'neutral';
     let importStats: ImportStatsMap = {};
+    let reviewCriteria: ReviewCriteria | null = null;
 
     for (const row of values) {
         if (row[0] === 'include_keywords' && row[1]) {
@@ -2155,6 +2161,9 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         if (row[0] === 'import_stats' && row[1]) {
             importStats = parseImportStats(row[1]);
         }
+        if (row[0] === 'review_criteria') {
+            reviewCriteria = parseReviewCriteria(row[1]);
+        }
     }
 
     return {
@@ -2165,6 +2174,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         fulltextEvidenceDisplay,
         importStats,
         fulltextAssignment: parseFulltextAssignmentRows(values),
+        reviewCriteria,
     };
 }
 
@@ -2643,6 +2653,39 @@ async function trySaveFulltextPoolRule(spreadsheetId: string, rule: FulltextPool
         await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${ruleRowIndex}`, [[value]]);
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_pool_rule', value]]);
+    }
+}
+
+/**
+ * レビュー基準（組入・除外基準）を保存
+ */
+export async function saveReviewCriteria(spreadsheetId: string, criteria: ReviewCriteria): Promise<void> {
+    try {
+        await trySaveReviewCriteria(spreadsheetId, criteria);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveReviewCriteria] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveReviewCriteria(spreadsheetId, criteria);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveReviewCriteria(spreadsheetId: string, criteria: ReviewCriteria): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let criteriaRowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'review_criteria') criteriaRowIndex = index + 1;
+    });
+
+    const value = serializeReviewCriteria(criteria);
+    if (criteriaRowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${criteriaRowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['review_criteria', value]]);
     }
 }
 
