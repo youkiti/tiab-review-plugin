@@ -338,11 +338,7 @@ export async function initializeLlmSection() {
             }
             handleModelSelectChange();
             dom.llmLanguageSelect.value = llmConfig.llm_output_language;
-            // llm_protocol_text が未保存の場合のみ、人間向けレビュー基準（state.reviewCriteria）を
-            // 初期値として流し込む。「先に人間向け基準を書いた→後からAI判定も使いたい」流れで
-            // コピペを不要にするのが目的。保存済みプロトコルは AI の config_hash の入力なので
-            // 絶対に上書きしない（ここでは表示欄への初期値挿入のみ。保存は行わない）。
-            dom.protocolTextInput.value = llmConfig.llm_protocol_text || state.reviewCriteria?.text || '';
+            dom.protocolTextInput.value = llmConfig.llm_protocol_text;
             dom.thresholdSlider.value = llmConfig.llm_include_threshold.toString();
             dom.thresholdValueDisplay.textContent = llmConfig.llm_include_threshold.toFixed(2);
 
