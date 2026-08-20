@@ -480,6 +480,7 @@ export async function loadDataAndShowScreening() {
         syncSetFulltextAssignment(configBundle.fulltextAssignment);
         state.setImportStats(configBundle.importStats);
         state.setReviewCriteria(configBundle.reviewCriteria);
+        state.setExcludeReasonConfig(configBundle.excludeReasonConfig);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
         const activeRun = llmRuns

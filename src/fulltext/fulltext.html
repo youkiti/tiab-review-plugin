@@ -83,21 +83,13 @@
                         <label class="ft-reason-label">除外理由 (PRISMA)</label>
                         <div class="ft-reason-priority-note">複数当てはまるときは<strong>上（番号が小さい方）</strong>を選ぶ ─ 理由が判定者間で割れると、あとで裁定が必要になります</div>
                         <!--
-                            並び・value・表示ラベルは src/lib/exclude-reasons.ts の
-                            EXCLUDE_REASON_VALUES / EXCLUDE_REASON_LABELS と一致させること
-                            （この <select> は DOM 側の定義のため lib からの自動生成はしていない）。
-                            表示テキストのみ選択肢7だけ補足を付けており、value・保存値・lib のラベル定義は変えていない。
+                            選択肢はプロジェクト設定（Config タブ fulltext_exclude_reasons）から
+                            fulltext.ts の renderReasonOptions() が実行時に描画する。
+                            未設定なら既定のPICO7区分（src/lib/exclude-reasons.ts）。
+                            ここに固定の <option> を書かないこと（設定と二重定義になる）。
                         -->
-                        <select id="ft-reason-select" class="ft-reason-select" size="7">
-                            <option value="population">1. Population 不適合</option>
-                            <option value="intervention">2. Intervention 不適合</option>
-                            <option value="comparator">3. Comparator 不適合</option>
-                            <option value="outcome">4. Outcome 不適合</option>
-                            <option value="study_design">5. Study design 不適合</option>
-                            <option value="duplicate">6. 重複</option>
-                            <option value="other">7. その他（1〜6が当てはまらない場合）</option>
-                        </select>
-                        <div class="ft-reason-hint">クリックまたは数字 1〜7 で確定して次へ ／ ↑↓ で移動・Enter で確定</div>
+                        <select id="ft-reason-select" class="ft-reason-select" size="7"></select>
+                        <div class="ft-reason-hint">クリックまたは数字キーで確定して次へ ／ ↑↓ で移動・Enter で確定</div>
                         <textarea id="ft-reason-note" class="ft-reason-note" placeholder="補足メモ（任意）" rows="3"></textarea>
                     </div>
                     <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>

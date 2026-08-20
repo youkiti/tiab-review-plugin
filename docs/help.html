@@ -1330,12 +1330,29 @@
                             (inclusion/exclusion). It is view-only here; editing is done from the side panel.</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>除外理由</strong>：Excludeを選ぶと、理由（Population / Intervention / Comparator /
-                            Outcome / Study design / Duplicate / Other、数字キー1〜7でも選択可）を選ぶエリアが表示されます。理由をクリック（または数字キーで確定）すると、保存されてそのまま自動的に次の候補へ進みます。</span>
-                        <span class="en"><strong>Exclusion reason</strong>: Choosing Exclude shows a reason picker
-                            (Population / Intervention / Comparator / Outcome / Study design / Duplicate / Other,
-                            selectable with number keys 1–7). Clicking a reason (or confirming with a number key)
-                            saves the decision and automatically advances to the next candidate.</span>
+                        <span class="ja"><strong>除外理由</strong>：Excludeを選ぶと、理由を選ぶエリアが表示されます。理由をクリック（または数字キーで確定）すると、保存されてそのまま自動的に次の候補へ進みます。
+                            既定はPRISMAのPICO区分（Population / Intervention / Comparator / Outcome / Study design / Duplicate / Other、数字キー1〜7）ですが、
+                            <strong>プロジェクトごとに理由を編集できます</strong>（下記「除外理由を変更する」）。</span>
+                        <span class="en"><strong>Exclusion reason</strong>: Choosing Exclude shows a reason picker.
+                            Clicking a reason (or confirming with a number key) saves the decision and automatically
+                            advances to the next candidate. The default list is the PRISMA/PICO one (Population /
+                            Intervention / Comparator / Outcome / Study design / Duplicate / Other, number keys 1–7),
+                            but <strong>each project can edit its own list</strong> (see "Changing the exclusion reasons" below).</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>除外理由を変更する</strong>：サイドパネルの「フルテキスト」タブにある「除外理由」行の
+                            <strong>✎ 編集</strong>ボタンから、選択肢の追加・削除・並べ替え・ラベル変更ができます（管理者のみ）。
+                            PICO以外のフレームワーク（scoping reviewのPCC、PECO、SPIDER）はプリセットから読み込めます。
+                            <strong>並び順が優先順位</strong>で、複数当てはまるときは上の理由を選ぶ運用です。英語ラベル欄はPRISMAフロー図・論文用テキストに使われます。
+                            項目を削除しても過去の判定は消えません（削除した理由は集計に元の値のまま残ります）。理由が判定者間で割れると裁定が必要になるため、
+                            <strong>スクリーニング開始前に確定させる</strong>ことを推奨します。</span>
+                        <span class="en"><strong>Changing the exclusion reasons</strong>: In the side panel's
+                            "Full text" tab, the <strong>✎ Edit</strong> button on the "Exclusion reasons" row lets an
+                            admin add, remove, reorder and relabel the choices. Presets for non-PICO frameworks (PCC for
+                            scoping reviews, PECO, SPIDER) are available. <strong>The order is the priority order</strong>:
+                            when several reasons apply, pick the highest one. The English label column is used for the
+                            PRISMA flow diagram and manuscript text. Removing an item does not delete past decisions.
+                            Because reason conflicts have to be adjudicated later, <strong>settle the list before screening starts</strong>.</span>
                     </li>
                     <li>
                         <span class="ja"><strong>保留（Maybe）</strong>：即座に保存され、任意でメモを入力できます（Enterキーで次の候補へ進みます）。</span>
@@ -1695,11 +1712,11 @@
                 </p>
                 <p>
                     <span class="ja">※ フルテキストページ（新しいタブで開くPDF判定画面）でも同じ <code>i</code>/<code>e</code>/<code>m</code>
-                        が使えます。Excludeを選んだ後は数字キー（<code>1</code>〜<code>7</code>）で除外理由を選択できます。
+                        が使えます。Excludeを選んだ後は数字キー（<code>1</code>〜、既定では<code>7</code>まで）で除外理由を選択できます。
                         <code>c</code> もフルテキストページで使えますが、そちらは閲覧専用です。</span>
                     <span class="en">* The same <code>i</code>/<code>e</code>/<code>m</code> shortcuts also work on the
                         full-text page (the PDF decision screen that opens in a new tab). After choosing Exclude, use
-                        the number keys (<code>1</code>–<code>7</code>) to pick an exclusion reason.
+                        the number keys (<code>1</code>–<code>7</code> with the default list) to pick an exclusion reason.
                         <code>c</code> also works on the full-text page, but there it is view-only.</span>
                 </p>
             </section>

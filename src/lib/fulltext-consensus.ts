@@ -22,7 +22,8 @@
 // - unresolved: (conflict || reasonConflict) && !adjudicated
 //   裁定票があれば、判定・理由の不一致が残っていても「解消済み」として扱う
 
-import { pickPrimaryExcludeReason, hasExcludeReasonConflict } from './exclude-reasons';
+import { pickPrimaryExcludeReason, hasExcludeReasonConflict, DEFAULT_EXCLUDE_REASON_ITEMS } from './exclude-reasons';
+import type { ExcludeReasonItem } from './exclude-reasons';
 
 /** フルテキスト判定の合議結果の型（旧 fulltext-results.ts のローカル型をここへ移設） */
 export type ConsensusDecision = 'include' | 'exclude' | 'maybe' | 'pending';
@@ -87,8 +88,14 @@ export interface FulltextConsensusResult {
  * votes には通常の判定者の票と裁定票（isAdjudicationKey で判定）を混在させてよい
  * （呼び出し側で事前に分ける必要はない）。conflict/reasonConflict は常に通常票だけから
  * 計算する（裁定票を「判定者の1人」として混ぜて誤検出しないため）。
+ *
+ * @param reasonItems プロジェクトの除外理由リスト（並び＝優先順位）。primaryReason を
+ *   「番号が小さい方」で選ぶのに使う。省略時は既定のPICO7区分。
  */
-export function computeFulltextConsensus(votes: readonly FulltextVote[]): FulltextConsensusResult {
+export function computeFulltextConsensus(
+    votes: readonly FulltextVote[],
+    reasonItems: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): FulltextConsensusResult {
     const regularVotes = votes.filter(v => !isAdjudicationKey(v.judge));
     const adjudicationVotes = votes.filter(v => isAdjudicationKey(v.judge));
 
@@ -112,7 +119,7 @@ export function computeFulltextConsensus(votes: readonly FulltextVote[]): Fullte
     const reasonConflict = values.size === 1 && values.has('exclude')
         && hasExcludeReasonConflict(excludeReasons.map(r => r.reason));
 
-    let primaryReason = pickPrimaryExcludeReason(excludeReasons.map(r => r.reason));
+    let primaryReason = pickPrimaryExcludeReason(excludeReasons.map(r => r.reason), reasonItems);
     let adjudicated = false;
     let adjudicatedBy: string | null = null;
     let adjudicatedAt: string | null = null;

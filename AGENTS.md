@@ -172,6 +172,10 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 - **import_stats**: インポート統計（JSON: `{"ファイル名": {identified, duplicates, imported_at}}`）。ファイルごとの解析件数（重複除去前）と重複スキップ数をインポート時に記録し、論文用テキスト（PRISMAフロー図の識別件数・重複除去数）の自動記入に使う。ソースファイル削除時は該当キーも削除する。
 - **review_criteria**: レビュー基準（組入・除外基準）を1本の自由記述テキストとして保存する（JSON: `{text, updated_at, updated_by}`。`src/lib/review-criteria.ts` の `ReviewCriteria` 型）。プロトコル文書を都度開かなくても、複数レビュアーがTiAb画面・フルテキスト画面から常設ボタン（📋 / ショートカット `c`）で参照できるようにするための**人間レビュアー向けの表示専用**設定。編集はサイドパネル（管理者のみ）に一本化しており、フルテキスト画面は閲覧専用。
   - **AI 判定用の `llm_criteria`（PICO/PECO/SPIDER の構造化基準、`LLM_CONFIG_KEYS` 系）とは別物**。`llm_criteria` はAIへ渡すプロンプトの一部で `config_hash` の算出対象に入っているため、運用メモとしての `review_criteria` をここに混ぜると、基準の言い回しを直しただけで `config_hash` が変わり、同じ設定のはずの Run が新規Runとして扱われてしまう（「中断からの再開」「新規にやり直す」が壊れる）。両者は保存先キーを分け、`llm_config` 系の更新経路（`updateLlmConfig` 等）とは混ぜないこと。`llmCriteriaToText()` で `llm_criteria` の内容を `review_criteria` へ一方向コピー（インポート）する導線はあるが、逆はない。
+- **fulltext_exclude_reasons**: フルテキストの除外理由リスト（JSON: `{items: [{key, label, labelEn}], updated_at, updated_by}`。`src/lib/exclude-reason-config.ts`）。**配列の順序が優先順位**で、判定画面の数字キー（先頭9件）もこの並びで決まる。未設定なら既定の PICO 7区分。PCC（scoping review）・PECO・SPIDER のプリセットを同モジュールに持つ。編集はフルテキストタブのインラインエディタ（管理者のみ）。
+  - `key` は Decisions シートの `reason` 列に入る**保存値**なので、発番後は変更しない（新規項目は `r1`, `r2`… で自動発番）。項目を削除しても過去の判定は消えず、集計では生キーのまま残る。
+  - `labelEn` は PRISMA フロー図・論文用テキスト（`manuscript.ts`）で使う。未入力なら `label` で代替する。
+  - この設定は `config_hash` の算出対象ではない（`llm_config` 系とは別経路）。ただしフルテキストAI判定の出力スキーマ（enum）とプロンプトはこのリストから生成されるため、レビュー途中で理由を入れ替えると**前後のAI票で区分の意味が変わる**。運用上はスクリーニング開始前に確定させること。
 
 #### Annotations タブ（PDFアノテーション）
 
@@ -224,7 +228,7 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
    - 文献情報表示（title, abstract, year, authors, journal, doi/pmid, url）
    - **キーワードハイライト機能**（include=緑, exclude=赤）
    - 判定ボタン（include / exclude / maybe）
-   - 除外理由入力（exclude時必須）
+   - 除外理由入力（exclude時必須。選択肢はプロジェクト設定 `fulltext_exclude_reasons`）
    - メモ入力
    - **キーワード編集**（サイドパネルで追加・削除→Configシートへ自動保存）
    - 次の文献へ遷移
@@ -418,14 +422,25 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 - **競合時の優先順位**: 同時編集が発生した場合は `decided_at` の新しい判定を優先（Last Write Wins）
 - **アクセス制御**: 編集権限が必要。対象スプレッドシートはGoogle Drive上で管理
 - **判定理由**: 任意入力。バリデーションは行わない
-- **フルテキストの除外理由（PRISMA区分）は並び順そのものが優先順位**。複数当てはまる場合は番号の小さい理由を選ぶ。
+- **フルテキストの除外理由は並び順そのものが優先順位**。複数当てはまる場合は番号の小さい理由を選ぶ。
   理由が判定者間で割れると裁定（不一致解消）の手間が発生するため、割れにくくする規則として運用する
-  - 並び・ラベル（UI用の日本語／論文用の英語）の唯一の定義は `src/lib/exclude-reasons.ts`。
-    `fulltext.html` の `<select>` だけは DOM 側の定義なので、順序と value を手で一致させること
+  - **理由リストはプロジェクトごとに編集できる**（Config タブ `fulltext_exclude_reasons`）。
+    SR のフレームワークは PICO だけではない（scoping review の PCC 等）ため、区分を固定しない。
+    未設定のプロジェクトは既定の PICO 7区分（`DEFAULT_EXCLUDE_REASON_ITEMS`）で動く
+    - 型・既定値・純粋関数は `src/lib/exclude-reasons.ts`、設定のパース／保存／プリセットは
+      `src/lib/exclude-reason-config.ts`。表示・集計・裁定・AI判定は**必ず解決済みの理由リストを引数で受け取る**こと
+      （`state.excludeReasonItems` / フルテキストページの `excludeReasonItems`）
+    - 編集UIはフルテキストタブのインラインエディタ（`src/sidepanel/features/fulltext-reason-editor.ts`、管理者のみ）
+    - `fulltext.html` の `<select>` に固定の `<option>` を書かないこと（設定と二重定義になる）。
+      選択肢は `fulltext.ts` の `renderReasonOptions()` が実行時に描画する
+  - **保存キー（`key`）は過去データの参照キー**。一度発番したら変えない。ラベルはいつ変えてもよい。
+    項目を削除しても過去の判定は消えず、`excludeReasonLabel()` のフォールバックで生キーのまま表示・集計される
   - 集計の代表理由は `pickPrimaryExcludeReason()` が最小番号を採る。
     以前は「最初に見つかった非空の理由」で**判定者の列挙順に依存**していた（誰が先に判定したかでPRISMAの内訳が動いていた）
-  - フルテキストAI判定のプロンプトにも同じ規則を入れている（`gemini-fulltext.ts`）。
-    AI票も判定者として合議に入るため、揃えないとAI票が理由不一致を量産する
+  - フルテキストAI判定のスキーマ（enum）・プロンプトも同じ理由リストから生成する（`gemini-fulltext.ts`）。
+    AI票も判定者として合議に入るため、揃えないとAI票が理由不一致を量産する。
+    リストに無い区分をAIが返した場合は `normalizeExcludeReasonKey()` でフォールバック理由（`other`、
+    無ければ末尾＝その他相当）へ寄せる。**`'other'` 決め打ちで書かないこと**（カスタム理由には存在しないことがある）
 
 ## インポート規約
 

@@ -1,16 +1,29 @@
-// exclude-reasons.ts - フルテキスト除外理由（PRISMA区分）の唯一の定義（純粋関数）
+// exclude-reasons.ts - フルテキスト除外理由（PRISMA区分）の型・既定値・純粋関数
 //
-// 除外理由は「1. Population 不適合 … 7. その他」の**並び順そのものが優先順位**で、
-// 複数当てはまる場合は番号の小さい理由を選ぶ運用にしている。理由が判定者ごとに割れると
-// あとで裁定（不一致解消）が必要になるため、選択肢を減らして割れにくくするのが狙い。
+// 除外理由は**並び順そのものが優先順位**で、複数当てはまる場合は番号の小さい理由を選ぶ運用に
+// している。理由が判定者ごとに割れるとあとで裁定（不一致解消）が必要になるため、選択肢を
+// 減らして割れにくくするのが狙い。
 //
-// 以前は同じ並びが6か所（fulltext.html の option / fulltext.ts の REASON_VALUES と
-// EXCLUDE_REASON_LABELS / fulltext-results.ts の REASON_LABELS / gemini-fulltext.ts の enum /
-// manuscript.ts の REASON_LABELS_EN（英語ラベル））に複製されていた。
-// 優先順位に意味を持たせる以上、並びは1か所で定義すること。
-// DOM/i18n には依存しない。
+// 以前は既定の7区分（Population〜その他）をこのモジュールに固定していたが、PCC（scoping
+// review）など PICO 以外のフレームワークでは区分が合わないため、**プロジェクトごとに
+// 項目を編集できる**ようにした（Config タブ fulltext_exclude_reasons。
+// パース・保存・プリセットは src/lib/exclude-reason-config.ts）。
+//
+// このモジュールは「理由リスト（ExcludeReasonItem[]）を引数で受け取って計算する純粋関数」だけを
+// 持つ。理由リストを省略した場合は既定の7区分（DEFAULT_EXCLUDE_REASON_ITEMS）で動くため、
+// 未設定プロジェクトは従来どおりの挙動になる。DOM/i18n には依存しない。
 
-/** 除外理由（PRISMA区分）。**配列の順序が優先順位**（先頭ほど上位）。 */
+/** 除外理由1件。key はシートに保存する値、label は画面表示、labelEn は論文用テキスト・PRISMA図用。 */
+export interface ExcludeReasonItem {
+    /** 保存値（Decisions シートの reason 列に入る）。作成後は変更しないこと（過去データが読めなくなる） */
+    key: string;
+    /** 表示ラベル（日本語想定） */
+    label: string;
+    /** 英語ラベル。空なら label で代替する */
+    labelEn: string;
+}
+
+/** 既定（PICO）の除外理由。**配列の順序が優先順位**（先頭ほど上位）。 */
 export const EXCLUDE_REASON_VALUES = [
     'population',
     'intervention',
@@ -23,7 +36,7 @@ export const EXCLUDE_REASON_VALUES = [
 
 export type ExcludeReason = typeof EXCLUDE_REASON_VALUES[number];
 
-/** 表示ラベル（fulltext.html の option テキストと一致させること） */
+/** 既定の表示ラベル */
 export const EXCLUDE_REASON_LABELS: Record<ExcludeReason, string> = {
     population: 'Population 不適合',
     intervention: 'Intervention 不適合',
@@ -35,8 +48,8 @@ export const EXCLUDE_REASON_LABELS: Record<ExcludeReason, string> = {
 };
 
 /**
- * PRISMA フロー図・論文用テキスト（manuscript.ts）向けの英語ラベル。
- * Record<ExcludeReason, string> で型付けしているので、理由を1つ足したときに
+ * PRISMA フロー図・論文用テキスト（manuscript.ts）向けの既定の英語ラベル。
+ * Record<ExcludeReason, string> で型付けしているので、既定区分を1つ足したときに
  * 英語ラベルの追加漏れは typecheck で落ちる（静かに劣化しない）。
  */
 export const EXCLUDE_REASON_LABELS_EN: Record<ExcludeReason, string> = {
@@ -49,18 +62,51 @@ export const EXCLUDE_REASON_LABELS_EN: Record<ExcludeReason, string> = {
     other: 'Other reasons',
 };
 
+/** 既定（PICO）の理由リスト。プロジェクト設定が無いときはこれを使う。 */
+export const DEFAULT_EXCLUDE_REASON_ITEMS: readonly ExcludeReasonItem[] = EXCLUDE_REASON_VALUES.map(key => ({
+    key,
+    label: EXCLUDE_REASON_LABELS[key],
+    labelEn: EXCLUDE_REASON_LABELS_EN[key],
+}));
+
+/**
+ * 数字キーで選べる上限。理由リストはこれより多くても保存・選択できるが、
+ * 数字キーのショートカットは先頭9件までしか割り当てられない（1〜9）。
+ */
+export const MAX_REASON_HOTKEYS = 9;
+
 /** 表示用ラベル（未知のキーはそのまま返す。空文字は「理由なし」の意味で空のまま） */
-export function excludeReasonLabel(reason: string): string {
-    return EXCLUDE_REASON_LABELS[reason as ExcludeReason] ?? reason;
+export function excludeReasonLabel(
+    reason: string,
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): string {
+    return items.find(i => i.key === reason)?.label ?? reason;
+}
+
+/**
+ * 英語ラベル（PRISMA フロー図・論文用テキスト）。
+ * 英語ラベル未入力の項目は日本語ラベルで代替する（空欄で英語出力が消えるより読める）。
+ * 未知のキーはそのまま返す。
+ */
+export function excludeReasonLabelEn(
+    reason: string,
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): string {
+    const item = items.find(i => i.key === reason);
+    if (!item) return reason;
+    return item.labelEn.trim() || item.label;
 }
 
 /**
  * 優先順位（小さいほど上位）。未知の理由・空文字は最下位扱いにする。
  * 未知の値でも順序が安定するよう、必ず有限値を返すこと（集計が NaN で壊れないため）。
  */
-export function excludeReasonRank(reason: string): number {
-    const idx = (EXCLUDE_REASON_VALUES as readonly string[]).indexOf(reason);
-    return idx < 0 ? EXCLUDE_REASON_VALUES.length : idx;
+export function excludeReasonRank(
+    reason: string,
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): number {
+    const idx = items.findIndex(i => i.key === reason);
+    return idx < 0 ? items.length : idx;
 }
 
 /**
@@ -72,13 +118,16 @@ export function excludeReasonRank(reason: string): number {
  *
  * @returns 最も上位の理由。有効な理由が1つも無ければ空文字。
  */
-export function pickPrimaryExcludeReason(reasons: readonly string[]): string {
+export function pickPrimaryExcludeReason(
+    reasons: readonly string[],
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): string {
     let best = '';
     let bestRank = Number.POSITIVE_INFINITY;
     for (const raw of reasons) {
         const reason = (raw || '').trim();
         if (!reason) continue;
-        const rank = excludeReasonRank(reason);
+        const rank = excludeReasonRank(reason, items);
         if (rank < bestRank) {
             best = reason;
             bestRank = rank;
@@ -94,4 +143,31 @@ export function pickPrimaryExcludeReason(reasons: readonly string[]): string {
 export function hasExcludeReasonConflict(reasons: readonly string[]): boolean {
     const set = new Set(reasons.map(r => (r || '').trim()).filter(Boolean));
     return set.size >= 2;
+}
+
+/**
+ * 「どれにも当てはまらないとき」に落とす先の理由キー。
+ *
+ * 既定リストの 'other' があればそれを使い、無ければ**最後の項目**（＝優先順位が最下位。
+ * 「その他」を末尾に置く運用のため）を使う。理由リストが空なら空文字。
+ * カスタム理由では 'other' が存在しない場合があるため、'other' 決め打ちにしないこと。
+ */
+export function fallbackExcludeReasonKey(
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): string {
+    if (items.length === 0) return '';
+    return items.some(i => i.key === 'other') ? 'other' : items[items.length - 1].key;
+}
+
+/**
+ * AI が返した除外理由キーを、現在の理由リストに載る値へ正規化する。
+ * リストに無い値（旧設定の理由・モデルの逸脱出力）はフォールバック理由に寄せる。
+ */
+export function normalizeExcludeReasonKey(
+    reason: string | undefined | null,
+    items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
+): string {
+    const value = (reason || '').trim();
+    if (value && items.some(i => i.key === value)) return value;
+    return fallbackExcludeReasonKey(items);
 }

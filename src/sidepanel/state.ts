@@ -6,6 +6,9 @@
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { ReviewCriteria } from '../lib/review-criteria';
+import type { ExcludeReasonConfig } from '../lib/exclude-reason-config';
+import { resolveExcludeReasonItems } from '../lib/exclude-reason-config';
+import type { ExcludeReasonItem } from '../lib/exclude-reasons';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../lib/fulltext-assignment';
@@ -61,6 +64,9 @@ let _importStats: ImportStatsMap = {};
 
 // レビュー基準（Configシート review_criteria、未設定は null）
 let _reviewCriteria: ReviewCriteria | null = null;
+
+// フルテキスト除外理由リスト（Configシート fulltext_exclude_reasons、未設定は null = 既定の7区分）
+let _excludeReasonConfig: ExcludeReasonConfig | null = null;
 
 // 担当セットフィルター
 let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
@@ -221,6 +227,12 @@ export const state = {
     get reviewCriteria() { return _reviewCriteria; },
     setReviewCriteria(criteria: ReviewCriteria | null) { _reviewCriteria = criteria; },
 
+    // ----- Exclude Reasons (フルテキスト除外理由リスト) -----
+    get excludeReasonConfig() { return _excludeReasonConfig; },
+    setExcludeReasonConfig(config: ExcludeReasonConfig | null) { _excludeReasonConfig = config; },
+    /** 実際に使う理由リスト（未設定なら既定のPICO7区分）。表示・集計・裁定は必ずこれを使う。 */
+    get excludeReasonItems(): readonly ExcludeReasonItem[] { return resolveExcludeReasonItems(_excludeReasonConfig); },
+
     // ----- Assignment Filters -----
     get assignmentConfig() { return _assignmentConfig; },
     setAssignmentConfig(config: AssignmentConfig) { _assignmentConfig = config; },
@@ -357,6 +369,7 @@ export const state = {
         _selectedSourceFiles.clear();
         _importStats = {};
         _reviewCriteria = null;
+        _excludeReasonConfig = null;
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();
@@ -391,6 +404,7 @@ export const state = {
         _selectedSourceFiles.clear();
         _importStats = {};
         _reviewCriteria = null;
+        _excludeReasonConfig = null;
         _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
         _assignmentSets.clear();
         _selectedAssignmentSets.clear();

@@ -11,6 +11,8 @@ import { parseFulltextPoolRule } from './fulltext-pool';
 import type { FulltextPoolRule } from './fulltext-pool';
 import { parseReviewCriteria, serializeReviewCriteria } from './review-criteria';
 import type { ReviewCriteria } from './review-criteria';
+import { parseExcludeReasonConfig, serializeExcludeReasonConfig } from './exclude-reason-config';
+import type { ExcludeReasonConfig } from './exclude-reason-config';
 import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
 import { driveFetch } from './drive-shared-drive';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
@@ -2059,6 +2061,8 @@ export interface ProjectConfigBundle {
     fulltextAssignment: FulltextAssignmentConfig;
     // レビュー基準（人間レビュアー向けの表示用。AI 判定用の llm_criteria とは別物）
     reviewCriteria: ReviewCriteria | null;
+    // フルテキスト除外理由リスト（未設定は null = 既定のPICO7区分）
+    excludeReasonConfig: ExcludeReasonConfig | null;
 }
 
 /**
@@ -2085,6 +2089,7 @@ const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
     importStats: {},
     fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
     reviewCriteria: null,
+    excludeReasonConfig: null,
 };
 
 /**
@@ -2126,6 +2131,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
     let fulltextEvidenceDisplay: FulltextEvidenceDisplay = 'neutral';
     let importStats: ImportStatsMap = {};
     let reviewCriteria: ReviewCriteria | null = null;
+    let excludeReasonConfig: ExcludeReasonConfig | null = null;
 
     for (const row of values) {
         if (row[0] === 'include_keywords' && row[1]) {
@@ -2164,6 +2170,9 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         if (row[0] === 'review_criteria') {
             reviewCriteria = parseReviewCriteria(row[1]);
         }
+        if (row[0] === 'fulltext_exclude_reasons') {
+            excludeReasonConfig = parseExcludeReasonConfig(row[1]);
+        }
     }
 
     return {
@@ -2175,6 +2184,7 @@ function parseConfigBundle(values: string[][]): ProjectConfigBundle {
         importStats,
         fulltextAssignment: parseFulltextAssignmentRows(values),
         reviewCriteria,
+        excludeReasonConfig,
     };
 }
 
@@ -2686,6 +2696,39 @@ async function trySaveReviewCriteria(spreadsheetId: string, criteria: ReviewCrit
         await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${criteriaRowIndex}`, [[value]]);
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['review_criteria', value]]);
+    }
+}
+
+/**
+ * フルテキスト除外理由リストを Config タブの fulltext_exclude_reasons キーへ保存する
+ */
+export async function saveExcludeReasonConfig(spreadsheetId: string, config: ExcludeReasonConfig): Promise<void> {
+    try {
+        await trySaveExcludeReasonConfig(spreadsheetId, config);
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[saveExcludeReasonConfig] Config sheet missing, creating...');
+            await addSheet(spreadsheetId, CONFIG_SHEET);
+            await trySaveExcludeReasonConfig(spreadsheetId, config);
+        } else {
+            throw error;
+        }
+    }
+}
+
+async function trySaveExcludeReasonConfig(spreadsheetId: string, config: ExcludeReasonConfig): Promise<void> {
+    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+    let rowIndex = -1;
+
+    values.forEach((row, index) => {
+        if (row[0] === 'fulltext_exclude_reasons') rowIndex = index + 1;
+    });
+
+    const value = serializeExcludeReasonConfig(config);
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
+    } else {
+        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_exclude_reasons', value]]);
     }
 }
 

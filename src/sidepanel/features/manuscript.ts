@@ -24,14 +24,17 @@ import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo } from '../../lib/sheets-api';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
-import { EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
-import type { ExcludeReason } from '../../lib/exclude-reasons';
+import { excludeReasonLabelEn } from '../../lib/exclude-reasons';
 
 export type ManuscriptPhase = 'tiab' | 'fulltext';
 
+/**
+ * 論文用テキスト・PRISMA フロー図向けの英語ラベル。
+ * プロジェクト設定の理由リスト（英語ラベル欄）を使い、未入力なら日本語ラベルで代替する。
+ */
 function reasonLabelEn(reason: string): string {
     if (!reason) return 'Reason not recorded';
-    return EXCLUDE_REASON_LABELS_EN[reason as ExcludeReason] ?? reason;
+    return excludeReasonLabelEn(reason, state.excludeReasonItems);
 }
 
 /** 文献の全判定を集める（allDecisions + myDecision、重複排除） */

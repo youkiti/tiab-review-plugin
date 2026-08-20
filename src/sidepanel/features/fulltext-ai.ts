@@ -46,6 +46,7 @@ import {
     DriveAccessDeniedError,
 } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
+import { normalizeExcludeReasonKey } from '../../lib/exclude-reasons';
 import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
@@ -703,7 +704,9 @@ async function judgeOne(
     let usageMetadata: JudgeFulltextResult['usageMetadata'];
     let responseMetadata: JudgeFulltextResult['responseMetadata'];
     try {
-        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(bytes, screeningPrompt, modelConfig));
+        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(
+            bytes, screeningPrompt, modelConfig, 'ja', undefined, state.excludeReasonItems
+        ));
     } catch (err) {
         // judgeFulltext は PDFサイズ超過（PdfTooLargeError）や Gemini API 呼び出し失敗
         // （GeminiApiError）等、既に分類可能なエラーはそのまま投げてくる。
@@ -736,8 +739,12 @@ async function judgeOne(
         ref_id: ref.ref_id,
         reviewer_id: reviewerId,
         decision: normalizedDecision,
-        // 除外時は Decisions の reason 列に PRISMA 区分を入れる（人間判定と同じ運用）
-        reason: output.decision === 'exclude' ? (output.exclude_reason_category || 'other') : undefined,
+        // 除外時は Decisions の reason 列に除外理由の区分を入れる（人間判定と同じ運用）。
+        // カスタム理由では 'other' が存在しないことがあるため、リストに無い値は
+        // normalizeExcludeReasonKey でフォールバック理由（末尾＝その他相当）へ寄せる。
+        reason: output.decision === 'exclude'
+            ? normalizeExcludeReasonKey(output.exclude_reason_category, state.excludeReasonItems)
+            : undefined,
         note: JSON.stringify(note),
         decided_at: new Date().toISOString(),
         client_version: getClientVersion('-llm'),
