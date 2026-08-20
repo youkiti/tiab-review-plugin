@@ -81,7 +81,9 @@ const LLM_EXECUTIONS_HEADERS = [
     'requested_model', 'model_version', 'response_id',
     'target_mode', 'target_sets', 'target_selected_count',
     // フルテキストAI一括判定の実行履歴用（Issue #62）。ここより前には絶対に挿入しないこと。
-    'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown'
+    'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
+    // フルテキストAI判定時点の除外理由リストのスナップショット（PR #110）。末尾に追加。
+    'exclude_reasons_snapshot'
 ];
 
 // LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
@@ -2634,135 +2636,70 @@ export async function getFulltextPoolRule(spreadsheetId: string): Promise<Fullte
 }
 
 /**
- * フルテキスト候補ルールを保存
+ * Config タブへ key=value の1行を保存する（既存なら B列を上書き、無ければ末尾に追記）。
+ * fulltext_pool_rule / review_criteria / fulltext_exclude_reasons / import_stats など、
+ * Config タブに「1キー1行」で保存する値はすべてこれを経由する
+ * （旧実装ではキー名とシリアライザ以外ほぼ同一の関数が4つ並んでいたのを集約した）。
+ * Config シート自体が無いプロジェクトでは自動作成してから1回だけリトライする。
  */
-export async function saveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
+async function saveConfigValue(spreadsheetId: string, key: string, value: string): Promise<void> {
     try {
-        await trySaveFulltextPoolRule(spreadsheetId, rule);
+        await trySaveConfigValue(spreadsheetId, key, value);
     } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveFulltextPoolRule] Config sheet missing, creating...');
+        // reject の中身が Error とは限らない（Promise.reject(文字列) 等）ため、
+        // .message への安全なアクセスに寄せる。
+        const message = String((error as { message?: unknown } | undefined)?.message ?? error);
+        if (message.includes('Unable to parse range') || message.includes('not found')) {
+            console.log(`[saveConfigValue] Config sheet missing, creating... (key=${key})`);
             await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveFulltextPoolRule(spreadsheetId, rule);
+            await trySaveConfigValue(spreadsheetId, key, value);
         } else {
             throw error;
         }
     }
 }
 
-async function trySaveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
+async function trySaveConfigValue(spreadsheetId: string, key: string, value: string): Promise<void> {
     const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let ruleRowIndex = -1;
+    let rowIndex = -1;
 
     values.forEach((row, index) => {
-        if (row[0] === 'fulltext_pool_rule') ruleRowIndex = index + 1;
+        if (row[0] === key) rowIndex = index + 1;
     });
 
-    const value = JSON.stringify(rule);
-    if (ruleRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${ruleRowIndex}`, [[value]]);
+    if (rowIndex !== -1) {
+        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
     } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_pool_rule', value]]);
+        await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
     }
+}
+
+/**
+ * フルテキスト候補ルールを保存
+ */
+export async function saveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
+    await saveConfigValue(spreadsheetId, 'fulltext_pool_rule', JSON.stringify(rule));
 }
 
 /**
  * レビュー基準（組入・除外基準）を保存
  */
 export async function saveReviewCriteria(spreadsheetId: string, criteria: ReviewCriteria): Promise<void> {
-    try {
-        await trySaveReviewCriteria(spreadsheetId, criteria);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveReviewCriteria] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveReviewCriteria(spreadsheetId, criteria);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveReviewCriteria(spreadsheetId: string, criteria: ReviewCriteria): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let criteriaRowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'review_criteria') criteriaRowIndex = index + 1;
-    });
-
-    const value = serializeReviewCriteria(criteria);
-    if (criteriaRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${criteriaRowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['review_criteria', value]]);
-    }
+    await saveConfigValue(spreadsheetId, 'review_criteria', serializeReviewCriteria(criteria));
 }
 
 /**
  * フルテキスト除外理由リストを Config タブの fulltext_exclude_reasons キーへ保存する
  */
 export async function saveExcludeReasonConfig(spreadsheetId: string, config: ExcludeReasonConfig): Promise<void> {
-    try {
-        await trySaveExcludeReasonConfig(spreadsheetId, config);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveExcludeReasonConfig] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveExcludeReasonConfig(spreadsheetId, config);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveExcludeReasonConfig(spreadsheetId: string, config: ExcludeReasonConfig): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let rowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'fulltext_exclude_reasons') rowIndex = index + 1;
-    });
-
-    const value = serializeExcludeReasonConfig(config);
-    if (rowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_exclude_reasons', value]]);
-    }
+    await saveConfigValue(spreadsheetId, 'fulltext_exclude_reasons', serializeExcludeReasonConfig(config));
 }
 
 /**
  * インポート統計を Config タブの import_stats キーへ保存する
  */
 export async function saveImportStats(spreadsheetId: string, stats: ImportStatsMap): Promise<void> {
-    try {
-        await trySaveImportStats(spreadsheetId, stats);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveImportStats] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveImportStats(spreadsheetId, stats);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveImportStats(spreadsheetId: string, stats: ImportStatsMap): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let statsRowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'import_stats') statsRowIndex = index + 1;
-    });
-
-    const value = JSON.stringify(stats);
-    if (statsRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${statsRowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['import_stats', value]]);
-    }
+    await saveConfigValue(spreadsheetId, 'import_stats', JSON.stringify(stats));
 }
 
 // ---------------------------------------------------------------------------
@@ -3314,6 +3251,7 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.maybe_count?.toString() ?? '',
         execution.failed_count?.toString() ?? '',
         execution.failure_breakdown ?? '',
+        execution.exclude_reasons_snapshot ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -3374,6 +3312,12 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
                         break;
                     case 'target_mode':
                         execution[header] = value ? parseLlmTargetMode(value) : undefined;
+                        break;
+                    case 'exclude_reasons_snapshot':
+                        // フルテキスト以外の実行では null（JSON文字列そのままで保持し、
+                        // 中身の配列としての解釈は呼び出し側に委ねる。criteria_snapshot と違い
+                        // ここではパースしない＝型は string | null のまま）
+                        execution[header] = value || null;
                         break;
                     default:
                         execution[header] = value || '';

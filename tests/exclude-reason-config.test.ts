@@ -9,6 +9,7 @@ import {
     findExcludeReasonPreset,
     EXCLUDE_REASON_PRESETS,
     MAX_EXCLUDE_REASON_ITEMS,
+    MAX_REASON_LABEL_LENGTH,
     type ExcludeReasonConfig,
 } from '../src/lib/exclude-reason-config';
 import {
@@ -73,11 +74,106 @@ test('parseExcludeReasonConfig: key 重複は先勝ちで捨て、labelEn 欠落
 test('serializeExcludeReasonConfig → parseExcludeReasonConfig で往復できる', () => {
     const config: ExcludeReasonConfig = {
         items: PCC_ITEMS,
+        retiredKeys: [],
         updated_at: '2026-08-20T00:00:00.000Z',
         updated_by: 'admin@example.com',
     };
     const parsed = parseExcludeReasonConfig(serializeExcludeReasonConfig(config));
     assert.deepEqual(parsed, config);
+});
+
+// ---------------------------------------------------------------------------
+// retiredKeys（キーの再利用防止）
+// ---------------------------------------------------------------------------
+
+test('retiredKeys は serialize/parse で往復する', () => {
+    const config: ExcludeReasonConfig = {
+        items: PCC_ITEMS,
+        retiredKeys: ['r2', 'r3'],
+        updated_at: '2026-08-20T00:00:00.000Z',
+        updated_by: 'admin@example.com',
+    };
+    const parsed = parseExcludeReasonConfig(serializeExcludeReasonConfig(config));
+    assert.deepEqual(parsed, config);
+});
+
+test('retiredKeys: items に含まれるキーは退役解除として除かれる（生き返り扱い）', () => {
+    const raw = JSON.stringify({
+        items: PCC_ITEMS,
+        retiredKeys: ['r1', 'r9'], // r1 は items に含まれる → 除かれる。r9 は含まれない → 残る
+        updated_at: '',
+        updated_by: '',
+    });
+    const parsed = parseExcludeReasonConfig(raw);
+    assert.ok(parsed);
+    assert.deepEqual(parsed.retiredKeys, ['r9']);
+});
+
+test('retiredKeys: 非文字列・空文字・重複は除かれる', () => {
+    const raw = JSON.stringify({
+        items: PCC_ITEMS,
+        retiredKeys: ['r9', 'r9', '', '  ', 42, null],
+        updated_at: '',
+        updated_by: '',
+    });
+    const parsed = parseExcludeReasonConfig(raw);
+    assert.ok(parsed);
+    assert.deepEqual(parsed.retiredKeys, ['r9']);
+});
+
+test('retiredKeys フィールドが無い旧形式データは壊れずに読め、retiredKeys は空配列になる', () => {
+    const raw = JSON.stringify({
+        items: PCC_ITEMS,
+        updated_at: '2026-01-01T00:00:00.000Z',
+        updated_by: 'legacy@example.com',
+    });
+    const parsed = parseExcludeReasonConfig(raw);
+    assert.ok(parsed);
+    assert.deepEqual(parsed.retiredKeys, []);
+    assert.deepEqual(parsed.items.map(i => i.key), ['population', 'concept', 'context', 'r1']);
+});
+
+test('retiredKeys にあるキーは nextExcludeReasonKey で再発行されない', () => {
+    // items が r1 のみ、retiredKeys に r2/r3 が積まれている状況を想定
+    // （過去に r2, r3 を使っていたが削除された。呼び出し側は items のキーと
+    // retiredKeys の両方を existingKeys に渡すこと）
+    const existingKeys = ['population', 'r1', 'r2', 'r3'];
+    assert.equal(nextExcludeReasonKey(existingKeys), 'r4');
+});
+
+test('MAX_EXCLUDE_REASON_ITEMS を超える items は先頭から切り捨てられ、retiredKeys の件数は上限に影響しない', () => {
+    const items = Array.from({ length: MAX_EXCLUDE_REASON_ITEMS + 5 }, (_, i) => ({
+        key: `r${i + 1}`, label: `理由${i + 1}`, labelEn: '',
+    }));
+    // retiredKeys は items の上限とは別枠なので、大量に積んでも件数の上限には数えられない
+    const existingRetired = Array.from({ length: MAX_EXCLUDE_REASON_ITEMS + 20 }, (_, i) => `old${i + 1}`);
+    const raw = JSON.stringify({ items, retiredKeys: existingRetired, updated_at: '', updated_by: '' });
+    const parsed = parseExcludeReasonConfig(raw);
+    assert.ok(parsed);
+    assert.equal(parsed.items.length, MAX_EXCLUDE_REASON_ITEMS);
+    assert.deepEqual(parsed.items.map(i => i.key), items.slice(0, MAX_EXCLUDE_REASON_ITEMS).map(i => i.key));
+    // 切り捨てられた r16〜r20 は retiredKeys に合流する（過去の Decisions で使われている
+    // 可能性があるため、切り捨てただけでは再発行防止の対象から漏れてしまう）
+    const truncatedKeys = items.slice(MAX_EXCLUDE_REASON_ITEMS).map(i => i.key);
+    for (const key of truncatedKeys) {
+        assert.ok(parsed.retiredKeys.includes(key), `${key} が retiredKeys に含まれるはず`);
+    }
+    assert.equal(parsed.retiredKeys.length, existingRetired.length + truncatedKeys.length);
+});
+
+test('MAX_REASON_LABEL_LENGTH を超えるラベルは切り詰められる（エラーにはしない）', () => {
+    const longLabel = 'あ'.repeat(MAX_REASON_LABEL_LENGTH + 10);
+    const longLabelEn = 'a'.repeat(MAX_REASON_LABEL_LENGTH + 10);
+    const raw = JSON.stringify({
+        items: [{ key: 'population', label: longLabel, labelEn: longLabelEn }],
+        updated_at: '',
+        updated_by: '',
+    });
+    const parsed = parseExcludeReasonConfig(raw);
+    assert.ok(parsed);
+    assert.equal(parsed.items[0].label.length, MAX_REASON_LABEL_LENGTH);
+    assert.equal(parsed.items[0].labelEn.length, MAX_REASON_LABEL_LENGTH);
+    assert.equal(parsed.items[0].label, longLabel.slice(0, MAX_REASON_LABEL_LENGTH));
 });
 
 // ---------------------------------------------------------------------------
@@ -90,7 +186,7 @@ test('resolveExcludeReasonItems: 未設定なら既定のPICO7区分', () => {
 });
 
 test('resolveExcludeReasonItems: 設定があればその項目を使う', () => {
-    const items = resolveExcludeReasonItems({ items: PCC_ITEMS, updated_at: '', updated_by: '' });
+    const items = resolveExcludeReasonItems({ items: PCC_ITEMS, retiredKeys: [], updated_at: '', updated_by: '' });
     assert.deepEqual(items.map(i => i.key), ['population', 'concept', 'context', 'r1']);
 });
 
@@ -189,10 +285,29 @@ test('英語ラベルは未入力なら日本語ラベルで代替する', () =>
     assert.equal(excludeReasonLabelEn('unknown_key', PCC_ITEMS), 'unknown_key');
 });
 
-test('fallbackExcludeReasonKey: other があればそれ、無ければ末尾（＝その他相当）', () => {
+test('fallbackExcludeReasonKey: 常に末尾の項目を返す（other は特別扱いしない）', () => {
+    // 既定リストは 'other' がたまたま末尾にあるので末尾＝'other'
     assert.equal(fallbackExcludeReasonKey(), 'other');
+    // カスタムリストに 'other' が無くても末尾を返す
     assert.equal(fallbackExcludeReasonKey(PCC_ITEMS), 'r1');
     assert.equal(fallbackExcludeReasonKey([]), '');
+});
+
+test('fallbackExcludeReasonKey: other が末尾でないリストでも末尾の項目を返す（キー名では判定しない）', () => {
+    const otherFirst: ExcludeReasonItem[] = [
+        { key: 'other', label: 'その他', labelEn: 'Other reasons' },
+        { key: 'population', label: 'Population 不適合', labelEn: 'Ineligible population' },
+        { key: 'r1', label: '査読なし文献', labelEn: 'Non-peer-reviewed' },
+    ];
+    assert.equal(fallbackExcludeReasonKey(otherFirst), 'r1');
+});
+
+test('fallbackExcludeReasonKey: other を含まないリストでも末尾を返す', () => {
+    const noOther: ExcludeReasonItem[] = [
+        { key: 'population', label: 'Population 不適合', labelEn: 'Ineligible population' },
+        { key: 'r1', label: '査読なし文献', labelEn: 'Non-peer-reviewed' },
+    ];
+    assert.equal(fallbackExcludeReasonKey(noOther), 'r1');
 });
 
 test('normalizeExcludeReasonKey: リストに無いAI出力はフォールバック理由へ寄せる', () => {

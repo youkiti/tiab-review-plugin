@@ -10,26 +10,41 @@
 // 保存値（key）は Decisions シートの reason 列に入る**過去データの参照キー**なので、
 // 一度発番したら変えないこと（ラベルはいつ変えてもよい）。項目を削除しても過去の判定は
 // 消えず、表示は excludeReasonLabel のフォールバックで生キーのまま残る。
+// **「一度発番したキーを再利用しない」の実体は ExcludeReasonConfig.retiredKeys**（下記）。
+// items から消えたキーはここに積まれ、nextExcludeReasonKey の衝突判定に使われる。
+// items だけを見て衝突判定すると、ブラインド中は他レビュアーの票が読めず使用件数が0件に
+// 見えるため、削除→再追加で他人が使っていたキーを再発行してしまう事故が実際に起きた。
 //
 // DOM/chrome API には依存しない（tests/ から直接 import してテストするため）。
 
-import { DEFAULT_EXCLUDE_REASON_ITEMS, type ExcludeReasonItem } from './exclude-reasons';
+import {
+    DEFAULT_EXCLUDE_REASON_ITEMS,
+    MAX_EXCLUDE_REASON_ITEMS,
+    MAX_REASON_LABEL_LENGTH,
+    type ExcludeReasonItem,
+} from './exclude-reasons';
+
+// MAX_EXCLUDE_REASON_ITEMS / MAX_REASON_LABEL_LENGTH は exclude-reasons.ts 側が定義源。
+// 既存の import 元（fulltext-reason-editor.ts 等）を壊さないよう、ここから re-export しておく
+// （逆方向に定義すると exclude-reasons.ts → exclude-reason-config.ts の循環 import になる）。
+export { MAX_EXCLUDE_REASON_ITEMS, MAX_REASON_LABEL_LENGTH };
 
 /** Config タブ fulltext_exclude_reasons に JSON で保存する値 */
 export interface ExcludeReasonConfig {
     /** 除外理由リスト。**配列の順序が優先順位**（先頭ほど上位） */
     items: ExcludeReasonItem[];
+    /**
+     * 過去に使われて今は items に無いキー（＝退役したキー）。
+     * nextExcludeReasonKey の衝突判定にこれも含めることで、削除した理由のキーを
+     * 再発行しない（再発行すると過去の Decisions 行が別ラベルとして集計されてしまう）。
+     * items に載っているキーはここに含めない（一度消してから同じキーで復活した場合は退役解除）。
+     */
+    retiredKeys: string[];
     /** ISO 8601。更新の識別用 */
     updated_at: string;
     /** 更新者 email */
     updated_by: string;
 }
-
-/** 1プロジェクトで持てる理由の上限。多すぎると判定者間で理由が割れて裁定が増える。 */
-export const MAX_EXCLUDE_REASON_ITEMS = 12;
-
-/** ラベルの最大長（表示崩れ防止。UI 側のバリデーションで使う） */
-export const MAX_REASON_LABEL_LENGTH = 60;
 
 /** 自動発番キーの接頭辞（既定キー population 等と衝突しない形にしている） */
 const GENERATED_KEY_PREFIX = 'r';
@@ -100,11 +115,23 @@ export function findExcludeReasonPreset(id: string): ExcludeReasonPreset | undef
 /**
  * Config タブ fulltext_exclude_reasons の値（JSON文字列）をパースする。
  *
+ * Config タブのセルは誰でも直接編集できるため、**このパース関数が唯一の信頼境界**。
+ * ここを通った後の ExcludeReasonConfig は「件数・ラベル長がアプリの上限内」であることが
+ * 保証される（エディタ側の validateExcludeReasonItems は人間の保存操作を止めるための
+ * バリデーションだが、直接編集されたセルはその経路を通らないため、ここでは弾かず切り詰める）。
+ *
  * - 空文字・undefined・null → null（未設定＝既定の7区分を使う）
  * - JSON パース失敗・形が違う・有効な項目が0件 → null
  *   （壊れた設定で「選択肢が1つも無い」画面になるより、既定に戻すほうが安全）
  * - key / label が非空文字列の項目だけを採用し、key が重複する場合は先勝ちで捨てる
  * - labelEn が無い項目は空文字（表示時に label で代替される）
+ * - 採用した項目が MAX_EXCLUDE_REASON_ITEMS 件を超える場合は**先頭から切り捨て**。
+ *   切り捨てたキーは過去の Decisions で使われている可能性があるため retiredKeys へ合流させ、
+ *   nextExcludeReasonKey の再発行対象から外す
+ * - label / labelEn が MAX_REASON_LABEL_LENGTH 文字を超える場合は**切り詰め**（エラーにはしない）
+ * - retiredKeys（過去に使われて今は items に無いキー。上記の切り捨て分を含む）は非空文字列だけ
+ *   採用し重複除去。items に含まれるキーは退役解除として除く。フィールドが無い旧形式データは
+ *   空配列として読む
  */
 export function parseExcludeReasonConfig(raw: string | undefined | null): ExcludeReasonConfig | null {
     if (!raw) return null;
@@ -131,15 +158,31 @@ export function parseExcludeReasonConfig(raw: string | undefined | null): Exclud
         seen.add(key);
         items.push({
             key,
-            label,
-            labelEn: typeof item.labelEn === 'string' ? item.labelEn.trim() : '',
+            label: label.slice(0, MAX_REASON_LABEL_LENGTH),
+            labelEn: (typeof item.labelEn === 'string' ? item.labelEn.trim() : '').slice(0, MAX_REASON_LABEL_LENGTH),
         });
     }
 
     if (items.length === 0) return null;
 
+    // 上限超過分は先頭 MAX_EXCLUDE_REASON_ITEMS 件だけ残して切り捨てる
+    const cappedItems = items.slice(0, MAX_EXCLUDE_REASON_ITEMS);
+    // 切り捨てられた項目のキー。過去の Decisions で使われている可能性があるため、
+    // 明示の retiredKeys と同様に再発行対象から外す（でなければこの経路だけ不変条件が抜ける）。
+    const truncatedKeys = items.slice(MAX_EXCLUDE_REASON_ITEMS).map(i => i.key);
+
+    const currentKeys = new Set(cappedItems.map(i => i.key));
+    const rawRetired = Array.isArray(obj.retiredKeys) ? obj.retiredKeys : [];
+    const retiredKeys = [...new Set(
+        [...rawRetired, ...truncatedKeys]
+            .filter((k): k is string => typeof k === 'string')
+            .map(k => k.trim())
+            .filter(k => k !== '' && !currentKeys.has(k))
+    )];
+
     return {
-        items,
+        items: cappedItems,
+        retiredKeys,
         updated_at: typeof obj.updated_at === 'string' ? obj.updated_at : '',
         updated_by: typeof obj.updated_by === 'string' ? obj.updated_by : '',
     };
@@ -161,7 +204,9 @@ export function resolveExcludeReasonItems(
 /**
  * 新規項目の内部キーを自動発番する（r1, r2, ...）。
  * 既存キーと衝突しない最小の番号を返す。過去データの参照キーになるため、
- * 一度使ったキーは項目を消しても再利用したくない場合は existingKeys に渡すこと。
+ * 一度使ったキーは項目を消しても再利用したくない場合は existingKeys に渡すこと
+ * （呼び出し側は現在の items のキーに加え、ExcludeReasonConfig.retiredKeys も
+ * existingKeys に含めること。でなければ削除済みキーが再発行されてしまう）。
  */
 export function nextExcludeReasonKey(existingKeys: readonly string[]): string {
     const used = new Set(existingKeys);
@@ -171,10 +216,15 @@ export function nextExcludeReasonKey(existingKeys: readonly string[]): string {
     }
 }
 
-/** 編集内容の検証結果。ok が false のとき message を UI に出す。 */
+/**
+ * 編集内容の検証結果。ok が false のとき messageKey（+ 任意で messageParam）を
+ * i18n の t() に渡して UI に出す。日本語文字列を直接持たせない（英語ロケールでも
+ * 日本語が出てしまう事故を避けるため。呼び出し側は t(validation.messageKey, validation.messageParam) する）。
+ */
 export interface ExcludeReasonValidation {
     ok: boolean;
-    message: string;
+    messageKey: string;
+    messageParam?: string;
 }
 
 /**
@@ -187,24 +237,24 @@ export interface ExcludeReasonValidation {
  */
 export function validateExcludeReasonItems(items: readonly ExcludeReasonItem[]): ExcludeReasonValidation {
     if (items.length === 0) {
-        return { ok: false, message: '除外理由は1件以上必要です' };
+        return { ok: false, messageKey: 'ftReason_errEmpty' };
     }
     if (items.length > MAX_EXCLUDE_REASON_ITEMS) {
-        return { ok: false, message: `除外理由は${MAX_EXCLUDE_REASON_ITEMS}件までです` };
+        return { ok: false, messageKey: 'ftReason_errTooMany', messageParam: String(MAX_EXCLUDE_REASON_ITEMS) };
     }
     if (items.some(i => i.label.trim() === '')) {
-        return { ok: false, message: '空のラベルがあります' };
+        return { ok: false, messageKey: 'ftReason_errEmptyLabel' };
     }
     if (items.some(i => i.label.trim().length > MAX_REASON_LABEL_LENGTH)) {
-        return { ok: false, message: `ラベルは${MAX_REASON_LABEL_LENGTH}文字までです` };
+        return { ok: false, messageKey: 'ftReason_errLabelTooLong', messageParam: String(MAX_REASON_LABEL_LENGTH) };
     }
     const labels = items.map(i => i.label.trim());
     if (new Set(labels).size !== labels.length) {
-        return { ok: false, message: '同じラベルの項目が複数あります' };
+        return { ok: false, messageKey: 'ftReason_errDuplicateLabel' };
     }
     const keys = items.map(i => i.key);
     if (new Set(keys).size !== keys.length) {
-        return { ok: false, message: '内部キーが重複しています' };
+        return { ok: false, messageKey: 'ftReason_errDuplicateKey' };
     }
-    return { ok: true, message: '' };
+    return { ok: true, messageKey: '' };
 }

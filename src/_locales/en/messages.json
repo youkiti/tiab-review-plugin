@@ -3121,7 +3121,7 @@
     "message": "Full-text exclusion reasons"
   },
   "ftReason_priorityNote": {
-    "message": "The order is the priority order (pick the highest one when several apply). The first $1 items get number-key shortcuts on the screening page. Fewer options means fewer reason conflicts to adjudicate later."
+    "message": "The order is the priority order (pick the highest one when several apply). The first $1 items get number-key shortcuts on the screening page. Fewer options means fewer reason conflicts to adjudicate later. The last item is the catch-all for \"none of the above\" (the AI's out-of-list categories fall back here too). Put your \"Other\" item last."
   },
   "ftReason_keyNote": {
     "message": "Internal storage keys are generated automatically. Removing an item does not delete past decisions (they keep their original key in the summaries)."
@@ -3167,5 +3167,23 @@
   },
   "ftReason_saveError": {
     "message": "Failed to save exclusion reasons: $1"
+  },
+  "ftReason_errEmpty": {
+    "message": "At least one exclusion reason is required"
+  },
+  "ftReason_errTooMany": {
+    "message": "You can have at most $1 exclusion reasons"
+  },
+  "ftReason_errEmptyLabel": {
+    "message": "Some reasons have an empty label"
+  },
+  "ftReason_errLabelTooLong": {
+    "message": "Labels must be $1 characters or fewer"
+  },
+  "ftReason_errDuplicateLabel": {
+    "message": "Two or more reasons share the same label"
+  },
+  "ftReason_errDuplicateKey": {
+    "message": "Internal keys are duplicated"
   }
 }

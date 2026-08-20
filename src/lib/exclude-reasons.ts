@@ -23,57 +23,63 @@ export interface ExcludeReasonItem {
     labelEn: string;
 }
 
-/** 既定（PICO）の除外理由。**配列の順序が優先順位**（先頭ほど上位）。 */
-export const EXCLUDE_REASON_VALUES = [
-    'population',
-    'intervention',
-    'comparator',
-    'outcome',
-    'study_design',
-    'duplicate',
-    'other',
-] as const;
-
-export type ExcludeReason = typeof EXCLUDE_REASON_VALUES[number];
-
-/** 既定の表示ラベル */
-export const EXCLUDE_REASON_LABELS: Record<ExcludeReason, string> = {
-    population: 'Population 不適合',
-    intervention: 'Intervention 不適合',
-    comparator: 'Comparator 不適合',
-    outcome: 'Outcome 不適合',
-    study_design: 'Study design 不適合',
-    duplicate: '重複',
-    other: 'その他',
-};
-
 /**
- * PRISMA フロー図・論文用テキスト（manuscript.ts）向けの既定の英語ラベル。
- * Record<ExcludeReason, string> で型付けしているので、既定区分を1つ足したときに
- * 英語ラベルの追加漏れは typecheck で落ちる（静かに劣化しない）。
+ * 既定（PICO）の除外理由リスト。**唯一の定義源**。配列の順序が優先順位（先頭ほど上位）。
+ * 既定区分を増減するときはここだけ触ればよい（EXCLUDE_REASON_VALUES / EXCLUDE_REASON_LABELS /
+ * EXCLUDE_REASON_LABELS_EN / ExcludeReason 型はすべてこの配列からの派生値）。
+ * `satisfies` により、項目追加時に label / labelEn の入れ忘れは typecheck で落ちる。
  */
-export const EXCLUDE_REASON_LABELS_EN: Record<ExcludeReason, string> = {
-    population: 'Ineligible population',
-    intervention: 'Ineligible intervention',
-    comparator: 'Ineligible comparator',
-    outcome: 'Ineligible outcome',
-    study_design: 'Ineligible study design',
-    duplicate: 'Duplicate report',
-    other: 'Other reasons',
-};
+const DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE = [
+    { key: 'population', label: 'Population 不適合', labelEn: 'Ineligible population' },
+    { key: 'intervention', label: 'Intervention 不適合', labelEn: 'Ineligible intervention' },
+    { key: 'comparator', label: 'Comparator 不適合', labelEn: 'Ineligible comparator' },
+    { key: 'outcome', label: 'Outcome 不適合', labelEn: 'Ineligible outcome' },
+    { key: 'study_design', label: 'Study design 不適合', labelEn: 'Ineligible study design' },
+    { key: 'duplicate', label: '重複', labelEn: 'Duplicate report' },
+    { key: 'other', label: 'その他', labelEn: 'Other reasons' },
+] as const satisfies readonly ExcludeReasonItem[];
+
+export type ExcludeReason = typeof DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE[number]['key'];
 
 /** 既定（PICO）の理由リスト。プロジェクト設定が無いときはこれを使う。 */
-export const DEFAULT_EXCLUDE_REASON_ITEMS: readonly ExcludeReasonItem[] = EXCLUDE_REASON_VALUES.map(key => ({
-    key,
-    label: EXCLUDE_REASON_LABELS[key],
-    labelEn: EXCLUDE_REASON_LABELS_EN[key],
-}));
+export const DEFAULT_EXCLUDE_REASON_ITEMS: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE;
+
+/** 既定（PICO）の除外理由キー。**配列の順序が優先順位**（先頭ほど上位）。派生値。 */
+export const EXCLUDE_REASON_VALUES: readonly ExcludeReason[] =
+    DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE.map(i => i.key);
+
+/** 既定の表示ラベル。派生値。 */
+export const EXCLUDE_REASON_LABELS: Record<ExcludeReason, string> = DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE.reduce(
+    (acc, i) => ({ ...acc, [i.key]: i.label }),
+    {} as Record<ExcludeReason, string>
+);
+
+/**
+ * PRISMA フロー図・論文用テキスト（manuscript.ts）向けの既定の英語ラベル。派生値。
+ * 英語ラベルの追加漏れを防いでいるのはこの Record 型ではない（reduce + キャストで
+ * 組み立てているだけなので、この Record<ExcludeReason, string> 自体には typecheck で
+ * 漏れを検出する力はない）。保証の出どころは定義源 DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE の
+ * `satisfies readonly ExcludeReasonItem[]`（labelEn が必須プロパティ）側。
+ */
+export const EXCLUDE_REASON_LABELS_EN: Record<ExcludeReason, string> = DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE.reduce(
+    (acc, i) => ({ ...acc, [i.key]: i.labelEn }),
+    {} as Record<ExcludeReason, string>
+);
 
 /**
  * 数字キーで選べる上限。理由リストはこれより多くても保存・選択できるが、
  * 数字キーのショートカットは先頭9件までしか割り当てられない（1〜9）。
  */
 export const MAX_REASON_HOTKEYS = 9;
+
+/**
+ * 1プロジェクトで持てる理由の上限。多すぎると判定者間で理由が割れて裁定が増える。
+ * retiredKeys（exclude-reason-config.ts の ExcludeReasonConfig.retiredKeys）はこの上限に数えない。
+ */
+export const MAX_EXCLUDE_REASON_ITEMS = 15;
+
+/** ラベルの最大長（表示崩れ防止。UI 側のバリデーション・Config パース時の切り詰めで使う） */
+export const MAX_REASON_LABEL_LENGTH = 50;
 
 /** 表示用ラベル（未知のキーはそのまま返す。空文字は「理由なし」の意味で空のまま） */
 export function excludeReasonLabel(
@@ -148,15 +154,16 @@ export function hasExcludeReasonConflict(reasons: readonly string[]): boolean {
 /**
  * 「どれにも当てはまらないとき」に落とす先の理由キー。
  *
- * 既定リストの 'other' があればそれを使い、無ければ**最後の項目**（＝優先順位が最下位。
- * 「その他」を末尾に置く運用のため）を使う。理由リストが空なら空文字。
- * カスタム理由では 'other' が存在しない場合があるため、'other' 決め打ちにしないこと。
+ * **常に最後の項目**（＝優先順位が最下位）を使う。理由リストが空なら空文字。
+ * 「その他」に相当する項目は末尾に置く運用（並び＝優先順位のため）。
+ * 'other' というキー名を特別扱いしないこと（カスタム理由には存在しないことがあるうえ、
+ * 存在しても末尾にあるとは限らない。位置だけで決める）。
  */
 export function fallbackExcludeReasonKey(
     items: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
 ): string {
     if (items.length === 0) return '';
-    return items.some(i => i.key === 'other') ? 'other' : items[items.length - 1].key;
+    return items[items.length - 1].key;
 }
 
 /**

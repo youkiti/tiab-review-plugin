@@ -51,8 +51,11 @@ export function mountReasonEditor(options: ReasonEditorOptions): void {
 
 function render(options: ReasonEditorOptions): void {
     const { container, isAdmin } = options;
+    // className は触らない（sidepanel.html の class="fulltext-reason-editor hidden" を
+    // 上書きすると fulltext-tab.css の .fulltext-reason-editor ブロックが死ぬ。
+    // hidden の付け外しは呼び出し側 fulltext-tab.ts の classList に任せる。
+    // 兄弟コンポーネント fulltext-rule-editor.ts の mountRuleEditor に倣う）。
     container.innerHTML = '';
-    container.className = 'ft-reason-editor';
 
     const title = document.createElement('div');
     title.className = 'ft-reason-editor-title';
@@ -61,7 +64,7 @@ function render(options: ReasonEditorOptions): void {
 
     const note = document.createElement('div');
     note.className = 'ft-reason-editor-note';
-    note.textContent = t('ftReason_priorityNote', String(MAX_REASON_HOTKEYS));
+    note.textContent = t('ftReason_priorityNote', String(Math.min(draft.length, MAX_REASON_HOTKEYS)));
     container.appendChild(note);
 
     if (!isAdmin) {
@@ -169,12 +172,15 @@ function buildAddRow(options: ReasonEditorOptions): HTMLElement {
     addBtn.textContent = t('ftReason_add');
     addBtn.disabled = draft.length >= MAX_EXCLUDE_REASON_ITEMS;
     addBtn.addEventListener('click', () => {
-        // 既存キーに加え、現在の設定にあるキーとも衝突させない
-        // （削除した項目のキーを再利用すると、過去の判定が別の意味の理由として読まれる）
+        // 既存キーに加え、現在の設定にあるキー・過去に退役したキーとも衝突させない
+        // （削除した項目のキーを再利用すると、過去の判定が別の意味の理由として読まれる）。
+        // usageCounts はブラインド中は他レビュアーの票を読めず0件に見えるため、
+        // 再利用回避の実体は retiredKeys（state.excludeReasonConfig）で担保する。
         const usedKeys = [
             ...draft.map(i => i.key),
             ...options.currentItems.map(i => i.key),
             ...options.usageCounts.keys(),
+            ...(state.excludeReasonConfig?.retiredKeys ?? []),
         ];
         draft.push({ key: nextExcludeReasonKey(usedKeys), label: '', labelEn: '' });
         render(options);
@@ -255,7 +261,7 @@ async function handleSave(
 
     const validation = validateExcludeReasonItems(items);
     if (!validation.ok) {
-        showToast(validation.message, 3000);
+        showToast(t(validation.messageKey, validation.messageParam), 3000);
         return;
     }
 
@@ -265,8 +271,23 @@ async function handleSave(
     saveBtn.textContent = t('common_saving');
 
     try {
+        // 今回の編集で items から消えたキーを退役させる。options.currentItems は
+        // 編集セッション開始時点（mount時）のスナップショットで、プリセット読込等の
+        // 中間操作に関わらず「開始時にあって今は無いキー」を正しく拾える。
+        // 既存の retiredKeys（他セッションで既に退役したキーを含む）と合わせ、
+        // 今回また items に戻ったキーは退役解除する。
+        const currentKeySet = new Set(items.map(i => i.key));
+        const newlyRetired = options.currentItems
+            .map(i => i.key)
+            .filter(key => !currentKeySet.has(key));
+        const retiredKeys = [...new Set([
+            ...(state.excludeReasonConfig?.retiredKeys ?? []),
+            ...newlyRetired,
+        ])].filter(key => !currentKeySet.has(key));
+
         const config: ExcludeReasonConfig = {
             items,
+            retiredKeys,
             updated_at: new Date().toISOString(),
             updated_by: state.userEmail,
         };

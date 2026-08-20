@@ -704,10 +704,11 @@ function renderReasonOptions(): void {
     excludeReasonItems.forEach((item, idx) => {
         const opt = document.createElement('option');
         opt.value = item.key;
-        // 既定の「その他」が末尾にある場合だけ「1〜n が当てはまらない場合」の補足を付ける
-        // （カスタム理由の末尾が「その他」とは限らないため、キーで判定する）
-        const isLastOther = item.key === 'other' && idx === excludeReasonItems.length - 1 && idx > 0;
-        const suffix = isLastOther ? `（1〜${idx}が当てはまらない場合）` : '';
+        // フォールバック理由（fallbackExcludeReasonKey）は常に末尾の項目なので、
+        // 末尾の項目にだけ「1〜n が当てはまらない場合」の補足を付ける
+        // （'other' というキー名では判定しない。カスタム理由には無いか、あっても末尾とは限らない）
+        const isFallback = idx === excludeReasonItems.length - 1 && idx > 0;
+        const suffix = isFallback ? `（1〜${idx}が当てはまらない場合）` : '';
         opt.textContent = `${idx + 1}. ${item.label}${suffix}`;
         select.appendChild(opt);
     });
@@ -1651,7 +1652,10 @@ function renderContextPanel(ref: Reference): void {
     if (tiab) {
         tiabRow.dataset.decision = tiab.decision;
         const parts = [`自分のTiAb判定: ${AI_DECISION_LABELS[tiab.decision] ?? tiab.decision}`];
-        if (tiab.reason) parts.push(excludeReasonLabel(tiab.reason, excludeReasonItems));
+        // TiAb の除外理由は既定PICOキー（フルテキスト用カスタムリストとは別物）で保存されているため、
+        // excludeReasonItems（フルテキスト用リスト）で引くと解決できず生キーが出る。
+        // 引数を省略して既定リスト（DEFAULT_EXCLUDE_REASON_ITEMS）で引く。
+        if (tiab.reason) parts.push(excludeReasonLabel(tiab.reason));
         if (tiab.note) parts.push(tiab.note);
         tiabRow.textContent = parts.join(' · ');
     } else {
