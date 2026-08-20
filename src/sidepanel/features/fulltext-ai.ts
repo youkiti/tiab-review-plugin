@@ -46,6 +46,7 @@ import {
     DriveAccessDeniedError,
 } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
+import { normalizeExcludeReasonKey } from '../../lib/exclude-reasons';
 import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
@@ -552,6 +553,10 @@ async function handleStartAiBatch(): Promise<void> {
         // LLM_Executions.is_active と二重管理しないため常に false 固定にする
         is_active: false,
         executed_by: state.userEmail,
+        // AI判定のスキーマ(enum)・プロンプトはこのリストから生成される（judgeOne の judgeFulltext 呼び出し
+        // 参照）。あとで fulltext_exclude_reasons のラベルを変えても、この Run が何の区分で判定したかを
+        // 復元できるようにスナップショットを残す（criteria_snapshot / screening_prompt と同列）。
+        exclude_reasons_snapshot: JSON.stringify(state.excludeReasonItems),
     };
     // 開始行の保存に成功したか（終了時の記録方法をこれで分岐する。must-fix 3 参照）
     let executionLogWritten = false;
@@ -703,7 +708,9 @@ async function judgeOne(
     let usageMetadata: JudgeFulltextResult['usageMetadata'];
     let responseMetadata: JudgeFulltextResult['responseMetadata'];
     try {
-        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(bytes, screeningPrompt, modelConfig));
+        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(
+            bytes, screeningPrompt, modelConfig, 'ja', undefined, state.excludeReasonItems
+        ));
     } catch (err) {
         // judgeFulltext は PDFサイズ超過（PdfTooLargeError）や Gemini API 呼び出し失敗
         // （GeminiApiError）等、既に分類可能なエラーはそのまま投げてくる。
@@ -714,6 +721,17 @@ async function judgeOne(
         throw classifyFulltextAiFailure(err) === 'other' ? new LlmCallError(err) : err;
     }
 
+    // normalizeDecision は output.decision が列挙外（モデルの逸脱出力）でも
+    // include_probability からフォールバックする。note・reason の両方でこの最終判定を
+    // 基準に揃えるため、note を組み立てるより前に確定させる。
+    const normalizedDecision = normalizeDecision(output);
+    // 除外時のみ正規化済みキーを持たせる（人間判定の reason 運用と揃える）。
+    // カスタム理由では 'other' が存在しないことがあるため、リストに無い値は
+    // normalizeExcludeReasonKey でフォールバック理由（常に末尾）へ寄せる。
+    const normalizedReasonKey = normalizedDecision === 'exclude'
+        ? normalizeExcludeReasonKey(output.exclude_reason_category, state.excludeReasonItems)
+        : undefined;
+
     const note: FulltextLlmDecisionNote = {
         type: 'llm_fulltext',
         execution_id: executionId,
@@ -723,21 +741,27 @@ async function judgeOne(
         response_id: responseMetadata?.responseId,
         include_probability: output.include_probability,
         reason: output.reason,
-        exclude_reason_category: output.exclude_reason_category,
+        // note には decision.reason と同じ正規化後のキーを入れる（バナー・シート表示が
+        // 食い違わないように）。モデルの生出力はデバッグ価値があるため、正規化で値が
+        // 変わった場合だけ exclude_reason_category_raw に残す。
+        exclude_reason_category: normalizedReasonKey,
+        exclude_reason_category_raw: output.exclude_reason_category && output.exclude_reason_category !== normalizedReasonKey
+            ? output.exclude_reason_category
+            : undefined,
         evidence: output.evidence,
         image_only: imageOnly,
         prompt_version: FULLTEXT_PROMPT_VERSION,
         usageMetadata,
     };
 
-    const normalizedDecision = normalizeDecision(output);
     const decision: Decision = {
         decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
         reviewer_id: reviewerId,
         decision: normalizedDecision,
-        // 除外時は Decisions の reason 列に PRISMA 区分を入れる（人間判定と同じ運用）
-        reason: output.decision === 'exclude' ? (output.exclude_reason_category || 'other') : undefined,
+        // 除外時は Decisions の reason 列に除外理由の区分を入れる（人間判定と同じ運用）。
+        // note.exclude_reason_category と同じ正規化済みキーを使う（食い違い防止）。
+        reason: normalizedReasonKey,
         note: JSON.stringify(note),
         decided_at: new Date().toISOString(),
         client_version: getClientVersion('-llm'),

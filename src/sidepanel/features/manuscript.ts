@@ -24,14 +24,27 @@ import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo } from '../../lib/sheets-api';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
-import { EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
-import type { ExcludeReason } from '../../lib/exclude-reasons';
+import { excludeReasonLabelEn, EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
 
 export type ManuscriptPhase = 'tiab' | 'fulltext';
 
+/**
+ * 論文用テキスト・PRISMA フロー図向けの英語ラベル。
+ * プロジェクト設定の理由リスト（英語ラベル欄）を使い、未入力なら日本語ラベルで代替する。
+ *
+ * 現在の理由リストに無いキー（設定変更前に確定した判定など）は、生キーへ落ちる前に
+ * 既定リスト（EXCLUDE_REASON_LABELS_EN）を引く。既定キー（population 等）は
+ * プロジェクト設定を変えても値自体は変わらないため、これで論文の英文 Results/PRISMA に
+ * `study_design (n = 12)` のような生キーが混入するのを防げる。カスタムキー（r1 等）は
+ * 既定リストにも無いため、その場合のみ最終的に生キーが残る。
+ */
 function reasonLabelEn(reason: string): string {
     if (!reason) return 'Reason not recorded';
-    return EXCLUDE_REASON_LABELS_EN[reason as ExcludeReason] ?? reason;
+    const items = state.excludeReasonItems;
+    if (items.some(i => i.key === reason)) {
+        return excludeReasonLabelEn(reason, items);
+    }
+    return EXCLUDE_REASON_LABELS_EN[reason as keyof typeof EXCLUDE_REASON_LABELS_EN] ?? reason;
 }
 
 /** 文献の全判定を集める（allDecisions + myDecision、重複排除） */

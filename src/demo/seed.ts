@@ -54,6 +54,7 @@ const LLM_EXECUTIONS_HEADERS = [
     'requested_model', 'model_version', 'response_id',
     'target_mode', 'target_sets', 'target_selected_count',
     'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
+    'exclude_reasons_snapshot',
 ];
 
 const LLM_RUNS_HEADERS = [

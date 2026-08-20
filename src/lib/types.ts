@@ -176,6 +176,14 @@ export interface LlmExecution {
     // updateLlmExecution がヘッダ駆動で行を組み立てており、オブジェクト型にすると criteria_snapshot の
     // ような特別扱いの分岐を追加で足す必要が出るため（sheets-api.ts 側の実装コメント参照）
     failure_breakdown?: string;
+    /**
+     * フルテキストAI判定時点の除外理由リストのスナップショット（JSON文字列。
+     * `[{key,label,labelEn}]`。criteria_snapshot / screening_prompt と同じ役割）。
+     * AI判定のスキーマ(enum)とプロンプトはこのリストから生成されるため、後から
+     * fulltext_exclude_reasons のラベルを変更しても、過去 Run の区分の意味を復元できるようにする。
+     * フルテキスト以外の実行（TiAb の prompt_generation / batch_screening）では null。
+     */
+    exclude_reasons_snapshot?: string | null;
 }
 
 /**
@@ -290,7 +298,12 @@ export interface FulltextJudgeOutput {
     include_probability: number;
     /** 判定理由（除外時は具体的に） */
     reason: string;
-    /** 除外時のPRISMA区分（population/intervention/comparator/outcome/study_design/duplicate/other） */
+    /**
+     * 除外時の区分（モデルの生出力）。プロジェクト設定 `fulltext_exclude_reasons` で決まる
+     * **可変の区分**（固定7区分ではない。PICO/PECO/PCC/SPIDER 等プリセットやカスタム編集で変わる）。
+     * リスト外の値をモデルが返すこともあるため、`'other'` 決め打ちで扱わないこと。
+     * 保存・表示に使う前に必ず `normalizeExcludeReasonKey()` でそのときの理由リストへ正規化する。
+     */
     exclude_reason_category?: string;
     evidence: FulltextEvidence[];
 }
@@ -308,7 +321,13 @@ export interface FulltextLlmDecisionNote {
     response_id?: string;
     include_probability: number;
     reason: string;
+    /** normalizeExcludeReasonKey() で正規化済みのキー（Decisions.reason と同じ値）。 */
     exclude_reason_category?: string;
+    /**
+     * モデルの生出力（正規化前）。exclude_reason_category と一致する場合は入れない
+     * （デバッグ用に、正規化でフォールバックへ寄せられた・列挙外の値だった場合だけ残す）。
+     */
+    exclude_reason_category_raw?: string;
     evidence: FulltextEvidence[];
     /** スキャン(画像only)PDFだったか。ハイライト精度の注意表示に使う。 */
     image_only?: boolean;

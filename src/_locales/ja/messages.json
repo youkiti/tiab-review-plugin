@@ -3057,7 +3057,6 @@
   "webapp_desktopNoticeClose": {
     "message": "閉じる"
   },
-
   "criteria_buttonTitle": {
     "message": "レビュー基準（組入・除外基準）"
   },
@@ -3105,5 +3104,86 @@
   },
   "criteria_saveError": {
     "message": "レビュー基準の保存に失敗しました: $1"
+  },
+  "ftReason_lineDefault": {
+    "message": "除外理由: 既定の$1区分（$2）"
+  },
+  "ftReason_lineCustom": {
+    "message": "除外理由: カスタム$1区分（$2）"
+  },
+  "ftReason_edit": {
+    "message": "✎ 編集"
+  },
+  "ftReason_view": {
+    "message": "確認"
+  },
+  "ftReason_editorTitle": {
+    "message": "フルテキストの除外理由"
+  },
+  "ftReason_priorityNote": {
+    "message": "並び順が優先順位です（複数当てはまるときは上を選ぶ運用）。先頭$1件までは判定画面で数字キーに割り当てられます。理由が判定者間で割れると裁定が必要になるため、選択肢は絞るのが安全です。末尾の項目は「どれにも当てはまらないとき」の受け皿になります（AIがリスト外の区分を返した場合もここへ寄ります）。『その他』に相当する項目を末尾に置いてください。"
+  },
+  "ftReason_keyNote": {
+    "message": "内部の保存キーは自動で発番されます。項目を削除しても過去の判定は消えません（削除した理由は集計に元のキーのまま残ります）。"
+  },
+  "ftReason_labelPlaceholder": {
+    "message": "表示ラベル（例: Population 不適合）"
+  },
+  "ftReason_labelEnPlaceholder": {
+    "message": "英語ラベル（例: Ineligible population）"
+  },
+  "ftReason_add": {
+    "message": "＋ 理由を追加"
+  },
+  "ftReason_presetLabel": {
+    "message": "プリセット:"
+  },
+  "ftReason_presetApply": {
+    "message": "読み込む"
+  },
+  "ftReason_presetConfirm": {
+    "message": "編集中の内容を「$1」で置き換えます。よろしいですか？"
+  },
+  "ftReason_moveUp": {
+    "message": "上へ（優先順位を上げる）"
+  },
+  "ftReason_moveDown": {
+    "message": "下へ（優先順位を下げる）"
+  },
+  "ftReason_remove": {
+    "message": "この理由を削除"
+  },
+  "ftReason_usedCount": {
+    "message": "使用中 $1 件"
+  },
+  "ftReason_removeUsedConfirm": {
+    "message": "「$1」は既に $2 件の判定で使われています。削除すると今後は選べなくなりますが、過去の判定はそのまま残ります。削除しますか？"
+  },
+  "ftReason_readonly": {
+    "message": "除外理由の編集は管理者のみ可能です（閲覧のみ）。"
+  },
+  "ftReason_saved": {
+    "message": "除外理由を保存しました"
+  },
+  "ftReason_saveError": {
+    "message": "除外理由の保存に失敗しました: $1"
+  },
+  "ftReason_errEmpty": {
+    "message": "除外理由は1件以上必要です"
+  },
+  "ftReason_errTooMany": {
+    "message": "除外理由は$1件までです"
+  },
+  "ftReason_errEmptyLabel": {
+    "message": "空のラベルがあります"
+  },
+  "ftReason_errLabelTooLong": {
+    "message": "ラベルは$1文字までです"
+  },
+  "ftReason_errDuplicateLabel": {
+    "message": "同じラベルの項目が複数あります"
+  },
+  "ftReason_errDuplicateKey": {
+    "message": "内部キーが重複しています"
   }
 }

@@ -193,3 +193,20 @@ test('computeFulltextConsensus: 票が無ければ pending・不一致なし・�
     assert.equal(result.adjudicatedBy, null);
     assert.equal(result.adjudicatedAt, null);
 });
+
+test('computeFulltextConsensus: カスタム除外理由でも代表理由はそのリストの並びで決まる', () => {
+    // PCC 構成（Population → Concept → Context）。既定の PICO 7区分には無い理由が含まれる。
+    const items = [
+        { key: 'population', label: 'Population 不適合', labelEn: '' },
+        { key: 'concept', label: 'Concept 不適合', labelEn: '' },
+        { key: 'context', label: 'Context 不適合', labelEn: '' },
+    ];
+    const votes: FulltextVote[] = [
+        { judge: 'b@example.com', decision: 'exclude', reason: 'context' },
+        { judge: 'a@example.com', decision: 'exclude', reason: 'concept' },
+    ];
+    const result = computeFulltextConsensus(votes, items);
+    assert.equal(result.decision, 'exclude');
+    assert.equal(result.primaryReason, 'concept');
+    assert.equal(result.reasonConflict, true);
+});

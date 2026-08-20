@@ -23,7 +23,7 @@ import { getReviewerLabel } from './screening/reviewer-utils';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
 import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './fulltext-ai';
-import { excludeReasonLabel, EXCLUDE_REASON_VALUES } from '../../lib/exclude-reasons';
+import { excludeReasonLabel } from '../../lib/exclude-reasons';
 import { getClientVersion } from '../../lib/client-version';
 import { saveDecision } from '../../lib/sheets-api';
 import {
@@ -66,7 +66,7 @@ export function isFulltextResultsMode(): boolean {
 
 function reasonLabel(reason: string): string {
     if (!reason) return '(理由未記入)';
-    return excludeReasonLabel(reason);
+    return excludeReasonLabel(reason, state.excludeReasonItems);
 }
 
 /** 入手状態（未記録は not_retrieved 扱い） */
@@ -151,7 +151,7 @@ function buildVotesForConsensus(ref: ReferenceWithStatus, judges: Set<string>): 
 
 /** 選択判定者＋裁定票から合議結果を計算する（表示・エクスポート双方の唯一の入口） */
 function getConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextConsensusResult {
-    return computeFulltextConsensus(buildVotesForConsensus(ref, judges));
+    return computeFulltextConsensus(buildVotesForConsensus(ref, judges), state.excludeReasonItems);
 }
 
 // ---------------------------------------------------------------------------
@@ -462,7 +462,7 @@ function renderConflicts(candidates: ReferenceWithStatus[], judges: Set<string>)
     const items = candidates
         .map(ref => {
             const votes = buildVotesForConsensus(ref, judges);
-            return { ref, votes, consensus: computeFulltextConsensus(votes) };
+            return { ref, votes, consensus: computeFulltextConsensus(votes, state.excludeReasonItems) };
         })
         .filter(({ consensus }) => consensus.conflict || consensus.reasonConflict);
 
@@ -603,10 +603,12 @@ function buildAdjudicationControls(ref: ReferenceWithStatus, votes: FulltextVote
     placeholderOpt.value = '';
     placeholderOpt.textContent = t('fulltext_conflictReasonPlaceholder');
     reasonSelect.appendChild(placeholderOpt);
-    EXCLUDE_REASON_VALUES.forEach((value, idx) => {
+    // 選択肢はプロジェクト設定（Config タブ fulltext_exclude_reasons）から。
+    // スクリーニング側（fulltext.ts の renderReasonOptions）と同じ配列・同じ並び。
+    state.excludeReasonItems.forEach((item, idx) => {
         const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = `${idx + 1}. ${excludeReasonLabel(value)}`;
+        opt.value = item.key;
+        opt.textContent = `${idx + 1}. ${item.label}`;
         reasonSelect.appendChild(opt);
     });
 

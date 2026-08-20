@@ -24,6 +24,7 @@ import {
 import { renderTeamProgress } from './team-progress';
 import { switchToTab } from './llm';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
+import { mountReasonEditor } from './fulltext-reason-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
 import type { FulltextFetchOutcome } from '../../lib/fulltext-retriever';
 import {
@@ -115,6 +116,7 @@ export function renderFulltextTab(): void {
     const candidates = getVisibleFulltextCandidateList();
 
     renderRuleAndProgress(candidates);
+    renderReasonRow();
     renderFulltextAssignmentRow();
     renderTeamProgress();
     renderFulltextChecklist(candidates);
@@ -135,6 +137,22 @@ function renderRuleAndProgress(candidates: ReferenceWithStatus[]): void {
         : t('fulltext_ruleUnset');
     dom.fulltextRuleLine.classList.toggle('rule-unset', !rule);
     dom.fulltextRuleEditBtn.textContent = rule ? t('fulltext_ruleEdit') : t('fulltext_ruleSet');
+}
+
+/**
+ * 除外理由リストの1行サマリ（件数＋先頭いくつかのラベル）を描画する。
+ * 既定（未設定）とカスタムを区別して出し、どの区分でスクリーニングしているかを一目で分かるようにする。
+ */
+function renderReasonRow(): void {
+    const items = state.excludeReasonItems;
+    const isCustom = state.excludeReasonConfig !== null;
+    // 先頭3件だけ並べる（全部出すと1行に収まらない）
+    const preview = items.slice(0, 3).map(i => i.label).join(' / ');
+    const suffix = items.length > 3 ? ' …' : '';
+    dom.fulltextReasonLine.textContent = isCustom
+        ? t('ftReason_lineCustom', [String(items.length), preview + suffix])
+        : t('ftReason_lineDefault', [String(items.length), preview + suffix]);
+    dom.fulltextReasonEditBtn.textContent = state.isAdmin ? t('ftReason_edit') : t('ftReason_view');
 }
 
 function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
@@ -418,6 +436,47 @@ function openRuleEditor(): void {
 }
 
 // ---------------------------------------------------------------------------
+// 除外理由エディタ
+// ---------------------------------------------------------------------------
+
+function toggleReasonEditor(): void {
+    const div = dom.fulltextReasonEditorDiv;
+    if (!div.classList.contains('hidden')) {
+        div.classList.add('hidden');
+        return;
+    }
+    div.classList.remove('hidden');
+    mountReasonEditor({
+        container: div,
+        currentItems: state.excludeReasonItems,
+        usageCounts: collectReasonUsage(),
+        isAdmin: state.isAdmin,
+        onSaved: () => {
+            div.classList.add('hidden');
+            renderFulltextTab();
+        },
+        onClose: () => div.classList.add('hidden'),
+    });
+}
+
+/**
+ * 理由キーごとの使用件数（フルテキストの除外判定）を数える。
+ * 「使用中の理由を消そうとしている」ことをエディタ側で警告するために使う。
+ * ブラインド中は他人の票が読み込まれず 0 件に見えることがあるが、
+ * 削除しても過去データは消えないため、件数は警告の材料として扱えば十分。
+ */
+function collectReasonUsage(): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const d of collectAllDecisions()) {
+        if (d.screening_phase !== 'fulltext' || d.decision !== 'exclude') continue;
+        const key = (d.reason || '').trim();
+        if (!key) continue;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+}
+
+// ---------------------------------------------------------------------------
 // OA検索（一括・単発）
 // ---------------------------------------------------------------------------
 
@@ -639,6 +698,7 @@ export function setupFulltextTabListeners(): void {
     setFulltextAssignmentDeps({ rerenderTab: renderFulltextTab });
     setupFulltextAssignmentListeners();
     dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
+    dom.fulltextReasonEditBtn?.addEventListener('click', () => toggleReasonEditor());
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {
         if (bulkRun) bulkRun.cancelled = true;

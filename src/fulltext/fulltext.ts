@@ -39,7 +39,9 @@ import { describePdfLoadFailure } from '../lib/fulltext-pdf-access';
 import type { PdfLoadFailureView } from '../lib/fulltext-pdf-access';
 import { getClientVersion } from '../lib/client-version';
 import { t } from '../lib/i18n';
-import { EXCLUDE_REASON_VALUES, excludeReasonLabel } from '../lib/exclude-reasons';
+import { excludeReasonLabel, MAX_REASON_HOTKEYS } from '../lib/exclude-reasons';
+import type { ExcludeReasonItem } from '../lib/exclude-reasons';
+import { resolveExcludeReasonItems } from '../lib/exclude-reason-config';
 import { needsCriteriaNotice } from '../lib/review-criteria';
 import type { ReviewCriteria } from '../lib/review-criteria';
 import { getCriteriaSeenAt, setCriteriaSeenAt } from '../lib/storage';
@@ -95,6 +97,10 @@ let keyOpened = false;
 
 // 採用中のフルテキストAI判定ラウンド（reviewer_id）。サマリ/ハイライトはこのラウンドを優先する。
 let aiActiveRound: string | null = null;
+
+// フルテキスト除外理由リスト（Config タブ fulltext_exclude_reasons）。
+// 未設定なら既定のPICO7区分。サイドパネルのフルテキストタブで管理者が編集する。
+let excludeReasonItems: readonly ExcludeReasonItem[] = resolveExcludeReasonItems(null);
 
 // レビュー基準（組入・除外基準、Config タブ review_criteria）。
 // このページは閲覧専用（編集はサイドパネルに一本化）。読み込み時に一度だけ取得し、
@@ -197,6 +203,8 @@ async function initFulltextPage(): Promise<void> {
     keyOpened = config.keyOpened;
     aiActiveRound = config.fulltextAiActiveRound;
     reviewCriteria = config.reviewCriteria;
+    excludeReasonItems = resolveExcludeReasonItems(config.excludeReasonConfig);
+    renderReasonOptions();
 
     // 管理者判定（権限API）。失敗時は安全側で非管理者扱い。
     isAdmin = await isUserAdmin(spreadsheetId, userEmail).catch(() => false);
@@ -507,7 +515,7 @@ function renderAiSummary(): void {
     const decLabel = AI_DECISION_LABELS[decision.decision] ?? decision.decision;
     const pct = Math.round((note.include_probability ?? 0) * 100);
     const reasonCat = note.exclude_reason_category
-        ? `（${excludeReasonLabel(note.exclude_reason_category)}）`
+        ? `（${excludeReasonLabel(note.exclude_reason_category, excludeReasonItems)}）`
         : '';
 
     banner.innerHTML = '';
@@ -684,13 +692,54 @@ function focusReasonNote(): void {
 }
 
 /**
- * 数字キー（1〜7）で除外理由を選び、保存して次へ進む。
- * 除外理由の選択肢は src/lib/exclude-reasons.ts の EXCLUDE_REASON_VALUES が唯一の定義
- * （fulltext.html の <select> のオプション順もこれと一致させること）。
+ * 除外理由の <select> をプロジェクト設定（excludeReasonItems）から描画する。
+ * fulltext.html 側は空の <select> だけを持ち、選択肢はここでのみ組み立てる
+ * （並び＝優先順位・数字キーの割り当ても同じ配列から導く）。
+ */
+function renderReasonOptions(): void {
+    const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
+    if (!select) return;
+
+    select.innerHTML = '';
+    excludeReasonItems.forEach((item, idx) => {
+        const opt = document.createElement('option');
+        opt.value = item.key;
+        // フォールバック理由（fallbackExcludeReasonKey）は常に末尾の項目なので、
+        // 末尾の項目にだけ「1〜n が当てはまらない場合」の補足を付ける
+        // （'other' というキー名では判定しない。カスタム理由には無いか、あっても末尾とは限らない）
+        const isFallback = idx === excludeReasonItems.length - 1 && idx > 0;
+        const suffix = isFallback ? `（1〜${idx}が当てはまらない場合）` : '';
+        opt.textContent = `${idx + 1}. ${item.label}${suffix}`;
+        select.appendChild(opt);
+    });
+    // size は項目数に追随させる（スクロールせず全選択肢が見える状態を保つ。増えすぎたら打ち切る）
+    select.size = Math.min(10, Math.max(2, excludeReasonItems.length));
+    select.selectedIndex = -1;
+
+    const hint = document.querySelector('.ft-reason-hint');
+    if (hint) {
+        hint.textContent = `クリックまたは数字 1〜${hotkeyCount()} で確定して次へ ／ ↑↓ で移動・Enter で確定`;
+    }
+}
+
+/** 数字キーを割り当てられる件数（1〜9まで。理由がそれ以上ならクリックで選ぶ） */
+function hotkeyCount(): number {
+    return Math.min(excludeReasonItems.length, MAX_REASON_HOTKEYS);
+}
+
+/** 押された数字キーが理由の選択に使えるか（理由の件数を超える数字は無視する） */
+function isReasonHotkey(key: string): boolean {
+    if (!/^[1-9]$/.test(key)) return false;
+    return Number(key) <= hotkeyCount();
+}
+
+/**
+ * 数字キーで除外理由を選び、保存して次へ進む。
+ * 除外理由の選択肢はプロジェクト設定（Config タブ fulltext_exclude_reasons）が唯一の定義。
  */
 function selectReasonByIndex(n: number): void {
     const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
-    const value = EXCLUDE_REASON_VALUES[n - 1];
+    const value = excludeReasonItems[n - 1]?.key;
     if (!select || value === undefined) return;
     select.value = value;
     void commitReasonAndAdvance();
@@ -1447,7 +1496,7 @@ function handleKeydown(e: KeyboardEvent): void {
     }
 
     // 除外モード中は（selectからフォーカスが外れていても）数字キーで理由を選べる
-    if (pendingDecision === 'exclude' && /^[1-7]$/.test(e.key)) {
+    if (pendingDecision === 'exclude' && isReasonHotkey(e.key)) {
         selectReasonByIndex(Number(e.key));
         e.preventDefault();
         return;
@@ -1500,14 +1549,14 @@ function handleKeydown(e: KeyboardEvent): void {
 
 /**
  * 除外理由 select にフォーカスがある時のキー処理。
- * - 数字 1〜7: その理由を選んで保存し、次の候補へ
+ * - 数字キー: その理由を選んで保存し、次の候補へ（割り当ては先頭9件まで）
  * - ↑↓: ネイティブの select で理由を上下移動（change で随時保存。まだ次へは進まない）
  * - Enter: 選択中の理由を確定して次の候補へ
  * - Escape: select からフォーカスを外す
  */
 function handleReasonKeydown(e: KeyboardEvent, select: HTMLSelectElement): void {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
-    if (/^[1-7]$/.test(e.key)) {
+    if (isReasonHotkey(e.key)) {
         selectReasonByIndex(Number(e.key));
         e.preventDefault();
         return;
@@ -1603,6 +1652,9 @@ function renderContextPanel(ref: Reference): void {
     if (tiab) {
         tiabRow.dataset.decision = tiab.decision;
         const parts = [`自分のTiAb判定: ${AI_DECISION_LABELS[tiab.decision] ?? tiab.decision}`];
+        // TiAb の除外理由は既定PICOキー（フルテキスト用カスタムリストとは別物）で保存されているため、
+        // excludeReasonItems（フルテキスト用リスト）で引くと解決できず生キーが出る。
+        // 引数を省略して既定リスト（DEFAULT_EXCLUDE_REASON_ITEMS）で引く。
         if (tiab.reason) parts.push(excludeReasonLabel(tiab.reason));
         if (tiab.note) parts.push(tiab.note);
         tiabRow.textContent = parts.join(' · ');
