@@ -1320,6 +1320,9 @@
   "export_countSuffix": {
     "message": ""
   },
+  "export_blindedReviewerColumnsOmitted": {
+    "message": "Blinded: per-reviewer decision columns are omitted. Re-export after the key is opened."
+  },
   "blind_onConfirm": {
     "message": "Enable blinding?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
   },

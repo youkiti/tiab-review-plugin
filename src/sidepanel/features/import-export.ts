@@ -6,6 +6,7 @@ import { state } from '../state';
 import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences } from './screening/filters';
+import { collectReviewerKeys, summarizeTeamDecision, formatDecisionNotes } from './screening/decision-summary';
 import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
@@ -190,10 +191,24 @@ export async function handleExportCSV() {
         // ファイル名
         const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}${t('export_countSuffix')}.csv`;
 
+        // ブラインド中（isKeyOpened===false）は他レビュアーの判定がそもそも読み込まれておらず
+        // （project.ts の getReferencesWithStatus 分岐）、レビュアー別の列・decision_notes は出力しない
+        const isBlinded = !state.isKeyOpened;
+
+        // レビュアー列の集合は getFilteredReferences() の結果ではなく state.references 全体から
+        // 集める（フィルタを Include にしても不一致にしても同じ列構成になるようにするため）
+        const reviewerKeys = isBlinded
+            ? []
+            : collectReviewerKeys(state.references, state.enabledReviewers, state.treatMlAsManual);
+
         // CSVヘッダー
+        // status は現状の値のまま（既存CSVとの互換のため変更しない）。team_status が新定義。
         const headers = [
             'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'issn',
-            'doi', 'pmid', 'status', 'note', 'source_file'
+            'doi', 'pmid', 'status', 'team_status', 'n_judged',
+            ...(isBlinded ? [] : reviewerKeys),
+            ...(isBlinded ? [] : ['decision_notes']),
+            'note', 'source_file',
         ];
 
         // CSVデータを構築
@@ -201,6 +216,21 @@ export async function handleExportCSV() {
         csvRows.push(headers.map(escapeCSVField).join(','));
 
         for (const ref of filtered) {
+            let teamStatusCell = 'blinded';
+            let nJudgedCell = '';
+            let reviewerCells: string[] = [];
+            let decisionNotesCell = '';
+
+            if (!isBlinded) {
+                const { teamStatus, nJudged, byReviewer } = summarizeTeamDecision(
+                    ref, reviewerKeys, state.treatMlAsManual
+                );
+                teamStatusCell = teamStatus;
+                nJudgedCell = String(nJudged);
+                reviewerCells = reviewerKeys.map(key => byReviewer.get(key)?.decision || '');
+                decisionNotesCell = formatDecisionNotes(byReviewer, reviewerKeys);
+            }
+
             const row = [
                 ref.title || '',
                 ref.authors || '',
@@ -213,6 +243,10 @@ export async function handleExportCSV() {
                 ref.doi || '',
                 ref.pmid || '',
                 ref.status || '',
+                teamStatusCell,
+                nJudgedCell,
+                ...(isBlinded ? [] : reviewerCells),
+                ...(isBlinded ? [] : [decisionNotesCell]),
                 ref.myDecision?.note || '',
                 ref.source_file || '',
             ];
@@ -220,7 +254,12 @@ export async function handleExportCSV() {
         }
 
         downloadBlob(csvRows.join('\r\n'), filename, 'text/csv;charset=utf-8');
-        showToast(t('export_csvDone', String(filtered.length)));
+        if (isBlinded) {
+            // 完了と警告を1本のトーストにまとめる（別トーストで時間をずらすと見逃されるため）
+            showToast(`${t('export_csvDone', String(filtered.length))} ${t('export_blindedReviewerColumnsOmitted')}`, 6000);
+        } else {
+            showToast(t('export_csvDone', String(filtered.length)));
+        }
     } catch (error) {
         console.error('[handleExportCSV] Error:', error);
         showToast(t('export_csvError'));
@@ -260,6 +299,12 @@ export async function handleExportRIS() {
         const now = new Date();
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}${t('export_countSuffix')}.ris`;
+
+        // ブラインド中は他レビュアーの判定がそもそも読み込まれていないため、判定者別の行は出さない
+        const isBlinded = !state.isKeyOpened;
+        const reviewerKeys = isBlinded
+            ? []
+            : collectReviewerKeys(state.references, state.enabledReviewers, state.treatMlAsManual);
 
         const risLines: string[] = [];
 
@@ -310,6 +355,25 @@ export async function handleExportRIS() {
             if (ref.status) {
                 risLines.push(`C1  - Status: ${ref.status}`);
             }
+            if (isBlinded) {
+                risLines.push('C1  - Team status: blinded');
+            } else {
+                const { teamStatus, byReviewer } = summarizeTeamDecision(
+                    ref, reviewerKeys, state.treatMlAsManual
+                );
+                risLines.push(`C1  - Team status: ${teamStatus}`);
+
+                if (byReviewer.size > 0) {
+                    const decisionsText = reviewerKeys
+                        .map(key => {
+                            const d = byReviewer.get(key);
+                            return d ? `${key}=${d.decision}` : null;
+                        })
+                        .filter((entry): entry is string => Boolean(entry))
+                        .join('; ');
+                    risLines.push(`C2  - Decisions: ${decisionsText}`);
+                }
+            }
             if (ref.source_file) {
                 risLines.push(`DB  - ${ref.source_file}`);
             }
@@ -319,7 +383,12 @@ export async function handleExportRIS() {
         }
 
         downloadBlob(risLines.join('\r\n'), filename, 'application/x-research-info-systems;charset=utf-8');
-        showToast(t('export_risDone', String(filtered.length)));
+        if (isBlinded) {
+            // 完了と警告を1本のトーストにまとめる（別トーストで時間をずらすと見逃されるため）
+            showToast(`${t('export_risDone', String(filtered.length))} ${t('export_blindedReviewerColumnsOmitted')}`, 6000);
+        } else {
+            showToast(t('export_risDone', String(filtered.length)));
+        }
 
     } catch (error) {
         console.error('[handleExportRIS] Error:', error);

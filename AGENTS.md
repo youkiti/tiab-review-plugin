@@ -163,6 +163,49 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 **未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
 CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
 
+### TiAb エクスポート（CSV/RIS）の判定者別列
+
+`src/sidepanel/features/import-export.ts` の `handleExportCSV()` / `handleExportRIS()` が対象。
+「誰が何と判定したか」が分かるよう、`status` 列とは別に `team_status` 列を追加している。
+集計ロジックは純関数として `src/sidepanel/features/screening/decision-summary.ts` に切り出してあり
+（`../../state` / `../../dom` を import しない。テストから state/dom 抜きで検証するための制約）、
+`computeReviewerKey()` / `detectConflictWithSettings()`（`render/helpers.ts`）を再利用している。
+
+**`status` と `team_status` は定義が違う（意図的な別物）**:
+
+| 列 | 算出元 | 「判定1件のみ」の扱い |
+|---|---|---|
+| `status`（既存・互換維持のため変更しない） | `sheets-api.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
+| `team_status`（新設） | `decision-summary.ts` の `summarizeTeamDecision()` | 2人以上で判定が割れた場合だけ `conflict`。1人だけなら `incomplete` |
+
+`team_status` の値:
+
+| 値 | 意味 |
+|---|---|
+| `pending` | プロジェクトにレビュアーがいない、またはこの文献を誰も判定していない |
+| `incomplete` | 判定済み人数がレビュアー数より少ない（他のレビュアーがこの文献をまだ判定していない） |
+| `conflict` | 2人以上が判定し、判定内容が割れている |
+| `include` / `exclude` / `maybe` | 全判定者が一致 |
+| `blinded` | キー未開封（`state.isKeyOpened===false`）のためエクスポート側で判定者情報を出せない |
+
+**分母（レビュアー列の集合）の限界**: `collectReviewerKeys()` は「判定実績のあるレビュアー」を
+全 ref の `allDecisions` から集めた集合であり、まだ1件も判定していないレビュアーは分母に入らない。
+そのためスクリーニング開始直後、レビュアーAだけが判定しBが未着手の段階では、Aの判定した文献は
+`incomplete` ではなく `include`（1人一致）になる。アプリはプロジェクトのレビュアー名簿そのものを
+持たないため、判定実績から推定するしかないという仕様上の割り切り。
+
+CSV ヘッダーは `status, team_status, n_judged, <レビュアーキー列...>, decision_notes, note, source_file`
+の順（レビュアー列は生の reviewer_id/キー文字列で、表示ラベルではない。人間 → ML(`email::ml`) → AI(`llm:`) の順）。
+レビュアー列の集合は `state.references` 全体（フィルタ結果ではない）から集めるため、フィルタを変えても列構成は変わらない。
+RIS は既存の `C1 - Status: ...` の直後に `C1 - Team status: ...` を追加し、非ブラインド時のみ
+`C2 - Decisions: a@x.com=include; b@y.com=exclude` を1行追加する（判定者が1人もいなければ省略）。
+
+ブラインド中（`state.isKeyOpened===false`）は他レビュアーの判定がそもそもクライアントに配られていない
+（`project.ts` が `getReferencesWithStatus` に分岐し `allDecisions` が入らない）ため、
+レビュアー別の列・`decision_notes` 列自体を出力せず、`team_status` は全行 `blinded`、`n_judged` は空文字にする。
+このとき完了トーストに警告（`export_blindedReviewerColumnsOmitted`）を連結して1本で出す。
+別トーストを遅延表示すると見逃され、「レビュアー列の無いCSV」をそのまま配ってしまうため。
+
 #### Config タブ（プロジェクト設定）
 
 - **include_keywords**: 組み入れハイライト用キーワード（緑）
