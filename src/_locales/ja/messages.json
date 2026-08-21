@@ -1320,6 +1320,9 @@
   "export_countSuffix": {
     "message": "件"
   },
+  "export_blindedReviewerColumnsOmitted": {
+    "message": "ブラインド中のため、レビュアー別の判定列は出力されません。キーオープン後に再エクスポートしてください。"
+  },
   "blind_onConfirm": {
     "message": "Blind onを実行しますか？\n他のレビュアーの判定が見えなくなり、不一致表示も非表示になります。"
   },

@@ -20,6 +20,7 @@ import { escapeHtml } from '../utils/text';
 import { escapeCSVField } from '../utils/csv';
 import { getProjectFulltextCandidateList } from './screening/filters';
 import { getReviewerLabel } from './screening/reviewer-utils';
+import { voteNoteText } from './screening/decision-summary';
 import { handleKeyToggle } from './screening/actions';
 import { showToast } from '../ui/feedback';
 import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './fulltext-ai';
@@ -420,24 +421,6 @@ function decisionText(d: ConsensusDecision): string {
         case 'maybe': return t('fulltext_conflictDecisionMaybe');
         default: return t('fulltext_conflictDecisionPending');
     }
-}
-
-/**
- * 票のメモ表示用テキスト。LLM判定の note は evidence 等を含む JSON 文字列
- * （FulltextLlmDecisionNote）のため、そのまま出すとJSONが丸見えになる。
- * その場合は人間可読な reason フィールドだけを取り出す。パース失敗時は生テキストにフォールバックする。
- */
-function voteNoteText(judge: string, note: string | undefined): string {
-    if (!note) return '';
-    if (judge.startsWith('llm:') && note.trim().startsWith('{')) {
-        try {
-            const parsed = JSON.parse(note);
-            if (typeof parsed.reason === 'string' && parsed.reason.trim()) return parsed.reason;
-        } catch {
-            // JSON以外・想定外の形の note はそのまま表示にフォールバックする
-        }
-    }
-    return note;
 }
 
 function formatAdjudicatedAt(iso: string | null): string {
