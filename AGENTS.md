@@ -169,40 +169,67 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 「誰が何と判定したか」が分かるよう、`status` 列とは別に `team_status` 列を追加している。
 集計ロジックは純関数として `src/sidepanel/features/screening/decision-summary.ts` に切り出してあり
 （`../../state` / `../../dom` を import しない。テストから state/dom 抜きで検証するための制約）、
-`computeReviewerKey()` / `detectConflictWithSettings()`（`render/helpers.ts`）を再利用している。
+`render/helpers.ts` からは `computeReviewerKey()` のみ再利用している
+（`detectConflictWithSettings()` は使っていない。conflict 判定は `byReviewer` の decision 値の
+ユニーク数から独自に行っている。判定人数のカウント方法が異なるため流用していない）。
 
 **`status` と `team_status` は定義が違う（意図的な別物）**:
 
 | 列 | 算出元 | 「判定1件のみ」の扱い |
 |---|---|---|
 | `status`（既存・互換維持のため変更しない） | `sheets-api.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
-| `team_status`（新設） | `decision-summary.ts` の `summarizeTeamDecision()` | 2人以上で判定が割れた場合だけ `conflict`。1人だけなら `incomplete` |
+| `team_status`（新設） | `decision-summary.ts` の `summarizeTeamDecision()` | 2人以上で判定が割れた場合だけ `conflict`。分母（`n_expected`）に満たなければ `incomplete` |
 
 `team_status` の値:
 
 | 値 | 意味 |
 |---|---|
-| `pending` | プロジェクトにレビュアーがいない、またはこの文献を誰も判定していない |
-| `incomplete` | 判定済み人数がレビュアー数より少ない（他のレビュアーがこの文献をまだ判定していない） |
-| `conflict` | 2人以上が判定し、判定内容が割れている |
+| `pending` | この文献をまだ誰も判定していない、または人間の判定者が0人（AIだけが判定している場合を含む） |
+| `incomplete` | 判定済み人数（`n_judged`）が分母（`n_expected`）より少ない（他のレビュアーがこの文献をまだ判定していない） |
+| `conflict` | 判定済みの全員（AI・ML含む）の判定内容が割れている |
 | `include` / `exclude` / `maybe` | 全判定者が一致 |
 | `blinded` | キー未開封（`state.isKeyOpened===false`）のためエクスポート側で判定者情報を出せない |
 
-**分母（レビュアー列の集合）の限界**: `collectReviewerKeys()` は「判定実績のあるレビュアー」を
-全 ref の `allDecisions` から集めた集合であり、まだ1件も判定していないレビュアーは分母に入らない。
-そのためスクリーニング開始直後、レビュアーAだけが判定しBが未着手の段階では、Aの判定した文献は
-`incomplete` ではなく `include`（1人一致）になる。アプリはプロジェクトのレビュアー名簿そのものを
-持たないため、判定実績から推定するしかないという仕様上の割り切り。
+**`n_judged` / `n_expected`（分母）は「人」単位で数える**: AI(`reviewer_id` が `llm:` で始まるもの)は
+数えない。ML判定（`::ml` サフィックス）は同一人物の手動判定と同じ「人」に畳んで数える。
+これは AI の `reviewer_id` が `llm:{model}@{timestamp}` 形式でバッチ実行ごとに変わり
+（`src/lib/llm-processor.ts`。中断・再開が通常系のため同一AIが複数の異なるキーとして現れうる）、
+AIを分母に含めると再実行のたびに `incomplete` が増えてしまうため。
+ただし **conflict の判定には AI・ML を含む全判定が従来どおり参加する**（AIと人間の判定が割れていれば
+`conflict` になる。分母から外すことと conflict 判定から外すことは別）。
 
-CSV ヘッダーは `status, team_status, n_judged, <レビュアーキー列...>, decision_notes, note, source_file`
+分母（`n_expected`）の決め方は `src/lib/assignment-roster.ts` の `getExpectedReviewersForRef()` に集約している:
+
+- 担当割り振り（`state.assignmentConfig`）が `configured` なら、その文献の `screening_set`
+  （`getRefAssignmentSet()`。空欄は `'unassigned'`）の担当者（`AssignmentConfig.reviewerMap[setId]`）が分母になる。
+  `calibration` セットだけは特別扱いで `reviewerMap` 全体の和集合（`assignment.ts` の
+  `getAssignedSetsForUser()` が calibration を全員の担当としているのと同じ規則）。
+  **この経路では、その文献をまだ1件も判定していない担当者も正しく分母に入る**（未着手の担当者がいれば `incomplete` になる）。
+- 担当割り振りが未設定（`status !== 'configured'`）、またはそのセットが名簿に登録されていない
+  （`unassigned` を含む）・登録があっても空配列の場合は、従来どおり `collectReviewerKeys()` で得られる
+  「判定実績のある人間レビュアー」の集合にフォールバックする。この経路では、まだ1件もこのプロジェクトで
+  判定していないレビュアーは分母に入らない（判定実績から推定するしかないという仕様上の割り切り）。
+- 名簿外の人（`reviewerMap` に載っていない人）が判定しても、その人は分母に含まれないため
+  `n_judged` の分子にはカウントされない（`n_judged` は判定者と分母の積で数える）。
+
+CSV ヘッダーは
+`status, team_status, n_judged, n_expected, <レビュアーキー列...>, decision_notes, note, source_file`
 の順（レビュアー列は生の reviewer_id/キー文字列で、表示ラベルではない。人間 → ML(`email::ml`) → AI(`llm:`) の順）。
 レビュアー列の集合は `state.references` 全体（フィルタ結果ではない）から集めるため、フィルタを変えても列構成は変わらない。
 RIS は既存の `C1 - Status: ...` の直後に `C1 - Team status: ...` を追加し、非ブラインド時のみ
 `C2 - Decisions: a@x.com=include; b@y.com=exclude` を1行追加する（判定者が1人もいなければ省略）。
 
+`decision_notes` 列は各判定者の理由・メモを1列にまとめたもの（`formatDecisionNotes()`）。
+LLM判定の note は生の JSON 文字列（TiAb は `LlmDecisionNote`、フルテキストは `FulltextLlmDecisionNote`）
+のため、そのまま出すと JSON が丸見えになる。`voteNoteText()` が人間可読な理由部分だけを取り出す:
+TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテキスト形（`reason: string`）はそのまま。
+どちらも取れない場合は生テキストにフォールバックする。
+
 ブラインド中（`state.isKeyOpened===false`）は他レビュアーの判定がそもそもクライアントに配られていない
-（`project.ts` が `getReferencesWithStatus` に分岐し `allDecisions` が入らない）ため、
-レビュアー別の列・`decision_notes` 列自体を出力せず、`team_status` は全行 `blinded`、`n_judged` は空文字にする。
+（他レビュアーの人間判定だけが配られない。`src/lib/sheets-api.ts` の判定取得は自分の人間判定を
+`myDecision`、AI判定を `allDecisions` に入れて返すため `allDecisions` 自体は空ではないが、
+`team_status` を算出するのに必要な他レビュアーの人間判定が揃わない）ため、
+レビュアー別の列・`decision_notes` 列自体を出力せず、`team_status` は全行 `blinded`、`n_judged` / `n_expected` は空文字にする。
 このとき完了トーストに警告（`export_blindedReviewerColumnsOmitted`）を連結して1本で出す。
 別トーストを遅延表示すると見逃され、「レビュアー列の無いCSV」をそのまま配ってしまうため。
 

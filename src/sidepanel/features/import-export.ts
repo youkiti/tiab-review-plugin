@@ -205,7 +205,7 @@ export async function handleExportCSV() {
         // status は現状の値のまま（既存CSVとの互換のため変更しない）。team_status が新定義。
         const headers = [
             'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'issn',
-            'doi', 'pmid', 'status', 'team_status', 'n_judged',
+            'doi', 'pmid', 'status', 'team_status', 'n_judged', 'n_expected',
             ...(isBlinded ? [] : reviewerKeys),
             ...(isBlinded ? [] : ['decision_notes']),
             'note', 'source_file',
@@ -218,15 +218,17 @@ export async function handleExportCSV() {
         for (const ref of filtered) {
             let teamStatusCell = 'blinded';
             let nJudgedCell = '';
+            let nExpectedCell = '';
             let reviewerCells: string[] = [];
             let decisionNotesCell = '';
 
             if (!isBlinded) {
-                const { teamStatus, nJudged, byReviewer } = summarizeTeamDecision(
-                    ref, reviewerKeys, state.treatMlAsManual
+                const { teamStatus, nJudged, nExpected, byReviewer } = summarizeTeamDecision(
+                    ref, reviewerKeys, state.treatMlAsManual, state.assignmentConfig
                 );
                 teamStatusCell = teamStatus;
                 nJudgedCell = String(nJudged);
+                nExpectedCell = String(nExpected);
                 reviewerCells = reviewerKeys.map(key => byReviewer.get(key)?.decision || '');
                 decisionNotesCell = formatDecisionNotes(byReviewer, reviewerKeys);
             }
@@ -245,6 +247,7 @@ export async function handleExportCSV() {
                 ref.status || '',
                 teamStatusCell,
                 nJudgedCell,
+                nExpectedCell,
                 ...(isBlinded ? [] : reviewerCells),
                 ...(isBlinded ? [] : [decisionNotesCell]),
                 ref.myDecision?.note || '',
@@ -359,7 +362,7 @@ export async function handleExportRIS() {
                 risLines.push('C1  - Team status: blinded');
             } else {
                 const { teamStatus, byReviewer } = summarizeTeamDecision(
-                    ref, reviewerKeys, state.treatMlAsManual
+                    ref, reviewerKeys, state.treatMlAsManual, state.assignmentConfig
                 );
                 risLines.push(`C1  - Team status: ${teamStatus}`);
 

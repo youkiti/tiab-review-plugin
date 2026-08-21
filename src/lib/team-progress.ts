@@ -15,6 +15,7 @@
 import type { Decision, AssignmentConfig } from './types';
 import { isMlAutoDecision } from './client-version';
 import { isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
+import { getRefAssignmentSet } from './assignment-roster';
 import {
     createDefaultFulltextAssignment,
     getFulltextSetsForUser,
@@ -80,10 +81,12 @@ function assignedSetsFor(config: AssignmentConfig, email: string): Set<string> {
     return assigned;
 }
 
-/** 文献の担当セットID（assignment.ts の getReferenceAssignmentSet と同じ規則） */
+/**
+ * 文献の担当セットID（assignment.ts の getReferenceAssignmentSet と同じ規則）
+ * 実体は assignment-roster.ts の getRefAssignmentSet に委譲（重複定義を避けるため）。
+ */
 function refSetOf(ref: TeamProgressRef): string {
-    const normalized = (ref.screening_set || '').trim();
-    return normalized || 'unassigned';
+    return getRefAssignmentSet(ref);
 }
 
 /**
