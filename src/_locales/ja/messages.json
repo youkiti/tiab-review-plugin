@@ -980,6 +980,15 @@
   "filter_aiHighlight": {
     "message": "💡 AIハイライト"
   },
+  "consensus_modeLabel": {
+    "message": "🤝 合議モード"
+  },
+  "consensus_modeTooltip": {
+    "message": "ONにすると、この判定は合議による判定（-human-consensus）として記録され、通常の初回判定と区別できます。合議はキー開封中（ブラインド解除後）のみ有効です。"
+  },
+  "consensus_modeBadge": {
+    "message": "🤝 合議モードで判定中"
+  },
   "filter_includeDecision": {
     "message": "(🟢組み入れ判断)"
   },

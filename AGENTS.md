@@ -99,6 +99,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | client_version  | 拡張機能バージョン                     |      |
 | source_url      | 判定時に見ていたURL                    |      |
 | screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
+| context_json    | 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON（`DecisionContextV1`、`src/lib/decision-context.ts`）。human判定（TiAb/フルテキストの `handleDecision`/`handleSave`）の保存時のみ設定する。**書くだけの列で、読み手（既存のUI・集計）の挙動は一切変えない**。将来「人間の判定はAIから独立していたか」を遡って検証するための記録専用列 |      |
 
 **重要**（2026-08 追記専用化。詳細は「κ（Cohen's kappa）の算出」参照）:
 
@@ -115,6 +116,32 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - `loadExecutionHistory`（`src/sidepanel/features/llm/batch.ts`）が `execution_type` を二値の三項演算子で扱っていたため、フルテキストの実行履歴が「判定基準生成」という誤ったラベルで TiAb の実行履歴一覧に混入していた
 
 教訓: `execution_type` や `reviewer_id` を分岐に使うときは、二値前提の三項演算子ではなく明示的な除外／網羅を書くこと。
+
+#### Audit_Log タブ（監査ログ、追記専用）
+
+key の開閉など、判定イベントではないため Decisions の行に相乗りできない操作を、独立したイベント行として記録する（Decisions.context_json との役割分担は同列の説明を参照）。`src/lib/audit-log.ts`（ヘッダー定数・`buildAuditEventRow` の純関数）と `src/lib/sheets-api.ts` の `logAuditEvent()`（実際の書き込み）が担う。
+
+| 列名           | 説明                                                     | 必須 |
+| -------------- | -------------------------------------------------------- | ---- |
+| event_id       | イベントID（UUID、呼び出し側で `crypto.randomUUID()`）   | ✓   |
+| event_type     | `key_opened` / `key_closed`（今回のスコープは key 開閉のみ） | ✓   |
+| actor          | 操作者（email）                                           | ✓   |
+| occurred_at    | 発生日時（ISO 8601）                                      | ✓   |
+| client_version | 拡張機能バージョン                                        |      |
+| detail_json    | 追加情報（今回のスコープでは常に空文字）                  |      |
+
+- **タブが無いプロジェクトは初回書き込み時に自動作成する**: `addSheet` → `[ヘッダ行, 本体行]` を1回の append でまとめて書き込む。Config タブ欠落時の `trySaveConfigValue` と同じ自動作成パターンを踏襲している（ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまうため、まとめて1回にしている）
+- **ベストエフォート方針**: `logAuditEvent()` は失敗しても外へ throw しない（catch して `console.warn` するのみ）。監査ログの書き込み失敗で key 開閉などの本体操作を失敗扱いにしてはならないため
+- **呼び出し元は key 開閉（`handleKeyToggle`、`src/sidepanel/features/screening/actions.ts`）のみ**。ML確認判定・裁定票など他の判定イベントは今回のスコープ外で、記録しない
+
+#### 合議判定の構造化マーク（-human-consensus）
+
+TiAbスクリーニング画面の「合議モード」チェックボックス（`state.consensusMode`、`src/sidepanel/state.ts`）は、**キー開封後（`state.isKeyOpened === true`）のときだけ表示する**（合議はブラインド中に成立しないため。フルテキストの裁定UIと同じガード）。ONの間に保存する判定は `getClientVersion('-human-consensus')` を使う。`isHumanDecision()` は `-human` の部分一致で判定するため、合議判定も通常のhuman判定と同じ追記専用（append-only）経路に乗りつつ、`client_version` から「合議での判定変更」だけを正確に識別できる（κ算出手順を参照）。
+
+- ONのときは判定ボタン付近にバッジを表示し、合議モードを付け忘れたまま通常判定してしまう事故を防ぐ
+- key を Blind へ戻す（`handleKeyToggle` の CLOSE 経路）、プロジェクト切替（`resetForBack`）、ログアウト（`resetForLogout`）のいずれでも合議モードは自動的に OFF へ戻る
+- **表示ガードだけに頼らず、判定の書き込み地点（`handleDecision`）でも `state.isKeyOpened === false` なら `state.consensusMode` の値によらず必ず `-human` に落とす**（`humanDecisionSuffix()`、`src/lib/client-version.ts`）。トグル非表示時に `state.consensusMode` を落とし忘れる／リセット関数から漏れるといった経路のバグがあっても、ブラインド初回判定が `-human-consensus` として保存されない多層防御
+- `persistDisplayedNote` のメモのみ行（pending）は判定イベントではないため、合議モードの状態に関わらず常に `'-human'` のまま保存する
 
 ### フルテキストの不一致解消（裁定）
 
@@ -772,6 +799,7 @@ async function saveDecision(decision: Decision): Promise<void> {
 - **保存**: human判定・ML手動確認判定は既存行を探さず常に `append`。ML自動判定・LLM判定は同一 `ref_id` + `reviewer_id` + `screening_phase` の既存行があれば `update`、なければ `append`
 - **参照**: `ref_id` + `reviewer_id` + `screening_phase` ごとに複数行が存在しうる。読み取り側は `decided_at` が最新の行（同値ならシート上で後の行）だけへ畳み込んで有効な判定とする（実装は `collapseToLatestDecisions`）
 - **整合性**: 過去の行は判定変更の履歴として保持する（合議前後の κ 算出に利用できる。次項参照）
+- **合議モード**: 合議モード（`-human-consensus` サフィックス）ONで保存した判定も、human判定として同じ追記専用経路（常に `append`）に乗る。追記専用経路に相乗りするだけなので、通常判定と別の保存フローを持たない
 
 ### κ（Cohen's kappa）の算出手順
 
@@ -786,6 +814,11 @@ Decisionsタブの追記専用化（2026-08）により、human判定の変更�
 - **各キーの最終行（`is_latest`）= 最終判定 → 合議後の κ**
 - 特定の合議・会議より前後で区切りたい場合は `decided_at` で絞り込む（例: 会議日時より前の最終行を「合議前」、
   会議日時以降を含む最終行を「合議後」とする、など運用に合わせて調整する）
+- **合議モード（`-human-consensus` サフィックス、下記「合議判定の構造化マーク」）を使うと、`decided_at` による
+  前後判定というヒューリスティックに頼らず、合議での判定変更を `client_version` から正確に識別できる**。
+  下記R例のフィルタ `grepl("-human", client_version)` は `-human-consensus` の行も含むため、合議後κ（全行対象）
+  はそのままで問題ない。合議前κだけに絞りたい場合は、さらに `!grepl("-human-consensus", client_version)` を
+  かけて合議モードの行を除けばよい
 
 R での算出例（`client_version` に `-human` を含む行のみを対象にし、`screening_phase` が空または `tiab` の行
 ＝TiAbスクリーニングの判定に絞り、`(ref_id, reviewer_id)` ごとに `decided_at` 昇順で並べて連番を振る）:

@@ -980,6 +980,15 @@
   "filter_aiHighlight": {
     "message": "💡 AI highlight"
   },
+  "consensus_modeLabel": {
+    "message": "🤝 Consensus mode"
+  },
+  "consensus_modeTooltip": {
+    "message": "When ON, this decision is recorded as a consensus decision (-human-consensus), distinguishable from an ordinary first-pass decision. Consensus is only available while the key is open (blinding lifted)."
+  },
+  "consensus_modeBadge": {
+    "message": "🤝 Deciding in consensus mode"
+  },
   "filter_includeDecision": {
     "message": "(🟢 Include)"
   },

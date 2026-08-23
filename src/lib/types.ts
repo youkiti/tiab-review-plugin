@@ -72,6 +72,12 @@ export interface Decision {
     client_version?: string;
     source_url?: string;
     screening_phase?: 'tiab' | 'fulltext';  // 省略時は 'tiab' として扱う（後方互換）
+    /**
+     * 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON文字列
+     * （DecisionContextV1、`src/lib/decision-context.ts`）。human判定の保存時のみ設定する。
+     * 書くだけの列で、読み取り側の挙動は変えない（AGENTS.md「Decisions タブ」参照）。
+     */
+    context_json?: string;
 }
 
 export interface ReviewerState {

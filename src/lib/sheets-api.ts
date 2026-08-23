@@ -19,6 +19,8 @@ import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { isHumanDecision, isConfirmedMlDecision } from './client-version';
 import { buildFulltextUrlUpdateData, validateFulltextDriveHeaders } from './fulltext-drive-write';
 import type { FulltextUrlUpdateEntry } from './fulltext-drive-write';
+import { AUDIT_LOG_HEADERS, buildAuditEventRow } from './audit-log';
+import type { AuditLogEvent } from './audit-log';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -65,6 +67,7 @@ const DECISIONS_SHEET = 'Decisions';
 const CONFIG_SHEET = 'Config';
 const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
 const LLM_RUNS_SHEET = 'LLM_Runs';
+const AUDIT_LOG_SHEET = 'Audit_Log';
 
 // LLM_Executionsシートのヘッダー
 // run_id は Run/Batch 分離後に追加された列。既存シートに無い場合は ensureLlmExecutionsSheet で末尾に追加される。
@@ -149,10 +152,37 @@ const REFERENCES_HEADERS = [
 // Decisions タブのヘッダー
 // 互換性のため labels 列は残すが、機能としては使用しない
 // screening_phase: 'tiab' | 'fulltext' (省略時は 'tiab' 扱い)
+// context_json: 判定時点のAI暴露状況を記録するJSON（DecisionContextV1）。書くだけの列で
+// 読み取り側の挙動は変えない（AGENTS.md「Decisions タブ」参照）。新しい列は必ず末尾に追加すること
+// （LLM_EXECUTIONS_HEADERS と同じ理由。saveDecisionInner 等が row 配列を位置ベースで組み立てるため）。
 const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
-    'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase'
+    'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
+    'context_json'
 ];
+
+/**
+ * 1始まりの列番号を A1 形式の列名（A, B, ..., Z, AA, ...）に変換する。
+ * ヘッダー配列の長さから終端列を導出するために使う。Decisions のように列が末尾追記で
+ * 増えていくシートでは、`A1:K1` のように終端列をハードコードすると、列追加のたびに
+ * 直し忘れた箇所だけ新しい列が反映されない事故が起きる（実際に踏んだ落とし穴）ため、
+ * 必ずこのヘルパーでヘッダー数から導出すること。
+ */
+function columnLetter(index: number): string {
+    let n = index;
+    let letters = '';
+    while (n > 0) {
+        const rem = (n - 1) % 26;
+        letters = String.fromCharCode(65 + rem) + letters;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letters;
+}
+
+// Decisions タブの終端列（A1形式）。DECISIONS_HEADERS の長さから動的に導出する。
+// 以前は 'K'（11列時代）をシート操作の各所に直書きしていたが、context_json 追加で
+// 12列目（L列）になったため、以後は列数変更に自動追従するこの定数を使うこと。
+const DECISIONS_LAST_COLUMN = columnLetter(DECISIONS_HEADERS.length);
 
 /**
  * OAuth トークンを取得。
@@ -336,7 +366,7 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
 
         if (currentHeaders.length < DECISIONS_HEADERS.length) {
             console.log('[ensureHeaders] Updating Decisions headers...', { current: currentHeaders.length, expected: DECISIONS_HEADERS.length });
-            await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A1:K1`, [DECISIONS_HEADERS]);
+            await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A1:${DECISIONS_LAST_COLUMN}1`, [DECISIONS_HEADERS]);
             console.log('[ensureHeaders] Decisions headers updated');
         }
     } catch (error) {
@@ -1110,7 +1140,7 @@ function parseDecisionValues(values: string[][]): { decision: Decision; rowIndex
  * 通常の読み取りは getDecisions() の畳み込み結果を使う。外部へは export しない。
  */
 async function getDecisionsRaw(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
-    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:K`);
+    const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`);
     return parseDecisionValues(values);
 }
 
@@ -1459,7 +1489,12 @@ let decisionRowCache: {
     rows: Map<string, number>; // key -> シート行番号（1始まり）
 } | null = null;
 
-/** 追記対象（human / ML手動確認）の判定保存内容。同一内容の連続保存をスキップする判定に使う */
+/**
+ * 追記対象（human / ML手動確認）の判定保存内容。同一内容の連続保存をスキップする判定に使う。
+ * context_json は意図的に含めない: AIハイライト表示やキー開閉状態などUI状態が変わっただけで
+ * decision/reason/note が同一の再保存まで「別内容」と判定してしまうと、UI操作のたびに
+ * 同一判定が別行として積まれてしまう（追記専用化の重複防止という目的に反する）。
+ */
 interface DecisionContentSnapshot {
     decision: string;
     reason: string;
@@ -1658,6 +1693,7 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
         decision.client_version || '',
         decision.source_url || '',
         decision.screening_phase || '',
+        decision.context_json || '',
     ];
 
     if (isHumanDecision(decision.client_version) || isConfirmedMlDecision(decision.client_version)) {
@@ -1679,7 +1715,7 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
 
     if (lookup.state === 'hit') {
         // 既存行を更新（読み取り0回）
-        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${lookup.rowIndex}:K${lookup.rowIndex}`, [row]);
+        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${lookup.rowIndex}:${DECISIONS_LAST_COLUMN}${lookup.rowIndex}`, [row]);
         // decisionContentCache は「このキーへ最後に自分が書き込んだ内容」を指し続ける不変条件を保つ
         rememberDecisionContent(spreadsheetId, key, decision);
         return;
@@ -1704,7 +1740,7 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
 
     if (existing) {
         // 既存行を更新
-        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:K${existing.rowIndex}`, [row]);
+        await updateRange(spreadsheetId, `${DECISIONS_SHEET}!A${existing.rowIndex}:${DECISIONS_LAST_COLUMN}${existing.rowIndex}`, [row]);
     } else {
         // 新規追加
         const { firstRowIndex } = await appendRows(spreadsheetId, DECISIONS_SHEET, [row]);
@@ -2242,7 +2278,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
     try {
         const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
             `${REFERENCES_SHEET}!A:X`,
-            `${DECISIONS_SHEET}!A:K`,
+            `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             `${CONFIG_SHEET}!A:B`,
         ]);
         const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
@@ -2260,7 +2296,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
             console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
             const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
                 `${REFERENCES_SHEET}!A:X`,
-                `${DECISIONS_SHEET}!A:K`,
+                `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             ]);
             const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
             primeDecisionRowCache(spreadsheetId, decisions);
@@ -2312,6 +2348,42 @@ async function addSheet(spreadsheetId: string, title: string): Promise<void> {
     if (!response.ok) {
         const error = await response.json();
         throw new Error(`Failed to add sheet: ${error.error?.message || response.statusText}`);
+    }
+}
+
+/**
+ * key開閉などの監査イベントを Audit_Log タブへ1行追記する（AGENTS.md「Audit_Log タブ」参照）。
+ * タブが無いプロジェクトでは addSheet → [ヘッダ行, 本体行] を1回の append でまとめて書き込む
+ * （trySaveConfigValue と同じ「Config タブ欠落時の自動作成」パターンを踏襲）。
+ * ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗（かつベストエフォートで
+ * 握り潰される）した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまう
+ * （2回目以降はタブが既にあるため最初の append がそのまま成功してしまい、気づけない）。
+ * 1回の append にまとめることで、成功・失敗のいずれでもヘッダーと本体行が揃った状態を保つ。
+ *
+ * 監査ログはベストエフォート: この関数は絶対に throw を外へ漏らさない。失敗しても
+ * console.warn するだけで、呼び出し元の本体操作（key開閉そのもの）を壊してはならない。
+ */
+export async function logAuditEvent(
+    spreadsheetId: string,
+    event: Omit<AuditLogEvent, 'event_id'>
+): Promise<void> {
+    try {
+        const row = buildAuditEventRow({ event_id: crypto.randomUUID(), ...event });
+        try {
+            await appendRows(spreadsheetId, AUDIT_LOG_SHEET, [row]);
+        } catch (error) {
+            const message = String((error as { message?: unknown } | undefined)?.message ?? error);
+            if (message.includes('Unable to parse range') || message.includes('not found')) {
+                console.log('[logAuditEvent] Audit_Log sheet missing, creating...');
+                await addSheet(spreadsheetId, AUDIT_LOG_SHEET);
+                await appendRows(spreadsheetId, AUDIT_LOG_SHEET, [AUDIT_LOG_HEADERS, row]);
+            } else {
+                throw error;
+            }
+        }
+    } catch (error) {
+        // ベストエフォート: 監査ログの失敗で本体操作（key開閉）を失敗させない
+        console.warn('[logAuditEvent] Failed to record audit event (best-effort, ignored):', error);
     }
 }
 
@@ -3886,7 +3958,7 @@ export async function updateDecisionsBatch(
     const token = await getAuthToken();
 
     const requests = updates.map(({ rowIndex, decision }) => ({
-        range: `${DECISIONS_SHEET}!A${rowIndex}:K${rowIndex}`,
+        range: `${DECISIONS_SHEET}!A${rowIndex}:${DECISIONS_LAST_COLUMN}${rowIndex}`,
         values: [[
             decision.decision_id,
             decision.ref_id,
@@ -3899,6 +3971,11 @@ export async function updateDecisionsBatch(
             decision.client_version || '',
             decision.source_url || '',
             decision.screening_phase || '',
+            // range が A:L（context_json列まで）に追従済みなのに values が11要素のままだと、
+            // Sheets はレンジより短い values をそのまま受け付けてしまい L列（context_json）が
+            // 上書きされず古い値が残る（AGENTS.md「context_json は human 判定の保存時のみ設定する」
+            // という不変条件が崩れる）。saveDecisionInner の row 配列と同じ列順で揃えること。
+            decision.context_json || '',
         ]],
     }));
 

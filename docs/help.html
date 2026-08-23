@@ -1537,6 +1537,37 @@
                 </p>
 
                 <h3>
+                    <span class="ja">🤝 合議モード</span>
+                    <span class="en">🤝 Consensus Mode</span>
+                </h3>
+                <p>
+                    <span class="ja">レビュアー同士が集まって不一致を話し合い、判定をすり合わせる「合議」のためのチェックボックスです。TiAbタブ（手動タブ）の判定者フィルター付近にあり、<strong>キー開封中（ブラインド解除後）のみ表示されます</strong>（合議はブラインド中には成立しないため）。ONにしている間に保存した判定は「合議による判定」として記録され、各レビュアーが独立に付けた初回判定と区別できるようになります。ONの間は判定ボタンの上に「🤝 合議モードで判定中」のバッジが出るので、切り忘れたまま通常の判定を続ける事故を防げます。</span>
+                    <span class="en">A checkbox for "consensus" sessions, where reviewers meet to discuss
+                        disagreements and reconcile their decisions. It sits near the judge filter on the TiAb
+                        (Manual) tab and is <strong>shown only while the key is open (after blinding is
+                            lifted)</strong>, because consensus cannot happen during blind review. Decisions saved
+                        while it is ON are recorded as consensus decisions, distinguishable from the independent
+                        first-pass decision each reviewer made on their own. While it is ON, a "🤝 Deciding in
+                        consensus mode" badge appears above the decision buttons, so you will not keep making
+                        ordinary decisions with the mode left on by mistake.</span>
+                </p>
+                <p>
+                    <span class="ja">合議モードは、Blindへ戻したとき・別のプロジェクトへ切り替えたとき・ログアウトしたときに自動でOFFに戻ります。また、キーが開いていない状態では、たとえ内部的にONのままであっても判定は通常の判定として保存されるため、ブラインド中の初回判定が誤って合議判定として記録されることはありません。判定を伴わないメモだけの保存は判定イベントではないため、合議モードのON/OFFに関わらず常に通常の記録になります。</span>
+                    <span class="en">Consensus mode turns itself OFF when you go back to Blind, switch to another
+                        project, or sign out. In addition, while the key is not open, decisions are saved as ordinary
+                        decisions even if the mode is somehow still on internally, so a blinded first-pass decision
+                        can never be mis-recorded as a consensus decision. Saving a note without making a decision is
+                        not a decision event, so it is always recorded as ordinary regardless of this mode.</span>
+                </p>
+                <p>
+                    <span class="ja">この区別は、エクスポートした判定履歴から「合議前の一致率（Cohen&#39;s kappa 等）」と「合議後の一致率」を分けて算出するために使います。合議前の値を出したいときは、合議による判定の行を除いて集計してください。</span>
+                    <span class="en">This distinction lets you compute inter-rater agreement (Cohen&#39;s kappa and
+                        the like) separately for before and after consensus from the exported decision history. To
+                        get the before-consensus figure, exclude the consensus decision rows from the
+                        calculation.</span>
+                </p>
+
+                <h3>
                     <span class="ja">チーム進捗パネル</span>
                     <span class="en">Team Progress Panel</span>
                 </h3>

@@ -25,6 +25,17 @@ export function getClientVersion(suffix: string = ''): string {
     return `${manifestVersion}${suffix}`;
 }
 
+/**
+ * human判定の client_version サフィックスを決める。
+ * 合議はブラインド中に成立しないため、キー未開封（keyOpened=false）のときは
+ * 合議モードが ON のままでも必ず '-human' を返す。
+ * （プロジェクト切替で state.consensusMode が残り、ブラインド初回判定が
+ *   -human-consensus として記録されてしまう事故の再発防止。合議前κの切り出しが壊れる）
+ */
+export function humanDecisionSuffix(keyOpened: boolean, consensusMode: boolean): '-human' | '-human-consensus' {
+    return keyOpened && consensusMode ? '-human-consensus' : '-human';
+}
+
 // ========== 判定種別の識別関数（サフィックスベース + 後方互換） ==========
 
 /**

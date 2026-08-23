@@ -250,3 +250,49 @@ export function initAiHighlightListener() {
         if (_renderCurrentReference) _renderCurrentReference();
     });
 }
+
+/**
+ * 合議モードトグル・バッジの表示を更新する。
+ * 合議はブラインド中に成立しないため、state.isKeyOpened===true のときだけトグルを表示する
+ * （フルテキストの裁定UIと同じガード。AGENTS.md「フルテキストの不一致解消（裁定）」参照）。
+ * バッジは「トグルが見えている and ON」のときだけ出す（押し忘れ防止の視覚的インジケータ）。
+ */
+export function renderConsensusModeToggle() {
+    const container = dom.consensusModeContainer;
+    if (container) {
+        if (state.isKeyOpened) {
+            container.classList.remove('hidden');
+            if (dom.consensusModeCheckbox) {
+                dom.consensusModeCheckbox.checked = state.consensusMode;
+            }
+        } else {
+            container.classList.add('hidden');
+            // トグルを隠すだけでは state.consensusMode が残ってしまい、非表示のまま
+            // 合議判定（-human-consensus）が保存され続ける事故になる（プロジェクト切替時に顕在化）。
+            // バッジの表示判定より前に state を落とすこと。
+            state.setConsensusMode(false);
+            if (dom.consensusModeCheckbox) {
+                dom.consensusModeCheckbox.checked = false;
+            }
+        }
+    }
+
+    const badge = dom.consensusModeBadge;
+    if (badge) {
+        badge.classList.toggle('hidden', !(state.isKeyOpened && state.consensusMode));
+    }
+}
+
+/**
+ * 合議モードチェックボックスのイベントリスナーを初期化
+ * 初期化時に1回だけ呼び出すこと（HTMLに静的配置されたチェックボックス用）
+ */
+export function initConsensusModeListener() {
+    const checkbox = dom.consensusModeCheckbox;
+    if (!checkbox) return;
+
+    checkbox.addEventListener('change', () => {
+        state.setConsensusMode(checkbox.checked);
+        renderConsensusModeToggle();
+    });
+}

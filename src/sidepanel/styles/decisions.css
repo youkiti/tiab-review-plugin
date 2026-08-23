@@ -2,6 +2,19 @@
  * decisions.css - 判定ボタン、判定表示
  */
 
+/* 合議モード中バッジ（押し忘れ防止の視覚的インジケータ） */
+.consensus-mode-badge {
+    margin-bottom: 8px;
+    padding: 4px 10px;
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+}
+
 /* 判定ボタン */
 .decision-buttons {
     display: flex;

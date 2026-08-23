@@ -74,7 +74,7 @@ function installEnsureHeadersMock(
             puts.push({ method, url, body });
             return new Response(JSON.stringify({}), { status: 200 });
         }
-        if (method === 'PUT' && url.includes('/values/Decisions!A1%3AK1')) {
+        if (method === 'PUT' && url.includes('/values/Decisions!A1%3AL1')) {
             const body = JSON.parse((init!.body as string));
             puts.push({ method, url, body });
             return new Response(JSON.stringify({}), { status: 200 });
@@ -133,7 +133,7 @@ test('24列で既に正しく移行済み: currentHeaders.length < 24 が偽な�
 });
 
 test('23列でW1がユーザー独自名でも Decisions 側の移行処理は実行される', async () => {
-    // Decisions ヘッダーを不足させ（10列 < DECISIONS_HEADERS.length=11）、
+    // Decisions ヘッダーを不足させ（10列 < DECISIONS_HEADERS.length=12）、
     // References 側がスキップされても Decisions 側の PUT が発行される＝
     // 関数が References ブロックの try/catch を抜けて後続処理へ到達していることを確認する。
     const shortDecisionsHeaders = DECISIONS_HEADERS_ROW.slice(0, 10);
@@ -144,6 +144,6 @@ test('23列でW1がユーザー独自名でも Decisions 側の移行処理は�
     const refPuts = referencesPuts(puts);
     assert.equal(refPuts.length, 0, 'References 側は引き続きスキップされること');
 
-    const decisionsPuts = puts.filter((p) => p.url.includes('/values/Decisions!A1%3AK1'));
+    const decisionsPuts = puts.filter((p) => p.url.includes('/values/Decisions!A1%3AL1'));
     assert.equal(decisionsPuts.length, 1, 'Decisions 側の移行は References のスキップと独立して実行されること');
 });

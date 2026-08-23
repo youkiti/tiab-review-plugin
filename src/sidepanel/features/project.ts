@@ -66,6 +66,7 @@ let _renderCurrentReference: (() => void) | null = null;
 let _renderKeyStatus: (() => void) | null = null;
 let _renderReviewerFilter: (() => void) | null = null;
 let _renderAiHighlightToggle: (() => void) | null = null;
+let _renderConsensusModeToggle: (() => void) | null = null;
 
 // 最近使用したシート一覧の取得に成功したかどうか。
 // loadConfig で URL 入力欄にフォールバック表示するかの判定に使う。
@@ -78,6 +79,7 @@ export function setProjectDependencies(deps: {
     renderKeyStatus: () => void;
     renderReviewerFilter: () => void;
     renderAiHighlightToggle: () => void;
+    renderConsensusModeToggle: () => void;
 }) {
     _renderKeywords = deps.renderKeywords;
     _renderSourceFilters = deps.renderSourceFilters;
@@ -85,6 +87,7 @@ export function setProjectDependencies(deps: {
     _renderKeyStatus = deps.renderKeyStatus;
     _renderReviewerFilter = deps.renderReviewerFilter;
     _renderAiHighlightToggle = deps.renderAiHighlightToggle;
+    _renderConsensusModeToggle = deps.renderConsensusModeToggle;
 }
 
 /**
@@ -571,6 +574,8 @@ export async function loadDataAndShowScreening() {
         }
         // AIハイライトトグルは全ユーザーに表示（確定AI判定があれば表示される）
         if (_renderAiHighlightToggle) _renderAiHighlightToggle();
+        // 合議モードトグルはキー開封中のみ表示（handleKeyToggle と同じガード）
+        if (_renderConsensusModeToggle) _renderConsensusModeToggle();
         renderAssignmentManager();
 
         // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）

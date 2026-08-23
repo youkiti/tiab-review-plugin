@@ -59,7 +59,8 @@ export function bootstrapCommon(): void {
         renderCurrentReference: screeningRender.renderCurrentReference,
         renderKeyStatus: screeningRender.renderKeyStatus,
         renderReviewerFilter: reviewerFilter.renderReviewerFilter,
-        renderAiHighlightToggle: reviewerFilter.renderAiHighlightToggle
+        renderAiHighlightToggle: reviewerFilter.renderAiHighlightToggle,
+        renderConsensusModeToggle: reviewerFilter.renderConsensusModeToggle
     });
 
     screeningFilters.setFilterDependencies({
@@ -238,6 +239,9 @@ export function bootstrapCommon(): void {
 
     // AI Evidenceハイライトチェックボックス（初期化時に1回だけ登録）
     reviewerFilter.initAiHighlightListener();
+
+    // 合議モードチェックボックス（初期化時に1回だけ登録）
+    reviewerFilter.initConsensusModeListener();
 
     // Back button
     dom.backBtn?.addEventListener('click', project.handleBack);
