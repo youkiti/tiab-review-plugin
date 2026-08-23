@@ -43,6 +43,7 @@ const spreadsheetId = 'sheet-1';
 const DECISIONS_HEADER = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
     'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
+    'context_json',
 ];
 
 function toRow(d: Decision): string[] {
@@ -58,6 +59,7 @@ function toRow(d: Decision): string[] {
         d.client_version || '',
         d.source_url || '',
         d.screening_phase || '',
+        d.context_json || '',
     ];
 }
 
@@ -80,7 +82,7 @@ function createMockState(initialDataRows: Decision[]): MockState {
     };
 }
 
-const DECISIONS_FULL_RANGE = encodeURIComponent('Decisions!A:K');
+const DECISIONS_FULL_RANGE = encodeURIComponent('Decisions!A:L');
 const CONFIG_RANGE = encodeURIComponent('Config!A:B');
 
 const originalFetch = globalThis.fetch;
@@ -100,11 +102,11 @@ function installMockFetch(mockState: MockState) {
             mockState.nextAppendRow += rows.length;
             const lastRow = firstRow + rows.length - 1;
             return new Response(JSON.stringify({
-                updates: { updatedRange: `Decisions!A${firstRow}:K${lastRow}` },
+                updates: { updatedRange: `Decisions!A${firstRow}:L${lastRow}` },
             }), { status: 200 });
         }
 
-        // Decisions!A:K の全件読み取り（getDecisions / saveDecisionのcoldパス）
+        // Decisions!A:L の全件読み取り（getDecisions / saveDecisionのcoldパス）
         if (method === 'GET' && url.includes(`/values/${DECISIONS_FULL_RANGE}`)) {
             return new Response(JSON.stringify({ values: mockState.decisionsValues }), { status: 200 });
         }
@@ -115,13 +117,13 @@ function installMockFetch(mockState: MockState) {
         }
 
         // 既存行の更新（updateRange）
-        // encodeURIComponent は '!' をエスケープしないため、範囲は "Decisions!A5%3AK5" のような形になる
+        // encodeURIComponent は '!' をエスケープしないため、範囲は "Decisions!A5%3AL5" のような形になる
         if (method === 'PUT' && url.includes('/values/Decisions!A')) {
             const body = JSON.parse((init!.body as string));
             const pathname = new URL(url).pathname;
             const encodedRange = pathname.split('/values/')[1];
             const range = decodeURIComponent(encodedRange);
-            const match = range.match(/A(\d+):K(\d+)/);
+            const match = range.match(/A(\d+):L(\d+)/);
             if (match) {
                 const rowIndex = parseInt(match[1], 10);
                 mockState.decisionsValues[rowIndex - 1] = body.values[0];
@@ -183,7 +185,7 @@ test('hit: 行番号がキャッシュ済みなら saveDecision は読み取り�
     assert.equal(countDecisionsFullReads(mockState), 1, 'hitのとき追加の全件読み取りは発生しないこと');
     const putCalls = mockState.calls.filter((c) => c.method === 'PUT');
     assert.equal(putCalls.length, 1);
-    assert.match(putCalls[0].url, /Decisions!A2%3AK2/); // ヘッダーの次の行=2行目を更新
+    assert.match(putCalls[0].url, /Decisions!A2%3AL2/); // ヘッダーの次の行=2行目を更新
     const appendCalls = mockState.calls.filter((c) => c.method === 'POST' && c.url.includes(':append'));
     assert.equal(appendCalls.length, 0);
 });

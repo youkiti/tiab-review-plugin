@@ -152,6 +152,12 @@
                         <span data-i18n="filter_aiHighlight"></span>
                     </label>
                 </div>
+                <div id="consensus-mode-container" class="consensus-mode-container hidden">
+                    <label class="reviewer-label" style="font-weight: bold;" data-i18n-title="consensus_modeTooltip">
+                        <input type="checkbox" id="consensus-mode-checkbox">
+                        <span data-i18n="consensus_modeLabel"></span>
+                    </label>
+                </div>
                 <div id="reviewer-filter-container" class="reviewer-filter-container hidden">
                     <h5>Reviewers</h5>
                     <div class="reviewer-list"></div>
@@ -229,6 +235,9 @@
                     <button id="btn-open-fulltext" class="btn btn-open-fulltext hidden" data-i18n="screening_openFulltext"></button>
                 </div>
             </article>
+
+            <!-- 合議モード中バッジ（押し忘れたまま通常判定する事故を防ぐための視覚的インジケータ） -->
+            <div id="consensus-mode-badge" class="consensus-mode-badge hidden" data-i18n="consensus_modeBadge"></div>
 
             <!-- 判定ボタン -->
             <div class="decision-buttons">

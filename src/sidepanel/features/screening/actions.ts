@@ -12,14 +12,16 @@ import {
     setKeyOpenedStatus,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
-    isQuotaExceededError
+    isQuotaExceededError,
+    logAuditEvent
 } from '../../../lib/sheets-api';
 import { getClientVersion } from '../../../lib/client-version';
+import { buildDecisionContext } from '../../../lib/decision-context';
 import { shouldWarnBlindRule } from '../../../lib/fulltext-rule-editor';
 import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
-import { renderReviewerFilter, renderAiHighlightToggle } from './reviewer-filter';
-import { getReviewerKey } from './reviewer-utils';
+import { renderReviewerFilter, renderAiHighlightToggle, renderConsensusModeToggle } from './reviewer-filter';
+import { getReviewerKey, isActiveConfirmedLlmDecision } from './reviewer-utils';
 import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
 import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
@@ -71,6 +73,15 @@ async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolea
     }
 }
 
+/**
+ * 判定の瞬間にこの文献へ付いていたAI票（採用中の確定AI判定）の件数を数える。
+ * render.ts の evidence ハイライトと同じ判定関数（isActiveConfirmedLlmDecision）を再利用する。
+ * context_json（decision-context.ts）の ai_votes_at_decision に使う。
+ */
+function countActiveAiVotesAtDecision(ref: ReferenceWithStatus): number {
+    return ref.allDecisions?.filter((d) => isActiveConfirmedLlmDecision(d)).length ?? 0;
+}
+
 function getReferenceById(refId: string | null | undefined): ReferenceWithStatus | undefined {
     if (!refId) return undefined;
     return state.references.find((ref) => ref.ref_id === refId);
@@ -112,6 +123,13 @@ async function persistDisplayedNote(ref: ReferenceWithStatus | undefined) {
             decision_id: crypto.randomUUID(),
             note: currentNote,
             decided_at: new Date().toISOString(),
+            // context_json は元判定時点の値をスプレッドで引き継がず、メモ更新の瞬間の状態で作り直す
+            // （decided_at がメモ更新時刻になるのに暴露記録だけ過去のもの、という不整合を防ぐ）
+            context_json: buildDecisionContext({
+                keyOpened: state.isKeyOpened,
+                aiHighlights: state.showAiHighlights,
+                aiVotesAtDecision: countActiveAiVotesAtDecision(ref),
+            }),
         };
         ref.myDecision = updatedDecision;
         saveDecisionWithQueue(updatedDecision, false);
@@ -127,7 +145,13 @@ async function persistDisplayedNote(ref: ReferenceWithStatus | undefined) {
         decision: 'pending',
         note: currentNote,
         decided_at: new Date().toISOString(),
+        // メモのみ行は判定イベントではないため、合議モード中でも常に '-human'（consensusModeは反映しない）
         client_version: getClientVersion('-human'),
+        context_json: buildDecisionContext({
+            keyOpened: state.isKeyOpened,
+            aiHighlights: state.showAiHighlights,
+            aiVotesAtDecision: countActiveAiVotesAtDecision(ref),
+        }),
     };
     ref.myDecision = newDecision;
     saveDecisionWithQueue(newDecision, false);
@@ -252,6 +276,9 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
     // 判定オブジェクトを作成
     // decision_id は判定イベントごとに毎回新規発番する（Decisionsタブが追記専用になったため、
     // 既存判定のIDを使い回すと判定変更の履歴が別イベントとして残らなくなる）
+    // 合議モード（state.consensusMode）ONのときは '-human-consensus' サフィックスで保存する。
+    // isHumanDecision() は '-human' の部分一致で判定するため、合議判定も従来どおり追記専用・
+    // human判定として扱われつつ、client_version から合議での判定変更だと正確に識別できる。
     const decisionObj: Decision = {
         decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
@@ -259,7 +286,12 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         decision,
         note: dom.noteInput.value || undefined,
         decided_at: new Date().toISOString(),
-        client_version: getClientVersion('-human'),
+        client_version: getClientVersion(state.consensusMode ? '-human-consensus' : '-human'),
+        context_json: buildDecisionContext({
+            keyOpened: state.isKeyOpened,
+            aiHighlights: state.showAiHighlights,
+            aiVotesAtDecision: countActiveAiVotesAtDecision(ref),
+        }),
     };
 
     // ローカル状態を更新
@@ -374,6 +406,13 @@ export async function handleKeyToggle() {
 
             // 2. 取得成功後に永続化
             await setKeyOpenedStatus(state.spreadsheetId, false);
+            // 監査ログ（ベストエフォート。失敗してもキー切替自体は成功扱いのまま進める）
+            await logAuditEvent(state.spreadsheetId, {
+                event_type: 'key_closed',
+                actor: state.userEmail,
+                occurred_at: new Date().toISOString(),
+                client_version: getClientVersion('-human'),
+            });
 
             // 3. ローカル状態を確定
             state.clearReviewHistory();
@@ -383,6 +422,8 @@ export async function handleKeyToggle() {
             // 不一致の解消・エクスポート）は state.allReferences を読むため、こちらも必ず更新する。
             // 更新しないと、Blindへ戻した後も他レビュアーの判定が結果ビューに残り続ける。
             state.setAllReferences(refs);
+            // 合議はブラインド中に成立しないため、Blindへ戻すときは合議モードも必ず解除する
+            state.setConsensusMode(false);
 
             // レビュアーフィルターをクリア（Store経由）
             syncSetAvailableReviewers(new Set());
@@ -392,6 +433,7 @@ export async function handleKeyToggle() {
             renderKeyStatus();
             renderReviewerFilter();  // レビュアーリストを非表示に
             renderAiHighlightToggle();  // AIハイライトトグルを更新
+            renderConsensusModeToggle();  // 合議モードトグル・バッジを非表示に
             syncSetCurrentIndex(0);
             syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';
@@ -423,6 +465,13 @@ export async function handleKeyToggle() {
 
             // 2. 取得成功後に永続化
             await setKeyOpenedStatus(state.spreadsheetId, true);
+            // 監査ログ（ベストエフォート。失敗してもキー切替自体は成功扱いのまま進める）
+            await logAuditEvent(state.spreadsheetId, {
+                event_type: 'key_opened',
+                actor: state.userEmail,
+                occurred_at: new Date().toISOString(),
+                client_version: getClientVersion('-human'),
+            });
 
             // 3. ローカル状態を確定
             state.clearReviewHistory();
@@ -453,6 +502,7 @@ export async function handleKeyToggle() {
             renderKeyStatus();
             renderReviewerFilter();
             renderAiHighlightToggle();
+            renderConsensusModeToggle();  // キー開封中のみ合議モードトグルを表示
             syncSetCurrentIndex(0);
             syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';

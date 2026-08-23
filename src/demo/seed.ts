@@ -42,6 +42,7 @@ const REFERENCES_HEADERS = [
 const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
     'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
+    'context_json',
 ];
 
 // sheets-api.ts の LLM_EXECUTIONS_HEADERS と完全一致させること（末尾追記のみ許容）。
@@ -132,6 +133,7 @@ function buildDecisionRow(input: SeedDecisionInput): string[] {
         client_version: DEMO_HUMAN_CLIENT_VERSION,
         source_url: '',
         screening_phase: '', // 省略時は 'tiab' 扱い（実際の保存挙動と同じ）
+        context_json: '', // デモシードでは記録しない（実装済みプロジェクトへの後追い列のため空欄で問題ない）
     };
     return DECISIONS_HEADERS.map((header) => row[header]);
 }

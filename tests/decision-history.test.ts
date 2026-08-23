@@ -46,6 +46,7 @@ const spreadsheetId = 'sheet-1';
 const DECISIONS_HEADER = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
     'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
+    'context_json',
 ];
 
 function toRow(d: Decision): string[] {
@@ -61,6 +62,7 @@ function toRow(d: Decision): string[] {
         d.client_version || '',
         d.source_url || '',
         d.screening_phase || '',
+        d.context_json || '',
     ];
 }
 
@@ -89,7 +91,7 @@ function createMockState(initialDataRows: Decision[]): MockState {
     };
 }
 
-const DECISIONS_FULL_RANGE = encodeURIComponent('Decisions!A:K');
+const DECISIONS_FULL_RANGE = encodeURIComponent('Decisions!A:L');
 const CONFIG_RANGE = encodeURIComponent('Config!A:B');
 
 const originalFetch = globalThis.fetch;
@@ -109,7 +111,7 @@ function installMockFetch(mockState: MockState) {
             mockState.nextAppendRow += rows.length;
             const lastRow = firstRow + rows.length - 1;
             return new Response(JSON.stringify({
-                updates: { updatedRange: `Decisions!A${firstRow}:K${lastRow}` },
+                updates: { updatedRange: `Decisions!A${firstRow}:L${lastRow}` },
             }), { status: 200 });
         }
 
@@ -119,14 +121,14 @@ function installMockFetch(mockState: MockState) {
             const ranges = requestUrl.searchParams.getAll('ranges');
             const valueRanges = ranges.map((range) => {
                 if (range === 'References!A:X') return { values: mockState.referencesValues };
-                if (range === 'Decisions!A:K') return { values: mockState.decisionsValues };
+                if (range === 'Decisions!A:L') return { values: mockState.decisionsValues };
                 if (range === 'Config!A:B') return { values: mockState.configValues };
                 throw new Error(`Unhandled mock batchGet range: ${range}`);
             });
             return new Response(JSON.stringify({ valueRanges }), { status: 200 });
         }
 
-        // Decisions!A:K の全件読み取り（getDecisions / saveDecisionのcoldパス / deleteFulltextAiRound）
+        // Decisions!A:L の全件読み取り（getDecisions / saveDecisionのcoldパス / deleteFulltextAiRound）
         if (method === 'GET' && url.includes(`/values/${DECISIONS_FULL_RANGE}`)) {
             return new Response(JSON.stringify({ values: mockState.decisionsValues }), { status: 200 });
         }
@@ -137,13 +139,13 @@ function installMockFetch(mockState: MockState) {
         }
 
         // 既存行の更新（updateRange）
-        // encodeURIComponent は '!' をエスケープしないため、範囲は "Decisions!A5%3AK5" のような形になる
+        // encodeURIComponent は '!' をエスケープしないため、範囲は "Decisions!A5%3AL5" のような形になる
         if (method === 'PUT' && url.includes('/values/Decisions!A')) {
             const body = JSON.parse((init!.body as string));
             const pathname = new URL(url).pathname;
             const encodedRange = pathname.split('/values/')[1];
             const range = decodeURIComponent(encodedRange);
-            const match = range.match(/A(\d+):K(\d+)/);
+            const match = range.match(/A(\d+):L(\d+)/);
             if (match) {
                 const rowIndex = parseInt(match[1], 10);
                 mockState.decisionsValues[rowIndex - 1] = body.values[0];

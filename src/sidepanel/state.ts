@@ -107,6 +107,10 @@ let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 let _showAiHighlights = true; // AIのEvidenceをハイライトするかどうか（デフォルトON）
+// 合議モード（-human-consensus）。ONの間の判定は client_version に -human-consensus サフィックスを付けて
+// 保存する。合議はブラインド中に成立しないため、isKeyOpened===true のときだけUIに出す（handleKeyToggle の
+// CLOSE 経路で false に戻す）。既定は false（従来どおりの -human）。
+let _consensusMode = false;
 let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
 let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 
@@ -339,6 +343,9 @@ export const state = {
 
     get showAiHighlights() { return _showAiHighlights; },
     setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
+
+    get consensusMode() { return _consensusMode; },
+    setConsensusMode(value: boolean) { _consensusMode = value; },
 
     get aiDecisionFilter() { return _aiDecisionFilter; },
     setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>) { _aiDecisionFilter = filter; },

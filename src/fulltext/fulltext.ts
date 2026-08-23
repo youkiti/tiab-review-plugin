@@ -38,6 +38,7 @@ import { runRegrantPickerFlow } from '../lib/drive-regrant-picker';
 import { describePdfLoadFailure } from '../lib/fulltext-pdf-access';
 import type { PdfLoadFailureView } from '../lib/fulltext-pdf-access';
 import { getClientVersion } from '../lib/client-version';
+import { buildDecisionContext } from '../lib/decision-context';
 import { t } from '../lib/i18n';
 import { excludeReasonLabel, MAX_REASON_HOTKEYS } from '../lib/exclude-reasons';
 import type { ExcludeReasonItem } from '../lib/exclude-reasons';
@@ -851,6 +852,11 @@ async function handleSave(): Promise<boolean> {
             client_version: getClientVersion('-human'),
             source_url: window.location.href,
             screening_phase: 'fulltext',
+            context_json: buildDecisionContext({
+                keyOpened,
+                aiEvidenceLevel: effectiveEvidenceLevel(),
+                aiVotesAtDecision: countActiveRoundAiVotesForRef(currentRef.ref_id),
+            }),
         };
 
         // 送信前にメモリ状態を確定させる。decision_id は追記専用化により毎回新規発番されるため、
@@ -2095,6 +2101,17 @@ function evidenceEmptyMessage(): string {
 /** フルテキストフェーズのAI判定（reviewer_id が `llm:`）か */
 function isFulltextAiDecision(d: Decision): boolean {
     return (d.screening_phase ?? 'tiab') === 'fulltext' && (d.reviewer_id || '').startsWith('llm:');
+}
+
+/**
+ * 判定の瞬間にこの文献へ付いていた、採用ラウンド(aiActiveRound)のAI票の件数を数える。
+ * context_json（decision-context.ts）の ai_votes_at_decision に使う。
+ */
+function countActiveRoundAiVotesForRef(refId: string): number {
+    if (!aiActiveRound) return 0;
+    return allDecisions.filter(d =>
+        d.ref_id === refId && d.reviewer_id === aiActiveRound && isFulltextAiDecision(d)
+    ).length;
 }
 
 /**

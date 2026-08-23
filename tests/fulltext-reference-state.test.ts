@@ -253,6 +253,7 @@ const REFERENCES_HEADERS_ROW = [
 const DECISIONS_HEADERS_ROW = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
     'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
+    'context_json',
 ];
 
 interface UpdateMockState {
