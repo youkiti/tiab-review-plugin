@@ -130,7 +130,7 @@ key の開閉など、判定イベントではないため Decisions の行に�
 | client_version | 拡張機能バージョン                                        |      |
 | detail_json    | 追加情報（今回のスコープでは常に空文字）                  |      |
 
-- **タブが無いプロジェクトは初回書き込み時に自動作成する**: `addSheet` → ヘッダ行 append → 本体行 append の順でリトライする。Config タブ欠落時の `trySaveConfigValue` と同じ自動作成パターンを踏襲している
+- **タブが無いプロジェクトは初回書き込み時に自動作成する**: `addSheet` → `[ヘッダ行, 本体行]` を1回の append でまとめて書き込む。Config タブ欠落時の `trySaveConfigValue` と同じ自動作成パターンを踏襲している（ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまうため、まとめて1回にしている）
 - **ベストエフォート方針**: `logAuditEvent()` は失敗しても外へ throw しない（catch して `console.warn` するのみ）。監査ログの書き込み失敗で key 開閉などの本体操作を失敗扱いにしてはならないため
 - **呼び出し元は key 開閉（`handleKeyToggle`、`src/sidepanel/features/screening/actions.ts`）のみ**。ML確認判定・裁定票など他の判定イベントは今回のスコープ外で、記録しない
 
@@ -139,7 +139,8 @@ key の開閉など、判定イベントではないため Decisions の行に�
 TiAbスクリーニング画面の「合議モード」チェックボックス（`state.consensusMode`、`src/sidepanel/state.ts`）は、**キー開封後（`state.isKeyOpened === true`）のときだけ表示する**（合議はブラインド中に成立しないため。フルテキストの裁定UIと同じガード）。ONの間に保存する判定は `getClientVersion('-human-consensus')` を使う。`isHumanDecision()` は `-human` の部分一致で判定するため、合議判定も通常のhuman判定と同じ追記専用（append-only）経路に乗りつつ、`client_version` から「合議での判定変更」だけを正確に識別できる（κ算出手順を参照）。
 
 - ONのときは判定ボタン付近にバッジを表示し、合議モードを付け忘れたまま通常判定してしまう事故を防ぐ
-- key を Blind へ戻す（`handleKeyToggle` の CLOSE 経路）と合議モードは自動的に OFF へ戻る
+- key を Blind へ戻す（`handleKeyToggle` の CLOSE 経路）、プロジェクト切替（`resetForBack`）、ログアウト（`resetForLogout`）のいずれでも合議モードは自動的に OFF へ戻る
+- **表示ガードだけに頼らず、判定の書き込み地点（`handleDecision`）でも `state.isKeyOpened === false` なら `state.consensusMode` の値によらず必ず `-human` に落とす**（`humanDecisionSuffix()`、`src/lib/client-version.ts`）。トグル非表示時に `state.consensusMode` を落とし忘れる／リセット関数から漏れるといった経路のバグがあっても、ブラインド初回判定が `-human-consensus` として保存されない多層防御
 - `persistDisplayedNote` のメモのみ行（pending）は判定イベントではないため、合議モードの状態に関わらず常に `'-human'` のまま保存する
 
 ### フルテキストの不一致解消（裁定）

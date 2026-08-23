@@ -2353,8 +2353,12 @@ async function addSheet(spreadsheetId: string, title: string): Promise<void> {
 
 /**
  * key開閉などの監査イベントを Audit_Log タブへ1行追記する（AGENTS.md「Audit_Log タブ」参照）。
- * タブが無いプロジェクトでは addSheet → ヘッダ行 append → 本体行 append の順でリトライする
+ * タブが無いプロジェクトでは addSheet → [ヘッダ行, 本体行] を1回の append でまとめて書き込む
  * （trySaveConfigValue と同じ「Config タブ欠落時の自動作成」パターンを踏襲）。
+ * ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗（かつベストエフォートで
+ * 握り潰される）した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまう
+ * （2回目以降はタブが既にあるため最初の append がそのまま成功してしまい、気づけない）。
+ * 1回の append にまとめることで、成功・失敗のいずれでもヘッダーと本体行が揃った状態を保つ。
  *
  * 監査ログはベストエフォート: この関数は絶対に throw を外へ漏らさない。失敗しても
  * console.warn するだけで、呼び出し元の本体操作（key開閉そのもの）を壊してはならない。
@@ -2372,8 +2376,7 @@ export async function logAuditEvent(
             if (message.includes('Unable to parse range') || message.includes('not found')) {
                 console.log('[logAuditEvent] Audit_Log sheet missing, creating...');
                 await addSheet(spreadsheetId, AUDIT_LOG_SHEET);
-                await appendRows(spreadsheetId, AUDIT_LOG_SHEET, [AUDIT_LOG_HEADERS]);
-                await appendRows(spreadsheetId, AUDIT_LOG_SHEET, [row]);
+                await appendRows(spreadsheetId, AUDIT_LOG_SHEET, [AUDIT_LOG_HEADERS, row]);
             } else {
                 throw error;
             }
@@ -3968,6 +3971,11 @@ export async function updateDecisionsBatch(
             decision.client_version || '',
             decision.source_url || '',
             decision.screening_phase || '',
+            // range が A:L（context_json列まで）に追従済みなのに values が11要素のままだと、
+            // Sheets はレンジより短い values をそのまま受け付けてしまい L列（context_json）が
+            // 上書きされず古い値が残る（AGENTS.md「context_json は human 判定の保存時のみ設定する」
+            // という不変条件が崩れる）。saveDecisionInner の row 配列と同じ列順で揃えること。
+            decision.context_json || '',
         ]],
     }));
 

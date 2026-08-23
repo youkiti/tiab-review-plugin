@@ -15,7 +15,7 @@ import {
     isQuotaExceededError,
     logAuditEvent
 } from '../../../lib/sheets-api';
-import { getClientVersion } from '../../../lib/client-version';
+import { getClientVersion, humanDecisionSuffix } from '../../../lib/client-version';
 import { buildDecisionContext } from '../../../lib/decision-context';
 import { shouldWarnBlindRule } from '../../../lib/fulltext-rule-editor';
 import { showLoading, showToast } from '../../ui/feedback';
@@ -279,6 +279,10 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
     // 合議モード（state.consensusMode）ONのときは '-human-consensus' サフィックスで保存する。
     // isHumanDecision() は '-human' の部分一致で判定するため、合議判定も従来どおり追記専用・
     // human判定として扱われつつ、client_version から合議での判定変更だと正確に識別できる。
+    // ただし合議はブラインド中に成立しないため、キー未開封（state.isKeyOpened===false）のときは
+    // state.consensusMode が残っていても必ず '-human' に落とす（humanDecisionSuffix参照）。
+    // トグル非表示時に state を落とす防御（reviewer-filter.ts）とリセット関数の防御（state.ts）に
+    // 加えた、書き込み地点そのものでのガード（多層防御）。
     const decisionObj: Decision = {
         decision_id: crypto.randomUUID(),
         ref_id: ref.ref_id,
@@ -286,7 +290,7 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         decision,
         note: dom.noteInput.value || undefined,
         decided_at: new Date().toISOString(),
-        client_version: getClientVersion(state.consensusMode ? '-human-consensus' : '-human'),
+        client_version: getClientVersion(humanDecisionSuffix(state.isKeyOpened, state.consensusMode)),
         context_json: buildDecisionContext({
             keyOpened: state.isKeyOpened,
             aiHighlights: state.showAiHighlights,

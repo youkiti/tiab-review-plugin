@@ -267,6 +267,13 @@ export function renderConsensusModeToggle() {
             }
         } else {
             container.classList.add('hidden');
+            // トグルを隠すだけでは state.consensusMode が残ってしまい、非表示のまま
+            // 合議判定（-human-consensus）が保存され続ける事故になる（プロジェクト切替時に顕在化）。
+            // バッジの表示判定より前に state を落とすこと。
+            state.setConsensusMode(false);
+            if (dom.consensusModeCheckbox) {
+                dom.consensusModeCheckbox.checked = false;
+            }
         }
     }
 

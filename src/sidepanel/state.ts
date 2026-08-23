@@ -395,6 +395,10 @@ export const state = {
         _llmTargetRefIds = new Set();
         _failedRefIds = [];
         _mlState = createInitialMlState();
+        // 合議はブラインド中に成立しないため、ログアウト時も必ず解除する（次に開くプロジェクトへ
+        // 持ち越して -human-consensus が誤って保存される事故の防止。handleKeyToggle のCLOSE経路と
+        // 同じ理由）
+        _consensusMode = false;
     },
 
     resetForBack() {
@@ -422,6 +426,10 @@ export const state = {
         _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
         _llmTargetRefIds = new Set();
         _mlState = createInitialMlState();  // ML状態もリセット
+        // 合議はブラインド中に成立しないため、プロジェクト切替（Back）でも必ず解除する。
+        // 落とし忘れると、次に接続したブラインドプロジェクトで合議トグルが非表示のまま
+        // -human-consensus として判定が保存され続ける（合議前κの切り出しが壊れる）
+        _consensusMode = false;
     },
 };
 

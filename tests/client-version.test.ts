@@ -6,6 +6,7 @@ import {
     isConfirmedMlDecision,
     isMlAutoDecision,
     isLlmDecision,
+    humanDecisionSuffix,
 } from '../src/lib/client-version';
 
 // 合議モード（-human-consensus、AGENTS.md「合議判定の構造化マーク」）の client_version が
@@ -36,4 +37,25 @@ test('isLlmDecision: -human-consensus は LLM判定ではない', () => {
 
 test('isHumanDecision: 通常の -human も従来どおり human 判定', () => {
     assert.equal(isHumanDecision('1.2.3-human'), true);
+});
+
+// humanDecisionSuffix() の回帰テスト（PR #113 のレビュー指摘）。
+// プロジェクト切替（Back）で state.consensusMode が残ったまま、キー未開封（ブラインド）の
+// プロジェクトに接続すると、合議トグル・バッジは非表示なのに判定は '-human-consensus' として
+// 保存され続けてしまう不具合があった。合議はブラインド中に成立しないため、
+// keyOpened=false のときは consensusMode の値によらず必ず '-human' を返すことを固定する。
+test('humanDecisionSuffix: keyOpened=false なら consensusMode=true でも -human', () => {
+    assert.equal(humanDecisionSuffix(false, true), '-human');
+});
+
+test('humanDecisionSuffix: keyOpened=false かつ consensusMode=false は -human', () => {
+    assert.equal(humanDecisionSuffix(false, false), '-human');
+});
+
+test('humanDecisionSuffix: keyOpened=true かつ consensusMode=true のときだけ -human-consensus', () => {
+    assert.equal(humanDecisionSuffix(true, true), '-human-consensus');
+});
+
+test('humanDecisionSuffix: keyOpened=true かつ consensusMode=false は -human', () => {
+    assert.equal(humanDecisionSuffix(true, false), '-human');
 });
