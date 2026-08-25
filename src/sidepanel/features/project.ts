@@ -407,10 +407,30 @@ export async function loadRecentSheets() {
 }
 
 /**
+ * 新規プロジェクトのデフォルトタイトルを組み立てる。
+ *
+ * 全員が同じ既定名（例: "TiAb Review Project"）のままだと、Drive 上でも
+ * 最近使用したシート一覧でも見分けが付かないため、
+ * 「日付_ログイン中メールの @ より前_既定名」の形にする。
+ * 同名の重複（同じ人が同じ日に2つ作る）は prompt 上でユーザーが直せるため許容する。
+ */
+export function buildDefaultProjectTitle(email: string, now: Date = new Date()): string {
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const datePart = `${year}-${month}-${day}`;
+
+    const localPart = (email || '').split('@')[0].trim();
+    const base = t('project_createDefault');
+
+    return localPart ? `${datePart}_${localPart}_${base}` : `${datePart}_${base}`;
+}
+
+/**
  * 新規プロジェクト作成
  */
 export async function handleCreateNew() {
-    const title = prompt(t('project_createPrompt'), t('project_createDefault'));
+    const title = prompt(t('project_createPrompt'), buildDefaultProjectTitle(state.userEmail));
     if (!title) return;
 
     try {
