@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {
     selectOtherFulltextDecisions,
     otherReviewerLabel,
-    localPartOf,
 } from '../src/lib/fulltext-other-decisions';
 import { adjudicationReviewerId } from '../src/lib/fulltext-consensus';
 import type { Decision } from '../src/lib/types';
@@ -86,13 +85,35 @@ test('裁定票は含めたうえで通常の判定者の後ろに並べる', ()
     ]);
 });
 
-test('otherReviewerLabel: 通常の判定者はメールのローカル部、裁定票は裁定者を出す', () => {
-    assert.equal(otherReviewerLabel('alice@example.com', ME), 'alice');
-    assert.equal(otherReviewerLabel(adjudicationReviewerId('boss@example.com'), ME), '⚖ 裁定（boss）');
+test('otherReviewerLabel: 通常の判定者は完全なメールアドレス、裁定票は裁定者の完全なメールアドレスを出す', () => {
+    assert.equal(otherReviewerLabel('alice@example.com', ME), 'alice@example.com');
+    assert.equal(otherReviewerLabel(adjudicationReviewerId('boss@example.com'), ME), '⚖ 裁定（boss@example.com）');
     assert.equal(otherReviewerLabel(adjudicationReviewerId(ME), ME), '⚖ 裁定（自分）');
 });
 
-test('localPartOf: @ が無い値はそのまま返す', () => {
-    assert.equal(localPartOf('alice@example.com'), 'alice');
-    assert.equal(localPartOf('alice'), 'alice');
+test('複数の裁定者の裁定票があるときは decided_at が最新の1件だけを返す', () => {
+    const decisions = [
+        makeDecision({
+            reviewer_id: adjudicationReviewerId('old-boss@example.com'),
+            decision: 'exclude',
+            decided_at: '2026-01-01T00:00:00Z',
+        }),
+        makeDecision({
+            reviewer_id: adjudicationReviewerId('new-boss@example.com'),
+            decision: 'include',
+            decided_at: '2026-02-01T00:00:00Z',
+        }),
+        makeDecision({ reviewer_id: 'alice@example.com' }),
+    ];
+
+    const result = selectOtherFulltextDecisions(decisions, 'ref1', ME, true);
+    const adjudicationRows = result.filter(d => d.reviewer_id?.startsWith('adjudication:'));
+    assert.equal(adjudicationRows.length, 1);
+    assert.equal(adjudicationRows[0].reviewer_id, adjudicationReviewerId('new-boss@example.com'));
+    assert.equal(adjudicationRows[0].decision, 'include');
+    // 並び順: 通常の判定者 → 裁定票（1件のみ）
+    assert.deepEqual(result.map(d => d.reviewer_id), [
+        'alice@example.com',
+        adjudicationReviewerId('new-boss@example.com'),
+    ]);
 });
