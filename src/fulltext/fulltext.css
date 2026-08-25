@@ -583,6 +583,50 @@ body {
 .ft-context-tiab[data-decision="exclude"] { border-left: 3px solid var(--color-exclude); }
 .ft-context-tiab[data-decision="maybe"]   { border-left: 3px solid var(--color-maybe); }
 
+/* 他レビュアーのフルテキスト判定（Blind解除時のみ描画される） */
+.ft-context-others {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ft-context-others-head {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+}
+
+.ft-context-others-empty {
+    font-size: 12px;
+    color: #888;
+}
+
+.ft-context-other {
+    font-size: 12px;
+    color: #333;
+    background: #f4f6f8;
+    border-radius: 4px;
+    padding: 6px 8px;
+    line-height: 1.4;
+}
+
+.ft-context-other[data-decision="include"] { border-left: 3px solid var(--color-include); }
+.ft-context-other[data-decision="exclude"] { border-left: 3px solid var(--color-exclude); }
+.ft-context-other[data-decision="maybe"]   { border-left: 3px solid var(--color-maybe); }
+
+.ft-context-other-head {
+    font-weight: 600;
+}
+
+/* メモ本文。改行を保持し、長いURLでも枠から溢れないようにする */
+.ft-context-other-note {
+    margin-top: 2px;
+    font-weight: 400;
+    color: #555;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .ft-context-abstract {
     font-size: 12px;
     color: #444;

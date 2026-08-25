@@ -49,6 +49,11 @@ import { getCriteriaSeenAt, setCriteriaSeenAt } from '../lib/storage';
 import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
+import { isAdjudicationKey } from '../lib/fulltext-consensus';
+import {
+    selectOtherFulltextDecisions,
+    otherReviewerLabel,
+} from '../lib/fulltext-other-decisions';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
 import { explainEmptyAiEvidence } from '../lib/ai-evidence-empty-reason';
@@ -454,6 +459,8 @@ const AI_DECISION_LABELS: Record<string, string> = {
     include: '組み入れ',
     exclude: '除外',
     maybe: '保留',
+    // AI判定には出ないが、自分のTiAb判定・他レビュアーの判定の表示で使う
+    pending: '未判定',
 };
 
 /**
@@ -1643,9 +1650,66 @@ function findMyTiabDecision(refId: string): Decision | null {
 }
 
 /**
+ * この文献に対する他レビュアーのフルテキスト判定（レビュアーごとに最新の1件）。
+ * 選別・並び順・ブラインドの線引きは lib 側の純関数に委譲する（テストはそちらで書く）。
+ */
+function findOtherFulltextDecisions(refId: string): Decision[] {
+    return selectOtherFulltextDecisions(allDecisions, refId, userEmail, keyOpened);
+}
+
+/**
+ * 他レビュアーのフルテキスト判定ブロックを組み立てる（Blind解除時のみ呼ぶ）。
+ * 不一致の見直しでPDFを読み直すとき、相手の判定・除外理由・メモをこの画面で読めるようにする
+ * （従来はサイドパネルの「不一致の解消」ビューへ戻らないと読めなかった）。
+ */
+function buildOtherDecisionsBlock(others: Decision[]): HTMLElement {
+    const block = document.createElement('div');
+    block.className = 'ft-context-others';
+
+    const head = document.createElement('div');
+    head.className = 'ft-context-others-head';
+    head.textContent = '他レビュアーのフルテキスト判定';
+    block.appendChild(head);
+
+    if (others.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ft-context-others-empty';
+        empty.textContent = 'まだありません';
+        block.appendChild(empty);
+        return block;
+    }
+
+    for (const d of others) {
+        const row = document.createElement('div');
+        row.className = 'ft-context-other';
+        row.dataset.decision = d.decision;
+
+        const parts = [otherReviewerLabel(d.reviewer_id || '', userEmail), AI_DECISION_LABELS[d.decision] ?? d.decision];
+        if (d.reason) parts.push(excludeReasonLabel(d.reason, excludeReasonItems));
+        const rowHead = document.createElement('div');
+        rowHead.className = 'ft-context-other-head';
+        rowHead.textContent = parts.join(' · ');
+        row.appendChild(rowHead);
+
+        // 裁定票の note は裁定時点の票のスナップショット（JSON）なので本文としては出さない
+        if (d.note && !isAdjudicationKey(d.reviewer_id || '')) {
+            const note = document.createElement('div');
+            note.className = 'ft-context-other-note';
+            note.textContent = d.note;
+            row.appendChild(note);
+        }
+
+        block.appendChild(row);
+    }
+
+    return block;
+}
+
+/**
  * 右ペインの「抄録・自分のTiAb判定」折りたたみを描画する。
  * 表示中PDFと抄録の突き合わせ（取り違え確認）と、
  * TiAb時に何を根拠に通したかの文脈想起を助ける。開閉状態は文献をまたいで維持する。
+ * Blind解除後は他レビュアーのフルテキスト判定もここに出す（不一致の見直し用）。
  */
 function renderContextPanel(ref: Reference): void {
     const body = document.getElementById('ft-context-body');
@@ -1668,6 +1732,19 @@ function renderContextPanel(ref: Reference): void {
         tiabRow.textContent = '自分のTiAb判定: なし';
     }
     body.appendChild(tiabRow);
+
+    // Blind解除後のみ他レビュアーの判定を出す（Blind中は見出しごと出さない）
+    const others = findOtherFulltextDecisions(ref.ref_id);
+    if (keyOpened) {
+        body.appendChild(buildOtherDecisionsBlock(others));
+    }
+    // 折りたたみ見出しにも件数を出す。畳んだままだと相手の判定があることに気付けないため
+    const summary = document.getElementById('ft-context-summary');
+    if (summary) {
+        summary.textContent = keyOpened
+            ? `抄録・自分のTiAb判定・他レビュアーの判定 (${others.length})`
+            : '抄録・自分のTiAb判定';
+    }
 
     const abs = document.createElement('div');
     abs.className = 'ft-context-abstract';

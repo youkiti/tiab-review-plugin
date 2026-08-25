@@ -190,6 +190,25 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 **未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
 CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
 
+#### フルテキスト判定画面（PDFウィンドウ）の「他レビュアーの判定」
+
+`src/fulltext/fulltext.ts` の右ペイン折りたたみ（`renderContextPanel`）には、抄録・自分のTiAb判定に加えて
+**キー開封後（`keyOpened === true`）のときだけ**、同じ文献に対する他レビュアーのフルテキスト判定
+（判定・除外理由・メモ）を出す。不一致をPDFで読み直すとき、サイドパネルの「不一致の解消」へ戻らずに
+相手の言い分を読めるようにするため（従来はこの画面に自分とAIの判定しか出ていなかった）。
+
+- 選別ロジックは `src/lib/fulltext-other-decisions.ts` の純関数（`selectOtherFulltextDecisions` /
+  `otherReviewerLabel`）に切り出す。`fulltext.ts` は DOM/ページ状態に依存する層でテストできないため
+  （`fulltext-consensus.ts` と同じ方針）。テストは `tests/fulltext-other-decisions.test.ts`。
+- ブラインドの線引きは**データ層とUI層の両方**で持つ（多層防御）: `getFulltextPageData` が
+  `filterDecisionsForBlind` で他レビュアーの票を落とし、`selectOtherFulltextDecisions` も
+  `keyOpened === false` なら必ず空を返す。
+- AI票（`llm:`）はここには出さない（判定パネル上部のAI判定サマリと二重になるため）。
+  裁定票（`adjudication:`）は「不一致がどう解消されたか」を示すので出すが、`note` は裁定時点の票の
+  スナップショット（JSON）なので本文としては表示しない。
+- 折りたたみは既定で閉じているため、**見出しに件数を出す**（`#ft-context-summary` を実行時に書き換え）。
+  畳んだままだと相手の判定があること自体に気付けない。
+
 ### TiAb エクスポート（CSV/RIS）の判定者別列
 
 `src/sidepanel/features/import-export.ts` の `handleExportCSV()` / `handleExportRIS()` が対象。
