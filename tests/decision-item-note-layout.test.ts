@@ -19,6 +19,10 @@ function loadDecisionsCss(): string {
     return readFileSync(join(process.cwd(), 'src', 'sidepanel', 'styles', 'decisions.css'), 'utf8');
 }
 
+function loadFulltextTabCss(): string {
+    return readFileSync(join(process.cwd(), 'src', 'sidepanel', 'styles', 'fulltext-tab.css'), 'utf8');
+}
+
 /** セレクタ直後の宣言ブロック（`{ ... }`）を取り出す */
 function ruleBodyOf(css: string, selector: string): string {
     const index = css.indexOf(selector);
@@ -38,6 +42,12 @@ test('.decision-item .note は行全体を占有する', () => {
     const body = ruleBodyOf(loadDecisionsCss(), '.decision-item .note {');
     // flex-basis 100%（= 前の要素と同じ行に並ばない）と、長い語・改行の扱いを担保する
     assert.match(body, /flex:\s*0\s+0\s+100%/);
+    assert.match(body, /white-space:\s*pre-wrap/);
+    assert.match(body, /overflow-wrap:\s*anywhere/);
+});
+
+test('フルテキストの不一致ビューのメモも改行を保持し、行から溢れない', () => {
+    const body = ruleBodyOf(loadFulltextTabCss(), '.fulltext-conflict-vote-note {');
     assert.match(body, /white-space:\s*pre-wrap/);
     assert.match(body, /overflow-wrap:\s*anywhere/);
 });
