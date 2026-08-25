@@ -49,6 +49,12 @@ import { getCriteriaSeenAt, setCriteriaSeenAt } from '../lib/storage';
 import {
     isTiabDecision,
 } from '../lib/fulltext-pool';
+import { isAdjudicationKey } from '../lib/fulltext-consensus';
+import {
+    selectOtherFulltextDecisions,
+    otherReviewerLabel,
+} from '../lib/fulltext-other-decisions';
+import { isDecisionVisibleDuringBlind } from '../lib/blind-visibility';
 import type { FulltextPoolRule } from '../lib/fulltext-pool';
 import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
 import { explainEmptyAiEvidence } from '../lib/ai-evidence-empty-reason';
@@ -141,6 +147,11 @@ let loadToken = 0;
 function isStale(token: number): boolean {
     return token !== loadToken;
 }
+
+// キー状態変更（blind:key-changed）に伴う再取得の取り違え防止用トークン。
+// loadToken（文献遷移用）とは別枠。連続でキーを切り替えたとき、古いキー開放の
+// 再取得が後から返ってきて新しい状態を上書きしないようにする。
+let keyChangeToken = 0;
 
 // 現在の決断パネル状態
 let pendingDecision: 'include' | 'exclude' | 'maybe' | null = null;
@@ -251,6 +262,16 @@ async function initFulltextPage(): Promise<void> {
     wireCriteriaModal();
     document.addEventListener('keydown', handleKeydown);
 
+    // サイドパネルでキー状態（Blind開放/復帰）が変わったことを別ウィンドウ間で受け取る。
+    // 別ウィンドウでPDF判定画面を開いたままキーがBlindへ戻された場合、購読していないと
+    // 古いキー状態のまま他レビュアーの判定を表示し続けてしまう（仕様違反）ため必須。
+    platform().onMessage((message) => {
+        const msg = message as { type?: string; spreadsheetId?: string; keyOpened?: boolean };
+        if (msg?.type === 'blind:key-changed' && msg.spreadsheetId === spreadsheetId && typeof msg.keyOpened === 'boolean') {
+            applyKeyOpenedChange(msg.keyOpened);
+        }
+    });
+
     // 最初の文献を表示
     await loadRef(refId);
 
@@ -258,6 +279,69 @@ async function initFulltextPage(): Promise<void> {
     maybeShowCriteriaNotice().catch(err =>
         console.error('[fulltext] maybeShowCriteriaNotice error:', err)
     );
+}
+
+/**
+ * サイドパネルからの blind:key-changed 通知を受けて、キー状態の変更をこのウィンドウへ即座に反映する。
+ * ブラインドの線引きはデータ層（getFulltextPageData の filterDecisionsForBlind）・UI層
+ * （selectOtherFulltextDecisions）に続く3層目の防御で、これが無いと「キー開放中にPDF画面を
+ * 開いたまま、サイドパネルでBlindへ戻す」操作をしたとき、この画面だけ他レビュアーの判定を
+ * 出し続けてしまう（文献を移動してもメモリ上のキャッシュから再表示されるため直らない）。
+ */
+function applyKeyOpenedChange(nextKeyOpened: boolean): void {
+    // 連続でキーを切り替えたときに、古いキー開放の再取得応答が後から結果を上書きしないためのトークン
+    const token = ++keyChangeToken;
+    keyOpened = nextKeyOpened;
+
+    // 初期化時の「aiReveal = keyOpened」と同じ状態にそろえる。
+    // AI判断（evidenceのpolarity＝組入/除外の色・ラベル）はブラインド情報のため、
+    // Blindへ戻ったら必ず伏せ直す必要がある（既存のAI開示トグルと同じ3点セット
+    // ＝ aiReveal切替 → syncAiRevealButton → 再描画、を通す。管理者は画面内トグルで再度開示できる）。
+    aiReveal = nextKeyOpened;
+    syncAiRevealButton();
+
+    if (!nextKeyOpened) {
+        // Blindへ戻る: ネットワーク再取得を待たず、メモリ上の allDecisions から
+        // 他レビュアーの人間票・裁定票を同期的に破棄する。再取得を待つ設計にすると、
+        // 失敗時に他人の判定が表示されたままになり仕様違反が残ってしまうため。
+        allDecisions = allDecisions.filter(d => isDecisionVisibleDuringBlind(d, userEmail));
+        redrawAfterKeyChange();
+        return;
+    }
+
+    // キー開放: この時点ではまだ他レビュアーの票を持っていないため、一旦そのまま再描画してから
+    // ベストエフォートで再取得する。失敗しても例外は投げず console.warn に留める。
+    redrawAfterKeyChange();
+    getFulltextPageData(spreadsheetId, userEmail)
+        .then(({ decisions }) => {
+            if (token !== keyChangeToken) return; // 取り違え防止: このあと別のキー変更が来ていたら破棄
+            allDecisions = decisions.map(({ decision }) => decision);
+            redrawAfterKeyChange();
+        })
+        .catch(err => {
+            console.warn('[fulltext] blind:key-changed（キー開放）後の再取得に失敗:', err);
+        });
+}
+
+/**
+ * applyKeyOpenedChange 共通の再描画。
+ * PDF自体の再読込はしない（loadRef() を呼ぶと Drive からPDFを取り直してしまうため使わない）。
+ * 候補ルールは他レビュアーの票を使うため、キー状態が変われば候補集合も変わる
+ * （recomputeCandidates() が内部で currentCandidateIndex も currentRef から引き直す）。
+ * refreshEvidenceDisplay() も合わせて呼ぶ: aiReveal の切り替えは、既に描画済みの
+ * ハイライト矩形・根拠カード一覧（polarityの色分け・ラベル）にも反映しないと、
+ * Blindへ戻したのに full レベルの表示が画面に残ってAI判断が読み取れてしまう。
+ * currentPdfInfo / currentRef が無ければ内部で早期リターンするため、
+ * どの表示経路でも安全に呼べる。
+ */
+function redrawAfterKeyChange(): void {
+    recomputeCandidates();
+    renderProgress();
+    renderOverallProgress();
+    renderDecisionPanel();
+    refreshEvidenceDisplay();
+    updateToolbarMode();
+    if (currentRef) renderContextPanel(currentRef);
 }
 
 /**
@@ -454,6 +538,8 @@ const AI_DECISION_LABELS: Record<string, string> = {
     include: '組み入れ',
     exclude: '除外',
     maybe: '保留',
+    // AI判定には出ないが、自分のTiAb判定・他レビュアーの判定の表示で使う
+    pending: '未判定',
 };
 
 /**
@@ -1643,9 +1729,66 @@ function findMyTiabDecision(refId: string): Decision | null {
 }
 
 /**
+ * この文献に対する他レビュアーのフルテキスト判定（レビュアーごとに最新の1件）。
+ * 選別・並び順・ブラインドの線引きは lib 側の純関数に委譲する（テストはそちらで書く）。
+ */
+function findOtherFulltextDecisions(refId: string): Decision[] {
+    return selectOtherFulltextDecisions(allDecisions, refId, userEmail, keyOpened);
+}
+
+/**
+ * 他レビュアーのフルテキスト判定ブロックを組み立てる（Blind解除時のみ呼ぶ）。
+ * 不一致の見直しでPDFを読み直すとき、相手の判定・除外理由・メモをこの画面で読めるようにする
+ * （従来はサイドパネルの「不一致の解消」ビューへ戻らないと読めなかった）。
+ */
+function buildOtherDecisionsBlock(others: Decision[]): HTMLElement {
+    const block = document.createElement('div');
+    block.className = 'ft-context-others';
+
+    const head = document.createElement('div');
+    head.className = 'ft-context-others-head';
+    head.textContent = '他レビュアーのフルテキスト判定';
+    block.appendChild(head);
+
+    if (others.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'ft-context-others-empty';
+        empty.textContent = 'まだありません';
+        block.appendChild(empty);
+        return block;
+    }
+
+    for (const d of others) {
+        const row = document.createElement('div');
+        row.className = 'ft-context-other';
+        row.dataset.decision = d.decision;
+
+        const parts = [otherReviewerLabel(d.reviewer_id || '', userEmail), AI_DECISION_LABELS[d.decision] ?? d.decision];
+        if (d.reason) parts.push(excludeReasonLabel(d.reason, excludeReasonItems));
+        const rowHead = document.createElement('div');
+        rowHead.className = 'ft-context-other-head';
+        rowHead.textContent = parts.join(' · ');
+        row.appendChild(rowHead);
+
+        // 裁定票の note は裁定時点の票のスナップショット（JSON）なので本文としては出さない
+        if (d.note && !isAdjudicationKey(d.reviewer_id || '')) {
+            const note = document.createElement('div');
+            note.className = 'ft-context-other-note';
+            note.textContent = d.note;
+            row.appendChild(note);
+        }
+
+        block.appendChild(row);
+    }
+
+    return block;
+}
+
+/**
  * 右ペインの「抄録・自分のTiAb判定」折りたたみを描画する。
  * 表示中PDFと抄録の突き合わせ（取り違え確認）と、
  * TiAb時に何を根拠に通したかの文脈想起を助ける。開閉状態は文献をまたいで維持する。
+ * Blind解除後は他レビュアーのフルテキスト判定もここに出す（不一致の見直し用）。
  */
 function renderContextPanel(ref: Reference): void {
     const body = document.getElementById('ft-context-body');
@@ -1668,6 +1811,19 @@ function renderContextPanel(ref: Reference): void {
         tiabRow.textContent = '自分のTiAb判定: なし';
     }
     body.appendChild(tiabRow);
+
+    // Blind解除後のみ他レビュアーの判定を出す（Blind中は見出しごと出さない）
+    const others = findOtherFulltextDecisions(ref.ref_id);
+    if (keyOpened) {
+        body.appendChild(buildOtherDecisionsBlock(others));
+    }
+    // 折りたたみ見出しにも件数を出す。畳んだままだと相手の判定があることに気付けないため
+    const summary = document.getElementById('ft-context-summary');
+    if (summary) {
+        summary.textContent = keyOpened
+            ? `抄録・自分のTiAb判定・他レビュアーの判定 (${others.length})`
+            : '抄録・自分のTiAb判定';
+    }
 
     const abs = document.createElement('div');
     abs.className = 'ft-context-abstract';

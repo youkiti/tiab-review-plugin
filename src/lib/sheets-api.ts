@@ -21,6 +21,7 @@ import { buildFulltextUrlUpdateData, validateFulltextDriveHeaders } from './full
 import type { FulltextUrlUpdateEntry } from './fulltext-drive-write';
 import { AUDIT_LOG_HEADERS, buildAuditEventRow } from './audit-log';
 import type { AuditLogEvent } from './audit-log';
+import { isDecisionVisibleDuringBlind } from './blind-visibility';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -2253,11 +2254,8 @@ function filterDecisionsForBlind(
     userEmail: string
 ): { decision: Decision; rowIndex: number }[] {
     if (keyOpened) return decisions;
-    const normalizedEmail = (userEmail || '').trim();
-    return decisions.filter(({ decision }) => {
-        const reviewerId = (decision.reviewer_id || '').trim();
-        return reviewerId === normalizedEmail || reviewerId.startsWith('llm:');
-    });
+    // ポリシー本体は src/lib/blind-visibility.ts に一元化（fulltext.ts の即時反映でも同じ関数を使う）
+    return decisions.filter(({ decision }) => isDecisionVisibleDuringBlind(decision, userEmail));
 }
 
 /**

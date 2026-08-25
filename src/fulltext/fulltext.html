@@ -95,10 +95,11 @@
                     <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>
                 </section>
 
-                <!-- 文脈参照: 抄録と自分のTiAb判定（PDF取り違え確認・文脈想起の補助） -->
+                <!-- 文脈参照: 抄録・自分のTiAb判定・他レビュアーの判定（PDF取り違え確認・文脈想起・不一致の見直し用）
+                     見出しは Blind 状態で変わるため fulltext.ts の renderContextPanel() が実行時に書き換える -->
                 <section class="ft-panel ft-context-panel">
                     <details id="ft-context-details">
-                        <summary class="ft-context-summary">抄録・自分のTiAb判定</summary>
+                        <summary id="ft-context-summary" class="ft-context-summary">抄録・自分のTiAb判定</summary>
                         <div id="ft-context-body" class="ft-context-body"></div>
                     </details>
                 </section>

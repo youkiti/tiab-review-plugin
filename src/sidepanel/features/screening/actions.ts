@@ -5,6 +5,7 @@
 
 import { dom } from '../../dom';
 import { state } from '../../state';
+import { platform } from '../../../platform';
 import { getFilteredReferences } from './filters';
 import type { Decision, ReferenceWithStatus } from '../../../lib/types';
 import {
@@ -443,6 +444,11 @@ export async function handleKeyToggle() {
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
 
+            // 別ウィンドウで開いているPDF判定画面（fulltext.ts）が古いキー状態のまま
+            // 他レビュアーの判定を出し続けるのを防ぐため、キー状態の変更を通知する。
+            // 受信側がいなくてもエラーにならない fire-and-forget。
+            platform().emitMessage({ type: 'blind:key-changed', spreadsheetId: state.spreadsheetId, keyOpened: false });
+
             showToast(t('blind_onSuccess'));
         } catch (error) {
             console.error('Key close error:', error);
@@ -511,6 +517,11 @@ export async function handleKeyToggle() {
             syncSetCurrentFilter('pending');
             dom.statusFilter.value = 'pending';
             if (_renderCurrentReference) _renderCurrentReference();
+
+            // 別ウィンドウで開いているPDF判定画面（fulltext.ts）が古いキー状態のまま
+            // 他レビュアーの判定を出し続けるのを防ぐため、キー状態の変更を通知する。
+            // 受信側がいなくてもエラーにならない fire-and-forget。
+            platform().emitMessage({ type: 'blind:key-changed', spreadsheetId: state.spreadsheetId, keyOpened: true });
 
             showToast(t('blind_offSuccess'));
         } catch (error) {

@@ -855,11 +855,23 @@
     font-weight: 600;
     color: #2c3e50;
     min-width: 120px;
+    overflow-wrap: anywhere;
 }
 
 .fulltext-conflict-vote-decision { color: #555; }
-.fulltext-conflict-vote-reason { color: #b03a2e; }
-.fulltext-conflict-vote-note { color: #777; font-style: italic; }
+.fulltext-conflict-vote-reason { color: #b03a2e; overflow-wrap: anywhere; }
+
+/*
+ * 他レビュアーのメモ（不一致を見直すときに読む本文）。
+ * 改行を保持しないと箇条書きが1段落に潰れ、長いURLは行から溢れて読めなくなるため、
+ * TiAb側の .decision-item .note と同じ扱いにそろえる。
+ */
+.fulltext-conflict-vote-note {
+    color: #777;
+    font-style: italic;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 
 .fulltext-conflict-adjudicated-info {
     font-size: 12px;

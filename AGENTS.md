@@ -190,6 +190,36 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 **未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
 CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
 
+#### フルテキスト判定画面（PDFウィンドウ）の「他レビュアーの判定」
+
+`src/fulltext/fulltext.ts` の右ペイン折りたたみ（`renderContextPanel`）には、抄録・自分のTiAb判定に加えて
+**キー開封後（`keyOpened === true`）のときだけ**、同じ文献に対する他レビュアーのフルテキスト判定
+（判定・除外理由・メモ）を出す。不一致をPDFで読み直すとき、サイドパネルの「不一致の解消」へ戻らずに
+相手の言い分を読めるようにするため（従来はこの画面に自分とAIの判定しか出ていなかった）。
+
+- 選別ロジックは `src/lib/fulltext-other-decisions.ts` の純関数（`selectOtherFulltextDecisions` /
+  `otherReviewerLabel`）に切り出す。`fulltext.ts` は DOM/ページ状態に依存する層でテストできないため
+  （`fulltext-consensus.ts` と同じ方針）。テストは `tests/fulltext-other-decisions.test.ts`。
+- ブラインドの線引きは**3層**で持つ（多層防御）: `getFulltextPageData` が `filterDecisionsForBlind` で
+  他レビュアーの票を落とし、`selectOtherFulltextDecisions` も `keyOpened === false` なら必ず空を返す。
+  両者のポリシー本体は `src/lib/blind-visibility.ts` の `isDecisionVisibleDuringBlind()` に一元化している
+  （「自分の判定」または「AI（`llm:`）判定」のみ表示可）。3層目として、サイドパネルでキー状態が
+  変わったときは `platform().emitMessage({ type: 'blind:key-changed', spreadsheetId, keyOpened })` で
+  別ウィンドウへ通知する（`src/sidepanel/features/screening/actions.ts` の `handleKeyToggle()`）。
+  `fulltext.ts` はこれを購読し、Blindへ戻る通知では**再取得を待たずその場で** `allDecisions` から
+  他レビュアーの票を破棄する（`applyKeyOpenedChange()`）。別ウィンドウでPDF判定画面を開いたまま
+  サイドパネル側だけBlindへ戻された場合、購読していないと文献を移動してもメモリ上のキャッシュから
+  他レビュアーの判定が再表示され続けてしまうため。
+- AI票（`llm:`）はここには出さない（判定パネル上部のAI判定サマリと二重になるため）。
+  裁定票（`adjudication:`）は「不一致がどう解消されたか」を示すので出すが、`note` は裁定時点の票の
+  スナップショット（JSON）なので本文としては表示しない。裁定票は reviewer_id（裁定者）ごとではなく
+  **全裁定者を横断して1グループ**として畳み、`decided_at` が最新の1件だけを出す
+  （`computeFulltextConsensus()` と同じ「裁定票のうち最新のものを最終とする」規則）。
+- 表示名（`otherReviewerLabel`）は通常の判定者・裁定者ともに完全なメールアドレスを出す
+  （ローカル部だけだと `alex@hospital-a.example` と `alex@hospital-b.example` を取り違える）。
+- 折りたたみは既定で閉じているため、**見出しに件数を出す**（`#ft-context-summary` を実行時に書き換え）。
+  畳んだままだと相手の判定があること自体に気付けない。
+
 ### TiAb エクスポート（CSV/RIS）の判定者別列
 
 `src/sidepanel/features/import-export.ts` の `handleExportCSV()` / `handleExportRIS()` が対象。
