@@ -12,6 +12,7 @@ import { getReviewerKey, getReviewerLabel, isActiveConfirmedLlmDecision } from '
 import { detectConflictWithSettings, filterEnabledDecisions } from '../../render/helpers';
 import { isHumanDecision, isConfirmedMlDecision, isMlAutoDecision, isMlDecision } from '../../../lib/client-version';
 import { isFulltextCandidateRef } from '../../../lib/fulltext-candidates';
+import { isRegistrationRecord } from '../../../lib/registry-record';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
 import { platform } from '../../../platform';
@@ -416,13 +417,9 @@ function renderSourceBadge(ref: ReferenceWithStatus) {
  * 切れている訳ではない旨を注釈として表示する。
  */
 function renderTrialRegistryNote(ref: ReferenceWithStatus) {
-    const source = (ref.source || '').trim();
-    const journal = (ref.journal || '').trim().toLowerCase();
-    const isTrialRegistry =
-        journal === 'ictrp' ||
-        journal === 'clinicaltrials.gov' ||
-        /clinicaltrials\.gov/i.test(source);
-    if (isTrialRegistry) {
+    // 判定は isRegistrationRecord() に一本化（src/lib/registry-record.ts 参照）。
+    // 表示結果は従来のインラインヒューリスティックと完全に同一。
+    if (isRegistrationRecord(ref)) {
         dom.refTrialRegistryNote.classList.remove('hidden');
     } else {
         dom.refTrialRegistryNote.classList.add('hidden');

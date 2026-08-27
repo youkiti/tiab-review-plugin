@@ -81,8 +81,10 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 | fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
+| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサのみ。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列） |      |
+| related_ref_id  | registration行 ⇄ そこから取り込んだ論文行の相互参照。Issue #118 チャンク1時点ではスキーマのみ（チャンク3で使用）（Z列） |      |
 
-**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
+**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
 #### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
@@ -1036,9 +1038,9 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **書き込みは `T:U` と `W:X` の2つの非連続レンジを同一 `values:batchUpdate` に積む（`fulltext-drive-write.ts`）。`T:X` の連続レンジにしてはならない**（V列 `fulltext_set`＝フルテキスト担当割り振りを消してしまう）
 - **`updateReferenceFulltextUrl(s)` の `driveSource` は必須引数**。Drive直接取り込みだけが実値を渡し、残り9経路（OA取得・手動アップロード・リンクPDF自動保存・PDF削除等）は必ず `null` を渡してW/Xをクリアすること。**クリアし忘れると、Drive側 `findImportedCopy` のクエリが持っていた `trashed=false` の暗黙保証がシート側の真値には無いため、ゴミ箱にあるコピーを「取り込み済み」と誤判定する**
 - **クレームの自己検証**（`drive-import-claim.ts` の `isFulltextClaimValid`）: シートのクレームが有効なのは `status === 'cached'` かつ `fulltext_url` 非空 かつ `extractDriveFileId(fulltext_url) === fulltext_drive_copy_id` の3条件をすべて満たすときだけ。旧バージョンの拡張は `T:U` しか書かずW/Xをクリアしないため、「誰かがDrive取り込み→旧版ユーザーがOA取得や差し替えでPDFを交換」という自動更新ラグ中の操作で「別PDFのURL＋古いsource ID」が同じ行に共存しうる。URLとコピーIDの食い違いでそうしたクレームは自動的に失効する
-- **W/X書き込み前のヘッダー検証**（`validateFulltextDriveHeaders()`、spreadsheetId単位でメモ化）。ユーザーが独自の23列目以降を足していた場合、Drive直接取り込みはfail-fastでエラー、それ以外の経路はW/Xをスキップして`T:U`だけ書く（独自データを空文字で壊さないため）。**`ensureHeaders`（`sheets-api.ts`）も同じ `validateFulltextDriveHeaders()` でガードする**（PR #105 実機確認で発覚した回帰の修正）。両方に要るのは目的が違うため:
+- **W/X書き込み前のヘッダー検証**（`validateFulltextDriveHeaders()`、spreadsheetId単位でメモ化）。ユーザーが独自の23列目以降を足していた場合、Drive直接取り込みはfail-fastでエラー、それ以外の経路はW/Xをスキップして`T:U`だけ書く（独自データを空文字で壊さないため）。**`ensureHeaders`（`sheets-api.ts`）は目的の異なる別関数 `validateReferencesManagedHeaders()` で同様にガードする**（PR #105 実機確認で発覚した回帰の修正）。2つ要るのは目的が違うため:
   - `ensureFulltextDriveColumnsOnce`（`updateReferenceFulltextUrls` の前段）側は、フルテキストページ（`src/fulltext/fulltext.ts`）がサイドパネル接続時の `ensureHeaders` を経由しないための、W/X書き込み前の唯一の保証経路
-  - `ensureHeaders` 側は、**ユーザー独自のヘッダー名を改名しない**ための保護。`ensureHeaders` は「References のヘッダーが `REFERENCES_HEADERS.length`(=24) 未満なら A1:Z1 をヘッダー定義で丸ごと上書き」する実装のため、検証なしだと独自列を1本だけ（23列）足しているシートで W1 のユーザー独自名を `fulltext_drive_source_id` に無警告で改名してしまい、直後の `ensureFulltextDriveColumnsOnce` の検証が「改名後の名前」を見て `usable=true` と誤判定し、以後W列へsource IDを書き込んでユーザーのデータを上書きする（独自列が2本＝24列なら列数比較で発火しないため実害なし。**一番ありがちな「1列だけ足した」構成でだけ防げていなかった**）
+  - `ensureHeaders` 側は、**ユーザー独自のヘッダー名を改名しない**ための保護。列数に関わらず常に `validateReferencesManagedHeaders()`（検証対象は `REFERENCES_MANAGED_TAIL_START_INDEX`＝22＝W列以降から、終端は `REFERENCES_HEADERS.length`（配列長から導出。現在26列 = Z列まで）まで）を実行し、衝突があれば列名・期待値・実際値を警告してPUTしない。衝突がなく、かつ列数も足りているときだけPUTする。もともとW/X列（index 22/23）限定の検証だったため、record_type/related_ref_id（Y/Z列）追加時にこの検証が追従しておらず同じ穴が再発した（25列シート＝独自1列足し：`25 < 26`で「不足」分岐に入るが旧検証はW/Xしか見ず通過し独自列を無警告で改名／26列シート：列数一致で「移行済み」誤判定となり検証自体が走らない）。検証範囲を配列長から導出する形に一般化したので、以後は末尾に列を足すだけなら呼び出し側の追従は不要。ただし `REFERENCES_MANAGED_TAIL_START_INDEX` は「後付け列はここから始まる」という前提そのものであり、列の**途中挿入**をすればこの前提が崩れる（「データ設計 > スプレッドシート構造」の**References も列は末尾追記のみ**の規約を守ること）
   - **検証は `ensureHeaders` のヘッダー行書き込みの前に置くこと**。後に置くと自分が改名した結果を検証することになり、常に一致して素通りする
 - **表示用3値判定は純関数化**（`drive-import-classify.ts` の `classifyDriveImportState`）。逆引きを `state.references`（非管理者では担当分に絞られている）から全行スナップショット（`getFulltextClaimsSnapshot`）へ移し、担当外文献へ取り込まれたPDFが「未完了」と誤表示される既存バグを修正した。判定順2のフォールバックはW列が空の行も引けるようref_id起点のマップ（`byRefId`）を使う（本Issue以前に取り込まれた既存ファイルがすべて該当するため、source ID起点のマップだと誤って未完了になる）。Picker で選択が確定した直後にクレームのスナップショットを1回だけ取り直す（`state.allReferences` はロード時のスナップショットのため）。ファイルごとに取り直すとN+1になる
 - **1つのソースPDFを2件目の文献へ対応付けることはできない**（表示フェーズの仕様。PR #105 レビュー指摘3の確定）。`classifyDriveImportState` の判定順1は「有効なクレームが**1件でも**あれば done」なので、既にどこかの文献へ取り込まれたソースPDFは対応付けモーダルで候補から外れる。本Issue以前からコピー作成者本人には掛かっていた制限（自分のコピーが `findImportedCopy` で見つかる→already-done→done→除外）を全メンバーへ揃えた結果であり、作成者以外は「他人のコピーが見えない」バグの副作用として対応付けできていたにすぎない
@@ -1159,6 +1161,7 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 - **`tests/tsconfig.json` の `types` は明示列挙**（`node` / `chrome` / `google.accounts`）。新しい ambient 型に依存するテストを足すと `Cannot find namespace` で `npm run test` が落ちるので、型の追加もセットで行うこと。`include` も明示列挙だが、テストから import したモジュールは推移的に取り込まれるため、通常は `types` 側だけが問題になる。
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
 - **`.tmp/tests` は掃除されない。** `npm run test` は `.tmp/tests/tests/*.test.js` を glob で拾うため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされる（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。件数が合わないときは `tests/*.test.ts` の数と突き合わせること。
+- **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
 
 ### ローカル実験環境
 

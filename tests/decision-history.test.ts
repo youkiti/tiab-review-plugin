@@ -120,7 +120,9 @@ function installMockFetch(mockState: MockState) {
             const requestUrl = new URL(url);
             const ranges = requestUrl.searchParams.getAll('ranges');
             const valueRanges = ranges.map((range) => {
-                if (range === 'References!A:X') return { values: mockState.referencesValues };
+                // Issue #118 チャンク1で REFERENCES_HEADERS に record_type/related_ref_id を
+                // 追加した結果、References の終端列が X(24列) → Z(26列) に変わった。
+                if (range === 'References!A:Z') return { values: mockState.referencesValues };
                 if (range === 'Decisions!A:L') return { values: mockState.decisionsValues };
                 if (range === 'Config!A:B') return { values: mockState.configValues };
                 throw new Error(`Unhandled mock batchGet range: ${range}`);

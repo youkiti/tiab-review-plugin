@@ -37,6 +37,7 @@ const REFERENCES_HEADERS = [
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
     'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+    'record_type', 'related_ref_id',
 ];
 
 const DECISIONS_HEADERS = [

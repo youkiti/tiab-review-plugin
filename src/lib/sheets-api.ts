@@ -140,13 +140,16 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 // 【重要】新しい列は必ず末尾に追加すること。途中挿入すると既存プロジェクトのシートで列がずれる。
 // fulltext_drive_source_id（W列）/ fulltext_drive_copy_id（X列）は Issue #73 Phase 2 で追加した、
 // Drive直接取り込みの冪等性判定用の列（詳細は updateReferenceFulltextUrls の JSDoc を参照）。
-const REFERENCES_HEADERS = [
+// record_type（Y列）/ related_ref_id（Z列）は Issue #118 チャンク1（レジストリ連携フェーズ1）で追加。
+// 列を足すたびに src/demo/seed.ts の REFERENCES_HEADERS ミラーも必ず追従させること。
+export const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
-    'fulltext_drive_source_id', 'fulltext_drive_copy_id'
+    'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+    'record_type', 'related_ref_id'
 ];
 
 
@@ -184,6 +187,64 @@ function columnLetter(index: number): string {
 // 以前は 'K'（11列時代）をシート操作の各所に直書きしていたが、context_json 追加で
 // 12列目（L列）になったため、以後は列数変更に自動追従するこの定数を使うこと。
 const DECISIONS_LAST_COLUMN = columnLetter(DECISIONS_HEADERS.length);
+
+// References タブの終端列（A1形式）。REFERENCES_HEADERS の長さから動的に導出する。
+// 以前は 'References!A:X' を4箇所に直書きしていたが（24列固定の想定）、record_type/
+// related_ref_id 追加で26列（Z列）になったため、以後は列数変更に自動追従するこの定数を使うこと
+// （Decisions と同じ落とし穴。T:X（fulltext系5列の部分範囲）のように末尾以外を指す固定範囲は
+// 対象外＝変更不要）。
+const REFERENCES_LAST_COLUMN = columnLetter(REFERENCES_HEADERS.length);
+
+// References タブの「アプリ後付け列」の開始位置（0-indexed）。
+// A〜V の22列（ref_id 〜 fulltext_set）は初期バージョンから存在する安定プレフィックスで、
+// W列（index 22）以降は、このアプリが後から追加してきた列
+// （fulltext_drive_source_id/fulltext_drive_copy_id → record_type/related_ref_id、…）。
+// ユーザーが独自の列を追加するなら必ずこの位置以降になるため、
+// 「ユーザー独自ヘッダーとの衝突」検証はこの位置から REFERENCES_HEADERS.length-1 までを対象にする。
+const REFERENCES_MANAGED_TAIL_START_INDEX = 22;
+
+/** validateReferencesManagedHeaders() が検出した1列分の衝突情報 */
+export interface ReferencesHeaderConflict {
+    /** A1形式の列名（例: 'Y'） */
+    column: string;
+    /** アプリが期待するヘッダー名 */
+    expected: string;
+    /** 実際にシートへ入っていたヘッダー名（trim済み） */
+    actual: string;
+}
+
+/** validateReferencesManagedHeaders() の判定結果 */
+export interface ReferencesManagedHeadersCheck {
+    ok: boolean;
+    /** ok=false のとき、衝突した列ぶんの情報（呼び出し側がログに出すため） */
+    conflicts: ReferencesHeaderConflict[];
+}
+
+/**
+ * References タブの「アプリ後付け列」（REFERENCES_MANAGED_TAIL_START_INDEX（W列）から
+ * REFERENCES_HEADERS.length-1 まで）を、ユーザーが独自ヘッダー名で使っていないか検証する。
+ *
+ * 【経緯】この検証は元々 W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）限定だった
+ * （validateFulltextDriveHeaders、PR #105。ユーザーが独自の23列目以降を1本だけ足したシートで
+ * W1のユーザー独自名を無警告で改名し、直後の書き込みでデータごと上書きしてしまう事故が実機で
+ * 発生した）。その後 record_type/related_ref_id（Y/Z列、Issue #118）を追加した際にこの検証が
+ * 追従しておらず、Y/Z列で同じ穴がそのまま再発した（詳細は ensureHeaders() のコメント参照）。
+ *
+ * 二度と列を足すたびに同じ穴が空かないよう、検証対象の終端を REFERENCES_HEADERS.length から
+ * 動的に導出する。**ここが今回の一般化の肝**で、次に列を1本足せば、その列は呼び出し側の
+ * 変更なしに自動でこの検証範囲へ含まれる。
+ */
+export function validateReferencesManagedHeaders(headerRow: string[]): ReferencesManagedHeadersCheck {
+    const conflicts: ReferencesHeaderConflict[] = [];
+    for (let i = REFERENCES_MANAGED_TAIL_START_INDEX; i < REFERENCES_HEADERS.length; i++) {
+        const expected = REFERENCES_HEADERS[i];
+        const actual = (headerRow[i] ?? '').trim();
+        if (actual !== '' && actual !== expected) {
+            conflicts.push({ column: columnLetter(i + 1), expected, actual });
+        }
+    }
+    return { ok: conflicts.length === 0, conflicts };
+}
 
 /**
  * OAuth トークンを取得。
@@ -316,40 +377,60 @@ export async function rememberLocalRecentSheet(id: string, name: string): Promis
 
 /**
  * シートのヘッダーを確認し、不足があれば更新する
+ *
+ * References側のヘッダー行の範囲は `A1:${REFERENCES_LAST_COLUMN}1` のように REFERENCES_HEADERS の
+ * 長さから導出する（Decisions側の `A1:${DECISIONS_LAST_COLUMN}1` と同じ流儀）。以前は `A1:Z1` を
+ * 直書きしていたが、26列目がちょうどZ列なだけの偶然の一致だった。次に列を1本足して27列になった
+ * 瞬間、読み取りが打ち切られて毎回ヘッダーPUTを発行し続け、かつ27要素の行をA:Z（26列）の範囲へ
+ * 書き込もうとしてSheets APIがエラーを返す事故になるため、直書きに戻さないこと。
  */
 export async function ensureHeaders(spreadsheetId: string): Promise<void> {
     try {
-        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`);
+        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:${REFERENCES_LAST_COLUMN}1`);
         if (!values || values.length === 0) return;
 
         const currentHeaders = values[0];
 
-        // ヘッダーが不足している場合（例: 古いバージョンで作成されたシート）
-        if (currentHeaders.length < REFERENCES_HEADERS.length) {
-            // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）をユーザーが既に
-            // 独自ヘッダー名で使っていないか、上書きする前に検証する。
-            // getSheetValues は末尾の空セルを省いて返す仕様のため、currentHeaders.length >= 23
-            // は「W1が非空」であることと同値。23列だけ足した最もありがちな構成では
-            // この検証をしないと W1 のユーザー独自名を fulltext_drive_source_id に無警告で
-            // 改名してしまい、直後の書き込みで W 列のデータごと上書きしてしまう（実測で再現済み）。
-            const driveHeaderCheck = validateFulltextDriveHeaders(currentHeaders);
-            if (!driveHeaderCheck.ok) {
-                console.warn(
-                    '[ensureHeaders] Skipping References header expansion: W/X columns conflict with user-defined headers',
-                    { actualW: driveHeaderCheck.actualW, actualX: driveHeaderCheck.actualX }
-                );
-            } else {
-                console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
+        // アプリの後付け列（W列以降）をユーザーが既に独自ヘッダー名で使っていないか、
+        // ヘッダー行をPUTする前に検証する。
+        //
+        // 【経緯】この検証は元々 W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）限定
+        // だった（PR #105 実機確認で発覚。ユーザーが独自の23列目以降を1本だけ足したシートでは、
+        // 「列数が足りない」分岐に入って W1 のユーザー独自名を無警告で fulltext_drive_source_id に
+        // 改名し、直後の書き込みで W 列のデータごと上書きしてしまっていた）。
+        // その後 record_type/related_ref_id（Y/Z列、Issue #118）を追加した際にこの検証が
+        // 追従しておらず、同じ穴がそのまま再発した:
+        //   - 25列のシート（A〜Xの24列＋ユーザー独自の25列目）: 25 < 26 で「不足」分岐に入るが、
+        //     旧検証は W/X（index 22/23）しか見ないため通過し、A1:Z1 を丸ごとPUTしてユーザーの
+        //     25列目を無警告で record_type に改名してしまう。
+        //   - 26列のシート（A〜X＋ユーザー独自の2列）: 26 は REFERENCES_HEADERS.length と等しく
+        //     「移行済み」と誤判定され、検証自体が一切走らない。
+        //
+        // 二度と列を足すたびにこの穴が再発しないよう、検証対象を「W列（index 22。A〜Vの22列は
+        // 旧バージョンから存在する安定プレフィックスで、それ以降がこのアプリの後付け列。
+        // ユーザーが独自列を足すならこの位置以降になる）から REFERENCES_HEADERS.length-1 まで」に
+        // 一般化した（validateReferencesManagedHeaders）。次に列を1本足せば、その列は自動で
+        // この検証範囲に含まれる。また「列数が足りている場合は検証しない」という誤判定も
+        // なくすため、列数に関わらず常にこの検証を行う。
+        const managedHeaderCheck = validateReferencesManagedHeaders(currentHeaders);
+        if (!managedHeaderCheck.ok) {
+            console.warn(
+                '[ensureHeaders] References header conflict: managed columns conflict with user-defined headers',
+                { conflicts: managedHeaderCheck.conflicts }
+            );
+        } else if (currentHeaders.length < REFERENCES_HEADERS.length) {
+            // ヘッダーが不足している場合（例: 古いバージョンで作成されたシート）のみPUTする。
+            // 列数が足りている場合（上の else if に入らない）はPUTしない＝挙動不変。
+            console.log('[ensureHeaders] Updating headers...', { current: currentHeaders.length, expected: REFERENCES_HEADERS.length });
 
-                // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
-                // A〜V列は一致しなくても、このアプリで管理する以上は更新して良いとする。
-                // W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）だけは例外で、
-                // 一致しない場合はこの else に入らず（上の driveHeaderCheck.ok により）更新しない
+            // 既存のヘッダーが期待されるヘッダーのプレフィックスと一致するか確認（念のため）
+            // A〜V列は一致しなくても、このアプリで管理する以上は更新して良いとする。
+            // W列以降（アプリの後付け列）だけは例外で、一致しない場合はこの分岐に入らず
+            // （上の managedHeaderCheck.ok により）更新しない
 
-                // 行1全体を更新
-                await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
-                console.log('[ensureHeaders] Headers updated');
-            }
+            // 行1全体を更新
+            await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:${REFERENCES_LAST_COLUMN}1`, [REFERENCES_HEADERS]);
+            console.log('[ensureHeaders] Headers updated');
         }
     } catch (error) {
         console.error('[ensureHeaders] Error:', error);
@@ -733,19 +814,26 @@ function parseReferenceValues(values: string[][]): Reference[] {
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);
     return parseReferenceValues(values);
 }
 
 // ...
 
 /**
- * 文献を追加（RISインポート用）
+ * 1件の Reference を REFERENCES_HEADERS の並び順（A〜Z列）の行配列に組み立てる（addReferences 用の純関数）。
+ *
+ * fulltext_url 〜 fulltext_drive_copy_id（index 19〜23、T〜X列）はインポート時点では
+ * どのパーサ（RIS/CTG/ICTRP）も値を持たないが、record_type / related_ref_id（index 24〜25、
+ * Y/Z列）を末尾に書くには、その手前の5列を明示的に空文字でパディングして位置を合わせる必要がある。
+ * パディングを省略すると record_type/related_ref_id が fulltext_url/fulltext_status の位置に
+ * ずれ込み、既存のフルテキスト取得状態列を破壊してしまう。
+ *
+ * record_type は未設定なら空文字で書く（インポート時点で確定値を持つのは CTG/ICTRP パーサのみ。
+ * 判定自体は isRegistrationRecord() を参照）。
  */
-export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
-    if (references.length === 0) return;
-
-    const rows = references.map(ref => [
+export function buildReferenceInsertRow(ref: Reference): string[] {
+    return [
         ref.ref_id,
         ref.title,
         ref.abstract || '',
@@ -765,7 +853,23 @@ export async function addReferences(spreadsheetId: string, references: Reference
         ref.dedupe_key || '',
         ref.source_file || '',
         ref.screening_set || '',
-    ]);
+        '', // fulltext_url（index 19） — インポート時点では未設定のため空文字パディング
+        '', // fulltext_status（index 20）
+        '', // fulltext_set（index 21）
+        '', // fulltext_drive_source_id（index 22）
+        '', // fulltext_drive_copy_id（index 23）
+        ref.record_type || '', // index 24
+        ref.related_ref_id || '', // index 25
+    ];
+}
+
+/**
+ * 文献を追加（RISインポート用）
+ */
+export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
+    if (references.length === 0) return;
+
+    const rows = references.map(buildReferenceInsertRow);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
 }
@@ -2047,7 +2151,7 @@ async function updateReferenceColumnByRefId(
 
     await ensureHeaders(spreadsheetId);
 
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);
     if (values.length <= 1) return;
 
     const headers = values[0];
@@ -2275,7 +2379,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
 }> {
     try {
         const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
-            `${REFERENCES_SHEET}!A:X`,
+            `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
             `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             `${CONFIG_SHEET}!A:B`,
         ]);
@@ -2293,7 +2397,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
         if ((error as Error).message.includes('Unable to parse range')) {
             console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
             const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
-                `${REFERENCES_SHEET}!A:X`,
+                `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
                 `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             ]);
             const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
