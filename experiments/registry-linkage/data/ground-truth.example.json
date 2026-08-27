@@ -1,0 +1,27 @@
+[
+  {
+    "trial_id": "jRCT2031200153",
+    "pmid": "",
+    "doi": "10.0000/example-1",
+    "provenance": "registry_declared",
+    "source_note": "jRCT該当ページの「主たる公表論文」欄（2026-08-27 閲覧）。https://jrct.niph.go.jp/latest-detail/jRCT2031200153"
+  },
+  {
+    "trial_id": "UMIN000012345",
+    "pmid": "00000001",
+    "provenance": "registry_declared",
+    "source_note": "UMIN-CTR「結果の公表状況」欄に記載の文献（2026-08-27 閲覧）"
+  },
+  {
+    "trial_id": "NCT00000000",
+    "pmid": "00000002",
+    "provenance": "sr_included_table",
+    "source_note": "PMID 00000000 のSR「Characteristics of included studies」表に登録番号と併記"
+  },
+  {
+    "trial_id": "NCT00000001",
+    "pmid": "00000003",
+    "provenance": "pubmed_si",
+    "source_note": "これは循環する由来の例。validateGroundTruth() が除外することを確認するために置いている"
+  }
+]
