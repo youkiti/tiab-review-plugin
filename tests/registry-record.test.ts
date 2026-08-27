@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isRegistrationRecord } from '../src/lib/registry-record';
+import { isRegistrationRecord, isSafeHttpUrl } from '../src/lib/registry-record';
 
 // Issue #118 チャンク1: registration 判定の単一情報源（isRegistrationRecord）の回帰テスト。
 // フォールバックのヒューリスティックは src/sidepanel/features/screening/render.ts の
@@ -53,4 +53,36 @@ test('フォールバック: journal が部分一致（前後に文字がある�
 
 test('フォールバック: record_type/journal/source すべて未設定なら false', () => {
     assert.equal(isRegistrationRecord({}), false);
+});
+
+// --- isSafeHttpUrl(): PR #122 レビュー指摘3で export化。registration行由来のURLを外部へ渡す前の共通ガード ---
+// （src/lib/fulltext-retriever.ts の retrieveRegistrationSnapshot() のDrive保存失敗フォールバックが
+// このガードを通すようになった。回帰テストは tests/fulltext-retriever-registry.test.ts 側にもある）
+
+test('isSafeHttpUrl: https:// は true', () => {
+    assert.equal(isSafeHttpUrl('https://clinicaltrials.gov/study/NCT12345678'), true);
+});
+
+test('isSafeHttpUrl: http:// は true', () => {
+    assert.equal(isSafeHttpUrl('http://example.com/study'), true);
+});
+
+test('isSafeHttpUrl: javascript: は false', () => {
+    assert.equal(isSafeHttpUrl('javascript:alert(1)'), false);
+});
+
+test('isSafeHttpUrl: data: は false', () => {
+    assert.equal(isSafeHttpUrl('data:text/html,<script>alert(1)</script>'), false);
+});
+
+test('isSafeHttpUrl: 相対URLは false', () => {
+    assert.equal(isSafeHttpUrl('/study/NCT123'), false);
+});
+
+test('isSafeHttpUrl: 空文字は false', () => {
+    assert.equal(isSafeHttpUrl(''), false);
+});
+
+test('isSafeHttpUrl: パースできない値は false（例外を投げない）', () => {
+    assert.equal(isSafeHttpUrl(':::'), false);
 });

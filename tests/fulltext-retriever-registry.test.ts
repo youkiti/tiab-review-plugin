@@ -223,3 +223,60 @@ test('registration行: Drive保存が失敗し原簿URLも無ければnoneにフ
 
     assert.deepEqual(outcome, { kind: 'none' });
 });
+
+// ---------------------------------------------------------------------------
+// (d) Drive保存失敗時のフォールバックはisSafeHttpUrl()を通す（PR #122 レビュー指摘3。References.urlは
+//     ユーザーが直接編集できるセルのため、javascript:/data:/相対URL/不正な値が入りうる）
+// ---------------------------------------------------------------------------
+
+const UNSAFE_URLS: Array<[string, string | undefined]> = [
+    ['javascript:スキーム', 'javascript:alert(1)'],
+    ['dataスキーム', 'data:text/html,<script>alert(1)</script>'],
+    ['相対URL', '/study/NCT123'],
+    ['空文字', ''],
+    ['パースできない値', ':::'],
+];
+
+for (const [label, unsafeUrl] of UNSAFE_URLS) {
+    test(`registration行: Drive保存失敗時、原簿URLが安全でない（${label}）ならnoneにフォールバックする（例外を投げない）`, async () => {
+        stubFetch([]);
+
+        const ref = {
+            ref_id: `ref-unsafe-${label}`,
+            title: 'Unsafe URL Study',
+            pmid: 'UMIN000012399',
+            journal: 'ICTRP',
+            source: 'UMIN-CTR',
+            record_type: 'registration' as const,
+            url: unsafeUrl,
+        };
+
+        const outcome = await retrieveAndCacheFulltext(
+            ref, 'test@example.com',
+            async () => { throw new Error('Drive folder access denied'); }
+        );
+
+        assert.deepEqual(outcome, { kind: 'none' }, `安全でないURL(${unsafeUrl})はlinkedにしてはいけない`);
+    });
+}
+
+test('registration行: Drive保存失敗時、原簿URLがhttp://なら従来どおりlinkedにフォールバックする', async () => {
+    stubFetch([]);
+
+    const ref = {
+        ref_id: 'ref-http-fallback',
+        title: 'HTTP Study',
+        pmid: 'UMIN000012400',
+        journal: 'ICTRP',
+        source: 'UMIN-CTR',
+        record_type: 'registration' as const,
+        url: 'http://center6.umin.ac.jp/cgi-open-bin/ctr/ctr_view.cgi?recptno=R000012400',
+    };
+
+    const outcome = await retrieveAndCacheFulltext(
+        ref, 'test@example.com',
+        async () => { throw new Error('Drive folder access denied'); }
+    );
+
+    assert.deepEqual(outcome, { kind: 'linked', url: ref.url, source: 'registry', registryPmids: undefined });
+});

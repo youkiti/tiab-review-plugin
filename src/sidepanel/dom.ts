@@ -193,6 +193,7 @@ const domElements = {
     get fulltextStatusBarFill() { return getElement<HTMLElement>('fulltext-status-bar-fill'); },
     get fulltextStatusBreakdown() { return getElement<HTMLElement>('fulltext-status-breakdown'); },
     get fulltextFetchBtn() { return getElement<HTMLButtonElement>('fulltext-fetch-btn'); },
+    get fulltextSuggestBtn() { return getElement<HTMLButtonElement>('fulltext-suggest-btn'); },
     get fulltextFetchCancelBtn() { return getElement<HTMLButtonElement>('fulltext-fetch-cancel-btn'); },
     get fulltextRetryCheckbox() { return getElement<HTMLInputElement>('fulltext-retry-checkbox'); },
     get fulltextFetchStatus() { return getElement<HTMLElement>('fulltext-fetch-status'); },

@@ -113,13 +113,17 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * http/https のURLだけを <a href> として出すためのガード。
- * sourceUrl は References の url 列＝ユーザーが直接編集できるセル由来のため、
- * `javascript:` / `data:` 等の危険なスキームや相対URL・不正な値が入りうる。
+ * registration行由来のURLを外部に渡す前の共通ガード。http/httpsのみを安全とみなす。
+ *
+ * 用途はHTML埋め込み（buildRegistrySnapshotHtml の <a href>）に限らない。References の url
+ * 列＝ユーザーが直接編集できるセル由来のため、`javascript:` / `data:` 等の危険なスキームや
+ * 相対URL・不正な値が入りうる。fulltext-retriever.ts の retrieveRegistrationSnapshot()（Drive
+ * 保存失敗時のフォールバック）も同じガードを通してから fulltext_url として保存する
+ * （そうしないとサイドパネルの buildLinkBtn() → chrome.tabs.create({ url }) に未検証の値が渡る）。
  * escapeHtml() はHTML構文注入は防ぐがスキームまでは防げないため、ここで別途検証する。
  * new URL() は不正な値で例外を投げるため try/catch する。
  */
-function isSafeHttpUrl(value: string): boolean {
+export function isSafeHttpUrl(value: string): boolean {
     try {
         const protocol = new URL(value).protocol;
         return protocol === 'http:' || protocol === 'https:';

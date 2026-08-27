@@ -467,6 +467,18 @@
   "fulltext_sheetSaveError": {
     "message": "Save error: $1"
   },
+  "fulltext_suggestBtn": {
+    "message": "🔎 Re-search result publications ($1)"
+  },
+  "fulltext_suggestProgress": {
+    "message": "Searching candidates $1/$2"
+  },
+  "fulltext_suggestDone": {
+    "message": "Candidate search done: $2 candidates from $1 registrations"
+  },
+  "fulltext_candidateSaveError": {
+    "message": "Failed to save $1 publication candidate(s). Please re-run the search later."
+  },
   "fulltext_driveColumnsConflict": {
     "message": "Can't update the Drive import columns because References sheet columns W/X are used for something else (current headers: \"$1\" / \"$2\"). Rename columns W/X to fulltext_drive_source_id / fulltext_drive_copy_id, or move your custom columns elsewhere."
   },

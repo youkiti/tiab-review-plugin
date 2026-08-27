@@ -42,6 +42,12 @@ import {
 import { isRegistrationRecord, extractTrialId } from '../../lib/registry-record';
 import { discoverPublicationCandidates } from '../../lib/publication-suggest';
 import type { PublicationCandidateDraft } from '../../lib/publication-suggest';
+import { fetchCtgStudy } from '../../lib/registry-api';
+import {
+    discoverCandidatesForRerun,
+    flushCandidateBuffer,
+    nextCandidateFlushThreshold,
+} from '../../lib/publication-candidate-rerun';
 import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
@@ -178,6 +184,14 @@ function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
     dom.fulltextFetchBtn.textContent = t('fulltext_fetchBtn', String(targetCount));
     dom.fulltextFetchBtn.disabled = targetCount === 0 || bulkRun !== null;
     dom.fulltextFetchCancelBtn.classList.toggle('hidden', bulkRun === null);
+
+    // 論文候補の再探索ボタン: fulltext_status を一切見ず、registration行全部を対象数とする
+    // （PR #122 レビュー指摘2。取得状態から独立して何度でも再実行できる導線）。registration行が無い
+    // プロジェクトでは意味が無いため、件数0なら非表示にする。
+    const registrationCount = candidates.filter(isRegistrationRecord).length;
+    dom.fulltextSuggestBtn.classList.toggle('hidden', registrationCount === 0);
+    dom.fulltextSuggestBtn.textContent = t('fulltext_suggestBtn', String(registrationCount));
+    dom.fulltextSuggestBtn.disabled = bulkRun !== null;
 }
 
 function renderViewFilter(candidates: ReferenceWithStatus[]): void {
@@ -622,12 +636,17 @@ async function handleBulkFetch(): Promise<void> {
             }
         }
 
+        // pendingCandidates は保存に成功した分だけ flushCandidateBuffer() が取り除く。
+        // 失敗時はバッファをそのまま残し、次回の flush() 呼び出し（5件ごと or 最終）で
+        // 再送する（PR #122 レビュー指摘2。以前は先に splice(0) してから保存していたため、保存失敗の
+        // 瞬間にバッファごと候補が消えていた）。
         if (pendingCandidates.length > 0) {
-            const candidateBatch = pendingCandidates.splice(0);
-            try {
-                await savePublicationCandidates(state.spreadsheetId, candidateBatch);
-            } catch (err) {
-                console.warn('[fulltext-tab] 論文候補の保存に失敗:', err);
+            const saved = await flushCandidateBuffer(
+                pendingCandidates,
+                batch => savePublicationCandidates(state.spreadsheetId, batch)
+            );
+            if (!saved) {
+                console.warn('[fulltext-tab] 論文候補の保存に失敗（バッファを保持し次回flushで再送）');
             }
         }
     };
@@ -671,10 +690,112 @@ async function handleBulkFetch(): Promise<void> {
         }
     } finally {
         await flush();
+        // 最終flushでも失敗して候補が残っている場合は、console.warnだけで終わらせず
+        // 未保存件数をユーザーに通知する（PR #122 レビュー指摘2。それまでは何も表示されず気付けなかった）。
+        if (pendingCandidates.length > 0) {
+            showToast(t('fulltext_candidateSaveError', String(pendingCandidates.length)), 6000);
+        }
         const cancelled = bulkRun?.cancelled ?? false;
         bulkRun = null;
         renderFulltextTab();
         const summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
+        setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+    }
+}
+
+/**
+ * registration行の論文候補を、フルテキスト取得状態（fulltext_status）から独立して一括再探索する。
+ *
+ * handleBulkFetch（取得）の中でしか候補探索が走らない設計だと、registration行は
+ * スナップショット保存に成功した時点で `cached` になり、二度と探索対象にならない。
+ * PubMed等の一時障害やSheets書き込み失敗で候補が欠落しても、UIから回復する手段が無くなる
+ * （Issue #118 チャンク2、PR #122 レビュー指摘2）。
+ *
+ * 「候補行が既にあるか」で探索済みを推測せず、対象は getVisibleFulltextCandidateList() の
+ * うち isRegistrationRecord(ref) が true の行全部（fulltext_status は一切見ない）。
+ * savePublicationCandidates() は filterNewCandidates() で同一 ref_id×PMID/DOI の候補を
+ * 除外するため、何度再実行しても Publication_Candidates タブに重複行は増えない
+ * （＝この冪等性が「取得状態を見ずに毎回全件を再実行してよい」ことの根拠）。
+ *
+ * handleBulkFetch と同じ bulkRun ガードを共有する。取得と再探索が同時に走らず、
+ * 既存の中止ボタン（bulkRun !== null で表示）もそのまま両方に効く。
+ */
+async function handleBulkSuggest(): Promise<void> {
+    if (bulkRun) return;
+
+    const targets = getVisibleFulltextCandidateList().filter(isRegistrationRecord);
+    if (targets.length === 0) return;
+
+    bulkRun = { cancelled: false };
+    renderFulltextTab();
+
+    // handleBulkFetch の pendingCandidates/flush と同じ流儀（5件ごとにflush。registration行
+    // 1件ごとの保存はSheets APIの読み取りクォータを焼き切るため）。
+    const pendingCandidates: PublicationCandidateDraft[] = [];
+    const flushCandidates = async (): Promise<boolean> => {
+        if (pendingCandidates.length === 0) return true;
+        const saved = await flushCandidateBuffer(
+            pendingCandidates,
+            batch => savePublicationCandidates(state.spreadsheetId, batch)
+        );
+        if (!saved) {
+            console.warn('[fulltext-tab] 論文候補の保存に失敗（バッファを保持し次回flushで再送）');
+        }
+        return saved;
+    };
+
+    let done = 0;
+    let totalFound = 0;
+    // 保存に失敗するとバッファは保持されるため、閾値を固定にすると以降は毎行リトライして
+    // しまう（Sheetsが落ちている間、1行につき1回ずつ ensure→読み取り→append を空振りさせる
+    // ことになる）。失敗したら次に5件たまるまで再試行を待つ（PR #122 レビュー指摘2、
+    // nextCandidateFlushThreshold()）。
+    let nextFlushAt = 5;
+    try {
+        for (const ref of targets) {
+            if (bulkRun.cancelled) break;
+            setFetchStatus(t('fulltext_suggestProgress', [String(done + 1), String(targets.length)]));
+
+            const trial = extractTrialId(ref);
+            if (trial) {
+                const candidates = await discoverCandidatesForRerun(
+                    trial,
+                    ctgPmids => discoverPublicationCandidates({
+                        refId: ref.ref_id,
+                        trialId: trial.id,
+                        kind: trial.kind,
+                        ctgPmids,
+                        existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
+                        email: state.userEmail,
+                    }),
+                    fetchCtgStudy
+                );
+                if (candidates.length > 0) {
+                    pendingCandidates.push(...candidates);
+                    totalFound += candidates.length;
+                }
+            }
+
+            done++;
+            if (pendingCandidates.length >= nextFlushAt) {
+                const ok = await flushCandidates();
+                nextFlushAt = nextCandidateFlushThreshold(pendingCandidates.length, ok);
+            }
+            renderFulltextTab();
+
+            // 外部APIへの礼儀として間隔を空ける（handleBulkFetchと同じ）
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+    } finally {
+        await flushCandidates();
+        // 最終flushでも失敗して候補が残っている場合はトーストで通知する（handleBulkFetchと同じ方針）。
+        if (pendingCandidates.length > 0) {
+            showToast(t('fulltext_candidateSaveError', String(pendingCandidates.length)), 6000);
+        }
+        const cancelled = bulkRun?.cancelled ?? false;
+        bulkRun = null;
+        renderFulltextTab();
+        const summary = t('fulltext_suggestDone', [String(done), String(totalFound)]);
         setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
     }
 }
@@ -782,6 +903,7 @@ export function setupFulltextTabListeners(): void {
     dom.fulltextRuleEditBtn?.addEventListener('click', () => toggleRuleEditor());
     dom.fulltextReasonEditBtn?.addEventListener('click', () => toggleReasonEditor());
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
+    dom.fulltextSuggestBtn?.addEventListener('click', () => { void handleBulkSuggest(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {
         if (bulkRun) bulkRun.cancelled = true;
     });

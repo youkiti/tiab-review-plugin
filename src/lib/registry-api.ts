@@ -9,7 +9,10 @@ export interface CtgStudySnapshot {
     title: string;
     /** buildRegistrySnapshotHtml() にそのまま渡せる形（値があるものだけを積む） */
     fields: Array<{ label: string; value: string }>;
-    /** パスB（論文候補探索）で使う。CTGにリンクされた関連論文のPMID */
+    /**
+     * パスB（論文候補探索）で使う。CTGにリンクされた関連論文のPMID（'BACKGROUND' 種別の
+     * 参照は除外済み。重複は排除し、元の出現順を保つ）。
+     */
     pmids: string[];
 }
 
@@ -87,6 +90,13 @@ interface CtgSponsorCollaboratorsModule {
 
 interface CtgReference {
     pmid?: string;
+    /**
+     * CTGov API v2 が返す参照分類。'BACKGROUND'（試験結果と無関係な背景文献）/ 'RESULT'
+     * （スポンサーが手動登録した結果論文）/ 'DERIVED'（PubMed側がそのNCT番号を参照している
+     * 論文。結果論文の主要な供給源）のいずれか。fetchCtgStudy() 側でBACKGROUNDのみ除外する
+     * （詳細は同関数内のコメント参照）。
+     */
+    type?: string;
 }
 
 interface CtgReferencesModule {
@@ -173,9 +183,24 @@ export async function fetchCtgStudy(nctId: string): Promise<CtgStudySnapshot | n
         push('Start Date', protocol.statusModule?.startDateStruct?.date);
         push('Completion Date', protocol.statusModule?.completionDateStruct?.date);
 
-        const pmids = (protocol.referencesModule?.references ?? [])
-            .map(r => r.pmid)
-            .filter((pmid): pmid is string => !!pmid);
+        // 論文候補探索（パスB）の素材となるPMID。'BACKGROUND'（試験結果と無関係な背景文献）
+        // だけを denylist で除外する。
+        //
+        // 'RESULT' のみの allowlist にはしない: CTGovの 'DERIVED' は「PubMed側がそのNCT番号を
+        // 参照している論文」で、結果論文の主要な供給源。'RESULT' はスポンサーが手動登録した
+        // 分しか入らないため、allowlistにすると取りこぼしが大きい。目的（結果論文の候補探索）
+        // に対しては 'BACKGROUND' のdenylistが妥当。
+        // type欠落・未知の値（将来API側に新種別が増えた場合を含む）は残す側に倒す（後方互換）。
+        const pmids: string[] = [];
+        const seenPmids = new Set<string>();
+        for (const ref of protocol.referencesModule?.references ?? []) {
+            const type = ref.type?.trim().toUpperCase();
+            if (type === 'BACKGROUND') continue;
+            const pmid = ref.pmid?.trim();
+            if (!pmid || seenPmids.has(pmid)) continue;
+            seenPmids.add(pmid);
+            pmids.push(pmid);
+        }
 
         return { title, fields, pmids };
     } catch {

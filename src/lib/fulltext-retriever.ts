@@ -4,7 +4,7 @@
 // Tier 1 open-access 取得ロジックを TypeScript へ移植
 
 import { uploadPdfToDrive, buildPdfFileName, uploadHtmlToDrive } from './drive-api';
-import { isRegistrationRecord, extractTrialId, parseRegistryFieldsFromAbstract, buildRegistrySnapshotHtml, buildRegistrySnapshotFileName } from './registry-record';
+import { isRegistrationRecord, extractTrialId, parseRegistryFieldsFromAbstract, buildRegistrySnapshotHtml, buildRegistrySnapshotFileName, isSafeHttpUrl } from './registry-record';
 import { fetchCtgStudy } from './registry-api';
 import type { ReferenceRecordType } from './types';
 
@@ -423,8 +423,9 @@ export interface FulltextRetrievalRef {
  *    References に保存済みのフィールド（title / abstractをparseRegistryFieldsFromAbstractで
  *    分解したもの / journal をレジストリ名として / url を原簿URLとして / year）だけで
  *    スナップショットを組み立てる。この経路はネットワーク不要。
- * 3. Drive保存に失敗した場合は例外を外に投げず、原簿URL（ref.url）があれば linked、
- *    無ければ none にフォールバックする（一括ループを止めないため。OA経路の
+ * 3. Drive保存に失敗した場合は例外を外に投げず、原簿URL（ref.url）が isSafeHttpUrl() を
+ *    通れば linked、通らなければ（javascript:/data:等の危険なスキームや相対URL・不正な値）
+ *    または url自体が無ければ none にフォールバックする（一括ループを止めないため。OA経路の
  *    catch → console.warn の作法に倣う）。
  */
 async function retrieveRegistrationSnapshot(
@@ -465,7 +466,14 @@ async function retrieveRegistrationSnapshot(
         return { kind: 'cached', url: file.webViewLink, source: 'registry', registryPmids };
     } catch (err) {
         console.warn('[fulltext-retriever] レジストリスナップショットのDrive保存に失敗、リンクのみ記録:', err);
-        return ref.url ? { kind: 'linked', url: ref.url, source: 'registry', registryPmids } : { kind: 'none' };
+        // ref.url は References の url 列（ユーザーが直接編集できるセル）由来のため、
+        // javascript:/data: 等の危険なスキームや相対URLが入りうる。isSafeHttpUrl() を通った
+        // http/https のURLだけを linked として返す（この値はサイドパネルの buildLinkBtn() を
+        // 経由して chrome.tabs.create({ url }) にそのまま渡るため、無検証で通してはいけない）。
+        // 安全でなければ値ごと捨てて none にフォールバックする（例外は投げず一括ループを止めない）。
+        return ref.url && isSafeHttpUrl(ref.url)
+            ? { kind: 'linked', url: ref.url, source: 'registry', registryPmids }
+            : { kind: 'none' };
     }
 }
 
