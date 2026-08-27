@@ -60,6 +60,8 @@ import { explainEmptyFulltextCandidates } from '../lib/fulltext-empty-reason';
 import { explainEmptyAiEvidence } from '../lib/ai-evidence-empty-reason';
 import type { AiEvidenceEmptyReason } from '../lib/ai-evidence-empty-reason';
 import { isFulltextCandidateRef } from '../lib/fulltext-candidates';
+import { isRegistrationRecord } from '../lib/registry-record';
+import { resolveFulltextDisplayMode } from '../lib/fulltext-display-mode';
 import {
     canSeeFulltextRef,
     createDefaultFulltextAssignment,
@@ -258,6 +260,7 @@ async function initFulltextPage(): Promise<void> {
     wireDecisionButtons();
     wireSavePdfButton();
     wireReplaceButtons();
+    wireSnapshotPrintButton();
     wireHighlightToggle();
     setupAiRevealToggle();
     wireCriteriaModal();
@@ -397,17 +400,31 @@ async function loadRef(refId: string): Promise<void> {
 
 /** PDFの取得状態に応じて左ペインを描画する */
 async function showPdfForRef(ref: Reference, token: number): Promise<void> {
-    const hasPdf = ref.fulltext_status === 'cached' && !!ref.fulltext_url;
-    if (hasPdf) {
-        await showCachedPdf(ref.fulltext_url!, token);
-    } else if (ref.fulltext_status === 'retrieved' && ref.fulltext_url) {
-        showResolvedUrl(ref.fulltext_url, 'linked');
-    } else if (ref.fulltext_status === 'unavailable') {
-        // 既に「入手不可」と記録済み → 論文ページを埋め込み表示
-        await showArticlePage();
-    } else {
-        // 未取得 → 表示時に自動でOAフルテキストを検索する
-        await handleResolve(token);
+    // 表示経路の判定は resolveFulltextDisplayMode()（純関数）に集約する（Issue #118 実装内容10）。
+    // registration行のHTMLスナップショットは、ここで既存の showCachedPdf()（PDF.js経路）へ
+    // 一切入れず、専用のサンドボックスiframe表示（showRegistrySnapshot）へ分岐させる。
+    // HTMLをPDF.jsに渡すと解析に失敗し、catch節の「Chrome内蔵ビュワーへのフォールバック」に
+    // 落ちて非サンドボックスの ft-pdf-frame に生HTMLが載ってしまうため、この暗黙のフォールバックに
+    // 頼らず明示的に分岐させる。
+    switch (resolveFulltextDisplayMode(ref)) {
+        case 'registry_snapshot':
+            await showRegistrySnapshot(ref.fulltext_url!, token);
+            break;
+        case 'pdf':
+            await showCachedPdf(ref.fulltext_url!, token);
+            break;
+        case 'linked':
+            showResolvedUrl(ref.fulltext_url!, 'linked');
+            break;
+        case 'unavailable':
+            // 既に「入手不可」と記録済み → 論文ページを埋め込み表示
+            await showArticlePage();
+            break;
+        case 'not_retrieved':
+        default:
+            // 未取得 → 表示時に自動でOA/レジストリを検索する
+            await handleResolve(token);
+            break;
     }
 }
 
@@ -452,16 +469,40 @@ function prefetchNeighbors(): void {
     }
 }
 
+// registration行のスナップショット表示中でも「別のPDFをアップロード」「PDFを削除」の
+// ラベルを差し替えられるよう、HTMLの既定ラベルを初回呼び出し時に記憶しておく
+// （updateToolbarMode() 参照）。
+let defaultReplaceBtnLabel: string | null = null;
+let defaultDeleteBtnLabel: string | null = null;
+
 /**
  * PDFの取得状態に応じてツールバーのボタンを出し分ける。
  * - PDF保存済み(cached): 差し替え（再アップロード/削除）導線を表示し、手動保存導線は隠す
  * - それ以外: 差し替え導線を隠す（取得は自動検索／リンククリックで行う）
+ *
+ * 【Issue #118 実装内容4: registration行のスナップショット表示時の扱い】
+ * fulltext_status==='cached' はスナップショット表示時にも true になるため、上記の
+ * hasPdf 条件だけでは「差し替え」「削除」がそのまま表示されてしまう。判断:
+ * - どちらも隠さない。「削除」はスナップショットを消して取り直す（再度レジストリ検索を
+ *   走らせる）導線として意味があり、「別のPDFをアップロード」は登録内容のPDF
+ *   （プロトコル文書など）で差し替える運用がありうる。どちらも実用上の価値があるため、
+ *   registration行だからといって機能を封じる理由が無い。
+ * - ただし両ボタンの既定ラベルは「PDF」と明記しており、表示中の中身が実際にはHTML
+ *   スナップショットであることと食い違って誤解を招きうる。そのため、
+ *   resolveFulltextDisplayMode(currentRef) === 'registry_snapshot' のときだけ
+ *   ラベルをスナップショット向けの文言に差し替える（表示/非表示の条件そのものは変えない）。
+ * - 通常のPDF経路（registration行以外）ではラベルを一切変えない
+ *   （defaultReplaceBtnLabel/defaultDeleteBtnLabel でHTMLの既定文言をそのまま復元する）。
  */
 function updateToolbarMode(): void {
     const hasPdf = currentRef?.fulltext_status === 'cached' && !!currentRef.fulltext_url;
     const replace = document.getElementById('ft-replace-btn');
     const del = document.getElementById('ft-delete-btn');
     const upload = document.getElementById('ft-upload-btn');
+
+    if (defaultReplaceBtnLabel === null && replace) defaultReplaceBtnLabel = replace.textContent ?? '';
+    if (defaultDeleteBtnLabel === null && del) defaultDeleteBtnLabel = del.textContent ?? '';
+
     replace?.classList.toggle('hidden', !hasPdf);
     del?.classList.toggle('hidden', !hasPdf);
     // PDF未保存時は常に「⬆ PDFをアップロード」を出す。
@@ -469,6 +510,10 @@ function updateToolbarMode(): void {
     upload?.classList.toggle('hidden', hasPdf);
     // 保存済みになったら「このPDFを保存」導線は不要
     if (hasPdf) hideSavePdfButton();
+
+    const isSnapshot = hasPdf && !!currentRef && resolveFulltextDisplayMode(currentRef) === 'registry_snapshot';
+    if (replace) replace.textContent = isSnapshot ? t('fulltext_snapshotReplaceBtn') : (defaultReplaceBtnLabel ?? '');
+    if (del) del.textContent = isSnapshot ? t('fulltext_snapshotDeleteBtn') : (defaultDeleteBtnLabel ?? '');
 }
 
 // ---------------------------------------------------------------------------
@@ -1128,7 +1173,16 @@ async function handleResolve(token?: number): Promise<void> {
             ref.fulltext_status = 'cached';
             updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, outcome.url, 'cached', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
-            if (!stale()) { await showCachedPdf(outcome.url, token); updateToolbarMode(); }
+            // registration行はここでも showCachedPdf() (PDF.js経路) へ入れず、
+            // 初回取得の直後からスナップショット表示へ分岐させる（showPdfForRef と同じ判定）。
+            if (!stale()) {
+                if (isRegistrationRecord(ref)) {
+                    await showRegistrySnapshot(outcome.url, token);
+                } else {
+                    await showCachedPdf(outcome.url, token);
+                }
+                updateToolbarMode();
+            }
         } else if (outcome.kind === 'linked') {
             ref.fulltext_url = outcome.url;
             ref.fulltext_status = 'retrieved';
@@ -1258,6 +1312,36 @@ function showSavePdfButton(): void {
 
 function hideSavePdfButton(): void {
     document.getElementById('ft-save-pdf-btn')?.classList.add('hidden');
+}
+
+// ---------------------------------------------------------------------------
+// 「PDFとして保存」ボタン（スナップショット表示専用。Issue #118 実装内容3）
+//
+// 既存の ft-save-pdf-btn（「このPDFを保存」＝リンクのみPDFの手動保存導線。手元のPDFを
+// 選んでDriveへアップロードする）とは別物。流用・改変しない。
+// window.print() ではなく frame.contentWindow.print() を呼ぶことで、印刷対象を
+// スナップショットiframeの中身だけに限定する（親ページの判定パネル等を巻き込まない）。
+// ---------------------------------------------------------------------------
+
+/** ラベルは新規追加の文言のため t() 経由で設定する（既存の静的ツールバーボタンは
+ *  ハードコードされたJapanese文言だが、新規に追加する文言は必ずi18nキーを通す方針） */
+function wireSnapshotPrintButton(): void {
+    const btn = document.getElementById('ft-snapshot-print-btn') as HTMLButtonElement | null;
+    if (!btn) return;
+    btn.textContent = t('fulltext_snapshotPrintBtn');
+    btn.title = t('fulltext_snapshotPrintBtnTitle');
+    btn.addEventListener('click', () => {
+        const frame = document.getElementById('ft-snapshot-frame') as HTMLIFrameElement | null;
+        frame?.contentWindow?.print();
+    });
+}
+
+function showSnapshotSaveButton(): void {
+    document.getElementById('ft-snapshot-print-btn')?.classList.remove('hidden');
+}
+
+function hideSnapshotSaveButton(): void {
+    document.getElementById('ft-snapshot-print-btn')?.classList.add('hidden');
 }
 
 // ---------------------------------------------------------------------------
@@ -1916,6 +2000,7 @@ function hidePdfFrame(): void {
 function showPdfFrame(src: string): void {
     hideArticleFrame();
     hideCanvasContainer();
+    hideRegistrySnapshotFrame();
     const frame = document.getElementById('ft-pdf-frame') as HTMLIFrameElement | null;
     if (!frame) return;
     frame.src = src;
@@ -2054,6 +2139,7 @@ function showPdfAccessFailure(error: unknown, url: string, fileId: string): void
     hideArticleFrame();
     hidePdfFrame();
     hideCanvasContainer();
+    hideRegistrySnapshotFrame();
     hideSavePdfButton();
 
     const placeholder = document.getElementById('ft-pdf-placeholder');
@@ -2152,6 +2238,246 @@ async function retryCachedPdf(url: string, refId?: string): Promise<void> {
     if (refId && currentRef?.ref_id !== refId) return;
     if (refId) pdfPrefetch.delete(refId);
     await showCachedPdf(url, ++loadToken);
+}
+
+// ---------------------------------------------------------------------------
+// レジストリスナップショット表示（Issue #118 実装内容10）
+//
+// registration行（isRegistrationRecord(ref)）の自己完結HTMLスナップショットを、
+// サンドボックス化した専用iframe（#ft-snapshot-frame）に srcdoc で流し込んで表示する。
+// 既存の showCachedPdf()（PDF.js経路）へは一切入れない
+// （HTMLをPDF.jsに渡すと解析に失敗し、catch節の「Chrome内蔵ビュワー(iframe blob)への
+// フォールバック」に落ちて非サンドボックスのft-pdf-frameに生HTMLが載ってしまうため。
+// この暗黙のフォールバックに頼らず、ここで明示的に分岐させるのが実装内容10の目的）。
+//
+// 【iframeの sandbox 設定】"allow-same-origin allow-modals" のみを付け、allow-scripts は
+// 絶対に付けない。
+// - allow-scripts を付けない → スナップショット内のスクリプトは一切実行されない。
+//   スナップショットは buildRegistrySnapshotHtml() が生成しエスケープ済みだが、保存先は
+//   ユーザーが編集し得るDriveファイルなので、信頼できない前提で扱う。
+// - allow-same-origin を付ける → iframeが拡張機能オリジンを継承し、親から
+//   frame.contentWindow.print() を呼べる（「PDFとして保存」ボタンに必要）。allow-scripts と
+//   同時に付けるとsandboxが実質無効化されるが、ここではscriptsを付けないため
+//   危険な組み合わせにはならない。**将来「ついでにallow-scriptsも」と足さないこと。**
+// - allow-modals は印刷ダイアログ（window.print()）に必要。
+//
+// 取得手順・取り違え防止（token/isStale）は showCachedPdf() と全く同じ作法に揃えている。
+// ---------------------------------------------------------------------------
+
+/** サンドボックスiframeへスナップショットHTMLを流し込んで表示する */
+function showRegistrySnapshotFrame(html: string): void {
+    hideArticleFrame();
+    hidePdfFrame();
+    hideCanvasContainer();
+    const frame = document.getElementById('ft-snapshot-frame') as HTMLIFrameElement | null;
+    if (!frame) return;
+    frame.srcdoc = html;
+    frame.classList.remove('hidden');
+    const placeholder = document.getElementById('ft-pdf-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+    showSnapshotSaveButton();
+    // 他のiframe経路（showPdfFrame）と同じく、このモードにはPDF.jsのハイライトが無いため
+    // 根拠カード一覧だけは表示する（消失させない）。registration行は通常AI evidenceを
+    // 持たない想定だが、念のため既存の表示経路と挙動を揃えておく。
+    renderAiCardsFallback();
+}
+
+/** スナップショットiframeを畳む（PDF等、他の表示へ戻る時に必ず呼ぶ。片方だけ実装すると
+ *  文献を切り替えたときに前の表示が residue として残る） */
+function hideRegistrySnapshotFrame(): void {
+    const frame = document.getElementById('ft-snapshot-frame') as HTMLIFrameElement | null;
+    if (frame) {
+        frame.classList.add('hidden');
+        frame.removeAttribute('srcdoc');
+    }
+    hideSnapshotSaveButton();
+}
+
+/** バイト列の先頭がPDFのマジックナンバー（%PDF）で始まるか（uploadPdfFile()と同じ判定） */
+async function looksLikePdfBlob(blob: Blob): Promise<boolean> {
+    const head = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+    return String.fromCharCode(...head).startsWith('%PDF');
+}
+
+/**
+ * Driveからregistration行のHTMLスナップショットを取得し、サンドボックスiframeで表示する。
+ *
+ * - fileId が取れない（Drive以外のURL）場合は、showCachedPdf() が同じ状況（Drive以外の
+ *   cached URL）で使っている対処に揃え、showResolvedUrl() へフォールバックする。
+ *   registration行のcached URLは常に retrieveRegistrationSnapshot() がDriveへ
+ *   アップロードした結果のため通常はDrive URLになるはずで、これは防御的な分岐にとどまる。
+ * - 取得失敗時は無言の空ペインにせず、showRegistrySnapshotAccessFailure()（原因別の
+ *   復旧導線。showPdfAccessFailure() と同じ describePdfLoadFailure() の分類を再利用する）
+ *   を出す。
+ * - isRegistrationRecord(ref) はメタデータ（record_type）だけを見て判定するため、
+ *   ツールバーの「別のPDFをアップロード」で fulltext_url が実PDFへ差し替えられていても
+ *   この経路に入りうる。取得したバイト列がPDFのマジックナンバーで始まっていれば、
+ *   HTMLとして描画せず showCachedPdf()（通常のPDF経路）へ委譲する。pdfPrefetch に積んだ
+ *   Promise は一度解決したBlobをそのまま返すだけなので、委譲しても二重ダウンロードには
+ *   ならない。
+ */
+async function showRegistrySnapshot(url: string, token?: number): Promise<void> {
+    const fileId = extractDriveFileId(url);
+    if (!fileId) {
+        showResolvedUrl(url, 'cached');
+        return;
+    }
+
+    showPlaceholder(t('fulltext_snapshotLoading'));
+    setUrlLabel(url, 'cached');
+
+    // 先読み済みなら即利用。無ければその場で取得（showCachedPdf()と同じ流儀）。
+    const refId = currentRef?.ref_id;
+    const prefetched = refId ? pdfPrefetch.get(refId) : undefined;
+
+    let blob: Blob | null = null;
+    try {
+        blob = prefetched ? await prefetched : await downloadDriveFile(fileId);
+        if (!blob && prefetched) blob = await downloadDriveFile(fileId); // 先読みが失敗していた場合の再取得
+    } catch (err) {
+        if (token !== undefined && isStale(token)) return;
+        console.warn('[fulltext] Driveからのスナップショット取得に失敗:', err);
+        showRegistrySnapshotAccessFailure(err, url, fileId);
+        return;
+    }
+
+    // 取得中に別の文献へ移っていたら描画しない（取り違え防止）
+    if (token !== undefined && isStale(token)) return;
+
+    if (!blob) {
+        showRegistrySnapshotAccessFailure(null, url, fileId);
+        return;
+    }
+
+    // 登録行でも「別のPDFをアップロード」で実PDFへ差し替えられている場合がある。
+    // その場合は通常のPDF経路へ委譲する（詳細は関数コメント参照）。
+    if (await looksLikePdfBlob(blob)) {
+        if (token !== undefined && isStale(token)) return;
+        await showCachedPdf(url, token);
+        return;
+    }
+
+    const html = await blob.text();
+    if (token !== undefined && isStale(token)) return;
+
+    showRegistrySnapshotFrame(html);
+    setUrlLabel(url, 'cached');
+}
+
+/**
+ * スナップショット取得に失敗した理由をペインに表示する（フレーム類は全て畳む）。
+ * showPdfAccessFailure() と同じ構造・同じ describePdfLoadFailure() 分類・同じ再付与/再試行の
+ * 実処理（handleSnapshotRegrantClick/retryRegistrySnapshot）を使うが、"PDF" と明記した
+ * 既存の文言（fulltext_pdfPaneNotGranted 等）をそのまま出すとHTMLスナップショットの失敗として
+ * 誤解を招くため、表示文言だけを差し替えた専用パネルを組み立てる
+ * （buildPdfAccessFailurePanel() は変更しない）。
+ */
+function showRegistrySnapshotAccessFailure(error: unknown, url: string, fileId: string): void {
+    const view = describePdfLoadFailure(error);
+    hideArticleFrame();
+    hidePdfFrame();
+    hideCanvasContainer();
+    hideRegistrySnapshotFrame();
+    hideSavePdfButton();
+
+    const placeholder = document.getElementById('ft-pdf-placeholder');
+    if (placeholder) {
+        placeholder.style.display = '';
+        placeholder.replaceChildren(buildSnapshotAccessFailurePanel(view, url, fileId, currentRef?.ref_id));
+    }
+    setUrlLabel(url, 'cached');
+    renderAiCardsFallback();
+}
+
+function buildSnapshotAccessFailurePanel(
+    view: PdfLoadFailureView,
+    url: string,
+    fileId: string,
+    refId?: string
+): HTMLElement {
+    const panel = document.createElement('div');
+    panel.className = 'ft-pdf-error-panel';
+
+    const title = document.createElement('div');
+    title.className = 'ft-pdf-error-title';
+    title.textContent = t('fulltext_snapshotPaneTitle');
+
+    const message = document.createElement('div');
+    message.className = 'ft-pdf-error-message';
+    // auth-error/transient は既存の汎用文言（"PDF"に限定しない一般的なDrive認証切れ／一時
+    // エラーの文言）をそのまま使う。not-granted/unknown はPDF専用の文言なので、
+    // スナップショット向けの文言に差し替える。
+    const messageKey = view.kind === 'auth-error' || view.kind === 'transient'
+        ? view.messageKey
+        : view.kind === 'not-granted'
+            ? 'fulltext_snapshotPaneNotGranted'
+            : 'fulltext_snapshotPaneLoadFailed';
+    appendTextWithBreaks(message, t(messageKey));
+
+    const actions = document.createElement('div');
+    actions.className = 'ft-pdf-error-actions';
+
+    if (view.showRegrant) {
+        const regrantBtn = document.createElement('button');
+        regrantBtn.className = 'btn btn-primary';
+        regrantBtn.textContent = t('fulltext_pdfPaneRegrantBtn');
+        regrantBtn.addEventListener('click', () => { void handleSnapshotRegrantClick(regrantBtn, url, refId); });
+        actions.appendChild(regrantBtn);
+    }
+
+    if (view.showRetry) {
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn btn-primary';
+        retryBtn.textContent = t('fulltext_pdfPaneRetryBtn');
+        retryBtn.addEventListener('click', () => { void retryRegistrySnapshot(url, refId); });
+        actions.appendChild(retryBtn);
+    }
+
+    // 副次導線: ブラウザのGoogleセッションで開く（showPdfAccessFailureのopenBtnと同じ）
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn btn-secondary';
+    openBtn.textContent = t('fulltext_pdfPaneOpenInDriveBtn');
+    openBtn.addEventListener('click', () => {
+        platform().openExternal(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`);
+    });
+    actions.appendChild(openBtn);
+
+    const note = document.createElement('div');
+    note.className = 'ft-pdf-error-note';
+    note.textContent = t('fulltext_snapshotPaneOpenInDriveNote');
+
+    panel.append(title, message, actions, note);
+    return panel;
+}
+
+/**
+ * 再付与（Picker）を起動し、閉じたら同じスナップショットをもう一度読みに行く。
+ * handlePdfRegrantClick() と同じ流れ（キャンセルでも再取得する理由も同じ）。
+ */
+async function handleSnapshotRegrantClick(btn: HTMLButtonElement, url: string, refId?: string): Promise<void> {
+    btn.disabled = true;
+    try {
+        const folderId = await getFulltextDriveFolderId(spreadsheetId);
+        if (!folderId) {
+            showFeedback(t('fulltext_regrantNoFolder'), true);
+            return;
+        }
+        const outcome = await runRegrantPickerFlow({ folderId, email: userEmail });
+        if (outcome.status === 'parse-error') showFeedback(t('fulltext_regrantParseError'), true);
+        await retryRegistrySnapshot(url, refId);
+    } catch (err) {
+        console.warn('[fulltext] スナップショットの読み取り権限の復旧に失敗:', err);
+        showFeedback(describeDriveAccessError(err) ?? t('fulltext_regrantError', (err as Error).message), true);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+/** 同じ文献を表示したままスナップショットだけ読み直す（失敗した先読み結果は捨てる） */
+async function retryRegistrySnapshot(url: string, refId?: string): Promise<void> {
+    if (refId && currentRef?.ref_id !== refId) return;
+    if (refId) pdfPrefetch.delete(refId);
+    await showRegistrySnapshot(url, ++loadToken);
 }
 
 // ---------------------------------------------------------------------------
@@ -2559,6 +2885,7 @@ function showPlaceholder(msg: string): void {
     hideArticleFrame();
     hidePdfFrame();
     hideCanvasContainer();
+    hideRegistrySnapshotFrame();
     hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
@@ -2574,6 +2901,7 @@ function showResolvedUrl(url: string, source: OaSource | 'cached' | 'linked'): v
     hideArticleFrame();
     hidePdfFrame();
     hideCanvasContainer();
+    hideRegistrySnapshotFrame();
     hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
@@ -2675,6 +3003,7 @@ async function showArticlePage(): Promise<void> {
     const ruleOk = hasBroad && await enableFrameEmbeddingForThisTab();
 
     hideCanvasContainer();
+    hideRegistrySnapshotFrame();
     const frame = document.getElementById('ft-article-frame') as HTMLIFrameElement | null;
     if (frame && ruleOk) {
         hidePdfFrame();

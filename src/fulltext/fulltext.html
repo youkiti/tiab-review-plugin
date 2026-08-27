@@ -45,6 +45,11 @@
                     <!-- PDF保存済み時のみ表示: 差し替え導線 -->
                     <button id="ft-replace-btn" class="btn btn-secondary hidden">別のPDFをアップロード</button>
                     <button id="ft-delete-btn" class="btn btn-secondary hidden">PDFを削除</button>
+                    <!-- 登録行のスナップショット表示中のみ表示（fulltext.ts の
+                         showSnapshotSaveButton/hideSnapshotSaveButton）。ラベルは新規追加の
+                         文言のため wireSnapshotPrintButton() が t() 経由で設定する。
+                         既存の ft-save-pdf-btn（リンクのみPDFの手動保存導線）とは別物。 -->
+                    <button id="ft-snapshot-print-btn" class="btn btn-secondary hidden">💾 PDFとして保存</button>
                     <input type="file" id="ft-upload-input" accept="application/pdf,.pdf" class="hidden">
                 </div>
                 <div id="ft-pdf-viewer" class="ft-pdf-viewer">
@@ -61,6 +66,18 @@
                     <iframe id="ft-article-frame" class="ft-article-frame hidden"
                         referrerpolicy="no-referrer"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                    <!-- registration行の自己完結HTMLスナップショット表示専用（Issue #118 実装内容10）。
+                         srcdoc で流し込む（fulltext.ts の showRegistrySnapshotFrame）。
+                         sandbox は "allow-same-origin allow-modals" のみ。allow-scripts は
+                         絶対に付けない（スナップショット内のスクリプトを一切実行させないため。
+                         保存先はユーザーが編集し得るDriveファイルなので信頼できない前提で扱う）。
+                         allow-same-origin は親から frame.contentWindow.print() を呼ぶために必要
+                         （「PDFとして保存」ボタン）。allow-scripts と同時に付けるとsandboxが
+                         実質無効化されるが、scriptsを付けないため危険な組み合わせにはならない。
+                         allow-modals は印刷ダイアログに必要。既存の ft-article-frame とは
+                         用途もsandbox設定も別物のため流用しない。 -->
+                    <iframe id="ft-snapshot-frame" class="ft-snapshot-frame hidden" title="試験登録情報"
+                        sandbox="allow-same-origin allow-modals"></iframe>
                     <!-- PDFドラッグ&ドロップ用オーバーレイ。
                          dragenter時に最前面へ出して iframe へのドロップを奪う。 -->
                     <div id="ft-drop-overlay" class="ft-drop-overlay hidden">

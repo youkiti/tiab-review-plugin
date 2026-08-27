@@ -217,6 +217,55 @@ test('フルテキスト: 担当割り振り済みでも未割り当て流入分
     assert.equal(bob.fulltextTotal, 2, 'ref2(担当) + ref3(未割り当て流入) が分母に入る');
 });
 
+// ---------------------------------------------------------------------------
+// 回帰テスト（Issue #118 チャンク3）: 取り込んだ論文行（related_ref_id 非空）は
+// TiAb票を一切持たないため、poolRule評価だけでは共有プール（fulltextTotal/fulltextDone）から
+// 落ちてしまう。isSharedFulltextPoolMember() 自体は related_ref_id を見て候補扱いするが、
+// TeamProgressRef（sidepanel側で ReferenceWithStatus から絞り込んで生成する最小形）が
+// related_ref_id を運ばないと、型は Pick<Reference, ...> に構造的に適合するため typecheck
+// では検出できないまま、配線だけがこの分岐を落としてしまう（実際に一度見落とした）。
+// そのため isSharedFulltextPoolMember() を直接呼ぶユニットテストではなく、この配線の境界である
+// computeTeamProgress() の入力（TeamProgressRef[]）に related_ref_id 非空の行を含めて検証する。
+// ---------------------------------------------------------------------------
+
+test('フルテキスト回帰: 取り込んだ論文行(related_ref_id非空)はTiAb票ゼロでもfulltextTotal/Doneに入る', () => {
+    const refs: TeamProgressRef[] = [
+        { ref_id: 'ref1' }, // 通常行。alice の TiAb Include により poolRule 成立で分母に入る
+        { ref_id: 'ref2', related_ref_id: 'reg-1' }, // 取り込んだ論文行。TiAb判定は一件も無い
+        { ref_id: 'ref3' }, // 通常行だが TiAb Include が無く poolRule も不成立 → 分母に入らない
+    ];
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:alice@example.com'],
+        threshold: 1,
+    };
+    const decisions = [
+        // ref1 のみ alice が TiAb Include（poolRule成立の唯一の経路）。ref2/ref3 にTiAb判定は無い
+        makeDecision({ ref_id: 'ref1', reviewer_id: 'alice@example.com', decision: 'include' }),
+        // alice が ref1・ref2 の両方をフルテキスト判定済み（ref2はTiAb票が無くても判定はできる）
+        makeDecision({ ref_id: 'ref1', reviewer_id: 'alice@example.com', screening_phase: 'fulltext' }),
+        makeDecision({ ref_id: 'ref2', reviewer_id: 'alice@example.com', screening_phase: 'fulltext' }),
+    ];
+
+    const result = computeTeamProgress({
+        refs,
+        decisions,
+        assignmentConfig: NO_ASSIGNMENT,
+        poolRule: rule,
+        userEmail: 'alice@example.com',
+    });
+
+    const alice = result.find((m) => m.email === 'alice@example.com')!;
+    assert.equal(
+        alice.fulltextTotal, 2,
+        'ref1(poolRule成立) + ref2(取り込み行、TiAb票ゼロでも無条件で分母に入る)。ref3はどちらも満たさないので入らない'
+    );
+    assert.equal(
+        alice.fulltextDone, 2,
+        '取り込み行(ref2)をフルテキスト判定すればTiAb票が無くても分子にカウントされる'
+    );
+});
+
 test('フルテキスト: ルール未設定なら fulltextDone/Total は null', () => {
     const result = computeTeamProgress({
         refs: makeRefs(3),

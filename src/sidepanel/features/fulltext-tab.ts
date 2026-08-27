@@ -38,6 +38,7 @@ import {
     updateReferenceFulltextUrl,
     updateReferenceFulltextUrls,
     savePublicationCandidates,
+    getPublicationCandidates,
 } from '../../lib/sheets-api';
 import { isRegistrationRecord, extractTrialId } from '../../lib/registry-record';
 import { discoverPublicationCandidates } from '../../lib/publication-suggest';
@@ -48,6 +49,16 @@ import {
     flushCandidateBuffer,
     nextCandidateFlushThreshold,
 } from '../../lib/publication-candidate-rerun';
+import { createAsyncCoalescer } from '../../lib/async-coalesce';
+import {
+    selectSuggestedPublicationCandidates,
+    countSuggestedPublicationCandidatesByRef,
+} from '../../lib/publication-candidate-panel';
+import { buildDoiUrl, buildPubmedUrl } from '../../lib/external-record-url';
+import {
+    decoratePublicationCandidateCard,
+    setPublicationCandidatesDeps,
+} from './fulltext-publication-candidates';
 import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
@@ -56,7 +67,7 @@ import { setupFulltextRegrantListeners } from './fulltext-regrant';
 import { renderFulltextChecklist, setupFulltextChecklistListeners } from './fulltext-checklist';
 import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
 import { showToast } from '../ui/feedback';
-import type { ReferenceWithStatus, Decision, FulltextStatus } from '../../lib/types';
+import type { ReferenceWithStatus, Decision, FulltextStatus, PublicationCandidate } from '../../lib/types';
 
 const STATUS_META: Record<string, { icon: string; cls: string }> = {
     include: { icon: '✓', cls: 'include' },
@@ -72,12 +83,71 @@ let viewFilter: ViewFilter = 'all';
 let bulkRun: { cancelled: boolean } | null = null;
 let uploadTargetRefId: string | null = null;
 
+// 論文候補（Publication_Candidates）のモジュールローカルキャッシュ（Issue #118 チャンク3b）。
+// このタブ限定の関心事のため state には足さない。renderFulltextTab() は同期関数なので、
+// 読み込みは非同期の別ルーチン（loadPublicationCandidates）にし、完了後に renderFulltextTab()
+// を呼び直して反映する。
+let publicationCandidates: PublicationCandidate[] = [];
+
+/**
+ * Sheets からの実読み込み本体（registration行が1件以上ある場合のみ呼ばれる）を
+ * createAsyncCoalescer() で1本化したもの。
+ *
+ * 【なぜ真偽値フラグの二重起動防止ではだめか】単純な `if (loading) return;` だと、
+ * 進行中の呼び出しを「捨てる」だけで待っている呼び出し元には何も返せない。
+ * fire-and-forget（`void loadPublicationCandidates()`。handleBulkFetch/handleBulkSuggest の
+ * 完了時、activateFulltextTab()）で呼ぶ分には問題にならないが、
+ * fulltext-publication-candidates.ts の handleImportCandidate は
+ * `await deps.reloadPublicationCandidates()` と**待って**からトースト表示・パネル更新へ進む。
+ * 一括検索/再探索の完了直後の読み込みが飛んでいる最中に「取り込む」を押すと、
+ * 待っている側の loadPublicationCandidates() 呼び出しが（真偽値ガードのせいで）即座に
+ * 空振りし、取り込み済みの候補が suggested のままパネル・バッジに残り続ける不具合を
+ * 実際に踏んだ。createAsyncCoalescer() は進行中の Promise をそのまま返す（合流）ため、
+ * fire-and-forget側の挙動を変えずに、await する側も本当の完了まで待てるようにする。
+ */
+const coalescedFetchPublicationCandidates = createAsyncCoalescer(async () => {
+    try {
+        publicationCandidates = await getPublicationCandidates(state.spreadsheetId);
+    } catch (err) {
+        console.warn('[fulltext-tab] 論文候補の読み込みに失敗:', err);
+    }
+    renderFulltextTab();
+});
+
+/**
+ * 論文候補（Publication_Candidates）を読み込み、モジュールローカルキャッシュへ保持する。
+ *
+ * registration行が1件も無いプロジェクトでは getPublicationCandidates() を呼ばない
+ * （無関係なプロジェクトで毎回 ensure + 読み取りのSheets APIリクエストが発生しないように
+ * するため。renderRetrievalSummary() が同じ `candidates.filter(isRegistrationRecord)` で
+ * registration行の有無を数えているのと同じ判定基準に揃えている）。
+ * この早期returnパスは Sheets API を一切呼ばず await を挟まないため、実行中に他の呼び出しが
+ * 割り込む余地が構造的に無い（JSはシングルスレッドで、await の無い同期区間は割り込まれない）。
+ * よって coalescedFetchPublicationCandidates() の合流対象に含める必要はない
+ * （合流が必要なのは Sheets への実読み込みが進行中の間に他の呼び出しが来るケースだけ）。
+ *
+ * 呼び出しタイミング: activateFulltextTab()、および handleBulkFetch / handleBulkSuggest /
+ * fetchSingleFulltextForRef（単発OA検索。ボタン起点の handleSingleFetch と、候補取り込み後の
+ * 自動起動の両方で共有）の完了後。
+ */
+async function loadPublicationCandidates(): Promise<void> {
+    const hasRegistrationRows = getVisibleFulltextCandidateList().some(isRegistrationRecord);
+    if (!hasRegistrationRows) {
+        publicationCandidates = [];
+        renderFulltextTab();
+        return;
+    }
+
+    await coalescedFetchPublicationCandidates();
+}
+
 /**
  * フルテキストタブを開く
  */
 export function activateFulltextTab(): void {
     switchToTab('fulltext');
     renderFulltextTab();
+    void loadPublicationCandidates();
 }
 
 function myFulltextStatus(ref: ReferenceWithStatus): string {
@@ -234,9 +304,14 @@ function badgeFor(ref: ReferenceWithStatus): { cls: string; label: string } {
     }
 }
 
+/**
+ * URL組み立てそのものは src/lib/external-record-url.ts の buildDoiUrl/buildPubmedUrl へ
+ * 一般化した（Issue #118 チャンク3b。候補パネル側でも同じ形式のURLをPubMed/DOI別々に
+ * 組み立てたいため、重複実装を避けた）。ここでの doi優先・1本のURLだけを返す挙動は変えていない。
+ */
 function recordPageUrl(ref: ReferenceWithStatus): string | null {
-    if (ref.doi) return `https://doi.org/${encodeURIComponent(ref.doi)}`;
-    if (ref.pmid) return `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(ref.pmid)}/`;
+    if (ref.doi) return buildDoiUrl(ref.doi);
+    if (ref.pmid) return buildPubmedUrl(ref.pmid);
     return null;
 }
 
@@ -251,8 +326,11 @@ function renderList(candidates: ReferenceWithStatus[]): void {
         return;
     }
 
+    // registration行ごとの論文候補バッジ件数を1パスでまとめて集計する
+    // （カード1枚ごとに配列を毎回フィルタしない。Issue #118 チャンク3b）。
+    const publicationCandidateCounts = countSuggestedPublicationCandidatesByRef(publicationCandidates);
     for (const ref of visible) {
-        listDiv.appendChild(buildCard(ref));
+        listDiv.appendChild(buildCard(ref, publicationCandidateCounts));
     }
 }
 
@@ -317,7 +395,7 @@ function buildEmptyState(): HTMLElement {
     return empty;
 }
 
-function buildCard(ref: ReferenceWithStatus): HTMLElement {
+function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<string, number>): HTMLElement {
     const status = myFulltextStatus(ref);
     const meta = STATUS_META[status] ?? STATUS_META['pending'];
     const badge = badgeFor(ref);
@@ -382,6 +460,16 @@ function buildCard(ref: ReferenceWithStatus): HTMLElement {
             t('fulltext_actionUpload'), t('fulltext_actionUploadTitle'),
             () => handleUploadClick(ref)
         ));
+    }
+
+    // ④ registration行のみ: 論文候補バッジ＋パネル（Issue #118 チャンク3b）。
+    // isRegistrationRecord() が false の行や候補0件の行はバッジを出さず、card をそのまま返す。
+    if (isRegistrationRecord(ref)) {
+        const count = publicationCandidateCounts.get(ref.ref_id) ?? 0;
+        if (count > 0) {
+            const candidatesForRef = selectSuggestedPublicationCandidates(publicationCandidates, ref.ref_id);
+            return decoratePublicationCandidateCard(card, ref, candidatesForRef);
+        }
     }
 
     return card;
@@ -655,6 +743,11 @@ async function handleBulkFetch(): Promise<void> {
     let cachedCount = 0;
     let linkedCount = 0;
     let noneCount = 0;
+    // registration行向けの内訳（Issue #118 実装内容6: 完了サマリに「登録n件: スナップショット
+    // 保存 / 論文候補m件」を追加するため）。通常論文の行はここにカウントしない。
+    let registryProcessed = 0;
+    let registrySnapshotSaved = 0;
+    let registryCandidatesFound = 0;
 
     try {
         for (const ref of targets) {
@@ -674,8 +767,17 @@ async function handleBulkFetch(): Promise<void> {
             // 先にバッファへ積む（探索が遅くても本質的なURL保存が後回しにならないようにする）。
             pendingWrites.push({ refId: ref.ref_id, driveSource: null, ...write });
 
+            const isRegistryRow = isRegistrationRecord(ref);
+            if (isRegistryRow) {
+                registryProcessed++;
+                if (outcome.kind === 'cached') registrySnapshotSaved++;
+            }
+
             const candidates = await discoverRegistryPublicationCandidates(ref, outcome);
-            if (candidates.length > 0) pendingCandidates.push(...candidates);
+            if (candidates.length > 0) {
+                pendingCandidates.push(...candidates);
+                if (isRegistryRow) registryCandidatesFound += candidates.length;
+            }
 
             if (outcome.kind === 'cached') cachedCount++;
             else if (outcome.kind === 'linked') linkedCount++;
@@ -698,8 +800,14 @@ async function handleBulkFetch(): Promise<void> {
         const cancelled = bulkRun?.cancelled ?? false;
         bulkRun = null;
         renderFulltextTab();
-        const summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
+        let summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
+        // registration行を1件でも処理していれば内訳を追加する（Issue #118 実装内容6）。
+        if (registryProcessed > 0) {
+            summary += ` ${t('fulltext_fetchDoneRegistry', [String(registrySnapshotSaved), String(registryCandidatesFound)])}`;
+        }
         setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+        // 論文候補キャッシュを再読み込みしてバッジへ反映する（この一括取得で新規発見された分も含む）。
+        void loadPublicationCandidates();
     }
 }
 
@@ -797,13 +905,39 @@ async function handleBulkSuggest(): Promise<void> {
         renderFulltextTab();
         const summary = t('fulltext_suggestDone', [String(done), String(totalFound)]);
         setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+        // 論文候補キャッシュを再読み込みしてバッジへ反映する（この再探索で新規発見された分も含む）。
+        void loadPublicationCandidates();
     }
 }
 
 async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElement): Promise<void> {
     btn.disabled = true;
     btn.textContent = t('fulltext_actionFetching');
+    await fetchSingleFulltextForRef(ref);
+}
 
+/**
+ * 単発OA検索の中核処理（ボタンの見た目更新を含まない）。
+ *
+ * 元は handleSingleFetch(ref, btn) にボタン要素前提でインライン実装されていたが、
+ * 論文候補の「取り込む」直後の自動起動（Issue #118 実装内容7。ボタンを介さない）からも
+ * 呼べるよう、ボタンの disabled/textContent 更新を handleSingleFetch 側に残したまま
+ * 処理本体だけをここへ切り出した。既存の handleSingleFetch(ref, btn) の挙動・エラー処理は
+ * 変えていない（このボタン起点の呼び出し元は options を渡さないため常に既定値のまま動く）。
+ *
+ * @param options.reloadCandidates 完了後に loadPublicationCandidates() を呼ぶか（既定 true）。
+ *   取り込みフロー（fulltext-publication-candidates.ts の handleImportCandidate）は
+ *   このOA検索の後で自分自身も候補キャッシュを再読込するため、二重読込を避けるために
+ *   false を渡す。それ以外（ボタン起点の単発検索）は既定どおり true のままでよい
+ *   （このOA検索対象は record_type='article' の行のため、そもそも新規候補が
+ *   discoverRegistryPublicationCandidates() で見つかることは無いが、他の登録行の候補が
+ *   別経路で増えている可能性まで含めて毎回反映するため既定で読み直す）。
+ */
+export async function fetchSingleFulltextForRef(
+    ref: ReferenceWithStatus,
+    options: { reloadCandidates?: boolean } = {}
+): Promise<void> {
+    const reloadCandidates = options.reloadCandidates ?? true;
     await requestBroadHostPermission();
 
     try {
@@ -838,6 +972,8 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
     } catch (err) {
         showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
         renderFulltextTab();
+    } finally {
+        if (reloadCandidates) void loadPublicationCandidates();
     }
 }
 
@@ -917,4 +1053,8 @@ export function setupFulltextTabListeners(): void {
     setupFulltextDriveImportListeners();
     setupFulltextRegrantListeners();
     setupFulltextChecklistListeners();
+    setPublicationCandidatesDeps({
+        reloadPublicationCandidates: loadPublicationCandidates,
+        fetchSingleFulltext: fetchSingleFulltextForRef,
+    });
 }

@@ -23,11 +23,21 @@ import {
 } from './fulltext-assignment';
 import { isSharedFulltextPoolMember } from './fulltext-candidates';
 
-/** 集計に必要な文献情報の最小形 */
+/**
+ * 集計に必要な文献情報の最小形。
+ *
+ * related_ref_id は isSharedFulltextPoolMember() の「取り込んだ論文行は無条件で候補」分岐
+ * （Issue #118 チャンク3）に必要。この型を絞り込んで生成する箇所（sidepanel側の
+ * initTeamProgress() / buildFooter() の🔄ボタン）が related_ref_id を落とすと、
+ * 型は Pick<Reference, ...> と構造的に適合してしまうため typecheck では検出できないまま
+ * その分岐が本番で一度も発火しなくなる（実際に発生した見落とし）。この型を絞り込んで
+ * 生成し直す・キャッシュするコードを新設・変更するときは、必ず related_ref_id も含めること。
+ */
 export interface TeamProgressRef {
     ref_id: string;
     screening_set?: string;
     fulltext_set?: string;
+    related_ref_id?: string;
 }
 
 /** レビュアー1人分の進捗 */
