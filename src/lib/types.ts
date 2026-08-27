@@ -11,6 +11,14 @@ import type { LlmTargetMode } from './llm-target-selection';
  */
 export type FulltextStatus = 'not_retrieved' | 'cached' | 'retrieved' | 'unavailable';
 
+/**
+ * References 行のレコード種別。
+ * - article:      通常の文献行（既定。省略時もこの扱い＝後方互換）
+ * - registration: 試験登録（CTG/ICTRP）由来の行
+ * 判定は必ず src/lib/registry-record.ts の isRegistrationRecord() を経由すること。
+ */
+export type ReferenceRecordType = 'article' | 'registration';
+
 export interface Reference {
     ref_id: string;           // UUID
     title: string;
@@ -36,6 +44,11 @@ export interface Reference {
     fulltext_set?: string;    // フルテキスト担当セットID (ft-group-N)
     fulltext_drive_source_id?: string; // 取り込み元PDFのDriveファイルID（Drive直接取り込みのみ）
     fulltext_drive_copy_id?: string;   // そのとき作成/再利用したコピーのDriveファイルID
+    // レジストリ連携フェーズ1（Issue #118 チャンク1）で追加。未設定は 'article' 相当（後方互換）。
+    // 確定値を持つのは CTG/ICTRP パーサのみ。判定は isRegistrationRecord() 経由で行うこと。
+    record_type?: ReferenceRecordType;
+    // registration 行 ⇄ そこから取り込んだ論文行の相互参照。今はスキーマのみ用意（チャンク3で使用）。
+    related_ref_id?: string;
 }
 
 /**

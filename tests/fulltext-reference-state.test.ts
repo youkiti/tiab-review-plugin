@@ -241,6 +241,10 @@ test('getFulltextClaimsSnapshot: byRefId はW/X列が空の行も含め全行を
 // updateReferenceFulltextUrls
 // ---------------------------------------------------------------------------
 
+// Issue #118 チャンク1で record_type/related_ref_id が末尾に追加されたため、
+// 「既に正しく移行済み」を表すこの既定フィクスチャも26列（末尾2列込み）にしておく。
+// 24列のままだと ensureHeaders() が「未移行」と判定して A1:Z1 への PUT を発行してしまい、
+// 本ファイルの fetch モック（installUpdateMock）が対応していないため落ちる。
 const REFERENCES_HEADERS_ROW = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
@@ -248,6 +252,7 @@ const REFERENCES_HEADERS_ROW = [
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
     'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+    'record_type', 'related_ref_id',
 ];
 
 const DECISIONS_HEADERS_ROW = [

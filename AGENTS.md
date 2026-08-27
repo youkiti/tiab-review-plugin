@@ -81,8 +81,10 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 | fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
+| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサのみ。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列） |      |
+| related_ref_id  | registration行 ⇄ そこから取り込んだ論文行の相互参照。Issue #118 チャンク1時点ではスキーマのみ（チャンク3で使用）（Z列） |      |
 
-**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
+**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
 #### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
@@ -1159,6 +1161,7 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 - **`tests/tsconfig.json` の `types` は明示列挙**（`node` / `chrome` / `google.accounts`）。新しい ambient 型に依存するテストを足すと `Cannot find namespace` で `npm run test` が落ちるので、型の追加もセットで行うこと。`include` も明示列挙だが、テストから import したモジュールは推移的に取り込まれるため、通常は `types` 側だけが問題になる。
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
 - **`.tmp/tests` は掃除されない。** `npm run test` は `.tmp/tests/tests/*.test.js` を glob で拾うため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされる（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。件数が合わないときは `tests/*.test.ts` の数と突き合わせること。
+- **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
 
 ### ローカル実験環境
 

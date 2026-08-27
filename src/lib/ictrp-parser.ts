@@ -108,6 +108,7 @@ function trialToReference(trial: Element, sourceFile?: string): Reference | null
         source_file: truncateField(sourceFile),
         imported_at: new Date().toISOString(),
         dedupe_key: generateDedupeKey(title, trialId || undefined, undefined),
+        record_type: 'registration',
     };
 }
 

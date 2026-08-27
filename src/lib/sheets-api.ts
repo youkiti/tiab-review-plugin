@@ -140,13 +140,16 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 // 【重要】新しい列は必ず末尾に追加すること。途中挿入すると既存プロジェクトのシートで列がずれる。
 // fulltext_drive_source_id（W列）/ fulltext_drive_copy_id（X列）は Issue #73 Phase 2 で追加した、
 // Drive直接取り込みの冪等性判定用の列（詳細は updateReferenceFulltextUrls の JSDoc を参照）。
-const REFERENCES_HEADERS = [
+// record_type（Y列）/ related_ref_id（Z列）は Issue #118 チャンク1（レジストリ連携フェーズ1）で追加。
+// 列を足すたびに src/demo/seed.ts の REFERENCES_HEADERS ミラーも必ず追従させること。
+export const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
     'doi', 'pmid', 'url', 'source',
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
-    'fulltext_drive_source_id', 'fulltext_drive_copy_id'
+    'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+    'record_type', 'related_ref_id'
 ];
 
 
@@ -184,6 +187,13 @@ function columnLetter(index: number): string {
 // 以前は 'K'（11列時代）をシート操作の各所に直書きしていたが、context_json 追加で
 // 12列目（L列）になったため、以後は列数変更に自動追従するこの定数を使うこと。
 const DECISIONS_LAST_COLUMN = columnLetter(DECISIONS_HEADERS.length);
+
+// References タブの終端列（A1形式）。REFERENCES_HEADERS の長さから動的に導出する。
+// 以前は 'References!A:X' を4箇所に直書きしていたが（24列固定の想定）、record_type/
+// related_ref_id 追加で26列（Z列）になったため、以後は列数変更に自動追従するこの定数を使うこと
+// （Decisions と同じ落とし穴。T:X（fulltext系5列の部分範囲）のように末尾以外を指す固定範囲は
+// 対象外＝変更不要）。
+const REFERENCES_LAST_COLUMN = columnLetter(REFERENCES_HEADERS.length);
 
 /**
  * OAuth トークンを取得。
@@ -316,10 +326,16 @@ export async function rememberLocalRecentSheet(id: string, name: string): Promis
 
 /**
  * シートのヘッダーを確認し、不足があれば更新する
+ *
+ * References側のヘッダー行の範囲は `A1:${REFERENCES_LAST_COLUMN}1` のように REFERENCES_HEADERS の
+ * 長さから導出する（Decisions側の `A1:${DECISIONS_LAST_COLUMN}1` と同じ流儀）。以前は `A1:Z1` を
+ * 直書きしていたが、26列目がちょうどZ列なだけの偶然の一致だった。次に列を1本足して27列になった
+ * 瞬間、読み取りが打ち切られて毎回ヘッダーPUTを発行し続け、かつ27要素の行をA:Z（26列）の範囲へ
+ * 書き込もうとしてSheets APIがエラーを返す事故になるため、直書きに戻さないこと。
  */
 export async function ensureHeaders(spreadsheetId: string): Promise<void> {
     try {
-        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`);
+        const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A1:${REFERENCES_LAST_COLUMN}1`);
         if (!values || values.length === 0) return;
 
         const currentHeaders = values[0];
@@ -347,7 +363,7 @@ export async function ensureHeaders(spreadsheetId: string): Promise<void> {
                 // 一致しない場合はこの else に入らず（上の driveHeaderCheck.ok により）更新しない
 
                 // 行1全体を更新
-                await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:Z1`, [REFERENCES_HEADERS]);
+                await updateRange(spreadsheetId, `${REFERENCES_SHEET}!A1:${REFERENCES_LAST_COLUMN}1`, [REFERENCES_HEADERS]);
                 console.log('[ensureHeaders] Headers updated');
             }
         }
@@ -733,19 +749,26 @@ function parseReferenceValues(values: string[][]): Reference[] {
  * References タブから文献一覧を取得
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);
     return parseReferenceValues(values);
 }
 
 // ...
 
 /**
- * 文献を追加（RISインポート用）
+ * 1件の Reference を REFERENCES_HEADERS の並び順（A〜Z列）の行配列に組み立てる（addReferences 用の純関数）。
+ *
+ * fulltext_url 〜 fulltext_drive_copy_id（index 19〜23、T〜X列）はインポート時点では
+ * どのパーサ（RIS/CTG/ICTRP）も値を持たないが、record_type / related_ref_id（index 24〜25、
+ * Y/Z列）を末尾に書くには、その手前の5列を明示的に空文字でパディングして位置を合わせる必要がある。
+ * パディングを省略すると record_type/related_ref_id が fulltext_url/fulltext_status の位置に
+ * ずれ込み、既存のフルテキスト取得状態列を破壊してしまう。
+ *
+ * record_type は未設定なら空文字で書く（インポート時点で確定値を持つのは CTG/ICTRP パーサのみ。
+ * 判定自体は isRegistrationRecord() を参照）。
  */
-export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
-    if (references.length === 0) return;
-
-    const rows = references.map(ref => [
+export function buildReferenceInsertRow(ref: Reference): string[] {
+    return [
         ref.ref_id,
         ref.title,
         ref.abstract || '',
@@ -765,7 +788,23 @@ export async function addReferences(spreadsheetId: string, references: Reference
         ref.dedupe_key || '',
         ref.source_file || '',
         ref.screening_set || '',
-    ]);
+        '', // fulltext_url（index 19） — インポート時点では未設定のため空文字パディング
+        '', // fulltext_status（index 20）
+        '', // fulltext_set（index 21）
+        '', // fulltext_drive_source_id（index 22）
+        '', // fulltext_drive_copy_id（index 23）
+        ref.record_type || '', // index 24
+        ref.related_ref_id || '', // index 25
+    ];
+}
+
+/**
+ * 文献を追加（RISインポート用）
+ */
+export async function addReferences(spreadsheetId: string, references: Reference[]): Promise<void> {
+    if (references.length === 0) return;
+
+    const rows = references.map(buildReferenceInsertRow);
 
     await appendRows(spreadsheetId, REFERENCES_SHEET, rows);
 }
@@ -2047,7 +2086,7 @@ async function updateReferenceColumnByRefId(
 
     await ensureHeaders(spreadsheetId);
 
-    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:X`);
+    const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);
     if (values.length <= 1) return;
 
     const headers = values[0];
@@ -2275,7 +2314,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
 }> {
     try {
         const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
-            `${REFERENCES_SHEET}!A:X`,
+            `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
             `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             `${CONFIG_SHEET}!A:B`,
         ]);
@@ -2293,7 +2332,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
         if ((error as Error).message.includes('Unable to parse range')) {
             console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
             const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
-                `${REFERENCES_SHEET}!A:X`,
+                `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
                 `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
             ]);
             const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));

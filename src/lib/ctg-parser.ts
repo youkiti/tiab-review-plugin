@@ -170,6 +170,7 @@ function csvRowToReference(row: Record<string, string>, sourceFile?: string): Re
         source_file: truncateField(sourceFile),
         imported_at: new Date().toISOString(),
         dedupe_key: generateDedupeKey(title.trim(), nctNumber, undefined),
+        record_type: 'registration',
     };
 }
 

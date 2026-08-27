@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ensureHeaders } from '../src/lib/sheets-api';
+import { ensureHeaders, REFERENCES_HEADERS } from '../src/lib/sheets-api';
 import { setPlatform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
 
@@ -9,11 +9,14 @@ import type { PlatformAdapter } from '../src/platform/types';
 // ヘッダー行を書き換えない（＝ユーザーの列名を改名しない）ことを検証する。
 //
 // 背景（PR #105 実機確認で発覚）: ensureHeaders は「References のヘッダーが
-// REFERENCES_HEADERS.length(=24) 未満なら A1:Z1 をヘッダー定義で丸ごと上書き」
+// REFERENCES_HEADERS.length 未満なら A1:Z1 をヘッダー定義で丸ごと上書き」
 // する実装だったため、ユーザーが独自列を1本だけ（23列）足しているシートでは
 // W1 のユーザー独自名を fulltext_drive_source_id に無警告で改名し、直後の
 // ensureFulltextDriveColumnsOnce() の検証を素通りして、以後 W列へ source ID を
 // 書き込んでユーザーのデータを上書きしてしまっていた。
+//
+// Issue #118 チャンク1で record_type/related_ref_id を末尾に追加し、
+// REFERENCES_HEADERS.length は 24 → 26 になった（=24 だった頃の当テストの前提も追従済み）。
 
 const mockPlatform: PlatformAdapter = {
     getAuthToken: async () => 'test-token',
@@ -121,15 +124,16 @@ test('24列でW/Xがユーザー独自名: References のヘッダー行 PUT が
     assert.equal(refPuts.length, 0, 'ユーザー独自のW/Xヘッダー名を改名してはいけない');
 });
 
-test('24列で既に正しく移行済み: currentHeaders.length < 24 が偽なので何も書かない（既存挙動）', async () => {
+test('26列で既に正しく移行済み: currentHeaders.length < REFERENCES_HEADERS.length が偽なので何も書かない（既存挙動）', async () => {
     const puts = installEnsureHeadersMock([
         ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+        'record_type', 'related_ref_id',
     ]);
 
     await ensureHeaders('sheet-d');
 
     const refPuts = referencesPuts(puts);
-    assert.equal(refPuts.length, 0, '既に24列なら拡張ロジック自体に入らない');
+    assert.equal(refPuts.length, 0, '既に26列なら拡張ロジック自体に入らない');
 });
 
 test('23列でW1がユーザー独自名でも Decisions 側の移行処理は実行される', async () => {
@@ -146,4 +150,56 @@ test('23列でW1がユーザー独自名でも Decisions 側の移行処理は�
 
     const decisionsPuts = puts.filter((p) => p.url.includes('/values/Decisions!A1%3AL1'));
     assert.equal(decisionsPuts.length, 1, 'Decisions 側の移行は References のスキップと独立して実行されること');
+});
+
+// ---------------------------------------------------------------------------
+// レビュー指摘対応: ensureHeaders() の References ヘッダー行範囲（読み取り・書き込み）が
+// `A1:Z1` 直書きではなく REFERENCES_HEADERS.length から導出されていることの回帰テスト。
+// 26列がちょうどZ列なのは偶然で、直書きに戻すと次に列を1本足して27列になった瞬間、
+// (1) 読み取りが打ち切られて毎回ヘッダーPUTを発行し続け、
+// (2) 27要素の行をA:Z（26列）の範囲へ書き込もうとしてSheets APIがエラーを返す、
+// という2つの事故が同時に起きる。
+// columnLetter() は sheets-api.ts の非公開ヘルパーのため、ここでは検証専用に同じアルゴリズムを
+// 複製する（sheets-api.ts 側の実装を変更したら、このミラーも追従させること）。
+// ---------------------------------------------------------------------------
+
+function columnLetterMirror(index: number): string {
+    let n = index;
+    let letters = '';
+    while (n > 0) {
+        const rem = (n - 1) % 26;
+        letters = String.fromCharCode(65 + rem) + letters;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letters;
+}
+
+test('columnLetterMirror: 26列はZ、27列はAAになる（境界確認）', () => {
+    assert.equal(columnLetterMirror(26), 'Z');
+    assert.equal(columnLetterMirror(27), 'AA');
+});
+
+test('22列の旧シート: ヘッダー行PUTのrangeがREFERENCES_HEADERS.lengthから導出した列（現状26列=Z列）になり、書き込む行の要素数もそれと一致する', async () => {
+    const expectedLastColumn = columnLetterMirror(REFERENCES_HEADERS.length);
+    assert.equal(expectedLastColumn, 'Z', '現時点のREFERENCES_HEADERS.length(=26)の前提が崩れていないことの確認');
+
+    const puts = installEnsureHeadersMock([...OLD_HEADERS_22]);
+
+    await ensureHeaders('sheet-f');
+
+    const refPuts = referencesPuts(puts);
+    assert.equal(refPuts.length, 1, 'References のヘッダー行 PUT が1回発行されること');
+
+    const encodedRange = `/values/References!A1%3A${expectedLastColumn}1`;
+    assert.ok(
+        refPuts[0].url.includes(encodedRange),
+        `PUTのrangeが REFERENCES_HEADERS.length から導出した列（${expectedLastColumn}）になっていること: ${refPuts[0].url}`
+    );
+
+    const writtenRow = refPuts[0].body.values[0];
+    assert.equal(
+        writtenRow.length,
+        REFERENCES_HEADERS.length,
+        '書き込む行の要素数がREFERENCES_HEADERS.length（=range の列数）と一致すること'
+    );
 });
