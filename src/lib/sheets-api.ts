@@ -115,6 +115,13 @@ export const PUBLICATION_CANDIDATES_HEADERS = [
     'suggested_at', 'decided_by', 'decided_at', 'imported_ref_id'
 ];
 
+// Publication_Candidates タブの終端列（A1形式）。PUBLICATION_CANDIDATES_HEADERS の長さから
+// 動的に導出する（REFERENCES_LAST_COLUMN / DECISIONS_LAST_COLUMN と同じ流儀。columnLetter() は
+// 1始まりの列番号を取るヘルパーなので、他箇所で使う0始まりの columnNumberToLetter() とは
+// 引数の基準が異なる点に注意）。readPublicationCandidatesRows() と
+// updatePublicationCandidateStatus() の両方でこれを使い、終端列の導出式を重複させない。
+const PUBLICATION_CANDIDATES_LAST_COLUMN = columnLetter(PUBLICATION_CANDIDATES_HEADERS.length);
+
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
 export const PRESET_RCT = {
     include: [
@@ -3455,8 +3462,7 @@ export async function ensurePublicationCandidatesSheet(spreadsheetId: string): P
  * ことに気付けないまま重複候補を書きかねない）。
  */
 async function readPublicationCandidatesRows(spreadsheetId: string): Promise<PublicationCandidate[]> {
-    const endCol = columnNumberToLetter(PUBLICATION_CANDIDATES_HEADERS.length - 1);
-    const values = await getSheetValues(spreadsheetId, `${PUBLICATION_CANDIDATES_SHEET}!A:${endCol}`);
+    const values = await getSheetValues(spreadsheetId, `${PUBLICATION_CANDIDATES_SHEET}!A:${PUBLICATION_CANDIDATES_LAST_COLUMN}`);
 
     if (values.length <= 1) return [];
 
@@ -3555,6 +3561,86 @@ export async function getPublicationCandidates(spreadsheetId: string): Promise<P
     } catch (error) {
         console.error('[getPublicationCandidates] Error:', error);
         return [];
+    }
+}
+
+/** updatePublicationCandidateStatus() の1件分の更新指示 */
+export interface PublicationCandidateStatusUpdate {
+    candidateId: string;
+    status: Extract<PublicationCandidateStatus, 'imported' | 'dismissed'>;
+    decidedBy: string;
+    /** 'imported' のときのみ渡す想定。省略時（'dismissed' 等）は imported_ref_id 列を空文字で書く */
+    importedRefId?: string;
+}
+
+/**
+ * Publication_Candidates シートの候補ステータス（取り込み/棄却）を一括更新する
+ * （Issue #118 チャンク3）。
+ *
+ * candidate_id 列で行を特定し、status / decided_by / decided_at（この呼び出し時点の
+ * ISO 8601、全件同一時刻） / imported_ref_id を更新する。列位置は updateReferenceColumnByRefId()
+ * と同じ「ヘッダー行から都度引く」流儀（ハードコード禁止）だが、そちらが1列ずつの更新なのに対し、
+ * こちらは1件の候補につき4列を更新するため、全 update × 4列ぶんの range をまとめて
+ * 1回の values:batchUpdate（batchUpdateRanges()）で送る。ensurePublicationCandidatesSheet() を
+ * 先に呼ぶ。該当 candidate_id が見つからない更新は黙ってスキップする
+ * （updateReferenceColumnByRefId() と同じ振る舞い）。
+ */
+export async function updatePublicationCandidateStatus(
+    spreadsheetId: string,
+    updates: PublicationCandidateStatusUpdate[]
+): Promise<void> {
+    if (updates.length === 0) return;
+
+    await ensurePublicationCandidatesSheet(spreadsheetId);
+
+    const values = await getSheetValues(spreadsheetId, `${PUBLICATION_CANDIDATES_SHEET}!A:${PUBLICATION_CANDIDATES_LAST_COLUMN}`);
+    if (values.length <= 1) return;
+
+    const headers = values[0];
+    const candidateIdIndex = headers.indexOf('candidate_id');
+    const statusIndex = headers.indexOf('status');
+    const decidedByIndex = headers.indexOf('decided_by');
+    const decidedAtIndex = headers.indexOf('decided_at');
+    const importedRefIdIndex = headers.indexOf('imported_ref_id');
+
+    if (candidateIdIndex === -1 || statusIndex === -1 || decidedByIndex === -1 ||
+        decidedAtIndex === -1 || importedRefIdIndex === -1) {
+        throw new Error('Publication_Candidates column not found');
+    }
+
+    const rowIndexByCandidateId = new Map<string, number>();
+    values.slice(1).forEach((row, index) => {
+        const candidateId = (row[candidateIdIndex] || '').trim();
+        if (candidateId) {
+            rowIndexByCandidateId.set(candidateId, index + 2);
+        }
+    });
+
+    const decidedAt = new Date().toISOString();
+    const columnUpdaters: Array<{ index: number; value: (u: PublicationCandidateStatusUpdate) => string }> = [
+        { index: statusIndex, value: (u) => u.status },
+        { index: decidedByIndex, value: (u) => u.decidedBy },
+        { index: decidedAtIndex, value: () => decidedAt },
+        { index: importedRefIdIndex, value: (u) => u.importedRefId || '' },
+    ];
+
+    const batchUpdates: Array<{ range: string; values: string[][] }> = [];
+    for (const update of updates) {
+        const rowIndex = rowIndexByCandidateId.get(update.candidateId);
+        if (!rowIndex) continue;
+        for (const col of columnUpdaters) {
+            batchUpdates.push({
+                range: `${PUBLICATION_CANDIDATES_SHEET}!${columnNumberToLetter(col.index)}${rowIndex}`,
+                values: [[col.value(update)]],
+            });
+        }
+    }
+
+    if (batchUpdates.length === 0) return;
+
+    const batchSize = 500;
+    for (let i = 0; i < batchUpdates.length; i += batchSize) {
+        await batchUpdateRanges(spreadsheetId, batchUpdates.slice(i, i + batchSize));
     }
 }
 

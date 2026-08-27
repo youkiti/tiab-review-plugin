@@ -458,6 +458,9 @@
   "fulltext_fetchDone": {
     "message": "完了: Drive保存 $1件 ・ リンクのみ $2件 ・ 見つからず $3件"
   },
+  "fulltext_fetchDoneRegistry": {
+    "message": "登録 $1件: スナップショット保存 / 論文候補 $2件"
+  },
   "fulltext_fetchCancelled": {
     "message": "中止しました（途中までの結果は保存済み）。"
   },
@@ -478,6 +481,87 @@
   },
   "fulltext_candidateSaveError": {
     "message": "論文候補 $1件を保存できませんでした。時間をおいて再探索してください。"
+  },
+  "fulltext_candidateLoadError": {
+    "message": "論文候補の読み込みに失敗しました。時間をおいて再試行してください。"
+  },
+  "pubCandidate_badge": {
+    "message": "📄 論文候補 $1件"
+  },
+  "pubCandidate_badgeTitle": {
+    "message": "クリックして論文候補の一覧を開閉します"
+  },
+  "pubCandidate_untitled": {
+    "message": "（タイトル不明）"
+  },
+  "pubCandidate_strategyCtgovReference": {
+    "message": "CTGov参照文献"
+  },
+  "pubCandidate_strategyPubmedId": {
+    "message": "PubMed検索"
+  },
+  "pubCandidate_strategyEuropepmc": {
+    "message": "Europe PMC検索"
+  },
+  "pubCandidate_strategyUnknown": {
+    "message": "不明な戦略"
+  },
+  "pubCandidate_pubmedLink": {
+    "message": "🔗 PubMed"
+  },
+  "pubCandidate_doiLink": {
+    "message": "🔗 DOI"
+  },
+  "pubCandidate_importBtn": {
+    "message": "✅ 取り込む"
+  },
+  "pubCandidate_importBtnTitle": {
+    "message": "この候補をReferencesへ新規文献として取り込みます"
+  },
+  "pubCandidate_importing": {
+    "message": "取り込み中…"
+  },
+  "pubCandidate_dismissBtn": {
+    "message": "対象外"
+  },
+  "pubCandidate_dismissBtnTitle": {
+    "message": "この候補を対象外にします（Referencesには追加しません）"
+  },
+  "pubCandidate_alreadyInList": {
+    "message": "既に文献リストにあります（対象外にしました）"
+  },
+  "pubCandidate_alreadyInListUpdateFailed": {
+    "message": "既に文献リストにありますが、候補の更新に失敗しました"
+  },
+  "pubCandidate_importAddError": {
+    "message": "References への追加に失敗しました: $1"
+  },
+  "pubCandidate_importFulltextSetError": {
+    "message": "担当グループ（fulltext_set）の設定に失敗しました"
+  },
+  "pubCandidate_importStatusError": {
+    "message": "候補ステータスの更新に失敗しました"
+  },
+  "pubCandidate_importFetchError": {
+    "message": "全文の自動検索に失敗しました"
+  },
+  "pubCandidate_importPartialRetryable": {
+    "message": "文献の追加は完了しましたが、一部の処理に失敗しました: $1（もう一度「取り込む」を押すと再試行できます）"
+  },
+  "pubCandidate_importPartialNoRetry": {
+    "message": "文献の追加・候補の取り込み確定は完了しましたが、一部の処理に失敗しました: $1（この候補は一覧から消えるため、これ以上再試行できません。必要であれば手動で対応してください）"
+  },
+  "pubCandidate_importDone": {
+    "message": "取り込みが完了しました"
+  },
+  "pubCandidate_dismissError": {
+    "message": "対象外への更新に失敗しました: $1"
+  },
+  "pubCandidate_dismissBlockedAlreadyAdded": {
+    "message": "この候補は既に References へ行を追加済みです。「取り込む」を押して取り込みを完了してください。"
+  },
+  "pubCandidate_dismissReloadFailed": {
+    "message": "対象外にしました（一覧の再読込に失敗しました）"
   },
   "fulltext_driveColumnsConflict": {
     "message": "References シートのW/X列が独自データと衝突しているため、Drive取り込み列を更新できません（現在のヘッダー: \"$1\" / \"$2\"）。W/X列のヘッダー名を fulltext_drive_source_id / fulltext_drive_copy_id に変更するか、独自の列を別の位置へ移動してください。"
@@ -2870,6 +2954,36 @@
   },
   "fulltext_pdfPaneOpenInDriveNote": {
     "message": "「Drive で開く」はブラウザのGoogleアカウントで表示するため、Drive で共有されていれば読めます。ただし別タブで開くので、ハイライトとAI判定の根拠表示は使えません。"
+  },
+  "fulltext_snapshotLoading": {
+    "message": "試験登録情報のスナップショットを読み込み中..."
+  },
+  "fulltext_snapshotPaneTitle": {
+    "message": "この試験登録情報を表示できません"
+  },
+  "fulltext_snapshotPaneNotGranted": {
+    "message": "このスナップショットの読み取り権限が、いまログインしているアカウントに付与されていません。\n他のメンバーが取得したスナップショットは、Google Picker で選び直すまで拡張機能から読めません（Drive で共有されていても付与されません）。\n下の「読み取り権限を復旧」から選び直してください。それでも読めない場合は、Drive から削除された可能性があります。"
+  },
+  "fulltext_snapshotPaneLoadFailed": {
+    "message": "スナップショットを取得できませんでした。しばらく時間をおいてから再試行してください。"
+  },
+  "fulltext_snapshotPaneOpenInDriveNote": {
+    "message": "「Drive で開く」はブラウザのGoogleアカウントで表示するため、Drive で共有されていれば読めます。ただし別タブで開きます。"
+  },
+  "fulltext_snapshotPrintBtn": {
+    "message": "💾 PDFとして保存"
+  },
+  "fulltext_snapshotPrintBtnTitle": {
+    "message": "この試験登録情報をPDFとして保存します（印刷ダイアログが開きます）"
+  },
+  "fulltext_snapshotReplaceBtn": {
+    "message": "実PDFで差し替える"
+  },
+  "fulltext_snapshotDeleteBtn": {
+    "message": "スナップショットを削除"
+  },
+  "fulltext_snapshotDeleteConfirm": {
+    "message": "この試験登録情報のスナップショットをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）"
   },
   "fulltext_importErrorNotPdf": {
     "message": "PDFではありません（$1）"

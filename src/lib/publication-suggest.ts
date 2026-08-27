@@ -35,6 +35,37 @@ export function buildPubmedIdQuery(trialId: string): string {
     return `"${id}"[si] OR "${id}"[tiab]`;
 }
 
+/** buildEuropePmcQuery() のオプション。既定（省略）は抄録限定、fullText: true で全文検索になる。 */
+export interface BuildEuropePmcQueryOptions {
+    fullText?: boolean;
+}
+
+/**
+ * Europe PMC 検索クエリを組み立てる。既定は抄録限定 `ABSTRACT:"<試験ID>"`、
+ * `options.fullText` を渡すと全文検索 `"<試験ID>"`（0件時のフォールバック用）になる。
+ *
+ * 抄録限定にする理由: ClinicalTrials.gov/UMIN-CTR/ISRCTNの3レジストリ×各12試験=36ペア
+ * （PubMedの`[si]`から作った正解ペア、発行年2015-2022に限定）で実測したところ、
+ * 全文検索（従来のEurope PMCクエリ）は recall 86%（31/36）・平均ヒット数9.0件、
+ * 抄録限定は recall 86%（同値）・平均ヒット数4.0件で、recallを落とさずノイズだけ
+ * 約半分にできる。全文検索は「本文中で試験IDに言及しただけ」の総説・論説・別試験まで
+ * 拾ってしまう（実例: EOLIA試験(NCT01470703)でEurope PMC由来23件がヒットしたが
+ * 1件も結果論文ではなかった）。
+ *
+ * recallが同値で済む理由（絞ってもrecallが落ちない理由）: NCT03719521（正解PMID
+ * 38162283）は、全文検索だと38件ヒットし`pageSize=25`の1ページ目からあふれて真の
+ * 論文を取りこぼす。抄録限定だと17件まで絞られ、同じ論文が1ページ目に収まり拾える。
+ * つまり全文検索がノイズの多さで自滅する分を、抄録限定がクエリを絞ることで拾い返して
+ * いる（0件時フォールバックの根拠・NCT04112121の例は europePmcCandidates() のJSDoc参照）。
+ *
+ * なお `TITLE:"<id>"` を OR しても結果が変わったペアは0/36件だった（試験IDは論文
+ * タイトルには出現しない）ため、TITLEは追加しない。
+ */
+export function buildEuropePmcQuery(trialId: string, options: BuildEuropePmcQueryOptions = {}): string {
+    const id = trialId.trim();
+    return options.fullText ? `"${id}"` : `ABSTRACT:"${id}"`;
+}
+
 /**
  * 候補配列を PMID・DOI の両方で重複排除する。
  *
@@ -277,39 +308,77 @@ async function esummaryForPmids(pmids: string[], email?: string): Promise<Map<st
 }
 
 /**
- * 戦略3（europepmc）: 試験ID全文一致で検索。jRCT/UMIN等、PubMedの[si]に無いIDにも有効。失敗時は空配列。
+ * Europe PMC 検索を1回実行し、resultList.result 配列を返す。
+ * 失敗時（非200・JSON不正・ネットワーク例外）は例外を投げず null を返す。
+ * 呼び出し側の europePmcCandidates() は null（失敗）と []（成功して0件）を区別しており、
+ * フォールバックは成功して0件のときだけ発火させる（失敗をそのまま「0件」扱いにしない。
+ * 他戦略は続行する）。
+ */
+async function fetchEuropePmcResults(query: string): Promise<EuropePmcResult[] | null> {
+    try {
+        const params = new URLSearchParams({
+            query, format: 'json', resultType: 'lite', pageSize: '25',
+        });
+        const resp = await fetch(`https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params}`);
+        if (!resp.ok) return null;
+        const data = await resp.json() as EuropePmcSearchResponse;
+        return data.resultList?.result ?? [];
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * 戦略3（europepmc）: Europe PMC で試験IDから検索する。jRCT/UMIN等、PubMedの[si]に無いIDにも
+ * 有効。1回目が失敗（非200・JSON不正・ネットワーク例外）した場合はフォールバックを発火させず
+ * この戦略をスキップし空配列を返す（失敗を「0件だった」と同一視して広い全文検索クエリへ
+ * フォールバックすると、落ちているサービスへの負荷が倍になるうえ、一過性の失敗から拾った
+ * ノイズ候補が Publication_Candidates シートへ永続化されてしまうため）。
  *
- * - クエリは `"${trialId}"` と引用符で囲み、無引用によるトークナイズで無関係な文献を
- *   拾わないようにする。
+ * - 1回目は buildEuropePmcQuery(trialId) の既定（抄録限定 `ABSTRACT:"<試験ID>"`）で検索する。
+ * - 1回目が**成功して**0件だったとき（`fetchEuropePmcResults()` が `[]` を返したとき）だけ、
+ *   buildEuropePmcQuery(trialId, { fullText: true }) の全文検索 `"<試験ID>"` で2回目を検索する。
+ *   1件以上ヒットすれば2回目のリクエストは発生させない。`hitCount` フィールドは現状読んでいない
+ *   ため判定には使わない（依存を増やさない）。
+ * - 2回目（フォールバック）が失敗した場合は、これまでどおり空配列を返す（この戦略はスキップ）。
+ * - フォールバックする理由: 抄録限定・全文検索はいずれも単独では recall 86%（31/36）で同値
+ *   （buildEuropePmcQuery()のJSDoc参照）だが、取りこぼす対象が異なる。NCT04112121（正解PMID
+ *   40496603）はPubMed抄録に試験の登録番号が書かれていないため抄録限定では0件になり取りこぼす
+ *   が、全文検索なら1件ヒットして拾える。逆にNCT03719521は抄録限定が拾い全文検索の方が
+ *   取りこぼす（pageSize=25の打ち切りのため。buildEuropePmcQuery()のJSDoc参照）。つまり2つの
+ *   検索方式は互いに違うケースを取りこぼしており、0件時だけ全文検索へフォールバックすることで
+ *   両方の取り分を得られ recall が 89%（32/36）まで上がる。フォールバックが走るのはヒット0件の
+ *   ケースに限られるため平均ヒット数は 4.0 件のまま（抄録限定のみの案と同水準）に抑えられる。
  * - resultType は `lite`（pmid/doi/title/journalTitle/pubYear で足りるため）。`core` は
  *   全文リンク・抄録まで含む重いレスポンスで、既存OAウォーターフォール側が `core` なのは
  *   `fullTextUrlList` を使うためであり事情が異なる（ここでは不要）。
- * - pageSize は既定値に依存せず 25 件を明示する。
+ * - pageSize は既定値に依存せず 25 件を明示する（両クエリとも共通）。
+ * - strategy は両経路とも `'europepmc'` のまま据え置く（新しい戦略値は追加しない。
+ *   PublicationCandidateStrategy型・Publication_Candidatesシートのstrategy列・STRATEGY_ORDER・
+ *   i18nラベルへの波及はスコープ外）。
+ * - eutils用の options.delayMs 待機はここに持ち込まない（別ホストのAPIのため。discoverPublicationCandidates()
+ *   のJSDoc参照）。
  */
 async function europePmcCandidates(
     refId: string, trialId: string
 ): Promise<PublicationCandidateDraft[]> {
-    try {
-        const params = new URLSearchParams({
-            query: `"${trialId}"`, format: 'json', resultType: 'lite', pageSize: '25',
-        });
-        const resp = await fetch(`https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params}`);
-        if (!resp.ok) return [];
-        const data = await resp.json() as EuropePmcSearchResponse;
-        const results = data.resultList?.result ?? [];
-        return results.map(r => ({
-            refId,
-            trialId,
-            pmid: r.pmid?.trim() || undefined,
-            doi: r.doi?.trim() || undefined,
-            title: r.title,
-            journal: r.journalTitle,
-            year: parseYearOrUndefined(r.pubYear),
-            strategy: 'europepmc' as const,
-        }));
-    } catch {
-        return [];
+    const firstAttempt = await fetchEuropePmcResults(buildEuropePmcQuery(trialId));
+    if (firstAttempt === null) return []; // 1回目が失敗。フォールバックせずこの戦略をスキップする
+    let results = firstAttempt;
+    if (results.length === 0) {
+        const fallback = await fetchEuropePmcResults(buildEuropePmcQuery(trialId, { fullText: true }));
+        results = fallback ?? []; // 2回目（フォールバック）が失敗した場合はこれまでどおり空配列
     }
+    return results.map(r => ({
+        refId,
+        trialId,
+        pmid: r.pmid?.trim() || undefined,
+        doi: r.doi?.trim() || undefined,
+        title: r.title,
+        journal: r.journalTitle,
+        year: parseYearOrUndefined(r.pubYear),
+        strategy: 'europepmc' as const,
+    }));
 }
 
 /**
@@ -317,7 +386,8 @@ async function europePmcCandidates(
  *
  * 1. ctgov_reference: ctgPmids（呼び出し側が fetchCtgStudy() の結果から渡す。fetch不要）
  * 2. pubmed_id: esearch で試験IDから検索
- * 3. europepmc: Europe PMC 全文検索で試験IDから検索（jRCT/UMIN等にも有効）
+ * 3. europepmc: Europe PMC で試験IDから検索（抄録限定、0件時のみ全文検索へフォールバック。
+ *    jRCT/UMIN等にも有効。詳細は europePmcCandidates()/buildEuropePmcQuery() のJSDoc参照）
  *
  * 1・2で集めたPMIDの書誌は esummary に1リクエストでまとめて問い合わせる
  * （PMIDごとに1回呼ばない）。eutils（esearch → esummary）の間だけ options.delayMs

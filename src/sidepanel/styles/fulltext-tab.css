@@ -470,6 +470,74 @@
     cursor: default;
 }
 
+/* ---------- 論文候補パネル（fulltext-publication-candidates.ts、Issue #118 チャンク3b） ---------- */
+
+/* バッジクリックで開くパネルをカード直下に置くためのラッパー（.fulltext-list の直接の子はこちら） */
+.fulltext-card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-badge.badge-pubcandidate {
+    background: #eafaf1;
+    color: #16a085;
+    border: 1px solid #a8e6cf;
+    cursor: pointer;
+}
+
+.fulltext-badge.badge-pubcandidate:hover {
+    background: #d5f5e3;
+}
+
+.pub-candidate-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 26px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #a8e6cf;
+    border-radius: 6px;
+}
+
+.pub-candidate-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.pub-candidate-row:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.pub-candidate-title {
+    font-size: 12px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.pub-candidate-meta {
+    font-size: 11px;
+    color: #999;
+}
+
+.pub-candidate-strategy {
+    font-size: 10px;
+    color: #16a085;
+}
+
+.pub-candidate-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
 /* ---------- ④ 結果ビュー ---------- */
 
 .fulltext-viewmode-row {

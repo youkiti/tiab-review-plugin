@@ -258,7 +258,11 @@ test('buildRegistrySnapshotHtml: http/https の原簿URLはこれまでどおり
         retrievedAt: '2026-08-27T00:00:00.000Z',
         fields: [],
     });
-    assert.ok(html.includes('<a href="https://clinicaltrials.gov/study/NCT00000010">'));
+    // PR #124 レビュー指摘3: iframe(#ft-snapshot-frame)内でのクリックによる自己遷移を防ぐため
+    // target="_blank" rel="noopener noreferrer" を付けるようになった（意図した仕様変更）。
+    assert.ok(html.includes(
+        '<a href="https://clinicaltrials.gov/study/NCT00000010" target="_blank" rel="noopener noreferrer">'
+    ));
 });
 
 test('buildRegistrySnapshotHtml: 相対URL・不正な値もリンクにせずテキストとして表示する（例外を投げない）', () => {

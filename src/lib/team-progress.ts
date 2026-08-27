@@ -12,7 +12,7 @@
 // - フルテキストの分母: 候補ルール（FulltextPoolRule）が設定済みの場合のみ、
 //   ルールで決まる共通候補プールの文献数。未設定時は分母が人によって異なるため非表示（null）。
 
-import type { Decision, AssignmentConfig } from './types';
+import type { Decision, AssignmentConfig, Reference } from './types';
 import { isMlAutoDecision } from './client-version';
 import { isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
 import { getRefAssignmentSet } from './assignment-roster';
@@ -23,11 +23,47 @@ import {
 } from './fulltext-assignment';
 import { isSharedFulltextPoolMember } from './fulltext-candidates';
 
-/** 集計に必要な文献情報の最小形 */
+/**
+ * 集計に必要な文献情報の最小形。
+ *
+ * related_ref_id は isSharedFulltextPoolMember() の「取り込んだ論文行は無条件で候補」分岐
+ * （Issue #118 チャンク3）に必要。この型を絞り込んで生成する箇所（sidepanel側の
+ * initTeamProgress() / buildFooter() の🔄ボタン）が related_ref_id を落とすと、
+ * 型は Pick<Reference, ...> と構造的に適合してしまうため typecheck では検出できないまま
+ * その分岐が本番で一度も発火しなくなる（実際に発生した見落とし）。この型を絞り込んで
+ * 生成し直す・キャッシュするコードを新設・変更するときは、必ず related_ref_id も含めること。
+ */
 export interface TeamProgressRef {
     ref_id: string;
     screening_set?: string;
     fulltext_set?: string;
+    related_ref_id?: string;
+}
+
+/**
+ * ReferenceWithStatus（またはそれを内包する Reference 系オブジェクト）から TeamProgressRef を
+ * 組み立てる純関数。呼び出し側は `src/sidepanel/features/team-progress.ts` の
+ * `initTeamProgress()` と `buildFooter()` の🔄ボタンのフォールバックの2箇所で、
+ * 以前はそれぞれが同じ内容のオブジェクトリテラルを個別に手書きしていた。
+ *
+ * この関数へ集約した理由（Issue #118 チャンク3、PR #124 レビュー指摘フォローアップ）:
+ * 上記コメントのとおり、`TeamProgressRef` はフィールドが全て optional のため、
+ * `Pick<Reference, ...>` のような絞り込み型を渡す2箇所のどちらかが `related_ref_id` を
+ * 落としても、構造的部分型のせいで typecheck は通ってしまう。手書きの回帰テスト
+ * （`computeTeamProgress()` へ `TeamProgressRef[]` のリテラルを直接渡す形）もこの欠落を
+ * 再現できない（絞り込み型を組み立てている箇所そのものを通らないため）。呼び出し元を
+ * この1関数へ集約し、この関数自身の入出力をユニットテストすることで、
+ * 「配線の境界」（実際に絞り込み型を組み立てている場所）でフィールド欠落を検出できるようにする。
+ */
+export function toTeamProgressRef(
+    ref: Pick<Reference, 'ref_id' | 'screening_set' | 'fulltext_set' | 'related_ref_id'>
+): TeamProgressRef {
+    return {
+        ref_id: ref.ref_id,
+        screening_set: ref.screening_set,
+        fulltext_set: ref.fulltext_set,
+        related_ref_id: ref.related_ref_id,
+    };
 }
 
 /** レビュアー1人分の進捗 */

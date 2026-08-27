@@ -396,3 +396,119 @@ test('isProjectFulltextCandidateRef: 未設定 + ルール無し + Includeが誰
     });
     assert.equal(result, false);
 });
+
+// ---------------------------------------------------------------------------
+// related_ref_id（Issue #118 チャンク3: registration行から取り込んだ論文行は
+// TiAb票を持たないため無条件で候補にする）
+// ---------------------------------------------------------------------------
+
+test('isFulltextCandidateRef: related_ref_id非空 + TiAb票ゼロ + poolRuleあり(Blind相当: decisions空) → 候補になる', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:admin@example.com'],
+        threshold: 1,
+    };
+    const result = isFulltextCandidateRef({
+        ref: { fulltext_set: '', related_ref_id: 'reg-1' },
+        decisions: [], // TiAb票ゼロ（取り込んだ論文行はTiAbスクリーニングを経ない）
+        poolRule: rule,
+        assignment: NONE_ASSIGNMENT,
+        userEmail: 'member@example.com',
+        isAdmin: false,
+    });
+    assert.equal(result, true);
+});
+
+test('isFulltextCandidateRef: related_ref_id非空 + 割り振り済みでfulltext_setも空 → 候補になる', () => {
+    const result = isFulltextCandidateRef({
+        ref: { fulltext_set: '', related_ref_id: 'reg-1' },
+        decisions: [],
+        poolRule: null,
+        assignment: CONFIGURED_ASSIGNMENT,
+        userEmail: 'member@example.com',
+        isAdmin: false,
+    });
+    assert.equal(result, true);
+});
+
+test('isFulltextCandidateRef: related_ref_idが空文字/空白のみなら従来どおりの判定（既存挙動は変わらない）', () => {
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:admin@example.com'],
+        threshold: 1,
+    };
+    assert.equal(
+        isFulltextCandidateRef({
+            ref: { fulltext_set: '', related_ref_id: '' },
+            decisions: [],
+            poolRule: rule,
+            assignment: NONE_ASSIGNMENT,
+            userEmail: 'member@example.com',
+            isAdmin: false,
+        }),
+        false
+    );
+    assert.equal(
+        isFulltextCandidateRef({
+            ref: { fulltext_set: '', related_ref_id: '   ' },
+            decisions: [],
+            poolRule: rule,
+            assignment: NONE_ASSIGNMENT,
+            userEmail: 'member@example.com',
+            isAdmin: false,
+        }),
+        false
+    );
+});
+
+test('isFulltextCandidateRef: related_ref_id未指定（従来行）は既存挙動のまま', () => {
+    const result = isFulltextCandidateRef({
+        ref: { fulltext_set: '' },
+        decisions: [],
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+        userEmail: 'member@example.com',
+        isAdmin: false,
+    });
+    assert.equal(result, false);
+});
+
+test('isProjectFulltextCandidateRef: related_ref_id非空 + TiAb票ゼロ → 候補になる', () => {
+    const result = isProjectFulltextCandidateRef({
+        ref: { fulltext_set: '', related_ref_id: 'reg-1' },
+        decisions: [],
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isProjectFulltextCandidateRef: related_ref_idが空なら既存挙動のまま', () => {
+    const result = isProjectFulltextCandidateRef({
+        ref: { fulltext_set: '', related_ref_id: '' },
+        decisions: [],
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, false);
+});
+
+test('isSharedFulltextPoolMember: related_ref_id非空 + TiAb票ゼロ + ルール無し → 候補になる（取り込んだ論文行は共有分母にも入る）', () => {
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '', related_ref_id: 'reg-1' },
+        decisions: [],
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, true);
+});
+
+test('isSharedFulltextPoolMember: related_ref_idが空なら既存挙動のまま（ルール無し→false）', () => {
+    const result = isSharedFulltextPoolMember({
+        ref: { fulltext_set: '', related_ref_id: '' },
+        decisions: [],
+        poolRule: null,
+        assignment: NONE_ASSIGNMENT,
+    });
+    assert.equal(result, false);
+});

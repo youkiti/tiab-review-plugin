@@ -458,6 +458,9 @@
   "fulltext_fetchDone": {
     "message": "Done: saved to Drive $1 · link only $2 · not found $3"
   },
+  "fulltext_fetchDoneRegistry": {
+    "message": "Registrations: $1 snapshot(s) saved / $2 publication candidate(s)"
+  },
   "fulltext_fetchCancelled": {
     "message": "Cancelled (partial results were saved)."
   },
@@ -478,6 +481,87 @@
   },
   "fulltext_candidateSaveError": {
     "message": "Failed to save $1 publication candidate(s). Please re-run the search later."
+  },
+  "fulltext_candidateLoadError": {
+    "message": "Failed to load publication candidates. Please try again later."
+  },
+  "pubCandidate_badge": {
+    "message": "📄 $1 publication candidate(s)"
+  },
+  "pubCandidate_badgeTitle": {
+    "message": "Click to expand or collapse the publication candidate list"
+  },
+  "pubCandidate_untitled": {
+    "message": "(untitled)"
+  },
+  "pubCandidate_strategyCtgovReference": {
+    "message": "CTGov reference"
+  },
+  "pubCandidate_strategyPubmedId": {
+    "message": "PubMed search"
+  },
+  "pubCandidate_strategyEuropepmc": {
+    "message": "Europe PMC search"
+  },
+  "pubCandidate_strategyUnknown": {
+    "message": "Unknown strategy"
+  },
+  "pubCandidate_pubmedLink": {
+    "message": "🔗 PubMed"
+  },
+  "pubCandidate_doiLink": {
+    "message": "🔗 DOI"
+  },
+  "pubCandidate_importBtn": {
+    "message": "✅ Import"
+  },
+  "pubCandidate_importBtnTitle": {
+    "message": "Import this candidate into References as a new reference"
+  },
+  "pubCandidate_importing": {
+    "message": "Importing…"
+  },
+  "pubCandidate_dismissBtn": {
+    "message": "Dismiss"
+  },
+  "pubCandidate_dismissBtnTitle": {
+    "message": "Mark this candidate as not relevant (won't be added to References)"
+  },
+  "pubCandidate_alreadyInList": {
+    "message": "Already in your reference list (dismissed)"
+  },
+  "pubCandidate_alreadyInListUpdateFailed": {
+    "message": "Already in your reference list, but failed to update the candidate"
+  },
+  "pubCandidate_importAddError": {
+    "message": "Failed to add to References: $1"
+  },
+  "pubCandidate_importFulltextSetError": {
+    "message": "Failed to set the assigned group (fulltext_set)"
+  },
+  "pubCandidate_importStatusError": {
+    "message": "Failed to update the candidate status"
+  },
+  "pubCandidate_importFetchError": {
+    "message": "Failed to auto-search for the full text"
+  },
+  "pubCandidate_importPartialRetryable": {
+    "message": "The reference was added, but some steps failed: $1 (click Import again to retry)"
+  },
+  "pubCandidate_importPartialNoRetry": {
+    "message": "The reference was added and the candidate marked as imported, but some steps failed: $1 (this candidate will no longer appear in the list, so it can't be retried from here — please handle it manually if needed)"
+  },
+  "pubCandidate_importDone": {
+    "message": "Import complete"
+  },
+  "pubCandidate_dismissError": {
+    "message": "Failed to dismiss: $1"
+  },
+  "pubCandidate_dismissBlockedAlreadyAdded": {
+    "message": "This candidate has already been added to References. Click Import to finish importing it."
+  },
+  "pubCandidate_dismissReloadFailed": {
+    "message": "Dismissed (failed to reload the list)"
   },
   "fulltext_driveColumnsConflict": {
     "message": "Can't update the Drive import columns because References sheet columns W/X are used for something else (current headers: \"$1\" / \"$2\"). Rename columns W/X to fulltext_drive_source_id / fulltext_drive_copy_id, or move your custom columns elsewhere."
@@ -2870,6 +2954,36 @@
   },
   "fulltext_pdfPaneOpenInDriveNote": {
     "message": "\"Open in Drive\" uses your browser's Google session, so it works if the file is shared with you in Drive. It opens in a separate tab, so highlights and AI evidence are not available there."
+  },
+  "fulltext_snapshotLoading": {
+    "message": "Loading the registration snapshot..."
+  },
+  "fulltext_snapshotPaneTitle": {
+    "message": "Can't display this registration record"
+  },
+  "fulltext_snapshotPaneNotGranted": {
+    "message": "This snapshot's read access has not been granted to the account you're currently signed in with.\nSnapshots retrieved by other members can't be read by the extension until you pick them again via the Google Picker (sharing in Drive is not enough).\nUse \"Restore read access\" below to pick it again. If it still can't be read, it may have been deleted from Drive."
+  },
+  "fulltext_snapshotPaneLoadFailed": {
+    "message": "Failed to fetch the snapshot. Please wait a bit and try again."
+  },
+  "fulltext_snapshotPaneOpenInDriveNote": {
+    "message": "\"Open in Drive\" uses your browser's Google session, so it works if the file is shared with you in Drive. It opens in a separate tab."
+  },
+  "fulltext_snapshotPrintBtn": {
+    "message": "💾 Save as PDF"
+  },
+  "fulltext_snapshotPrintBtnTitle": {
+    "message": "Save this registration record as a PDF (opens the print dialog)"
+  },
+  "fulltext_snapshotReplaceBtn": {
+    "message": "Replace with a real PDF"
+  },
+  "fulltext_snapshotDeleteBtn": {
+    "message": "Delete snapshot"
+  },
+  "fulltext_snapshotDeleteConfirm": {
+    "message": "This will delete this registration record's snapshot from Drive. Continue?\n(After deleting, you can upload the correct PDF from this screen.)"
   },
   "fulltext_importErrorNotPdf": {
     "message": "Not a PDF ($1)"
