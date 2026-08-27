@@ -4,7 +4,7 @@
 
 以下のルールは、いかなる状況でも最優先で遵守すること：
 
-1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。
+1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。**例外: バージョンバンプ commit（`npm run bump` / `scripts/bump-version.ps1`）は `main` 上で直接行ってよい。** 差分が version と Build 日付のみで、直前の `main` は CI green である前提のため PR / CI 待ちを挟まない（作業ツリーが汚れている場合はスクリプトが停止する）。機能変更をこの経路で `main` に入れてはならない。
 2. **日本語化**: ユーザーに提示するアーティファクト（計画書・タスク・確認事項）は、作成時に必ず日本語で記述すること。
 3. **不要ファイル・ブランチの削除**: テストなどで作成したファイルやブランチは不要になった時点で削除すること。
 4. **言語規定**: 思考プロセスは英語で行う。ユーザーへのレスポンス、アーティファクト、コミットメッセージ、コード内のコメントは必ず日本語で記述すること。（システムエラーやログの引用は原文のままでよい）
@@ -1205,7 +1205,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定だと本番と同様に fail-fast する。認証を触らないローカル作業では `ALLOW_NO_AUTH=1 npm run dev` で警告のみに格下げできる）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
-6. リリースは `npm run release`（バージョンバンプ + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
+6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
 
 ### リリース（Chrome Web Store）
 
@@ -1213,11 +1213,15 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。
 
+**リリース前に作業ツリーがクリーンである必要がある。** `npm run bump`（`scripts/bump-version.ps1`）は冒頭で `git status --porcelain --ignore-submodules=dirty` を確認し、未コミットの変更が残っていれば何も書き換えずに停止する。`scripts/bump-version.ps1` は UTF-8 BOM 付きで保存すること（Windows PowerShell 5.1 が BOM 無しを CP932 として読むため）。
+
 ```bash
 npm run release         # = release:minor（デフォルト）
 npm run release:minor   # 修正・小変更 0.33.2 → 0.33.3 + ストア用ビルド + dist.zip
 npm run release:major   # 機能追加     0.33.2 → 0.34.0 + 同上
 ```
+
+バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` の4ファイルを更新し、スクリプト自身がその4ファイルだけをステージしてローカル commit まで行う（**push は手動**）。後続の `npm run build:release` が失敗した場合は `git reset --hard HEAD~1` で戻せる（差分は version と Build 日付のみ）。
 
 1.0.0 など先頭の数字を動かす場合のみ `./scripts/bump-version.ps1 -SetVersion "1.0.0"` で明示指定する。
 
