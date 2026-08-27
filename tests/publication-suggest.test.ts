@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     buildPubmedIdQuery,
+    buildEuropePmcQuery,
     dedupePublicationCandidates,
     filterAlreadyImportedCandidates,
     filterNewCandidates,
@@ -39,6 +40,23 @@ test('buildPubmedIdQuery: 前後の空白はtrimされる', () => {
         buildPubmedIdQuery('  NCT12345678  '),
         '"NCT12345678"[si] OR "NCT12345678"[tiab]'
     );
+});
+
+// ---------------------------------------------------------------------------
+// buildEuropePmcQuery
+// ---------------------------------------------------------------------------
+
+test('buildEuropePmcQuery: 既定は抄録限定クエリ ABSTRACT:"<試験ID>"', () => {
+    assert.equal(buildEuropePmcQuery('NCT12345678'), 'ABSTRACT:"NCT12345678"');
+});
+
+test('buildEuropePmcQuery: options.fullText:trueで全文検索クエリ "<試験ID>" になる', () => {
+    assert.equal(buildEuropePmcQuery('NCT12345678', { fullText: true }), '"NCT12345678"');
+});
+
+test('buildEuropePmcQuery: 前後の空白はtrimされる（抄録限定・全文検索の両方）', () => {
+    assert.equal(buildEuropePmcQuery('  NCT12345678  '), 'ABSTRACT:"NCT12345678"');
+    assert.equal(buildEuropePmcQuery('  NCT12345678  ', { fullText: true }), '"NCT12345678"');
 });
 
 // ---------------------------------------------------------------------------
@@ -495,7 +513,7 @@ test('discoverPublicationCandidates: esummaryのpubdateに年が無くてもyear
     assert.equal(result[0].year, undefined);
 });
 
-test('discoverPublicationCandidates: Europe PMC呼び出しは引用符付きクエリ・resultType=lite・pageSize=25', async () => {
+test('discoverPublicationCandidates: Europe PMCの1回目は抄録限定クエリ・resultType=lite・pageSize=25で、1件以上ヒットすればフォールバック（2回目）は発生しない', async () => {
     const calledUrls = stubFetch([
         {
             match: (url) => url.includes('esearch.fcgi'),
@@ -503,7 +521,9 @@ test('discoverPublicationCandidates: Europe PMC呼び出しは引用符付きク
         },
         {
             match: (url) => url.includes('ebi.ac.uk/europepmc'),
-            respond: () => new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 }),
+            respond: () => new Response(JSON.stringify({
+                resultList: { result: [{ pmid: '999', title: 'Found via abstract', journalTitle: 'J', pubYear: '2024' }] },
+            }), { status: 200 }),
         },
     ]);
 
@@ -511,12 +531,88 @@ test('discoverPublicationCandidates: Europe PMC呼び出しは引用符付きク
         refId: 'ref-1', trialId: 'NCT12345678', kind: 'nct', ctgPmids: [], existingRefs: [],
     }, { delayMs: 0 });
 
-    const epmcUrl = calledUrls.find(u => u.includes('ebi.ac.uk/europepmc'));
-    assert.ok(epmcUrl, 'Europe PMCへのfetchが発生すること');
-    const params = new URL(epmcUrl!).searchParams;
-    assert.equal(params.get('query'), '"NCT12345678"', 'クエリは引用符で囲まれること（無引用によるトークナイズ誤爆を防ぐ）');
+    const epmcUrls = calledUrls.filter(u => u.includes('ebi.ac.uk/europepmc'));
+    assert.equal(epmcUrls.length, 1, '1回目が0件でなければEurope PMCへの呼び出しは1回だけ（フォールバックは走らない）');
+    const params = new URL(epmcUrls[0]).searchParams;
+    assert.equal(params.get('query'), 'ABSTRACT:"NCT12345678"', '1回目は抄録限定クエリであること（全文検索は本文中の言及まで拾いノイズになるため）');
     assert.equal(params.get('resultType'), 'lite', 'pmid/doi/title/journalTitle/pubYearだけで足りるためliteにすること');
     assert.equal(params.get('pageSize'), '25', '既定値に依存せず明示すること');
+});
+
+test('discoverPublicationCandidates: Europe PMCの1回目が0件のとき、2回目は全文検索クエリで呼ばれその結果が候補になる', async () => {
+    const calledUrls = stubFetch([
+        {
+            match: (url) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            // 1回目（抄録限定）は0件。URLのqueryパラメータに'ABSTRACT'が含まれる方を先に判定する。
+            match: (url) => url.includes('ebi.ac.uk/europepmc') && url.includes('ABSTRACT'),
+            respond: () => new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 }),
+        },
+        {
+            // 2回目（全文検索、フォールバック）は1件ヒットする。
+            match: (url) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response(JSON.stringify({
+                resultList: { result: [{ pmid: '777', title: 'Found via fallback fulltext', journalTitle: 'J', pubYear: '2024' }] },
+            }), { status: 200 }),
+        },
+    ]);
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1', trialId: 'NCT12345678', kind: 'nct', ctgPmids: [], existingRefs: [],
+    }, { delayMs: 0 });
+
+    const epmcUrls = calledUrls.filter(u => u.includes('ebi.ac.uk/europepmc'));
+    assert.equal(epmcUrls.length, 2, '1回目が0件なら2回目（全文検索）が発生すること');
+    assert.equal(new URL(epmcUrls[0]).searchParams.get('query'), 'ABSTRACT:"NCT12345678"', '1回目は抄録限定クエリ');
+    assert.equal(new URL(epmcUrls[1]).searchParams.get('query'), '"NCT12345678"', '2回目（フォールバック）は全文検索クエリ');
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].pmid, '777', 'フォールバック（全文検索）の結果が候補として返ること');
+    assert.equal(result[0].strategy, 'europepmc', 'フォールバック由来でもstrategyは引き続きeuropepmcであること（新しい戦略値は追加しない）');
+});
+
+test('discoverPublicationCandidates: Europe PMCの1回目が非200のとき、フォールバックせずこの戦略をスキップする（失敗を0件と同一視しない）', async () => {
+    const calledUrls = stubFetch([
+        {
+            match: (url) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            match: (url) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response('error', { status: 500 }),
+        },
+    ]);
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1', trialId: 'NCT12345678', kind: 'nct', ctgPmids: [], existingRefs: [],
+    }, { delayMs: 0 });
+
+    const epmcUrls = calledUrls.filter(u => u.includes('ebi.ac.uk/europepmc'));
+    assert.equal(epmcUrls.length, 1, '1回目が失敗（非200）のときフォールバック（2回目）は発生しないこと');
+    assert.deepEqual(result, [], '失敗時は「0件だった」ことにして全文検索へ広げず、候補を返さないこと');
+});
+
+test('discoverPublicationCandidates: Europe PMCの1回目がJSON不正のとき、フォールバックせずこの戦略をスキップする', async () => {
+    const calledUrls = stubFetch([
+        {
+            match: (url) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            match: (url) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response('not json', { status: 200 }),
+        },
+    ]);
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1', trialId: 'NCT12345678', kind: 'nct', ctgPmids: [], existingRefs: [],
+    }, { delayMs: 0 });
+
+    const epmcUrls = calledUrls.filter(u => u.includes('ebi.ac.uk/europepmc'));
+    assert.equal(epmcUrls.length, 1, '1回目がJSON不正のときもフォールバック（2回目）は発生しないこと');
+    assert.deepEqual(result, [], '失敗時は候補を返さないこと');
 });
 
 test('discoverPublicationCandidates: esearch/esummaryにtool/emailが付く（NCBI E-utilitiesの申告要件）', async () => {
