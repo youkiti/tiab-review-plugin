@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ensureHeaders, REFERENCES_HEADERS } from '../src/lib/sheets-api';
+import { ensureHeaders, REFERENCES_HEADERS, validateReferencesManagedHeaders } from '../src/lib/sheets-api';
 import { setPlatform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
 
@@ -202,4 +202,167 @@ test('22列の旧シート: ヘッダー行PUTのrangeがREFERENCES_HEADERS.leng
         REFERENCES_HEADERS.length,
         '書き込む行の要素数がREFERENCES_HEADERS.length（=range の列数）と一致すること'
     );
+});
+
+// ---------------------------------------------------------------------------
+// PR #121 レビュー指摘対応: record_type/related_ref_id（Y/Z列）追加により
+// REFERENCES_HEADERS.length が 24→26 になったことで、W/X限定だった旧検証
+// （validateFulltextDriveHeaders）ではY/Z列のユーザー独自名との衝突を検出できず、
+// 25列シート・26列シートの双方で無警告改名が再発する穴があった。
+// 一般化した validateReferencesManagedHeaders / ensureHeaders 側の修正がこの穴を
+// 塞いでいることを確認する。
+// ---------------------------------------------------------------------------
+
+/** console.warn を差し替えて呼び出し引数を捕捉する。テスト終了時に必ず元へ戻すこと。 */
+function captureConsoleWarn(): { calls: unknown[][]; restore: () => void } {
+    const original = console.warn;
+    const calls: unknown[][] = [];
+    console.warn = (...args: unknown[]) => { calls.push(args); };
+    return { calls, restore: () => { console.warn = original; } };
+}
+
+test('25列でY1がユーザー独自名（W/Xは正規名のまま）: References のヘッダー行 PUT が発行されない', async () => {
+    // 25列（22列の安定プレフィックス + W/X正規名 + ユーザー独自の25列目）は
+    // currentHeaders.length(25) < REFERENCES_HEADERS.length(26) で「不足」分岐に入る。
+    // 旧検証（W/X限定）はここを素通りしてしまい、A1:Z1を丸ごとPUTしてユーザーの25列目
+    // （my_memo）を無警告で record_type に改名してしまっていた。
+    const warn = captureConsoleWarn();
+    try {
+        const puts = installEnsureHeadersMock([
+            ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id', 'my_memo',
+        ]);
+
+        await ensureHeaders('sheet-g');
+
+        const refPuts = referencesPuts(puts);
+        assert.equal(refPuts.length, 0, 'ユーザー独自の25列目（Y1）ヘッダー名を改名してはいけない');
+    } finally {
+        warn.restore();
+    }
+});
+
+test('26列でY/Zがユーザー独自名: References のヘッダー行 PUT が発行されず、かつ警告が出る', async () => {
+    // 26列は currentHeaders.length(26) === REFERENCES_HEADERS.length(26) のため
+    // 「移行済み」分岐に入り、旧実装ではPUTされないのはもちろん検証自体が一切走らなかった
+    // （= ユーザーがY/Z列を独自用途で使っていても気づく手段が無かった）。
+    // 一般化後は列数に関わらず検証が走るため、PUTは従来どおり0回のままだが、
+    // 衝突していることを示す警告が新たに出るようになっていることを確認する。
+    const warn = captureConsoleWarn();
+    try {
+        const puts = installEnsureHeadersMock([
+            ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id', 'my_memo', 'my_tag',
+        ]);
+
+        await ensureHeaders('sheet-h');
+
+        const refPuts = referencesPuts(puts);
+        assert.equal(refPuts.length, 0, 'この列数では元々PUTされない（既存挙動を維持）');
+
+        // 「何らかの console.warn が1回以上出た」だけでは、Referencesブロックと無関係な警告でも
+        // 通ってしまい、この修正が守りたい挙動（Y/Z列の衝突を検出して警告する）を固定できない。
+        // メッセージが [ensureHeaders] References 由来であることまで絞り込んだうえで、
+        // conflicts の中身（列・期待値・実際の値、Y→Zの順）まで検証する。
+        const referencesConflictWarnings = warn.calls.filter(
+            (args) => typeof args[0] === 'string' && args[0].includes('[ensureHeaders]') && args[0].includes('References')
+        );
+        assert.equal(
+            referencesConflictWarnings.length, 1,
+            '「移行済みと黙って誤判定」せず、Referencesのヘッダー衝突警告がちょうど1回出ること'
+        );
+        const [message, detail] = referencesConflictWarnings[0];
+        assert.ok(typeof message === 'string' && message.includes('[ensureHeaders]'));
+        assert.deepEqual(
+            detail,
+            {
+                conflicts: [
+                    { column: 'Y', expected: 'record_type', actual: 'my_memo' },
+                    { column: 'Z', expected: 'related_ref_id', actual: 'my_tag' },
+                ],
+            },
+            '衝突したY列・Z列の両方が期待どおりconflictsに入っていること（実装どおりY→Zの順）'
+        );
+    } finally {
+        warn.restore();
+    }
+});
+
+// ---------------------------------------------------------------------------
+// レビュー指摘対応（指摘2）: 上のテストで「衝突しているときは警告する」ことを固定しても、
+// 実装が「列数に関わらず常に警告を出す」もの（衝突の有無を見ていない誤実装）であっても
+// 既存テスト群はPUT回数しか見ていないため全部通ってしまう。
+// 「衝突していないときは警告しない」という負の対照を別テストとして追加し、
+// 衝突の有無で警告するかどうかが実際に分岐していることを固定する。
+// ---------------------------------------------------------------------------
+
+test('26列すべて正規名: References のヘッダー行 PUT が発行されず、console.warn も呼ばれない（衝突なしの負の対照）', async () => {
+    const warn = captureConsoleWarn();
+    try {
+        const puts = installEnsureHeadersMock([
+            ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+            'record_type', 'related_ref_id',
+        ]);
+
+        await ensureHeaders('sheet-i');
+
+        const refPuts = referencesPuts(puts);
+        assert.equal(refPuts.length, 0, '既に26列なら拡張ロジック自体に入らない（既存挙動）');
+        assert.equal(warn.calls.length, 0, '衝突が無いのでReferencesのヘッダー衝突警告は出ないこと');
+    } finally {
+        warn.restore();
+    }
+});
+
+test('22列の旧シート（拡張される正常系）: console.warn は呼ばれない', async () => {
+    // 拡張ロジック自体が走り、PUTが1回発行される正常系。ここでも W列以降はすべて
+    // 「未使用」（空文字扱い）なので衝突は起きないはずで、「拡張したのに警告も出す」
+    // という誤実装を弾く。
+    const warn = captureConsoleWarn();
+    try {
+        const puts = installEnsureHeadersMock([...OLD_HEADERS_22]);
+
+        await ensureHeaders('sheet-j');
+
+        const refPuts = referencesPuts(puts);
+        assert.equal(refPuts.length, 1, 'References のヘッダー行 PUT が1回発行されること（既存挙動）');
+        assert.equal(warn.calls.length, 0, '衝突が無いのでReferencesのヘッダー衝突警告は出ないこと');
+    } finally {
+        warn.restore();
+    }
+});
+
+test('validateReferencesManagedHeaders: 26列すべて正規名なら ok=true・conflictsは空', () => {
+    const headerRow = [
+        ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+        'record_type', 'related_ref_id',
+    ];
+    const result = validateReferencesManagedHeaders(headerRow);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.conflicts, []);
+});
+
+test('validateReferencesManagedHeaders: 末尾が未使用（22列・24列の旧シート）なら ok=true', () => {
+    // 22列（W列以降が丸ごと存在しない旧シート）と24列（W/Xまでは存在するがY/Zがまだ無い、
+    // Y/Z追加前の旧シート）のどちらも「未使用」＝空文字として扱われ、衝突にはならないこと。
+    // getSheetValues は末尾の空セルを省いて返す仕様のため、これらのケースは
+    // headerRow がそもそも該当indexを持たない（undefined → trim後に空文字）という形で再現する。
+    const header22 = [...OLD_HEADERS_22];
+    const result22 = validateReferencesManagedHeaders(header22);
+    assert.equal(result22.ok, true);
+    assert.deepEqual(result22.conflicts, []);
+
+    const header24 = [...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id'];
+    const result24 = validateReferencesManagedHeaders(header24);
+    assert.equal(result24.ok, true);
+    assert.deepEqual(result24.conflicts, []);
+});
+
+test('validateReferencesManagedHeaders: Yのみユーザー独自名なら ok=false かつ conflictsにY列が入る', () => {
+    const headerRow = [
+        ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+        'my_memo', 'related_ref_id',
+    ];
+    const result = validateReferencesManagedHeaders(headerRow);
+    assert.equal(result.ok, false);
+    assert.equal(result.conflicts.length, 1);
+    assert.deepEqual(result.conflicts[0], { column: 'Y', expected: 'record_type', actual: 'my_memo' });
 });
