@@ -37,7 +37,11 @@ import {
     saveFulltextPoolRule,
     updateReferenceFulltextUrl,
     updateReferenceFulltextUrls,
+    savePublicationCandidates,
 } from '../../lib/sheets-api';
+import { isRegistrationRecord, extractTrialId } from '../../lib/registry-record';
+import { discoverPublicationCandidates } from '../../lib/publication-suggest';
+import type { PublicationCandidateDraft } from '../../lib/publication-suggest';
 import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
@@ -525,6 +529,51 @@ function applyOutcome(
     return { fulltextUrl: '', status: 'unavailable' };
 }
 
+/**
+ * registration行（isRegistrationRecord(ref) が true）についてのみ、結果論文の候補を探索して返す
+ * （保存はしない）。通常論文の行では何もしない（空配列）。候補の表示・取り込み・References への
+ * 行追加はチャンク3のスコープで、ここでは一切行わない。
+ *
+ * 保存は呼び出し側の責務: 一括検索（handleBulkFetch）は候補をバッファへ積んで
+ * savePublicationCandidates() を数件おきにまとめて呼び、単発検索（handleSingleFetch）は
+ * その場で savePublicationCandidates() を呼ぶ。registration行1件ごとに保存すると
+ * Sheets APIの読み取りクォータを容易に超えるため、この関数自体は保存しない設計にしている。
+ *
+ * ctgPmids は retrieveRegistrationSnapshot() が既に fetchCtgStudy() で取得済みの
+ * referencesModule 由来PMID（outcome.registryPmids）をそのまま使う。CTG API を
+ * スナップショット取得と論文候補探索で2回叩かないための配線（fulltext-retriever.ts 参照）。
+ *
+ * 探索自体の失敗（discoverPublicationCandidates 内の各戦略）は下層で握りつぶされる設計だが、
+ * 念のためここでも try/catch し、失敗時は空配列を返す（console.warn のみ。一括/単発いずれの
+ * 取得ループも、この処理の失敗で止めてはならない）。
+ */
+async function discoverRegistryPublicationCandidates(
+    ref: ReferenceWithStatus,
+    outcome: FulltextFetchOutcome
+): Promise<PublicationCandidateDraft[]> {
+    if (!isRegistrationRecord(ref)) return [];
+
+    const trial = extractTrialId(ref);
+    if (!trial) return [];
+
+    try {
+        const ctgPmids = (outcome.kind === 'cached' || outcome.kind === 'linked')
+            ? (outcome.registryPmids ?? [])
+            : [];
+        return await discoverPublicationCandidates({
+            refId: ref.ref_id,
+            trialId: trial.id,
+            kind: trial.kind,
+            ctgPmids,
+            existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
+            email: state.userEmail,
+        });
+    } catch (err) {
+        console.warn('[fulltext-tab] 論文候補探索に失敗:', ref.ref_id, err);
+        return [];
+    }
+}
+
 async function handleBulkFetch(): Promise<void> {
     if (bulkRun) return;
 
@@ -556,14 +605,30 @@ async function handleBulkFetch(): Promise<void> {
     }));
 
     const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus; driveSource: null }> = [];
+    // registration行の論文候補（Issue #118 チャンク2 パスB）。pendingWrites と同じ流儀で
+    // ため込み、flush() でまとめて savePublicationCandidates() を呼ぶ。行ごとに保存すると
+    // Sheets APIの読み取りクォータを容易に超えるため（詳細は sheets-api.ts 側のコメント参照）。
+    const pendingCandidates: PublicationCandidateDraft[] = [];
     const flush = async () => {
-        if (pendingWrites.length === 0) return;
-        const batch = pendingWrites.splice(0);
-        try {
-            await updateReferenceFulltextUrls(state.spreadsheetId, batch);
-        } catch (err) {
-            console.warn('[fulltext-tab] シートへの保存に失敗:', err);
-            showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
+        // URL書き込みと候補保存は互いに独立させる: 片方の失敗がもう片方のフラッシュを
+        // 巻き込まないよう、try/catch を別々に付ける。
+        if (pendingWrites.length > 0) {
+            const batch = pendingWrites.splice(0);
+            try {
+                await updateReferenceFulltextUrls(state.spreadsheetId, batch);
+            } catch (err) {
+                console.warn('[fulltext-tab] シートへの保存に失敗:', err);
+                showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
+            }
+        }
+
+        if (pendingCandidates.length > 0) {
+            const candidateBatch = pendingCandidates.splice(0);
+            try {
+                await savePublicationCandidates(state.spreadsheetId, candidateBatch);
+            } catch (err) {
+                console.warn('[fulltext-tab] 論文候補の保存に失敗:', err);
+            }
         }
     };
 
@@ -586,7 +651,13 @@ async function handleBulkFetch(): Promise<void> {
             }
 
             const write = applyOutcome(ref, outcome);
+            // fulltext_url の書き込みは論文候補探索（最大3回のネットワーク往復）を待たずに
+            // 先にバッファへ積む（探索が遅くても本質的なURL保存が後回しにならないようにする）。
             pendingWrites.push({ refId: ref.ref_id, driveSource: null, ...write });
+
+            const candidates = await discoverRegistryPublicationCandidates(ref, outcome);
+            if (candidates.length > 0) pendingCandidates.push(...candidates);
+
             if (outcome.kind === 'cached') cachedCount++;
             else if (outcome.kind === 'linked') linkedCount++;
             else noneCount++;
@@ -630,7 +701,18 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
             }
         );
         const write = applyOutcome(ref, outcome);
+        // fulltext_url の書き込みを論文候補探索より先に済ませる（handleBulkFetch と同じ理由）。
         await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status, null);
+
+        const candidates = await discoverRegistryPublicationCandidates(ref, outcome);
+        if (candidates.length > 0) {
+            try {
+                await savePublicationCandidates(state.spreadsheetId, candidates);
+            } catch (err) {
+                console.warn('[fulltext-tab] 論文候補の保存に失敗:', ref.ref_id, err);
+            }
+        }
+
         renderFulltextTab();
     } catch (err) {
         showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);

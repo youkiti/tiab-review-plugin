@@ -81,6 +81,7 @@ const OA_SOURCE_LABELS: Record<OaSource | 'cached' | 'linked', string> = {
     openalex: 'OpenAlex',
     publisher: '出版社',
     landing_meta: '出版社PDF',
+    registry: 'レジストリ登録情報',
     cached: 'Drive保存済み',
     linked: 'リンクのみ',
 };

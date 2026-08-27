@@ -24,7 +24,9 @@
         "https://www.ebi.ac.uk/europepmc/*",
         "https://api.unpaywall.org/*",
         "https://api.openalex.org/*",
-        "https://link.springer.com/*"
+        "https://link.springer.com/*",
+        "https://clinicaltrials.gov/*",
+        "https://eutils.ncbi.nlm.nih.gov/*"
     ],
     "optional_host_permissions": [
         "https://*/*"
