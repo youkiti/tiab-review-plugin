@@ -81,8 +81,8 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 | fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
-| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサのみ。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
-| related_ref_id  | registration行 ⇄ そこから取り込んだ論文行の相互参照。Issue #118 チャンク1時点ではスキーマのみ（チャンク3で使用）（Z列） |      |
+| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサと、論文候補の取り込み（`buildImportedPublicationReference()`。取り込んだ論文行は常に `article` を確定値として書く）。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
+| related_ref_id  | 取り込んだ論文行から、発見元のregistration行の `ref_id` への**一方向**の参照（registration行側に逆リンクは張らない。`src/lib/publication-import.ts` の `buildImportedPublicationReference()` が書く）。この列が非空の行は、TiAb票を一切持たなくても `src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` が無条件でフルテキスト候補として扱う（レジストリ連携フェーズ1チャンク3、Issue #118。下記「論文候補の取り込み（Referencesへの追加）」参照）（Z列） |      |
 
 **References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
@@ -642,11 +642,22 @@ CTG/ICTRP由来のregistration行（上記2マッピング参照）は試験ID�
 - スナップショットHTML自体は `buildRegistrySnapshotHtml()`（外部CSS/JS/画像を一切参照しない自己完結HTML。埋め込み値は必ずHTMLエスケープする）、ファイル名は `buildRegistrySnapshotFileName()`（`buildPdfFileName()` と同じ命名規約で拡張子だけ `.html`）、Driveアップロードは `src/lib/drive-api.ts` の `uploadHtmlToDrive()`（`uploadPdfToDrive()` と同じmultipartアップロード処理を内部ヘルパーへ共通化）が担う
 - Drive保存に失敗した場合は例外を外に投げず、原簿URL（`ref.url`）が `src/lib/registry-record.ts` の `isSafeHttpUrl()`（http/httpsのみを安全とみなすガード。元はHTML埋め込み専用のmodule-private関数だったが、この用途のため `export` した）を通れば `linked`、通らなければ（`javascript:`/`data:` 等の危険なスキームや相対URL・不正な値）または `ref.url` 自体が無ければ `none` にフォールバックする（一括取得ループを止めないため。既存OA経路の catch → `console.warn` の作法と同じ）。`ref.url` は References の url 列＝ユーザーが直接編集できるセル由来のため無検証で通してはいけない。この値はサイドパネルの `buildLinkBtn()` を経由して `chrome.tabs.create({ url })` にそのまま渡るため（描画側のガード追加は別スコープ。PR #122 レビュー指摘3、Issue #118 チャンク2）
 - 通常の論文レコード（`isRegistrationRecord()` が false）の挙動はこの分岐追加前と変わらない
-- パスB（論文候補探索）はチャンク2で実装済み（下記「試験登録レコードの論文候補探索」参照）。候補の表示・取り込み・References への行追加はチャンク3のスコープで未実装
+- パスB（論文候補探索）はチャンク2で実装済み（下記「試験登録レコードの論文候補探索」参照）。候補の表示・取り込み・References への行追加はチャンク3で実装済み（下記「論文候補の取り込み（Referencesへの追加）」参照）
+
+### 試験登録レコードのフルテキストビューア表示（スナップショット）
+
+上記で保存したHTMLスナップショットを `src/fulltext/fulltext.ts`（フルテキストビューア）で表示できるようにし、「PDFとして保存」導線を置く（レジストリ連携フェーズ1チャンク3c、Issue #118 実装内容10）。
+
+- 表示経路の判定は `src/lib/fulltext-display-mode.ts` の `resolveFulltextDisplayMode()`（UI非依存の純関数）に集約している。`record_type`（`isRegistrationRecord()` 経由）と `fulltext_status`/`fulltext_url` から `'registry_snapshot' | 'pdf' | 'linked' | 'unavailable' | 'not_retrieved'` を返す。`isRegistrationRecord(ref)` かつ `fulltext_status==='cached'` かつ `fulltext_url` があるときだけ `'registry_snapshot'` になり、既存の `showCachedPdf()`（PDF.js経路）には一切入らない。HTMLをPDF.jsに渡すと解析に失敗し、catch節の「Chrome内蔵ビュワー(iframe blob)へのフォールバック」に落ちて非サンドボックスの `ft-pdf-frame` に生HTMLが載ってしまうため、この暗黙のフォールバックに頼らず明示的に分岐させている
+- **`showPdfForRef()` だけでなく `handleResolve()`（初回自動検索）の `outcome.kind==='cached'` 分岐も同じ判定で出し分けること。** `showCachedPdf()` の呼び出し元は複数あり、`showPdfForRef()` だけを直すと registration行の**初回**表示（一度も fetch していない状態から取得した直後）だけ旧経路（PDF.js→フォールバック）に残ってしまう。この抜け漏れはブリーフが名指ししていなかったが、`showCachedPdf()` の全呼び出し元を grep して見つけて塞いだ（`openLinkedInline()`/`uploadPdfFile()` からの呼び出しは対象外のまま据え置き。前者は registration行の 'linked' フォールバック時の別経路、後者はマジックナンバー検証済みの実PDFで、どちらも常にPDF経路で正しい）
+- 表示は専用のサンドボックスiframe `#ft-snapshot-frame`（`fulltext.html`）に `srcdoc` でHTMLを流し込む（`showRegistrySnapshotFrame()`）。**sandbox属性は `allow-same-origin allow-modals` のみで、`allow-scripts` は絶対に付けない。** スナップショットは `buildRegistrySnapshotHtml()` がエスケープ済みで生成するが、保存先はユーザーが編集し得るDriveファイルのため信頼できない前提で扱う。`allow-same-origin` は親から `frame.contentWindow.print()` を呼ぶために必要（「PDFとして保存」ボタン、`#ft-snapshot-print-btn`。既存の「このPDFを保存」＝ `ft-save-pdf-btn` とは別物）。`allow-scripts` と同時に付けるとsandboxが実質無効化されるが、scriptsを付けないため危険な組み合わせにはならない。既存の `ft-article-frame`（`sandbox="allow-scripts allow-same-origin ..."`）とは用途もsandbox設定も別物のため流用していない
+- Driveからの取得は `showCachedPdf()` と全く同じ作法（`extractDriveFileId()`/`downloadDriveFile()`、`pdfPrefetch` の先読み再利用、`token`/`isStale()` による取り違え防止）。`prefetchNeighbors()` は cached の隣接候補を中身に関わらず先読みするため、registration行の隣接候補でも二重ダウンロードは起きない。取得失敗時は無言の空ペインにせず、`showPdfAccessFailure()` と同じ `describePdfLoadFailure()` の分類を再利用しつつ、"PDF" と明記した既存文言だけをスナップショット向けに差し替えた専用パネル（`showRegistrySnapshotAccessFailure()`）を出す。**`buildPdfAccessFailurePanel()` 自体は変更せず複製した**（既存のPDF失敗UIへの影響をゼロにするため）
+- **実PDFで差し替えられた場合の安全網**: `isRegistrationRecord(ref)` は `record_type` というメタデータだけを見るため、ツールバーの「別のPDFをアップロード」でregistration行の `fulltext_url` が実PDFへ差し替えられていても `record_type` は `'registration'` のままで、`resolveFulltextDisplayMode()` は引き続き `'registry_snapshot'` を返す。この不整合はメタデータだけの純関数では解決できない（バイト列を見るにはfetchが要る）。そこで `showRegistrySnapshot()` は取得したバイト列の先頭が `%PDF`（`uploadPdfFile()` と同じマジックナンバー判定）なら、HTMLとして描画せず `showCachedPdf()`（通常のPDF経路）へ委譲する。`pdfPrefetch` の Promise は一度解決したBlobを返すだけなので、委譲しても二重ダウンロードにはならない。**純関数（メタデータ判定）と実行時のバイト列補正は責務を分けており、後者を前者に混ぜ込まない**
+- ツールバー（`updateToolbarMode()`）は `fulltext_status==='cached' && fulltext_url` を `hasPdf` として「別のPDFをアップロード」「削除」を出す判定を持つが、これはスナップショット表示時も true になる。**どちらも隠さない**（削除はスナップショットを消して取り直す導線として、アップロードは登録内容のPDF＝プロトコル文書等で差し替える運用として、それぞれ実用上の意味がある）。ただし両ボタンの既定ラベルは「PDF」と明記しており表示中の中身（HTMLスナップショット）と食い違うため、`resolveFulltextDisplayMode(currentRef) === 'registry_snapshot'` のときだけラベルをスナップショット向けの文言に差し替える。HTMLの既定ラベルは初回呼び出し時に記憶しておき、通常のPDF経路（registration行以外）では一切変えない
 
 ### 試験登録レコードの論文候補探索（Publication_Candidates タブ）
 
-registration行から「その試験の結果論文（linked publication）」の候補を発見し、`Publication_Candidates` タブへ保存する（レジストリ連携フェーズ1チャンク2パスB、Issue #118）。候補の表示・取り込み・References への行追加は行わない（チャンク3のスコープ。**References に行を追加する経路をこのパスに作らないこと**）。
+registration行から「その試験の結果論文（linked publication）」の候補を発見し、`Publication_Candidates` タブへ保存する（レジストリ連携フェーズ1チャンク2パスB、Issue #118）。**この探索パス自体は候補の保存までで、References への行追加は一切行わない**（候補の表示・取り込みはチャンク3で実装済み。下記「論文候補の取り込み（Referencesへの追加）」参照。**References に行を追加する経路をこの探索パスに作らないこと** — 取り込みは必ず「取り込む」ボタンの明示操作を経由する。詳細は次項）。
 
 - 探索ロジックは `src/lib/publication-suggest.ts`（UI非依存）の `discoverPublicationCandidates()`。3戦略を**直列**で実行する（PubMed E-utilities がAPIキー無しで3 req/s上限のため並列にしない）:
   1. `ctgov_reference`: `fetchCtgStudy()` が返す `pmids`（CTGov `referencesModule` 由来。呼び出し側が渡す。fetch不要）。`referencesModule.references` は `type` が `BACKGROUND`/`RESULT`/`DERIVED` に分かれており、`fetchCtgStudy()` 側で `type`（trim・大文字化）が `'BACKGROUND'`（試験結果と無関係な背景文献）の参照だけを除外する（PR #122 レビュー指摘1、Issue #118 チャンク2）。`RESULT` のみのallowlistにはしていない: `DERIVED` は「PubMed側がそのNCT番号を参照している論文」で結果論文の主要な供給源、`RESULT` はスポンサーが手動登録した分しか入らないため、allowlistだと取りこぼしが大きい。`type` 欠落・未知の値（将来API側に新種別が増えた場合を含む）は残す側に倒す（後方互換）。同一PMIDが複数の参照エントリに現れる場合は重複排除し元の出現順を保つ
@@ -682,15 +693,35 @@ registration行から「その試験の結果論文（linked publication）」�
   | journal | 候補論文のジャーナル名 |
   | year | 候補論文の出版年 |
   | strategy | `ctgov_reference` / `pubmed_id` / `europepmc` |
-  | status | `suggested`（このチャンクで書くのはここまで）/ `imported` / `dismissed`（チャンク3で使用） |
+  | status | `suggested` / `imported` / `dismissed`。`imported`/`dismissed` への更新は `sheets-api.ts` の `updatePublicationCandidateStatus()`（チャンク3）が担う |
   | suggested_at | 発見日時（ISO 8601） |
-  | decided_by | チャンク3で使用（このチャンクでは常に空文字） |
-  | decided_at | 同上 |
-  | imported_ref_id | 同上 |
+  | decided_by | 決定者（email）。`updatePublicationCandidateStatus()` が書く（チャンク3） |
+  | decided_at | 決定日時（ISO 8601）。同上 |
+  | imported_ref_id | 取り込んで新規作成したReferences行の `ref_id`（`imported` のときのみ）。同上 |
 
 - **タブ欠落時の自動作成・列欠落時の末尾追記は `ensurePublicationCandidatesSheet()` が担う。`ensureLlmRunsSheet()` と完全に同じ ensure パターン**（ヘッダー欠落は末尾へ追記、タブ欠落は `addSheet` → ヘッダー append、それ以外の例外は再送出）
 - **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `PUBLICATION_CANDIDATES_HEADERS` ミラーも必ず追従させること（`tests/publication-candidates-headers.test.ts` がドリフトを検出する）
-- ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3のスコープで未実装
+- ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3で実装済み（`src/lib/publication-import.ts` / `src/lib/publication-candidate-panel.ts` / `src/sidepanel/features/fulltext-publication-candidates.ts`。下記「論文候補の取り込み（Referencesへの追加）」参照）
+
+### 論文候補の取り込み（Referencesへの追加）
+
+候補（`Publication_Candidates` の1行）をReferencesへ実際に取り込む処理（レジストリ連携フェーズ1チャンク3、Issue #118 実装内容7・8）。**References に行が追加される経路は、`src/sidepanel/features/fulltext-publication-candidates.ts` の「取り込む」ボタン（`handleImportCandidate()`）だけ。** 一括検索・再探索・自動処理からは1行も追加しない（探索パス側の制約は上記「試験登録レコードの論文候補探索」参照）。
+
+- 行の組み立ては `src/lib/publication-import.ts` の `buildImportedPublicationReference()`（UI非依存の純関数。`crypto.randomUUID()`/`new Date()` は呼ばず、呼び出し側から `refId`/`importedAt` を注入する）が担う。`record_type='article'`（確定値）、`related_ref_id`＝発見元registration行の `ref_id`、`source`＝`Registry linkage (試験ID)` 形式（試験IDは registrationRef から `extractTrialId()` で取る。取れない場合は `buildRegistrySnapshotHtml()` の「(不明)」表記に合わせて `Registry linkage (不明)` とする）、`dedupe_key` は `import-helpers.ts` の `generateDedupeKey()` をそのまま使う（重複実装しない）。`url` はここでは組み立てない（PubMed/DOIから組み立てる、fetchを伴わない再利用可能な既存ヘルパーが無かったため。取り込み後の単発OA検索が別途 `fulltext_url` を解決する）
+- 取り込み後、担当割り振りが `configured` のときだけ registration行の `fulltext_set` を新規行へコピーする。コピーすべき値の判定は `src/lib/publication-import.ts` の `resolveImportedFulltextSet()`（純関数）に切り出してあり、実際の書き込み（`updateReferenceFulltextSets()`）は呼び出し側が行う
+- `handleImportCandidate()` の実行順序:
+  1. **重複チェック**: `state.references` を押した瞬間にもう一度見て、同一PMIDまたは同一DOIの行が既にあれば、Referencesへ行を追加せず候補を `dismissed` にして終了する（探索時点の `filterAlreadyImportedCandidates()` とは別に、探索から取り込みまでの間に References が変わりうるため、押した瞬間にもう一度見る必要がある）。判定は `src/lib/publication-candidate-panel.ts` の `isPublicationCandidateAlreadyImported()` が `filterAlreadyImportedCandidates()`（`publication-suggest.ts`）を最小限のシム経由で再利用する（判定ロジックを独自実装しない）
+  2. `crypto.randomUUID()`/`new Date().toISOString()` を呼び出し側で用意し `buildImportedPublicationReference()` へ注入 → `addReferences()` で1行追加
+  3. `resolveImportedFulltextSet()` が非空を返すときだけ `updateReferenceFulltextSets()` で新規行の `fulltext_set` を書く（空文字を書きに行く無駄なリクエストは出さない）
+  4. `updatePublicationCandidateStatus()`（`sheets-api.ts`）で候補を `imported`/`decided_by`/`imported_ref_id` に更新
+  5. `reloadReferences()`（`fulltext-ai.ts`）で state を更新
+  6. 新規行に対して単発OA検索を自動起動する（`fetchSingleFulltextForRef()`。`handleSingleFetch()` からボタン要素前提の見た目更新を切り離して独立させた関数）
+  7. 候補キャッシュ（`fulltext-tab.ts` のモジュールローカルキャッシュ）を再読込・再描画する
+- **部分失敗への備え**: 手順2（`addReferences`）が成功した直後に、候補ID→新規`ref_id`の対応を `fulltext-publication-candidates.ts` のモジュールローカルMap（`importedRefIdByCandidateId`）へ記録する。その後3〜6のいずれかが失敗して候補が `status='suggested'` のまま残っても、同じ候補へ再度「取り込む」を押されたときはこの記録を最優先で見て、`addReferences()` を呼び直さず（＝Referencesへの二重追加を避け）記録済みの `ref_id` で残りのステップだけをやり直す。4（ステータス更新）に成功すればこの記録は不要になり削除する。この記録が無い場合（例: ブラウザ再起動でモジュール状態が失われた）でも、1の重複チェックが References 上の同一PMID/DOIを検出するため二重追加そのものは常に防がれるが、その場合候補は `dismissed` として決着する（誰がいつ取り込んだ行か特定できず `imported_ref_id` を安全に紐付けられないため。行自体は失われない）
+- **「ステータス更新(4)は成功したが fulltext_set 更新(3)が失敗した」場合には復旧導線が無い。** 候補は `imported` になりパネル・バッジから消えるため、UIから「担当グループが未設定のまま」に気付いて再操作する手段が構造的に無い。実害は `fulltext_set` が空のままになることに限られる（`related_ref_id` が非空のため、フルテキスト候補一覧・共有分母には引き続き載る＝候補自体を見失うわけではない。次の箇条書き参照）。管理者が手動で担当割り振りを再生成するか、シートを直接編集するしかない
+- 完了トーストの「もう一度『取り込む』を押すと再試行できます」という案内は、それが実際に成り立つ場合（手順4のステータス更新自体が失敗して候補が `suggested` のまま残っている）だけに出す。手順4が成功して候補がパネルから消えるケースでは別の文言（再試行を促さない）を出す（`pubCandidate_importPartialRetryable` / `pubCandidate_importPartialNoRetry`）。多段階処理の完了メッセージを作るときは、それぞれの失敗パターンで案内の内容が実際に成り立つかを個別に確認すること
+- **`related_ref_id` が非空の行は無条件でフルテキスト候補になる**（実装内容9）。取り込んだ論文行はTiAb票を一切持たない（通常のTiAbスクリーニングを経ないため）ので、`fulltext_set`・プールルール・TiAb Include票のいずれで判定してもフルテキスト候補プールから落ちてしまう。`src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` はいずれも、`related_ref_id` が非空なら（poolRule評価より先に）無条件で候補として扱う分岐を持つ。`isSharedFulltextPoolMember()` はIssue本文が名指ししていない（他の2関数のみ名指し）が、「全員で一致すべき分母」という要件と矛盾しないため（`related_ref_id` の非空はユーザー非依存の属性）同じ扱いにした
+  - **落とし穴（実際に踏んだ）**: 上記3関数の引数型は `ref: Pick<Reference, 'fulltext_set' | 'related_ref_id'>` のように `Reference` を絞り込んだ型を取る。チーム進捗集計用の `src/lib/team-progress.ts` の `TeamProgressRef`（`Reference` をさらに絞り込んだ最小形）が最初 `related_ref_id` を持っておらず、`src/sidepanel/features/team-progress.ts` 側で `ReferenceWithStatus` から `TeamProgressRef` を組み立てる2箇所が `related_ref_id` を運んでいなかった。`Pick<Reference, ...>` はoptional同士だと構造的に適合してしまうため、`related_ref_id` を落とした絞り込み型を渡してもtypecheckは通ってしまい（コンパイラはフィールドが無いことを検出できない）、`isSharedFulltextPoolMember()` の分岐は本番で一度も発火しなかった。詳細・一般化した教訓は下記「テスト・作業ツリーの落とし穴」参照
 
 ### EndNote XML インポートフィールドマッピング
 
@@ -1225,6 +1256,9 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 - **`src/demo/seed.ts` はテストから直接 import できない。** `sample/*.nbib` を raw-text import（`declare module '*.nbib'`、webpack ローダー前提）しているため、`tsc` + `node --test` の経路では `.nbib` を JS として読もうとして落ちる。そのためヘッダーミラーのドリフト検出テストは、seed.ts 側の期待値をテストファイルへ直書きして `sheets-api.ts` の実エクスポートと突き合わせる流儀になっている（`tests/references-headers-record-type.test.ts` / `tests/publication-candidates-headers.test.ts`）。**seed.ts だけを変えるとドリフトを検出できない**ので、列を足すときは seed.ts・sheets-api.ts・テストの3箇所を必ず同時に直すこと。
 - **lint は型の緩さを検出しない。** `.eslintrc.cjs` は `@typescript-eslint/no-explicit-any` も `no-unused-vars` も有効にしていないため、`any` や未使用変数は CI を素通りする。`src/lib/` の既存コードが `any` を使っていないのは規約であって強制ではないので、レビュー側で見ること。
 - **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
+- **`Pick<Reference, ...>` のように `Reference` を絞り込んだ型は、絞り込んだフィールドが全て optional だと構造的部分型のせいで typecheck をすり抜ける。** 絞り込み型Aが「実際に必要なフィールドの一部だけ持つ、より狭い絞り込み型B」を要求する関数に、Bより広いはずのAの値を渡しても、Aに欠けているフィールドがBの型定義上 optional なら、コンパイラは「無い」ことを検出できずコンパイルが通る。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`src/lib/team-progress.ts` の `TeamProgressRef` が `related_ref_id` を持たないまま `fulltext-candidates.ts` の関数へ渡され、`isSharedFulltextPoolMember()` の分岐が本番で一度も発火しなかった。詳細は「論文候補の取り込み」節参照）。**`Reference` を絞り込んだ型を新設・変更するときは、型チェックだけで安心せず、配線の全経路（絞り込み型を組み立てている全箇所）が本当に必要なフィールドを運んでいるか目視確認すること。** 純関数のユニットテストも、引数へ絞り込んだオブジェクトリテラルを直接手書きして渡す形だと、配線側の欠落を再現できず検出できない（配線の境界＝実際に絞り込み型を組み立てている関数の入出力でテストすること）。
+- **真偽値フラグ（`if (loading) return;`）による非同期処理の二重起動防止は、その処理の完了を `await` して待つ呼び出し元がいると成り立たない。** 進行中の呼び出しを「捨てる」だけで、待っている側には何も返せないため、`await` 側は実際には何も起きていないのに「完了した」と思い込んで先へ進んでしまう。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`fulltext-tab.ts` の `loadPublicationCandidates()` を、一括検索/再探索の完了時は fire-and-forget（`void`）で呼ぶ一方、候補の取り込み完了後は `await` して待っていたため、前者が進行中に後者が呼ばれると空振りしていた）。fire-and-forget と `await` の呼び出しが混在する非同期処理には、進行中の Promise をそのまま返して合流させるヘルパー（`src/lib/async-coalesce.ts` の `createAsyncCoalescer()`）を使うこと。
+- **ブリーフが名指しした1箇所だけを直すと、同じルーティング判断を行う別の呼び出し元が直り漏れることがある。** レジストリ連携フェーズ1チャンク3で、`showPdfForRef()` の分岐だけを直す指示だったが、`showCachedPdf()` の全呼び出し元を grep すると `handleResolve()`（初回自動検索）にも同じ分岐判断のコピーがあり、そこを直さないと「registration行の初回表示だけ直っていない」状態になっていた。**ある関数の呼び出し条件を変更・追加するときは、対象関数の全呼び出し元を一度 grep し、同じ判断ロジックが他の場所に重複していないか確認すること。**
 
 ### ローカル実験環境
 
