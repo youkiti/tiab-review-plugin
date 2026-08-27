@@ -104,41 +104,75 @@ let publicationCandidates: PublicationCandidate[] = [];
  * 空振りし、取り込み済みの候補が suggested のままパネル・バッジに残り続ける不具合を
  * 実際に踏んだ。createAsyncCoalescer() は進行中の Promise をそのまま返す（合流）ため、
  * fire-and-forget側の挙動を変えずに、await する側も本当の完了まで待てるようにする。
+ *
+ * 【戻り値と合流セマンティクス】成功したら true、Sheets読み込みが失敗したら false を返す
+ * （PR #124 レビュー指摘。以前は console.warn するだけで失敗を握りつぶし、呼び出し元が
+ * 一切検出できなかった）。トースト表示はここでは行わない（呼び出し元の loadPublicationCandidates()
+ * が suppressErrorToast の値に応じて出す）。合流した複数の呼び出し元は同じ boolean 結果を
+ * 共有するが、それぞれ自分の suppressErrorToast で独立にトースト要否を判断するため、
+ * 「合流していてもトースト表示は呼び出し元ごとに変わりうる」（詳細は loadPublicationCandidates
+ * 側のコメント参照）。
  */
-const coalescedFetchPublicationCandidates = createAsyncCoalescer(async () => {
+const coalescedFetchPublicationCandidates = createAsyncCoalescer(async (): Promise<boolean> => {
     try {
         publicationCandidates = await getPublicationCandidates(state.spreadsheetId);
+        return true;
     } catch (err) {
         console.warn('[fulltext-tab] 論文候補の読み込みに失敗:', err);
+        return false;
+    } finally {
+        renderFulltextTab();
     }
-    renderFulltextTab();
 });
 
 /**
  * 論文候補（Publication_Candidates）を読み込み、モジュールローカルキャッシュへ保持する。
  *
- * registration行が1件も無いプロジェクトでは getPublicationCandidates() を呼ばない
- * （無関係なプロジェクトで毎回 ensure + 読み取りのSheets APIリクエストが発生しないように
- * するため。renderRetrievalSummary() が同じ `candidates.filter(isRegistrationRecord)` で
- * registration行の有無を数えているのと同じ判定基準に揃えている）。
+ * 【早期returnの判定基準は「プロジェクト全体」であって「表示中」ではない】
+ * `state.allReferences`（担当フィルタ・セット絞り込みの影響を受けない全件）に registration行が
+ * 1件でもあるかで判定する。以前は `getVisibleFulltextCandidateList().some(isRegistrationRecord)`
+ * を使っていたが、これは担当フィルタ＋セットのチェックボックス絞り込みが効いた「表示中」の一覧
+ * だった（PR #124 レビュー指摘）。セットのチェックボックスハンドラ（fulltext-assignment-ui.ts）は
+ * `_rerenderTab()` を呼ぶだけで再読込しないため、registration行を含まないグループに絞った状態で
+ * タブを開くと `hasRegistrationRows` が false になって候補が空になり、その後チェックを広げても
+ * 再読込がかからないため候補が戻らない不具合を実際に踏んだ。`state.allReferences` を使えば
+ * セットの絞り込みに関わらず「このプロジェクトに registration行が1件でもあるか」を正しく判定できる。
+ * `renderRetrievalSummary()` が同じ `isRegistrationRecord` 判定を使っているのは表示中候補数の
+ * 集計目的であり、こちらとは目的が異なるため合わせていない。
+ *
  * この早期returnパスは Sheets API を一切呼ばず await を挟まないため、実行中に他の呼び出しが
  * 割り込む余地が構造的に無い（JSはシングルスレッドで、await の無い同期区間は割り込まれない）。
  * よって coalescedFetchPublicationCandidates() の合流対象に含める必要はない
  * （合流が必要なのは Sheets への実読み込みが進行中の間に他の呼び出しが来るケースだけ）。
+ * この経路は「読み込む必要が無かった」だけで失敗ではないため true を返す。
+ *
+ * @param options.suppressErrorToast 既定 false。true なら Sheets 読み込み失敗時の
+ *   `fulltext_candidateLoadError` トーストを出さない（handleDismissCandidate() が
+ *   自前の pubCandidate_dismissReloadFailed トーストへまとめて出すために使う）。
+ * @returns 成功（または読み込み不要で早期return）したら true、Sheets読み込みが失敗したら false。
+ *   fire-and-forget（`void loadPublicationCandidates()`）の呼び出し元は戻り値を無視してよい
+ *   （throw しないため unhandled rejection は起きない）。
  *
  * 呼び出しタイミング: activateFulltextTab()、および handleBulkFetch / handleBulkSuggest /
  * fetchSingleFulltextForRef（単発OA検索。ボタン起点の handleSingleFetch と、候補取り込み後の
  * 自動起動の両方で共有）の完了後。
  */
-async function loadPublicationCandidates(): Promise<void> {
-    const hasRegistrationRows = getVisibleFulltextCandidateList().some(isRegistrationRecord);
+async function loadPublicationCandidates(
+    options: { suppressErrorToast?: boolean } = {}
+): Promise<boolean> {
+    const suppressErrorToast = options.suppressErrorToast ?? false;
+    const hasRegistrationRows = state.allReferences.some(isRegistrationRecord);
     if (!hasRegistrationRows) {
         publicationCandidates = [];
         renderFulltextTab();
-        return;
+        return true;
     }
 
-    await coalescedFetchPublicationCandidates();
+    const ok = await coalescedFetchPublicationCandidates();
+    if (!ok && !suppressErrorToast) {
+        showToast(t('fulltext_candidateLoadError'), 5000);
+    }
+    return ok;
 }
 
 /**
@@ -586,8 +620,26 @@ function collectReasonUsage(): Map<string, number> {
 // OA検索（一括・単発）
 // ---------------------------------------------------------------------------
 
-// 任意サイトからのPDFダウンロード用に全HTTPSサイトの実行時権限を求める。
-// 拒否されても PMC / Europe PMC など既存 host_permissions 内のPDFは保存できる。
+/**
+ * 任意サイトからのPDFダウンロード用に全HTTPSサイトの実行時権限を求める。
+ * 拒否されても PMC / Europe PMC など既存 host_permissions 内のPDFは保存できる。
+ *
+ * **ユーザージェスチャの無い文脈から呼ばれうる。** 例えば取り込みフロー
+ * （`fulltext-publication-candidates.ts` の `handleImportCandidate()` から呼ばれる
+ * `fetchSingleFulltextForRef()`）は `addReferences` → `updateReferenceFulltextSets` →
+ * `updatePublicationCandidateStatus` → `reloadReferences` の4本のネットワーク往復を
+ * await した後にこの関数へ到達するため、押下時点のユーザージェスチャは既に失効している。
+ *
+ * `chrome.permissions.request()` はジェスチャの無い文脈で呼ぶと
+ * "This function must be called during a user gesture" を**同期的に**投げる。この呼び出しは
+ * `contains()` のコールバックの中（＝外側の try/catch の外）にあるため、外側だけを
+ * try/catch する実装だと一度も resolve/reject されずに Promise が永久に pending のままになる
+ * （PR #124 レビュー指摘。取り込みボタンが「取り込み中…」のまま永久に disabled になっていた）。
+ * そのため `request()` の呼び出し自体を内側の try/catch で包み、投げたら `resolve(false)` で
+ * 必ず決着させる。`chrome.runtime.lastError` が立った場合も同様に `resolve(false)` にする
+ * （どちらの経路でも「権限は得られなかった」として扱えば十分で、呼び出し元は権限拒否時と
+ * 区別する必要が無いため）。
+ */
 function requestBroadHostPermission(): Promise<boolean> {
     return new Promise(resolve => {
         try {
@@ -596,7 +648,19 @@ function requestBroadHostPermission(): Promise<boolean> {
                     resolve(true);
                     return;
                 }
-                chrome.permissions.request({ origins: ['https://*/*'] }, granted => resolve(!!granted));
+                try {
+                    chrome.permissions.request({ origins: ['https://*/*'] }, granted => {
+                        if (chrome.runtime.lastError) {
+                            resolve(false);
+                            return;
+                        }
+                        resolve(!!granted);
+                    });
+                } catch {
+                    // ユーザージェスチャが無い文脈からの呼び出し。ここで確実に resolve(false) し、
+                    // Promise が永久に pending になることを防ぐ。
+                    resolve(false);
+                }
             });
         } catch {
             resolve(false);
@@ -932,15 +996,32 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
  *   （このOA検索対象は record_type='article' の行のため、そもそも新規候補が
  *   discoverRegistryPublicationCandidates() で見つかることは無いが、他の登録行の候補が
  *   別経路で増えている可能性まで含めて毎回反映するため既定で読み直す）。
+ * @param options.suppressErrorToast 内部の catch で `fulltext_sheetSaveError` トーストを
+ *   出さないか（既定 false）。取り込みフロー（handleImportCandidate）はこの関数の失敗を
+ *   自前の `pubCandidate_importFetchError` トーストへまとめて出し直すため、二重トーストを
+ *   避けるために true を渡す。ボタン起点の単発検索（handleSingleFetch）は options を渡さないため
+ *   常に既定値のまま従来どおりトーストが出る。
+ * @returns 成功したら true、内部の catch に落ちたら false。ボタン起点の呼び出し元は
+ *   戻り値を無視してよい（従来どおりトーストで結果を伝える）。取り込みフローはこの戻り値で
+ *   失敗を検出する（内部でトーストを握りつぶして正常returnするため、呼び出し元の
+ *   try/catchだけでは失敗を検出できない。既存のtry/catchはこの関数がthrowしうる型のまま
+ *   残しているが、判定は戻り値を主に使う）。
  */
 export async function fetchSingleFulltextForRef(
     ref: ReferenceWithStatus,
-    options: { reloadCandidates?: boolean } = {}
-): Promise<void> {
+    options: { reloadCandidates?: boolean; suppressErrorToast?: boolean } = {}
+): Promise<boolean> {
     const reloadCandidates = options.reloadCandidates ?? true;
-    await requestBroadHostPermission();
+    const suppressErrorToast = options.suppressErrorToast ?? false;
 
     try {
+        // requestBroadHostPermission() は内部で必ず resolve するよう直しており、今はここが
+        // try の内側にあっても外側にあっても振る舞いは変わらない。それでも内側に置いているのは
+        // 多層防御のため: 将来この関数（や chrome.permissions 周りの実装）に手が入って
+        // 万一 reject するようになった場合でも、try の外に置いたままだと finally
+        // （loadPublicationCandidates の再読込）が走らずボタンが固まる事故を再現しかねない。
+        // try の内側に置いて必ず finally 一本で後始末が走るようにしておく。
+        await requestBroadHostPermission();
         const outcome = await retrieveAndCacheFulltext(
             ref, state.userEmail,
             // ensureFulltextFolder の fail-fast エラーは通知だけして再送出する。
@@ -969,9 +1050,11 @@ export async function fetchSingleFulltextForRef(
         }
 
         renderFulltextTab();
+        return true;
     } catch (err) {
-        showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
+        if (!suppressErrorToast) showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
         renderFulltextTab();
+        return false;
     } finally {
         if (reloadCandidates) void loadPublicationCandidates();
     }

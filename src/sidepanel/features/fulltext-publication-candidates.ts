@@ -44,14 +44,34 @@ export interface PublicationCandidatesDeps {
     /**
      * 候補キャッシュ（fulltext-tab.ts の publicationCandidates）を再取得し、
      * 完了後に renderFulltextTab() を呼び直す。取り込み・対象外化の後に呼ぶ。
+     *
+     * 戻り値は成功（または読み込み不要で早期return）したら true、Sheets読み込みが失敗したら
+     * false（PR #124 レビュー指摘6のフォローアップ）。fulltext-tab.ts の
+     * loadPublicationCandidates() は内部で自分のエラーを console.warn するだけで再送出しない
+     * 実装だったため、以前はここが呼び出し元から見て「常に成功したように見える」関数だった。
+     * 戻り値で失敗を検出できるようにしたことで、handleDismissCandidate() の
+     * 再読込失敗トーストが実際に発火できるようになった。
+     *
+     * options.suppressErrorToast: true を渡すと、失敗時に loadPublicationCandidates() 自身が
+     * 出す `fulltext_candidateLoadError` トーストを止められる。呼び出し元が自前のトースト
+     * （例: pubCandidate_dismissReloadFailed）へまとめて出し直したい場合に使う。
      */
-    reloadPublicationCandidates: () => Promise<void>;
+    reloadPublicationCandidates: (options?: { suppressErrorToast?: boolean }) => Promise<boolean>;
     /**
      * 単発OA検索の中核処理（fulltext-tab.ts の fetchSingleFulltextForRef）。
      * ボタン要素を必要としない形に切り出したもの（既存の handleSingleFetch の見た目更新は
      * 呼び出し元が担う）。取り込み直後の自動起動に使う（Issue #118 実装内容7）。
+     *
+     * 戻り値は成功したら true、内部で失敗（catch）したら false（PR #124 レビュー指摘3）。
+     * fetchSingleFulltextForRef() は内部の catch で例外を握りつぶしてトーストを出すだけの
+     * 正常returnをするため、呼び出し側は戻り値で失敗を検出する。ここでは
+     * suppressErrorToast: true を渡し、失敗時のトーストは呼び出し側
+     * （handleImportCandidate の failures 集約）にまとめて出させる。
      */
-    fetchSingleFulltext: (ref: ReferenceWithStatus, options?: { reloadCandidates?: boolean }) => Promise<void>;
+    fetchSingleFulltext: (
+        ref: ReferenceWithStatus,
+        options?: { reloadCandidates?: boolean; suppressErrorToast?: boolean }
+    ) => Promise<boolean>;
 }
 
 let deps: PublicationCandidatesDeps | null = null;
@@ -232,7 +252,8 @@ function buildLinkBtn(label: string, url: string): HTMLButtonElement {
  * 候補をReferencesへ取り込む（Issue #118 実装内容7）。
  *
  * 手順（ブリーフ通りの順序）:
- * 1. 重複チェック（state.references を押した瞬間にもう一度見る）
+ * 1. 重複チェック（state.allReferences を押した瞬間にもう一度見る。担当フィルタ前の全件を
+ *    見ないと、他のレビュアーが既に取り込んだ論文を非管理者が二重取り込みできてしまう）
  * 2-3. buildImportedPublicationReference() で新規行を組み立て、addReferences() で追加
  * 4. resolveImportedFulltextSet() が非空のときだけ fulltext_set を書く
  * 5. updatePublicationCandidateStatus() で候補を imported にする
@@ -248,7 +269,7 @@ function buildLinkBtn(label: string, url: string): HTMLButtonElement {
  * やり直す。5(ステータス更新)に成功すればこの記録は不要になるため削除する。
  *
  * この記録が無い（例: ブラウザ再起動でモジュール状態が失われた）場合でも、1の重複チェックが
- * state.references 上の同一PMID/DOIを検出するため、Referencesへの二重追加そのものは
+ * state.allReferences 上の同一PMID/DOIを検出するため、Referencesへの二重追加そのものは
  * 常に防がれる。ただしこの経路では候補は 'dismissed' として決着する（「誰がいつ取り込んだ行か」
  * を後から特定できないため、imported_ref_id を安全に紐付けられない。行自体は既に存在するので
  * データが失われるわけではないが、候補の decided_by/imported_ref_id からは追跡できなくなる）。
@@ -292,7 +313,12 @@ async function handleImportCandidate(
             refId = recoveredRefId;
         } else {
             // ステップ1: 重複チェック
-            const existingRefs = state.references.map(r => ({ pmid: r.pmid, doi: r.doi }));
+            // state.references はユーザーごとに担当フィルタ済みの配列のため、これで重複チェックすると
+            // 非管理者が「他のレビュアーが既に取り込んだ論文」を見落として二重に取り込めてしまう
+            // （Issue #118 PR #124 レビュー指摘2）。フィルタ前の全件 state.allReferences を使う
+            // （83行下の未読込フォールバックと同じ理由。state.allReferences の getter は
+            // 未ロード時 _references を返すため安全）。
+            const existingRefs = state.allReferences.map(r => ({ pmid: r.pmid, doi: r.doi }));
             if (isPublicationCandidateAlreadyImported(candidate, existingRefs)) {
                 // 更新の成否でトースト文言を出し分ける（失敗時に「対象外にしました」と
                 // 事実と異なる報告をしないため）。失敗すると候補は 'suggested' のまま残る。
@@ -381,7 +407,15 @@ async function handleImportCandidate(
             try {
                 // reloadPublicationCandidates は呼び出し元(ここ)が最後に必ず呼ぶため、
                 // fetchSingleFulltext 自身の候補再読込は二重になるので抑止する。
-                await deps.fetchSingleFulltext(importedRef, { reloadCandidates: false });
+                // suppressErrorToast: true で内部の fulltext_sheetSaveError トーストを止め、
+                // 失敗は下のfailures集約経由の1本のトーストにまとめる（PR #124 レビュー指摘3。
+                // fetchSingleFulltextForRef は内部catchで例外を握りつぶし正常returnするため、
+                // ここのtry/catchだけでは失敗を検出できない。戻り値で判定する）。
+                const ok = await deps.fetchSingleFulltext(importedRef, {
+                    reloadCandidates: false,
+                    suppressErrorToast: true,
+                });
+                if (!ok) failures.push(t('pubCandidate_importFetchError'));
             } catch (err) {
                 console.warn('[fulltext-publication-candidates] 単発OA検索に失敗:', err);
                 failures.push(t('pubCandidate_importFetchError'));
@@ -422,23 +456,58 @@ async function handleImportCandidate(
 
 /**
  * 候補を対象外にする（Issue #118 実装内容6の一部）。References には一切触れない。
+ *
+ * 【importedRefIdByCandidateId に記録がある候補は対象外にできない】(PR #124 レビュー指摘5)
+ * handleImportCandidate() の「取り込む」でaddReferences()は成功したが、その後の
+ * updatePublicationCandidateStatus()（ステップ5）が失敗すると、候補は status='suggested' の
+ * まま残り、追加済みのref_idだけが importedRefIdByCandidateId に記録される。この状態で
+ * 「対象外」を押すと imported_ref_id が空のまま status='dismissed' が書かれてしまい、
+ * 既に作られたReferences行を指す候補が消える。その行はPublication_Candidatesから辿れなく
+ * なる一方、related_ref_idは非空のためフルテキスト候補一覧・共有分母には載り続け孤児化する。
+ * これを防ぐため、記録があればシートへ一切書き込まずに中断し、案内トーストを出す。
+ *
+ * 【ステータス更新とreloadを別tryに分ける】(PR #124 レビュー指摘6)
+ * 1つのtryで包むと、書き込み自体は成功したのに再読込だけ失敗したケースでも
+ * pubCandidate_dismissError（「対象外への更新に失敗しました」）が出て誤報になる
+ * （PR #124 レビュー指摘4・重複検出トーストの出し分けと同じ失敗クラス。あちらだけ直っていた）。
+ * 更新成功の可否を別フラグで持ち、再読込のみ失敗したケースには専用の文言を出す。
  */
 async function handleDismissCandidate(candidate: PublicationCandidate, btn: HTMLButtonElement): Promise<void> {
     if (!deps) return;
     if (dismissInFlight.has(candidate.candidate_id)) return;
+
+    if (importedRefIdByCandidateId.has(candidate.candidate_id)) {
+        showToast(t('pubCandidate_dismissBlockedAlreadyAdded'), 6000);
+        return;
+    }
+
     dismissInFlight.add(candidate.candidate_id);
     btn.disabled = true;
 
     try {
-        await updatePublicationCandidateStatus(state.spreadsheetId, [{
-            candidateId: candidate.candidate_id,
-            status: 'dismissed',
-            decidedBy: state.userEmail,
-        }]);
-        await deps.reloadPublicationCandidates();
-    } catch (err) {
-        console.warn('[fulltext-publication-candidates] 候補の対象外化に失敗:', err);
-        showToast(t('pubCandidate_dismissError', (err as Error).message), 5000);
+        let statusUpdateSucceeded = true;
+        try {
+            await updatePublicationCandidateStatus(state.spreadsheetId, [{
+                candidateId: candidate.candidate_id,
+                status: 'dismissed',
+                decidedBy: state.userEmail,
+            }]);
+        } catch (err) {
+            console.warn('[fulltext-publication-candidates] 候補の対象外化に失敗:', err);
+            showToast(t('pubCandidate_dismissError', (err as Error).message), 5000);
+            statusUpdateSucceeded = false;
+        }
+
+        if (statusUpdateSucceeded) {
+            // loadPublicationCandidates() は内部の失敗を再送出せず戻り値(boolean)で伝える
+            // 実装になったため、検出は try/catch ではなく戻り値で行う（PR #124 レビュー指摘6
+            // フォローアップ）。suppressErrorToast: true で内部の fulltext_candidateLoadError
+            // トーストを止め、対象外化に特化した pubCandidate_dismissReloadFailed 一本にまとめる。
+            const reloaded = await deps.reloadPublicationCandidates({ suppressErrorToast: true });
+            if (!reloaded) {
+                showToast(t('pubCandidate_dismissReloadFailed'), 5000);
+            }
+        }
     } finally {
         dismissInFlight.delete(candidate.candidate_id);
         btn.disabled = false;

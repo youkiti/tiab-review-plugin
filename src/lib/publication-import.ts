@@ -12,6 +12,7 @@ import type { Reference, PublicationCandidate } from './types';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { extractTrialId } from './registry-record';
 import { generateDedupeKey } from './import-helpers';
+import { buildDoiUrl, buildPubmedUrl } from './external-record-url';
 
 /**
  * buildImportedPublicationReference() が受け取る候補の最小情報。
@@ -27,8 +28,11 @@ export type ImportablePublicationCandidate = Pick<
 export interface BuildImportedPublicationReferenceInput {
     /** 取り込む論文候補（Publication_Candidates の1行、またはそれ相当のオブジェクト） */
     candidate: ImportablePublicationCandidate;
-    /** 発見元の registration 行（References の既存行）。related_ref_id と source(試験ID) に使う */
-    registrationRef: Pick<Reference, 'ref_id' | 'pmid' | 'url' | 'source'>;
+    /**
+     * 発見元の registration 行（References の既存行）。related_ref_id と source(試験ID) に使う。
+     * screening_set はここから無条件でコピーする（下記 JSDoc 参照）。
+     */
+    registrationRef: Pick<Reference, 'ref_id' | 'pmid' | 'url' | 'source' | 'screening_set'>;
     /** 新規発行する ref_id。関数内で crypto.randomUUID() を呼ばず、呼び出し側から注入する */
     refId: string;
     /** 取り込み者（email） */
@@ -58,13 +62,20 @@ export interface BuildImportedPublicationReferenceInput {
  * - title/journal/year/pmid/doi は候補由来。title は Reference で必須（string）だが候補側は
  *   optional なため、欠落時は空文字にフォールバックする（他の任意フィールドと同じ `|| ''` の流儀。
  *   実運用では esummary/EuropePMC が必ず title を返す想定で、空になるのは異常系のみ）。
- * - url はここでは組み立てない。PubMed ID / DOI から URL 文字列を組み立てる、fetch を伴わない
- *   再利用可能な既存ヘルパーがリポジトリに存在しない（fulltext-retriever.ts 等にあるのは OA PDF
- *   探索のための fetch を伴う関数で、単純な文字列組み立てとは別物）。ここで独自の URL 形式
- *   （例: `https://pubmed.ncbi.nlm.nih.gov/{pmid}/`）を新設すると、将来 pmid/doi から URL を
- *   組み立てる正式なヘルパーができたときに実装が二重化するため、このチャンクでは url を
- *   空のままにする判断とした。取り込み後は次チャンクの単発OA検索が pmid/doi から fulltext_url を
- *   解決するため、ユーザーが論文本体へたどり着く手段自体は別途用意される。
+ * - url は external-record-url.ts の buildDoiUrl() / buildPubmedUrl() で組み立てる。優先順位は
+ *   doi優先 → pmid → どちらも無ければ空文字（fulltext-tab.ts の recordPageUrl() と同じ規則を
+ *   再利用している。あちらは文献カードのDOI/PubMedボタン用に同じ2関数を呼ぶ薄いラッパーへ
+ *   切り出し済みで、ここで独自の組み立てロジックを新設すると実装が二重化するため揃えた）。
+ * - screening_set は発見元 registration 行の screening_set を無条件でコピーする
+ *   （担当割り振りの状態 `assignmentConfig.status` では分岐しない）。理由:
+ *   担当割り振り未設定（'none'）のプロジェクトでは screening_set 列自体が使われないので
+ *   コピーしても無害。担当割り振り済み（'configured'）のプロジェクトでは、この列が空のままだと
+ *   getReferenceAssignmentSet()（sidepanel/features/assignment.ts）が 'unassigned' と解決し、
+ *   getAssignedSetsForUser() は 'unassigned' を含まないため、取り込んだ行が非管理者の
+ *   state.references から丸ごと消える（Issue #118 PR #124 レビュー指摘1）。
+ *   registration 行自身の screening_set が空の場合は取り込み行も空になるが、その場合は
+ *   親の registration 行も非管理者からは見えていない＝取り込みは管理者が行った操作であり、
+ *   可視性としては整合する。
  * - imported_at / imported_by は引数から。
  * - fulltext_url / fulltext_status は設定しない（取り込み後に単発OA検索で埋まる。次チャンクの担当）。
  *   buildReferenceInsertRow() 側で空文字パディングされる列のため、この戻り値では undefined の
@@ -85,6 +96,13 @@ export function buildImportedPublicationReference(
     // 括弧を二重にしないよう中身の「不明」だけを持たせる。
     const trialLabel = trialId?.id || '不明';
 
+    // doi優先 → pmid → どちらも無ければ空文字（fulltext-tab.ts の recordPageUrl() と同じ規則）。
+    const url = candidate.doi
+        ? buildDoiUrl(candidate.doi)
+        : candidate.pmid
+            ? buildPubmedUrl(candidate.pmid)
+            : '';
+
     return {
         ref_id: refId,
         title: candidate.title || '',
@@ -92,12 +110,14 @@ export function buildImportedPublicationReference(
         journal: candidate.journal || '',
         doi: candidate.doi || '',
         pmid: candidate.pmid || '',
+        url,
         source: `Registry linkage (${trialLabel})`,
         imported_at: importedAt,
         imported_by: importedBy,
         dedupe_key: generateDedupeKey(candidate.title, candidate.pmid, candidate.doi),
         record_type: 'article',
         related_ref_id: registrationRef.ref_id,
+        screening_set: registrationRef.screening_set || '',
     };
 }
 

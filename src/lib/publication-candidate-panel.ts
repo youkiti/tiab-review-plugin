@@ -35,7 +35,19 @@ export function selectSuggestedPublicationCandidates(
 ): PublicationCandidate[] {
     return candidates
         .filter(c => c.ref_id === refId && c.status === 'suggested')
-        .sort((a, b) => STRATEGY_ORDER[a.strategy] - STRATEGY_ORDER[b.strategy]);
+        .sort((a, b) => strategyOrder(a.strategy) - strategyOrder(b.strategy));
+}
+
+/**
+ * STRATEGY_ORDER を安全に引く。strategy は Publication_Candidates シート由来で、
+ * readPublicationCandidatesRows()（sheets-api.ts）が `value as PublicationCandidateStrategy` と
+ * 無検証キャストしているため、ユーザーがセルを直接編集/削除すると想定外の値が入りうる。
+ * `STRATEGY_ORDER[x]` を直接引くと undefined になり、sort の比較子が `undefined - undefined`
+ * = NaN を返して並び順が実装依存になる（PR #124 レビュー指摘4）。未知の戦略は
+ * Number.MAX_SAFE_INTEGER として最弱扱いにし、常に末尾へ寄せる。
+ */
+function strategyOrder(strategy: PublicationCandidateStrategy): number {
+    return STRATEGY_ORDER[strategy] ?? Number.MAX_SAFE_INTEGER;
 }
 
 /**
@@ -87,11 +99,17 @@ export function isPublicationCandidateAlreadyImported(
  * 発見戦略の人間可読ラベルに使う i18n キー名を返す（実際の翻訳・表示はUI側で t() を通して行う。
  * ここでは「どの戦略にどのキーを割り当てるか」という表だけを純関数として切り出し、
  * 対応漏れ・キー名の書き間違いをユニットテストで検出できるようにする）。
+ *
+ * strategy はユーザー編集可能なシートから無検証キャストで読まれるため（strategyOrder() と同じ
+ * 事情。PR #124 レビュー指摘4）、想定外の値でも default 分岐で `pubCandidate_strategyUnknown`
+ * を返す。default が無いと switch を抜けて undefined を返し、t(undefined) 経由で
+ * escapeHtml(undefined) が文字列 "undefined" をそのままラベルとして描画してしまう。
  */
 export function publicationCandidateStrategyLabelKey(strategy: PublicationCandidateStrategy): string {
     switch (strategy) {
         case 'ctgov_reference': return 'pubCandidate_strategyCtgovReference';
         case 'pubmed_id': return 'pubCandidate_strategyPubmedId';
         case 'europepmc': return 'pubCandidate_strategyEuropepmc';
+        default: return 'pubCandidate_strategyUnknown';
     }
 }

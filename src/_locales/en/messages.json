@@ -482,6 +482,9 @@
   "fulltext_candidateSaveError": {
     "message": "Failed to save $1 publication candidate(s). Please re-run the search later."
   },
+  "fulltext_candidateLoadError": {
+    "message": "Failed to load publication candidates. Please try again later."
+  },
   "pubCandidate_badge": {
     "message": "📄 $1 publication candidate(s)"
   },
@@ -499,6 +502,9 @@
   },
   "pubCandidate_strategyEuropepmc": {
     "message": "Europe PMC search"
+  },
+  "pubCandidate_strategyUnknown": {
+    "message": "Unknown strategy"
   },
   "pubCandidate_pubmedLink": {
     "message": "🔗 PubMed"
@@ -550,6 +556,12 @@
   },
   "pubCandidate_dismissError": {
     "message": "Failed to dismiss: $1"
+  },
+  "pubCandidate_dismissBlockedAlreadyAdded": {
+    "message": "This candidate has already been added to References. Click Import to finish importing it."
+  },
+  "pubCandidate_dismissReloadFailed": {
+    "message": "Dismissed (failed to reload the list)"
   },
   "fulltext_driveColumnsConflict": {
     "message": "Can't update the Drive import columns because References sheet columns W/X are used for something else (current headers: \"$1\" / \"$2\"). Rename columns W/X to fulltext_drive_source_id / fulltext_drive_copy_id, or move your custom columns elsewhere."
@@ -2969,6 +2981,9 @@
   },
   "fulltext_snapshotDeleteBtn": {
     "message": "Delete snapshot"
+  },
+  "fulltext_snapshotDeleteConfirm": {
+    "message": "This will delete this registration record's snapshot from Drive. Continue?\n(After deleting, you can upload the correct PDF from this screen.)"
   },
   "fulltext_importErrorNotPdf": {
     "message": "Not a PDF ($1)"

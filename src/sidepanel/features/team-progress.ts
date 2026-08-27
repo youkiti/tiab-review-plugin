@@ -18,6 +18,7 @@ import {
     computeTeamProgress,
     shortNameOf,
     percentOf,
+    toTeamProgressRef,
     type TeamMemberProgress,
     type TeamProgressRef,
 } from '../../lib/team-progress';
@@ -92,12 +93,7 @@ export function initTeamProgress(fullRefs: ReferenceWithStatus[]): void {
     expanded.tiab = false;
     expanded.fulltext = false;
 
-    const baseRefs: TeamProgressRef[] = fullRefs.map((r) => ({
-        ref_id: r.ref_id,
-        screening_set: r.screening_set,
-        fulltext_set: r.fulltext_set,
-        related_ref_id: r.related_ref_id,
-    }));
+    const baseRefs: TeamProgressRef[] = fullRefs.map(toTeamProgressRef);
     baseRefsStore = { spreadsheetId, refs: baseRefs };
 
     // 取得開始（同期的に「取得中」状態と初回描画まで進む）→ その後に念のため描画。
@@ -402,12 +398,7 @@ function buildFooter(): HTMLElement {
         const baseRefs =
             (baseRefsStore?.spreadsheetId === state.spreadsheetId ? baseRefsStore.refs : null)
             ?? cache?.baseRefs
-            ?? state.references.map((r) => ({
-                ref_id: r.ref_id,
-                screening_set: r.screening_set,
-                fulltext_set: r.fulltext_set,
-                related_ref_id: r.related_ref_id,
-            }));
+            ?? state.references.map(toTeamProgressRef);
         void fetchDecisions(state.spreadsheetId, baseRefs);
     });
     footer.appendChild(refreshBtn);

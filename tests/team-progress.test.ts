@@ -4,10 +4,11 @@ import {
     computeTeamProgress,
     shortNameOf,
     percentOf,
+    toTeamProgressRef,
     type TeamProgressRef,
 } from '../src/lib/team-progress';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
-import type { Decision, AssignmentConfig } from '../src/lib/types';
+import type { Decision, AssignmentConfig, Reference } from '../src/lib/types';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
 
 let seq = 0;
@@ -224,8 +225,16 @@ test('フルテキスト: 担当割り振り済みでも未割り当て流入分
 // TeamProgressRef（sidepanel側で ReferenceWithStatus から絞り込んで生成する最小形）が
 // related_ref_id を運ばないと、型は Pick<Reference, ...> に構造的に適合するため typecheck
 // では検出できないまま、配線だけがこの分岐を落としてしまう（実際に一度見落とした）。
-// そのため isSharedFulltextPoolMember() を直接呼ぶユニットテストではなく、この配線の境界である
-// computeTeamProgress() の入力（TeamProgressRef[]）に related_ref_id 非空の行を含めて検証する。
+//
+// 【PR #124 レビュー指摘7】下のテストは computeTeamProgress() の仕様（related_ref_id 非空行を
+// TiAb票ゼロでも分母/分子に入れる）を検証する価値はあるが、`TeamProgressRef[]` の
+// オブジェクトリテラルを直接手書きしているため、実際に ReferenceWithStatus から
+// TeamProgressRef を組み立てる配線（sidepanel/features/team-progress.ts）側で
+// related_ref_id を落とす欠陥は再現できない（AGENTS.md「テスト・作業ツリーの落とし穴」参照）。
+// その配線を toTeamProgressRef()（src/lib/team-progress.ts）へ切り出し、この下の
+// 「toTeamProgressRef」ブロックでその関数自体の入出力を検証することで、実際に絞り込み型を
+// 組み立てている場所＝配線の境界でフィールド欠落を検出できるようにしている。
+// 以下の手書きリテラルのテストは computeTeamProgress() 自体の仕様テストとして残す。
 // ---------------------------------------------------------------------------
 
 test('フルテキスト回帰: 取り込んだ論文行(related_ref_id非空)はTiAb票ゼロでもfulltextTotal/Doneに入る', () => {
@@ -264,6 +273,44 @@ test('フルテキスト回帰: 取り込んだ論文行(related_ref_id非空)�
         alice.fulltextDone, 2,
         '取り込み行(ref2)をフルテキスト判定すればTiAb票が無くても分子にカウントされる'
     );
+});
+
+// ---------------------------------------------------------------------------
+// toTeamProgressRef（PR #124 レビュー指摘7）: ReferenceWithStatus → TeamProgressRef の
+// 絞り込みを行う唯一の関数（initTeamProgress() / buildFooter() の🔄ボタンの両方がこれを呼ぶ）。
+// TeamProgressRef の各フィールドが optional のため、このマッピングからフィールドを1つ
+// 落としてもTypeScriptの構造的部分型では検出できない。フィールドごとに個別assertし、
+// どれか1つを消してもこのテストが落ちる形にする（＝配線の境界でのテスト）。
+// ---------------------------------------------------------------------------
+
+test('toTeamProgressRef: screening_set / fulltext_set / related_ref_id を個別に運ぶ', () => {
+    const ref: Reference = {
+        ref_id: 'ref1',
+        title: 'Some Title',
+        screening_set: 'group-a',
+        fulltext_set: 'ft-group-1',
+        related_ref_id: 'reg-1',
+    };
+    const result = toTeamProgressRef(ref);
+    assert.equal(result.ref_id, 'ref1');
+    assert.equal(result.screening_set, 'group-a', 'screening_set が運ばれること');
+    assert.equal(result.fulltext_set, 'ft-group-1', 'fulltext_set が運ばれること');
+    assert.equal(
+        result.related_ref_id, 'reg-1',
+        'related_ref_id が運ばれること（isSharedFulltextPoolMember() の無条件候補判定に必須。落とすと本番で一度発火しなくなった実績あり）'
+    );
+});
+
+test('toTeamProgressRef: 未設定フィールドは値を捏造せず undefined のまま運ぶ', () => {
+    const ref: Reference = {
+        ref_id: 'ref2',
+        title: 'No optional fields',
+    };
+    const result = toTeamProgressRef(ref);
+    assert.equal(result.ref_id, 'ref2');
+    assert.equal(result.screening_set, undefined);
+    assert.equal(result.fulltext_set, undefined);
+    assert.equal(result.related_ref_id, undefined);
 });
 
 test('フルテキスト: ルール未設定なら fulltextDone/Total は null', () => {

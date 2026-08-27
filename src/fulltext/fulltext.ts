@@ -1425,10 +1425,22 @@ function wireDropZone(): void {
     });
 }
 
-/** 保存済みPDFをDriveから削除し、参照を未取得状態へ戻す */
+/**
+ * 保存済みPDF（またはregistration行のスナップショット）をDriveから削除し、参照を未取得状態へ戻す。
+ *
+ * 【PR #124 レビュー指摘4】確認ダイアログの文言・ボタンラベルはスナップショット表示中かどうかで
+ * 出し分ける。resolveFulltextDisplayMode(currentRef) === 'registry_snapshot' の判定は
+ * currentRef.fulltext_status/fulltext_url を書き換える前（この関数の先頭）で行うこと
+ * （updateToolbarMode() と同じ判定基準。削除処理中に currentRef の状態を変えるため、
+ * 判定を後回しにすると常に非スナップショット扱いになってしまう）。
+ */
 async function handleDeletePdf(): Promise<void> {
     if (!currentRef || !currentRef.fulltext_url) return;
-    if (!window.confirm('このPDFをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）')) {
+    const isSnapshot = resolveFulltextDisplayMode(currentRef) === 'registry_snapshot';
+    const confirmMessage = isSnapshot
+        ? t('fulltext_snapshotDeleteConfirm')
+        : 'このPDFをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）';
+    if (!window.confirm(confirmMessage)) {
         return;
     }
 
@@ -1447,11 +1459,17 @@ async function handleDeletePdf(): Promise<void> {
         currentRef.fulltext_drive_source_id = undefined;
         currentRef.fulltext_drive_copy_id = undefined;
         showPlaceholder('PDFを削除しました。\n上の「⬆ PDFをアップロード」から再取得してください。');
-        updateToolbarMode();
     } catch (err) {
         window.alert(`削除に失敗しました: ${(err as Error).message}`);
     } finally {
-        if (delBtn) { delBtn.disabled = false; delBtn.textContent = 'PDFを削除'; }
+        if (delBtn) delBtn.disabled = false;
+        // ラベルのハードコード復元をやめ updateToolbarMode() に委ねる（PR #124 レビュー指摘4）。
+        // 以前は finally で 'PDFを削除' に固定していたため、削除失敗時にスナップショット表示が
+        // 残っているのにボタンだけ通常PDF向けラベルに戻る不整合があった。
+        // updateToolbarMode() は defaultDeleteBtnLabel を記憶しており、現在の表示モード
+        // （成功時は 'not_retrieved' に変わった currentRef、失敗時はスナップショット/通常PDFの
+        // どちらであっても現状の currentRef）に応じて正しいラベルを出し分ける。
+        updateToolbarMode();
     }
 }
 
@@ -2344,7 +2362,13 @@ async function showRegistrySnapshot(url: string, token?: number): Promise<void> 
     // 取得中に別の文献へ移っていたら描画しない（取り違え防止）
     if (token !== undefined && isStale(token)) return;
 
-    if (!blob) {
+    // blob.size === 0 も明示的に弾く（PR #124 レビュー指摘5）。0バイトのBlobはnull/undefinedと
+    // 違い truthy なので `if (!blob)` だけでは素通りする。0バイトはアップロード途中断や
+    // Drive側で中身が消えたファイルなどで起こりうる。素通りすると looksLikePdfBlob() は
+    // 先頭5バイトが空文字のため false になり、blob.text() が '' を返して
+    // showRegistrySnapshotFrame('') が srcdoc='' を設定し、プレースホルダも隠れたまま
+    // ペインが完全な空白になる（無言の空ペイン）。
+    if (!blob || blob.size === 0) {
         showRegistrySnapshotAccessFailure(null, url, fileId);
         return;
     }

@@ -169,8 +169,15 @@ export function buildRegistrySnapshotHtml(input: RegistrySnapshotInput): string 
     const sourceUrl = input.sourceUrl?.trim();
     // http/https 以外（javascript: / data: 等）や相対URL・不正な値はリンクにせず、
     // エスケープ済みのプレーンテキストとして表示する（値そのものは落とさない）。
+    // target="_blank" rel="noopener noreferrer": 表示先の #ft-snapshot-frame はサンドボックス
+    // iframe のため、target属性の無い通常のリンクだとクリックでiframe自身がその場で遷移して
+    // しまい、スナップショット表示が消え戻る手段が無くなる（PR #124 レビュー指摘3）。新規タブで
+    // 開かせることでこれを避ける。rel="noopener noreferrer" は window.opener 経由の
+    // タブナビゲーション乗っ取り対策（このリンク自体は信頼できないDrive保存HTML由来のため）。
     const sourceUrlHtml = sourceUrl
-        ? (isSafeHttpUrl(sourceUrl) ? `<a href="${escapeHtml(sourceUrl)}">${escapeHtml(sourceUrl)}</a>` : escapeHtml(sourceUrl))
+        ? (isSafeHttpUrl(sourceUrl)
+            ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>`
+            : escapeHtml(sourceUrl))
         : '(不明)';
 
     const rows = input.fields

@@ -68,16 +68,41 @@
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
                     <!-- registration行の自己完結HTMLスナップショット表示専用（Issue #118 実装内容10）。
                          srcdoc で流し込む（fulltext.ts の showRegistrySnapshotFrame）。
-                         sandbox は "allow-same-origin allow-modals" のみ。allow-scripts は
-                         絶対に付けない（スナップショット内のスクリプトを一切実行させないため。
-                         保存先はユーザーが編集し得るDriveファイルなので信頼できない前提で扱う）。
-                         allow-same-origin は親から frame.contentWindow.print() を呼ぶために必要
-                         （「PDFとして保存」ボタン）。allow-scripts と同時に付けるとsandboxが
-                         実質無効化されるが、scriptsを付けないため危険な組み合わせにはならない。
-                         allow-modals は印刷ダイアログに必要。既存の ft-article-frame とは
-                         用途もsandbox設定も別物のため流用しない。 -->
+                         allow-scripts は絶対に付けない（スナップショット内のスクリプトを一切実行
+                         させないため。保存先はユーザーが編集し得るDriveファイルなので信頼できない
+                         前提で扱う）。allow-same-origin は親から frame.contentWindow.print() を
+                         呼ぶために必要（「PDFとして保存」ボタン）。allow-scripts と同時に付けると
+                         sandboxが実質無効化されるが、scriptsを付けないため危険な組み合わせには
+                         ならない。allow-modals は印刷ダイアログに必要。
+                         allow-popups / allow-popups-to-escape-sandbox（PR #124 レビュー指摘3）:
+                         buildRegistrySnapshotHtml() が埋め込む原簿URLの <a> は
+                         target="_blank" rel="noopener noreferrer" を持つ。想定している機序は次の
+                         とおり（HTML仕様上の一般則からの推論であり、この環境ではブラウザを
+                         実際に操作して確認できていない。ブラウザ実装差の可能性もあるため、
+                         挙動は実機で確認すること）:
+                         target属性・allow-popups のどちらも無い状態では、クリックで
+                         サンドボックスiframe自身がその場で遷移する。サンドボックス化された
+                         閲覧コンテキストが「自分自身」を遷移させることは常に許可されており、
+                         これは allow-top-navigation（トップレベルの閲覧コンテキストの遷移を
+                         制御するフラグで別物）の有無とは無関係に起こる。この遷移でスナップショット
+                         表示が消え、遷移先にはsandboxが再適用されallow-scriptsが無いため崩れて
+                         表示され、ペインへ戻る手段が無くなる。
+                         target="_blank" を付けても allow-popups が無い場合、HTML仕様の
+                         「sandboxed auxiliary navigation browsing context flag」が立っているため
+                         補助閲覧コンテキスト（新規タブ）の生成自体がブロックされる。iframe内遷移へ
+                         フォールバックするのではなく、リンクをクリックしても何も起きない
+                         （ブラウザがコンソールにエラーを出す想定）。そのため allow-popups が要る。
+                         allow-popups だけだと開いた新規タブにもsandboxが継承され、allow-scriptsが
+                         無いため遷移先が崩れる。そのため allow-popups-to-escape-sandbox を付けて
+                         新規タブを非サンドボックスにする。この組み合わせが安全な理由: スナップショット
+                         HTMLにスクリプトは
+                         一切無い（allow-scriptsを付けていないため）ので window.open を
+                         programmatic に呼ぶ経路は存在せず、ポップアップはユーザーの
+                         アンカークリックのみから発生する。かつそのhrefは isSafeHttpUrl() を
+                         通ったhttp/httpsのみ（buildRegistrySnapshotHtml側でガード済み）。
+                         既存の ft-article-frame とは用途もsandbox設定も別物のため流用しない。 -->
                     <iframe id="ft-snapshot-frame" class="ft-snapshot-frame hidden" title="試験登録情報"
-                        sandbox="allow-same-origin allow-modals"></iframe>
+                        sandbox="allow-same-origin allow-modals allow-popups allow-popups-to-escape-sandbox"></iframe>
                     <!-- PDFドラッグ&ドロップ用オーバーレイ。
                          dragenter時に最前面へ出して iframe へのドロップを奪う。 -->
                     <div id="ft-drop-overlay" class="ft-drop-overlay hidden">

@@ -482,6 +482,9 @@
   "fulltext_candidateSaveError": {
     "message": "論文候補 $1件を保存できませんでした。時間をおいて再探索してください。"
   },
+  "fulltext_candidateLoadError": {
+    "message": "論文候補の読み込みに失敗しました。時間をおいて再試行してください。"
+  },
   "pubCandidate_badge": {
     "message": "📄 論文候補 $1件"
   },
@@ -499,6 +502,9 @@
   },
   "pubCandidate_strategyEuropepmc": {
     "message": "Europe PMC検索"
+  },
+  "pubCandidate_strategyUnknown": {
+    "message": "不明な戦略"
   },
   "pubCandidate_pubmedLink": {
     "message": "🔗 PubMed"
@@ -550,6 +556,12 @@
   },
   "pubCandidate_dismissError": {
     "message": "対象外への更新に失敗しました: $1"
+  },
+  "pubCandidate_dismissBlockedAlreadyAdded": {
+    "message": "この候補は既に References へ行を追加済みです。「取り込む」を押して取り込みを完了してください。"
+  },
+  "pubCandidate_dismissReloadFailed": {
+    "message": "対象外にしました（一覧の再読込に失敗しました）"
   },
   "fulltext_driveColumnsConflict": {
     "message": "References シートのW/X列が独自データと衝突しているため、Drive取り込み列を更新できません（現在のヘッダー: \"$1\" / \"$2\"）。W/X列のヘッダー名を fulltext_drive_source_id / fulltext_drive_copy_id に変更するか、独自の列を別の位置へ移動してください。"
@@ -2969,6 +2981,9 @@
   },
   "fulltext_snapshotDeleteBtn": {
     "message": "スナップショットを削除"
+  },
+  "fulltext_snapshotDeleteConfirm": {
+    "message": "この試験登録情報のスナップショットをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）"
   },
   "fulltext_importErrorNotPdf": {
     "message": "PDFではありません（$1）"

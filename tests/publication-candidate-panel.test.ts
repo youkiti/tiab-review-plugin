@@ -6,7 +6,7 @@ import {
     isPublicationCandidateAlreadyImported,
     publicationCandidateStrategyLabelKey,
 } from '../src/lib/publication-candidate-panel';
-import type { PublicationCandidate } from '../src/lib/types';
+import type { PublicationCandidate, PublicationCandidateStrategy } from '../src/lib/types';
 
 // Issue #118「レジストリ連携フェーズ1」チャンク3b: 候補パネル（サイドパネルUI）が使う
 // 純ロジックの回帰テスト。UI/DOMは検証しない（このファイルの対象はUI非依存の部分のみ）。
@@ -35,6 +35,18 @@ test('selectSuggestedPublicationCandidates: 発見戦略の強い順(ctgov_refer
     ];
     const result = selectSuggestedPublicationCandidates(candidates, 'reg-1');
     assert.deepEqual(result.map(c => c.candidate_id), ['c2', 'c3', 'c1']);
+});
+
+test('selectSuggestedPublicationCandidates: 未知のstrategyはNaNにならず末尾へ寄る（PR #124 レビュー指摘4）', () => {
+    // strategy列はユーザー編集可能なシートから無検証キャストで読まれるため、
+    // STRATEGY_ORDERに無い値が来ても並び替えが実装依存(NaN由来)にならないことを確認する。
+    const candidates = [
+        candidate({ candidate_id: 'c1', strategy: 'unknown_strategy' as unknown as PublicationCandidateStrategy }),
+        candidate({ candidate_id: 'c2', strategy: 'europepmc' }),
+        candidate({ candidate_id: 'c3', strategy: 'ctgov_reference' }),
+    ];
+    const result = selectSuggestedPublicationCandidates(candidates, 'reg-1');
+    assert.deepEqual(result.map(c => c.candidate_id), ['c3', 'c2', 'c1']);
 });
 
 test('selectSuggestedPublicationCandidates: 別のref_idの候補は含めない', () => {
@@ -130,4 +142,9 @@ test('publicationCandidateStrategyLabelKey: 3戦略すべてに一意のi18nキ�
         'pubCandidate_strategyEuropepmc',
     ]);
     assert.equal(new Set(keys).size, 3, 'キーは重複しない');
+});
+
+test('publicationCandidateStrategyLabelKey: 想定外の値はpubCandidate_strategyUnknownを返す（PR #124 レビュー指摘4）', () => {
+    const key = publicationCandidateStrategyLabelKey('unknown_strategy' as unknown as PublicationCandidateStrategy);
+    assert.equal(key, 'pubCandidate_strategyUnknown');
 });
