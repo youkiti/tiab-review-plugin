@@ -216,7 +216,11 @@ function buildExtensionConfig(env, argv) {
         optimization: {
             splitChunks: false,
         },
-        devtool: 'source-map',
+        // 本番ビルドは 'hidden-source-map' にする（Issue #126）。.map 自体は生成するので
+        // dist/ を使うローカルのデバッグ体験は変わらないが、バンドル末尾の
+        // `//# sourceMappingURL=` コメントを出さない。これにより scripts/pack-release.ps1 が
+        // dist.zip から .map を除いても、DevTools が参照先を探して 404 警告を出すことがない。
+        devtool: isProduction ? 'hidden-source-map' : 'source-map',
     };
 }
 

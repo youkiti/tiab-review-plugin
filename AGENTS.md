@@ -1227,6 +1227,8 @@ npm run release:major   # 機能追加     0.33.2 → 0.34.0 + 同上
 
 生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。**ファイル名は `dist.zip` 固定**（バージョン付きの名前ではアップロードできない）。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
 
+**`dist.zip` から source map を除外している（Issue #126）。** 拡張ビルドの `devtool` は本番のみ `hidden-source-map`（`webpack.config.js`）。`.map` 自体は生成するので `dist/` を直接読み込むローカルのデバッグ体験は変わらないが、バンドル末尾の `//# sourceMappingURL=` コメントを出さないため、`.map` を含まない `dist.zip` を配布しても DevTools が参照先を探して 404 警告を出すことはない。`build:release` は `scripts/pack-release.ps1` を呼び、`dist/` を `.tmp/release/` へコピーしてから `.map` を削除して zip 化するステージング方式を取る（`Compress-Archive -Path` にファイルの配列を渡すとディレクトリ構造が失われフラットな zip になり、`sidepanel/sidepanel.js` のような相対パス前提の拡張機能が壊れるため）。`.map` の削除は拡張子の厳密一致で行うこと。`Get-ChildItem -Filter "*.map"` は Windows の8.3短縮名によるワイルドカードマッチの影響を受け、`dist/cmaps/` に168本入っている pdf.js の `.bcmap`（一部PDFの描画に必要）を巻き込みうる。`scripts/pack-release.ps1` も `scripts/bump-version.ps1` と同じく UTF-8 BOM 付きで保存すること（理由は上記バンプスクリプトの節と同じ）。
+
 launchWebAuthFlow のリダイレクトURIは拡張機能IDから実行時に導出されるため、`WEBAUTH_CLIENT_ID` は dev/ストアの両ビルドで単一クライアントを共用する。ただし Google Cloud Console 側の「承認済みリダイレクトURI」には拡張機能IDごとに1件ずつ（`https://alejlnlfflogpnabpbplmnojgoeeabij.chromiumapp.org/` と `https://ifnejjicfekmighagknaacliiiliodgf.chromiumapp.org/`）登録しておく必要がある。
 
 > 廃止済み（履歴）: かつてテスター向けに `build:zip:tester`（`--env keepKey` + `ZIP_OAUTH_CLIENT_ID`、固定ID `ifnejji…`）で zip を Drive 配布していた。`key` を削除した zip を直接配布すると拡張機能IDがランダム化し `bad client id` になるため、zip 配布を再開する場合は key 保持ビルドが必須（git 履歴の `build:zip:tester` を参照）。
