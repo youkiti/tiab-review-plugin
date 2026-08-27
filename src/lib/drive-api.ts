@@ -612,12 +612,16 @@ export function buildPdfFileName(ref: { ref_id: string; title?: string }): strin
 }
 
 /**
- * PDFをDriveフォルダにアップロードし、閲覧用リンクを返す
+ * ファイルをDriveフォルダへ multipart アップロードする共通ヘルパー。
+ * uploadPdfToDrive / uploadHtmlToDrive はMIMEタイプとエラーメッセージだけが異なるため、
+ * ここへ切り出して重複を避けている。
  */
-export async function uploadPdfToDrive(
+async function uploadFileToDrive(
     folderId: string,
     fileName: string,
-    pdf: Blob
+    mimeType: string,
+    content: Blob,
+    errorMessage: string
 ): Promise<DriveFileInfo> {
     const token = await getAuthToken();
 
@@ -625,12 +629,12 @@ export async function uploadPdfToDrive(
     const metadata = JSON.stringify({
         name: fileName,
         parents: [folderId],
-        mimeType: 'application/pdf',
+        mimeType,
     });
     const body = new Blob([
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
-        `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
-        pdf,
+        `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+        content,
         `\r\n--${boundary}--`,
     ]);
 
@@ -645,10 +649,40 @@ export async function uploadPdfToDrive(
     );
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
-        throw new Error(`DriveへのPDFアップロードに失敗しました: ${error?.error?.message || resp.statusText}`);
+        throw new Error(`${errorMessage}: ${error?.error?.message || resp.statusText}`);
     }
     const data = await resp.json() as { id: string; webViewLink: string };
     return { id: data.id, webViewLink: data.webViewLink };
+}
+
+/**
+ * PDFをDriveフォルダにアップロードし、閲覧用リンクを返す
+ */
+export async function uploadPdfToDrive(
+    folderId: string,
+    fileName: string,
+    pdf: Blob
+): Promise<DriveFileInfo> {
+    return uploadFileToDrive(
+        folderId, fileName, 'application/pdf', pdf,
+        'DriveへのPDFアップロードに失敗しました'
+    );
+}
+
+/**
+ * レジストリスナップショットHTML等をDriveフォルダにアップロードし、閲覧用リンクを返す。
+ * Issue #118 チャンク2（パスA）: registration行のフルテキスト取得代替として、
+ * 自己完結HTMLスナップショットをここでDriveへ保存する（src/lib/fulltext-retriever.ts から使用）。
+ */
+export async function uploadHtmlToDrive(
+    folderId: string,
+    fileName: string,
+    html: string
+): Promise<DriveFileInfo> {
+    return uploadFileToDrive(
+        folderId, fileName, 'text/html', new Blob([html], { type: 'text/html' }),
+        'DriveへのHTMLアップロードに失敗しました'
+    );
 }
 
 // ---------------------------------------------------------------------------

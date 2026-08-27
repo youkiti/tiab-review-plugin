@@ -49,7 +49,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 ## Manifest要件（要件抜粋）
 
 - `permissions`: `identity`（`launchWebAuthFlow` に必要）, `storage`
-- `host_permissions`: `https://sheets.googleapis.com/*`
+- `host_permissions`: `https://sheets.googleapis.com/*`（他にDrive・LLM各プロバイダ・OA取得ウォーターフォール各API・ClinicalTrials.gov API v2・eutilsなど。全量は `src/manifest.json` を参照。レジストリ連携フェーズ1チャンク2で `https://clinicaltrials.gov/*` と `https://eutils.ncbi.nlm.nih.gov/*` を追加した）
 - OAuth: manifest に `oauth2` ブロックは持たない。クライアントIDはビルド時に `WEBAUTH_CLIENT_ID`（`.env`）を webpack DefinePlugin 経由でコード側に埋め込む。クライアント種別は**ウェブアプリケーション型**でなければならない（Chrome 拡張機能型は `launchWebAuthFlow` で `redirect_uri_mismatch` になる。「OAuth フロー: なぜ implicit なのか」参照）
 - `side_panel`: サイドパネル利用時に定義
 - `commands`: ショートカット定義（単一キーはUI内で処理）
@@ -81,7 +81,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
 | fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
-| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサのみ。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列） |      |
+| record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサのみ。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
 | related_ref_id  | registration行 ⇄ そこから取り込んだ論文行の相互参照。Issue #118 チャンク1時点ではスキーマのみ（チャンク3で使用）（Z列） |      |
 
 **References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
@@ -632,6 +632,66 @@ dedupe_key = normalize(title).substring(0, 100) + "|" + year + "|" + normalize(f
 | ―                 | journal       | 固定値 "ICTRP"                         |
 | その他臨床情報要素 | abstract      | `要素名: 値` 形式で `\|` 区切り合成 |
 
+### 試験登録レコードのフルテキスト取得（レジストリスナップショット）
+
+CTG/ICTRP由来のregistration行（上記2マッピング参照）は試験ID（NCT/jRCT/UMIN等）が pmid 列に入っており、通常論文向けのOA取得ウォーターフォール（`src/lib/fulltext-retriever.ts` の `iterateFulltextCandidates`。PMC OA → Europe PMC → Unpaywall → OpenAlex 等、pmid/doi前提）に入れても必ず `unavailable` で行き止まりになる。そのため `retrieveAndCacheFulltext()` は先頭で `isRegistrationRecord(ref)` を見て、trueならOAウォーターフォールへは一切入らず、登録内容を自己完結HTMLスナップショットにしてDriveへ保存する別経路（`retrieveRegistrationSnapshot()`）へ分岐する（レジストリ連携フェーズ1チャンク2パスA、Issue #118）。
+
+- 試験ID抽出は `src/lib/registry-record.ts` の `extractTrialId()`（`NCT\d{8}` 完全一致なら `kind:'nct'`、それ以外の非空値は `kind:'other'`）
+- `kind==='nct'` の場合、`src/lib/registry-api.ts` の `fetchCtgStudy()` で ClinicalTrials.gov API v2（`GET /api/v2/studies/{NCT}`）から詳細を取得してスナップショットに使う。取得失敗時は例外を投げず `null` を返す
+- API失敗時（`null`）または `kind==='other'`（NCT以外のレジストリはAPI対象外）は、References に保存済みのフィールドだけでスナップショットを組み立てる。abstract列はCTG/ICTRPパーサが `ラベル: 値` を ` | ` 区切りで合成した文字列なので、`parseRegistryFieldsFromAbstract()` で逆変換する。この経路はネットワーク不要
+- スナップショットHTML自体は `buildRegistrySnapshotHtml()`（外部CSS/JS/画像を一切参照しない自己完結HTML。埋め込み値は必ずHTMLエスケープする）、ファイル名は `buildRegistrySnapshotFileName()`（`buildPdfFileName()` と同じ命名規約で拡張子だけ `.html`）、Driveアップロードは `src/lib/drive-api.ts` の `uploadHtmlToDrive()`（`uploadPdfToDrive()` と同じmultipartアップロード処理を内部ヘルパーへ共通化）が担う
+- Drive保存に失敗した場合は例外を外に投げず、原簿URL（`ref.url`）が `src/lib/registry-record.ts` の `isSafeHttpUrl()`（http/httpsのみを安全とみなすガード。元はHTML埋め込み専用のmodule-private関数だったが、この用途のため `export` した）を通れば `linked`、通らなければ（`javascript:`/`data:` 等の危険なスキームや相対URL・不正な値）または `ref.url` 自体が無ければ `none` にフォールバックする（一括取得ループを止めないため。既存OA経路の catch → `console.warn` の作法と同じ）。`ref.url` は References の url 列＝ユーザーが直接編集できるセル由来のため無検証で通してはいけない。この値はサイドパネルの `buildLinkBtn()` を経由して `chrome.tabs.create({ url })` にそのまま渡るため（描画側のガード追加は別スコープ。PR #122 レビュー指摘3、Issue #118 チャンク2）
+- 通常の論文レコード（`isRegistrationRecord()` が false）の挙動はこの分岐追加前と変わらない
+- パスB（論文候補探索）はチャンク2で実装済み（下記「試験登録レコードの論文候補探索」参照）。候補の表示・取り込み・References への行追加はチャンク3のスコープで未実装
+
+### 試験登録レコードの論文候補探索（Publication_Candidates タブ）
+
+registration行から「その試験の結果論文（linked publication）」の候補を発見し、`Publication_Candidates` タブへ保存する（レジストリ連携フェーズ1チャンク2パスB、Issue #118）。候補の表示・取り込み・References への行追加は行わない（チャンク3のスコープ。**References に行を追加する経路をこのパスに作らないこと**）。
+
+- 探索ロジックは `src/lib/publication-suggest.ts`（UI非依存）の `discoverPublicationCandidates()`。3戦略を**直列**で実行する（PubMed E-utilities がAPIキー無しで3 req/s上限のため並列にしない）:
+  1. `ctgov_reference`: `fetchCtgStudy()` が返す `pmids`（CTGov `referencesModule` 由来。呼び出し側が渡す。fetch不要）。`referencesModule.references` は `type` が `BACKGROUND`/`RESULT`/`DERIVED` に分かれており、`fetchCtgStudy()` 側で `type`（trim・大文字化）が `'BACKGROUND'`（試験結果と無関係な背景文献）の参照だけを除外する（PR #122 レビュー指摘1、Issue #118 チャンク2）。`RESULT` のみのallowlistにはしていない: `DERIVED` は「PubMed側がそのNCT番号を参照している論文」で結果論文の主要な供給源、`RESULT` はスポンサーが手動登録した分しか入らないため、allowlistだと取りこぼしが大きい。`type` 欠落・未知の値（将来API側に新種別が増えた場合を含む）は残す側に倒す（後方互換）。同一PMIDが複数の参照エントリに現れる場合は重複排除し元の出現順を保つ
+  2. `pubmed_id`: esearch（`buildPubmedIdQuery()` が組み立てる `"<試験ID>"[si] OR "<試験ID>"[tiab]` クエリ）
+  3. `europepmc`: Europe PMC 全文検索（試験IDそのもので検索するため jRCT/UMIN 等、NCT以外にも有効。クエリは `"<試験ID>"` と引用符で囲み無引用によるトークナイズ誤爆を防ぐ。`resultType=lite`・`pageSize=25` を明示。pmid/doi/title/journalTitle/pubYearしか使わないため `core`（全文リンク・抄録込みの重いレスポンス）は使わない）
+- 戦略1・2で集めたPMIDの書誌（title/journal/year/doi）は esummary に**1リクエストでまとめて**問い合わせる（PMIDごとに呼ばない）。esearch → esummary の eutils連続呼び出しの間だけ待機を入れる（既定350ms、テストでは`options.delayMs`で注入可能）。esearch/esummaryには `src/lib/fulltext-retriever.ts` の `enrichNcbiIds()` と同じ流儀で `tool: 'tiab-review-plugin'` と（`DiscoverPublicationCandidatesInput.email` が渡されていれば）`email` を申告する（NCBIのE-utilities利用規約）
+- 各戦略の失敗（ネットワーク・非200・JSON不正）は例外を投げずその戦略だけスキップする。全滅時は空配列。出版年（`pubYear`/`pubdate`）が非数値の場合は `NaN` ではなく `undefined` にする（シートへ文字列 `"NaN"` を書かないため）
+- 統合順は戦略の強い順（`ctgov_reference` → `pubmed_id` → `europepmc`）。`dedupePublicationCandidates()` は候補ごとにPMIDキーとDOIキーの**両方**を見て、どちらか一方でも既出なら重複として捨てる（esummaryでPMIDのみの候補へ後からDOIが補完されることがあるため、片方のキーだけでは同一論文を見逃す）。複数戦略で見つかった場合は先に見つかった側（＝より強い戦略）を残す。続けて `filterAlreadyImportedCandidates()` が既存References行のPMID/DOIと一致する候補を除外する
+- CTGov の `referencesModule` 由来PMIDは、`retrieveRegistrationSnapshot()`（フルテキスト取得）が既に `fetchCtgStudy()` で取得済みのものを `FulltextFetchOutcome` の任意フィールド `registryPmids`（`cached`/`linked` のみ。`none` には無い）に載せて渡す。**CTG APIをスナップショット取得と論文候補探索で2回叩かないための配線**
+- 呼び出し側は `src/sidepanel/features/fulltext-tab.ts` の一括検索（`handleBulkFetch`）・単発検索（`handleSingleFetch`）。`isRegistrationRecord(ref)` が true の行についてのみ探索する（email には `state.userEmail` を渡す）。UI文言・バッジ・完了サマリは変更していない
+  - **一括検索は候補を`savePublicationCandidates()`へ即時保存しない**。registration行1件ごとに保存すると「ensure→全行読み取り→append」がそのまま行数倍のリクエストになり、Sheets APIの読み取りクォータ（ユーザーあたり毎分60読み取り）を容易に超える。既存の `pendingWrites`/`flush()`（fulltext_urlの5件ごとバッチ書き込み）と同じ流儀で `pendingCandidates` をため込み、`flush()` の中でまとめて `savePublicationCandidates()` を呼ぶ。URL書き込みと候補保存は互いに独立した try/catch を持ち、片方の失敗がもう片方を巻き込まない
+  - `fulltext_url` の書き込み（`pendingWrites.push()` / `updateReferenceFulltextUrl()`）は、論文候補探索（最大3回のネットワーク往復）より**先に**行う。探索が遅くても本質的なURL保存が後回しにならないようにするため
+  - 単発検索（`handleSingleFetch`）は1行だけなので `savePublicationCandidates()` を即時呼び出す（失敗は独立した try/catch で `console.warn` のみ）
+- **候補探索は取得状態（`fulltext_status`）から独立して何度でも再実行できる**（PR #122 レビュー指摘2、Issue #118 チャンク2）。`handleBulkFetch`（取得）の中でしか探索が走らない設計だと、registration行はスナップショット保存に成功した時点で `cached` になり二度と対象にならないため、PubMed等の一時障害やSheets書き込み失敗で候補が欠落するとUIから回復する手段が無くなる。対策として `fulltext-tab.ts` に `handleBulkSuggest()`（一括再探索）を独立ルーチンとして追加した:
+  - 対象は `getVisibleFulltextCandidateList()` のうち `isRegistrationRecord(ref)` が true の行**全部**。`fulltext_status` は一切見ない（`cached`/`retrieved`/`unavailable`/`not_retrieved` のいずれでも対象）
+  - **「候補行が既にあるか」で探索済みを推測する実装にはしていない**（未探索／候補0件／探索失敗を区別できず、候補0件の登録が永久に対象へ残り押すたびに外部APIを叩き続けることになるため）。代わりにユーザーが押したときだけ走る明示的な導線にし、`savePublicationCandidates()` の `filterNewCandidates()`（同一 `ref_id` かつ同一PMID/DOIの候補を除外）による冪等性を根拠に「何度再実行しても Publication_Candidates に重複行が増えない＝安全に繰り返せる」としている
+  - NCTのときだけ `fetchCtgStudy()` を1回呼ぶ（取得時の `outcome.registryPmids` が手元に無い独立経路のため自前で取得する。既存の「取得と探索でCTG APIを2回叩かない」配線＝`retrieveRegistrationSnapshot()` → `outcome.registryPmids` は変更していない）。失敗時（`null`）は `ctgPmids: []` で続行する
+  - `handleBulkFetch` と同じ `bulkRun` ガード・中止ボタンを共有するため、取得と再探索は同時に走らない
+  - NCT判定・CTG呼び出し可否・`discoverPublicationCandidates()` 呼び出しの結合部分は `src/lib/publication-candidate-rerun.ts` の `discoverCandidatesForRerun()`（UI非依存の純関数、fetchCtg/discoverCandidatesを引数注入してテスト可能）に切り出している
+  - 起動導線は `sidepanel.html` の `.fulltext-fetch-row` にあるボタン `#fulltext-suggest-btn`（`dom.ts` では `dom.fulltextSuggestBtn`。`getElement()` は要素が無いと例外を投げるため `sidepanel.html` に必ず存在させている）。`renderRetrievalSummary()` が registration行の件数でラベル（`fulltext_suggestBtn`）を更新し、件数0なら `hidden`、`bulkRun` 実行中（取得・再探索のどちらでも）は `disabled` にする。i18nキーは `fulltext_suggestBtn`/`fulltext_suggestProgress`/`fulltext_suggestDone`/`fulltext_candidateSaveError` の4本を追加した（ja/en両方）。候補そのものの表示・バッジ・取り込みはチャンク3のスコープのままで、このPRで足したUIは探索を起動するボタン1つだけ
+- **保存失敗時にバッファを捨てない**（PR #122 レビュー指摘2（候補保存失敗時にバッファを破棄していた点））。以前の `handleBulkFetch` の `flush()` は `pendingCandidates.splice(0)` してから保存していたため、保存失敗の瞬間にバッファごと候補が消え `console.warn` にしか残らなかった。`src/lib/publication-candidate-rerun.ts` の `flushCandidateBuffer()`（コピーを渡して保存 → 成功時のみ `splice` で取り除く汎用ヘルパー）に統一し、`handleBulkFetch`・`handleBulkSuggest` の両方で使う。失敗時はバッファを保持し次のflush（5件ごと or 最終）で再送する。ただし `handleBulkSuggest` 側は閾値を5固定にすると、失敗でバッファが保持されたままになる都合で以降のループが毎行flushを呼び直してしまう（Sheetsが落ちている間、1行につき1回ずつ ensure→読み取り→append を空振りさせることになる）。そのため次の閾値を `nextCandidateFlushThreshold()`（成功なら基準値5、失敗なら「現在のバッファ長+5」を返す純関数）で決め、失敗したらさらに5件たまるまで再試行しない。ループ終了時の最終flushでも失敗して候補が残っている場合は `console.warn` だけで終わらせず `showToast()`（`fulltext_candidateSaveError`）で未保存件数を通知する。`pendingWrites`（`fulltext_url` の書き込み）側の挙動は変えていない（既に別try/catchでトーストを出している）
+- 永続化は `src/lib/sheets-api.ts` の `savePublicationCandidates()`。ensure → 既存行を読んで（`ensurePublicationCandidatesSheet()` を再度呼ばない内部専用の読み取りヘルパー経由）`filterNewCandidates()`（同一 `ref_id` かつ同一PMID/DOIの候補を除外）→ 残りを追記。**一括検索を2回流しても行が重複しない**ことがこのフィルタの目的。`getPublicationCandidates()`（チャンク3向けの公開読み取りAPI）は ensure してから読む従来どおりの実装のまま
+- `Publication_Candidates` タブのヘッダー（この順）:
+
+  | 列名 | 説明 |
+  | --- | --- |
+  | candidate_id | 候補ID（UUID） |
+  | ref_id | 発見元のregistration行（References への FK） |
+  | trial_id | `extractTrialId()` で取れた試験ID |
+  | pmid | 候補論文のPMID（無ければ空） |
+  | doi | 候補論文のDOI（無ければ空） |
+  | title | 候補論文のタイトル |
+  | journal | 候補論文のジャーナル名 |
+  | year | 候補論文の出版年 |
+  | strategy | `ctgov_reference` / `pubmed_id` / `europepmc` |
+  | status | `suggested`（このチャンクで書くのはここまで）/ `imported` / `dismissed`（チャンク3で使用） |
+  | suggested_at | 発見日時（ISO 8601） |
+  | decided_by | チャンク3で使用（このチャンクでは常に空文字） |
+  | decided_at | 同上 |
+  | imported_ref_id | 同上 |
+
+- **タブ欠落時の自動作成・列欠落時の末尾追記は `ensurePublicationCandidatesSheet()` が担う。`ensureLlmRunsSheet()` と完全に同じ ensure パターン**（ヘッダー欠落は末尾へ追記、タブ欠落は `addSheet` → ヘッダー append、それ以外の例外は再送出）
+- **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `PUBLICATION_CANDIDATES_HEADERS` ミラーも必ず追従させること（`tests/publication-candidates-headers.test.ts` がドリフトを検出する）
+- ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3のスコープで未実装
+
 ### EndNote XML インポートフィールドマッピング
 
 EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。各テキスト値は `<style face="..." font="..." size="...">value</style>` でラップされているが `Element.textContent` で取得する。
@@ -1161,6 +1221,9 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 - **`tests/tsconfig.json` の `types` は明示列挙**（`node` / `chrome` / `google.accounts`）。新しい ambient 型に依存するテストを足すと `Cannot find namespace` で `npm run test` が落ちるので、型の追加もセットで行うこと。`include` も明示列挙だが、テストから import したモジュールは推移的に取り込まれるため、通常は `types` 側だけが問題になる。
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
 - **`.tmp/tests` は掃除されない。** `npm run test` は `.tmp/tests/tests/*.test.js` を glob で拾うため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされる（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。件数が合わないときは `tests/*.test.ts` の数と突き合わせること。
+- **`node:assert/strict` の `deepEqual` は「値が `undefined` のプロパティ」と「プロパティ自体が無い」を区別する。** 戻り値の型（例: `FulltextFetchOutcome`）に**任意**フィールドを1本足しただけで、その戻り値を `deepEqual` で丸ごと比較している既存テストが「actual に余分なキーがある」と落ちる。実装のバグではないので、期待値側にそのキーを明示して追従させること（Issue #118 チャンク2で `registryPmids` を足した際に3件が落ちた）。
+- **`src/demo/seed.ts` はテストから直接 import できない。** `sample/*.nbib` を raw-text import（`declare module '*.nbib'`、webpack ローダー前提）しているため、`tsc` + `node --test` の経路では `.nbib` を JS として読もうとして落ちる。そのためヘッダーミラーのドリフト検出テストは、seed.ts 側の期待値をテストファイルへ直書きして `sheets-api.ts` の実エクスポートと突き合わせる流儀になっている（`tests/references-headers-record-type.test.ts` / `tests/publication-candidates-headers.test.ts`）。**seed.ts だけを変えるとドリフトを検出できない**ので、列を足すときは seed.ts・sheets-api.ts・テストの3箇所を必ず同時に直すこと。
+- **lint は型の緩さを検出しない。** `.eslintrc.cjs` は `@typescript-eslint/no-explicit-any` も `no-unused-vars` も有効にしていないため、`any` や未使用変数は CI を素通りする。`src/lib/` の既存コードが `any` を使っていないのは規約であって強制ではないので、レビュー側で見ること。
 - **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
 
 ### ローカル実験環境

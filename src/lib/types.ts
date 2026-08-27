@@ -613,3 +613,47 @@ export interface Annotation {
     pdf_url: string;         // アノテーション作成時に使ったPDFのURL
     created_at: string;      // ISO 8601
 }
+
+// ---------------------------------------------------------------------------
+// レジストリ連携フェーズ1 チャンク2 パスB（Issue #118）: 論文候補探索
+// ---------------------------------------------------------------------------
+
+/**
+ * 論文候補の発見手段。強い順（信頼度が高い順）に ctgov_reference → pubmed_id → europepmc。
+ * src/lib/publication-suggest.ts の discoverPublicationCandidates() がこの順で直列実行し、
+ * 同一候補が複数戦略で見つかった場合は先に見つかった側（＝より強い戦略）を残す。
+ */
+export type PublicationCandidateStrategy = 'ctgov_reference' | 'pubmed_id' | 'europepmc';
+
+/**
+ * Publication_Candidates タブの行の状態。
+ * - suggested: 発見直後（このチャンクで書き込むのはここまで）
+ * - imported:  候補からReferencesへ実際に取り込んだ（チャンク3で使用）
+ * - dismissed: レビュアーが「取り込まない」と判断した（チャンク3で使用）
+ */
+export type PublicationCandidateStatus = 'suggested' | 'imported' | 'dismissed';
+
+/**
+ * 試験登録レコード（registration行）に対して発見された、結果論文（linked publication）の候補。
+ * Publication_Candidates シートの1行に対応する（src/lib/sheets-api.ts の
+ * PUBLICATION_CANDIDATES_HEADERS と同じ並びの情報を持つ）。
+ *
+ * decided_by / decided_at / imported_ref_id はチャンク3（候補の取り込み・棄却UI）で使う列で、
+ * このチャンクでは常に空（undefined）のまま保存する。
+ */
+export interface PublicationCandidate {
+    candidate_id: string;      // UUID
+    ref_id: string;            // 発見元の registration 行（References への FK）
+    trial_id: string;          // extractTrialId() で取れた試験ID
+    pmid?: string;
+    doi?: string;
+    title?: string;
+    journal?: string;
+    year?: number;
+    strategy: PublicationCandidateStrategy;
+    status: PublicationCandidateStatus;
+    suggested_at: string;      // ISO 8601
+    decided_by?: string;       // チャンク3で使用（今回は常に空）
+    decided_at?: string;       // 同上
+    imported_ref_id?: string;  // 同上
+}

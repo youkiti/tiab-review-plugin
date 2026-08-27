@@ -1,8 +1,8 @@
 // デモモード用シードデータ生成
 //
 // sample/pubmed-srws-psgad-set.nbib を実際の parseRIS() でパースし、References /
-// Decisions / Config / LLM_Executions / LLM_Runs タブの初期状態を組み立てて
-// sheet-store（インメモリ）へ書き込む。ref_id・タイムスタンプ等はすべて固定値にし、
+// Decisions / Config / LLM_Executions / LLM_Runs / Publication_Candidates タブの初期状態を
+// 組み立てて sheet-store（インメモリ）へ書き込む。ref_id・タイムスタンプ等はすべて固定値にし、
 // Playwright で毎回同じ画面が再現できるようにする（Date.now() や乱数は使わない）。
 //
 // profile='ml' 指定時（src/demo/profile.ts）は、実データ10件に加えて
@@ -65,6 +65,14 @@ const LLM_RUNS_HEADERS = [
     'criteria_snapshot', 'screening_prompt',
     'include_threshold', 'status', 'is_active',
     'requested_model', 'model_version', 'response_id',
+];
+
+// sheets-api.ts の PUBLICATION_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
+// Issue #118 チャンク2 パスB（レジストリ連携フェーズ1: 論文候補探索）で追加。
+export const PUBLICATION_CANDIDATES_HEADERS = [
+    'candidate_id', 'ref_id', 'trial_id', 'pmid', 'doi',
+    'title', 'journal', 'year', 'strategy', 'status',
+    'suggested_at', 'decided_by', 'decided_at', 'imported_ref_id',
 ];
 
 /** 決定論的な ref_id（demo-ref-001 ... ）を振り直した実データ文献一覧を作る（常に10件） */
@@ -210,5 +218,9 @@ export function seedDemoStore(profile: DemoProfile = 'default'): void {
         // 「ヘッダーは揃っている」と判定できるよう、ヘッダー行のみ用意しておく。
         LLM_Executions: [LLM_EXECUTIONS_HEADERS],
         LLM_Runs: [LLM_RUNS_HEADERS],
+        // Publication_Candidates はこのチャンクの対象外（パスBはまだ何も候補を発見しない状態からデモが
+        // 始まる想定）。ensurePublicationCandidatesSheet が「ヘッダーは揃っている」と判定できるよう、
+        // ヘッダー行のみ用意しておく（LLM_Executions/LLM_Runsと同じ理由）。
+        Publication_Candidates: [PUBLICATION_CANDIDATES_HEADERS],
     });
 }

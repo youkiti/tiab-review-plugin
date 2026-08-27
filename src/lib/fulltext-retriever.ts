@@ -3,9 +3,15 @@
 // fulltext-retriever (https://github.com/youkiti/fulltext-retriever) の
 // Tier 1 open-access 取得ロジックを TypeScript へ移植
 
-import { uploadPdfToDrive, buildPdfFileName } from './drive-api';
+import { uploadPdfToDrive, buildPdfFileName, uploadHtmlToDrive } from './drive-api';
+import { isRegistrationRecord, extractTrialId, parseRegistryFieldsFromAbstract, buildRegistrySnapshotHtml, buildRegistrySnapshotFileName, isSafeHttpUrl } from './registry-record';
+import { fetchCtgStudy } from './registry-api';
+import type { ReferenceRecordType } from './types';
 
-export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex' | 'publisher' | 'landing_meta';
+// 'registry' は registration 行（Issue #118 チャンク1）専用のソース。OAウォーターフォール
+// （iterateFulltextCandidates）には一切乗らないため、後述の FALLBACK_PRIORITY には含めない
+// （理由はFALLBACK_PRIORITY定義側のコメント参照）。
+export type OaSource = 'pmc_oa' | 'europe_pmc' | 'unpaywall' | 'openalex' | 'publisher' | 'landing_meta' | 'registry';
 
 export interface FulltextCandidate {
     url: string;
@@ -318,10 +324,17 @@ export async function* iterateFulltextCandidates(
  * - cached:  PDF を Drive に保存済み（url は Drive の閲覧リンク）
  * - linked:  URL は見つかったが PDF を取得できなかった（外部直リンクを記録）
  * - none:    どの無料OAソースにも見つからなかった
+ *
+ * registryPmids は registration行（source:'registry'）専用の任意フィールド（Issue #118
+ * チャンク2 パスB）。CTGov の referencesModule 由来PMID（fetchCtgStudy() の pmids）を
+ * retrieveRegistrationSnapshot() がここに載せ、呼び出し側（fulltext-tab.ts）が
+ * discoverPublicationCandidates() の ctgPmids にそのまま渡せるようにする。CTG API を
+ * スナップショット取得と論文候補探索で2回叩かないための配線。既存のconsumerは
+ * kind/url/source しか見ていないため後方互換（none には付けない）。
  */
 export type FulltextFetchOutcome =
-    | { kind: 'cached'; url: string; source: OaSource }
-    | { kind: 'linked'; url: string; source: OaSource }
+    | { kind: 'cached'; url: string; source: OaSource; registryPmids?: string[] }
+    | { kind: 'linked'; url: string; source: OaSource; registryPmids?: string[] }
     | { kind: 'none' };
 
 /**
@@ -361,11 +374,108 @@ export async function fetchPdfResult(url: string): Promise<PdfFetchResult> {
 
 // リンクのみフォールバック時、どのソースのURLを優先して人間に提示するか。
 // 出版社直リンクが最も「ブラウザで開けば実PDF」に近いので最優先。
+//
+// 'registry' はここに含めない: retrieveAndCacheFulltext() は isRegistrationRecord(ref) が
+// true の場合、iterateFulltextCandidates による OA ウォーターフォールへ進む前に
+// retrieveRegistrationSnapshot() へ分岐して return するため、source:'registry' の
+// FulltextCandidate が openables 配列（このソート対象）に積まれることはない。
+// 仮に将来 'registry' を持つ候補がこの配列に紛れ込んだ場合、indexOf() が -1 を返し
+// 配列先頭（最優先）に来てしまうため、含めない方が「未知ソースは事故で紛れ込んだもの」
+// として自然に見分けられる（誤って最優先扱いにならない）。
 const FALLBACK_PRIORITY: OaSource[] = [
     // landing_meta と publisher は「ブラウザで開けば実PDF」に最も近い直リンク。
     // citation_pdf_url は出版社が宣言した正規のPDF URLなので最優先。
     'landing_meta', 'publisher', 'unpaywall', 'openalex', 'europe_pmc', 'pmc_oa',
 ];
+
+/**
+ * retrieveAndCacheFulltext() が受け取る文献情報。
+ * 通常論文（record_type='article'相当）の取得には doi/pmid のみ使うが、registration行の
+ * 判定（isRegistrationRecord）・試験ID抽出（extractTrialId）・スナップショット生成
+ * （retrieveRegistrationSnapshot）には journal/source/record_type/url/abstract/year も
+ * 必要なため、Issue #118 チャンク2で型を widen した。呼び出し側（fulltext-tab.ts /
+ * fulltext.ts）は Reference 相当のオブジェクトをそのまま渡しているため、この widen だけで
+ * 呼び出し側の変更は不要。
+ */
+export interface FulltextRetrievalRef {
+    ref_id: string;
+    title?: string;
+    doi?: string;
+    pmid?: string;
+    journal?: string;
+    source?: string;
+    record_type?: ReferenceRecordType;
+    url?: string;
+    abstract?: string;
+    year?: number;
+}
+
+/**
+ * registration 行（CTG/ICTRP由来の試験登録レコード）向けの取得経路。
+ *
+ * CTG/ICTRP由来の行は試験ID（NCT/JPRN等）が pmid 列に入っており、pmid/doiを前提とする
+ * OAウォーターフォールへ入れても必ず unavailable で行き止まりになる。そのためこの経路は
+ * iterateFulltextCandidates を一切呼ばず、レジストリの内容を自己完結HTMLスナップショット
+ * として組み立てDriveへ保存する。
+ *
+ * 1. NCT番号なら ClinicalTrials.gov API v2（fetchCtgStudy）を試す。
+ * 2. 取得できなかった場合（API失敗、または元々NCT以外のレジストリでAPI対象外）は、
+ *    References に保存済みのフィールド（title / abstractをparseRegistryFieldsFromAbstractで
+ *    分解したもの / journal をレジストリ名として / url を原簿URLとして / year）だけで
+ *    スナップショットを組み立てる。この経路はネットワーク不要。
+ * 3. Drive保存に失敗した場合は例外を外に投げず、原簿URL（ref.url）が isSafeHttpUrl() を
+ *    通れば linked、通らなければ（javascript:/data:等の危険なスキームや相対URL・不正な値）
+ *    または url自体が無ければ none にフォールバックする（一括ループを止めないため。OA経路の
+ *    catch → console.warn の作法に倣う）。
+ */
+async function retrieveRegistrationSnapshot(
+    ref: FulltextRetrievalRef,
+    ensureFolder: () => Promise<string>
+): Promise<FulltextFetchOutcome> {
+    const trial = extractTrialId(ref);
+    const retrievedAt = new Date().toISOString();
+
+    const ctgResult = trial?.kind === 'nct' ? await fetchCtgStudy(trial.id) : null;
+
+    const title = ctgResult?.title || ref.title || trial?.id || ref.ref_id;
+    const registryName = ctgResult ? 'ClinicalTrials.gov' : (ref.journal || 'レジストリ');
+    const fields = ctgResult
+        ? ctgResult.fields
+        : parseRegistryFieldsFromAbstract(ref.abstract);
+    if (!ctgResult && ref.year != null) {
+        fields.push({ label: '登録年', value: String(ref.year) });
+    }
+
+    const html = buildRegistrySnapshotHtml({
+        trialId: trial?.id,
+        title,
+        registryName,
+        sourceUrl: ref.url,
+        retrievedAt,
+        fields,
+    });
+
+    // CTGov referencesModule 由来PMID。呼び出し側（fulltext-tab.ts）がパスBの論文候補探索
+    // （discoverPublicationCandidates の ctgPmids）にそのまま渡せるよう outcome に載せる。
+    // CTG API をスナップショット取得と論文候補探索で2回叩かないための配線。
+    const registryPmids = ctgResult?.pmids;
+
+    try {
+        const folderId = await ensureFolder();
+        const file = await uploadHtmlToDrive(folderId, buildRegistrySnapshotFileName(ref), html);
+        return { kind: 'cached', url: file.webViewLink, source: 'registry', registryPmids };
+    } catch (err) {
+        console.warn('[fulltext-retriever] レジストリスナップショットのDrive保存に失敗、リンクのみ記録:', err);
+        // ref.url は References の url 列（ユーザーが直接編集できるセル）由来のため、
+        // javascript:/data: 等の危険なスキームや相対URLが入りうる。isSafeHttpUrl() を通った
+        // http/https のURLだけを linked として返す（この値はサイドパネルの buildLinkBtn() を
+        // 経由して chrome.tabs.create({ url }) にそのまま渡るため、無検証で通してはいけない）。
+        // 安全でなければ値ごと捨てて none にフォールバックする（例外は投げず一括ループを止めない）。
+        return ref.url && isSafeHttpUrl(ref.url)
+            ? { kind: 'linked', url: ref.url, source: 'registry', registryPmids }
+            : { kind: 'none' };
+    }
+}
 
 /**
  * OA候補URLを順に検証し、PDFが取れたものをDriveに保存する。
@@ -375,12 +485,20 @@ const FALLBACK_PRIORITY: OaSource[] = [
  * 最も信頼できるソースのものを「リンクのみ」記録としてフォールバックする。
  * Driveフォルダは PDF が実際に取得できた時に初めて作成したいので、
  * 呼び出し側から ensureFolder（メモ化推奨）を受け取る。
+ *
+ * registration行（isRegistrationRecord(ref) が true）はOAウォーターフォールに一切入らず、
+ * retrieveRegistrationSnapshot() へ分岐する（Issue #118 チャンク2）。通常の論文行の挙動は
+ * この分岐追加前と変わらない。
  */
 export async function retrieveAndCacheFulltext(
-    ref: { ref_id: string; title?: string; doi?: string; pmid?: string },
+    ref: FulltextRetrievalRef,
     email: string,
     ensureFolder: () => Promise<string>
 ): Promise<FulltextFetchOutcome> {
+    if (isRegistrationRecord(ref)) {
+        return retrieveRegistrationSnapshot(ref, ensureFolder);
+    }
+
     const openables: FulltextCandidate[] = [];
 
     for await (const cand of iterateFulltextCandidates(ref, email)) {
