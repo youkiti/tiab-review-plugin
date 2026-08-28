@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     validateGroundTruth, candidateMatchesTruth, evaluatePair, summarize, decide,
-    classifyRegistry, normalizeDoi,
+    classifyRegistry, normalizeDoi, detectStrategyOutage,
     type GroundTruthPair,
 } from '../experiments/registry-linkage/scoring';
 import type { PublicationCandidateDraft } from '../src/lib/publication-suggest';
@@ -152,4 +152,45 @@ test('decide: Issue #119 本文の閾値をそのまま判定する', () => {
     assert.equal(decide(0.10), 'low_priority', '10%ちょうどは実装する側（低優先）');
     assert.equal(decide(0.25), 'low_priority', '25%ちょうどは低優先のまま');
     assert.equal(decide(0.2501), 'build_it');
+});
+
+// --- detectStrategyOutage: 測定途中でAPIが落ちた場合の検出 ---
+// preflight は開始時点しか見ていないため、途中から eutils が 429 を返し始めると
+// 以降のペアは静かに全部「取りこぼし」に積まれ、取りこぼし率が水増しされる。
+
+const pairAt = (i: number): GroundTruthPair =>
+    ({ trial_id: `NCT0000000${i}`, pmid: String(i), provenance: 'sr_included_table' });
+
+test('detectStrategyOutage: 末尾で候補を返さなくなった戦略を検出する', () => {
+    // 先頭3件は pubmed_id が候補を返しているが、そこから12件は一度も返していない
+    const results = [
+        ...[1, 2, 3].map(i => evaluatePair(pairAt(i), [draft({ pmid: String(i), strategy: 'pubmed_id' })])),
+        ...Array.from({ length: 12 }, (_, k) =>
+            evaluatePair(pairAt(k + 4), [draft({ pmid: 'x', strategy: 'europepmc' })])),
+    ];
+    const outages = detectStrategyOutage(results);
+    assert.equal(outages.length, 1);
+    assert.equal(outages[0].strategy, 'pubmed_id');
+    assert.equal(outages[0].lastHitIndex, 2, '最後に候補を返したのは3件目（0始まりで2）');
+    assert.equal(outages[0].trailing, 12);
+});
+
+test('detectStrategyOutage: 最後まで返している戦略は検出しない', () => {
+    const results = Array.from({ length: 20 }, (_, k) =>
+        evaluatePair(pairAt(k + 1), [draft({ pmid: String(k + 1), strategy: 'pubmed_id' })]));
+    assert.deepEqual(detectStrategyOutage(results), []);
+});
+
+test('detectStrategyOutage: 空白が閾値未満なら検出しない（0件は正常でも起きる）', () => {
+    const results = [
+        evaluatePair(pairAt(1), [draft({ pmid: '1', strategy: 'pubmed_id' })]),
+        ...Array.from({ length: 9 }, (_, k) =>
+            evaluatePair(pairAt(k + 2), [draft({ pmid: 'x', strategy: 'europepmc' })])),
+    ];
+    assert.deepEqual(detectStrategyOutage(results), [], '末尾9件は既定の閾値10未満');
+});
+
+test('detectStrategyOutage: 一度も候補が無い戦略は対象外（そもそも集計に現れない）', () => {
+    const results = Array.from({ length: 15 }, (_, k) => evaluatePair(pairAt(k + 1), []));
+    assert.deepEqual(detectStrategyOutage(results), []);
 });

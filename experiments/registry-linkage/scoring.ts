@@ -234,3 +234,30 @@ export function decide(missRate: number): Verdict {
     if (missRate <= 0.25) return 'low_priority';
     return 'build_it';
 }
+
+/**
+ * 「特定の戦略が、ある時点から最後まで一度も候補を返していない」状態を検出する。
+ *
+ * 到達性チェックは測定の前後しか見ないので、途中だけ落ちて復帰したケースを拾えない。
+ * 各戦略が候補を最後に返したのが何件目かを見て、末尾に長い空白が続いていれば
+ * 「その戦略が途中で死んだ可能性」として警告する（正常でも0件は普通に起きるので、
+ * **中止はせず判断材料として出すだけ**）。
+ */
+export function detectStrategyOutage(
+    results: PairResult[],
+    minRun = 10
+): Array<{ strategy: string; lastHitIndex: number; trailing: number }> {
+    const strategies = new Set<string>();
+    for (const r of results) for (const k of Object.keys(r.count_by_strategy)) strategies.add(k);
+
+    const outages: Array<{ strategy: string; lastHitIndex: number; trailing: number }> = [];
+    for (const strategy of strategies) {
+        let lastHitIndex = -1;
+        for (const [i, r] of results.entries()) {
+            if ((r.count_by_strategy[strategy] ?? 0) > 0) lastHitIndex = i;
+        }
+        const trailing = results.length - 1 - lastHitIndex;
+        if (trailing >= minRun) outages.push({ strategy, lastHitIndex, trailing });
+    }
+    return outages;
+}

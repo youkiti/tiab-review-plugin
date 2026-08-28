@@ -13,12 +13,13 @@
 // 両モジュールとも chrome API に依存せず fetch しか使わないため Node から直接呼べる。
 
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { basename, join, relative, resolve } from 'path';
 import { fetchCtgStudy } from '../../src/lib/registry-api';
+import { extractTrialId } from '../../src/lib/registry-record';
 import { discoverPublicationCandidates } from '../../src/lib/publication-suggest';
 import { discoverCandidatesForRerun } from '../../src/lib/publication-candidate-rerun';
 import {
-    validateGroundTruth, evaluatePair, summarize, decide, classifyRegistry,
+    validateGroundTruth, evaluatePair, summarize, decide, classifyRegistry, detectStrategyOutage,
     type GroundTruthPair, type PairResult, type Summary,
 } from './scoring';
 
@@ -33,18 +34,45 @@ interface Args {
     limit?: number;
 }
 
+/**
+ * `--delay-ms` などの数値オプションを検証する。
+ *
+ * 素の `Number()` だと非数値で `NaN` になり、`setTimeout(fn, NaN)` は 0 と同じ挙動なので
+ * **待機が黙って消える**。eutils はAPIキー無しで3 req/s が上限で、超過すると
+ * NCBI 側から接続を絞られる（測定が途中から静かに失敗し、取りこぼし率が水増しされる）。
+ * 落として気づかせる方が安全なので、ここで弾く。
+ */
+function parseNumber(name: string, raw: string | undefined, fallback: number): number {
+    if (raw === undefined) return fallback;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) {
+        throw new Error(`--${name} には0以上の数値を指定してください（受け取った値: ${JSON.stringify(raw)}）`);
+    }
+    return value;
+}
+
 function parseArgs(argv: string[]): Args {
     const get = (name: string): string | undefined => {
         const i = argv.indexOf(`--${name}`);
-        return i >= 0 ? argv[i + 1] : undefined;
+        const value = i >= 0 ? argv[i + 1] : undefined;
+        // `--input --email x` のように値を書き忘れた場合、次のフラグを値として拾わない
+        if (value !== undefined && value.startsWith('--')) {
+            throw new Error(`--${name} の値がありません（次の引数 ${value} をフラグとして解釈しました）`);
+        }
+        return value;
     };
+    const rawLimit = get('limit');
+    const limit = rawLimit === undefined ? undefined : parseNumber('limit', rawLimit, 0);
+    if (limit !== undefined && limit < 1) {
+        throw new Error('--limit には1以上の整数を指定してください（全件流すならオプションごと省略）');
+    }
     return {
         input: get('input') ?? 'experiments/registry-linkage/data/ground-truth.json',
         outDir: get('out') ?? 'experiments/registry-linkage/results',
         email: get('email') ?? process.env.NCBI_EMAIL,
-        delayMs: Number(get('delay-ms') ?? 350),
-        pairDelayMs: Number(get('pair-delay-ms') ?? 1000),
-        limit: get('limit') ? Number(get('limit')) : undefined,
+        delayMs: parseNumber('delay-ms', get('delay-ms'), 350),
+        pairDelayMs: parseNumber('pair-delay-ms', get('pair-delay-ms'), 1000),
+        limit,
     };
 }
 
@@ -60,7 +88,7 @@ function sleep(ms: number): Promise<void> {
  * ネットワークが遮断されていても例外は出ず「候補0件 ＝ 全部取りこぼし ＝ 取りこぼし率100%」
  * という、いかにも「LLM検索式が必要」に見える結果がそのまま出てしまう。
  */
-async function preflight(): Promise<void> {
+async function checkReachability(): Promise<string[]> {
     const targets: Array<{ name: string; url: string }> = [
         { name: 'ClinicalTrials.gov API v2', url: 'https://clinicaltrials.gov/api/v2/studies/NCT01470703?format=json&fields=NCTId' },
         { name: 'PubMed E-utilities', url: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&term=NCT01470703%5Bsi%5D' },
@@ -77,7 +105,11 @@ async function preflight(): Promise<void> {
         }
         await sleep(400);
     }
+    return failures;
+}
 
+async function preflight(): Promise<void> {
+    const failures = await checkReachability();
     if (failures.length > 0) {
         throw new Error(
             `外部APIへ到達できないため測定を中止します（この状態で走らせると、全戦略が空を返して\n` +
@@ -86,10 +118,29 @@ async function preflight(): Promise<void> {
     }
 }
 
+/**
+ * 全ペアを流し終えたあとに、もう一度3ホストへ到達できるか確かめる。
+ *
+ * preflight() は開始時点しか見ていないので、**途中で eutils が 429 を返し始めた／回線が切れた
+ * 場合は防げない**。discoverPublicationCandidates() は戦略ごとの失敗を握りつぶすため、
+ * それ以降のペアは静かに全部「取りこぼし」に積まれ、preflight を入れた目的（取りこぼし率の
+ * 水増しを防ぐ）がそのまま破られる。事後にもう一度確認して、駄目ならレポートへ警告を残す。
+ */
+async function postflight(): Promise<string[]> {
+    return await checkReachability();
+}
+
+
 async function measureOne(pair: GroundTruthPair, args: Args): Promise<PairResult> {
     const trialId = pair.trial_id.trim();
-    // 製品側 extractTrialId() と同じ判定（NCT........ だけが 'nct'）
-    const kind = /^NCT\d{8}$/.test(trialId.toUpperCase()) ? 'nct' as const : 'other' as const;
+    // 製品と同じ判定にするため、正規表現を書き写さず extractTrialId() をそのまま呼ぶ。
+    // 以前はここで `.toUpperCase()` してから判定していたが、製品側（src/lib/registry-record.ts）は
+    // 大文字化しないため、`nct01470703` のような小文字IDで判定が食い違い、測定だけ戦略1が走って
+    // recall を過大評価する（＝「#119 は不要」側へ倒れる）。測定の目的は製品の再現なので、
+    // 判定ロジックを二重に持たないことが正しい。
+    const extracted = extractTrialId({ pmid: trialId });
+    if (!extracted) throw new Error(`試験IDが空です: ${JSON.stringify(pair)}`);
+    const kind = extracted.kind;
 
     const candidates = await discoverCandidatesForRerun(
         { id: trialId, kind },
@@ -112,12 +163,28 @@ async function measureOne(pair: GroundTruthPair, args: Args): Promise<PairResult
     return evaluatePair(pair, candidates);
 }
 
+/**
+ * レポート（`outDir` 配下）から見た相対リンクを作る。
+ *
+ * 以前は `../../../` や `resultsJsonPath.split('/').pop()` と決め打ちしていたため、
+ * (1) `--out` を既定から変えると相対の深さが合わなくなり、
+ * (2) Windows では `path.join()` が `\` を返すので `split('/')` が効かず
+ *     `./experiments\registry-linkage\...` という壊れたリンクになっていた
+ * （このリポジトリは bump / build:release が PowerShell 前提＝Windows 開発）。
+ * `path.relative()` に任せ、区切りは Markdown 用に `/` へ正規化する。
+ */
+function linkFromOutDir(outDir: string, target: string): string {
+    const rel = relative(resolve(outDir), resolve(target)).split(/[\\/]/).join('/');
+    return rel.startsWith('.') ? rel : `./${rel}`;
+}
+
 function renderSummaryMarkdown(
     summary: Summary,
     results: PairResult[],
     rejected: Array<{ pair: GroundTruthPair; reason: string }>,
     args: Args,
-    resultsJsonPath: string
+    resultsJsonPath: string,
+    warnings: string[]
 ): string {
     const verdict = decide(summary.overall.miss_rate);
     const verdictLabel: Record<string, string> = {
@@ -138,10 +205,21 @@ function renderSummaryMarkdown(
     lines.push(`npx ts-node --project experiments/tsconfig.json experiments/registry-linkage/measure-recall.ts --input ${args.input}`);
     lines.push('```');
     lines.push('');
-    lines.push('- スクリプト: [`experiments/registry-linkage/measure-recall.ts`](../measure-recall.ts) / [`scoring.ts`](../scoring.ts)');
-    lines.push(`- 入力（正解セット）: [\`${args.input}\`](../../../${args.input})`);
-    lines.push(`- 生の結果: [\`${resultsJsonPath}\`](./${resultsJsonPath.split('/').pop()})`);
+    const selfDir = __dirname;
+    lines.push(`- スクリプト: [\`measure-recall.ts\`](${linkFromOutDir(args.outDir, join(selfDir, 'measure-recall.ts'))})`
+        + ` / [\`scoring.ts\`](${linkFromOutDir(args.outDir, join(selfDir, 'scoring.ts'))})`);
+    lines.push(`- 入力（正解セット）: [\`${args.input}\`](${linkFromOutDir(args.outDir, args.input)})`);
+    lines.push(`- 生の結果: [\`${basename(resultsJsonPath)}\`](${linkFromOutDir(args.outDir, resultsJsonPath)})`);
     lines.push('');
+    if (warnings.length > 0) {
+        lines.push('## ⚠ 警告');
+        lines.push('');
+        lines.push('**この結果は信用する前に下の警告を確認すること**（外部APIが落ちていると、');
+        lines.push('全戦略が空を返して「取りこぼし率100%」という誤った結果がそのまま出る）。');
+        lines.push('');
+        for (const w of warnings) lines.push(`- ${w}`);
+        lines.push('');
+    }
     lines.push('## 結果');
     lines.push('');
     lines.push('| 層 | n | 発見 | 取りこぼし | 取りこぼし率 | 平均候補件数 | 当てた戦略の内訳 |');
@@ -168,10 +246,11 @@ function renderSummaryMarkdown(
     if (missed.length === 0) {
         lines.push('なし。');
     } else {
-        lines.push('| 試験ID | 層 | 由来 | 候補件数 |');
-        lines.push('|---|---|---|---:|');
+        lines.push('| 試験ID | 層 | 由来 | 候補件数 | 戦略別の候補件数 |');
+        lines.push('|---|---|---|---:|---|');
         for (const r of missed) {
-            lines.push(`| ${r.trial_id} | ${r.stratum} | ${r.provenance} | ${r.candidate_count} |`);
+            const byStrategy = Object.entries(r.count_by_strategy).map(([k, v]) => `${k} ${v}`).join(' / ') || '—';
+            lines.push(`| ${r.trial_id} | ${r.stratum} | ${r.provenance} | ${r.candidate_count} | ${byStrategy} |`);
         }
         lines.push('');
         lines.push('**Issue #119 を実装する場合、LLM検索式の評価はこの一覧で行うこと**');
@@ -196,7 +275,21 @@ function renderSummaryMarkdown(
 async function main(): Promise<void> {
     const args = parseArgs(process.argv.slice(2));
 
-    const raw = JSON.parse(readFileSync(args.input, 'utf-8')) as GroundTruthPair[];
+    let raw: GroundTruthPair[];
+    try {
+        raw = JSON.parse(readFileSync(args.input, 'utf-8')) as GroundTruthPair[];
+    } catch (e) {
+        throw new Error(
+            `正解セットを読めませんでした: ${args.input}\n` +
+            `  ${(e as Error).message}\n` +
+            `正解セットはリポジトリに含めていません（人手で作るもの）。作り方は\n` +
+            `experiments/registry-linkage/README.md「正解セットの作り方」、スキーマの実例は\n` +
+            `experiments/registry-linkage/data/ground-truth.example.json を参照してください。`
+        );
+    }
+    if (!Array.isArray(raw)) {
+        throw new Error(`正解セットは配列である必要があります: ${args.input}`);
+    }
     const { usable, rejected } = validateGroundTruth(raw);
 
     console.log(`正解セット: ${raw.length} 件 → 使用 ${usable.length} 件 / 除外 ${rejected.length} 件`);
@@ -222,13 +315,39 @@ async function main(): Promise<void> {
         if (i < targets.length - 1) await sleep(args.pairDelayMs);
     }
 
+    // preflight は開始時点しか見ていないので、走り切ったあとにもう一度確かめる。
+    console.log('\n外部APIへの到達を再確認します...');
+    const postFailures = await postflight();
+    const warnings: string[] = [];
+    for (const f of postFailures) {
+        warnings.push(`**測定終了時に外部APIへ到達できなくなっていた: ${f}** — 途中から候補が取れず、` +
+            `取りこぼし率が水増しされている可能性がある。この結果は破棄して測定し直すこと`);
+    }
+    for (const o of detectStrategyOutage(results)) {
+        warnings.push(`戦略 \`${o.strategy}\` が末尾 ${o.trailing} 件で一度も候補を返していない` +
+            `（最後に返したのは ${o.lastHitIndex + 1} 件目）。途中でAPIが落ちた可能性を確認すること`);
+    }
+    for (const w of warnings) console.warn(`⚠ ${w.replace(/\*\*/g, '')}`);
+    if (postFailures.length === 0) console.log('OK');
+
     const summary = summarize(results);
     mkdirSync(args.outDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const jsonPath = join(args.outDir, `results-${stamp}.json`);
     const mdPath = join(args.outDir, `report-${stamp}.md`);
-    writeFileSync(jsonPath, JSON.stringify({ args, summary, results, rejected }, null, 2), 'utf-8');
-    writeFileSync(mdPath, renderSummaryMarkdown(summary, results, rejected, args, jsonPath), 'utf-8');
+    // email は結果ファイルへ残さない。results/ は再現性のためコミットする運用なので、
+    // そのまま書くと NCBI 申告用の個人メールアドレスが公開リポジトリに載る（AGENTS.md 9）。
+    const { email: _email, ...argsForRecord } = args;
+    writeFileSync(
+        jsonPath,
+        JSON.stringify(
+            { args: { ...argsForRecord, email: args.email ? '(指定あり・記録しない)' : undefined }, warnings, summary, results, rejected },
+            null,
+            2
+        ),
+        'utf-8'
+    );
+    writeFileSync(mdPath, renderSummaryMarkdown(summary, results, rejected, args, jsonPath, warnings), 'utf-8');
 
     console.log(`\n全体の取りこぼし率: ${(summary.overall.miss_rate * 100).toFixed(1)}% (${summary.overall.missed}/${summary.overall.n})`);
     console.log(`判定: ${decide(summary.overall.miss_rate)}`);
@@ -236,7 +355,11 @@ async function main(): Promise<void> {
     console.log(`      ${jsonPath}`);
 }
 
-main().catch(e => {
-    console.error(`\n${(e as Error).message}`);
-    process.exit(1);
-});
+// import しただけで測定が走らないようにする（tests/tsconfig.json の型検査対象に含めているため、
+// 直接実行されたときだけ main() を呼ぶ）。
+if (require.main === module) {
+    main().catch(e => {
+        console.error(`\n${(e as Error).message}`);
+        process.exit(1);
+    });
+}

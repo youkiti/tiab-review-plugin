@@ -74,11 +74,22 @@ AGENTS.md「試験登録レコードの論文候補探索」節に、3レジス�
 
 ## 実行
 
+`ts-node` は package.json の devDependencies に入っていない（`experiments/README.md` と同じ扱い）。
+初回だけ入れること:
+
+```bash
+npm install --save-dev ts-node
+```
+
 ```bash
 npx ts-node --project experiments/tsconfig.json experiments/registry-linkage/measure-recall.ts \
   --input experiments/registry-linkage/data/ground-truth.json \
   --email you@example.com
 ```
+
+`--input` の既定パス（`data/ground-truth.json`）のファイルはリポジトリに入っていない。
+正解セットは人手で作るものなので、下の「正解セットの作り方」に従って自分で用意すること
+（`data/ground-truth.example.json` はスキーマの実例で、ダミー値なので測定には使えない）。
 
 | オプション | 既定 | 説明 |
 |---|---|---|
@@ -100,6 +111,12 @@ npx ts-node --project experiments/tsconfig.json experiments/registry-linkage/mea
 （一括ループを止めないための正しい挙動）なので、**ネットワークが遮断されていても例外は出ず、
 「候補0件＝全部取りこぼし＝取りこぼし率100%」という、いかにも「LLM検索式が必要」に見える結果が
 そのまま出てしまう。**
+
+開始時のチェックだけでは「途中から eutils が 429 を返し始めた」「回線が落ちた」を防げないため、
+全ペアを流し終えたあとにも同じ到達性チェックを走らせ、失敗していればレポート冒頭に警告を出す。
+あわせて `detectStrategyOutage()` が「ある戦略が末尾10件で一度も候補を返していない」状態を検出して
+警告する（正常でも0件は起きうるので中止はせず、判断材料として出すだけ）。
+**レポートに「⚠ 警告」節がある結果は、原因を潰してから測り直すこと。**
 
 ## 測定の限界（結果を読むときに承知しておくこと）
 
