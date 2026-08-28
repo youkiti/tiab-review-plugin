@@ -29,6 +29,7 @@ import { initModal } from './ui/modal';
 import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
 import { showToast } from './ui/feedback';
 import { toggleExportMenu, closeExportMenu } from './store/compat';
+import { isImeComposing } from '../lib/ime-composition';
 
 document.addEventListener('DOMContentLoaded', () => {
     // ========== 共有配線 ==========
@@ -111,10 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ml-search-input')?.addEventListener('input', handleMlSearchInput);
     document.getElementById('ml-add-include-btn')?.addEventListener('click', () => addMlKeyword('include'));
     document.getElementById('ml-add-exclude-btn')?.addEventListener('click', () => addMlKeyword('exclude'));
+    // 日本語入力の変換確定 Enter でキーワードが確定しないよう、IME 変換中は読み飛ばす
     document.getElementById('ml-new-include-input')?.addEventListener('keypress', (e) => {
+        if (isImeComposing(e)) return;
         if (e.key === 'Enter') addMlKeyword('include');
     });
     document.getElementById('ml-new-exclude-input')?.addEventListener('keypress', (e) => {
+        if (isImeComposing(e)) return;
         if (e.key === 'Enter') addMlKeyword('exclude');
     });
     dom.tabMlBtn?.addEventListener('click', async () => {

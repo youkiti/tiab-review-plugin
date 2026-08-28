@@ -540,6 +540,15 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - `p` / `←` : 前へ
 - `c` : レビュー基準（組入・除外基準）の表示/非表示
 
+**入力欄の Enter と日本語入力（IME）**
+
+- フルテキストの補足メモ欄（`ft-reason-note`）は `Enter` で「保存して次の候補へ」、`Shift+Enter` で改行、`Escape` でフォーカス解除
+- 日本語入力では**変換の確定にも `Enter` を使う**ため、Enter にアクションを割り当てた入力欄では
+  `src/lib/ime-composition.ts` の `isImeComposing()` で変換中のキーを必ず読み飛ばすこと。
+  これを忘れると、メモを書いている途中の変換確定で次の文献へ飛ぶ（キーワード入力欄なら半端な語が登録される）
+  - `isComposing` / `keyCode === 229` に加え、`compositionstart` / `compositionend` で追跡した状態も渡せる
+    （`isComposing` を立てない IME への保険。補足メモ欄はこの追跡込みで実装している）
+
 ## 非機能要件
 
 - **パフォーマンス**: 3,000件で快適に動作
