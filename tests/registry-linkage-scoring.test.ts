@@ -43,8 +43,11 @@ test('validateGroundTruth: 独立な由来は通す', () => {
         { trial_id: 'jRCT2031200153', doi: '10.1000/x', provenance: 'registry_declared' },
         { trial_id: 'NCT00000002', pmid: '222', provenance: 'sr_included_table' },
         { trial_id: 'UMIN000012345', pmid: '333', provenance: 'manual_curation' },
+        // Crossref の clinical-trial-number は出版社寄託で、CTGov referencesModule とも
+        // PubMed [si] とも Europe PMC の抄録テキストとも別系統なので通す。
+        { trial_id: 'ISRCTN12345678', pmid: '444', provenance: 'crossref_ct_number' },
     ];
-    assert.equal(validateGroundTruth(pairs).usable.length, 3);
+    assert.equal(validateGroundTruth(pairs).usable.length, 4);
 });
 
 test('validateGroundTruth: pmid も doi も無いペアは照合できないので除外する', () => {

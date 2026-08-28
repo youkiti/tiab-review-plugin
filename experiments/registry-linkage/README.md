@@ -36,9 +36,50 @@ AGENTS.md「試験登録レコードの論文候補探索」節に、3レジス�
 | `sr_included_table` | ✓ | 既発表SR/メタ解析の組み入れ研究表。人手の紐付けで3戦略のどれとも独立 |
 | `registry_declared` | ✓ | **CTGov以外**のレジストリの投稿者申告欄（jRCTの主たる公表論文、UMIN-CTRの結果の公表状況、ISRCTNのpublication citations 等） |
 | `manual_curation` | ✓ | 上記以外の人手紐付け。`source_note` に根拠を書くこと |
+| `crossref_ct_number` | ✓ | Crossref の `clinical-trial-number`（出版社が論文メタデータとして寄託する試験登録番号）。下記参照 |
 
 `ctgov_references` は Issue #119 の当初案で独立な候補として挙げていたが、**`[si]` と同じ誤りの鏡像**
 なので使えない（戦略1がそのフィールドを読んでいる）。
+
+#### `crossref_ct_number` について
+
+Crossref の `clinical-trial-number` は、**出版社が論文のメタデータとして寄託する試験登録番号**。
+3戦略のどれとも別系統である:
+
+| 戦略 | 見ている信号 | Crossrefとの関係 |
+|---|---|---|
+| 1 `ctgov_reference` | レジストリ側の CTGov `referencesModule` | レジストリ側 vs 出版社側で別 |
+| 2 `pubmed_id` | NLMが索引する PubMed の `[si]` / `[tiab]` | NLMの索引 vs 出版社のCrossref寄託で別パイプライン |
+| 3 `europepmc` | Europe PMC の抄録・全文テキスト | 本文テキスト vs 構造化メタデータで別 |
+
+Crossrefに番号があっても PubMed の `[si]` に索引されているとは限らず、抄録本文に書かれているとも
+限らない。つまり**3戦略が取りこぼす論文を実際に含みうる**ので、正解セットの由来として使える。
+
+**ただし `registry_declared` と同じ向きの偏りがある。** 出版社が試験番号を寄託するような論文は、
+抄録にも登録番号を書いている可能性が高い（どちらも「この論文はどの試験の報告かをきちんと書く」
+という同じ性質の現れ）。したがってこの由来で測った取りこぼし率は**下限**であり、実際の取りこぼしは
+これ以上ある。#119 を「実装しない」判断に使う分には保守的だが、「実装する」判断の根拠にするときは
+この点を割り引くこと。
+
+##### 実際に使った構築手順（`data/ground-truth.json`）
+
+1. Crossref works API から `has-clinical-trial-number:true`・`type:journal-article`・
+   発行 2015-01-01〜2022-12-31 の全 19,583 件を cursor ページングで取得
+   （発行年の範囲は、索引ラグで recall が潰れるのを避けるため。既存36ペアの測定と同じ理由）
+2. 試験ID→DOI に展開し、**この母集団で論文がちょうど1本の試験だけ**を残す（18,172試験）。
+   1試験に複数の論文があると、#118 が「別の正しい論文」を返したときに不当な取りこぼしになるため
+3. レジストリ層別に無作為抽出（`random.seed(20260828)`）。`other` 層は特定レジストリに偏らないよう
+   レジストリ間の round-robin で混ぜてから抽出
+4. 各DOIを Europe PMC へ `DOI:"<doi>"` で照会し、**索引されていること**と発行年を確認。
+   索引されていない論文はどの戦略でも原理的に見つけられず、探索の良し悪しと無関係に
+   取りこぼしになるため除外する（この測定が答えるのは「結果論文が索引されているとき、
+   #118 はそれを見つけられるか」）。この照会は**既知の論文の識別子を引き直しているだけ**で、
+   試験↔論文の紐付け自体は手順1のCrossref由来のままなので、戦略3との循環にはならない
+
+得られたのは 120 ペア（ctgov 40 / isrctn 30 / umin 20 / other 30）。全ペアがPMIDとDOIの両方を持つ。
+`other` の内訳は ANZCTR・CTRI・DRKS・IRCT・KCT・PACTR・TCTR・ChiCTR・NTR・EUCTR。
+jRCT は Crossref のレジストリ一覧に無く（jRCT は2018年開始で、それ以前の日本の試験は UMIN-CTR）、
+jrct 層は0件。
 
 この制約は運用の心がけではなく `scoring.ts` の `validateGroundTruth()` が実際に弾く。循環する由来の
 ペアを混ぜても黙って通ることはない。

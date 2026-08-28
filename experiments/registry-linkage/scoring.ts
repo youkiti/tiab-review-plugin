@@ -27,11 +27,23 @@ import type { PublicationCandidateDraft } from '../../src/lib/publication-sugges
  *   結果の公表状況、ISRCTNのpublication citations 等）。CTGov以外のレジストリに限る
  *   （CTGovのそれは `ctgov_references` であり循環するため）。
  * - `manual_curation`: 上記以外で人手により紐付けたもの。source_note に根拠を書くこと。
+ * - `crossref_ct_number`: Crossref の `clinical-trial-number`（出版社が論文メタデータとして
+ *   寄託する試験登録番号）。3戦略のどれとも別系統:
+ *   戦略1が読むのはレジストリ側の CTGov `referencesModule`、戦略2が引くのはNLMが索引する
+ *   PubMedの `[si]`/`[tiab]`、戦略3が見るのは Europe PMC の抄録・全文テキストであり、
+ *   いずれも出版社のCrossref寄託とは別のパイプライン。Crossrefに番号があってもPubMedの
+ *   `[si]` に索引されているとは限らず、抄録本文に書かれているとも限らないため、
+ *   「3戦略が取りこぼす論文」を実際に含みうる。
+ *   **ただし `registry_declared` と同じ向きの偏りがある**: 出版社が試験番号を寄託するような
+ *   論文は、抄録にも登録番号を書いている可能性が高い。したがってこの由来で測った取りこぼし率は
+ *   **下限**（実際の取りこぼしはこれ以上）であり、#119 を「実装しない」判断に使う分には
+ *   保守的だが、「実装する」判断の根拠にするときは割り引くこと。
  */
 export type Provenance =
     | 'sr_included_table'
     | 'registry_declared'
     | 'manual_curation'
+    | 'crossref_ct_number'
     | 'pubmed_si'
     | 'ctgov_references';
 

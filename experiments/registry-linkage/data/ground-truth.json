@@ -1,0 +1,842 @@
+[
+  {
+    "trial_id": "NCT03206333",
+    "pmid": "31352417",
+    "doi": "10.1136/bmjopen-2018-028752",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2018-028752 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02460718",
+    "pmid": "30373734",
+    "doi": "10.2337/dc18-0550",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.2337/dc18-0550 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT05323227",
+    "pmid": "36503252",
+    "doi": "10.1161/circimaging.122.014611",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1161/circimaging.122.014611 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00880659",
+    "pmid": "26066651",
+    "doi": "10.1371/journal.pone.0125200",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1371/journal.pone.0125200 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02556762",
+    "pmid": "27207358",
+    "doi": "10.1016/j.radonc.2016.04.042",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1016/j.radonc.2016.04.042 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03166397",
+    "pmid": "33990415",
+    "doi": "10.1136/jitc-2020-001743",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/jitc-2020-001743 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03447210",
+    "pmid": "33895711",
+    "doi": "10.1136/bmjopen-2020-041083",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2020-041083 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03680664",
+    "pmid": "34630733",
+    "doi": "10.1007/s12671-021-01764-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1007/s12671-021-01764-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01765361",
+    "pmid": "30760643",
+    "doi": "10.1136/jnnp-2018-319581",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/jnnp-2018-319581 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02489578",
+    "pmid": "29449294",
+    "doi": "10.1136/bmjopen-2017-018709",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2017-018709 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00659620",
+    "pmid": "29191959",
+    "doi": "10.1681/asn.2017070781",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1681/asn.2017070781 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02807909",
+    "pmid": "35641780",
+    "doi": "10.1007/s40119-022-00266-6",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1007/s40119-022-00266-6 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02015884",
+    "pmid": "31492791",
+    "doi": "10.1136/bmjopen-2019-031054",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2019-031054 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT04351581",
+    "pmid": "36450422",
+    "doi": "10.1136/bmjopen-2022-062895",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2022-062895 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02508038",
+    "pmid": "31401903",
+    "doi": "10.1080/14728214.2019.1654455",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1080/14728214.2019.1654455 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03120208",
+    "pmid": "31488469",
+    "doi": "10.1136/bmjopen-2018-027390",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2018-027390 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00182559",
+    "pmid": "26270340",
+    "doi": "10.1371/journal.pone.0135674",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1371/journal.pone.0135674 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01797367",
+    "pmid": "28409005",
+    "doi": "10.1136/bmjresp-2017-000180",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjresp-2017-000180 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03050424",
+    "pmid": "31548896",
+    "doi": "10.1136/bmjresp-2019-000454",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjresp-2019-000454 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03484702",
+    "pmid": "31110096",
+    "doi": "10.1136/bmjopen-2018-026644",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2018-026644 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03604120",
+    "pmid": "31028041",
+    "doi": "10.1136/bmjopen-2018-025909",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2018-025909 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03624530",
+    "pmid": "30916583",
+    "doi": "10.1080/13543784.2019.1597052",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1080/13543784.2019.1597052 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01435031",
+    "pmid": "26732420",
+    "doi": "10.1016/j.amjcard.2015.11.043",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1016/j.amjcard.2015.11.043 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03470545",
+    "pmid": "34018809",
+    "doi": "10.2217/fca-2021-0044",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.2217/fca-2021-0044 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01803139",
+    "pmid": "27637858",
+    "doi": "10.1016/j.radonc.2016.08.021",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1016/j.radonc.2016.08.021 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03012256",
+    "pmid": "31843821",
+    "doi": "10.1136/bmjopen-2019-030301",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2019-030301 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03332901",
+    "pmid": "31468255",
+    "doi": "10.1007/s10877-019-00380-2",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1007/s10877-019-00380-2 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01196507",
+    "pmid": "27298379",
+    "doi": "10.1136/gutjnl-2016-311735",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/gutjnl-2016-311735 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02393898",
+    "pmid": "35063943",
+    "doi": "10.1136/ijgc-2021-003190",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/ijgc-2021-003190 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02415322",
+    "pmid": "28982839",
+    "doi": "10.1136/bmjopen-2017-018350",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2017-018350 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT04019860",
+    "pmid": "33550228",
+    "doi": "10.1136/bmjopen-2020-040020",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjopen-2020-040020 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT04166903",
+    "pmid": "32704381",
+    "doi": "10.1136/bmjsem-2020-000786",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/bmjsem-2020-000786 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00629707",
+    "pmid": "34187840",
+    "doi": "10.2337/dc20-3113",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.2337/dc20-3113 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT01034462",
+    "pmid": "26256429",
+    "doi": "10.1016/j.clinthera.2015.07.005",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1016/j.clinthera.2015.07.005 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00649922",
+    "pmid": "27338778",
+    "doi": "10.1136/annrheumdis-2016-209322",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1136/annrheumdis-2016-209322 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT00312000",
+    "pmid": "27573427",
+    "doi": "10.1016/j.ejca.2016.07.013",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1016/j.ejca.2016.07.013 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03120598",
+    "pmid": "29149909",
+    "doi": "10.1186/s13722-017-0096-7",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1186/s13722-017-0096-7 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT02045394",
+    "pmid": "34348724",
+    "doi": "10.1186/s12931-021-01809-6",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1186/s12931-021-01809-6 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03378739",
+    "pmid": "35510546",
+    "doi": "10.1161/circheartfailure.121.009279",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1161/circheartfailure.121.009279 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NCT03487549",
+    "pmid": "34286459",
+    "doi": "10.1007/s13555-021-00576-y",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=nct）が DOI 10.1007/s13555-021-00576-y にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN15986016",
+    "pmid": "36414280",
+    "doi": "10.1136/bmjopen-2022-061111",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2022-061111 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN09454308",
+    "pmid": "29201152",
+    "doi": "10.1186/s13098-017-0292-3",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1186/s13098-017-0292-3 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN70913605",
+    "pmid": "27504003",
+    "doi": "10.1136/heartjnl-2015-308660",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/heartjnl-2015-308660 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN81456207",
+    "pmid": "28931531",
+    "doi": "10.1136/archdischild-2017-313375",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/archdischild-2017-313375 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN52341938",
+    "pmid": "31042335",
+    "doi": "10.3310/phr07070",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/phr07070 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN16061621",
+    "pmid": "29187412",
+    "doi": "10.1136/bmjopen-2017-017934",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2017-017934 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN12286422",
+    "pmid": "30183219",
+    "doi": "10.3310/hsdr06310",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hsdr06310 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN15397185",
+    "pmid": "31076476",
+    "doi": "10.1136/bmjopen-2018-028428",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2018-028428 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN19563136",
+    "pmid": "29072889",
+    "doi": "10.3310/phr05080",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/phr05080 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN46846388",
+    "pmid": "26372470",
+    "doi": "10.1371/journal.pmed.1001876",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1371/journal.pmed.1001876 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN95412360",
+    "pmid": "27900200",
+    "doi": "10.1136/bmjsem-2016-000181",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjsem-2016-000181 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN97372133",
+    "pmid": "28838972",
+    "doi": "10.1136/gutjnl-2016-313595",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/gutjnl-2016-313595 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN15830435",
+    "pmid": "33630732",
+    "doi": "10.3310/hta25100",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta25100 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN14646770",
+    "pmid": "36130761",
+    "doi": "10.1136/bmjopen-2021-059946",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2021-059946 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN10888758",
+    "pmid": "28855345",
+    "doi": "10.1136/neurintsurg-2017-013198",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/neurintsurg-2017-013198 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN56164274",
+    "pmid": "32902375",
+    "doi": "10.3310/hta24420",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta24420 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN74486341",
+    "pmid": "26847368",
+    "doi": "10.1136/archdischild-2015-309842",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/archdischild-2015-309842 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN10627379",
+    "pmid": "29781648",
+    "doi": "10.1037/ccp0000301",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1037/ccp0000301 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN95571506",
+    "pmid": "31350248",
+    "doi": "10.1136/bmjopen-2019-029187",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2019-029187 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN66496918",
+    "pmid": "29622578",
+    "doi": "10.1136/bmjopen-2017-020904",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/bmjopen-2017-020904 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN43696201",
+    "pmid": "32000796",
+    "doi": "10.1186/s12967-020-02230-1",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1186/s12967-020-02230-1 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN56275481",
+    "pmid": "27490043",
+    "doi": "10.1016/j.fertnstert.2016.07.1066",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1016/j.fertnstert.2016.07.1066 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN28955701",
+    "pmid": "29862047",
+    "doi": "10.1136/rmdopen-2018-000676",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/rmdopen-2018-000676 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN09599764",
+    "pmid": "31304912",
+    "doi": "10.3310/hta23340",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta23340 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN14998314",
+    "pmid": "31831587",
+    "doi": "10.1136/emermed-2019-208665",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/emermed-2019-208665 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN12715175",
+    "pmid": "31524133",
+    "doi": "10.3310/hta23470",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta23470 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN31707342",
+    "pmid": "33558215",
+    "doi": "10.1136/archdischild-2020-320627",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.1136/archdischild-2020-320627 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN65240228",
+    "pmid": "27477023",
+    "doi": "10.3310/hta20550",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta20550 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN49117867",
+    "pmid": "31456562",
+    "doi": "10.3310/hta23440",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta23440 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ISRCTN59757862",
+    "pmid": "31852579",
+    "doi": "10.3310/hta23640",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=isrctn）が DOI 10.3310/hta23640 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000025631",
+    "pmid": "30105289",
+    "doi": "10.1055/a-0614-2202",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1055/a-0614-2202 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000021228",
+    "pmid": "28789689",
+    "doi": "10.1186/s12933-017-0577-8",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1186/s12933-017-0577-8 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000026692",
+    "pmid": "32583394",
+    "doi": "10.1055/a-1183-3583",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1055/a-1183-3583 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000004678",
+    "pmid": "25816296",
+    "doi": "10.1371/journal.pone.0121988",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1371/journal.pone.0121988 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000033073",
+    "pmid": "36198904",
+    "doi": "10.1038/s41598-022-21178-4",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1038/s41598-022-21178-4 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000028237",
+    "pmid": "31144100",
+    "doi": "10.1007/s00380-019-01441-x",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s00380-019-01441-x にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000029830",
+    "pmid": "34420200",
+    "doi": "10.1007/s13555-021-00589-7",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s13555-021-00589-7 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000012994",
+    "pmid": "26930191",
+    "doi": "10.1371/journal.pone.0150374",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1371/journal.pone.0150374 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000002160",
+    "pmid": "26254752",
+    "doi": "10.1016/j.jtcvs.2015.07.003",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1016/j.jtcvs.2015.07.003 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000012341",
+    "pmid": "25803510",
+    "doi": "10.1371/journal.pone.0121352",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1371/journal.pone.0121352 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000030503",
+    "pmid": "29748907",
+    "doi": "10.1007/s10157-018-1584-0",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s10157-018-1584-0 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2018）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000017830",
+    "pmid": "29216912",
+    "doi": "10.1186/s13104-017-3053-3",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1186/s13104-017-3053-3 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000025913",
+    "pmid": "35859656",
+    "doi": "10.1055/a-1793-9439",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1055/a-1793-9439 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000001619",
+    "pmid": "35216603",
+    "doi": "10.1186/s12984-022-00986-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1186/s12984-022-00986-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000037158",
+    "pmid": "33063270",
+    "doi": "10.1007/s13300-020-00940-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s13300-020-00940-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2020）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000000556",
+    "pmid": "34403008",
+    "doi": "10.1007/s10157-021-02124-6",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s10157-021-02124-6 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000033406",
+    "pmid": "32621170",
+    "doi": "10.1007/s12928-020-00689-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s12928-020-00689-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000013283",
+    "pmid": "29330659",
+    "doi": "10.1007/s00394-018-1611-7",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1007/s00394-018-1611-7 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000024458",
+    "pmid": "34461842",
+    "doi": "10.1186/s12879-021-06602-w",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1186/s12879-021-06602-w にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "UMIN000017024",
+    "pmid": "27324158",
+    "doi": "10.1016/j.amjcard.2016.05.045",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=umin）が DOI 10.1016/j.amjcard.2016.05.045 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ACTRN12618001898246",
+    "pmid": "34368926",
+    "doi": "10.1007/s40271-021-00540-0",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=anzctr）が DOI 10.1007/s40271-021-00540-0 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "CTRI/2017/11/010654",
+    "pmid": "33428177",
+    "doi": "10.1007/s40263-020-00783-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ctri）が DOI 10.1007/s40263-020-00783-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "DRKS00005289",
+    "pmid": "29736452",
+    "doi": "10.1016/j.conctc.2016.02.001",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=drks）が DOI 10.1016/j.conctc.2016.02.001 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2016）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "IRCT20191016045131N1",
+    "pmid": "34727201",
+    "doi": "10.1007/s00394-021-02659-0",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=irct）が DOI 10.1007/s00394-021-02659-0 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "KCT0001117",
+    "pmid": "25482305",
+    "doi": "10.1016/j.clinthera.2014.11.004",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=kct）が DOI 10.1016/j.clinthera.2014.11.004 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NTR2612",
+    "pmid": "26381400",
+    "doi": "10.1371/journal.pone.0138342",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ntr）が DOI 10.1371/journal.pone.0138342 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "PACTR201708002499311",
+    "pmid": "33468147",
+    "doi": "10.1186/s12936-021-03585-6",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=pactr）が DOI 10.1186/s12936-021-03585-6 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "TCTR20150918001",
+    "pmid": "33407868",
+    "doi": "10.1186/s13104-020-05423-5",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=tctr）が DOI 10.1186/s13104-020-05423-5 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ACTRN12616000167460",
+    "pmid": "36535989",
+    "doi": "10.1038/s41598-022-25967-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=anzctr）が DOI 10.1038/s41598-022-25967-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ChiCTR1900027929",
+    "pmid": "34387823",
+    "doi": "10.1007/s13300-021-01135-6",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=chictr）が DOI 10.1007/s13300-021-01135-6 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "CTRI/2019/07/020320",
+    "pmid": "34627401",
+    "doi": "10.1186/s43019-021-00119-x",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ctri）が DOI 10.1186/s43019-021-00119-x にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "DRKS00017015",
+    "pmid": "34279669",
+    "doi": "10.1007/s00068-021-01736-7",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=drks）が DOI 10.1007/s00068-021-01736-7 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "2008-006087-11",
+    "pmid": "26051874",
+    "doi": "10.1016/j.clinthera.2015.05.002",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=euctr）が DOI 10.1016/j.clinthera.2015.05.002 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "IRCT20200212046469N1",
+    "pmid": "35264713",
+    "doi": "10.1038/s41598-022-08128-w",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=irct）が DOI 10.1038/s41598-022-08128-w にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "KCT0004276",
+    "pmid": "34476568",
+    "doi": "10.1007/s00394-021-02656-3",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=kct）が DOI 10.1007/s00394-021-02656-3 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "NTR1658",
+    "pmid": "30778742",
+    "doi": "10.1007/s10926-019-09831-8",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ntr）が DOI 10.1007/s10926-019-09831-8 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "PACTR201310000635418",
+    "pmid": "28160772",
+    "doi": "10.1186/s12981-017-0134-2",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=pactr）が DOI 10.1186/s12981-017-0134-2 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "TCTR20220219002",
+    "pmid": "35499741",
+    "doi": "10.1007/s13555-022-00730-0",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=tctr）が DOI 10.1007/s13555-022-00730-0 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ACTRN12608000166370",
+    "pmid": "35067819",
+    "doi": "10.1007/s11136-021-03066-y",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=anzctr）が DOI 10.1007/s11136-021-03066-y にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ChiCTR1800017058",
+    "pmid": "33185117",
+    "doi": "10.1161/circheartfailure.120.007944",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=chictr）が DOI 10.1161/circheartfailure.120.007944 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2021）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "CTRI/2016/11/007491",
+    "pmid": "34918194",
+    "doi": "10.1007/s12325-021-01971-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ctri）が DOI 10.1007/s12325-021-01971-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "DRKS00013515",
+    "pmid": "34694431",
+    "doi": "10.1007/s00404-021-06291-5",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=drks）が DOI 10.1007/s00404-021-06291-5 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "2017-004677-14",
+    "pmid": "36350354",
+    "doi": "10.1007/s00134-022-06921-9",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=euctr）が DOI 10.1007/s00134-022-06921-9 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "IRCT2015102524686N1",
+    "pmid": "35094120",
+    "doi": "10.1007/s00405-021-07237-y",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=irct）が DOI 10.1007/s00405-021-07237-y にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "KCT0001877",
+    "pmid": "30710258",
+    "doi": "10.1007/s12630-019-01299-7",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=kct）が DOI 10.1007/s12630-019-01299-7 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2019）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "PACTR2010050002122368",
+    "pmid": "25875843",
+    "doi": "10.1371/journal.pone.0119629",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=pactr）が DOI 10.1371/journal.pone.0119629 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "TCTR20200921003",
+    "pmid": "36455172",
+    "doi": "10.1200/go.22.00205",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=tctr）が DOI 10.1200/go.22.00205 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ACTRN12607000512426",
+    "pmid": "35513735",
+    "doi": "10.1007/s41669-022-00332-8",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=anzctr）が DOI 10.1007/s41669-022-00332-8 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2022）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "ChiCTR-TRC-12002204",
+    "pmid": "25993648",
+    "doi": "10.1371/journal.pone.0125942",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=chictr）が DOI 10.1371/journal.pone.0125942 にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2015）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "CTRI/2013/08/003883",
+    "pmid": "27566696",
+    "doi": "10.1007/s00404-016-4173-z",
+    "provenance": "crossref_ct_number",
+    "source_note": "Crossref works API の clinical-trial-number（registry=ctri）が DOI 10.1007/s00404-016-4173-z にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  }
+]
