@@ -161,8 +161,9 @@ test('decide: Issue #119 本文の閾値をそのまま判定する', () => {
 // preflight は開始時点しか見ていないため、途中から eutils が 429 を返し始めると
 // 以降のペアは静かに全部「取りこぼし」に積まれ、取りこぼし率が水増しされる。
 
+// NCTは8桁固定。素の埋め込みだと i>=10 で9桁になり classifyRegistry が 'other' を返してしまう
 const pairAt = (i: number): GroundTruthPair =>
-    ({ trial_id: `NCT0000000${i}`, pmid: String(i), provenance: 'sr_included_table' });
+    ({ trial_id: `NCT${String(i).padStart(8, '0')}`, pmid: String(i), provenance: 'sr_included_table' });
 
 test('detectStrategyOutage: 末尾で候補を返さなくなった戦略を検出する', () => {
     // 先頭3件は pubmed_id が候補を返しているが、そこから12件は一度も返していない
@@ -182,6 +183,45 @@ test('detectStrategyOutage: 最後まで返している戦略は検出しない'
     const results = Array.from({ length: 20 }, (_, k) =>
         evaluatePair(pairAt(k + 1), [draft({ pmid: String(k + 1), strategy: 'pubmed_id' })]));
     assert.deepEqual(detectStrategyOutage(results), []);
+});
+
+test('detectStrategyOutage: 効かない層が末尾に並んでいても誤検出しない', () => {
+    // 実測で踏んだ誤検出。戦略1はNCTにしか効かないので、正解セットを層順に並べると
+    // 非NCT層が丸ごと「末尾の空白」に見えてしまう。効いた層だけに絞って数える。
+    const results = [
+        ...Array.from({ length: 5 }, (_, k) =>
+            evaluatePair(pairAt(k + 1), [draft({ pmid: String(k + 1), strategy: 'ctgov_reference' })])),
+        ...Array.from({ length: 20 }, (_, k) => evaluatePair(
+            { trial_id: `ISRCTN1000000${k}`, pmid: 'x', provenance: 'sr_included_table' },
+            [draft({ pmid: 'x', strategy: 'pubmed_id' })])),
+    ];
+    const outages = detectStrategyOutage(results);
+    assert.deepEqual(outages.filter(o => o.strategy === 'ctgov_reference'), [],
+        'ctgov層では最後まで候補を返しているので警告しない');
+});
+
+test('detectStrategyOutage: 元々まばらな戦略は内部の空白より短い末尾では検出しない', () => {
+    // 実測で踏んだ誤検出。戦略3は正常時でも途中に大きな空白が空くので、
+    // 固定閾値だと末尾の空白を落ちたと誤認する。
+    const hitAt = new Set([0, 20, 40]);   // 途中に19件の空白がある
+    const results = Array.from({ length: 55 }, (_, k) => evaluatePair(
+        pairAt(k + 1),
+        hitAt.has(k) ? [draft({ pmid: 'z', strategy: 'europepmc' })] : []
+    ));
+    // 末尾の空白は14件で minRun(10) は超えるが、内部の最大空白19件より短い
+    assert.deepEqual(detectStrategyOutage(results), []);
+});
+
+test('detectStrategyOutage: 内部の空白より長い末尾なら検出する', () => {
+    const hitAt = new Set([0, 5, 10]);    // 内部の最大空白は4件
+    const results = Array.from({ length: 40 }, (_, k) => evaluatePair(
+        pairAt(k + 1),
+        hitAt.has(k) ? [draft({ pmid: 'z', strategy: 'europepmc' })] : []
+    ));
+    const outages = detectStrategyOutage(results);
+    assert.equal(outages.length, 1);
+    assert.equal(outages[0].trailing, 29);
+    assert.equal(outages[0].maxInternalGap, 4);
 });
 
 test('detectStrategyOutage: 空白が閾値未満なら検出しない（0件は正常でも起きる）', () => {

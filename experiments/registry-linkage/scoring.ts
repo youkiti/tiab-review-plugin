@@ -254,22 +254,47 @@ export function decide(missRate: number): Verdict {
  * 各戦略が候補を最後に返したのが何件目かを見て、末尾に長い空白が続いていれば
  * 「その戦略が途中で死んだ可能性」として警告する（正常でも0件は普通に起きるので、
  * **中止はせず判断材料として出すだけ**）。
+ *
+ * 素朴に「末尾N件が0件なら警告」にすると誤検出だらけになる。実測（120ペア）で分かった
+ * 2つの誤検出要因を、それぞれ次のように潰してある:
+ *
+ * 1. **戦略には効く層と効かない層がある。** 戦略1（`ctgov_reference`）はNCTにしか効かないので、
+ *    正解セットを層順（ctgov → isrctn → umin → other）に並べると、非NCTの80件が丸ごと
+ *    「末尾の空白」に見えてしまう。→ その戦略が**一度でも候補を返した層だけ**に絞って数える
+ *    （一度も効かない層で「落ちた」とは言えない）。
+ * 2. **戦略ごとに疎さが違う。** 戦略3（`europepmc`）は正常時でも120件中20件しかヒットせず、
+ *    途中に最大18件の空白が普通に空く。固定の閾値10では末尾11件の空白で誤検出する。
+ *    → **その戦略が現に動いていた区間で見せた最大の空白よりも長い**ときだけ警告する。
  */
 export function detectStrategyOutage(
     results: PairResult[],
     minRun = 10
-): Array<{ strategy: string; lastHitIndex: number; trailing: number }> {
+): Array<{ strategy: string; lastHitIndex: number; trailing: number; maxInternalGap: number }> {
     const strategies = new Set<string>();
     for (const r of results) for (const k of Object.keys(r.count_by_strategy)) strategies.add(k);
 
-    const outages: Array<{ strategy: string; lastHitIndex: number; trailing: number }> = [];
+    const outages: Array<{ strategy: string; lastHitIndex: number; trailing: number; maxInternalGap: number }> = [];
     for (const strategy of strategies) {
-        let lastHitIndex = -1;
-        for (const [i, r] of results.entries()) {
-            if ((r.count_by_strategy[strategy] ?? 0) > 0) lastHitIndex = i;
+        const hit = (r: PairResult): boolean => (r.count_by_strategy[strategy] ?? 0) > 0;
+
+        // 要因1: その戦略が一度でも効いた層だけを対象にする
+        const activeStrata = new Set(results.filter(hit).map(r => r.stratum));
+        const scoped = results.filter(r => activeStrata.has(r.stratum));
+
+        const hitIndexes = scoped.map((r, i) => (hit(r) ? i : -1)).filter(i => i >= 0);
+        if (hitIndexes.length === 0) continue;
+
+        // 要因2: 動いていた区間で見せた最大の空白を、警告の下限にする
+        let maxInternalGap = 0;
+        for (const [a, b] of hitIndexes.slice(0, -1).map((a, i) => [a, hitIndexes[i + 1]])) {
+            maxInternalGap = Math.max(maxInternalGap, b - a - 1);
         }
-        const trailing = results.length - 1 - lastHitIndex;
-        if (trailing >= minRun) outages.push({ strategy, lastHitIndex, trailing });
+
+        const lastHitIndex = hitIndexes[hitIndexes.length - 1];
+        const trailing = scoped.length - 1 - lastHitIndex;
+        if (trailing >= minRun && trailing > maxInternalGap) {
+            outages.push({ strategy, lastHitIndex, trailing, maxInternalGap });
+        }
     }
     return outages;
 }

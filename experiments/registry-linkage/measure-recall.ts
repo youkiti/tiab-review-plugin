@@ -325,7 +325,8 @@ async function main(): Promise<void> {
     }
     for (const o of detectStrategyOutage(results)) {
         warnings.push(`戦略 \`${o.strategy}\` が末尾 ${o.trailing} 件で一度も候補を返していない` +
-            `（最後に返したのは ${o.lastHitIndex + 1} 件目）。途中でAPIが落ちた可能性を確認すること`);
+            `（その戦略が効く層に絞った並びで、最後に返したのは ${o.lastHitIndex + 1} 件目。` +
+            `動いていた区間での最大の空白は ${o.maxInternalGap} 件）。途中でAPIが落ちた可能性を確認すること`);
     }
     for (const w of warnings) console.warn(`⚠ ${w.replace(/\*\*/g, '')}`);
     if (postFailures.length === 0) console.log('OK');
