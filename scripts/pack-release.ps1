@@ -53,9 +53,11 @@ Write-Host "✓ dist/ を $stagingPath へコピーしました"
 
 # 2. ステージングディレクトリから .map ファイルを再帰的に削除する
 # Get-ChildItem -Filter "*.map" は使わないこと。PowerShell の -Filter は Windows の
-# 8.3 短縮名によるワイルドカードマッチの影響を受け、意図しない拡張子を巻き込みうる。
-# dist/cmaps/ には pdf.js の .bcmap が168本入っており、これを誤って消すと
-# 一部PDFの描画が壊れる。拡張子の厳密一致（-eq '.map'）で絞り込むこと。
+# 8.3 短縮名によるワイルドカードマッチの影響を受け、拡張子が .map でなくても短縮名の
+# 拡張子部分が「MAP」になるファイル（例: routes.mapping, data.mapx）を誤って巻き込みうる
+# （PR #127 レビュー指摘: Windows PowerShell 5.1・8.3短縮名有効の環境で実測して確認）。
+# dist/cmaps/ には pdf.js の .bcmap が168本入っており、これは一部PDFの描画に必要なので
+# 消してはいけない。拡張子の厳密一致（-eq '.map'）で絞り込むこと。
 # @() で必ず配列にする: 1件もマッチしないと Where-Object は $null を返し、
 # $null | Remove-Item -Force はパイプラインに単一の $null を流すためパラメータ
 # バインドに失敗し、「Cannot bind argument to parameter 'Path' because it is null.」
