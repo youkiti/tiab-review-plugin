@@ -62,6 +62,7 @@ import type { AiEvidenceEmptyReason } from '../lib/ai-evidence-empty-reason';
 import { isFulltextCandidateRef } from '../lib/fulltext-candidates';
 import { isRegistrationRecord } from '../lib/registry-record';
 import { resolveFulltextDisplayMode } from '../lib/fulltext-display-mode';
+import { isImeComposing } from '../lib/ime-composition';
 import {
     canSeeFulltextRef,
     createDefaultFulltextAssignment,
@@ -732,8 +733,20 @@ function wireDecisionButtons(): void {
 
     // メモ欄で Enter（改行は Shift+Enter）: メモ込みで保存して次の候補へ。
     // 保留メモの「任意入力 → Enter で次へ」フローに使う（除外でも同様に効く）。
-    document.getElementById('ft-reason-note')?.addEventListener('keydown', (e: KeyboardEvent) => {
+    //
+    // 日本語入力では変換の確定にも Enter を使うため、変換中の Enter を拾うと
+    // メモを書いている途中で次の文献へ飛んでしまう。IME 変換中は必ず読み飛ばし、
+    // 変換が確定したあとにもう一度押された Enter だけを「次へ」として扱う。
+    const noteEl = document.getElementById('ft-reason-note');
+    // isComposing を立てない IME への保険として、変換状態を自前でも追跡する
+    let noteComposing = false;
+    noteEl?.addEventListener('compositionstart', () => { noteComposing = true; });
+    noteEl?.addEventListener('compositionend', () => { noteComposing = false; });
+    // blur 時に compositionend が来ないケースでも状態が残らないようにする
+    noteEl?.addEventListener('blur', () => { noteComposing = false; });
+    noteEl?.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (isImeComposing(e, noteComposing)) return;
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             void commitNoteAndAdvance();
@@ -929,8 +942,8 @@ function updateReasonArea(): void {
         hint?.classList.toggle('hidden', !excludeMode);
         if (note) {
             note.placeholder = excludeMode
-                ? '補足メモ（任意）'
-                : '判断できなかった点のメモ（任意・Enterで次へ）';
+                ? '補足メモ（任意・Enterで保存して次へ／Shift+Enterで改行）'
+                : '判断できなかった点のメモ（任意・Enterで保存して次へ／Shift+Enterで改行）';
         }
         // 既存の除外理由を復元
         if (select) {
