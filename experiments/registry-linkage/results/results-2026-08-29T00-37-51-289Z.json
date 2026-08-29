@@ -1,0 +1,1983 @@
+{
+  "args": {
+    "input": "experiments/registry-linkage/data/ground-truth.json",
+    "outDir": "experiments/registry-linkage/results",
+    "delayMs": 350,
+    "pairDelayMs": 1000,
+    "email": "(指定あり・記録しない)"
+  },
+  "warnings": [],
+  "summary": {
+    "overall": {
+      "n": 163,
+      "found": 105,
+      "missed": 58,
+      "miss_rate": 0.3558282208588957,
+      "mean_candidate_count": 2.1533742331288344,
+      "found_by": {
+        "ctgov_reference": 28,
+        "europepmc": 6,
+        "pubmed_id": 71
+      }
+    },
+    "by_stratum": {
+      "ctgov": {
+        "n": 40,
+        "found": 33,
+        "missed": 7,
+        "miss_rate": 0.175,
+        "mean_candidate_count": 3.85,
+        "found_by": {
+          "ctgov_reference": 28,
+          "europepmc": 3,
+          "pubmed_id": 2
+        }
+      },
+      "isrctn": {
+        "n": 30,
+        "found": 23,
+        "missed": 7,
+        "miss_rate": 0.23333333333333334,
+        "mean_candidate_count": 3.3666666666666667,
+        "found_by": {
+          "pubmed_id": 23
+        }
+      },
+      "umin": {
+        "n": 20,
+        "found": 15,
+        "missed": 5,
+        "miss_rate": 0.25,
+        "mean_candidate_count": 1.25,
+        "found_by": {
+          "pubmed_id": 15
+        }
+      },
+      "other": {
+        "n": 30,
+        "found": 28,
+        "missed": 2,
+        "miss_rate": 0.06666666666666667,
+        "mean_candidate_count": 1.8666666666666667,
+        "found_by": {
+          "pubmed_id": 27,
+          "europepmc": 1
+        }
+      },
+      "jrct": {
+        "n": 43,
+        "found": 6,
+        "missed": 37,
+        "miss_rate": 0.8604651162790697,
+        "mean_candidate_count": 0.3488372093023256,
+        "found_by": {
+          "pubmed_id": 4,
+          "europepmc": 2
+        }
+      }
+    }
+  },
+  "results": [
+    {
+      "trial_id": "NCT03206333",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT02460718",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT05323227",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT00880659",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 3,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "ctgov_reference": 3
+      }
+    },
+    {
+      "trial_id": "NCT02556762",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 5,
+      "count_by_strategy": {
+        "europepmc": 5
+      }
+    },
+    {
+      "trial_id": "NCT03166397",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 9,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 8
+      }
+    },
+    {
+      "trial_id": "NCT03447210",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT03680664",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT01765361",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 1,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "europepmc": 4
+      }
+    },
+    {
+      "trial_id": "NCT02489578",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 7,
+      "candidate_count": 8,
+      "count_by_strategy": {
+        "ctgov_reference": 7,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT00659620",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 11,
+      "candidate_count": 14,
+      "count_by_strategy": {
+        "europepmc": 14
+      }
+    },
+    {
+      "trial_id": "NCT02807909",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT02015884",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT04351581",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT02508038",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 25,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 24
+      }
+    },
+    {
+      "trial_id": "NCT03120208",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT00182559",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT01797367",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 2,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "ctgov_reference": 4
+      }
+    },
+    {
+      "trial_id": "NCT03050424",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 3,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "europepmc": 3
+      }
+    },
+    {
+      "trial_id": "NCT03484702",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT03604120",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT03624530",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "europepmc": 2
+      }
+    },
+    {
+      "trial_id": "NCT01435031",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT03470545",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 15,
+      "candidate_count": 20,
+      "count_by_strategy": {
+        "ctgov_reference": 18,
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "NCT01803139",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT03012256",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT03332901",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT01196507",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT02393898",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT02415322",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 4,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "ctgov_reference": 4
+      }
+    },
+    {
+      "trial_id": "NCT04019860",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 4,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "ctgov_reference": 4
+      }
+    },
+    {
+      "trial_id": "NCT04166903",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT00629707",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 2,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "ctgov_reference": 3
+      }
+    },
+    {
+      "trial_id": "NCT01034462",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "ctgov_reference": 3,
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "NCT00649922",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT00312000",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "ctgov_reference": 3
+      }
+    },
+    {
+      "trial_id": "NCT03120598",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT02045394",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "ctgov_reference": 3,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT03378739",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT03487549",
+      "stratum": "ctgov",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN15986016",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 4,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "pubmed_id": 6
+      }
+    },
+    {
+      "trial_id": "ISRCTN09454308",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 4,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "pubmed_id": 4
+      }
+    },
+    {
+      "trial_id": "ISRCTN70913605",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "pubmed_id": 6
+      }
+    },
+    {
+      "trial_id": "ISRCTN81456207",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "pubmed_id": 4
+      }
+    },
+    {
+      "trial_id": "ISRCTN52341938",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN16061621",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN12286422",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "ISRCTN15397185",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 3,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "ISRCTN19563136",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN46846388",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN95412360",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN97372133",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN15830435",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 3,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "pubmed_id": 6
+      }
+    },
+    {
+      "trial_id": "ISRCTN14646770",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN10888758",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 27,
+      "count_by_strategy": {
+        "pubmed_id": 20,
+        "europepmc": 7
+      }
+    },
+    {
+      "trial_id": "ISRCTN56164274",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 4,
+      "candidate_count": 7,
+      "count_by_strategy": {
+        "pubmed_id": 7
+      }
+    },
+    {
+      "trial_id": "ISRCTN74486341",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN10627379",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN95571506",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN66496918",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN43696201",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN56275481",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "ISRCTN28955701",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "ISRCTN09599764",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ISRCTN14998314",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN12715175",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN31707342",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN65240228",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "ISRCTN49117867",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "ISRCTN59757862",
+      "stratum": "isrctn",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 4,
+      "candidate_count": 5,
+      "count_by_strategy": {
+        "pubmed_id": 5
+      }
+    },
+    {
+      "trial_id": "UMIN000025631",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 2,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000021228",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000026692",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000004678",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000033073",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000028237",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000029830",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000012994",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000002160",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000012341",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000030503",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000017830",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000025913",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "UMIN000001619",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000037158",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000000556",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000033406",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000013283",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000024458",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000017024",
+      "stratum": "umin",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ACTRN12618001898246",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "CTRI/2017/11/010654",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "DRKS00005289",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "IRCT20191016045131N1",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "KCT0001117",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NTR2612",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "PACTR201708002499311",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "TCTR20150918001",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ACTRN12616000167460",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "ChiCTR1900027929",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 3,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "CTRI/2019/07/020320",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "DRKS00017015",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "2008-006087-11",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "IRCT20200212046469N1",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "KCT0004276",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "NTR1658",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "PACTR201310000635418",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 3,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "pubmed_id": 3
+      }
+    },
+    {
+      "trial_id": "TCTR20220219002",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ACTRN12608000166370",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 5,
+      "count_by_strategy": {
+        "pubmed_id": 4,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "ChiCTR1800017058",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 9,
+      "candidate_count": 9,
+      "count_by_strategy": {
+        "pubmed_id": 9
+      }
+    },
+    {
+      "trial_id": "CTRI/2016/11/007491",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "DRKS00013515",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "2017-004677-14",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "IRCT2015102524686N1",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "KCT0001877",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "PACTR2010050002122368",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "TCTR20200921003",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "ACTRN12607000512426",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 2,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "pubmed_id": 4
+      }
+    },
+    {
+      "trial_id": "ChiCTR-TRC-12002204",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "CTRI/2013/08/003883",
+      "stratum": "other",
+      "provenance": "crossref_ct_number",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "jRCTs011180014",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223886",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223426",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs031180397",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs031180216",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "jRCT2031200367",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT1080224515",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080221780",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs051200040",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 3,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "europepmc": 4
+      }
+    },
+    {
+      "trial_id": "jRCTs042180076",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "jRCT1080221967",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT1080223200",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2031200174",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "europepmc": 3
+      }
+    },
+    {
+      "trial_id": "jRCTc030190219",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080221984",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs041180067",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080221765",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080225108",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080222944",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080224755",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080221987",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs061180082",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "jRCT2080225157",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs071180037",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "jRCT2080221968",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs041180141",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2033200191",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs042180077",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "pubmed_id": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "jRCTs051220195",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT1051180028",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "jRCTs042180091",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223346",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080222988",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080224580",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223355",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080222879",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223909",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs051180232",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "europepmc",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "jRCTs051210176",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223479",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs011180005",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCT2080223453",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "jRCTs012210049",
+      "stratum": "jrct",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    }
+  ],
+  "rejected": []
+}

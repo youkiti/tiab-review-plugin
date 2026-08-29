@@ -78,8 +78,11 @@ Crossrefに番号があっても PubMed の `[si]` に索引されていると�
 
 得られたのは 120 ペア（ctgov 40 / isrctn 30 / umin 20 / other 30）。全ペアがPMIDとDOIの両方を持つ。
 `other` の内訳は ANZCTR・CTRI・DRKS・IRCT・KCT・PACTR・TCTR・ChiCTR・NTR・EUCTR。
-jRCT は Crossref のレジストリ一覧に無く（jRCT は2018年開始で、それ以前の日本の試験は UMIN-CTR）、
-jrct 層は0件。
+jRCT は Crossref のレジストリ一覧に無い（2026-08-29 に `has-clinical-trial-number:true` の1,200件標本で
+再確認済み。registry は clinical-trials-gov / isrctn / umin-japan / anzctr / chictr / irct / pactr /
+dutch-trial-register / drks / clinical-trial-registry-india / cris / tctr のみでjRCTは無かった）ため、
+この由来では jrct 層は作れない。2026-08-29 に `registry_declared`（jRCTの投稿者申告欄）由来で
+jrct 43ペアを別途追加した。作り方は下記「jrct 層の正解セットの作り方（2026-08-29 追加）」を参照。
 
 この制約は運用の心がけではなく `scoring.ts` の `validateGroundTruth()` が実際に弾く。循環する由来の
 ペアを混ぜても黙って通ることはない。
@@ -112,6 +115,60 @@ jrct 層は0件。
 ```
 
 `pmid` と `doi` は少なくとも一方が必要（両方あると照合が安定する）。1試験1行。
+
+## jrct 層の正解セットの作り方（2026-08-29 追加）
+
+上記の `crossref_ct_number` 由来ではjRCTが作れないため、`registry_declared`
+（jRCTの投稿者申告欄）由来で別途収集し、`data/ground-truth.json` に追記した。
+手順は以下のとおり（由来は `registry_declared`。43ペア、全件がPMIDとDOIの両方を持つ）:
+
+1. jRCT のフリーワード検索に `pubmed`（AND 検索、`free_op=0`）を掛けて 317 件を得る。
+   この検索は「結果と出版物に関するURL」欄を索引している（`jRCT1030210638` の当該欄が
+   `https://pubmed.ncbi.nlm.nih.gov/41159320/` で、この検索でヒットすることを実地確認した）
+2. 検索結果一覧の日付列が 2024 年以前の 225 件に絞る（索引ラグ回避の一次フィルタ）
+3. `random.seed(20260829)` で 45 件を無作為抽出
+4. 各詳細ページ `https://jrct.mhlw.go.jp/latest-detail/<試験ID>` から
+   「結果と出版物に関するURL」を抽出（**20秒間隔**。理由は下の「jRCT へのアクセスについて」）
+5. 公表URLがちょうど1件のものだけを残す（1試験に複数論文があると、#118 が「別の正しい論文」を
+   返したときに不当な取りこぼしとして数えてしまうため。既存120ペアが「論文がちょうど1本の試験だけ」に
+   絞っているのと同じ理由）
+6. URL から PMID / DOI を解決し、Europe PMC で索引されていることと `pubYear` を確認。`pubYear<=2024` に限定
+7. 除外は5件のみ: 発行年2026が2件、発行年2025が1件、公表URLの申告なしが2件 → **43件を採用**
+
+### 副登録番号の対照セット（`data/ground-truth-jrct-secondary.json`）の作り方
+
+目的は「jRCT ID の代わりに、jRCT レコードが申告している副登録番号で探索したらどうなるか」を
+測る対照セットを作ること。元にするのは上の手順で作った jrct 43ペアと同じ試験で、追加のページ取得は
+していない（手順4で取得済みの詳細ページを再利用した）。手順は以下のとおり:
+
+1. 各詳細ページから「他の登録機関でのID番号 / Secondary ID No.」欄の値を抜き、正規表現
+   `(JapicCTI-?\d+|UMIN0*\d{6,}|C\d{9}|NCT\d{8}|ISRCTN\d+|EudraCT\s*[\d-]+|\d{4}-\d{6}-\d{2})`
+   （大文字小文字は無視）で登録番号を取り出す
+2. 申告があったのは43件中34件。複数の副登録番号を持つ試験は0件だった（全件がちょうど1件）
+3. `trial_id` をその副登録番号に差し替え、`pmid` / `doi` は元の43ペアと同じ値をそのまま使う。
+   紐付けの由来は変わらず jRCT の「結果と出版物に関するURL」欄なので `provenance` は
+   `registry_declared` のまま
+
+得られた34ペアの層別内訳は ctgov（NCT）21 / umin 9 / other（JapicCTI）4。測定は本測定と同じ
+`measure-recall.ts` に `--input data/ground-truth-jrct-secondary.json` を渡して実行した。
+
+## jRCT へのアクセスについて
+
+- **旧ホスト `jrct.niph.go.jp` は到達不能。** TLS handshake failure（alert 40）で、
+  curl(schannel) / Node(OpenSSL) / PowerShell(.NET) / Chrome(BoringSSL) の**4スタックすべてで再現**した。
+  DNS は正引きできる（CloudFrontを指す）ので、名前解決の問題ではない。
+- **現行ホストは `https://jrct.mhlw.go.jp/`。** jRCT は **2025-03-25 に国立保健医療科学院（NIPH）から
+  厚生労働省へ移管**され URL が変わった。詳細ページは `https://jrct.mhlw.go.jp/latest-detail/<試験ID>`。
+  Issue #131 が挙げていた「実行環境から到達できなかった」というブロッカーの正体はこれ（古いホスト名）で、
+  ネットワーク制限ではなかった。
+- **サイトは大量の自動データ収集を明示的に断っている**（検索画面に
+  「個人利用の範囲を超えた大量データ収集はお控えください。プログラムを利用した自動操作等による
+  意図的な大量データ収集は個人利用の範囲を超えた利用とみなされます。」の掲示）。
+  CloudFront WAF は headless ブラウザを 403 で遮断し、**4秒間隔・約30リクエストで IP 単位のブロック**を
+  受けた（約10分で解除された）。**総当たりクロールはしないこと。** 上の手順は
+  「公表論文を申告済みの試験だけを検索で絞り込む」ことで取得件数を最小化している。
+- 一括ダウンロードAPI・構造化データ提供は存在しない（検索結果CSVダウンロードは利用規約の同意チェックが要る
+  人手操作の機能）。
 
 ## 実行
 
@@ -170,6 +227,10 @@ npx ts-node --project experiments/tsconfig.json experiments/registry-linkage/mea
   「レジストリに申告がある試験」は「論文に登録番号が載っている試験」に寄りやすい。
   偏りの向きは**取りこぼしを小さく見せる側**なので、#119 を実装しない判断に使う分には保守的だが、
   実装する判断の根拠にするときはこの点を割り引くこと。
+- **jrct 43ペアのプールは「公表論文URLとして PubMed リンクを申告した試験」に限定される（2026-08-29 追加）。**
+  DOI リンクや雑誌ページを申告した試験は入らない。紐付けの信号（jRCTの申告欄）は3戦略のいずれとも
+  独立なので循環はしないが、上の `registry_declared` の偏り（几帳面な研究者に寄る＝取りこぼしを
+  小さく見せる方向）を一段強める。それでも jrct 層の取りこぼし率は 86.0% だったという読み方になる。
 - **`sr_included_table` は「発表され索引された論文」に限られる。** SRはデータベース検索で組み入れ
   研究を見つけるため、そもそも見つからない論文は表に載らない。この測定が答えるのは
   「結果論文が存在するとき、#118 はそれを見つけられるか」であって、「結果論文が存在するか」ではない。

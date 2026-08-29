@@ -838,5 +838,306 @@
     "doi": "10.1007/s00404-016-4173-z",
     "provenance": "crossref_ct_number",
     "source_note": "Crossref works API の clinical-trial-number（registry=ctri）が DOI 10.1007/s00404-016-4173-z にこの試験IDを寄託している（2026-08-28 取得）。論文がEurope PMCに索引されていることを DOI 照会で確認済み（pubYear=2017）。https://api.crossref.org/works?filter=has-clinical-trial-number:true"
+  },
+  {
+    "trial_id": "jRCTs011180014",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/32973350/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs011180014 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "32973350",
+    "doi": "10.1038/s41409-020-01065-0"
+  },
+  {
+    "trial_id": "jRCT2080223886",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/31696635/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223886 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "31696635",
+    "doi": "10.1111/luts.12295"
+  },
+  {
+    "trial_id": "jRCT2080223426",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/36099926/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223426 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "36099926",
+    "doi": "10.1016/s0140-6736(22)01658-0"
+  },
+  {
+    "trial_id": "jRCTs031180397",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/32798657/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs031180397 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "32798657",
+    "doi": "10.1016/j.bbmt.2020.08.008"
+  },
+  {
+    "trial_id": "jRCTs031180216",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/33136471/,https://doi.org/10.1200/JCO.20.01806 （https://jrct.mhlw.go.jp/latest-detail/jRCTs031180216 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "33136471",
+    "doi": "10.1200/jco.20.01806"
+  },
+  {
+    "trial_id": "jRCT2031200367",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/35588897/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2031200367 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "35588897",
+    "doi": "10.1016/j.ahj.2022.05.004"
+  },
+  {
+    "trial_id": "jRCT1080224515",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/34304385/ （https://jrct.mhlw.go.jp/latest-detail/jRCT1080224515 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "34304385",
+    "doi": "10.1007/s13300-021-01117-8"
+  },
+  {
+    "trial_id": "jRCT2080221780",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://www.ncbi.nlm.nih.gov/pubmed/28000099 （https://jrct.mhlw.go.jp/latest-detail/jRCT2080221780 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2017）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "28000099",
+    "doi": "10.1007/s12185-016-2149-1"
+  },
+  {
+    "trial_id": "jRCTs051200040",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/38833968/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs051200040 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2024）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "38833968",
+    "doi": "10.1016/j.esmoop.2024.103476"
+  },
+  {
+    "trial_id": "jRCTs042180076",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/32857255/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs042180076 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "32857255",
+    "doi": "10.1007/s10157-020-01959-9"
+  },
+  {
+    "trial_id": "jRCT1080221967",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/32719981/ （https://jrct.mhlw.go.jp/latest-detail/jRCT1080221967 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "32719981",
+    "doi": "10.1007/s00774-020-01118-w"
+  },
+  {
+    "trial_id": "jRCT1080223200",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://www.ncbi.nlm.nih.gov/pubmed/29659797 （https://jrct.mhlw.go.jp/latest-detail/jRCT1080223200 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2018）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "29659797",
+    "doi": "10.1093/eurheartj/ehy148"
+  },
+  {
+    "trial_id": "jRCT2031200174",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/35093205/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2031200174 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "35093205",
+    "doi": "10.1016/s0140-6736(22)00101-5"
+  },
+  {
+    "trial_id": "jRCTc030190219",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/30327740 （https://jrct.mhlw.go.jp/latest-detail/jRCTc030190219 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2018）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "30327740",
+    "doi": "10.1155/2018/1275713"
+  },
+  {
+    "trial_id": "jRCT2080221984",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://www.ncbi.nlm.nih.gov/pubmed/28467869?dopt=Abstract （https://jrct.mhlw.go.jp/latest-detail/jRCT2080221984 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2017）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "28467869",
+    "doi": "10.1056/nejmoa1606910"
+  },
+  {
+    "trial_id": "jRCTs041180067",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37537972/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs041180067 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37537972",
+    "doi": "10.1177/12034754231191062"
+  },
+  {
+    "trial_id": "jRCT2080221765",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/26732384/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080221765 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2016）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "26732384",
+    "doi": "10.1093/jjco/hyv181"
+  },
+  {
+    "trial_id": "jRCT2080225108",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/35367007/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080225108 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "35367007",
+    "doi": "10.1016/s0140-6736(22)00562-1"
+  },
+  {
+    "trial_id": "jRCT2080222944",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/29061751/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080222944 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2018）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "29061751",
+    "doi": "10.1128/aac.01722-17"
+  },
+  {
+    "trial_id": "jRCT2080224755",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37290035/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080224755 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37290035",
+    "doi": "10.1200/jco.23.00233"
+  },
+  {
+    "trial_id": "jRCT2080221987",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://www.ncbi.nlm.nih.gov/pubmed/30663107?dopt=Abstract （https://jrct.mhlw.go.jp/latest-detail/jRCT2080221987 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2019）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "30663107",
+    "doi": "10.1111/apt.15072"
+  },
+  {
+    "trial_id": "jRCTs061180082",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/33957881/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs061180082 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "33957881",
+    "doi": "10.1186/s12885-021-08232-6"
+  },
+  {
+    "trial_id": "jRCT2080225157",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/33676590/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080225157 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "33676590",
+    "doi": "10.1016/s2213-2600(21)00099-0"
+  },
+  {
+    "trial_id": "jRCTs071180037",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/33915251/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs071180037 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "33915251",
+    "doi": "10.1016/j.jtho.2021.03.027"
+  },
+  {
+    "trial_id": "jRCT2080221968",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://www.ncbi.nlm.nih.gov/pubmed/26406148 （https://jrct.mhlw.go.jp/latest-detail/jRCT2080221968 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2015）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "26406148",
+    "doi": "10.1056/nejmoa1510665"
+  },
+  {
+    "trial_id": "jRCTs041180141",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/31047573/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs041180141 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2017）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "31047573",
+    "doi": "10.1016/j.oret.2017.01.010"
+  },
+  {
+    "trial_id": "jRCT2033200191",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/35387488/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2033200191 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "35387488",
+    "doi": "10.1089/hum.2022.013"
+  },
+  {
+    "trial_id": "jRCTs042180077",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/34495421/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs042180077 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2022）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "34495421",
+    "doi": "10.1007/s10637-021-01155-w"
+  },
+  {
+    "trial_id": "jRCTs051220195",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/38899400/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs051220195 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2024）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "38899400",
+    "doi": "10.1111/jgh.16660"
+  },
+  {
+    "trial_id": "jRCT1051180028",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/31277165/ （https://jrct.mhlw.go.jp/latest-detail/jRCT1051180028 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2019）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "31277165",
+    "doi": "10.1097/md.0000000000016298"
+  },
+  {
+    "trial_id": "jRCTs042180091",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/30941638/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs042180091 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2019）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "30941638",
+    "doi": "10.1007/s12328-019-00975-x"
+  },
+  {
+    "trial_id": "jRCT2080223346",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://ascopubs.org/doi/10.1200/JCO.23.00882?url_ver=Z39.88-2003&amp;rfr_id=ori:rid:crossref.org&amp;rfr_dat=cr_pub%20%200pubmed （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223346 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37801674",
+    "doi": "10.1200/jco.23.00882"
+  },
+  {
+    "trial_id": "jRCT2080222988",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/33198671/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080222988 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "33198671",
+    "doi": "10.1186/s12885-020-07365-4"
+  },
+  {
+    "trial_id": "jRCT2080224580",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37875143/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080224580 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37875143",
+    "doi": "10.1016/s1470-2045(23)00515-6"
+  },
+  {
+    "trial_id": "jRCT2080223355",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/34102137/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223355 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2021）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "34102137",
+    "doi": "10.1016/s0140-6736(21)00797-2"
+  },
+  {
+    "trial_id": "jRCT2080222879",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/31455681/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080222879 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2019）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "31455681",
+    "doi": "10.1158/1078-0432.ccr-19-1090"
+  },
+  {
+    "trial_id": "jRCT2080223909",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37966285/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223909 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37966285",
+    "doi": "10.1056/nejmoa2304430"
+  },
+  {
+    "trial_id": "jRCTs051180232",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37822699/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs051180232 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37822699",
+    "doi": "10.1016/j.jtocrr.2023.100569"
+  },
+  {
+    "trial_id": "jRCTs051210176",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/38915116/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs051210176 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2024）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "38915116",
+    "doi": "10.1186/s41043-024-00584-6"
+  },
+  {
+    "trial_id": "jRCT2080223479",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/32603494/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223479 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2020）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "32603494",
+    "doi": "10.1111/cen.14273"
+  },
+  {
+    "trial_id": "jRCTs011180005",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37462794/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs011180005 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2023）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37462794",
+    "doi": "10.1007/s00535-023-02019-1"
+  },
+  {
+    "trial_id": "jRCT2080223453",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/31530667/ （https://jrct.mhlw.go.jp/latest-detail/jRCT2080223453 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2019）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "31530667",
+    "doi": "10.2337/dc19-0898"
+  },
+  {
+    "trial_id": "jRCTs012210049",
+    "provenance": "registry_declared",
+    "source_note": "jRCT「結果と出版物に関するURL」欄の申告 https://pubmed.ncbi.nlm.nih.gov/37657962/ （https://jrct.mhlw.go.jp/latest-detail/jRCTs012210049 を 2026-08-29 閲覧）。論文がEurope PMCに索引されていることを確認済み（pubYear=2024）。jRCTは2025-03-25にNIPHから厚労省へ移管され、旧 jrct.niph.go.jp は到達不能。",
+    "pmid": "37657962",
+    "doi": "10.1016/j.braindev.2023.08.007"
   }
 ]
