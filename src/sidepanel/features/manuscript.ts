@@ -17,8 +17,9 @@ import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
 import { getProjectFulltextCandidateList } from './screening/filters';
-import { getFulltextResultsSummary } from './fulltext-results';
+import { getFulltextResultsSummaryByRoute } from './fulltext-results';
 import type { FulltextResultsSummary } from './fulltext-results';
+import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../lib/identification-route';
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
@@ -68,9 +69,18 @@ interface IdentificationData {
     statsComplete: boolean;
 }
 
-/** Identification 相の数値（import_stats + シート上の件数） */
+/**
+ * Identification 相の数値（import_stats + シート上の件数）
+ *
+ * state.allReferences には Registry linkage 由来の取り込み行（related_ref_id 非空）が
+ * 混ざっている。この行はデータベース検索で同定したものではない（PRISMA の
+ * other methods 腕で別集計する対象）ため、"Records identified from databases" 等の
+ * database腕の集計からは除外する（Issue #120）。0件のときは splitByIdentificationRoute()
+ * の性質上 database === state.allReferences（内容・順序とも同一）になるため、
+ * 現行の出力から1文字も変わらない。
+ */
 function collectIdentification(): IdentificationData {
-    const refs = state.allReferences;
+    const refs = splitByIdentificationRoute(state.allReferences).database;
     const perFile = new Map<string, number>();
     for (const r of refs) {
         const file = r.source_file || '(unknown source)';
@@ -152,10 +162,19 @@ function wasMlUsedInTiab(): boolean {
     return false;
 }
 
-/** TiAb 未判定（誰の非 pending 判定も無い）の文献数 */
+/**
+ * TiAb 未判定（誰の非 pending 判定も無い）の文献数
+ *
+ * Registry linkage 由来の取り込み行（related_ref_id 非空）は設計上 TiAb 票を一切持たない
+ * （fulltext-candidates.ts の isProjectFulltextCandidateRef() の JSDoc参照）ため、
+ * ここに混ぜると実態のない「TiAb未判定」として全件カウントされてしまう。database腕
+ * だけを数える（Issue #120）。0件のときは splitByIdentificationRoute() の性質上
+ * database === state.allReferences になるため、現行の出力から1文字も変わらない。
+ */
 function countUnscreenedTiab(): number {
     let count = 0;
-    for (const r of state.allReferences) {
+    const { database } = splitByIdentificationRoute(state.allReferences);
+    for (const r of database) {
         const hasJudged = collectRefDecisions(r).some(
             d => isTiabDecision(d) && d.decision !== 'pending'
         );
@@ -242,7 +261,7 @@ function buildTiabResults(id: IdentificationData, sought: number): string {
     return text;
 }
 
-function buildFulltextMethods(summary: FulltextResultsSummary): string {
+function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
     const humanJudges = summary.judges.filter(j => !j.startsWith('llm:'));
     const aiModels = [...new Set(
         summary.judges.filter(j => j.startsWith('llm:')).map(llmModelFromReviewerId)
@@ -270,10 +289,39 @@ function buildFulltextMethods(summary: FulltextResultsSummary): string {
         `Disagreements between screeners (n = ${summary.conflict}) were resolved by [discussion / a third reviewer].`
     );
 
+    // Registry linkage 由来（related_ref_id 非空）の行が1件以上あるときだけ、
+    // other methods 腕の記述を追加する（Issue #120。0件なら現行の文面と完全に一致させる）。
+    if (registryLinkage.sought > 0) {
+        const retrievedIntroRl = registryLinkage.sought === 1
+            ? 'The full text of the single additional report'
+            : `Full texts of the ${registryLinkage.sought} additional reports`;
+        paragraphs.push(
+            `${retrievedIntroRl} identified through linkage to trial registrations (without title/abstract screening) ${wasWere(registryLinkage.sought)} retrieved and assessed for eligibility using the same criteria, and reported separately as an "other methods" identification route in the PRISMA 2020 flow diagram.`
+        );
+    }
+
     return paragraphs.join('\n\n');
 }
 
-function buildFulltextResults(summary: FulltextResultsSummary): string {
+/** Registry linkage（other methods 腕）の Results 文案（1件以上のときのみ呼ばれる） */
+function buildRegistryLinkageResultsSentence(registryLinkage: FulltextResultsSummary): string {
+    const reasonText = registryLinkage.reasons
+        .map(r => `${reasonLabelEn(r.reason)} (n = ${r.count})`)
+        .join('; ');
+    const excludedPhrase =
+        `${registryLinkage.exclude} ${plural(registryLinkage.exclude, 'report')} ${wasWere(registryLinkage.exclude)} excluded`;
+    const excludedPart = registryLinkage.exclude > 0 && reasonText
+        ? `${excludedPhrase}: ${reasonText}.`
+        : `${excludedPhrase}.`;
+
+    return (
+        `Separately, ${registryLinkage.sought} additional ${plural(registryLinkage.sought, 'report')} identified through registry linkage ${wasWere(registryLinkage.sought)} sought for retrieval, of which ${registryLinkage.notRetrieved} could not be obtained ` +
+        `and ${registryLinkage.obtained} ${wasWere(registryLinkage.obtained)} assessed for eligibility. ${excludedPart} ` +
+        `In total, ${registryLinkage.include} ${plural(registryLinkage.include, 'study', 'studies')} ${wasWere(registryLinkage.include)} included in the review from this route.`
+    );
+}
+
+function buildFulltextResults(summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
     const reasonText = summary.reasons
         .map(r => `${reasonLabelEn(r.reason)} (n = ${r.count})`)
         .join('; ');
@@ -283,11 +331,18 @@ function buildFulltextResults(summary: FulltextResultsSummary): string {
         ? `${excludedPhrase}: ${reasonText}.`
         : `${excludedPhrase}.`;
 
-    return (
+    let text = (
         `Of the ${summary.sought} ${plural(summary.sought, 'report')} sought for retrieval, ${summary.notRetrieved} could not be obtained ` +
         `and ${summary.obtained} ${wasWere(summary.obtained)} assessed for eligibility. ${excludedPart} ` +
         `In total, ${summary.include} ${plural(summary.include, 'study', 'studies')} ${wasWere(summary.include)} included in the review.`
     );
+
+    // Registry linkage 由来の行が1件以上あるときだけ追記する（0件なら現行の文面と完全に一致）。
+    if (registryLinkage.sought > 0) {
+        text += `\n\n${buildRegistryLinkageResultsSentence(registryLinkage)}`;
+    }
+
+    return text;
 }
 
 function buildPrismaBlock(
@@ -295,7 +350,8 @@ function buildPrismaBlock(
     projectTitle: string,
     id: IdentificationData,
     sought: number,
-    summary: FulltextResultsSummary | null
+    summary: FulltextResultsSummary | null,
+    registryLinkage: FulltextResultsSummary | null
 ): string {
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -327,10 +383,22 @@ function buildPrismaBlock(
         lines.push(`  Studies included in review (n = ${summary.include})`);
     }
 
+    // other methods腕（Registry linkage）: registryLinkage が null または該当0件なら
+    // buildOtherMethodsPrismaLines() が空配列を返すため、以下は現行の出力から1文字も変わらない。
+    //
+    // 脚注（* Import statistics …）より前に置くこと。脚注はブロック全体の末尾に来る注記なので、
+    // その後ろに本文の節を足すと注記が文中に挟まって読めなくなる。
+    const otherMethodsLines = buildOtherMethodsPrismaLines(registryLinkage, reasonLabelEn);
+    if (otherMethodsLines.length > 0) {
+        lines.push('');
+        lines.push(...otherMethodsLines);
+    }
+
     if (!id.statsComplete) {
         lines.push('');
         lines.push('* Import statistics were not recorded for this file; the count shown is after deduplication.');
     }
+
     return lines.join('\n');
 }
 
@@ -393,26 +461,44 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     }
 
     const id = collectIdentification();
-    const sought = getProjectFulltextCandidateList().length;
-    const summary = phase === 'fulltext' ? getFulltextResultsSummary() : null;
+    // sought はデータベース腕の件数のみ（Issue #120: Registry linkage 由来の候補と合算しない）。
+    // splitByIdentificationRoute() を使うことで tiab相・fulltext相のどちらでも同じ計算になる
+    // （summaryByRoute は tiab相で null になるため、そちらには依存しない）。0件のときは
+    // database === getProjectFulltextCandidateList() になるため、現行の出力から1文字も変わらない。
+    const sought = splitByIdentificationRoute(getProjectFulltextCandidateList()).database.length;
+    // database腕とother methods腕（Registry linkage由来）を分けて集計する（Issue #120）。
+    // tiab相ではフルテキスト評価自体が未実施のため、従来どおり summary は null のままにする。
+    const summaryByRoute = phase === 'fulltext' ? getFulltextResultsSummaryByRoute() : null;
+    const summary = summaryByRoute ? summaryByRoute.database : null;
+    const registryLinkage = summaryByRoute ? summaryByRoute.registryLinkage : null;
 
-    const methods = phase === 'fulltext' && summary
-        ? buildFulltextMethods(summary)
+    const methods = summaryByRoute
+        ? buildFulltextMethods(summaryByRoute.database, summaryByRoute.registryLinkage)
         : buildTiabMethods(id);
-    const results = phase === 'fulltext' && summary
-        ? buildFulltextResults(summary)
+    const results = summaryByRoute
+        ? buildFulltextResults(summaryByRoute.database, summaryByRoute.registryLinkage)
         : buildTiabResults(id, sought);
-    const prisma = buildPrismaBlock(phase, projectTitle, id, sought, summary);
+    const prisma = buildPrismaBlock(phase, projectTitle, id, sought, summary, registryLinkage);
 
     // 警告（数値が最終値でない可能性の明示）
     const warnings: string[] = [];
     if (phase === 'tiab') {
         const unscreened = countUnscreenedTiab();
         if (unscreened > 0) warnings.push(t('manuscript_warnUnscreened', String(unscreened)));
-    } else if (summary && (summary.pending > 0 || summary.maybe > 0 || summary.unresolved > 0)) {
-        warnings.push(t('manuscript_warnUnresolved', [
-            String(summary.pending), String(summary.maybe), String(summary.unresolved),
-        ]));
+    } else if (summary) {
+        // database腕とother methods腕（Registry linkage由来）の未決着を合算して警告する（Issue #120）。
+        // summary はここで database腕だけの集計になっているため、registry腕側に未決着が
+        // 残っていても片方だけを見ると「数値は最終値」と誤読されてしまう。registryLinkage が
+        // null（tiab相）またはregistry行0件のときは全て0が足されるだけなので、現行の判定・
+        // 表示から1文字も変わらない。
+        const pending = summary.pending + (registryLinkage?.pending ?? 0);
+        const maybe = summary.maybe + (registryLinkage?.maybe ?? 0);
+        const unresolved = summary.unresolved + (registryLinkage?.unresolved ?? 0);
+        if (pending > 0 || maybe > 0 || unresolved > 0) {
+            warnings.push(t('manuscript_warnUnresolved', [
+                String(pending), String(maybe), String(unresolved),
+            ]));
+        }
     }
     if (!id.statsComplete) warnings.push(t('manuscript_warnNoStats'));
     if (!state.isKeyOpened) warnings.push(t('manuscript_warnBlind'));

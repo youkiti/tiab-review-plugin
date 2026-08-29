@@ -833,6 +833,21 @@
   "fulltext_prismaExclReasons": {
     "message": "Exclusion reasons"
   },
+  "fulltext_prismaOtherMethodsTitle": {
+    "message": "Results summary (PRISMA other methods arm: registry linkage)"
+  },
+  "fulltext_prismaOtherMethodsIdentified": {
+    "message": "Identified via registry linkage: $1"
+  },
+  "fulltext_prismaOtherMethodsObtained": {
+    "message": "Full text obtained: $1"
+  },
+  "fulltext_prismaOtherMethodsExclude": {
+    "message": "Excluded during full-text assessment: $1"
+  },
+  "fulltext_prismaOtherMethodsInclude": {
+    "message": "Included: $1"
+  },
   "fulltext_resultEmpty": {
     "message": "No candidates."
   },
