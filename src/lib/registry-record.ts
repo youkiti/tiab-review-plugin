@@ -102,6 +102,74 @@ export function parseRegistryFieldsFromAbstract(
     return fields;
 }
 
+// Issue #134「レジストリ連携: 副登録番号を論文候補探索のキーに加える」チャンク1: 登録番号の
+// パターンで拾う正規表現。大文字小文字は区別しない（`gi`）。前後は \b（単語境界）で区切り、
+// 英数字が連続する文字列の一部だけを誤って切り出さないようにする。
+// jRCTは種別文字（s/c等）の有無で桁数が変わる2形態がある。種別文字がある場合は数字9桁
+// （例: jRCTs011180014）、無い場合は数字10桁（例: jRCT2080223886）。実データ43件の検証で
+// `jRCT[a-z]?\d{10}` は26/43件しかマッチせず、種別文字あり9桁（このプラグインが扱う本命の
+// 特定臨床研究=jRCTsを含む）17件を丸ごと取りこぼすことが判明したため、両形態を明示的に
+// 書き分けている。
+// `C\d{9}`（UMIN-CTRの旧採番）は意図的に含めていない（extractSecondaryTrialIds() のJSDoc参照）。
+const SECONDARY_TRIAL_ID_PATTERN =
+    /\b(?:NCT\d{8}|ISRCTN\d{8}|UMIN\d{9}|JapicCTI-?\d+|jRCT(?:[a-z]\d{9}|\d{10}))\b/gi;
+
+/**
+ * registration行の abstract 由来フィールド群から「副登録番号（他の登録機関でのID番号）」を
+ * 取り出す。Issue #134: jRCT のように試験IDがPubMedに索引されていないレジストリでは、
+ * discoverPublicationCandidates() の3戦略（ctgov_reference/pubmed_id/europepmc）が
+ * 自分の試験IDだけでは候補をほぼ発見できない（jRCT実測で取りこぼし86.0%）。副登録番号を
+ * 第2の検索キーにすると取りこぼしが39.5%まで下がることが実測で確定している
+ * （詳細・数値の根拠は AGENTS.md「試験登録レコードの論文候補探索」節・Issue #134参照）。
+ *
+ * 入力は parseRegistryFieldsFromAbstract() の戻り値をそのまま渡せる形にしている。
+ *
+ * **ラベル名には依存せず、値の中から登録番号のパターンで拾う。** ICTRP XML の副登録番号の
+ * 要素名はレジストリごとに違い、このリポジトリでは実物（サンプルXML・テストフィクスチャ）を
+ * 確認できていない。ラベルを決め打ちして特定のラベル名の値だけを見る実装は、レジストリに
+ * よっては要素名が一致せず何も拾えないリスクが高い。値の中身をパターンマッチする方が、
+ * ラベルが未知・不揃いであっても頑健に働く。
+ *
+ * 拾うパターン（`SECONDARY_TRIAL_ID_PATTERN` 参照。大文字小文字を区別せず、単語境界で区切る）:
+ * `NCT\d{8}` / `ISRCTN\d{8}` / `UMIN\d{9}` / `JapicCTI-?\d+` / `jRCT(?:[a-z]\d{9}|\d{10})`
+ * （jRCTは種別文字がある場合は数字9桁、無い場合は数字10桁の2形態）。
+ *
+ * **`C\d{9}` 形式（UMIN-CTRの旧採番）は意図的に対象外にしている。** 抄録中に現れる他の
+ * 9桁前後の数値（電話番号・郵便番号・別の識別子等）に "C" 一文字を挟んだだけで誤マッチする
+ * リスクが高く、実測ではjRCTが申告していたUMIN番号は全件 `UMIN` 接頭辞付きだったため、
+ * このパターンを足しても実利が無いままリスクだけ負うことになる。
+ *
+ * `ownTrialId`（呼び出し側が持つ自分自身の試験ID）と大文字小文字を無視して一致するものは
+ * 除外する（自分自身を引き直しても意味が無いため）。重複は大文字小文字を無視して排除し
+ * （元の表記＝マッチした文字列そのままを残す）、出現順を保つ。
+ *
+ * **`maxCount`（既定3）で打ち切る。** 副登録番号1件ごとに discoverPublicationCandidates() が
+ * 主IDと同じ3戦略（うちesearch/esummary/europepmcは外部リクエストを伴う）を回すため、
+ * 抄録中に大量の登録番号らしき文字列が含まれていた場合にリクエストが青天井に増えるのを防ぐ。
+ */
+export function extractSecondaryTrialIds(
+    fields: Array<{ label: string; value: string }>,
+    ownTrialId: string | undefined,
+    maxCount = 3
+): string[] {
+    const ownIdKey = ownTrialId?.trim().toUpperCase();
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const field of fields) {
+        if (result.length >= maxCount) break;
+        for (const match of field.value.matchAll(SECONDARY_TRIAL_ID_PATTERN)) {
+            const id = match[0];
+            const key = id.toUpperCase();
+            if (key === ownIdKey || seen.has(key)) continue;
+            seen.add(key);
+            result.push(id);
+            if (result.length >= maxCount) break;
+        }
+    }
+    return result;
+}
+
 /** & < > " ' をHTMLエンティティへ変換する。レジストリ由来の未検証テキストを埋め込む前に必ず通すこと。 */
 function escapeHtml(value: string): string {
     return value
