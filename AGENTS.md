@@ -413,6 +413,15 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - この判定器は公式APIの仕様ではなく entitlement チェックの実行順序という副作用を観測しているため、
      Google が将来 Batch API を無料枠に開放すると「全キーを paid と誤判定する」方向に壊れるリスクがある。
      そのため PR #87 の 429 適応スロットリングを安全網として併設している
+   - **Gemini の implicit prompt caching で TiAb のコストは下げられない**（実測で確定、2026-09-01）。
+     キャッシュ入力は標準入力の 0.10 倍なので、得になる条件は `N < C0 / m = 10 × C0`
+     ＝**共有プレフィックスは10倍までしか伸ばせない**。現行の screeningPrompt は実測109トークンで
+     上限1,090トークンだが、implicit caching の実測閾値は `gemini-3.1-flash-lite` で
+     `5,852 < 閾値 ≤ 6,111` と約6倍高い（公称は「モデルにより2,048〜4,096」だが flash-lite の行は無い）。
+     閾値が仮に2,048でも成立しないため、単価倍率や閾値の細かい値に結論は依存しない。プロンプトを
+     水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
+     蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
+     既定で効いており、**実装すべきものは無い**
    - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
    - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
@@ -539,6 +548,15 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - `n` / `→` : 次へ
 - `p` / `←` : 前へ
 - `c` : レビュー基準（組入・除外基準）の表示/非表示
+
+**入力欄の Enter と日本語入力（IME）**
+
+- フルテキストの補足メモ欄（`ft-reason-note`）は `Enter` で「保存して次の候補へ」、`Shift+Enter` で改行、`Escape` でフォーカス解除
+- 日本語入力では**変換の確定にも `Enter` を使う**ため、Enter にアクションを割り当てた入力欄では
+  `src/lib/ime-composition.ts` の `isImeComposing()` で変換中のキーを必ず読み飛ばすこと。
+  これを忘れると、メモを書いている途中の変換確定で次の文献へ飛ぶ（キーワード入力欄なら半端な語が登録される）
+  - `isComposing` / `keyCode === 229` に加え、`compositionstart` / `compositionend` で追跡した状態も渡せる
+    （`isComposing` を立てない IME への保険。補足メモ欄はこの追跡込みで実装している）
 
 ## 非機能要件
 
@@ -1230,6 +1248,8 @@ npm run release:major   # 機能追加     0.33.2 → 0.34.0 + 同上
 1.0.0 など先頭の数字を動かす場合のみ `./scripts/bump-version.ps1 -SetVersion "1.0.0"` で明示指定する。
 
 生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。**ファイル名は `dist.zip` 固定**（バージョン付きの名前ではアップロードできない）。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
+
+**`dist.zip` から source map を除外している（Issue #126）。** 拡張ビルドの `devtool` は本番のみ `hidden-source-map`（`webpack.config.js`）。変わらないのは development ビルド（`npm run dev` / `npm run watch`）の方で、こちらは `devtool: 'source-map'` のままで `//# sourceMappingURL=` も出るため、従来どおり TypeScript のソースにマップされる（デバッグは通常こちらで行う）。一方、本番ビルドの `dist/` は変わる：`.map` ファイル自体は出力され続けるが `sourceMappingURL` コメントを出さないため、DevTools は `dist/` に置かれた `.map` を自動では読み込まない（必要なら手動で "Add source map…" する）。これにより `.map` を含まない `dist.zip` を配布しても DevTools が参照先を探して 404 警告を出すことはない。本番でも `.map` を生成し続けているのは、`scripts/pack-release.ps1` が「0件なら devtool 設定が壊れている」と検知するカナリアに使うのと、手動 attach 用に残すためでもある。`build:release` は `scripts/pack-release.ps1` を呼び、`dist/` を `.tmp/release/` へコピーしてから `.map` を削除して zip 化するステージング方式を取る（`Compress-Archive -Path` にファイルの配列を渡すとディレクトリ構造が失われフラットな zip になり、`sidepanel/sidepanel.js` のような相対パス前提の拡張機能が壊れるため）。`.map` の削除は拡張子の厳密一致で行うこと。`Get-ChildItem -Filter "*.map"` は Windows の8.3短縮名によるワイルドカードマッチの影響を受け、拡張子が `.map` でなくても短縮名の拡張子部分が「MAP」になるファイル（例: `routes.mapping`, `data.mapx`）を誤って巻き込みうる（PR #127 レビュー指摘：Windows PowerShell 5.1・8.3短縮名有効の環境で実測して確認）。`dist/cmaps/` には pdf.js の `.bcmap` が168本入っており、これは一部PDFの描画に必要なので消してはいけない。拡張子の厳密一致（`-eq '.map'`）で絞り込むこと。`scripts/pack-release.ps1` も `scripts/bump-version.ps1` と同じく UTF-8 BOM 付きで保存すること（理由は上記バンプスクリプトの節と同じ）。
 
 launchWebAuthFlow のリダイレクトURIは拡張機能IDから実行時に導出されるため、`WEBAUTH_CLIENT_ID` は dev/ストアの両ビルドで単一クライアントを共用する。ただし Google Cloud Console 側の「承認済みリダイレクトURI」には拡張機能IDごとに1件ずつ（`https://alejlnlfflogpnabpbplmnojgoeeabij.chromiumapp.org/` と `https://ifnejjicfekmighagknaacliiiliodgf.chromiumapp.org/`）登録しておく必要がある。
 

@@ -216,7 +216,18 @@ function buildExtensionConfig(env, argv) {
         optimization: {
             splitChunks: false,
         },
-        devtool: 'source-map',
+        // 本番ビルドは 'hidden-source-map' にする（Issue #126）。変わらないのは
+        // development ビルド（npm run dev / npm run watch）の方で、こちらは
+        // devtool: 'source-map' のままで `//# sourceMappingURL=` も出るため、従来どおり
+        // TypeScript のソースにマップされる（デバッグは通常こちらで行う）。
+        // 一方、本番ビルドの dist/ は変わる: .map ファイル自体は出力され続けるが
+        // sourceMappingURL コメントを出さないため、DevTools は dist/ に置かれた .map を
+        // 自動では読み込まない（必要なら手動で "Add source map…" する）。
+        // これにより scripts/pack-release.ps1 が dist.zip から .map を除いても、DevTools が
+        // 参照先を探して 404 警告を出すことはない。本番でも .map を生成し続けるのは、
+        // pack-release.ps1 が「0件なら devtool 設定が壊れている」と検知するカナリアに
+        // 使うのと、手動 attach 用に残すため。
+        devtool: isProduction ? 'hidden-source-map' : 'source-map',
     };
 }
 

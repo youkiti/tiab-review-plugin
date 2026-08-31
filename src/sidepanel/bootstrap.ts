@@ -28,6 +28,7 @@ import { flushDecisionQueue } from './utils/offline-queue';
 import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
+import { isImeComposing } from '../lib/ime-composition';
 
 // Store（Phase 2で導入）
 import { initializeStore, subscribe, getState } from './store';
@@ -227,10 +228,13 @@ export function bootstrapCommon(): void {
     dom.presetSrBtn?.addEventListener('click', () => screeningKeywords.applyPreset('SR'));
     dom.addIncludeBtn?.addEventListener('click', () => screeningKeywords.addKeyword('include'));
     dom.addExcludeBtn?.addEventListener('click', () => screeningKeywords.addKeyword('exclude'));
+    // 日本語入力の変換確定 Enter でキーワードが確定しないよう、IME 変換中は読み飛ばす
     dom.newIncludeInput?.addEventListener('keypress', (e) => {
+        if (isImeComposing(e)) return;
         if (e.key === 'Enter') screeningKeywords.addKeyword('include');
     });
     dom.newExcludeInput?.addEventListener('keypress', (e) => {
+        if (isImeComposing(e)) return;
         if (e.key === 'Enter') screeningKeywords.addKeyword('exclude');
     });
 
