@@ -259,9 +259,12 @@ export interface UsageMetadata {
     thoughtsTokenCount: number;
     totalTokenCount: number;
     /**
-     * キャッシュ済み入力トークン数（OpenAI Responses API の
-     * input_tokens_details.cached_tokens）。cached 入力は割引単価で課金されるため
-     * 正確なコスト算出に用いる。未対応プロバイダでは undefined。
+     * キャッシュ済み入力トークン数。cached 入力は割引単価で課金されるため
+     * 正確なコスト算出に用いる。
+     * - OpenAI Responses API: input_tokens_details.cached_tokens
+     * - Gemini: usageMetadata.cachedContentTokenCount（implicit caching のヒット分。
+     *   promptTokenCount はヒット分を含む総入力トークン）
+     * 未対応プロバイダ・対応前の保存済みレコードでは undefined。
      */
     cachedInputTokens?: number;
 }

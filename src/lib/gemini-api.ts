@@ -430,6 +430,9 @@ export async function callGeminiApiWithParts<T>(
             candidatesTokenCount: rawUsage.candidatesTokenCount || 0,
             thoughtsTokenCount: rawUsage.thoughtsTokenCount || 0,
             totalTokenCount: rawUsage.totalTokenCount || 0,
+            // implicit caching のヒット分（割引単価で課金される）。promptTokenCount はヒット分を
+            // 含む総入力トークンなので、非キャッシュ分は promptTokenCount - cachedInputTokens。
+            cachedInputTokens: rawUsage.cachedContentTokenCount || 0,
         };
         const metadataSource = [...responses].reverse().find(res => res?.modelVersion || res?.responseId) || {};
         const responseMetadata: LlmModelResponseMetadata = {

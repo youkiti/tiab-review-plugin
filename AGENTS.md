@@ -413,6 +413,15 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - この判定器は公式APIの仕様ではなく entitlement チェックの実行順序という副作用を観測しているため、
      Google が将来 Batch API を無料枠に開放すると「全キーを paid と誤判定する」方向に壊れるリスクがある。
      そのため PR #87 の 429 適応スロットリングを安全網として併設している
+   - **Gemini の implicit prompt caching で TiAb のコストは下げられない**（実測で確定、2026-09-01）。
+     キャッシュ入力は標準入力の 0.10 倍なので、得になる条件は `N < C0 / m = 10 × C0`
+     ＝**共有プレフィックスは10倍までしか伸ばせない**。現行の screeningPrompt は実測109トークンで
+     上限1,090トークンだが、implicit caching の実測閾値は `gemini-3.1-flash-lite` で
+     `5,852 < 閾値 ≤ 6,111` と約6倍高い（公称は「モデルにより2,048〜4,096」だが flash-lite の行は無い）。
+     閾値が仮に2,048でも成立しないため、単価倍率や閾値の細かい値に結論は依存しない。プロンプトを
+     水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
+     蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
+     既定で効いており、**実装すべきものは無い**
    - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
    - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
