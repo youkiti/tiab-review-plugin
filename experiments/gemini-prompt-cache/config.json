@@ -1,0 +1,74 @@
+{
+    "description": "Gemini implicit caching コスト実験 (flash / flash-lite × プロンプト長 × depression)",
+    "version": "1.0",
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "promptVariants": {
+        "P0": "prompts/short.md",
+        "P1": "prompts/long.md"
+    },
+    "pricing": {
+        "cachedInputMultiplier": 0.25,
+        "note": "単価は 2026-08 時点で未確認 (confidence: low)。実行前に必ず https://ai.google.dev/gemini-api/docs/pricing の最新値へ更新すること。cachedInputMultiplier は implicit caching ヒット分の入力単価倍率（公称 75% 割引 = 0.25 を仮置き）。単価が違っていてもヒット率・キャッシュトークン比率（主要アウトカム）は影響を受けない。",
+        "models": {
+            "gemini-3.1-flash-lite": {
+                "inputPerMTok": 0.10,
+                "outputPerMTok": 0.40
+            },
+            "gemini-3-flash-preview": {
+                "inputPerMTok": 0.30,
+                "outputPerMTok": 2.50
+            }
+        }
+    },
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 60,
+            "delayBetweenRequests": 50
+        },
+        "tier_serial": {
+            "concurrency": 1,
+            "delayBetweenRequests": 100
+        },
+        "tier_smoke": {
+            "concurrency": 10,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "lite-P0",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 0,
+            "promptVariant": "P0"
+        },
+        {
+            "id": "lite-P1",
+            "model": "gemini-3.1-flash-lite",
+            "temperature": 0,
+            "promptVariant": "P1"
+        },
+        {
+            "id": "flash-P0",
+            "model": "gemini-3-flash-preview",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "promptVariant": "P0"
+        },
+        {
+            "id": "flash-P1",
+            "model": "gemini-3-flash-preview",
+            "temperature": 1.0,
+            "topP": 0.95,
+            "thinkingLevel": "LOW",
+            "promptVariant": "P1"
+        }
+    ]
+}
