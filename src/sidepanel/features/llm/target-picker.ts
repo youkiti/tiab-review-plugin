@@ -25,7 +25,10 @@ import {
     exceedsTargetRefIdLimit,
     selectVisibleRefIds,
     buildTargetConfigUpdates,
+    buildTargetGroupValue,
+    parseTargetGroupValue,
     LLM_TARGET_REF_ID_LIMIT,
+    type LlmTargetGroup,
 } from '../../../lib/llm-target-selection';
 import { updateBatchTargetCount } from './batch';
 
@@ -58,35 +61,56 @@ export function openTargetPicker(): void {
     const container = document.createElement('div');
     container.className = 'target-picker-modal';
 
-    // ----- 担当セット選択 + 一括選択ボタン（担当割り振り未設定なら行ごと非表示） -----
-    let setSelect: HTMLSelectElement | null = null;
-    let selectSetBtn: HTMLButtonElement | null = null;
-    if (state.assignmentSets.size > 0) {
+    // ----- グループ選択（担当セット + 取り込みファイル）+ 一括選択ボタン -----
+    // どちらの候補も無ければ（担当割り振り未設定かつ取り込みファイル情報なし）行ごと非表示
+    let groupSelect: HTMLSelectElement | null = null;
+    let selectGroupBtn: HTMLButtonElement | null = null;
+    if (state.assignmentSets.size > 0 || state.sourceFiles.size > 0) {
         const setRow = document.createElement('div');
         setRow.className = 'target-picker-set-row';
 
         const setLabel = document.createElement('label');
-        setLabel.textContent = t('llm_targetPickerSetLabel');
+        setLabel.textContent = t('llm_targetPickerGroupLabel');
         setRow.appendChild(setLabel);
 
-        setSelect = document.createElement('select');
-        setSelect.className = 'target-picker-set-select';
-        const allOption = document.createElement('option');
-        allOption.value = '';
-        allOption.textContent = t('llm_targetPickerSetAll');
-        setSelect.appendChild(allOption);
-        for (const setId of state.assignmentSets) {
-            const option = document.createElement('option');
-            option.value = setId;
-            option.textContent = getAssignmentSetLabel(setId);
-            setSelect.appendChild(option);
-        }
-        setRow.appendChild(setSelect);
+        groupSelect = document.createElement('select');
+        groupSelect.className = 'target-picker-set-select';
 
-        selectSetBtn = document.createElement('button');
-        selectSetBtn.type = 'button';
-        selectSetBtn.className = 'btn btn-outline btn-small';
-        setRow.appendChild(selectSetBtn);
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = t('llm_targetPickerGroupPlaceholder');
+        groupSelect.appendChild(placeholderOption);
+
+        if (state.assignmentSets.size > 0) {
+            const setsGroup = document.createElement('optgroup');
+            setsGroup.label = t('llm_targetPickerGroupSets');
+            for (const setId of state.assignmentSets) {
+                const option = document.createElement('option');
+                option.value = buildTargetGroupValue({ kind: 'set', id: setId });
+                option.textContent = getAssignmentSetLabel(setId);
+                setsGroup.appendChild(option);
+            }
+            groupSelect.appendChild(setsGroup);
+        }
+
+        if (state.sourceFiles.size > 0) {
+            const filesGroup = document.createElement('optgroup');
+            filesGroup.label = t('llm_targetPickerGroupFiles');
+            for (const file of state.sourceFiles) {
+                const option = document.createElement('option');
+                option.value = buildTargetGroupValue({ kind: 'file', id: file });
+                option.textContent = file;
+                filesGroup.appendChild(option);
+            }
+            groupSelect.appendChild(filesGroup);
+        }
+
+        setRow.appendChild(groupSelect);
+
+        selectGroupBtn = document.createElement('button');
+        selectGroupBtn.type = 'button';
+        selectGroupBtn.className = 'btn btn-outline btn-small';
+        setRow.appendChild(selectGroupBtn);
 
         container.appendChild(setRow);
     }
@@ -268,14 +292,19 @@ export function openTargetPicker(): void {
         }
     }
 
-    function updateSelectSetBtn(): void {
-        if (!setSelect || !selectSetBtn) return;
-        const setId = setSelect.value;
-        const count = setId
-            ? collectRefIdsBySet(state.references, new Set([setId]), getReferenceAssignmentSet).length
+    /** グループ種別に応じた getter（'set' → 担当セット、'file' → 取り込みファイル） */
+    function getterForGroup(kind: LlmTargetGroup['kind']): (ref: ReferenceWithStatus) => string {
+        return kind === 'set' ? getReferenceAssignmentSet : (ref) => ref.source_file || '';
+    }
+
+    function updateSelectGroupBtn(): void {
+        if (!groupSelect || !selectGroupBtn) return;
+        const group = parseTargetGroupValue(groupSelect.value);
+        const count = group
+            ? collectRefIdsBySet(state.references, new Set([group.id]), getterForGroup(group.kind)).length
             : 0;
-        selectSetBtn.textContent = t('llm_targetPickerSelectSet', String(count));
-        selectSetBtn.disabled = !setId;
+        selectGroupBtn.textContent = t('llm_targetPickerSelectGroup', String(count));
+        selectGroupBtn.disabled = !group;
     }
 
     async function handleConfirm(): Promise<void> {
@@ -321,13 +350,13 @@ export function openTargetPicker(): void {
 
     // ----- イベント配線 -----
 
-    setSelect?.addEventListener('change', updateSelectSetBtn);
-    selectSetBtn?.addEventListener('click', () => {
-        if (!setSelect) return;
-        const setId = setSelect.value;
-        if (!setId) return;
-        // 既存の選択は消さず、セット内の ref_id を追加する
-        for (const refId of collectRefIdsBySet(state.references, new Set([setId]), getReferenceAssignmentSet)) {
+    groupSelect?.addEventListener('change', updateSelectGroupBtn);
+    selectGroupBtn?.addEventListener('click', () => {
+        if (!groupSelect) return;
+        const group = parseTargetGroupValue(groupSelect.value);
+        if (!group) return;
+        // 既存の選択は消さず、グループ内の ref_id を追加する
+        for (const refId of collectRefIdsBySet(state.references, new Set([group.id]), getterForGroup(group.kind))) {
             draft.add(refId);
         }
         renderList();
@@ -369,7 +398,7 @@ export function openTargetPicker(): void {
     confirmBtn.addEventListener('click', () => { void handleConfirm(); });
 
     // ----- 初期描画 -----
-    updateSelectSetBtn();
+    updateSelectGroupBtn();
     renderList();
     updateFooterCount();
 

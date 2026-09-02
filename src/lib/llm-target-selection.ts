@@ -161,6 +161,39 @@ export function exceedsTargetRefIdLimit(count: number): boolean {
     return count > LLM_TARGET_REF_ID_LIMIT;
 }
 
+/** モーダルの「グループで選択」に出せるグループの種類。担当セットと取り込みファイル（source_file）の2種 */
+export type LlmTargetGroupKind = 'set' | 'file';
+
+/** グループで選択の対象1件（種類 + ID。file の場合 id はファイル名そのもの） */
+export interface LlmTargetGroup {
+    kind: LlmTargetGroupKind;
+    id: string;
+}
+
+/** グループ選択の option 値へエンコードする（'set:<id>' / 'file:<id>'） */
+export function buildTargetGroupValue(group: LlmTargetGroup): string {
+    return `${group.kind}:${group.id}`;
+}
+
+/**
+ * グループ選択の option 値をデコードする。
+ * 取り込みファイル名にはコロンや `set:` から始まる文字列が混じりうるため、`indexOf(':')` で
+ * 先頭要素とそれ以降を分割するのではなく、`set:` / `file:` の接頭辞そのものを判定してから
+ * 残り全体（コロンを含みうる）を id として扱う。
+ * 接頭辞が無い・id が空・null/undefined のいずれも null を返す。
+ */
+export function parseTargetGroupValue(value: string | null | undefined): LlmTargetGroup | null {
+    if (!value) return null;
+    for (const kind of ['set', 'file'] as const) {
+        const prefix = `${kind}:`;
+        if (value.startsWith(prefix)) {
+            const id = value.slice(prefix.length);
+            return id ? { kind, id } : null;
+        }
+    }
+    return null;
+}
+
 /**
  * 絞り込み結果 filteredRefs のうち、実際に画面へ描画されている先頭 visibleLimit 件の
  * ref_id を返す。「表示中を全選択」ボタン用: 絞り込み結果の全件ではなく、ユーザーの目に
