@@ -85,15 +85,58 @@ test('decision=pending（メモのみ保存）のキュー項目は status を p
     assert.equal(result.status, 'pending');
 });
 
-test('hasConflict===true の ref は status を維持し myDecision だけ更新する', () => {
+// PR #138 レビュー指摘（キー開封後のマージで hasConflict/status を再計算していなかった問題）:
+// keyOpened===true かつ allDecisions が配列のときは、更新後の allDecisions を
+// detectConflict()（sheets-api.ts、getReferencesWithAllDecisions と同じ関数）へ渡して
+// hasConflict と status を作り直す。以下3ケースはブリーフが指定した規則そのものを検証する。
+
+test('他者includeとの不一致(conflict)へ自分のキュー票includeが重なると不一致が解消する', () => {
+    const other = makeDecision({ decision_id: 'other-1', reviewer_id: 'bob@example.com', decision: 'include', decided_at: '2026-09-01T00:00:00Z' });
+    const mine = makeDecision({ decision_id: 'server-1', decided_at: '2026-09-01T00:00:00Z', decision: 'exclude' });
     const ref = makeRef({
         hasConflict: true,
         status: 'conflict',
-        myDecision: makeDecision({ decision_id: 'server-1', decided_at: '2026-09-01T00:00:00Z' }),
+        myDecision: mine,
+        allDecisions: [other, mine],
+    });
+    const queued = [makeDecision({ decision_id: 'queued-1', decided_at: '2026-09-02T00:00:00Z', decision: 'include' })];
+    const [result] = mergeQueuedDecisions([ref], queued, true);
+
+    assert.equal(result.hasConflict, false);
+    assert.equal(result.status, 'include');
+    assert.equal(result.myDecision?.decision_id, 'queued-1');
+});
+
+test('他者includeと一致していたところへ自分のキュー票excludeが重なると新たに不一致になる', () => {
+    const other = makeDecision({ decision_id: 'other-1', reviewer_id: 'bob@example.com', decision: 'include', decided_at: '2026-09-01T00:00:00Z' });
+    const mine = makeDecision({ decision_id: 'server-1', decided_at: '2026-09-01T00:00:00Z', decision: 'include' });
+    const ref = makeRef({
+        hasConflict: false,
+        status: 'include',
+        myDecision: mine,
+        allDecisions: [other, mine],
     });
     const queued = [makeDecision({ decision_id: 'queued-1', decided_at: '2026-09-02T00:00:00Z', decision: 'exclude' })];
     const [result] = mergeQueuedDecisions([ref], queued, true);
 
+    assert.equal(result.hasConflict, true);
+    assert.equal(result.status, 'conflict');
+    assert.equal(result.myDecision?.decision_id, 'queued-1');
+});
+
+test('自分の票しか無い場合はdetectConflictの規則どおりhasConflict=trueになる', () => {
+    const mine = makeDecision({ decision_id: 'server-1', decided_at: '2026-09-01T00:00:00Z', decision: 'include' });
+    const ref = makeRef({
+        hasConflict: true,
+        status: 'conflict',
+        myDecision: mine,
+        allDecisions: [mine],
+    });
+    const queued = [makeDecision({ decision_id: 'queued-1', decided_at: '2026-09-02T00:00:00Z', decision: 'include' })];
+    const [result] = mergeQueuedDecisions([ref], queued, true);
+
+    // 1人だけ判定済み＝もう1人が未判定＝detectConflictの規則上は不一致
+    assert.equal(result.hasConflict, true);
     assert.equal(result.status, 'conflict');
     assert.equal(result.myDecision?.decision_id, 'queued-1');
 });

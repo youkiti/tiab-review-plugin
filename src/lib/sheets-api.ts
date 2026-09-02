@@ -1578,8 +1578,12 @@ export async function getReferencesWithAllDecisions(
  * 不一致を検出
  * - 2人以上の判定がある場合、判定内容が異なれば不一致
  * - どちらか一方が未判定（pendingまたは判定なし）の場合も不一致
+ *
+ * PR #138 レビュー指摘（未送信キューのマージ後に hasConflict/status が再計算されない問題）:
+ * `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions` からも同じ規則で
+ * hasConflict を再計算できるよう export する（実装はここまで変更していない）。
  */
-function detectConflict(decisions: Decision[]): boolean {
+export function detectConflict(decisions: Decision[]): boolean {
     // 判定がない、または1人のみの場合は不一致なし
     if (decisions.length === 0) {
         return false;

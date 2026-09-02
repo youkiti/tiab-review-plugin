@@ -13,7 +13,12 @@ type QueueRecord = {
     items: Decision[];
 };
 
-type FlushResult = { flushedCount: number; remainingCount: number };
+// lastError は失敗があった場合のみキーごと付与する（付与しない場合はプロパティ自体を持たない）。
+// node:assert/strict の deepEqual は「値が undefined のプロパティ」と「プロパティ自体が無い」を
+// 区別するため、成功のみの flush 結果を deepEqual({ flushedCount, remainingCount }) と比較する
+// 既存テストを壊さないよう、失敗が無いときは lastError キー自体を付けない
+// （PR #138 レビュー指摘: 合流した flush の失敗種別が呼び出し元に伝わらない問題への対応）。
+export type FlushResult = { flushedCount: number; remainingCount: number; lastError?: unknown };
 
 function buildQueueKey(spreadsheetId: string, userEmail: string): string {
     return `${spreadsheetId}::${userEmail}`;
@@ -212,6 +217,8 @@ async function runFlush(queueKey: string): Promise<FlushResult> {
 
     const sentIds = new Set<string>();
     let flushedCount = 0;
+    let hasError = false;
+    let lastError: unknown;
 
     for (const decision of items) {
         try {
@@ -222,8 +229,16 @@ async function runFlush(queueKey: string): Promise<FlushResult> {
             await saveDecision(decision);
             sentIds.add(decision.decision_id);
             flushedCount += 1;
-        } catch {
-            // decided_at 昇順で送信し、失敗した時点で打ち切る（残りは次回のflushへ持ち越す）
+        } catch (error) {
+            // decided_at 昇順で送信し、失敗した時点で打ち切る（残りは次回のflushへ持ち越す）。
+            // PR #138 レビュー指摘（合流した flush の失敗種別が呼び出し元に伝わらない問題）:
+            // 失敗種別はコールバックのクロージャではなく戻り値へ載せる。flushDecisionQueue は
+            // 呼び出しごとに saveDecision をスロットへ上書きするため、対話的flush中に
+            // バックグラウンドflushが合流すると「どのコールバックが例外を投げたか」で
+            // 失敗の記録先が変わってしまう。合流した呼び出しは全員この同じ結果オブジェクトを
+            // 受け取るので、戻り値に載せておけば誰が観測しても届く。
+            lastError = error;
+            hasError = true;
             break;
         }
     }
@@ -240,7 +255,9 @@ async function runFlush(queueKey: string): Promise<FlushResult> {
         return next;
     });
 
-    return { flushedCount, remainingCount: remaining.length };
+    return hasError
+        ? { flushedCount, remainingCount: remaining.length, lastError }
+        : { flushedCount, remainingCount: remaining.length };
 }
 
 // queueKey ごとの flush 合流用コールセーサー。進行中の flush があれば新規に loadQueue からやり直さず

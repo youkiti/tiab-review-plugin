@@ -86,6 +86,11 @@ test('並走 flush は各判定をちょうど1回だけ送信する', async () 
     });
     assert.deepEqual(result1, { flushedCount: 3, remainingCount: 0 });
     assert.deepEqual(result2, { flushedCount: 3, remainingCount: 0 });
+    // 失敗が無い flush の結果には lastError キー自体が付かない
+    // （PR #138 レビュー指摘: node:assert/strict の deepEqual は「値が undefined のプロパティ」と
+    // 「プロパティ自体が無い」を区別するため、キーの有無まで確認する）。
+    assert.equal('lastError' in result1, false);
+    assert.equal('lastError' in result2, false);
     assert.equal(await countQueuedDecisions(spreadsheetId, userEmail), 0);
 });
 
@@ -133,11 +138,57 @@ test('途中で失敗した場合はそこで打ち切り、残りは次回へ�
     };
 
     const result = await flushDecisionQueue(spreadsheetId, userEmail, saveDecision);
-    assert.deepEqual(result, { flushedCount: 1, remainingCount: 2 });
+    assert.equal(result.flushedCount, 1);
+    assert.equal(result.remainingCount, 2);
+    // PR #138 レビュー指摘（合流した flush の失敗種別が呼び出し元に伝わらない問題）への対応で
+    // 結果へ最後の失敗を載せるようになったため、失敗ありの flush では lastError が付く
+    assert.ok('lastError' in result);
+    assert.equal((result.lastError as Error).message, 'save failed');
 
     const remaining = await getQueuedDecisions(spreadsheetId, userEmail);
     assert.equal(remaining.length, 2);
     assert.equal(await countQueuedDecisions(spreadsheetId, userEmail), 2);
+});
+
+test('合流した flush が異なるコールバックを渡していても同じ結果（lastErrorを含む）を受け取る', async () => {
+    setPlatform(createMemoryPlatform());
+    const spreadsheetId = 'sheet-merge-different-callback';
+    const userEmail = 'alice@example.com';
+    const decisions = [1, 2].map((n) => makeDecision(spreadsheetId, userEmail, n));
+    for (const decision of decisions) {
+        await enqueueDecision(spreadsheetId, userEmail, decision);
+    }
+
+    const alwaysSucceedSaveDecision = async (_decision: Decision) => {};
+
+    let result2Promise: ReturnType<typeof flushDecisionQueue> | undefined;
+    let callCount = 0;
+    // 1本目: 1件目を成功させ、2件目の送信直前（=1本目のflushが進行中）に、別コールバックを
+    // 渡す2本目のflush呼び出しを合流させた上で、2件目自体は認証エラーで失敗させる。
+    // flushSaveDecisionSlots は呼び出しごとに上書きされるが、2件目はこの時点で既に
+    // スロットから取り出し済みの本コールバックで送信されるため、2本目の常に成功する
+    // コールバックには影響されない。
+    const partiallyFailingSaveDecision = async (decision: Decision) => {
+        callCount += 1;
+        if (callCount === 1) {
+            void decision;
+            return;
+        }
+        result2Promise = flushDecisionQueue(spreadsheetId, userEmail, alwaysSucceedSaveDecision);
+        throw new Error('Failed to append rows: Unauthorized');
+    };
+
+    const result1 = await flushDecisionQueue(spreadsheetId, userEmail, partiallyFailingSaveDecision);
+    const result2 = await result2Promise!;
+
+    assert.equal(result1.flushedCount, 1);
+    assert.equal(result1.remainingCount, 1);
+    assert.ok('lastError' in result1);
+    assert.equal((result1.lastError as Error).message, 'Failed to append rows: Unauthorized');
+
+    // 合流した2本目の呼び出しも同じ結果（同じ lastError）を受け取る
+    assert.deepEqual(result2, result1);
+    assert.equal(result2.lastError, result1.lastError);
 });
 
 test('countQueuedDecisions はキューの件数を返す', async () => {

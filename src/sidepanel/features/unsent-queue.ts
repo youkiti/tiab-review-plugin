@@ -91,46 +91,61 @@ export function ensureInteractiveAuth(): Promise<boolean> {
 
 /**
  * flush を1回実行し、送信結果に加えて「最後に失敗した保存の分類」も返す。
- * flushDecisionQueue 自体は各項目の送信失敗を内部で握りつぶして打ち切るだけなので、
- * 認証失敗で止まったかどうかを呼び出し側で判断できるよう、渡す saveDecision 実装側で
- * 分類してから再 throw する。
+ * spreadsheetId/userEmail は呼び出し元（flushUnsentQueue）が関数冒頭でキャプチャした値を
+ * そのまま受け取る（PR #138 レビュー指摘: flush中に state.spreadsheetId が可変なプロジェクト
+ * 切替で書き換わると、キュー識別に使った値と送信コールバックが参照する値がずれ、別シートの
+ * Decisionsへ誤って追記されうる。詳細は下記 flushUnsentQueue のコメント）。
+ * lastFailureKind は flushDecisionQueue の戻り値の lastError（PR #138 レビュー指摘:
+ * 合流した flush の失敗種別が呼び出し元へ伝わらない問題への対応で追加されたフィールド）を
+ * 分類して求める。合流した全呼び出しが同じ結果オブジェクトを受け取るため、どのコールバックが
+ * 失敗を観測しても対話側（バッジクリック）に届く。
  */
-async function runFlushOnce(): Promise<FlushResult & { lastFailureKind: SaveFailureKind | null }> {
-    let lastFailureKind: SaveFailureKind | null = null;
-    const result = await flushDecisionQueue(state.spreadsheetId, state.userEmail, async (decision) => {
-        try {
-            await apiSaveDecision(state.spreadsheetId, decision);
-            lastFailureKind = null;
-        } catch (error) {
-            lastFailureKind = classifySaveFailure(error, navigator.onLine);
-            throw error;
-        }
-    });
-    return { ...result, lastFailureKind };
+async function runFlushOnce(
+    spreadsheetId: string,
+    userEmail: string
+): Promise<FlushResult & { lastFailureKind: SaveFailureKind | null }> {
+    const result = await flushDecisionQueue(
+        spreadsheetId,
+        userEmail,
+        (decision) => apiSaveDecision(spreadsheetId, decision)
+    );
+    const lastFailureKind = 'lastError' in result
+        ? classifySaveFailure(result.lastError, navigator.onLine)
+        : null;
+    return { flushedCount: result.flushedCount, remainingCount: result.remainingCount, lastFailureKind };
 }
 
 /**
  * 未送信キューの送信を試みる。
  * interactive: true（バッジクリック起点）のときは、認証失敗で止まった場合に
  * ensureInteractiveAuth() で再ログインしてからもう一度だけ試す。
+ *
+ * spreadsheetId/userEmail は関数冒頭で state から一度だけキャプチャし、以降は
+ * このキャプチャ値だけを使う（PR #138 レビュー指摘: シートAのflush中にユーザーが
+ * handleBack 経由で別プロジェクト（シートB）へ切り替えると、可変な state を再参照する
+ * 実装ではAの未送信判定がBのDecisionsへ追記され、Aのキューからは削除されてしまう）。
  */
 export async function flushUnsentQueue(options: { interactive: boolean }): Promise<FlushResult> {
-    if (!state.spreadsheetId || !state.userEmail) {
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
+    if (!spreadsheetId || !userEmail) {
         return { flushedCount: 0, remainingCount: 0 };
     }
 
     try {
-        let { flushedCount, remainingCount, lastFailureKind } = await runFlushOnce();
+        let { flushedCount, remainingCount, lastFailureKind } = await runFlushOnce(spreadsheetId, userEmail);
 
         if (options.interactive && remainingCount > 0 && shouldAttemptReauth(lastFailureKind ?? 'other')) {
             const reauthed = await ensureInteractiveAuth();
             if (shouldRetryAfterReauth(lastFailureKind ?? 'other', reauthed)) {
-                const retry = await runFlushOnce();
+                const retry = await runFlushOnce(spreadsheetId, userEmail);
                 flushedCount += retry.flushedCount;
                 remainingCount = retry.remainingCount;
             }
         }
 
+        // 表示中のプロジェクトが切り替わっていてもバッジは「今表示中のプロジェクト」を
+        // 反映すべきなので、ここだけは state を見たままでよい（refreshUnsentBadge 内で読む）。
         await refreshUnsentBadge();
         return { flushedCount, remainingCount };
     } catch (error) {
@@ -139,7 +154,7 @@ export async function flushUnsentQueue(options: { interactive: boolean }): Promi
         // fire-and-forget 呼び出しを含む）を壊さないよう、ログに残して安全な既定値を返す。
         console.error('Queue flush error:', error);
         await refreshUnsentBadge();
-        return { flushedCount: 0, remainingCount: await countQueuedDecisions(state.spreadsheetId, state.userEmail) };
+        return { flushedCount: 0, remainingCount: await countQueuedDecisions(spreadsheetId, userEmail) };
     }
 }
 
@@ -147,13 +162,19 @@ export async function flushUnsentQueue(options: { interactive: boolean }): Promi
  * 判定を保存し、失敗したらキューへ退避する共通ロジック。
  * screening/actions.ts・ml/actions.ts の両方から呼ぶ（判定ボタン・ML確認判定のどちらも
  * ユーザークリック直後の呼び出しのため、認証失敗ならその場で再ログインを試す）。
+ *
+ * spreadsheetId/userEmail は関数冒頭で state から一度だけキャプチャする（PR #138
+ * レビュー指摘: 再認証の await 中にユーザーが別プロジェクトへ切り替えると、以降 state を
+ * 再参照する実装では保存先・キューのキーが元のプロジェクトとずれてしまう）。
  */
 export async function saveDecisionOrQueue(
     decision: Decision,
     options: { notifyOnFailure: boolean }
 ): Promise<void> {
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
     try {
-        await apiSaveDecision(state.spreadsheetId, decision);
+        await apiSaveDecision(spreadsheetId, decision);
     } catch (error) {
         console.error('Failed to save decision:', error);
         let kind = classifySaveFailure(error, navigator.onLine);
@@ -162,7 +183,7 @@ export async function saveDecisionOrQueue(
             const reauthed = await ensureInteractiveAuth();
             if (shouldRetryAfterReauth(kind, reauthed)) {
                 try {
-                    await apiSaveDecision(state.spreadsheetId, decision);
+                    await apiSaveDecision(spreadsheetId, decision);
                     await flushUnsentQueue({ interactive: false });
                     return;
                 } catch (retryError) {
@@ -172,7 +193,7 @@ export async function saveDecisionOrQueue(
             }
         }
 
-        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
+        await enqueueDecision(spreadsheetId, userEmail, decision);
         await refreshUnsentBadge();
         if (options.notifyOnFailure) {
             const toast = pickSaveFailureToast(kind);
