@@ -1797,6 +1797,9 @@
   "llm_targetAll": {
     "message": "全件（$1件）"
   },
+  "llm_targetAllResume": {
+    "message": "全件（未判定 $1 / $2件）"
+  },
   "llm_targetSelected": {
     "message": "選択した $1 件"
   },
@@ -1815,14 +1818,20 @@
   "llm_targetPickerTitle": {
     "message": "対象レコードを選択"
   },
-  "llm_targetPickerSetLabel": {
-    "message": "担当セット:"
+  "llm_targetPickerGroupLabel": {
+    "message": "グループで選択:"
   },
-  "llm_targetPickerSetAll": {
-    "message": "すべて"
+  "llm_targetPickerGroupPlaceholder": {
+    "message": "選択してください"
   },
-  "llm_targetPickerSelectSet": {
-    "message": "このセットを全選択（$1件）"
+  "llm_targetPickerGroupSets": {
+    "message": "担当セット"
+  },
+  "llm_targetPickerGroupFiles": {
+    "message": "取り込みファイル"
+  },
+  "llm_targetPickerSelectGroup": {
+    "message": "このグループを全選択（$1件）"
   },
   "llm_targetPickerSearchPlaceholder": {
     "message": "タイトル・抄録を検索"

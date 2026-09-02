@@ -1797,6 +1797,9 @@
   "llm_targetAll": {
     "message": "All ($1 items)"
   },
+  "llm_targetAllResume": {
+    "message": "All (pending $1 / $2 items)"
+  },
   "llm_targetSelected": {
     "message": "$1 selected"
   },
@@ -1815,14 +1818,20 @@
   "llm_targetPickerTitle": {
     "message": "Select target references"
   },
-  "llm_targetPickerSetLabel": {
-    "message": "Assigned set:"
+  "llm_targetPickerGroupLabel": {
+    "message": "Select by group:"
   },
-  "llm_targetPickerSetAll": {
-    "message": "All"
+  "llm_targetPickerGroupPlaceholder": {
+    "message": "Choose a group"
   },
-  "llm_targetPickerSelectSet": {
-    "message": "Select this set ($1 items)"
+  "llm_targetPickerGroupSets": {
+    "message": "Assigned sets"
+  },
+  "llm_targetPickerGroupFiles": {
+    "message": "Import files"
+  },
+  "llm_targetPickerSelectGroup": {
+    "message": "Select this group ($1 items)"
   },
   "llm_targetPickerSearchPlaceholder": {
     "message": "Search title & abstract"
