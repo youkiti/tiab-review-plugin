@@ -21,6 +21,7 @@ export const webPlatform: PlatformAdapter = {
     getAuthToken: auth.getAuthToken,
     forceReauth: auth.forceReauth,
     clearAuth: auth.clearAuth,
+    setAuthHint: auth.setAuthHint,
 
     storageGet: storage.storageGet,
     storageSet: storage.storageSet,

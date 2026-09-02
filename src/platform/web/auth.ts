@@ -22,6 +22,18 @@ let expiresAt = 0; // epoch ms
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 // requestAccessToken は同時に1つしか呼べないため、進行中の Promise を保持する
 let pending: { resolve: (t: string) => void; reject: (e: Error) => void } | null = null;
+// ログイン中のユーザーのメールアドレス（GISへの login_hint 用）。トークンと同様メモリ保持のみ。
+let loginHint: string | null = null;
+
+/**
+ * トークン再取得時に GIS へ渡す login_hint を設定する。
+ * 複数の Google アカウントでブラウザにログイン中のユーザーが、トークン失効後の再取得
+ * ポップアップで毎回アカウント選択を求められる（＝どのアカウントを選ぶべきか分からず
+ * 誤ったアカウントを選んでしまいうる）のを防ぐのが目的。永続化はしない（トークン非永続の方針と同じ）。
+ */
+export function setAuthHint(email: string): void {
+    loginHint = email;
+}
 
 /**
  * クライアントIDが未設定のビルドで GIS の TokenClient を作るのを止める（実行時ガード）。
@@ -75,7 +87,11 @@ function requestToken(promptValue: '' | 'consent'): Promise<string> {
         // （旧実装は新しい要求を「auth in progress」で拒否しており、一度詰まると復旧不能だった）
         if (pending) { pending.reject(new Error('auth superseded')); pending = null; }
         pending = { resolve, reject };
-        ensureClient().requestAccessToken({ prompt: promptValue });
+        // login_hint を設定済みなら渡す（複数アカウントでのアカウント選択省略のため）。
+        // hint は deprecated のため使わない。
+        ensureClient().requestAccessToken(
+            loginHint ? { prompt: promptValue, login_hint: loginHint } : { prompt: promptValue }
+        );
     });
 }
 

@@ -10,6 +10,12 @@ export interface PlatformAdapter {
     forceReauth(): Promise<string>;
     /** ログアウト（トークン破棄・キャッシュ削除） */
     clearAuth(): Promise<void>;
+    /**
+     * トークン再取得時に使うログインヒント（メールアドレス）を設定する（任意）。
+     * Web版（GIS）が複数 Google アカウントログイン時のアカウント選択省略のために実装する。
+     * 拡張版（chrome.identity）は不要なため未実装のままでよい。
+     */
+    setAuthHint?(email: string): void;
 
     /** key-value ストレージ（chrome.storage.local 互換のオブジェクト単位 get/set） */
     storageGet(keys: string[]): Promise<Record<string, unknown>>;
