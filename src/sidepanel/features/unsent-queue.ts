@@ -1,0 +1,185 @@
+/**
+ * 未送信キュー機能モジュール
+ *
+ * 責務:
+ * - 未送信キュー件数のバッジ表示（refreshUnsentBadge）
+ * - バッジクリックからの送信、必要なら対話的な再ログインを挟んでの再送信（flushUnsentQueue）
+ * - 判定保存 → 失敗時の分類 → 認証失敗ならその場で再ログインを試して1回だけ再試行 →
+ *   それでも失敗ならキューへ退避、という判定保存の共通ロジック（saveDecisionOrQueue）
+ *
+ * 2026-09 Web版ログイン切れによるキュー滞留・重複追記の事故対応: ログイン切れ後の保存失敗が
+ * 一律「オフラインキューへ退避」として扱われ、ユーザーが気づかないまま作業を続けた結果、
+ * 別環境で開いたときに判定が「未評価」に見える事故につながった。未送信件数を常に見える形にし、
+ * 判定クリック直後（＝ユーザー操作の文脈が生きている間）に再ログインを試みることで、
+ * キューへ積む前に復旧できるケースを増やす。
+ */
+
+import { dom } from '../dom';
+import { state } from '../state';
+import { t } from '../../lib/i18n';
+import { showToast } from '../ui/feedback';
+import { saveDecision as apiSaveDecision, getAuthToken } from '../../lib/sheets-api';
+import {
+    classifySaveFailure,
+    shouldAttemptReauth,
+    shouldRetryAfterReauth,
+    pickSaveFailureToast,
+    type SaveFailureKind,
+} from '../../lib/save-failure';
+import { enqueueDecision, flushDecisionQueue, countQueuedDecisions } from '../utils/offline-queue';
+import { createAsyncCoalescer } from '../../lib/async-coalesce';
+import type { Decision } from '../../lib/types';
+
+type FlushResult = { flushedCount: number; remainingCount: number };
+
+/** バッジの click ハンドラ登録。bootstrap から1回だけ呼ぶ。 */
+export function initUnsentQueue(): void {
+    dom.unsentQueueBadge?.addEventListener('click', () => {
+        void handleBadgeClick();
+    });
+}
+
+async function handleBadgeClick(): Promise<void> {
+    const { flushedCount, remainingCount } = await flushUnsentQueue({ interactive: true });
+    if (remainingCount > 0) {
+        showToast(t('screening_unsentRemaining', String(remainingCount)));
+    } else if (flushedCount > 0) {
+        showToast(t('screening_unsentFlushed', String(flushedCount)));
+    }
+}
+
+/**
+ * 未送信キュー件数バッジを更新する。プロジェクト未接続時は隠す。
+ */
+export async function refreshUnsentBadge(): Promise<void> {
+    const badge = dom.unsentQueueBadge;
+    if (!badge) return;
+
+    if (!state.spreadsheetId || !state.userEmail) {
+        badge.classList.add('hidden');
+        return;
+    }
+
+    const count = await countQueuedDecisions(state.spreadsheetId, state.userEmail);
+    if (count === 0) {
+        badge.classList.add('hidden');
+        return;
+    }
+
+    badge.textContent = t('screening_unsentBadge', String(count));
+    badge.title = t('screening_unsentBadgeHint');
+    badge.classList.remove('hidden');
+}
+
+// getAuthToken(true) を1本へ合流させる。バッジ連打やほぼ同時の複数保存失敗が、
+// 対話的な再認可ポップアップを何本も同時に開いてしまうのを防ぐ
+// （createAsyncCoalescer の用途は async-coalesce.ts 参照）。
+const coalescedInteractiveAuth = createAsyncCoalescer(async (): Promise<boolean> => {
+    try {
+        await getAuthToken(true);
+        return true;
+    } catch (error) {
+        console.error('Interactive re-auth failed:', error);
+        return false;
+    }
+});
+
+/** 対話的な再ログインを試みる。成功で true、失敗（キャンセル含む）で false。 */
+export function ensureInteractiveAuth(): Promise<boolean> {
+    return coalescedInteractiveAuth();
+}
+
+/**
+ * flush を1回実行し、送信結果に加えて「最後に失敗した保存の分類」も返す。
+ * flushDecisionQueue 自体は各項目の送信失敗を内部で握りつぶして打ち切るだけなので、
+ * 認証失敗で止まったかどうかを呼び出し側で判断できるよう、渡す saveDecision 実装側で
+ * 分類してから再 throw する。
+ */
+async function runFlushOnce(): Promise<FlushResult & { lastFailureKind: SaveFailureKind | null }> {
+    let lastFailureKind: SaveFailureKind | null = null;
+    const result = await flushDecisionQueue(state.spreadsheetId, state.userEmail, async (decision) => {
+        try {
+            await apiSaveDecision(state.spreadsheetId, decision);
+            lastFailureKind = null;
+        } catch (error) {
+            lastFailureKind = classifySaveFailure(error, navigator.onLine);
+            throw error;
+        }
+    });
+    return { ...result, lastFailureKind };
+}
+
+/**
+ * 未送信キューの送信を試みる。
+ * interactive: true（バッジクリック起点）のときは、認証失敗で止まった場合に
+ * ensureInteractiveAuth() で再ログインしてからもう一度だけ試す。
+ */
+export async function flushUnsentQueue(options: { interactive: boolean }): Promise<FlushResult> {
+    if (!state.spreadsheetId || !state.userEmail) {
+        return { flushedCount: 0, remainingCount: 0 };
+    }
+
+    try {
+        let { flushedCount, remainingCount, lastFailureKind } = await runFlushOnce();
+
+        if (options.interactive && remainingCount > 0 && shouldAttemptReauth(lastFailureKind ?? 'other')) {
+            const reauthed = await ensureInteractiveAuth();
+            if (shouldRetryAfterReauth(lastFailureKind ?? 'other', reauthed)) {
+                const retry = await runFlushOnce();
+                flushedCount += retry.flushedCount;
+                remainingCount = retry.remainingCount;
+            }
+        }
+
+        await refreshUnsentBadge();
+        return { flushedCount, remainingCount };
+    } catch (error) {
+        // flushDecisionQueue 自体は各項目の送信失敗を握りつぶすため、ここに来るのは
+        // ストレージ書き戻し（chainQueueWrite）側の想定外エラーのみ。呼び出し側（bootstrap の
+        // fire-and-forget 呼び出しを含む）を壊さないよう、ログに残して安全な既定値を返す。
+        console.error('Queue flush error:', error);
+        await refreshUnsentBadge();
+        return { flushedCount: 0, remainingCount: await countQueuedDecisions(state.spreadsheetId, state.userEmail) };
+    }
+}
+
+/**
+ * 判定を保存し、失敗したらキューへ退避する共通ロジック。
+ * screening/actions.ts・ml/actions.ts の両方から呼ぶ（判定ボタン・ML確認判定のどちらも
+ * ユーザークリック直後の呼び出しのため、認証失敗ならその場で再ログインを試す）。
+ */
+export async function saveDecisionOrQueue(
+    decision: Decision,
+    options: { notifyOnFailure: boolean }
+): Promise<void> {
+    try {
+        await apiSaveDecision(state.spreadsheetId, decision);
+    } catch (error) {
+        console.error('Failed to save decision:', error);
+        let kind = classifySaveFailure(error, navigator.onLine);
+
+        if (shouldAttemptReauth(kind)) {
+            const reauthed = await ensureInteractiveAuth();
+            if (shouldRetryAfterReauth(kind, reauthed)) {
+                try {
+                    await apiSaveDecision(state.spreadsheetId, decision);
+                    await flushUnsentQueue({ interactive: false });
+                    return;
+                } catch (retryError) {
+                    console.error('Failed to save decision after re-auth:', retryError);
+                    kind = classifySaveFailure(retryError, navigator.onLine);
+                }
+            }
+        }
+
+        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
+        await refreshUnsentBadge();
+        if (options.notifyOnFailure) {
+            const toast = pickSaveFailureToast(kind);
+            showToast(t(toast.messageKey), toast.duration);
+        }
+        return;
+    }
+
+    await flushUnsentQueue({ interactive: false });
+}

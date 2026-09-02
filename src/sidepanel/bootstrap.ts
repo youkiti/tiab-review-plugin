@@ -11,7 +11,6 @@
 
 import { platform } from '../platform';
 import { dom } from './dom';
-import { state } from './state';
 import * as auth from './features/auth';
 import * as project from './features/project';
 import * as settings from './features/settings';
@@ -24,8 +23,7 @@ import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import * as reviewCriteria from './features/review-criteria';
 import { setupTeamProgressListeners } from './features/team-progress';
-import { flushDecisionQueue } from './utils/offline-queue';
-import { saveDecision as apiSaveDecision } from '../lib/sheets-api';
+import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
 import { isImeComposing } from '../lib/ime-composition';
@@ -122,20 +120,12 @@ export function bootstrapCommon(): void {
     // i18n: HTMLの静的テキストを翻訳
     localizeHtml();
 
-    const flushQueueIfReady = async () => {
-        if (!state.spreadsheetId || !state.userEmail) return;
-        try {
-            await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
-                apiSaveDecision(state.spreadsheetId, queued)
-            );
-        } catch (error) {
-            console.error('Queue flush error:', error);
-        }
-    };
-
     window.addEventListener('online', () => {
-        void flushQueueIfReady();
+        void flushUnsentQueue({ interactive: false });
     });
+
+    // 未送信キューバッジのクリックハンドラ登録
+    initUnsentQueue();
 
     // Auth
     dom.loginBtn?.addEventListener('click', auth.handleLogin);
@@ -273,5 +263,5 @@ export function bootstrapCommon(): void {
 
     // Start App
     auth.initApp();
-    void flushQueueIfReady();
+    void flushUnsentQueue({ interactive: false });
 }

@@ -130,6 +130,27 @@
     }
 }
 
+/* 未送信キューバッジ（オフラインキューに件数がある間だけ表示。tiab-done-row-warning等と同じ警告配色） */
+.unsent-queue-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px solid #ffeeba;
+    border-radius: 10px;
+    background: #fff3cd;
+    color: #856404;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.unsent-queue-badge:hover {
+    background: #ffe8a1;
+    border-color: #ffe8a1;
+}
+
 /* ログインヘッダー */
 .login-header {
     display: flex;

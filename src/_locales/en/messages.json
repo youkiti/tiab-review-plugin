@@ -202,6 +202,39 @@
   "screening_offlineQueued": {
     "message": "Offline: decision saved to queue"
   },
+  "screening_reloginQueued": {
+    "message": "Sign-in expired, so the decision could not be saved. It is kept as unsent. Click the \"Unsent\" badge to sign in again"
+  },
+  "screening_saveFailedQueued": {
+    "message": "Saving failed, so the decision is kept as unsent. Click the \"Unsent\" badge to retry"
+  },
+  "screening_unsentBadge": {
+    "message": "⚠ Unsent: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_unsentBadgeHint": {
+    "message": "Some decisions have not reached the sheet yet. Click to send them (you may be asked to sign in again)"
+  },
+  "screening_unsentFlushed": {
+    "message": "Sent $1 unsent decision(s)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_unsentRemaining": {
+    "message": "$1 decision(s) still could not be sent",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
   "screening_historyPosition": {
     "message": "History $1 / $2"
   },

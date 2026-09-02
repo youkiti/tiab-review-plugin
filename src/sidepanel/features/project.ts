@@ -24,7 +24,6 @@ import {
     forceReauth,
     ensureHeaders,
     getAssignmentConfig,
-    saveDecision as apiSaveDecision,
 } from '../../lib/sheets-api';
 import { setupProjectFolder } from '../../lib/drive-api';
 import { platform } from '../../platform';
@@ -32,7 +31,9 @@ import { getReviewerKey } from './screening/reviewer-utils';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { initializeFulltextAssignmentSelection } from './fulltext-assignment-ui';
 import { initTeamProgress } from './team-progress';
-import { flushDecisionQueue } from '../utils/offline-queue';
+import { getQueuedDecisions } from '../utils/offline-queue';
+import { flushUnsentQueue, refreshUnsentBadge } from './unsent-queue';
+import { mergeQueuedDecisions } from '../../lib/queued-decisions-merge';
 import { buildPickerUrl } from '../../lib/picker-url';
 
 // Store互換レイヤー（Phase 3）
@@ -102,6 +103,9 @@ export async function handleBack() {
 
     // プロジェクト選択画面を表示（Store経由でrenderLayoutが自動更新）
     showProjectView();
+
+    // プロジェクトを離れるのでバッジを隠す（state.spreadsheetId は既にリセット済み）
+    await refreshUnsentBadge();
 
     // 最近一覧を再取得し、保存済み spreadsheetId をドロップダウン側に再選択させる
     // 失敗時のフォールバック表示は loadConfig / loadRecentSheets 内で行う
@@ -519,9 +523,14 @@ export async function loadDataAndShowScreening() {
         syncSetActiveLlmExecutionIds(activeBatchIds);
 
         // キーオープン状態に応じてデータを読み込み
-        const refs = keyOpenedStatus
+        const fetchedRefs = keyOpenedStatus
             ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
             : await getReferencesWithStatus(spreadsheetId, userEmail);
+        // 未送信キューの判定を重ねる。オフラインキュー退避中はサーバ側（Decisionsタブ）に
+        // まだ書き込まれていないため、そのままだと再読み込みのたびに「未評価」に戻って見えてしまう
+        // （2026-09 Web版ログイン切れによるキュー滞留の事故対応）
+        const queued = await getQueuedDecisions(spreadsheetId, userEmail);
+        const refs = mergeQueuedDecisions(fetchedRefs, queued, keyOpenedStatus);
         let visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
 
         // フルテキスト担当割り振りで自分に割り当てられた文献は、TiAb の担当セット外でも
@@ -617,13 +626,8 @@ export async function loadDataAndShowScreening() {
             console.error('[loadDataAndShowScreening] maybeShowCriteriaNotice error:', error)
         );
 
-        try {
-            await flushDecisionQueue(spreadsheetId, userEmail, (queued) =>
-                apiSaveDecision(spreadsheetId, queued)
-            );
-        } catch (error) {
-            console.error('Queue flush error:', error);
-        }
+        // 画面表示後にバックグラウンドで未送信分の送信を試みる（表示順序は維持）
+        void flushUnsentQueue({ interactive: false });
     } catch (error) {
         console.error('Load data error:', error);
         // 設定画面に戻す（Store経由）

@@ -787,6 +787,11 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **キュー内の重複排除**: 送信前に同一 `ref_id` + `reviewer_id` + `screening_phase`（省略時 `tiab`）の未送信項目はキュー内で最新の1件へ置き換える（`decision_id` はDecisionsタブ追記専用化に伴い判定イベントごとに新規発番されるため、このキーで同一性を判定する。詳細は `src/sidepanel/utils/offline-queue.ts` の `upsertDecision`）
 - **同期順序**: `decided_at` の昇順で送信し、失敗時は次回再試行
 - **冪等性**: ML自動判定・LLM判定は既存行への upsert のため再送しても重複しない。human判定・ML手動確認判定は追記専用のため、内容が直前の保存と完全一致する場合のみ保存側のスナップショットキャッシュ（60秒TTL、詳細は `decisionContentCache`）で重複追記を防げる。それを超える間隔での再送（長時間オフライン後のflushなど、サーバ側の書き込み成功をクライアントが確認できずに再試行するケース）は重複行を生みうる既知のトレードオフ
+- **flush の直列化**: `src/sidepanel/utils/offline-queue.ts` の `flushDecisionQueue` は queueKey（spreadsheetId::userEmail）ごとにコールセーサーで直列化する。flush 中に新たに `enqueueDecision` された項目は、書き戻し時にキューを再読込してから送信済み分だけを取り除く実装のため消えない
+- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう
+- **未送信バッジ**: `src/sidepanel/features/unsent-queue.ts` がツールバーの未送信件数バッジ（クリックで送信。認証切れなら対話的な再ログインを挟んで1回だけ再試行）と、判定保存の共通ロジック（`saveDecisionOrQueue`）を提供する。TiAb判定・ML確認判定の両方（`screening/actions.ts` / `ml/actions.ts`）がここへ委譲する
+- **保存失敗の分類**: `src/lib/save-failure.ts` の `classifySaveFailure` が保存失敗を `'auth'`（ログイン切れ、再ログインで直る可能性がある）/ `'offline'` / `'other'`（権限不足等、再ログインでは直らない）に分類する。判定クリック直後の保存失敗が `'auth'` の場合はキューへ積む前にその場で再ログインを試し、成功すれば1回だけ保存を再試行する
+- **2026-09 事故の要約**: Web版（GIS認証、トークンはメモリ上で1時間のみ）でログイン切れ後の判定保存が軒並みオフラインキューへ退避される一方、ユーザーはそれに気づかず判定を続け、退避先のブラウザプロファイルで264件が滞留した。加えて、この滞留を解消しようとした複数回の flush が並走し、60秒TTLのスナップショットキャッシュを超える間隔で同一判定が再送されたことで、197件が重複追記（393行）された。上記の直列化・画面反映・バッジ・分類はこの事故の再発防止として追加したもの
 
 ### エラーハンドリング
 
@@ -1263,6 +1268,8 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+
+**トークンは1時間固定で、無音更新はできない。** GIS の `TokenClient` はサイレントリフレッシュの仕組みを持たないため、`chrome.identity` 版のようなバックグラウンド更新はできない。トークンはメモリ保持のみ（`src/platform/web/auth.ts`）で、1時間経過後は次回の保存操作が失敗して初めて失効に気づく。この前提のため、失効の検知と再ログイン導線はユーザー操作（判定クリック・未送信バッジクリック）起点で設計している（`classifySaveFailure` で `'auth'` と判定された場合のみ、その場で対話的な再ログインを試す。詳細は「オフライン同期の方針」節）。対話的な再ログインでは `PlatformAdapter.setAuthHint`（`showProjectSection` でログイン中のメールを渡す）経由で GIS の `login_hint` を設定し、複数 Google アカウントログイン中でもアカウント選択を省略できるようにしている。
 
 **HTML は複製ではなく機械変換で生成する。** `webpack.config.js` の `transformSidepanelHtml()` が拡張版の `src/sidepanel/sidepanel.html` を変換して `docs/app/index.html` を出力する。これにより表示系の新機能が自動で Web 版へ載る。変換対象の文字列が見つからない場合は `replaceOrThrow` が例外を投げてビルドを止めるので、`sidepanel.html` の該当行（`<title>` / `<h1>` / `<body>` / stylesheet link / entry script / viewport meta）を書き換えたら変換ルールも必ず更新すること。
 

@@ -9,7 +9,6 @@ import { platform } from '../../../platform';
 import { getFilteredReferences } from './filters';
 import type { Decision, ReferenceWithStatus } from '../../../lib/types';
 import {
-    saveDecision as apiSaveDecision,
     setKeyOpenedStatus,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
@@ -23,7 +22,7 @@ import { showLoading, showToast } from '../../ui/feedback';
 import { renderKeyStatus } from './render';
 import { renderReviewerFilter, renderAiHighlightToggle, renderConsensusModeToggle } from './reviewer-filter';
 import { getReviewerKey, isActiveConfirmedLlmDecision } from './reviewer-utils';
-import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
+import { saveDecisionOrQueue } from '../unsent-queue';
 import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
 import { toggleReviewCriteriaModal, closeReviewCriteriaModal, isCriteriaModalOpen, isCriteriaEditMode } from '../review-criteria';
@@ -54,24 +53,9 @@ async function saveDecisionWithQueue(decision: Decision, notifyOnFailure: boolea
     // チーム進捗パネルの自分の行を即時更新（オフラインキュー行きでも判定自体は有効）
     noteLocalTeamDecision(decision);
 
-    try {
-        await apiSaveDecision(state.spreadsheetId, decision);
-    } catch (error) {
-        console.error('Failed to save decision:', error);
-        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
-        if (notifyOnFailure) {
-            showToast(t('screening_offlineQueued'));
-        }
-        return;
-    }
-
-    try {
-        await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
-            apiSaveDecision(state.spreadsheetId, queued)
-        );
-    } catch (error) {
-        console.error('Queue flush error:', error);
-    }
+    // 保存失敗の分類・再ログイン・キュー退避・種類別トーストは unsent-queue.ts の共通ロジックへ
+    // 委譲する（ml/actions.ts の saveMlDecisionWithQueue と同じロジックを共有する）
+    await saveDecisionOrQueue(decision, { notifyOnFailure });
 }
 
 /**
