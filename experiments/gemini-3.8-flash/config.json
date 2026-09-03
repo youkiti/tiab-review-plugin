@@ -58,10 +58,59 @@
     ],
     "baselineResults": {
         "depression": {
-            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11, "msPerItem": 300 }
+            "B4": {
+                "model": "gemini-3-flash-preview",
+                "config": "Temp 1.0 / TopP 0.95 / Think LOW",
+                "recall": 0.961,
+                "precision": 0.534,
+                "fBeta7": 0.95,
+                "tp": 269,
+                "fp": 235,
+                "tn": 1478,
+                "fn": 11,
+                "msPerItem": 300
+            }
         }
     },
     "phase0Findings": {
-        "_note": "Phase 0 プローブ (phase0_probe.ts) の実測結果をここに記録する。未実測のため値は空。"
+        "measuredAt": "2026-09-03",
+        "rawLog": "results/phase0_2026-09-03T02-16-23.json",
+        "P0-1": "models.list に存在。supportedGenerationMethods = generateContent, countTokens, createCachedContent, batchGenerateContent。streamGenerateContent は列挙されていないが、実際に叩くと HTTP 200 を返し全1,993件が成功した（対応判定を models.list に依存させないこと）",
+        "P0-2": "inputTokenLimit=1048576 / outputTokenLimit=65536（公称通り）",
+        "P0-3": "thinking_level low / medium とも HTTP 200",
+        "P0-4": "temperature / topP を送っても HTTP 200（400 にはならない。UI 搭載時の省略経路必須という懸念は解消）",
+        "P0-5": "形式上 NG。些細プロンプトで思考トークンが 0 だったため thoughtsTokenCount が欠落しただけで、実スクリーニングでは smoke 50件で thoughts=711、フル1,993件で thoughts=38,368 を取得できた（コスト試算方法の見直し不要）",
+        "P0-6": "responseMimeType: application/json + responseSchema はスキーマ通りに機能する"
+    },
+    "results": {
+        "F1": {
+            "dataset": "depression",
+            "n": 1993,
+            "threshold": 0.5,
+            "recall": 0.8893,
+            "specificity": 0.944,
+            "precision": 0.7217,
+            "fBeta7": 0.8852,
+            "tp": 249,
+            "fp": 96,
+            "tn": 1617,
+            "fn": 31,
+            "msPerItem": 41,
+            "usdPer1000Items": 0.983,
+            "totalUSD": 1.9599,
+            "tokens": {
+                "prompt": 979459,
+                "candidates": 288391,
+                "thoughts": 38368,
+                "total": 1306218
+            },
+            "fallbackCount": 0,
+            "maxTokensTruncated": 0,
+            "verdict": "却下（Recall < 0.93 → 現行維持）。report.md 参照"
+        },
+        "F2": {
+            "status": "未実行",
+            "reason": "F1 フルの Recall 88.93% < 0.93 のため計画の打ち切り規則を適用"
+        }
     }
 }
