@@ -1,6 +1,6 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap, PublicationCandidate, PublicationCandidateStrategy, PublicationCandidateStatus } from './types';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, FulltextStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap, PublicationCandidate, PublicationCandidateStrategy, PublicationCandidateStatus, DuplicateCandidate, DuplicateCandidateStatus, DuplicateCandidateDraft, DuplicateCandidateStatusUpdate } from './types';
 import { MODEL_ID_MIGRATIONS } from './model-migrations';
 import { t } from './i18n';
 import { platform } from '../platform';
@@ -20,6 +20,7 @@ import { isHumanDecision, isConfirmedMlDecision } from './client-version';
 import { buildFulltextUrlUpdateData, validateFulltextDriveHeaders } from './fulltext-drive-write';
 import type { FulltextUrlUpdateEntry } from './fulltext-drive-write';
 import { AUDIT_LOG_HEADERS, buildAuditEventRow } from './audit-log';
+import { isLogicallyDeleted, filterNewDuplicatePairs } from './duplicate-detect';
 import type { AuditLogEvent } from './audit-log';
 import { isDecisionVisibleDuringBlind } from './blind-visibility';
 import { filterNewCandidates } from './publication-suggest';
@@ -73,6 +74,8 @@ const LLM_RUNS_SHEET = 'LLM_Runs';
 const AUDIT_LOG_SHEET = 'Audit_Log';
 // Issue #118 チャンク2 パスB（レジストリ連携フェーズ1: 論文候補探索）で追加。
 const PUBLICATION_CANDIDATES_SHEET = 'Publication_Candidates';
+// 重複候補ペアの人による採否を記憶するタブ（Issue #145 チャンク2）。
+const DUPLICATE_CANDIDATES_SHEET = 'Duplicate_Candidates';
 
 // LLM_Executionsシートのヘッダー
 // run_id は Run/Batch 分離後に追加された列。既存シートに無い場合は ensureLlmExecutionsSheet で末尾に追加される。
@@ -122,6 +125,23 @@ export const PUBLICATION_CANDIDATES_HEADERS = [
 // updatePublicationCandidateStatus() の両方でこれを使い、終端列の導出式を重複させない。
 const PUBLICATION_CANDIDATES_LAST_COLUMN = columnLetter(PUBLICATION_CANDIDATES_HEADERS.length);
 
+// Duplicate_Candidates タブのヘッダー（Issue #145 チャンク2）。
+// 重複候補として検出したペア（ref_id_a/ref_id_b）と、人が下した採否を1候補1行で保存する。
+// 「別々の文献だ」という判断を記憶しておかないと、再スキャンのたびに同じ組が再提示されてしまう
+// ため、取り込み時にスキップしなかった組（タイトル一致・source不一致の試験ID一致）はここへ積む。
+// 【重要】新しい列は必ず末尾に追加すること（PUBLICATION_CANDIDATES_HEADERS と同じ理由）。
+// decided_by/decided_at/kept_ref_id はレビューUI（チャンク3）で使う列で、このチャンクでは
+// 常に空文字のまま保存する。
+// src/demo/seed.ts の DUPLICATE_CANDIDATES_HEADERS ミラーも必ず追従させること。
+export const DUPLICATE_CANDIDATES_HEADERS = [
+    'candidate_id', 'ref_id_a', 'ref_id_b', 'match_type', 'match_key',
+    'status', 'suggested_at', 'decided_by', 'decided_at', 'kept_ref_id'
+];
+
+// Duplicate_Candidates タブの終端列（A1形式）。PUBLICATION_CANDIDATES_LAST_COLUMN と同じ流儀で
+// DUPLICATE_CANDIDATES_HEADERS の長さから動的に導出する。
+const DUPLICATE_CANDIDATES_LAST_COLUMN = columnLetter(DUPLICATE_CANDIDATES_HEADERS.length);
+
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
 export const PRESET_RCT = {
     include: [
@@ -164,6 +184,8 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
 // fulltext_drive_source_id（W列）/ fulltext_drive_copy_id（X列）は Issue #73 Phase 2 で追加した、
 // Drive直接取り込みの冪等性判定用の列（詳細は updateReferenceFulltextUrls の JSDoc を参照）。
 // record_type（Y列）/ related_ref_id（Z列）は Issue #118 チャンク1（レジストリ連携フェーズ1）で追加。
+// duplicate_of（AA列）は Issue #145 チャンク2 で追加。重複検出（作り直し）の論理削除フラグ。
+// 非空なら、この行は重複として除外済みで、値は残す側の ref_id（isLogicallyDeleted() で判定）。
 // 列を足すたびに src/demo/seed.ts の REFERENCES_HEADERS ミラーも必ず追従させること。
 export const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
@@ -172,7 +194,8 @@ export const REFERENCES_HEADERS = [
     'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
     'fulltext_url', 'fulltext_status', 'fulltext_set',
     'fulltext_drive_source_id', 'fulltext_drive_copy_id',
-    'record_type', 'related_ref_id'
+    'record_type', 'related_ref_id',
+    'duplicate_of'
 ];
 
 
@@ -834,7 +857,12 @@ function parseReferenceValues(values: string[][]): Reference[] {
 }
 
 /**
- * References タブから文献一覧を取得
+ * References タブから文献一覧を取得する。
+ *
+ * 【除外なしの経路】論理削除された行（duplicate_of 非空、isLogicallyDeleted() 参照）も
+ * 含めて全件返す。重複レビューUI（Issue #145 チャンク3）は除外済みの行も表示して
+ * 「やっぱり戻す」を可能にする必要があるため、この関数は意図的にフィルタしない。
+ * 除外を反映してほしい呼び出し元（TiAb スクリーニング画面など）は getReferencesWithStatus() を使うこと。
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
     const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);
@@ -854,6 +882,13 @@ export async function getReferences(spreadsheetId: string): Promise<Reference[]>
  *
  * record_type は未設定なら空文字で書く（インポート時点で確定値を持つのは CTG/ICTRP パーサのみ。
  * 判定自体は isRegistrationRecord() を参照）。
+ *
+ * duplicate_of（index 26、AA列）は Issue #145 チャンク2 で追加。インポート時点では重複判定が
+ * 済んでいない（自動スキップ対象は addReferences() の呼び出し前に取り除かれる想定）ため常に
+ * 空文字で書く。この行を後から重複として除外するのは setDuplicateOf() の役割。
+ *
+ * 【この関数は位置ベースで配列を組み立てている】列を足すときは必ず配列の末尾に追加すること。
+ * 途中に差し込むと、それ以降の既存列がすべて1つずつずれて破壊される。
  */
 export function buildReferenceInsertRow(ref: Reference): string[] {
     return [
@@ -883,6 +918,7 @@ export function buildReferenceInsertRow(ref: Reference): string[] {
         '', // fulltext_drive_copy_id（index 23）
         ref.record_type || '', // index 24
         ref.related_ref_id || '', // index 25
+        ref.duplicate_of || '', // index 26
     ];
 }
 
@@ -1341,6 +1377,14 @@ function buildAllFulltextDecisionsMap(
 
 /**
  * 文献一覧に判定状態をマージ（キーオープン前）
+ *
+ * 【論理削除された行（重複）をここで除外する】isLogicallyDeleted() が true の行
+ * （duplicate_of 非空）を戻り値から取り除く（Issue #145 チャンク2）。この関数の呼び出し元は
+ * TiAb スクリーニング・エクスポート・ML/LLM判定対象取得など複数箇所にまたがるが、判断ロジックを
+ * 各呼び出し元へ分散させず、共通のこの一箇所で外すことで全呼び出し元に一度に効かせる
+ * （同じ判断のコピーが呼び出し元ごとに散ると、片方だけ直して漏れる事故につながるため）。
+ * 除外なしで全件（論理削除済みの行も含む）が必要な場合は getReferences() を使うこと
+ * （重複レビューUIでの「やっぱり戻す」操作に必要）。
  */
 export async function getReferencesWithStatus(
     spreadsheetId: string,
@@ -1348,10 +1392,11 @@ export async function getReferencesWithStatus(
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithStatus] Loading with reviewerEmail:', reviewerEmail);
 
-    const [references, decisionsData] = await Promise.all([
+    const [allReferences, decisionsData] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
     ]);
+    const references = allReferences.filter((ref) => !isLogicallyDeleted(ref));
 
     console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
 
@@ -1422,6 +1467,9 @@ export async function getReferencesWithStatus(
 
 /**
  * 文献一覧に全判定状態をマージ（キーオープン後）
+ *
+ * 論理削除された行（重複）をここでも除外する。理由は getReferencesWithStatus() の JSDoc を参照
+ * （Issue #145 チャンク2）。除外しないと、盲検中は消えていた重複がキー開封の瞬間に復活して見える。
  */
 export async function getReferencesWithAllDecisions(
     spreadsheetId: string,
@@ -1429,12 +1477,13 @@ export async function getReferencesWithAllDecisions(
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
 
-    const [references, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
+    const [allReferences, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
         getLlmExecutions(spreadsheetId),
         getFulltextAiActiveRound(spreadsheetId),
     ]);
+    const references = allReferences.filter((ref) => !isLogicallyDeleted(ref));
 
     console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
 
@@ -2163,6 +2212,24 @@ export async function updateReferenceFulltextSets(
         spreadsheetId,
         'fulltext_set',
         assignments.map(({ refId, fulltextSet }) => ({ refId, value: fulltextSet }))
+    );
+}
+
+/**
+ * References タブの duplicate_of 列（重複の論理削除フラグ）を一括更新する（Issue #145 チャンク2）。
+ *
+ * duplicateOf が文字列なら、その ref_id を書いて重複として除外する。null なら空文字を書いて
+ * 除外を取り消す（「やっぱり戻す」）。列位置はヘッダー行から indexOf() で解決する
+ * updateReferenceColumnByRefId() の既存の流儀をそのまま再利用する（列位置のハードコード禁止）。
+ */
+export async function setDuplicateOf(
+    spreadsheetId: string,
+    updates: { refId: string; duplicateOf: string | null }[]
+): Promise<void> {
+    await updateReferenceColumnByRefId(
+        spreadsheetId,
+        'duplicate_of',
+        updates.map(({ refId, duplicateOf }) => ({ refId, value: duplicateOf ?? '' }))
     );
 }
 
@@ -3635,6 +3702,205 @@ export async function updatePublicationCandidateStatus(
         for (const col of columnUpdaters) {
             batchUpdates.push({
                 range: `${PUBLICATION_CANDIDATES_SHEET}!${columnNumberToLetter(col.index)}${rowIndex}`,
+                values: [[col.value(update)]],
+            });
+        }
+    }
+
+    if (batchUpdates.length === 0) return;
+
+    const batchSize = 500;
+    for (let i = 0; i < batchUpdates.length; i += batchSize) {
+        await batchUpdateRanges(spreadsheetId, batchUpdates.slice(i, i + batchSize));
+    }
+}
+
+/**
+ * Duplicate_Candidates シートを初期化（存在しない場合）
+ * ensurePublicationCandidatesSheet() と完全に同じ ensure パターン（ヘッダー欠落は末尾へ追記、
+ * タブ欠落は addSheet → ヘッダー append、それ以外の例外は再送出）。Issue #145 チャンク2。
+ */
+export async function ensureDuplicateCandidatesSheet(spreadsheetId: string): Promise<void> {
+    try {
+        const headerRow = await getSheetValues(spreadsheetId, `${DUPLICATE_CANDIDATES_SHEET}!1:1`);
+        const existingHeaders = headerRow[0] || [];
+
+        if (existingHeaders.length === 0) {
+            await appendRows(spreadsheetId, DUPLICATE_CANDIDATES_SHEET, [DUPLICATE_CANDIDATES_HEADERS]);
+            return;
+        }
+
+        const missingHeaders = DUPLICATE_CANDIDATES_HEADERS.filter(h => !existingHeaders.includes(h));
+        if (missingHeaders.length > 0) {
+            const newHeaders = [...existingHeaders, ...missingHeaders];
+            const startCol = columnNumberToLetter(existingHeaders.length);
+            const endCol = columnNumberToLetter(newHeaders.length - 1);
+            await updateRange(
+                spreadsheetId,
+                `${DUPLICATE_CANDIDATES_SHEET}!${startCol}1:${endCol}1`,
+                [missingHeaders]
+            );
+            console.log(`[ensureDuplicateCandidatesSheet] Added missing columns: ${missingHeaders.join(', ')}`);
+        }
+    } catch (error) {
+        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+            console.log('[ensureDuplicateCandidatesSheet] Creating Duplicate_Candidates sheet...');
+            await addSheet(spreadsheetId, DUPLICATE_CANDIDATES_SHEET);
+            await appendRows(spreadsheetId, DUPLICATE_CANDIDATES_SHEET, [DUPLICATE_CANDIDATES_HEADERS]);
+        } else {
+            throw error;
+        }
+    }
+}
+
+/**
+ * Duplicate_Candidates シートの全行を読む（ensure は呼ばない内部専用ヘルパー）。
+ * readPublicationCandidatesRows() と同じ理由で分離している（保存のたびに ensure→全行読み取り→
+ * ensure(二重)→appendRows という無駄なリクエストが積み重なるのを避けるため）。
+ * 失敗時は例外をそのまま投げる（読み取り失敗を握りつぶすと、既存候補が読めないまま同じ組を
+ * 二重に書きかねない。savePublicationCandidates() と同じ判断）。
+ */
+async function readDuplicateCandidatesRows(spreadsheetId: string): Promise<DuplicateCandidate[]> {
+    const values = await getSheetValues(spreadsheetId, `${DUPLICATE_CANDIDATES_SHEET}!A:${DUPLICATE_CANDIDATES_LAST_COLUMN}`);
+
+    if (values.length <= 1) return [];
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    return rows.map(row => {
+        const candidate: Record<string, unknown> = {};
+        headers.forEach((header, i) => {
+            const value = row[i] || '';
+            switch (header) {
+                case 'decided_by':
+                case 'decided_at':
+                case 'kept_ref_id':
+                    candidate[header] = value || undefined;
+                    break;
+                case 'status':
+                    candidate[header] = (value || 'suggested') as DuplicateCandidateStatus;
+                    break;
+                default:
+                    candidate[header] = value;
+            }
+        });
+        return candidate as unknown as DuplicateCandidate;
+    });
+}
+
+/**
+ * 重複候補ペアを Duplicate_Candidates シートへ保存する。
+ *
+ * ensure → 既存行を読んで（readDuplicateCandidatesRows、ensureは呼ばない） filterNewDuplicatePairs()
+ * で既出の組を除去 → 残りを appendRows。「取り込みを繰り返しても同じ組が再度積まれない」ことが
+ * この重複除去の目的（既に決着済み・提示済みの組は再スキャンでも書き込まない）。
+ *
+ * 行の組み立ては savePublicationCandidates() と同じ位置ベース（ヘッダ名は見ない。
+ * DUPLICATE_CANDIDATES_HEADERS の並びと1対1で対応させる）。candidate_id は crypto.randomUUID()、
+ * status は常に 'suggested'、suggested_at は呼び出し時点の ISO 8601。decided_by/decided_at/
+ * kept_ref_id はレビューUI（チャンク3）で使う列のため、このチャンクでは常に空文字で書く。
+ */
+export async function saveDuplicateCandidates(
+    spreadsheetId: string,
+    candidates: DuplicateCandidateDraft[]
+): Promise<void> {
+    if (candidates.length === 0) return;
+
+    await ensureDuplicateCandidatesSheet(spreadsheetId);
+
+    const existing = await readDuplicateCandidatesRows(spreadsheetId);
+    const newCandidates = filterNewDuplicatePairs(existing, candidates);
+    if (newCandidates.length === 0) return;
+
+    const suggestedAt = new Date().toISOString();
+    const rows = newCandidates.map(candidate => [
+        crypto.randomUUID(),
+        candidate.refIdA,
+        candidate.refIdB,
+        candidate.matchType,
+        candidate.matchKey,
+        'suggested',
+        suggestedAt,
+        '', // decided_by（チャンク3で使用）
+        '', // decided_at（チャンク3で使用）
+        '', // kept_ref_id（チャンク3で使用）
+    ]);
+
+    await appendRows(spreadsheetId, DUPLICATE_CANDIDATES_SHEET, rows);
+}
+
+/**
+ * Duplicate_Candidates シートの全行を取得する（ヘッダ駆動。getPublicationCandidates() と同じ流儀）。
+ * レビューUI（チャンク3）向けの公開API。ensure してから読む。失敗時は空配列を返す
+ * （getPublicationCandidates() と同じ「読み取り単体は失敗を握りつぶす」流儀）。
+ */
+export async function getDuplicateCandidates(spreadsheetId: string): Promise<DuplicateCandidate[]> {
+    try {
+        await ensureDuplicateCandidatesSheet(spreadsheetId);
+        return await readDuplicateCandidatesRows(spreadsheetId);
+    } catch (error) {
+        console.error('[getDuplicateCandidates] Error:', error);
+        return [];
+    }
+}
+
+/**
+ * Duplicate_Candidates シートの候補ステータス（統合/別文献）を一括更新する（Issue #145 チャンク3向け）。
+ *
+ * candidate_id 列で行を特定し、status / decided_by / decided_at（この呼び出し時点の
+ * ISO 8601、全件同一時刻） / kept_ref_id を更新する。列位置は updatePublicationCandidateStatus()
+ * と同じ「ヘッダー行から都度引く」流儀（ハードコード禁止）。1件の候補につき4列を更新するため、
+ * 全 update × 4列ぶんの range をまとめて1回の values:batchUpdate（batchUpdateRanges()）で送る。
+ * ensureDuplicateCandidatesSheet() を先に呼ぶ。該当 candidate_id が見つからない更新は黙って
+ * スキップする（updatePublicationCandidateStatus() と同じ振る舞い）。
+ */
+export async function updateDuplicateCandidateStatus(
+    spreadsheetId: string,
+    updates: DuplicateCandidateStatusUpdate[]
+): Promise<void> {
+    if (updates.length === 0) return;
+
+    await ensureDuplicateCandidatesSheet(spreadsheetId);
+
+    const values = await getSheetValues(spreadsheetId, `${DUPLICATE_CANDIDATES_SHEET}!A:${DUPLICATE_CANDIDATES_LAST_COLUMN}`);
+    if (values.length <= 1) return;
+
+    const headers = values[0];
+    const candidateIdIndex = headers.indexOf('candidate_id');
+    const statusIndex = headers.indexOf('status');
+    const decidedByIndex = headers.indexOf('decided_by');
+    const decidedAtIndex = headers.indexOf('decided_at');
+    const keptRefIdIndex = headers.indexOf('kept_ref_id');
+
+    if (candidateIdIndex === -1 || statusIndex === -1 || decidedByIndex === -1 ||
+        decidedAtIndex === -1 || keptRefIdIndex === -1) {
+        throw new Error('Duplicate_Candidates column not found');
+    }
+
+    const rowIndexByCandidateId = new Map<string, number>();
+    values.slice(1).forEach((row, index) => {
+        const candidateId = (row[candidateIdIndex] || '').trim();
+        if (candidateId) {
+            rowIndexByCandidateId.set(candidateId, index + 2);
+        }
+    });
+
+    const decidedAt = new Date().toISOString();
+    const columnUpdaters: Array<{ index: number; value: (u: DuplicateCandidateStatusUpdate) => string }> = [
+        { index: statusIndex, value: (u) => u.status },
+        { index: decidedByIndex, value: (u) => u.decidedBy },
+        { index: decidedAtIndex, value: () => decidedAt },
+        { index: keptRefIdIndex, value: (u) => u.keptRefId || '' },
+    ];
+
+    const batchUpdates: Array<{ range: string; values: string[][] }> = [];
+    for (const update of updates) {
+        const rowIndex = rowIndexByCandidateId.get(update.candidateId);
+        if (!rowIndex) continue;
+        for (const col of columnUpdaters) {
+            batchUpdates.push({
+                range: `${DUPLICATE_CANDIDATES_SHEET}!${columnNumberToLetter(col.index)}${rowIndex}`,
                 values: [[col.value(update)]],
             });
         }

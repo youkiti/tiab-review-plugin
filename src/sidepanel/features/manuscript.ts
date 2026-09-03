@@ -23,7 +23,9 @@ import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
-import { getSpreadsheetInfo } from '../../lib/sheets-api';
+import { getSpreadsheetInfo, getReferences } from '../../lib/sheets-api';
+import { computeIdentification } from '../../lib/prisma-identification';
+import type { IdentificationData } from '../../lib/prisma-identification';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
 import { excludeReasonLabelEn, EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
 
@@ -61,59 +63,26 @@ function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
 // 集計
 // ---------------------------------------------------------------------------
 
-interface IdentificationData {
-    files: Array<{ file: string; identified: number; hasStats: boolean }>;
-    identifiedTotal: number;
-    duplicatesTotal: number | null;  // null = 統計未記録のファイルがあり合計不明
-    screened: number;                // 重複除去後（シート上のユニーク文献数）
-    statsComplete: boolean;
-}
-
 /**
- * Identification 相の数値（import_stats + シート上の件数）
+ * Identification 相の数値（import_stats + シート上の件数）。
  *
- * state.allReferences には Registry linkage 由来の取り込み行（related_ref_id 非空）が
- * 混ざっている。この行はデータベース検索で同定したものではない（PRISMA の
- * other methods 腕で別集計する対象）ため、"Records identified from databases" 等の
- * database腕の集計からは除外する（Issue #120）。0件のときは splitByIdentificationRoute()
- * の性質上 database === state.allReferences（内容・順序とも同一）になるため、
- * 現行の出力から1文字も変わらない。
+ * 集計の核は src/lib/prisma-identification.ts の computeIdentification()（純関数、
+ * state 非依存）へ切り出した。ここでは state から引数を組み立てるだけの薄い層にする。
+ *
+ * allReferences は state.allReferences ではなく、呼び出し元（showManuscriptModal）が
+ * getReferences() で取り直した「論理削除された行も含む全件」を渡すこと。
+ * getReferencesWithStatus() 経由の state.allReferences は論理削除された行（重複）が
+ * 除外済みのため、そのまま渡すと論理削除件数を集計できない（Issue #145 チャンク2）。
+ *
+ * refsMayOmitLogicallyDeleted は、getReferences() の取得に失敗して state.allReferences へ
+ * フォールバックしたときに true を渡す。computeIdentification() 側で duplicatesTotal を
+ * null に強制し、数字が黙って過少になることを防ぐ（詳細は computeIdentification() の JSDoc）。
  */
-function collectIdentification(): IdentificationData {
-    const refs = splitByIdentificationRoute(state.allReferences).database;
-    const perFile = new Map<string, number>();
-    for (const r of refs) {
-        const file = r.source_file || '(unknown source)';
-        perFile.set(file, (perFile.get(file) ?? 0) + 1);
-    }
-
-    const stats = state.importStats;
-    let identifiedTotal = 0;
-    let duplicatesTotal = 0;
-    let statsComplete = true;
-
-    const files = [...perFile.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([file, inSheet]) => {
-            const s = stats[file];
-            if (s) {
-                identifiedTotal += s.identified;
-                duplicatesTotal += s.duplicates;
-                return { file, identified: s.identified, hasStats: true };
-            }
-            // 統計なし: 重複除去後の件数で代用（* 付きで明示）
-            statsComplete = false;
-            identifiedTotal += inSheet;
-            return { file, identified: inSheet, hasStats: false };
-        });
-
-    return {
-        files,
-        identifiedTotal,
-        duplicatesTotal: statsComplete ? duplicatesTotal : null,
-        screened: refs.length,
-        statsComplete,
-    };
+function collectIdentification(
+    allReferences: Pick<ReferenceWithStatus, 'source_file' | 'related_ref_id' | 'duplicate_of'>[],
+    refsMayOmitLogicallyDeleted: boolean
+): IdentificationData {
+    return computeIdentification(allReferences, state.importStats, { refsMayOmitLogicallyDeleted });
 }
 
 /** TiAb 相にヒト判定を出したレビュアー数（LLM/ML自動を除く。最低1） */
@@ -460,7 +429,23 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
         console.log('[manuscript] Could not get spreadsheet title');
     }
 
-    const id = collectIdentification();
+    // Identification 集計は論理削除された行（重複、duplicate_of 非空）も含めた全件が必要
+    // （Issue #145 チャンク2。除外件数を duplicatesTotal へ合算するため）。state.allReferences は
+    // getReferencesWithStatus() 経由で論理削除済みの行が既に取り除かれているため使えず、
+    // ここで getReferences() を呼んで全件を取り直す。取得に失敗した場合は state.allReferences へ
+    // フォールバックするが、その場合は論理削除件数を数えられない（黙って過少になる）ため、
+    // refsMayOmitLogicallyDeleted=true を collectIdentification() へ渡し、duplicatesTotal を
+    // 明示的に「合計不明」にする（数字が断りなく狂うことを防ぐ）。
+    let allReferencesForIdentification: Pick<ReferenceWithStatus, 'source_file' | 'related_ref_id' | 'duplicate_of'>[] = state.allReferences;
+    let refsMayOmitLogicallyDeleted = false;
+    try {
+        allReferencesForIdentification = await getReferences(state.spreadsheetId);
+    } catch {
+        console.log('[manuscript] Could not get full references (including logically-deleted); falling back to state.allReferences');
+        refsMayOmitLogicallyDeleted = true;
+    }
+
+    const id = collectIdentification(allReferencesForIdentification, refsMayOmitLogicallyDeleted);
     // sought はデータベース腕の件数のみ（Issue #120: Registry linkage 由来の候補と合算しない）。
     // splitByIdentificationRoute() を使うことで tiab相・fulltext相のどちらでも同じ計算になる
     // （summaryByRoute は tiab相で null になるため、そちらには依存しない）。0件のときは

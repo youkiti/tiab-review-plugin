@@ -11,6 +11,7 @@ import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats } fro
 import { t } from '../../lib/i18n';
 
 import { parseImportFile } from '../../lib/file-dispatcher';
+import { partitionIncomingReferences } from '../../lib/duplicate-import-filter';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -71,14 +72,18 @@ export async function handleRISImport(e: Event) {
             ref.source_file = file.name;
         });
 
-        // 重複チェック
-        const existingKeys = new Set(
-            allReferences
-                .map(ref => ref.dedupe_key)
-                .filter((key): key is string => Boolean(key))
-        );
-        const uniqueReferences = newReferences.filter(ref => !ref.dedupe_key || !existingKeys.has(ref.dedupe_key));
-        const duplicateCount = newReferences.length - uniqueReferences.length;
+        // 重複チェック（判定ロジックは純関数へ切り出し済み。src/lib/duplicate-import-filter.ts 参照。
+        // DOM/state 依存のこの層ではテストできないため、判定は配線の境界でテストする）
+        const { toImport: uniqueReferences, autoSkipped, reviewPairs } =
+            partitionIncomingReferences(allReferences, newReferences);
+        const duplicateCount = autoSkipped.length;
+
+        // タイトルだけ一致した組（reviewPairs）は、現時点では消費先が無いため
+        // 件数を出すだけにとどめる。取り込みは通しており、消費（表示・解決UI）は
+        // 後続で実装する重複レビューUI（Issue #145 チャンク3）で行う。
+        if (reviewPairs.length > 0) {
+            console.log(`[handleRISImport] ${reviewPairs.length} review pairs (title match) detected.`);
+        }
 
         if (duplicateCount > 0) {
             console.log(`Skipped ${duplicateCount} duplicates.`);

@@ -17,6 +17,8 @@ import type { PlatformAdapter } from '../src/platform/types';
 //
 // Issue #118 チャンク1で record_type/related_ref_id を末尾に追加し、
 // REFERENCES_HEADERS.length は 24 → 26 になった（=24 だった頃の当テストの前提も追従済み）。
+// Issue #145 チャンク2で duplicate_of をさらに末尾に追加し、26 → 27（AA列）になった
+// （このファイルの「26列=移行済み」を前提としたフィクスチャ・アサーションも追従済み）。
 
 const mockPlatform: PlatformAdapter = {
     getAuthToken: async () => 'test-token',
@@ -66,13 +68,13 @@ function installEnsureHeadersMock(
         const url = typeof input === 'string' ? input : input.toString();
         const method = (init?.method || 'GET').toUpperCase();
 
-        if (method === 'GET' && url.includes('/values/References!A1%3AZ1')) {
+        if (method === 'GET' && url.includes('/values/References!A1%3AAA1')) {
             return new Response(JSON.stringify({ values: [referencesHeaderRow] }), { status: 200 });
         }
         if (method === 'GET' && url.includes('/values/Decisions!A1%3AZ1')) {
             return new Response(JSON.stringify({ values: [decisionsHeaderRow] }), { status: 200 });
         }
-        if (method === 'PUT' && url.includes('/values/References!A1%3AZ1')) {
+        if (method === 'PUT' && url.includes('/values/References!A1%3AAA1')) {
             const body = JSON.parse((init!.body as string));
             puts.push({ method, url, body });
             return new Response(JSON.stringify({}), { status: 200 });
@@ -88,7 +90,7 @@ function installEnsureHeadersMock(
 }
 
 function referencesPuts(puts: MockPut[]): MockPut[] {
-    return puts.filter((p) => p.url.includes('/values/References!A1%3AZ1'));
+    return puts.filter((p) => p.url.includes('/values/References!A1%3AAA1'));
 }
 
 test('22列の旧シート: ヘッダー行が24列へ拡張される', async () => {
@@ -124,16 +126,16 @@ test('24列でW/Xがユーザー独自名: References のヘッダー行 PUT が
     assert.equal(refPuts.length, 0, 'ユーザー独自のW/Xヘッダー名を改名してはいけない');
 });
 
-test('26列で既に正しく移行済み: currentHeaders.length < REFERENCES_HEADERS.length が偽なので何も書かない（既存挙動）', async () => {
+test('27列で既に正しく移行済み: currentHeaders.length < REFERENCES_HEADERS.length が偽なので何も書かない（既存挙動）', async () => {
     const puts = installEnsureHeadersMock([
         ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
-        'record_type', 'related_ref_id',
+        'record_type', 'related_ref_id', 'duplicate_of',
     ]);
 
     await ensureHeaders('sheet-d');
 
     const refPuts = referencesPuts(puts);
-    assert.equal(refPuts.length, 0, '既に26列なら拡張ロジック自体に入らない');
+    assert.equal(refPuts.length, 0, '既に27列（duplicate_of まで揃っている）なら拡張ロジック自体に入らない');
 });
 
 test('23列でW1がユーザー独自名でも Decisions 側の移行処理は実行される', async () => {
@@ -179,9 +181,9 @@ test('columnLetterMirror: 26列はZ、27列はAAになる（境界確認）', ()
     assert.equal(columnLetterMirror(27), 'AA');
 });
 
-test('22列の旧シート: ヘッダー行PUTのrangeがREFERENCES_HEADERS.lengthから導出した列（現状26列=Z列）になり、書き込む行の要素数もそれと一致する', async () => {
+test('22列の旧シート: ヘッダー行PUTのrangeがREFERENCES_HEADERS.lengthから導出した列（現状27列=AA列）になり、書き込む行の要素数もそれと一致する', async () => {
     const expectedLastColumn = columnLetterMirror(REFERENCES_HEADERS.length);
-    assert.equal(expectedLastColumn, 'Z', '現時点のREFERENCES_HEADERS.length(=26)の前提が崩れていないことの確認');
+    assert.equal(expectedLastColumn, 'AA', '現時点のREFERENCES_HEADERS.length(=27)の前提が崩れていないことの確認');
 
     const puts = installEnsureHeadersMock([...OLD_HEADERS_22]);
 
@@ -223,8 +225,9 @@ function captureConsoleWarn(): { calls: unknown[][]; restore: () => void } {
 
 test('25列でY1がユーザー独自名（W/Xは正規名のまま）: References のヘッダー行 PUT が発行されない', async () => {
     // 25列（22列の安定プレフィックス + W/X正規名 + ユーザー独自の25列目）は
-    // currentHeaders.length(25) < REFERENCES_HEADERS.length(26) で「不足」分岐に入る。
-    // 旧検証（W/X限定）はここを素通りしてしまい、A1:Z1を丸ごとPUTしてユーザーの25列目
+    // currentHeaders.length(25) < REFERENCES_HEADERS.length（当時26、Issue #145 チャンク2で
+    // duplicate_of が加わった現在は27）のいずれでも「不足」分岐に入る。
+    // 旧検証（W/X限定）はここを素通りしてしまい、ヘッダー行を丸ごとPUTしてユーザーの25列目
     // （my_memo）を無警告で record_type に改名してしまっていた。
     const warn = captureConsoleWarn();
     try {
@@ -241,27 +244,29 @@ test('25列でY1がユーザー独自名（W/Xは正規名のまま）: Referenc
     }
 });
 
-test('26列でY/Zがユーザー独自名: References のヘッダー行 PUT が発行されず、かつ警告が出る', async () => {
-    // 26列は currentHeaders.length(26) === REFERENCES_HEADERS.length(26) のため
-    // 「移行済み」分岐に入り、旧実装ではPUTされないのはもちろん検証自体が一切走らなかった
-    // （= ユーザーがY/Z列を独自用途で使っていても気づく手段が無かった）。
-    // 一般化後は列数に関わらず検証が走るため、PUTは従来どおり0回のままだが、
-    // 衝突していることを示す警告が新たに出るようになっていることを確認する。
+test('27列でY/Z/AAがユーザー独自名: References のヘッダー行 PUT が発行されず、かつ警告が出る', async () => {
+    // このテストの存在理由は「列数が REFERENCES_HEADERS.length と一致して本来なら
+    // 『移行済み』分岐に入るケースでも、managedHeaderCheck による検証は列数に関わらず常に走る」
+    // ことの固定（旧実装ではここが一切走らず、ユーザーがY/Z列を独自用途で使っていても気づく
+    // 手段が無かった。PR #105 実機確認・Issue #118 で再発した経緯は本ファイル冒頭のコメント参照）。
+    // Issue #145 チャンク2で duplicate_of（AA列）が加わり REFERENCES_HEADERS.length は27に
+    // なったため、この「列数一致」分岐を通すフィクスチャも27列（Y/Z/AAの3列とも独自名）にする。
     const warn = captureConsoleWarn();
     try {
         const puts = installEnsureHeadersMock([
-            ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id', 'my_memo', 'my_tag',
+            ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
+            'my_memo', 'my_tag', 'my_dup',
         ]);
 
         await ensureHeaders('sheet-h');
 
         const refPuts = referencesPuts(puts);
-        assert.equal(refPuts.length, 0, 'この列数では元々PUTされない（既存挙動を維持）');
+        assert.equal(refPuts.length, 0, '列数は一致している（27列）が、Y/Z/AAの衝突でPUTは発行されない');
 
         // 「何らかの console.warn が1回以上出た」だけでは、Referencesブロックと無関係な警告でも
-        // 通ってしまい、この修正が守りたい挙動（Y/Z列の衝突を検出して警告する）を固定できない。
+        // 通ってしまい、この修正が守りたい挙動（Y/Z/AA列の衝突を検出して警告する）を固定できない。
         // メッセージが [ensureHeaders] References 由来であることまで絞り込んだうえで、
-        // conflicts の中身（列・期待値・実際の値、Y→Zの順）まで検証する。
+        // conflicts の中身（列・期待値・実際の値、Y→Z→AAの順）まで検証する。
         const referencesConflictWarnings = warn.calls.filter(
             (args) => typeof args[0] === 'string' && args[0].includes('[ensureHeaders]') && args[0].includes('References')
         );
@@ -277,9 +282,10 @@ test('26列でY/Zがユーザー独自名: References のヘッダー行 PUT が
                 conflicts: [
                     { column: 'Y', expected: 'record_type', actual: 'my_memo' },
                     { column: 'Z', expected: 'related_ref_id', actual: 'my_tag' },
+                    { column: 'AA', expected: 'duplicate_of', actual: 'my_dup' },
                 ],
             },
-            '衝突したY列・Z列の両方が期待どおりconflictsに入っていること（実装どおりY→Zの順）'
+            '衝突したY列・Z列・AA列がすべて期待どおりconflictsに入っていること（実装どおりY→Z→AAの順）'
         );
     } finally {
         warn.restore();
@@ -294,18 +300,18 @@ test('26列でY/Zがユーザー独自名: References のヘッダー行 PUT が
 // 衝突の有無で警告するかどうかが実際に分岐していることを固定する。
 // ---------------------------------------------------------------------------
 
-test('26列すべて正規名: References のヘッダー行 PUT が発行されず、console.warn も呼ばれない（衝突なしの負の対照）', async () => {
+test('27列すべて正規名: References のヘッダー行 PUT が発行されず、console.warn も呼ばれない（衝突なしの負の対照）', async () => {
     const warn = captureConsoleWarn();
     try {
         const puts = installEnsureHeadersMock([
             ...OLD_HEADERS_22, 'fulltext_drive_source_id', 'fulltext_drive_copy_id',
-            'record_type', 'related_ref_id',
+            'record_type', 'related_ref_id', 'duplicate_of',
         ]);
 
         await ensureHeaders('sheet-i');
 
         const refPuts = referencesPuts(puts);
-        assert.equal(refPuts.length, 0, '既に26列なら拡張ロジック自体に入らない（既存挙動）');
+        assert.equal(refPuts.length, 0, '既に27列（duplicate_of まで揃っている）なら拡張ロジック自体に入らない（既存挙動）');
         assert.equal(warn.calls.length, 0, '衝突が無いのでReferencesのヘッダー衝突警告は出ないこと');
     } finally {
         warn.restore();
