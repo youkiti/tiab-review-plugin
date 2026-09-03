@@ -39,6 +39,7 @@
         "../src/lib/registry-record.ts",
         "../src/lib/ctg-parser.ts",
         "../src/lib/ictrp-parser.ts",
-        "../src/lib/ime-composition.ts"
+        "../src/lib/ime-composition.ts",
+        "../experiments/registry-linkage/measure-recall.ts"
     ]
 }
