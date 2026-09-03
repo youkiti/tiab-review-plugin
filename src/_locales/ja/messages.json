@@ -290,6 +290,9 @@
   "screening_tiabDoneToast": {
     "message": "TiAbスクリーニング完了！次は「📄 全文」タブへ"
   },
+  "screening_resumedPosition": {
+    "message": "前回表示していた文献から再開しました"
+  },
   "nav_prev": {
     "message": "前へ (←)"
   },
