@@ -10,6 +10,8 @@
  *   ファイル名側を分母にすると正しいタイトルでも一致率が不当に下がってしまう）
  */
 
+import { stripDoiPrefix } from './doi';
+
 /** DOIの一般的なパターン（プレフィックス10.NNNN以上 + サフィックス）。末尾の記号は呼び出し側で削る。 */
 const DOI_PATTERN = /10\.\d{4,}\/\S+/;
 
@@ -40,13 +42,13 @@ export function extractDoiFromFilename(filename: string): string | null {
     return match[0].replace(/[)\]},.;]+$/, '');
 }
 
-/** DOI比較用の正規化（doi.org URLプレフィックス除去・小文字化） */
+/**
+ * DOI比較用の正規化（doi.org / dx.doi.org / http / https / `doi:` 接頭辞の除去・小文字化）。
+ * 接頭辞剥がしは `src/lib/doi.ts` の `stripDoiPrefix()` に委譲する（検証はしない契約はそのまま
+ * 維持する。ファイル名から抽出したDOI候補は `DOI_PATTERN` で既に緩く絞り込まれているため）。
+ */
 function normalizeDoiForCompare(doi: string): string {
-    return doi
-        .trim()
-        .toLowerCase()
-        .replace(/^https?:\/\/(dx\.)?doi\.org\//, '')
-        .replace(/^doi:/, '');
+    return stripDoiPrefix(doi);
 }
 
 function tokenize(normalized: string): Set<string> {

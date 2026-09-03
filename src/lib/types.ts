@@ -1,6 +1,7 @@
 // types.ts - 型定義
 
 import type { LlmTargetMode } from './llm-target-selection';
+import type { DuplicateMatch, DuplicateMatchType } from './duplicate-detect';
 
 /**
  * フルテキストの入手状態
@@ -49,6 +50,10 @@ export interface Reference {
     record_type?: ReferenceRecordType;
     // registration 行 ⇄ そこから取り込んだ論文行の相互参照。今はスキーマのみ用意（チャンク3で使用）。
     related_ref_id?: string;
+    // 重複検出の論理削除フラグ（Issue #145 チャンク2）。非空なら、この行は重複として除外済み。
+    // 値は残す側の ref_id。判定は必ず src/lib/duplicate-detect.ts の isLogicallyDeleted() を
+    // 経由すること。物理削除ではなく論理削除にしているため、行自体は残り、取り消しも可能。
+    duplicate_of?: string;
 }
 
 /**
@@ -659,4 +664,51 @@ export interface PublicationCandidate {
     decided_by?: string;       // チャンク3で使用（今回は常に空）
     decided_at?: string;       // 同上
     imported_ref_id?: string;  // 同上
+}
+
+// ---------------------------------------------------------------------------
+// 重複レビューの永続化（Issue #145 チャンク2）: 人が採否を決めた組を記憶する
+// ---------------------------------------------------------------------------
+
+/**
+ * Duplicate_Candidates タブの行の状態。
+ * - suggested: 検出直後（人がまだ決めていない）
+ * - merged:    どちらかを残すと人が決めた（kept_ref_id に残す側の ref_id が入る）
+ * - dismissed: 「別々の文献だ」と人が決めた（再スキャンでも二度と提示しない）
+ */
+export type DuplicateCandidateStatus = 'suggested' | 'merged' | 'dismissed';
+
+/**
+ * 重複候補ペアの1行（Duplicate_Candidates シートの1行に対応）。
+ * ref_id_a は先に存在していた側、ref_id_b は後から来た側（duplicate-detect.ts の
+ * DuplicateMatch と同じ向き）。match_type/match_key は検出時に一致したキーの種別と値。
+ */
+export interface DuplicateCandidate {
+    candidate_id: string;      // UUID
+    ref_id_a: string;
+    ref_id_b: string;
+    match_type: DuplicateMatchType;
+    match_key: string;
+    status: DuplicateCandidateStatus;
+    suggested_at: string;      // ISO 8601
+    decided_by?: string;
+    decided_at?: string;
+    kept_ref_id?: string;      // status: 'merged' のときのみ埋まる
+}
+
+/**
+ * saveDuplicateCandidates() へ渡す保存前の候補（Duplicate_Candidates タブへまだ書き込んでいない
+ * 状態）。duplicate-detect.ts の DuplicateMatch が既に ref_id_a/ref_id_b/match_type/match_key
+ * 相当の4フィールドを持っているため、別インターフェースを再定義せずエイリアスにする
+ * （同じ形の型を2つ用意すると、どちらかだけ直す事故につながる）。
+ */
+export type DuplicateCandidateDraft = DuplicateMatch;
+
+/** updateDuplicateCandidateStatus() の1件分の更新指示 */
+export interface DuplicateCandidateStatusUpdate {
+    candidateId: string;
+    status: Extract<DuplicateCandidateStatus, 'merged' | 'dismissed'>;
+    decidedBy: string;
+    /** 'merged' のときのみ渡す想定。省略時（'dismissed' 等）は kept_ref_id 列を空文字で書く */
+    keptRefId?: string;
 }

@@ -245,6 +245,7 @@ test('getFulltextClaimsSnapshot: byRefId はW/X列が空の行も含め全行を
 // 「既に正しく移行済み」を表すこの既定フィクスチャも26列（末尾2列込み）にしておく。
 // 24列のままだと ensureHeaders() が「未移行」と判定して A1:Z1 への PUT を発行してしまい、
 // 本ファイルの fetch モック（installUpdateMock）が対応していないため落ちる。
+// Issue #145 チャンク2で duplicate_of がさらに末尾追加されたため、27列（AA列込み）にしている。
 const REFERENCES_HEADERS_ROW = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
@@ -253,6 +254,7 @@ const REFERENCES_HEADERS_ROW = [
     'fulltext_url', 'fulltext_status', 'fulltext_set',
     'fulltext_drive_source_id', 'fulltext_drive_copy_id',
     'record_type', 'related_ref_id',
+    'duplicate_of',
 ];
 
 const DECISIONS_HEADERS_ROW = [
@@ -286,7 +288,7 @@ function installUpdateMock(mockState: UpdateMockState) {
         const method = (init?.method || 'GET').toUpperCase();
         mockState.calls.push({ method, url });
 
-        if (method === 'GET' && url.includes('/values/References!A1%3AZ1')) {
+        if (method === 'GET' && url.includes('/values/References!A1%3AAA1')) {
             return new Response(JSON.stringify({ values: [mockState.referencesHeaderRow] }), { status: 200 });
         }
         if (method === 'GET' && url.includes('/values/References!A1%3AX1')) {
@@ -356,7 +358,7 @@ test('updateReferenceFulltextUrls: ensureFulltextDriveColumnsOnce はメモ化�
     await updateReferenceFulltextUrls('sheet-update-2', [
         { refId: 'ref1', fulltextUrl: 'u1', status: 'cached', driveSource: null },
     ]);
-    const headerReadsAfterFirst = countCalls(mockState, (u) => u.includes('References!A1%3AZ1'), 'GET')
+    const headerReadsAfterFirst = countCalls(mockState, (u) => u.includes('References!A1%3AAA1'), 'GET')
         + countCalls(mockState, (u) => u.includes('References!A1%3AX1'), 'GET')
         + countCalls(mockState, (u) => u.includes('Decisions!A1%3AZ1'), 'GET');
     assert.equal(headerReadsAfterFirst, 3, '初回はReferences/Decisionsのヘッダー読み取り+検証読み取りで3回');
@@ -364,7 +366,7 @@ test('updateReferenceFulltextUrls: ensureFulltextDriveColumnsOnce はメモ化�
     await updateReferenceFulltextUrls('sheet-update-2', [
         { refId: 'ref2', fulltextUrl: 'u2', status: 'cached', driveSource: null },
     ]);
-    const headerReadsAfterSecond = countCalls(mockState, (u) => u.includes('References!A1%3AZ1'), 'GET')
+    const headerReadsAfterSecond = countCalls(mockState, (u) => u.includes('References!A1%3AAA1'), 'GET')
         + countCalls(mockState, (u) => u.includes('References!A1%3AX1'), 'GET')
         + countCalls(mockState, (u) => u.includes('Decisions!A1%3AZ1'), 'GET');
     assert.equal(headerReadsAfterSecond, 3, '2回目の呼び出しではメモ化によりヘッダー系読み取りが増えないこと');
@@ -446,7 +448,7 @@ test('updateReferenceFulltextUrls: usable=false（W/X衝突）はメモ化され
     console.warn = () => {};
 
     const countHeaderReads = () =>
-        countCalls(mockState, (u) => u.includes('References!A1%3AZ1'), 'GET')
+        countCalls(mockState, (u) => u.includes('References!A1%3AAA1'), 'GET')
         + countCalls(mockState, (u) => u.includes('References!A1%3AX1'), 'GET')
         + countCalls(mockState, (u) => u.includes('Decisions!A1%3AZ1'), 'GET');
 

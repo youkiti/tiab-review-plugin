@@ -83,8 +83,16 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
 | record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサと、論文候補の取り込み（`buildImportedPublicationReference()`。取り込んだ論文行は常に `article` を確定値として書く）。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
 | related_ref_id  | 取り込んだ論文行から、発見元のregistration行の `ref_id` への**一方向**の参照（registration行側に逆リンクは張らない。`src/lib/publication-import.ts` の `buildImportedPublicationReference()` が書く）。この列が非空の行は、TiAb票を一切持たなくても `src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` が無条件でフルテキスト候補として扱う（レジストリ連携フェーズ1チャンク3、Issue #118。下記「論文候補の取り込み（Referencesへの追加）」参照）（Z列） |      |
+| duplicate_of    | 重複として論理削除済みかどうかのフラグ。非空なら、この行は重複として除外済みで、値は**残す側の** `ref_id`。空文字（未設定）は生きている行。判定は必ず `src/lib/duplicate-detect.ts` の `isLogicallyDeleted()` を経由すること（自前で `ref.duplicate_of` を直接見る分岐を書かない）。書き込みは `src/lib/sheets-api.ts` の `setDuplicateOf()`（`duplicateOf: null` を渡すと空文字を書いて除外を取り消せる＝「やっぱり戻す」）。物理削除ではないため行自体は残る（Issue #145 チャンク2、AA列） |      |
 
-**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
+**References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。duplicate_of（AA列）はIssue #145 チャンク2で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
+
+**References を読む経路を新設・変更するときの規則（Issue #145 チャンク2、PR #146 レビュー指摘）**: References の行を返す経路は、論理削除済み行（`duplicate_of` 非空）を含めるかどうかで2種類に分かれる。新しい取得経路を足すときは、必ずどちら側かを判断すること。
+
+- **全件返す（論理削除済みも含む）**: `getReferences()`。重複レビューUIの「やっぱり戻す」操作に References 全件が必要なため、意図的にフィルタしない
+- **論理削除行を除外する**: `getReferencesWithStatus()`（TiAb盲検）・`getReferencesWithAllDecisions()`（キー開封後）・`getFulltextPageData()`（フルテキスト画面。Config タブ欠落時のフォールバック経路を含む2つの return 経路の両方で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
+
+**`getReferences()` の呼び出し元を grep するだけでは経路の洗い出しに不十分**: `getFulltextPageData()` は `getReferences()` を経由せず、シート値から `Reference[]` へ変換する内部関数 `parseReferenceValues()` を直接呼んでいる。そのため「除外漏れが無いか」を確認するときは `getReferences(` ではなく `parseReferenceValues` で grep すること。PR #146 のレビューでこの漏れが実際に見つかった（フルテキスト画面だけ論理削除済み文献が残っていた）。
 
 #### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
@@ -298,7 +306,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - **exclude_keywords**: 除外ハイライト用キーワード（赤）
 - **fulltext_pool_rule**: フルテキスト候補ルール（JSON: `{version, voters, threshold}`）。採用する判定者（voter: `human:{email}` / `ml:{email}` / `llm:{...}`）の TiAb Include 票が `threshold` 以上の文献を候補とする。キー開封後にフルテキストページから設定。未設定時は、管理ユーザーは読み込まれている全レビュアーの TiAb Include が1件でもある文献を候補とし、非管理ユーザーは既存の割り振りで見える文献のうち自分が TiAb Include した文献だけを候補とする。
   - **候補計算を判定票に依存させるとBlindで壊れる（2026-08 実事故）**: Blind中（key_opened=FALSE）は他人の human 票がクライアントへ配られないため、human voter を含むルールは自分以外のメンバーには常に0票＝候補0件と評価される。このため候補判定は `src/lib/fulltext-candidates.ts` に集約し、**担当割り振り設定済みの場合は References の `fulltext_set` 列（判定票非依存）を候補の一次ソース**にしている。候補系のロジックを触るときは必ずこのモジュールを経由し、`isInFulltextPool` を直接呼ぶ実装を新設しないこと。なお `mountRuleEditor` はキー未開封ではフォームを描画しないため、「キー未開封で保存」経路のガードは実質通らない。実際の事故経路は「開封してルール保存 → Blindへ戻す」で、警告は `handleKeyToggle` の CLOSE 側にある。
-- **import_stats**: インポート統計（JSON: `{"ファイル名": {identified, duplicates, imported_at}}`）。ファイルごとの解析件数（重複除去前）と重複スキップ数をインポート時に記録し、論文用テキスト（PRISMAフロー図の識別件数・重複除去数）の自動記入に使う。ソースファイル削除時は該当キーも削除する。
+- **import_stats**: インポート統計（JSON: `{"ファイル名": {identified, duplicates, imported_at}}`）。ファイルごとの解析件数（重複除去前）と重複スキップ数をインポート時に記録し、論文用テキスト（PRISMAフロー図の識別件数・重複除去数）の自動記入に使う。ソースファイル削除時は該当キーも削除する。**`duplicates` の意味が Issue #145 チャンク1〜2で変わっている**: 従来は正規化タイトル一致も含めて数えていたが、現在は取り込み時に**確認なしで自動スキップした分のみ**（PMID一致・検証済みDOI一致・試験ID一致でsourceも一致、の3種）。自動スキップしなかった重複（正規化タイトル一致など）は References に行として残り、人が重複レビューUIで判断した後に `duplicate_of` で論理削除される。この論理削除件数は `import_stats.duplicates` には入らず、`src/lib/prisma-identification.ts` の `computeIdentification()` が合算することで `identified − duplicates = screened` の縦の辻褄を合わせる（詳細は下記「論文用テキスト生成」参照）。
 - **review_criteria**: レビュー基準（組入・除外基準）を1本の自由記述テキストとして保存する（JSON: `{text, updated_at, updated_by}`。`src/lib/review-criteria.ts` の `ReviewCriteria` 型）。プロトコル文書を都度開かなくても、複数レビュアーがTiAb画面・フルテキスト画面から常設ボタン（📋 / ショートカット `c`）で参照できるようにするための**人間レビュアー向けの表示専用**設定。編集はサイドパネル（管理者のみ）に一本化しており、フルテキスト画面は閲覧専用。
   - **AI 判定用の `llm_criteria`（PICO/PECO/SPIDER の構造化基準、`LLM_CONFIG_KEYS` 系）とは別物**。`llm_criteria` はAIへ渡すプロンプトの一部で `config_hash` の算出対象に入っているため、運用メモとしての `review_criteria` をここに混ぜると、基準の言い回しを直しただけで `config_hash` が変わり、同じ設定のはずの Run が新規Runとして扱われてしまう（「中断からの再開」「新規にやり直す」が壊れる）。両者は保存先キーを分け、`llm_config` 系の更新経路（`updateLlmConfig` 等）とは混ぜないこと。`llmCriteriaToText()` で `llm_criteria` の内容を `review_criteria` へ一方向コピー（インポート）する導線はあるが、逆はない。
 - **fulltext_exclude_reasons**: フルテキストの除外理由リスト（JSON: `{items: [{key, label, labelEn}], retiredKeys: string[], updated_at, updated_by}`。`src/lib/exclude-reason-config.ts`）。**配列の順序が優先順位**で、判定画面の数字キー（先頭9件）もこの並びで決まる。未設定なら既定の PICO 7区分。PCC（scoping review）・PECO・SPIDER のプリセットを同モジュールに持つ。編集はフルテキストタブのインラインエディタ（管理者のみ）。上限は `items` が最大15件（`MAX_EXCLUDE_REASON_ITEMS`、`exclude-reasons.ts` 定義）、ラベルは最大50文字（`MAX_REASON_LABEL_LENGTH`）。Config タブは直接編集できるセルのため、`parseExcludeReasonConfig` がこの上限の唯一の信頼境界で、超過分は先頭切り捨て／ラベルは切り詰めで受ける（バリデーションエラーにはしない）。
@@ -543,6 +551,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - `state.allReferences` を見る画面を足したら、判定後に references を再読込する処理（`fulltext-ai.ts` の `reloadReferences` など）でも `state.setAllReferences()` を呼ぶこと。`syncSetReferences()` だけだと絞り込み前の全文献が古いままになる
    - **PRISMA の腕別集計（Issue #120）**: Registry linkage 由来の取り込み行（`related_ref_id` 非空）は PRISMA 2020 の「Identification of studies via other methods」腕として database 腕から分離集計する。判定と分割は `src/lib/identification-route.ts`（純関数）の `identificationRouteOf()` / `splitByIdentificationRoute()`。**判定条件は `related_ref_id` 非空のみにそろえること。** `src/lib/fulltext-candidates.ts` の `isProjectFulltextCandidateRef()` が候補プールへ無条件投入する条件と一致させないと、腕別集計の合計が候補総数と合わなくなる。`source` の `Registry linkage` 接頭辞は使わない。`getFulltextResultsSummary()` は**database 腕だけ**を返す。両腕が要るときは `getFulltextResultsSummaryByRoute()` を使う。other methods 腕の PRISMA 行組み立ては `buildOtherMethodsPrismaLines()`。該当0件なら**空配列**を返す（0件時に現行出力と1文字も変わらないことをこの性質で担保している）。全文結果CSVには `identification_route` 列（`database` / `registry_linkage`）が**ヘッダ配列の一番最後**に入る（既存の固定列・判定者列のインデックスをずらさないため）
    - **同じ原因（取り込み行が `state.allReferences` に混ざっている）で database 腕の数字が汚れる箇所が複数ある**ので、`state.allReferences` や候補一覧をそのまま数える処理を足すときは腕別に分けるかを必ず確認すること。`collectIdentification()`: 取り込み行は `source_file` を設定していないので、除外しないと `(unknown source)` として `Records identified from databases` と `Records screened` を水増しし、「* Import statistics were not recorded」の脚注まで出る。`countUnscreenedTiab()`: 取り込み行は**設計上TiAb票を一切持たない**ので、除外しないと全件「TiAb未判定」として数えられ実態のない警告が出る。論文用テキストの `sought`: 両腕の合算のままだと registry 行が同じフロー図内で**二重に数えられる**（`Reports sought for retrieval` と `Records excluded` の両方）。ただし**未決着の警告は逆に両腕の合算で出す**こと。database 腕だけを見ると registry 腕に pending / maybe / 未解消が残っていても「数値は最終値」と誤読させるため
+   - **`identified − duplicates = screened` の縦の辻褄（Issue #145 チャンク2）**: `collectIdentification()` は state 依存でテストできなかったため、集計の核を `src/lib/prisma-identification.ts` の `computeIdentification()`（純関数）へ切り出した。書誌重複のうち取り込み時に自動スキップされなかった分（正規化タイトル一致など）は References に行として残り `duplicate_of` で論理削除されるため、`import_stats.duplicates`（自動スキップ分のみ、上記Configタブの節参照）だけでは重複除去数が過少になる。`computeIdentification()` は database 腕（`splitByIdentificationRoute()` で絞り込み後）の論理削除件数を `duplicatesTotal` へ合算することでこれを補う。判定（Decisions）が付いていたかどうかでは区別しない — 書誌重複はそもそもスクリーニング前に除くべきものだった、という整理。渡す `refs` は論理削除済みの行も含む全件（`getReferences()` 由来）が前提で、そうでない一覧（`getReferencesWithStatus()` 等）しか手元に無い呼び出し元は `refsMayOmitLogicallyDeleted: true` を渡すこと（渡さないと `duplicatesTotal` が論理削除件数の分だけ黙って過少になる）。`showManuscriptModal()` は集計のためだけに `getReferences()` を取り直しており、取得に失敗した場合は `duplicatesTotal: null` / `statsComplete: false` にして既存の「統計未記録ファイルがある」経路（`[n]` 表示・`manuscript_warnNoStats` 警告）へ合流させる（数字が黙って狂わないようにするため）
 
 ### TiAb 表示位置の記憶と復元（Issue #140）
 
@@ -748,6 +757,31 @@ registration行から「その試験の結果論文（linked publication）」�
 - **タブ欠落時の自動作成・列欠落時の末尾追記は `ensurePublicationCandidatesSheet()` が担う。`ensureLlmRunsSheet()` と完全に同じ ensure パターン**（ヘッダー欠落は末尾へ追記、タブ欠落は `addSheet` → ヘッダー append、それ以外の例外は再送出）
 - **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `PUBLICATION_CANDIDATES_HEADERS` ミラーも必ず追従させること（`tests/publication-candidates-headers.test.ts` がドリフトを検出する）
 - ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3で実装済み（`src/lib/publication-import.ts` / `src/lib/publication-candidate-panel.ts` / `src/sidepanel/features/fulltext-publication-candidates.ts`。下記「論文候補の取り込み（Referencesへの追加）」参照）
+
+### 書誌重複の検出とレビュー（Duplicate_Candidates タブ）
+
+取り込み時にスキップしなかった重複候補ペア（正規化タイトル一致、source が不一致な試験ID一致）を、人が「統合する／別々の文献だ」を決めるまで記憶しておくタブ（Issue #145 チャンク2）。検出そのものの設計判断（自動スキップを絞る理由、PMID/DOI/試験ID/タイトルの4本キーを和集合で見る方式）は上記データ設計の総論を参照。**このチャンクでは器（検出・保存・冪等フィルタ）を作るところまでで、検出結果を実際にここへ流す配線と、ペアを見比べて決めるレビューUIはチャンク3。**
+
+- 検出ロジックは `src/lib/duplicate-detect.ts`（UI非依存の純関数）。`buildMatchKeys()` が1件の Reference から pmid/trialId/doi/title の4本のキーを作り（`normalizeDoi()` は `^10\.\d{4,9}/` で検証済みのDOIのみ、DOIの接頭辞剥がし自体は `src/lib/doi.ts` の `stripDoiPrefix()` に委譲する）、どれか一つでも既出なら一致とみなす和集合方式を取る。取り込み時フィルタ本体（`partitionIncomingReferences()`、自動スキップとレビュー候補の振り分け）は `src/lib/duplicate-import-filter.ts`
+- `Duplicate_Candidates` タブのヘッダー（この順、`DUPLICATE_CANDIDATES_HEADERS`）:
+
+  | 列名 | 説明 |
+  | --- | --- |
+  | candidate_id | 候補ID（UUID） |
+  | ref_id_a | 先に存在していた側の ref_id |
+  | ref_id_b | 後から来た側の ref_id |
+  | match_type | `pmid` / `doi` / `trialId` / `title`（`DuplicateMatchType`。一致したキーの種別） |
+  | match_key | 一致したキーの値（正規化後） |
+  | status | `suggested`（検出直後、未決）/ `merged`（どちらかを残すと決めた。`kept_ref_id` に残す側の ref_id が入る）/ `dismissed`（「別々の文献だ」と決めた。再スキャンでも二度と提示しない） |
+  | suggested_at | 検出日時（ISO 8601） |
+  | decided_by | 決定者（email）。`updateDuplicateCandidateStatus()`（チャンク3で配線）が書く |
+  | decided_at | 決定日時（ISO 8601）。同上 |
+  | kept_ref_id | 残す側の ref_id（`status: 'merged'` のときのみ埋まる）。同上 |
+
+- **ペアキーは順序非依存**: `normalizePairKey()`（`duplicate-detect.ts`）が2つの ref_id を辞書順にソートしてから連結するため、`ref_id_a`/`ref_id_b` の向きが逆でも同じペアとして扱える。同じ試験・同じ論文の組が「Aから見てB」「Bから見てA」の両方向で検出されても二重登録されない
+- **冪等フィルタ `filterNewDuplicatePairs()`**（`duplicate-detect.ts`）は `saveDuplicateCandidates()` が保存直前に使う。`Publication_Candidates` の `filterNewCandidates()` との違いは、キーが ref_id 1本ではなく「2つの ref_id の組」であること。`status` は見ない（`dismissed`/`merged` になった組も既出として弾く。一度決着した組を再スキャンのたびに再提示しないことがこの関数の存在理由そのもの）
+- 5点セットの永続化関数（`sheets-api.ts`、`Publication_Candidates` 系と同型）: `ensureDuplicateCandidatesSheet()`（タブ欠落時の自動作成・列欠落時の末尾追記）/ `readDuplicateCandidatesRows()`（内部専用の読み取り）/ `saveDuplicateCandidates()`（ensure → 既存行読み取り → `filterNewDuplicatePairs()` → 追記）/ `getDuplicateCandidates()`（チャンク3向けの公開読み取りAPI）/ `updateDuplicateCandidateStatus()`（`status`/`decided_by`/`decided_at`/`kept_ref_id` の更新）
+- **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions/Publication_Candidates と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `DUPLICATE_CANDIDATES_HEADERS` ミラーも必ず追従させること
 
 ### 論文候補の取り込み（Referencesへの追加）
 

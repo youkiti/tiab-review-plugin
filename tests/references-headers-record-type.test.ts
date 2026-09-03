@@ -4,15 +4,19 @@ import { REFERENCES_HEADERS, buildReferenceInsertRow } from '../src/lib/sheets-a
 import type { Reference } from '../src/lib/types';
 
 // Issue #118 チャンク1: References タブに record_type/related_ref_id を末尾追記したことの回帰テスト。
-// - REFERENCES_HEADERS の末尾2列が record_type / related_ref_id であること（途中挿入していないこと）
+// Issue #145 チャンク2: 上記に続けて duplicate_of（重複の論理削除フラグ）を末尾追記したことの回帰テストも
+// 同じファイルへ足す（このファイルが「列追加時のドリフト検出テスト」の前例のため）。
+// - REFERENCES_HEADERS の末尾3列が record_type / related_ref_id / duplicate_of であること（途中挿入していないこと）
 // - addReferences() が組み立てる行（buildReferenceInsertRow）で、fulltext_* 系5列が空文字パディングされ、
-//   record_type/related_ref_id が正しい index（24, 25）に載ること
+//   record_type/related_ref_id/duplicate_of が正しい index（24, 25, 26）に載ること
 
-test('REFERENCES_HEADERS: 末尾2列が record_type / related_ref_id であること', () => {
+test('REFERENCES_HEADERS: record_type / related_ref_id が index 24/25、duplicate_of が末尾（index 26）であること', () => {
     const headers = REFERENCES_HEADERS;
-    assert.equal(headers.length, 26, '既存24列 + 今回追加の2列 = 26列');
-    assert.equal(headers[headers.length - 2], 'record_type');
-    assert.equal(headers[headers.length - 1], 'related_ref_id');
+    // 既存24列 + record_type/related_ref_id（Issue #118 チャンク1） + duplicate_of（Issue #145 チャンク2）= 27列
+    assert.equal(headers.length, 27);
+    assert.equal(headers[24], 'record_type');
+    assert.equal(headers[25], 'related_ref_id');
+    assert.equal(headers[26], 'duplicate_of');
     // 既存の並びは不変（途中挿入していないこと）
     assert.deepEqual(headers.slice(0, 24), [
         'ref_id', 'title', 'abstract', 'year', 'authors',
@@ -59,6 +63,16 @@ test('buildReferenceInsertRow: record_type/related_ref_id 未設定なら空文�
     assert.equal(row[25], '');
 });
 
+test('buildReferenceInsertRow: duplicate_of が index 26 に正しく載る（Issue #145 チャンク2）', () => {
+    const row = buildReferenceInsertRow(makeReference({ duplicate_of: 'ref-keep' }));
+    assert.equal(row[26], 'ref-keep');
+});
+
+test('buildReferenceInsertRow: duplicate_of 未設定なら空文字', () => {
+    const row = buildReferenceInsertRow(makeReference());
+    assert.equal(row[26], '');
+});
+
 test('buildReferenceInsertRow: 既存フィールド（screening_setまで）の位置は従来どおり', () => {
     const row = buildReferenceInsertRow(makeReference({
         abstract: 'Abstract text',
@@ -87,5 +101,6 @@ test('buildReferenceInsertRow: 既存フィールド（screening_setまで）の
         '2026-01-01T00:00:00Z', 'a@example.com', 'pmid:12345', 'sample.nbib', 'set-1',
         '', '', '', '', '',
         '', '',
+        '',
     ]);
 });

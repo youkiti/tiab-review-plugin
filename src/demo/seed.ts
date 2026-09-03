@@ -38,6 +38,7 @@ const REFERENCES_HEADERS = [
     'fulltext_url', 'fulltext_status', 'fulltext_set',
     'fulltext_drive_source_id', 'fulltext_drive_copy_id',
     'record_type', 'related_ref_id',
+    'duplicate_of',
 ];
 
 const DECISIONS_HEADERS = [
@@ -73,6 +74,13 @@ export const PUBLICATION_CANDIDATES_HEADERS = [
     'candidate_id', 'ref_id', 'trial_id', 'pmid', 'doi',
     'title', 'journal', 'year', 'strategy', 'status',
     'suggested_at', 'decided_by', 'decided_at', 'imported_ref_id',
+];
+
+// sheets-api.ts の DUPLICATE_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
+// Issue #145 チャンク2で追加。
+export const DUPLICATE_CANDIDATES_HEADERS = [
+    'candidate_id', 'ref_id_a', 'ref_id_b', 'match_type', 'match_key',
+    'status', 'suggested_at', 'decided_by', 'decided_at', 'kept_ref_id',
 ];
 
 /** 決定論的な ref_id（demo-ref-001 ... ）を振り直した実データ文献一覧を作る（常に10件） */
@@ -222,5 +230,8 @@ export function seedDemoStore(profile: DemoProfile = 'default'): void {
         // 始まる想定）。ensurePublicationCandidatesSheet が「ヘッダーは揃っている」と判定できるよう、
         // ヘッダー行のみ用意しておく（LLM_Executions/LLM_Runsと同じ理由）。
         Publication_Candidates: [PUBLICATION_CANDIDATES_HEADERS],
+        // Duplicate_Candidates も同じ理由でヘッダー行のみ（Issue #145 チャンク2。重複候補ペアの
+        // 検出・保存はチャンク2の後続配線とチャンク3のレビューUIで行う）。
+        Duplicate_Candidates: [DUPLICATE_CANDIDATES_HEADERS],
     });
 }
