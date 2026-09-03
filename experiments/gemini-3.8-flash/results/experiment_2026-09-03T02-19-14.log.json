@@ -1,0 +1,86 @@
+{
+  "experimentId": "2026-09-03T02-19-14",
+  "startTime": "2026-09-03T02:19:14.762Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "F1",
+      "model": "gemini-3.8-flash",
+      "thinkingLevel": "LOW",
+      "maxOutputTokens": 8192
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 60,
+      "delayBetweenRequests": 50
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1943,
+    "successCount": 1943,
+    "failCount": 0,
+    "fallbackCount": 0,
+    "durationMs": 79478,
+    "avgTimePerItem": 40.90478641276377,
+    "modelVersions": [
+      "gemini-3.8-flash"
+    ],
+    "resumedFromJsonl": 50
+  },
+  "usage": {
+    "promptTokens": 979459,
+    "candidatesTokens": 288391,
+    "thoughtsTokens": 38368,
+    "totalTokens": 1306218,
+    "samples": 1993,
+    "maxTokensTruncated": 0,
+    "parseErrorFallback": 0
+  },
+  "cost": {
+    "inputUSD": 0.73459425,
+    "outputUSD": 1.22534625,
+    "totalUSD": 1.9599405,
+    "usdPer1000Items": 0.9834121926743603
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 249,
+    "falsePositives": 96,
+    "trueNegatives": 1617,
+    "falseNegatives": 31,
+    "sensitivity": 0.8892857142857142,
+    "specificity": 0.9439579684763573,
+    "precision": 0.7217391304347827,
+    "fBetaScore": 0.8851759687166726
+  },
+  "endTime": "2026-09-03T02:20:34.294Z",
+  "consoleLog": [
+    "[2026-09-03T02:19:14.762Z] === Starting Experiment 2026-09-03T02-19-14 ===",
+    "[2026-09-03T02:19:14.762Z] Dataset: depression, Condition: F1, Tier: tier_max",
+    "[2026-09-03T02:19:14.769Z] 1993件の文献をdepressionから読み込み",
+    "[2026-09-03T02:19:14.770Z] ラベル分布: 陽性=280, 陰性=1713",
+    "[2026-09-03T02:19:14.770Z] 条件: {\"id\":\"F1\",\"model\":\"gemini-3.8-flash\",\"thinkingLevel\":\"LOW\",\"maxOutputTokens\":8192}",
+    "[2026-09-03T02:19:14.770Z] レート制限: concurrency=60, delay=50ms",
+    "[2026-09-03T02:19:14.770Z] サンプリングパラメータ: 送信しない（temperature / topP とも未指定）",
+    "[2026-09-03T02:19:14.772Z] 再開: 既存JSONL(C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.8-flash\\results\\depression_F1_items.jsonl)から50件をスキップ (未処理 1943/1993件)",
+    "[2026-09-03T02:20:34.250Z] 今回セッション: 1943/1943 成功, フォールバック 0 (79.5秒)",
+    "[2026-09-03T02:20:34.250Z] 平均処理時間: 41ms/件",
+    "[2026-09-03T02:20:34.250Z] 実モデルバージョン: gemini-3.8-flash",
+    "[2026-09-03T02:20:34.251Z] 集計対象: 全1993件 (再開分 50件 + 今回処理分 1943件)",
+    "[2026-09-03T02:20:34.275Z] 判定結果を保存: C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\gemini-3.8-flash\\results\\decisions_2026-09-03T02-19-14.json",
+    "[2026-09-03T02:20:34.284Z] \n=== Token / Cost ===",
+    "[2026-09-03T02:20:34.284Z] prompt=979459, candidates=288391, thoughts=38368, total=1306218",
+    "[2026-09-03T02:20:34.284Z] USD: input=$0.7346, output=$1.2253, total=$1.9599 ($0.983 / 1K件)",
+    "[2026-09-03T02:20:34.284Z] MAX_TOKENS で切り詰め: 0 件 (フォールバック総数 0 件中)",
+    "[2026-09-03T02:20:34.293Z] \n=== 評価結果 (threshold=0.5) ===",
+    "[2026-09-03T02:20:34.293Z] TP: 249, FP: 96",
+    "[2026-09-03T02:20:34.293Z] TN: 1617, FN: 31",
+    "[2026-09-03T02:20:34.294Z] Sensitivity: 88.93%",
+    "[2026-09-03T02:20:34.294Z] Specificity: 94.40%",
+    "[2026-09-03T02:20:34.294Z] Precision: 72.17%",
+    "[2026-09-03T02:20:34.294Z] Fβ(β=7): 88.52%"
+  ]
+}

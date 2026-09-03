@@ -195,9 +195,11 @@ npm run watch
 | `gemini-3.6-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 94.6% | 49.6% | 93.0% | 31 | $1.70 |
 | `gemini-3.5-flash-lite` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 91.8% | 64.4% | 91.0% | 5 | $0.41 |
 | `gemini-3.7-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MEDIUM | 91.1% | 65.6% | 90.4% | 57 | $3.27 |
+| `gemini-3.8-flash` (参考・採用見送り) | サンプリング未指定 / Think LOW | 88.9% | 72.2% | 88.5% | 41 | $0.98 |
 
 **所見**:
 - `gemini-3.7-flash` は入力/出力単価が前世代比半額（2026-12-31まで、以降は同額に改定予定）だが、Recall は 91.1%（最良条件）に留まり前世代・現行デフォルトのいずれにも届かず却下。thinking を上げても Recall はほぼ動かずコストだけ増える。詳細は [experiments/gemini-3.7-flash/report.md](experiments/gemini-3.7-flash/report.md)。
+- `gemini-3.8-flash` は $0.98/1K件と B4 の 0.58 倍まで安くなった（思考トークンが 3.7 LOW の約1/5）が、Recall は 88.9% と 4 世代で最低。「Recall↓・Precision↑（除外方向へ寄る）」の傾向が最も強く出ており却下。threshold を 0.05 まで下げれば Recall 97.5% に届くが Precision が 38.9% まで落ち、同 Recall 帯の B4（96.1% / 53.4%）に劣る。詳細は [experiments/gemini-3.8-flash/report.md](experiments/gemini-3.8-flash/report.md)。
 
 ### OpenRouter モデル評価 (2026-05, depression 全1,993件)
 

@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-09-03T02-16-23",
+  "model": "gemini-3.8-flash",
+  "results": [
+    {
+      "id": "P0-1",
+      "label": "models.list に gemini-3.8-flash が存在するか",
+      "ok": true,
+      "summary": "存在する。対応メソッド: generateContent, countTokens, createCachedContent, batchGenerateContent",
+      "detail": {
+        "supportedGenerationMethods": [
+          "generateContent",
+          "countTokens",
+          "createCachedContent",
+          "batchGenerateContent"
+        ]
+      }
+    },
+    {
+      "id": "P0-2",
+      "label": "入力/出力トークン上限",
+      "ok": true,
+      "summary": "inputTokenLimit=1048576, outputTokenLimit=65536（公称 1,048,576 / 65,536）"
+    },
+    {
+      "id": "P0-3",
+      "label": "thinking_level=low で HTTP 200",
+      "ok": true,
+      "summary": "HTTP 200"
+    },
+    {
+      "id": "P0-3",
+      "label": "thinking_level=medium で HTTP 200",
+      "ok": true,
+      "summary": "HTTP 200"
+    },
+    {
+      "id": "P0-4",
+      "label": "temperature / topP を送った場合のステータス",
+      "ok": true,
+      "summary": "HTTP 200"
+    },
+    {
+      "id": "P0-5",
+      "label": "temperature / topP なしで HTTP 200 + usageMetadata",
+      "ok": false,
+      "summary": "HTTP 200, finishReason=STOP, usageMetadata={\"promptTokenCount\":8,\"candidatesTokenCount\":2,\"totalTokenCount\":10,\"promptTokensDetails\":[{\"modality\":\"TEXT\",\"tokenCount\":8}],\"serviceTier\":\"standard\"}",
+      "detail": {
+        "promptTokenCount": 8,
+        "candidatesTokenCount": 2,
+        "totalTokenCount": 10,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 8
+          }
+        ],
+        "serviceTier": "standard"
+      }
+    },
+    {
+      "id": "P0-6",
+      "label": "responseSchema 付きで従来通り JSON を返すか",
+      "ok": true,
+      "summary": "JSON スキーマ通りにパース成功 (finishReason=STOP)"
+    }
+  ]
+}
