@@ -27,6 +27,7 @@ import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from '
 import { excludeReasonLabel } from '../../lib/exclude-reasons';
 import { getClientVersion } from '../../lib/client-version';
 import { saveDecision } from '../../lib/sheets-api';
+import { identificationRouteOf, splitByIdentificationRoute } from '../../lib/identification-route';
 import {
     computeFulltextConsensus,
     isAdjudicationKey,
@@ -287,16 +288,39 @@ function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): Full
 }
 
 /**
- * 現在の判定者選択に基づくフルテキスト相サマリを返す（論文用テキスト生成で使用）
+ * 現在の判定者選択に基づくフルテキスト相サマリを返す（論文用テキスト生成で使用）。
+ *
+ * database 腕（データベース検索由来）だけを集計する。Registry linkage 行
+ * （related_ref_id 非空）はここに混ぜない（Issue #120: 二重計上防止）。
+ * Registry linkage 行を含む集計が必要な場合は getFulltextResultsSummaryByRoute() を使う。
  */
 export function getFulltextResultsSummary(): FulltextResultsSummary {
+    return getFulltextResultsSummaryByRoute().database;
+}
+
+/**
+ * フルテキスト相サマリを同定経路（database / registryLinkage）別に分けて返す。
+ * PRISMA の「other methods」腕（レジストリ連携由来）の集計に使う（Issue #120）。
+ */
+export function getFulltextResultsSummaryByRoute(): {
+    database: FulltextResultsSummary;
+    registryLinkage: FulltextResultsSummary;
+} {
     const candidates = getProjectFulltextCandidateList();
     const judges = effectiveJudges(collectJudges(candidates));
-    return summarize(candidates, judges);
+    const { database, registryLinkage } = splitByIdentificationRoute(candidates);
+    return {
+        database: summarize(database, judges),
+        registryLinkage: summarize(registryLinkage, judges),
+    };
 }
 
 function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): void {
-    const s = summarize(candidates, judges);
+    // database 腕とother methods腕（Registry linkage由来）に分けて集計する（Issue #120）。
+    // registryLinkage が0件のときは database === candidates なので、以下の出力は現行と
+    // 1文字も変わらない。
+    const { database, registryLinkage } = splitByIdentificationRoute(candidates);
+    const s = summarize(database, judges);
     const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, unresolved } = s;
 
     const lines: string[] = [];
@@ -319,6 +343,30 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
             lines.push(`<li>${escapeHtml(reasonLabel(reason))}: ${count}</li>`);
         }
         lines.push('</ul>');
+    }
+
+    // other methods腕（Registry linkage）: 該当0件なら何も追加しない
+    // （registryLinkage.length === 0 のとき rl.sought は必ず0になる）。
+    if (registryLinkage.length > 0) {
+        const rl = summarize(registryLinkage, judges);
+        if (rl.sought > 0) {
+            lines.push(`<div class="fulltext-prisma-title">${escapeHtml(t('fulltext_prismaOtherMethodsTitle'))}</div>`);
+            lines.push('<div class="fulltext-prisma-grid">');
+            lines.push(prismaCell(t('fulltext_prismaOtherMethodsIdentified', String(rl.sought))));
+            lines.push(prismaCell(t('fulltext_prismaOtherMethodsObtained', String(rl.obtained))));
+            lines.push(prismaCell(t('fulltext_prismaOtherMethodsExclude', String(rl.exclude)), 'exclude'));
+            lines.push(prismaCell(t('fulltext_prismaOtherMethodsInclude', String(rl.include)), 'include'));
+            lines.push('</div>');
+
+            if (rl.reasons.length > 0) {
+                lines.push(`<div class="fulltext-prisma-reasons-head">${escapeHtml(t('fulltext_prismaExclReasons'))}</div>`);
+                lines.push('<ul class="fulltext-prisma-reasons">');
+                for (const { reason, count } of rl.reasons) {
+                    lines.push(`<li>${escapeHtml(reasonLabel(reason))}: ${count}</li>`);
+                }
+                lines.push('</ul>');
+            }
+        }
     }
 
     dom.fulltextPrismaDiv.innerHTML = lines.join('');
@@ -711,11 +759,14 @@ function handleExportCsv(): void {
     const orderedJudges = [...judges];
     const judgeLabels = orderedJudges.map(j => getReviewerLabel(j, state.userEmail));
 
+    // identification_route（Issue #120: database / registry_linkage）は既存の固定列・判定者列の
+    // インデックスを1つもずらさないため、必ずヘッダ配列の一番最後に足す。
     const headers = [
         'ref_id', 'title', 'year', 'journal', 'doi', 'pmid',
         'fulltext_status', 'consensus', 'conflict', 'reason_conflict', 'adjudicated', 'adjudicated_by',
         'exclusion_reason', 'note',
         ...judgeLabels,
+        'identification_route',
     ];
     const rows: string[] = [headers.map(escapeCSVField).join(',')];
 
@@ -740,7 +791,7 @@ function handleExportCsv(): void {
             note,
         ];
         const perJudge = orderedJudges.map(j => map.get(j)?.decision ?? '');
-        rows.push([...base, ...perJudge].map(escapeCSVField).join(','));
+        rows.push([...base, ...perJudge, identificationRouteOf(ref)].map(escapeCSVField).join(','));
     }
 
     const filename = `fulltext_results_${dateStamp()}_${candidates.length}.csv`;

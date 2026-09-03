@@ -866,6 +866,21 @@
   "fulltext_prismaExclReasons": {
     "message": "除外理由の内訳"
   },
+  "fulltext_prismaOtherMethodsTitle": {
+    "message": "結果サマリ（PRISMA other methods 腕: レジストリ連携）"
+  },
+  "fulltext_prismaOtherMethodsIdentified": {
+    "message": "レジストリ連携で同定: $1件"
+  },
+  "fulltext_prismaOtherMethodsObtained": {
+    "message": "全文取得: $1件"
+  },
+  "fulltext_prismaOtherMethodsExclude": {
+    "message": "全文評価で除外: $1件"
+  },
+  "fulltext_prismaOtherMethodsInclude": {
+    "message": "組み入れ: $1件"
+  },
   "fulltext_resultEmpty": {
     "message": "候補がありません。"
   },
