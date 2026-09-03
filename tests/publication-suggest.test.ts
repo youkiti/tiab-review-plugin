@@ -706,3 +706,196 @@ test('discoverPublicationCandidates: esummaryで判明したDOIとEuropePMCのDO
     assert.equal(result[0].pmid, '111');
     assert.equal(result[0].doi, '10.1000/same');
 });
+
+// ---------------------------------------------------------------------------
+// discoverPublicationCandidates: 副登録番号（secondaryTrialIds）によるゲート付き二巡目
+// （Issue #134「レジストリ連携: 副登録番号を論文候補探索のキーに加える」）
+// ---------------------------------------------------------------------------
+
+/** europepmcは常に0件、esearchも常に0件（idlist:[]）を返すデフォルトの空応答ハンドラ。 */
+function emptyEsearchAndEuropePmcHandlers() {
+    return [
+        {
+            match: (url: string) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            match: (url: string) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 }),
+        },
+    ];
+}
+
+test('discoverPublicationCandidates: 主IDで生の候補が1件でもあれば副登録番号の探索は走らない（fetchCtgPmidsが呼ばれないこと）', async () => {
+    const calledUrls = stubFetch([
+        ...emptyEsearchAndEuropePmcHandlers(),
+        {
+            // ctgPmidsの書誌補完（esummary）。主IDのctgov_reference候補ぶんのみ。
+            match: (url) => url.includes('esummary.fcgi'),
+            respond: () => new Response(JSON.stringify({
+                result: { uids: ['111'], '111': { title: 'Main Trial Paper' } },
+            }), { status: 200 }),
+        },
+    ]);
+
+    let fetchCtgPmidsCalled = false;
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'NCT12345678',
+        kind: 'nct',
+        ctgPmids: ['111'], // 主IDだけで1件の生候補が出る
+        existingRefs: [],
+        secondaryTrialIds: ['NCT99999999'],
+    }, {
+        delayMs: 0,
+        fetchCtgPmids: async () => {
+            fetchCtgPmidsCalled = true;
+            return ['999'];
+        },
+    });
+
+    assert.equal(fetchCtgPmidsCalled, false, '主IDで候補が出た場合、副登録番号用のfetchCtgPmidsは一度も呼ばれないこと');
+    assert.ok(
+        !calledUrls.some(u => u.includes('NCT99999999')),
+        '副登録番号(NCT99999999)向けのesearch/europepmcリクエストが発生していないこと（リクエストが増えないことの確認）'
+    );
+    assert.equal(result.length, 1);
+    assert.equal(result[0].pmid, '111');
+    assert.equal(result[0].trialId, 'NCT12345678', '主ID由来の候補のtrialIdは主IDのまま');
+});
+
+test('discoverPublicationCandidates: 主IDで0件のとき副登録番号(NCT)で候補が見つかる', async () => {
+    const calledUrls = stubFetch([
+        ...emptyEsearchAndEuropePmcHandlers(),
+        {
+            match: (url) => url.includes('esummary.fcgi'),
+            respond: () => new Response(JSON.stringify({
+                result: { uids: ['555'], '555': { title: 'Found via secondary NCT', fulljournalname: 'J', pubdate: '2024' } },
+            }), { status: 200 }),
+        },
+    ]);
+
+    const fetchedNctIds: string[] = [];
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'jRCT1031210123', // 主ID: jRCTなので[si]索引が無くesearch/europepmcとも0件
+        kind: 'other',
+        ctgPmids: [],
+        existingRefs: [],
+        secondaryTrialIds: ['NCT12345678'],
+    }, {
+        delayMs: 0,
+        fetchCtgPmids: async (nctId) => {
+            fetchedNctIds.push(nctId);
+            return ['555'];
+        },
+    });
+
+    assert.deepEqual(fetchedNctIds, ['NCT12345678'], '副登録番号がNCT形式のときだけfetchCtgPmidsが呼ばれること');
+    assert.equal(result.length, 1);
+    assert.equal(result[0].pmid, '555');
+    assert.equal(result[0].strategy, 'ctgov_reference');
+    assert.equal(result[0].trialId, 'NCT12345678', '副登録番号由来の候補のtrialIdは主IDではなくその副登録番号になること');
+    assert.ok(calledUrls.some(u => u.includes('esummary.fcgi')), '副登録番号ぶんの書誌もesummaryで補完されること');
+});
+
+test('discoverPublicationCandidates: 副登録番号がNCT以外（europepmc戦略）でもtrialIdは副登録番号になる', async () => {
+    stubFetch([
+        {
+            match: (url) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            // 主ID向け・副ID向けどちらのeuropepmc呼び出しも0件を返すが、副ID(UMIN)側だけ1件返す
+            match: (url) => url.includes('ebi.ac.uk/europepmc') && url.includes('UMIN000012345'),
+            respond: () => new Response(JSON.stringify({
+                resultList: { result: [{ pmid: '777', title: 'Found via UMIN secondary', journalTitle: 'J', pubYear: '2024' }] },
+            }), { status: 200 }),
+        },
+        {
+            match: (url) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 }),
+        },
+    ]);
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'jRCT1031210123',
+        kind: 'other',
+        ctgPmids: [],
+        existingRefs: [],
+        secondaryTrialIds: ['UMIN000012345'],
+    }, { delayMs: 0 }); // fetchCtgPmids未指定
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].pmid, '777');
+    assert.equal(result[0].strategy, 'europepmc');
+    assert.equal(result[0].trialId, 'UMIN000012345');
+});
+
+test('discoverPublicationCandidates: secondaryTrialIdsが未指定なら現行と同じ挙動（副登録番号ぶんのリクエストは発生しない）', async () => {
+    const calledUrls = stubFetch(emptyEsearchAndEuropePmcHandlers());
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'NCT12345678',
+        kind: 'nct',
+        ctgPmids: [],
+        existingRefs: [],
+        // secondaryTrialIds を渡さない
+    }, { delayMs: 0 });
+
+    assert.deepEqual(result, []);
+    assert.equal(calledUrls.filter(u => u.includes('esearch.fcgi')).length, 1, '主ID向けの1回だけ呼ばれること（副登録番号ぶんは発生しない）');
+    assert.equal(
+        calledUrls.filter(u => u.includes('ebi.ac.uk/europepmc')).length, 2,
+        '主ID向けのみ（1回目が0件のため既存仕様どおり2回目の全文検索フォールバックが発生する。副登録番号ぶんの追加は発生しない）'
+    );
+});
+
+test('discoverPublicationCandidates: secondaryTrialIdsが空配列でも現行と同じ挙動', async () => {
+    stubFetch(emptyEsearchAndEuropePmcHandlers());
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'NCT12345678',
+        kind: 'nct',
+        ctgPmids: [],
+        existingRefs: [],
+        secondaryTrialIds: [],
+    }, { delayMs: 0 });
+
+    assert.deepEqual(result, []);
+});
+
+test('discoverPublicationCandidates: fetchCtgPmids未指定でも落ちない（NCT副登録番号は戦略1をスキップし戦略2・3のみ動く）', async () => {
+    stubFetch([
+        {
+            match: (url) => url.includes('esearch.fcgi'),
+            respond: () => new Response(JSON.stringify({ esearchresult: { idlist: [] } }), { status: 200 }),
+        },
+        {
+            match: (url) => url.includes('ebi.ac.uk/europepmc') && url.includes('NCT98765432'),
+            respond: () => new Response(JSON.stringify({
+                resultList: { result: [{ pmid: '321', title: 'Found without fetchCtgPmids', journalTitle: 'J', pubYear: '2024' }] },
+            }), { status: 200 }),
+        },
+        {
+            match: (url) => url.includes('ebi.ac.uk/europepmc'),
+            respond: () => new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 }),
+        },
+    ]);
+
+    const result = await discoverPublicationCandidates({
+        refId: 'ref-1',
+        trialId: 'NCT12345678',
+        kind: 'nct',
+        ctgPmids: [],
+        existingRefs: [],
+        secondaryTrialIds: ['NCT98765432'],
+    }, { delayMs: 0 }); // options.fetchCtgPmids を渡さない
+
+    assert.equal(result.length, 1, '例外を投げず、戦略2・3だけで副登録番号ぶんの候補が見つかること');
+    assert.equal(result[0].pmid, '321');
+    assert.equal(result[0].trialId, 'NCT98765432');
+});

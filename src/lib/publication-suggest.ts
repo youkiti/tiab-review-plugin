@@ -180,6 +180,12 @@ export interface DiscoverPublicationCandidatesInput {
      * enrichNcbiIds()）も同じ流儀で付けている。未指定でも呼び出しは通る（emailパラメータ自体を省略する）。
      */
     email?: string;
+    /**
+     * 副登録番号（他の登録機関でのID番号）。src/lib/registry-record.ts の
+     * extractSecondaryTrialIds() で取り出したものを呼び出し側が渡す。ctgPmids と同じで、
+     * この関数はパースをしない（Issue #134）。
+     */
+    secondaryTrialIds?: string[];
 }
 
 export interface DiscoverPublicationCandidatesOptions {
@@ -189,6 +195,13 @@ export interface DiscoverPublicationCandidatesOptions {
      * テストを遅くしないよう 0 を注入できるようにしている。
      */
     delayMs?: number;
+    /**
+     * 副登録番号がNCT（`/^NCT\d{8}$/`）だったときに戦略1（ctgov_reference）を使えるようにする
+     * ための遅延取得（Issue #134）。主IDでの探索が0件だったときのゲートが発火し、かつ対象の
+     * 副登録番号がNCT形式のときだけ呼ばれる（発火しなければ1回も呼ばない）。未指定なら
+     * 副登録番号に対する戦略1はスキップする（戦略2・3はこのオプションが無くても動く）。
+     */
+    fetchCtgPmids?: (nctId: string) => Promise<string[]>;
 }
 
 const DEFAULT_EUTILS_DELAY_MS = 350;
@@ -382,7 +395,9 @@ async function europePmcCandidates(
 }
 
 /**
- * registration行から結果論文の候補を発見する（3戦略を直列実行）。
+ * 1つの試験ID（主IDまたは副登録番号）について3戦略を直列実行し、生の候補配列を返す
+ * （dedupe/filterAlreadyImportedは呼ばない。呼び出し側の discoverPublicationCandidates() が
+ * 主ID・副登録番号ぶんをまとめて統合してから通す）。
  *
  * 1. ctgov_reference: ctgPmids（呼び出し側が fetchCtgStudy() の結果から渡す。fetch不要）
  * 2. pubmed_id: esearch で試験IDから検索
@@ -390,23 +405,20 @@ async function europePmcCandidates(
  *    jRCT/UMIN等にも有効。詳細は europePmcCandidates()/buildEuropePmcQuery() のJSDoc参照）
  *
  * 1・2で集めたPMIDの書誌は esummary に1リクエストでまとめて問い合わせる
- * （PMIDごとに1回呼ばない）。eutils（esearch → esummary）の間だけ options.delayMs
- * （既定350ms）待機する（PubMed E-utilitiesのAPIキー無し上限 3 req/s 対策）。
- * Europe PMC は別ホストのAPIのため、この待機の対象に含めていない。
+ * （PMIDごとに1回呼ばない）。eutils（esearch → esummary）の間だけ delayMs 待機する
+ * （PubMed E-utilitiesのAPIキー無し上限 3 req/s 対策）。Europe PMC は別ホストのAPIのため、
+ * この待機の対象に含めていない。
  *
  * 各戦略の失敗（ネットワークエラー・非200・JSON不正）は例外を投げず、その戦略だけスキップして
  * 他戦略の結果を返す（呼び出し側の一括ループを止めないため）。全滅時は空配列。
- *
- * 最後に dedupePublicationCandidates（戦略の強い順: ctgov_reference → pubmed_id → europepmc）
- * → filterAlreadyImportedCandidates を通してから返す。
  */
-export async function discoverPublicationCandidates(
-    input: DiscoverPublicationCandidatesInput,
-    options: DiscoverPublicationCandidatesOptions = {}
+async function collectRawCandidatesForTrialId(
+    refId: string,
+    trialId: string,
+    ctgPmids: string[],
+    email: string | undefined,
+    delayMs: number
 ): Promise<PublicationCandidateDraft[]> {
-    const delayMs = options.delayMs ?? DEFAULT_EUTILS_DELAY_MS;
-    const { refId, trialId, ctgPmids, existingRefs, email } = input;
-
     const collected: PublicationCandidateDraft[] = [];
 
     // 1. ctgov_reference（fetch不要）
@@ -445,6 +457,68 @@ export async function discoverPublicationCandidates(
 
     // 3. europepmc
     collected.push(...await europePmcCandidates(refId, trialId));
+
+    return collected;
+}
+
+/**
+ * registration行から結果論文の候補を発見する。主ID（input.trialId）に対して3戦略
+ * （collectRawCandidatesForTrialId() 参照）を実行し、**主IDで生の候補が1件も無かったときだけ**、
+ * 副登録番号（input.secondaryTrialIds）についても同じ3戦略で二巡目を回す（Issue #134）。
+ *
+ * ## ゲート（重要）
+ * 判定は `dedupePublicationCandidates()` / `filterAlreadyImportedCandidates()` を通す**前**の
+ * 生の件数（主IDの3戦略が返した候補の合計）で行う。「主戦略が何も返せなかった」ことを見たいの
+ * であって、既存Referencesとの重複除去後の件数で判定すると意味が変わってしまう。
+ *
+ * このゲートは実測に基づく（AGENTS.md「試験登録レコードの論文候補探索」節・Issue #134参照。
+ * 実測43件）: 副登録番号で救えた20件のうち18件は主IDで候補0件のケースであり、ゲートで
+ * 取りこぼす分はこのうち2件にとどまる一方、副登録番号ぶんの追加リクエストが発生するのは
+ * 163ペア中38件（23%）に収まる。#132 で問題になっているリクエスト量を新たに増やさないための
+ * 設計判断であり、主IDで1件でも見つかった時点で副登録番号は一切見ない。
+ *
+ * ## 二巡目の中身（副登録番号1件ごと）
+ * 1. 副登録番号が `/^NCT\d{8}$/` にマッチし、かつ options.fetchCtgPmids があれば呼んで
+ *    ctgov_reference 候補にする。実測（43件）では副登録番号がNCTだった21件中19件をこの経路が
+ *    当てた（取りこぼし9.5%）一方、UMIN副登録番号は9件中7件（77.8%）、JapicCTI副登録番号は
+ *    4件中4件を取りこぼした。効くのは実質NCTだけだが、レジストリ種別で明示的な分岐はしない
+ *    （実行コストは同じで分岐する理由が薄いうえ、`/^NCT\d{8}$/` に合わない副登録番号は
+ *    そもそもこの経路を自然にスキップするため）。
+ * 2. esearchPubmedIds() を副登録番号で呼ぶ（pubmed_id）。
+ * 3. europePmcCandidates() を副登録番号で呼ぶ（europepmc）。
+ * eutilsへの連続呼び出しの間には主IDと同じ delayMs 待機を入れる
+ * （collectRawCandidatesForTrialId() 内、副登録番号ごとに独立して適用される）。
+ *
+ * 副登録番号由来の候補は `trialId` にその副登録番号を入れる（主IDではなく）。これにより
+ * Publication_Candidates の列を増やさずに「どのキーで見つけたか」を後から追える。`strategy` は
+ * 既存の3値のまま（新しい戦略値は追加しない）。
+ *
+ * ## 統合順
+ * 主ID由来を先に積み、その後に副登録番号由来を積んでから
+ * dedupePublicationCandidates（戦略の強い順: ctgov_reference → pubmed_id → europepmc。
+ * 同じ強さなら配列の先勝ち＝主ID由来が残る）→ filterAlreadyImportedCandidates を通す。
+ */
+export async function discoverPublicationCandidates(
+    input: DiscoverPublicationCandidatesInput,
+    options: DiscoverPublicationCandidatesOptions = {}
+): Promise<PublicationCandidateDraft[]> {
+    const delayMs = options.delayMs ?? DEFAULT_EUTILS_DELAY_MS;
+    const { refId, trialId, ctgPmids, existingRefs, email, secondaryTrialIds } = input;
+
+    const collected = await collectRawCandidatesForTrialId(refId, trialId, ctgPmids, email, delayMs);
+
+    // ゲート: 主IDの3戦略が生の候補を1件も出さなかったときだけ副登録番号で二巡目を回す。
+    // 判定は dedupe/filterAlreadyImported を通す前の件数で行う（このJSDoc「ゲート」参照）。
+    if (collected.length === 0 && secondaryTrialIds && secondaryTrialIds.length > 0) {
+        for (const secondaryTrialId of secondaryTrialIds) {
+            const secondaryCtgPmids = /^NCT\d{8}$/.test(secondaryTrialId) && options.fetchCtgPmids
+                ? await options.fetchCtgPmids(secondaryTrialId)
+                : [];
+            collected.push(...await collectRawCandidatesForTrialId(
+                refId, secondaryTrialId, secondaryCtgPmids, email, delayMs
+            ));
+        }
+    }
 
     return filterAlreadyImportedCandidates(dedupePublicationCandidates(collected), existingRefs);
 }

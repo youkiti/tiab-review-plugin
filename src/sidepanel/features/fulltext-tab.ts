@@ -40,7 +40,12 @@ import {
     savePublicationCandidates,
     getPublicationCandidates,
 } from '../../lib/sheets-api';
-import { isRegistrationRecord, extractTrialId } from '../../lib/registry-record';
+import {
+    isRegistrationRecord,
+    extractTrialId,
+    parseRegistryFieldsFromAbstract,
+    extractSecondaryTrialIds,
+} from '../../lib/registry-record';
 import { discoverPublicationCandidates } from '../../lib/publication-suggest';
 import type { PublicationCandidateDraft } from '../../lib/publication-suggest';
 import { fetchCtgStudy } from '../../lib/registry-api';
@@ -696,6 +701,16 @@ function applyOutcome(
 }
 
 /**
+ * discoverPublicationCandidates() の options.fetchCtgPmids に渡す実装。
+ * fetchCtgStudy() で取得したCTGレコードから registryPmids 相当のPMID一覧だけを取り出す。
+ * discoverRegistryPublicationCandidates() と handleBulkFetch() の再探索ループの2箇所で
+ * 同じ実装が必要になるため、ここに括り出して両方から使う（2箇所が将来ずれるのを防ぐ）。
+ */
+async function fetchCtgPmids(nctId: string): Promise<string[]> {
+    return (await fetchCtgStudy(nctId))?.pmids ?? [];
+}
+
+/**
  * registration行（isRegistrationRecord(ref) が true）についてのみ、結果論文の候補を探索して返す
  * （保存はしない）。通常論文の行では何もしない（空配列）。候補の表示・取り込み・References への
  * 行追加はチャンク3のスコープで、ここでは一切行わない。
@@ -712,6 +727,12 @@ function applyOutcome(
  * 探索自体の失敗（discoverPublicationCandidates 内の各戦略）は下層で握りつぶされる設計だが、
  * 念のためここでも try/catch し、失敗時は空配列を返す（console.warn のみ。一括/単発いずれの
  * 取得ループも、この処理の失敗で止めてはならない）。
+ *
+ * Issue #134: 主IDで生の候補が0件のときだけ副登録番号でも探索する。副登録番号は
+ * abstract 列を parseRegistryFieldsFromAbstract() → extractSecondaryTrialIds() で取り出す
+ * （自分自身の試験IDは除外済み）。副登録番号がNCTだった場合の戦略1（ctgov_reference）用に
+ * fetchCtgPmids を渡す（ゲートが発火し、かつ対象がNCT形式のときだけ fetchCtgStudy() を呼ぶ
+ * 遅延取得。ゲートが発火しなければ1回も呼ばれない）。
  */
 async function discoverRegistryPublicationCandidates(
     ref: ReferenceWithStatus,
@@ -726,6 +747,10 @@ async function discoverRegistryPublicationCandidates(
         const ctgPmids = (outcome.kind === 'cached' || outcome.kind === 'linked')
             ? (outcome.registryPmids ?? [])
             : [];
+        const secondaryTrialIds = extractSecondaryTrialIds(
+            parseRegistryFieldsFromAbstract(ref.abstract),
+            trial.id
+        );
         return await discoverPublicationCandidates({
             refId: ref.ref_id,
             trialId: trial.id,
@@ -733,6 +758,9 @@ async function discoverRegistryPublicationCandidates(
             ctgPmids,
             existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
             email: state.userEmail,
+            secondaryTrialIds,
+        }, {
+            fetchCtgPmids,
         });
     } catch (err) {
         console.warn('[fulltext-tab] 論文候補探索に失敗:', ref.ref_id, err);
@@ -930,6 +958,12 @@ async function handleBulkSuggest(): Promise<void> {
 
             const trial = extractTrialId(ref);
             if (trial) {
+                // Issue #134: 主IDで生の候補が0件のときだけ副登録番号でも探索する（配線は
+                // discoverRegistryPublicationCandidates() と同じ。詳細はそちらのJSDoc参照）。
+                const secondaryTrialIds = extractSecondaryTrialIds(
+                    parseRegistryFieldsFromAbstract(ref.abstract),
+                    trial.id
+                );
                 const candidates = await discoverCandidatesForRerun(
                     trial,
                     ctgPmids => discoverPublicationCandidates({
@@ -939,6 +973,9 @@ async function handleBulkSuggest(): Promise<void> {
                         ctgPmids,
                         existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
                         email: state.userEmail,
+                        secondaryTrialIds,
+                    }, {
+                        fetchCtgPmids,
                     }),
                     fetchCtgStudy
                 );
