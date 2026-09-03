@@ -16,7 +16,9 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
  */
 export interface GeminiModelConfig {
     model: string;
-    temperature: number;
+    // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
+    // 未指定なら送らない運用を許容する optional にしている。
+    temperature?: number;
     maxOutputTokens?: number;
     topP?: number;
     thinkingLevel?: string;                          // Gemini 専用: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH'

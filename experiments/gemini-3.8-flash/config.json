@@ -1,0 +1,67 @@
+{
+    "description": "gemini-3.8-flash 評価実験 (thinking_level マトリクス: low/medium。minimal は非対応のため対象外、high は既定で除外)",
+    "version": "1.0",
+    "model": "gemini-3.8-flash",
+    "pricing": {
+        "inputPerMTok": 0.75,
+        "outputPerMTok": 3.75,
+        "note": "公式導入価格。2026-12-31まで。2027-01-01 から $1.50/$7.50 へ改定"
+    },
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "tierConfigs": {
+        "tier_max": {
+            "concurrency": 60,
+            "delayBetweenRequests": 50
+        },
+        "tier_smoke": {
+            "concurrency": 10,
+            "delayBetweenRequests": 200
+        }
+    },
+    "conditions": [
+        {
+            "id": "F1",
+            "model": "gemini-3.8-flash",
+            "thinkingLevel": "LOW",
+            "maxOutputTokens": 8192
+        },
+        {
+            "id": "F2",
+            "model": "gemini-3.8-flash",
+            "thinkingLevel": "MEDIUM",
+            "maxOutputTokens": 16384
+        }
+    ],
+    "excludedConditions": [
+        {
+            "id": "F3",
+            "model": "gemini-3.8-flash",
+            "thinkingLevel": "HIGH",
+            "maxOutputTokens": 32768,
+            "reason": "gemini-3.5-flash が HIGH で $104/データセット、gemini-3.6-flash が HIGH で約 $79/データセットと2世代連続で $20 を大きく超過。3.8 は公式が「トークン消費が増える設計」と明言しているため既定で除外し、疎通確認も行わない。"
+        },
+        {
+            "id": "F0",
+            "model": "gemini-3.8-flash",
+            "thinkingLevel": "MINIMAL",
+            "maxOutputTokens": 4096,
+            "reason": "公式ドキュメントに「minimal は Gemini 3.8 Flash では非対応でエラーを返す」と明記されている。gemini-3.7-flash では同じ非対応に気づかず smoke n=50 を実行し、全件フォールバックで Recall 100% / Precision 16.0% という無効な数値を出した（experiments/gemini-3.7-flash/report.md 5節）。"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "precision": 0.534, "fBeta7": 0.95, "tp": 269, "fp": 235, "tn": 1478, "fn": 11, "msPerItem": 300 }
+        }
+    },
+    "phase0Findings": {
+        "_note": "Phase 0 プローブ (phase0_probe.ts) の実測結果をここに記録する。未実測のため値は空。"
+    }
+}
