@@ -7,6 +7,7 @@
 
 import type { Reference, DuplicateCandidate } from './types';
 import { normalizeTitle } from './import-helpers';
+import { stripDoiPrefix } from './doi';
 
 export type DuplicateMatchType = 'pmid' | 'doi' | 'title' | 'trialId';
 
@@ -21,13 +22,12 @@ export interface DuplicateMatch {
     matchKey: string;        // 一致したキーの値（正規化後）
 }
 
-// DOI の先頭に付くことがある表記ゆれ。小文字化した後の値に対して剥がす。
-const DOI_PREFIX_RE = /^(?:https:\/\/doi\.org\/|http:\/\/dx\.doi\.org\/|doi:)/;
 const DOI_SHAPE_RE = /^10\.\d{4,9}\/\S+$/;
 
 /**
- * DOI を正規化する。trim → 小文字化 → よくある接頭辞（`https://doi.org/`・
- * `http://dx.doi.org/`・`doi:`）を剥がす → `/^10\.\d{4,9}\/\S+$/` の形になっているか検証する。
+ * DOI を正規化する。接頭辞剥がしは `src/lib/doi.ts` の `stripDoiPrefix()` に委譲し
+ * （`doi.org`・`dx.doi.org`・`http`/`https`・`doi:` の表記ゆれをまとめて剥がす）、
+ * ここでは剥がした値が `/^10\.\d{4,9}\/\S+$/` の形になっているか検証する。
  * 形が合わない値（例: DOI欄に論文番号 `e98323` が入っている実データのケース）は
  * DOI として信用せず undefined を返す。将来的に壊れた値どうしが偶然一致して
  * 別論文を誤マージすることを防ぐための検証。
@@ -37,7 +37,7 @@ export function normalizeDoi(doi?: string): string | undefined {
     const trimmed = doi.trim();
     if (!trimmed) return undefined;
 
-    const value = trimmed.toLowerCase().replace(DOI_PREFIX_RE, '').trim();
+    const value = stripDoiPrefix(trimmed);
     return DOI_SHAPE_RE.test(value) ? value : undefined;
 }
 

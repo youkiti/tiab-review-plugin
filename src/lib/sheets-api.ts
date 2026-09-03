@@ -2465,6 +2465,10 @@ function filterDecisionsForBlind(
  * keyOpened=false（Blind中）のときは、返す decisions を filterDecisionsForBlind() で
  * 自分の判定＋LLM判定に絞り込む（サイドパネルの Blind ロードと同じポリシー）。
  * primeDecisionRowCache() は絞り込み前の全件で温める（行番号キャッシュの整合性のため）。
+ *
+ * 論理削除された行（重複）は references から除外する。理由は getReferencesWithStatus() の
+ * JSDoc を参照（Issue #145 チャンク2 / PR #146 レビュー指摘）。Config タブが無い旧シート向けの
+ * フォールバック経路（catch 節側）でも同様に除外する。
  */
 export async function getFulltextPageData(spreadsheetId: string, userEmail: string): Promise<{
     references: Reference[];
@@ -2482,7 +2486,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
         primeDecisionRowCache(spreadsheetId, decisions);
         const config = parseConfigBundle(configValues);
         return {
-            references: parseReferenceValues(refValues),
+            references: parseReferenceValues(refValues).filter((ref) => !isLogicallyDeleted(ref)),
             decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
             config,
         };
@@ -2498,7 +2502,7 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
             primeDecisionRowCache(spreadsheetId, decisions);
             const config = { ...DEFAULT_CONFIG_BUNDLE };
             return {
-                references: parseReferenceValues(refValues),
+                references: parseReferenceValues(refValues).filter((ref) => !isLogicallyDeleted(ref)),
                 decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
                 config,
             };

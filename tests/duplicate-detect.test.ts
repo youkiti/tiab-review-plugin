@@ -35,6 +35,11 @@ test('normalizeDoi: http://dx.doi.org/ や doi: の接頭辞も剥がされる',
     assert.equal(normalizeDoi('doi:10.1136/rapm-2022-104054'), '10.1136/rapm-2022-104054');
 });
 
+test('normalizeDoi: http://doi.org/ とhttps://dx.doi.org/ の接頭辞も剥がされる（PR #146 レビュー指摘）', () => {
+    assert.equal(normalizeDoi('http://doi.org/10.1136/rapm-2022-104054'), '10.1136/rapm-2022-104054');
+    assert.equal(normalizeDoi('https://dx.doi.org/10.1136/rapm-2022-104054'), '10.1136/rapm-2022-104054');
+});
+
 // ---------------------------------------------------------------------------
 // buildMatchKeys
 // ---------------------------------------------------------------------------
