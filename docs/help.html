@@ -622,8 +622,7 @@
                     <span class="en">Highlight Settings</span>
                 </h3>
                 <p>
-                    <span
-                        class="ja">キーワードに基づいてタイトルと抄録内の文字をハイライト表示できます。組み入れキーワードは緑色、除外キーワードは赤色で表示されます。RCT用・SR用のプリセットも利用可能です。</span>
+                    <span class="ja">キーワードに基づいてタイトルと抄録内の文字をハイライト表示できます。組み入れキーワードは緑色、除外キーワードは赤色で表示されます。RCT用・SR用のプリセットも利用可能です。</span>
                     <span class="en">Highlight text in titles and abstracts based on keywords. Inclusion keywords are
                         shown in green, exclusion in red. RCT and SR presets are available.</span>
                 </p>
@@ -724,8 +723,7 @@
                             (Irrelevant).</span>
                     </li>
                     <li>
-                        <span
-                            class="ja">判断が増えるたびにモデル学習が走り、未読レコードの順位（提示順）が更新されます。学習はバックグラウンドで非同期に進み、スクリーニングを止めずに続けられます。</span>
+                        <span class="ja">判断が増えるたびにモデル学習が走り、未読レコードの順位（提示順）が更新されます。学習はバックグラウンドで非同期に進み、スクリーニングを止めずに続けられます。</span>
                         <span class="en">The model learns with each new decision and updates the ranking of unread
                             records. Learning runs asynchronously in the background, so you can continue
                             screening.</span>
@@ -770,8 +768,7 @@
                 </h3>
                 <ul>
                     <li>
-                        <span
-                            class="ja"><strong>自動開始条件</strong>：Includeが1件以上、Excludeが1件以上そろった時点（1+1）でモデル学習と推薦を有効化します。</span>
+                        <span class="ja"><strong>自動開始条件</strong>：Includeが1件以上、Excludeが1件以上そろった時点（1+1）でモデル学習と推薦を有効化します。</span>
                         <span class="en"><strong>Auto-start condition</strong>: Model training and recommendations are
                             enabled when there is at least 1 Include and 1 Exclude (1+1).</span>
                     </li>
@@ -1321,6 +1318,68 @@
                 </p>
 
                 <h3>
+                    <span class="ja">レジストリ連携（試験登録レコードから結果論文を探す）</span>
+                    <span class="en">Registry Linkage (Finding Result Publications from Trial Registrations)</span>
+                </h3>
+                <p>
+                    <span class="ja">ClinicalTrials.gov CSVやICTRP XMLからインポートした行は<strong>試験登録レコード</strong>として扱われます。これらの行には論文としての全文が存在しないため、「⬇ フリー全文を一括検索」を実行しても通常のオープンアクセス検索（PMC OA・Europe PMC・Unpaywall・OpenAlex）には入らず、代わりに登録内容そのものをHTMLスナップショットにしてDriveへ保存します。カードをクリックすると、PDFの代わりにこのスナップショットが表示され、「💾 PDFとして保存」で印刷ダイアログからPDF化できます。ツールバーの「実PDFで差し替える」でプロトコル文書などの実PDFに置き換えたり、「スナップショットを削除」で取り直したりもできます。</span>
+                    <span class="en">Rows imported from ClinicalTrials.gov CSV or ICTRP XML are treated as
+                        <strong>trial registration records</strong>. Because there is no journal article to retrieve
+                        for them, "⬇ Fetch free full texts" does not send them through the usual open-access
+                        waterfall (PMC OA, Europe PMC, Unpaywall, OpenAlex); instead it saves the registration
+                        content itself to Drive as an HTML snapshot. Clicking the card shows that snapshot in place
+                        of a PDF, and "💾 Save as PDF" turns it into a PDF via the print dialog. The toolbar also
+                        offers "Replace with a real PDF" (for example to attach the protocol document) and "Delete
+                        snapshot" if you want to fetch it again.</span>
+                </p>
+                <p>
+                    <span class="ja">同じ一括検索の中で、各登録レコードの<strong>結果論文（linked publication）の候補</strong>も自動的に探索されます。完了メッセージには「登録 N件: スナップショット保存 / 論文候補 M件」のように結果が表示されます。あとから探索し直したいときは候補リスト上部の「🔎 結果論文の候補を再探索（N件）」ボタンを使ってください。探索は試験IDをキーに3つの戦略（<strong>CTGov参照文献</strong>＝ClinicalTrials.govが登録している参考文献、<strong>PubMed検索</strong>＝試験IDの二次識別子検索、<strong>Europe PMC検索</strong>＝抄録内の試験IDを検索し、0件のときだけ全文検索へフォールバック）で行われます。各候補にはどの戦略で見つかったかが表示されます。</span>
+                    <span class="en">The same bulk fetch also searches for <strong>candidate result publications
+                            (linked publications)</strong> for each registration record. The completion message
+                        reports them as "Registrations: N snapshot(s) saved / M publication candidate(s)". To run the
+                        search again later, use the "🔎 Re-search result publications (N)" button above the candidate
+                        list. The search keys on the trial ID and uses three strategies (<strong>CTGov
+                            reference</strong> — the references ClinicalTrials.gov itself registers;
+                        <strong>PubMed search</strong> — a secondary-identifier search for the trial ID; and
+                        <strong>Europe PMC search</strong> — an abstract-limited search for the trial ID that falls
+                        back to a full-text search only when it returns nothing). Each candidate shows which strategy
+                        found it.</span>
+                </p>
+                <p>
+                    <span class="ja">主たる試験IDで候補が1件も見つからなかった場合に限り、そのレコードが申告している<strong>副登録番号（他の登録機関でのID番号）</strong>を第2の検索キーとしてもう一巡します（NCT・ISRCTN・UMIN・JapicCTI・jRCT形式の番号を最大3件まで）。jRCTのように試験IDがPubMedにほとんど索引されていないレジストリで効きます。jRCT 43件での実測では、主IDだけの場合に結果論文を取りこぼす割合が86.0%だったのに対し、副登録番号を併用すると44.2%（43件中24件を発見）まで下がりました。追加の検索が走るのは主IDで候補が0件だったレコードだけなので、探索全体の所要時間はほとんど変わりません。</span>
+                    <span class="en">Only when the primary trial ID yields no candidates at all, the search runs a
+                        second pass using the <strong>secondary registration numbers</strong> (IDs the record
+                        declares for other registries) — up to three IDs in NCT, ISRCTN, UMIN, JapicCTI, or jRCT
+                        format. This helps with registries such as jRCT whose trial IDs are barely indexed in PubMed.
+                        Measured on 43 jRCT records, the share of result publications missed dropped from 86.0% with
+                        the primary ID alone to 44.2% (24 of 43 found) when secondary registration numbers were also
+                        used. The extra search only runs for records that found nothing with the primary ID, so
+                        overall search time is essentially unchanged.</span>
+                </p>
+                <p>
+                    <span class="ja">見つかった候補は、候補リストの登録レコードのカードに「📄 論文候補 N件」バッジとして表示されます。クリックすると一覧が開き、各候補のタイトル・雑誌名・「🔗 PubMed」「🔗 DOI」リンクを確認できます。妥当な結果論文であれば「✅ 取り込む」を押すと、その論文がReferencesへ新しい文献として追加されます（発見元の登録レコードへのリンクが記録されます）。関係のない論文は「対象外」で一覧から外せます。<strong>Referencesへ行が追加されるのは「取り込む」を押したときだけで、一括検索や再探索が勝手に文献を増やすことはありません。</strong>同じPMID／DOIの文献が既にリストにある場合は、追加せずに自動で対象外になります。</span>
+                    <span class="en">Candidates appear as a "📄 N publication candidate(s)" badge on the registration
+                        record's card in the candidate list. Clicking it expands the list, where you can check each
+                        candidate's title, journal, and "🔗 PubMed" / "🔗 DOI" links. If a candidate really is the
+                        result publication, press "✅ Import" to add it to References as a new reference (with a link
+                        back to the registration record it came from). Use "Dismiss" to drop candidates that are not
+                        relevant. <strong>References rows are only ever added by pressing "Import" — neither the bulk
+                            fetch nor the re-search adds references on its own.</strong> If a reference with the same
+                        PMID or DOI is already in the list, the candidate is dismissed automatically instead of being
+                        added.</span>
+                </p>
+                <p>
+                    <span class="ja">取り込んだ論文はTiAbスクリーニングを経ていませんが、<strong>そのままフルテキスト候補として候補リストに載ります</strong>（担当割り振り済みのプロジェクトでは、発見元の登録レコードと同じ担当グループに入ります）。同時に、その担当グループのTiAbキューにも未判定の文献として並ぶので、必要に応じてTiAb判定も行ってください。PRISMAの集計上の扱いについては、この章の「<a
+                            href="#fulltext">判定後レビュー</a>」を参照してください。</span>
+                    <span class="en">Imported publications have not gone through TiAb screening, but they
+                        <strong>still enter the full-text candidate list directly</strong> (in projects with
+                        assignments configured, they join the same assignment group as the registration record they
+                        came from). They also appear as unscreened references in that group's TiAb queue, so screen
+                        them there as well if you want to. For how they are counted in PRISMA, see
+                        "Post-Decision Review" in this <a href="#fulltext">section</a>.</span>
+                </p>
+
+                <h3>
                     <span class="ja">フルテキストページでの判定</span>
                     <span class="en">Making Decisions on the Full-Text Page</span>
                 </h3>
@@ -1456,6 +1515,23 @@
                         judges (Include if any one of them marked Include). PRISMA full-text-stage numbers (candidate
                         count, obtained count, Include/Exclude/Maybe counts, exclusion-reason breakdown) are computed
                         automatically, and CSV/RIS export and manuscript text generation are also available here.</span>
+                </p>
+                <p>
+                    <span class="ja">この章の「<a href="#fulltext">レジストリ連携</a>」で取り込んだ論文は、データベース検索で見つけた文献とは<strong>別の腕として集計されます</strong>。PRISMA 2020では、citation searchingなどと同じ「Identification of studies via other methods（他の方法による同定）」で報告するのが正しいためです。結果サマリにはデータベース検索の数値に続けて「結果サマリ（PRISMA other methods 腕: レジストリ連携）」というブロックが表示され、レジストリ連携で同定・全文取得・全文評価で除外・組み入れの件数と除外理由の内訳が出ます（レジストリ連携由来の候補が0件のプロジェクトでは、このブロックは表示されず、数値も文案もこれまでと変わりません）。論文用テキストのMethods・Results・PRISMA 2020フロー図にも同じ腕別の記述が追加され、全文結果CSVには各文献がどちらの腕かを示す
+                        <code>identification_route</code> 列（<code>database</code> /
+                        <code>registry_linkage</code>）が最後の列として入ります。</span>
+                    <span class="en">Publications imported through <a href="#fulltext">registry linkage</a> are
+                        <strong>counted as a separate arm</strong> from references found by database searching,
+                        because PRISMA 2020 reports them under "Identification of studies via other methods"
+                        (alongside citation searching and similar routes). Below the database-search numbers, the
+                        results summary shows a "Results summary (PRISMA other methods arm: registry linkage)" block
+                        with the counts identified via registry linkage, full texts obtained, excluded during
+                        full-text assessment, and included, plus the exclusion-reason breakdown. (In projects with no
+                        registry-linkage candidates the block is not shown, and neither the numbers nor the generated
+                        text change from before.) The manuscript text adds the same arm to its Methods, Results, and
+                        PRISMA 2020 flow, and the full-text results CSV gains a final
+                        <code>identification_route</code> column (<code>database</code> /
+                        <code>registry_linkage</code>) telling you which arm each reference belongs to.</span>
                 </p>
                 <p>
                     <span class="ja">このビューの先頭には「Blind on/off」スイッチがあります（管理者にのみ表示）。スイッチをONにするとキー開封（ブラインド解除）となり、全レビュアー＋AIの判定を集計できます。ブラインド中は自分の判定のみが集計対象で、その旨の注記が判定者選択の下に表示されます。詳細は「<a
