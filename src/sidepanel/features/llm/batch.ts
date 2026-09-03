@@ -224,9 +224,15 @@ export async function updateBatchTargetCount() {
     dom.batchMaxCountSelect.disabled = isSelectionMode;
 
     // 対象サマリ・解除ボタン
+    // judgedCount は下の renderBatchRunMode に渡す値と同じ式。Run 行を出す条件（run が非 null かつ
+    // judgedCount >= 1、すなわち同じ設定の Run の続きで既に判定済みの文献がある）と揃えることで、
+    // 「続きから実行できます」という表示と「全件」の誤読を同時に防ぐ
+    const judgedCount = baseRefs.length - eligibleCount;
     dom.batchTargetSummary.textContent = isSelectionMode
         ? t('llm_targetSelected', String(state.llmTargetRefIds.size))
-        : t('llm_targetAll', String(state.references.length));
+        : run && judgedCount >= 1
+            ? t('llm_targetAllResume', [String(eligibleCount), String(state.references.length)])
+            : t('llm_targetAll', String(state.references.length));
     dom.batchTargetClearBtn.classList.toggle('hidden', !isSelectionMode);
 
     // 選択モードの注記: 手元に無い ref_id・この Run で既に判定済みの件数を案内する
@@ -250,7 +256,7 @@ export async function updateBatchTargetCount() {
         dom.batchTargetNote.classList.add('hidden');
     }
 
-    renderBatchRunMode(run, baseRefs.length - eligibleCount);
+    renderBatchRunMode(run, judgedCount);
 }
 
 /**

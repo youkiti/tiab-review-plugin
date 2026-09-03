@@ -11,6 +11,8 @@ import {
     exceedsTargetRefIdLimit,
     selectVisibleRefIds,
     buildTargetConfigUpdates,
+    buildTargetGroupValue,
+    parseTargetGroupValue,
     DEFAULT_LLM_TARGET_MODE,
     LLM_TARGET_REF_ID_LIMIT,
 } from '../src/lib/llm-target-selection';
@@ -19,6 +21,11 @@ import { selectBatchTargetsByJudgedRefIds, BATCH_MAX_COUNT_ALL } from '../src/li
 /** テスト用の文献（担当セットIDを付与できる） */
 function ref(id: string, setId = '') {
     return { ref_id: id, screening_set: setId };
+}
+
+/** テスト用の文献（取り込みファイル名を付与できる） */
+function refWithFile(id: string, sourceFile: string) {
+    return { ref_id: id, source_file: sourceFile };
 }
 
 // ---------------------------------------------------------------------------
@@ -276,4 +283,52 @@ test('buildTargetConfigUpdates が返す各要素は必ず1キーだけを持つ
     for (const update of buildTargetConfigUpdates('all', '')) {
         assert.equal(Object.keys(update).length, 1);
     }
+});
+
+// ---------------------------------------------------------------------------
+// buildTargetGroupValue / parseTargetGroupValue
+// ---------------------------------------------------------------------------
+
+test('buildTargetGroupValue と parseTargetGroupValue は set/file それぞれでラウンドトリップする', () => {
+    const setValue = buildTargetGroupValue({ kind: 'set', id: 'group-1' });
+    assert.equal(setValue, 'set:group-1');
+    assert.deepEqual(parseTargetGroupValue(setValue), { kind: 'set', id: 'group-1' });
+
+    const fileValue = buildTargetGroupValue({ kind: 'file', id: 'search-2026-09-01.ris' });
+    assert.equal(fileValue, 'file:search-2026-09-01.ris');
+    assert.deepEqual(parseTargetGroupValue(fileValue), { kind: 'file', id: 'search-2026-09-01.ris' });
+});
+
+test('parseTargetGroupValue はファイル名にコロンを含む場合でも id を丸ごと保持する（indexOf(":") 分割だと壊れるケース）', () => {
+    assert.deepEqual(
+        parseTargetGroupValue('file:search:2026-09-01.ris'),
+        { kind: 'file', id: 'search:2026-09-01.ris' }
+    );
+});
+
+test('parseTargetGroupValue はファイル名が "set:" で始まっていても接頭辞判定で file と誤認しない', () => {
+    assert.deepEqual(
+        parseTargetGroupValue('file:set:foo.ris'),
+        { kind: 'file', id: 'set:foo.ris' }
+    );
+});
+
+test('parseTargetGroupValue は接頭辞なし・空id・空文字・null・undefined で null を返す', () => {
+    assert.equal(parseTargetGroupValue('group-1'), null);
+    assert.equal(parseTargetGroupValue('set:'), null);
+    assert.equal(parseTargetGroupValue(''), null);
+    assert.equal(parseTargetGroupValue(null), null);
+    assert.equal(parseTargetGroupValue(undefined), null);
+});
+
+test('collectRefIdsBySet を source_file getter で使うと取り込みファイル単位で ref_id が集まる', () => {
+    const refs = [
+        refWithFile('a', 'import-1.ris'),
+        refWithFile('b', 'import-2.ris'),
+        refWithFile('c', 'import-1.ris'),
+    ];
+    assert.deepEqual(
+        collectRefIdsBySet(refs, new Set(['import-1.ris']), r => r.source_file),
+        ['a', 'c']
+    );
 });

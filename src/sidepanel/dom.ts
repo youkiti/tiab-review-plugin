@@ -106,6 +106,9 @@ const domElements = {
     get importStatus() { return getElement<HTMLElement>('import-status'); },
     get backBtn() { return getElement<HTMLButtonElement>('back-btn'); },
 
+    // ========== 未送信キューバッジ ==========
+    get unsentQueueBadge() { return getElement<HTMLButtonElement>('unsent-queue-badge'); },
+
     // ========== Key Open Section ==========
     get keySection() { return getElement<HTMLElement>('key-section'); },
     get keyToggleInput() { return getElement<HTMLInputElement>('key-toggle-input'); },

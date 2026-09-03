@@ -9,6 +9,7 @@ import { showLoading, showStatus, showToast } from '../ui/feedback';
 import { getAuthToken, getUserEmail } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 import { platform } from '../../platform';
+import { refreshUnsentBadge } from './unsent-queue';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -96,6 +97,9 @@ export async function handleLogout() {
         // 状態をリセット（Store経由で両方に同期）
         syncResetForLogout();
 
+        // プロジェクトを離れるのでバッジを隠す（state.spreadsheetId は既にリセット済み）
+        await refreshUnsentBadge();
+
         // ログイン画面に戻る（Store経由でrenderLayoutが自動更新）
         showLoginView();
 
@@ -123,6 +127,9 @@ export async function showProjectSection() {
         const userEmail = await getUserEmail();
         // Store経由で両方に同期
         syncSetUserEmail(userEmail);
+        // トークン失効後の再認可ポップアップで、複数 Google アカウントログイン中でも
+        // アカウント選択を省略できるようにする（Web版のみ実装。拡張版は no-op）
+        platform().setAuthHint?.(userEmail);
         console.log('[showProjectSection] Got user email:', userEmail);
     } catch (e) {
         console.error('[showProjectSection] Failed to get user email:', e);

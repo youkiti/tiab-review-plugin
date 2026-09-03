@@ -413,6 +413,15 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - この判定器は公式APIの仕様ではなく entitlement チェックの実行順序という副作用を観測しているため、
      Google が将来 Batch API を無料枠に開放すると「全キーを paid と誤判定する」方向に壊れるリスクがある。
      そのため PR #87 の 429 適応スロットリングを安全網として併設している
+   - **Gemini の implicit prompt caching で TiAb のコストは下げられない**（実測で確定、2026-09-01）。
+     キャッシュ入力は標準入力の 0.10 倍なので、得になる条件は `N < C0 / m = 10 × C0`
+     ＝**共有プレフィックスは10倍までしか伸ばせない**。現行の screeningPrompt は実測109トークンで
+     上限1,090トークンだが、implicit caching の実測閾値は `gemini-3.1-flash-lite` で
+     `5,852 < 閾値 ≤ 6,111` と約6倍高い（公称は「モデルにより2,048〜4,096」だが flash-lite の行は無い）。
+     閾値が仮に2,048でも成立しないため、単価倍率や閾値の細かい値に結論は依存しない。プロンプトを
+     水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
+     蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
+     既定で効いており、**実装すべきものは無い**
    - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
    - **OpenRouter カスタムモデル**: ユーザーが任意のモデル ID（例: `anthropic/claude-3.7-sonnet`）を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
@@ -471,6 +480,8 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
        0件表示の理由を追えるようにしている
      - Blind 中は他レビュアーの判定がクライアントに配られないため、モーダルの判定状態表示は自分の判定のみ。
        **判定状態は表示専用で、選択の絞り込み条件には使っていない**
+     - **グループ選択は担当セットと取り込みファイル（`source_file`）の2種**。option 値は `set:<id>` /
+       `file:<name>` で、デコードは `parseTargetGroupValue`（接頭辞判定。ファイル名にコロンが混じるため）
    - **結果表示**: LLMの判定結果・理由の表示
 8. **フルテキストAI判定（PDF全文）**
 
@@ -683,6 +694,10 @@ registration行から「その試験の結果論文（linked publication）」�
   1. `ctgov_reference`: `fetchCtgStudy()` が返す `pmids`（CTGov `referencesModule` 由来。呼び出し側が渡す。fetch不要）。`referencesModule.references` は `type` が `BACKGROUND`/`RESULT`/`DERIVED` に分かれており、`fetchCtgStudy()` 側で `type`（trim・大文字化）が `'BACKGROUND'`（試験結果と無関係な背景文献）の参照だけを除外する（PR #122 レビュー指摘1、Issue #118 チャンク2）。`RESULT` のみのallowlistにはしていない: `DERIVED` は「PubMed側がそのNCT番号を参照している論文」で結果論文の主要な供給源、`RESULT` はスポンサーが手動登録した分しか入らないため、allowlistだと取りこぼしが大きい。`type` 欠落・未知の値（将来API側に新種別が増えた場合を含む）は残す側に倒す（後方互換）。同一PMIDが複数の参照エントリに現れる場合は重複排除し元の出現順を保つ
   2. `pubmed_id`: esearch（`buildPubmedIdQuery()` が組み立てる `"<試験ID>"[si] OR "<試験ID>"[tiab]` クエリ）
   3. `europepmc`: Europe PMC で検索（jRCT/UMIN 等、NCT以外にも有効）。1回目は抄録限定 `ABSTRACT:"<試験ID>"`（`buildEuropePmcQuery()`）で検索し、1回目が**成功して**0件のときだけ2回目として従来の全文検索 `"<試験ID>"` へフォールバックする（1件以上ヒットすれば2回目は発生させない。1回目が失敗＝非200・JSON不正・ネットワーク例外の場合はフォールバックせずこの戦略をスキップして空配列を返す。失敗を「0件だった」と同一視して広い全文検索へフォールバックすると、落ちているサービスへの負荷が倍になるうえ一過性の失敗から拾ったノイズ候補が Publication_Candidates シートへ永続化されてしまうため）。ClinicalTrials.gov/UMIN-CTR/ISRCTNの3レジストリ×各12試験=36ペア（PubMedの`[si]`から作った正解ペア、発行年2015-2022限定。索引ラグで recall が0に潰れるのを避けるため）で実測したところ、全文検索一本（旧実装）は recall 86%（31/36）・平均ヒット数9.0件だったのに対し、抄録限定+0件時フォールバック案は recall 89%（32/36）・平均ヒット数4.0件だった。全文検索は「本文中で試験IDに言及しただけ」の総説・論説・別試験まで拾ってノイズになる（実例: EOLIA試験(NCT01470703)でEurope PMC由来23件がヒットしたが1件も結果論文ではなかった）。抄録限定・全文検索は単独では recall 86%（31/36）で同値だが、取りこぼす対象が異なる: NCT04112121（正解PMID 40496603）はPubMed抄録に試験の登録番号が書かれていないため抄録限定では0件になり取りこぼすが、全文検索なら1件ヒットして拾える。逆にNCT03719521（正解PMID 38162283）は抄録限定なら17件に絞られ1ページ目に収まり拾えるが、全文検索だと38件ヒットし`pageSize=25`の1ページ目からあふれて取りこぼす。フォールバックを残すのは、この2つの検索方式が互いに違うケースを取りこぼしており、0件時だけ全文検索へフォールバックすることで両方の取り分を得られるため（NCT04112121を拾えるようになる一方、NCT03719521は抄録限定の1回目で既に拾えているためフォールバックは発生せずノイズも増えない）。`TITLE:"<id>"`のOR追加は36ペア中結果が変わったのが0件だったため見送った（試験IDは論文タイトルには出現しない）。`resultType=lite`・`pageSize=25` は両クエリ共通で明示する（pmid/doi/title/journalTitle/pubYearしか使わないため `core`（全文リンク・抄録込みの重いレスポンス）は使わない）。フォールバックの有無にかかわらず `strategy` は両経路とも `europepmc` のまま（新しい戦略値は追加していない）
+- **上記36ペアの recall は「#118 が取りこぼす論文」を測った数字ではない**（Issue #119 の保留理由）。あの正解ペアは PubMed の `[si]` から作っているため、同じ `[si]` を引く戦略2（`pubmed_id`）が自明に当てる。逆に言えば「`[si]` に索引されていない論文」は最初から正解セットに入り得ないので、3戦略がどれだけ取りこぼすかはあの36ペアでは一切測れていない。**同じ理由で CTGov `referencesModule` から正解セットを作るのも不可**（戦略1 `ctgov_reference` が読むのがまさにそのフィールドで、`[si]` の鏡像になる）。独立な正解セットは、既発表SRの組み入れ研究表か、CTGov以外のレジストリの投稿者申告欄（jRCTの主たる公表論文、UMIN-CTRの結果の公表状況、ISRCTNのpublication citations）から作ること。測定スクリプトと手順は `experiments/registry-linkage/`（`scoring.ts` の `validateGroundTruth()` が循環する由来を実際に弾く。純関数のテストは `tests/registry-linkage-scoring.test.ts`）。なお戦略1はNCTにしか効かないため取りこぼしは非NCT層（jRCT/UMIN等、ICTRP XML取り込みで多く入る）へ偏りうる。全体を1つの数字にまとめると平均に埋もれるので層別で見ること
+- **実測（2026-08-29、163ペア。jRCT 43ペアを追加）**: 全体35.6%（58/163）、層別で ctgov 17.5% / isrctn 23.3% / umin 25.0% / other 6.7% / **jrct 86.0%**（Issue #119 の閾値では全体・jrct単独とも `build_it`）。既存4層の数値は2026-08-28の120ペア測定と完全に一致（再現性の裏付け）。**jrctが突出して悪く、取りこぼし37件中34件が候補0件**。原因はjRCT IDがPubMedにほぼ索引されていないこと（`jRCT*[si]` 52件 vs `UMIN*[si]` 1,823件・`ISRCTN*[si]` 11,143件）。**jRCTレコードは43件中34件（79%）が「他の登録機関でのID番号」を申告しており、それを探索キーに加えるとjrctの取りこぼしが86.0%→39.5%まで下がる**（効くのはNCT副登録番号のみ〈取りこぼし9.5%〉。UMIN副登録番号は77.8%・JapicCTI副登録番号は100%取りこぼしで役に立たない）。詳細は `experiments/registry-linkage/FINDINGS.md` を参照
+- **取りこぼし率35.6%は額面どおり受け取れない**: 163ペア全体の取りこぼし58件のうち、候補を1件も返せなかったのは38件（163ペア中23.3%）だけで、層別内訳はjrct 34 / isrctn 2 / umin 1 / other 1。**候補0件はほぼ全部jrct**であり、残る20件は候補は返したが1対1照合の正解論文と一致しなかったもの（同一試験の別の論文を返している例が多く、この照合方式では成功も取りこぼしに数える）。非jrct層では従来どおり「候補は出るが別論文」が取りこぼしの主体
+- **戦略3（europepmc）の寄与は小さい**（単独で当てたのは105件中6件、候補を1件でも出したのは163ペア中26ペア。ただしjrct層に限れば発見6件のうち2件が戦略3）
 - **副登録番号を第2の検索キーにする（Issue #134）**。主IDの3戦略が**生の候補を1件も返さなかったときだけ**、registration行が持つ副登録番号（他の登録機関でのID番号）で同じ3戦略をもう一巡する。判定は `dedupePublicationCandidates()` / `filterAlreadyImportedCandidates()` を通す**前**の件数で行う。取り出しは `src/lib/registry-record.ts` の `extractSecondaryTrialIds()`。`parseRegistryFieldsFromAbstract()` の結果を入力にする。**ラベル名ではなく登録番号のパターンで拾う。** ICTRP XML の副登録番号の要素名はレジストリごとに違い、このリポジトリでは実物（サンプルXML・テストフィクスチャ）を確認できていないため、ラベル決め打ちだと動かないリスクが高い。拾うパターンは `NCT\d{8}` / `ISRCTN\d{8}` / `UMIN\d{9}` / `JapicCTI-?\d+` / `jRCT(?:[a-z]\d{9}|\d{10})`。**jRCT IDは2形態ある**（種別文字ありなら数字9桁 `jRCTs011180014`、無しなら10桁 `jRCT2080223886`）。`C\d{9}`（UMIN-CTRの旧採番）は誤マッチのリスクが高く、実測でjRCTが申告していたUMIN番号は全件 `UMIN` 接頭辞付きだったため対象外にしている。自分自身の試験IDは除外し、上限3件で打ち切る（リクエストが青天井に増えるのを防ぐため）。副登録番号がNCTのときだけ `DiscoverPublicationCandidatesOptions.fetchCtgPmids` を呼んで戦略1（`ctgov_reference`）を使えるようにする（**ゲートが発火しなければ一度も呼ばれない遅延取得**）。副登録番号由来の候補は `trialId` にその副登録番号を入れる。`Publication_Candidates` の列を増やさずに「どのキーで見つけたか」を追えるようにするため（`candidate.trial_id` は `sheets-api.ts` が書き込むだけでロジックからは読まれておらず、References行の `source` は発見元行から `extractTrialId()` するので影響しない）。`strategy` の新しい値は追加していない。**実測（Issue #131、jRCT 43ペア）**: 主IDのみだと取りこぼし **86.0%**、副登録番号を併用すると、**この実装（ゲート有り）では 44.2%**（発見 24/43。出荷コードを実ネットワークで43件へ流して実測。うち18件が副登録番号で当たり、ゲートが発火したのは 21/43、`fetchCtgPmids` の呼び出しは20回）。**ゲートを外せば 39.5%**（発見 26/43）まで下がるが、そのぶん副登録番号の探索が全件で走る。差の2件は、主IDで europepmc が別論文を1件返したせいでゲートが止まった `jRCTs061180082` / `jRCTs071180037`。**「86.0% → 39.5%」と書くとゲート無しの上限値を実装の成績として誤読させるので、実装の数字は 44.2% と書くこと**。追加リクエストが発生するのは主IDで候補0件だったペアだけ（測定時点で163ペア中38件＝23%）。効くのは**NCT副登録番号**（21件中19件を戦略1が当てる、取りこぼし9.5%）で、UMIN副登録番号は77.8%・JapicCTI副登録番号は100%取りこぼしだが、実行コストは同じなので種別で分岐はしていない
 - 戦略1・2で集めたPMIDの書誌（title/journal/year/doi）は esummary に**1リクエストでまとめて**問い合わせる（PMIDごとに呼ばない）。esearch → esummary の eutils連続呼び出しの間だけ待機を入れる（既定350ms、テストでは`options.delayMs`で注入可能）。esearch/esummaryには `src/lib/fulltext-retriever.ts` の `enrichNcbiIds()` と同じ流儀で `tool: 'tiab-review-plugin'` と（`DiscoverPublicationCandidatesInput.email` が渡されていれば）`email` を申告する（NCBIのE-utilities利用規約）
 - 各戦略の失敗（ネットワーク・非200・JSON不正）は例外を投げずその戦略だけスキップする。全滅時は空配列。出版年（`pubYear`/`pubdate`）が非数値の場合は `NaN` ではなく `undefined` にする（シートへ文字列 `"NaN"` を書かないため）
@@ -779,6 +794,11 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **キュー内の重複排除**: 送信前に同一 `ref_id` + `reviewer_id` + `screening_phase`（省略時 `tiab`）の未送信項目はキュー内で最新の1件へ置き換える（`decision_id` はDecisionsタブ追記専用化に伴い判定イベントごとに新規発番されるため、このキーで同一性を判定する。詳細は `src/sidepanel/utils/offline-queue.ts` の `upsertDecision`）
 - **同期順序**: `decided_at` の昇順で送信し、失敗時は次回再試行
 - **冪等性**: ML自動判定・LLM判定は既存行への upsert のため再送しても重複しない。human判定・ML手動確認判定は追記専用のため、内容が直前の保存と完全一致する場合のみ保存側のスナップショットキャッシュ（60秒TTL、詳細は `decisionContentCache`）で重複追記を防げる。それを超える間隔での再送（長時間オフライン後のflushなど、サーバ側の書き込み成功をクライアントが確認できずに再試行するケース）は重複行を生みうる既知のトレードオフ
+- **flush の直列化**: `src/sidepanel/utils/offline-queue.ts` の `flushDecisionQueue` は queueKey（spreadsheetId::userEmail）ごとにコールセーサーで直列化する。flush 中に新たに `enqueueDecision` された項目は、書き戻し時にキューを再読込してから送信済み分だけを取り除く実装のため消えない。合流した呼び出しは同じ結果（最後の失敗 `lastError` を含む）を受け取るため、対話的flushとバックグラウンドflushが合流しても失敗種別がどちらの呼び出し元にも届く（PR #138 レビュー指摘対応）
+- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう。読み込み時のマージは、キー開封後は `detectConflict`（`sheets-api.ts`、`export` 済み）で不一致状態（`hasConflict`/`status`）も再計算する（PR #138 レビュー指摘対応）
+- **未送信バッジ**: `src/sidepanel/features/unsent-queue.ts` がツールバーの未送信件数バッジ（クリックで送信。認証切れなら対話的な再ログインを挟んで1回だけ再試行）と、判定保存の共通ロジック（`saveDecisionOrQueue`）を提供する。TiAb判定・ML確認判定の両方（`screening/actions.ts` / `ml/actions.ts`）がここへ委譲する
+- **保存失敗の分類**: `src/lib/save-failure.ts` の `classifySaveFailure` が保存失敗を `'auth'`（ログイン切れ、再ログインで直る可能性がある）/ `'offline'` / `'other'`（権限不足等、再ログインでは直らない）に分類する。判定クリック直後の保存失敗が `'auth'` の場合はキューへ積む前にその場で再ログインを試し、成功すれば1回だけ保存を再試行する
+- **2026-09 事故の要約**: Web版（GIS認証、トークンはメモリ上で1時間のみ）でログイン切れ後の判定保存が軒並みオフラインキューへ退避される一方、ユーザーはそれに気づかず判定を続け、退避先のブラウザプロファイルで264件が滞留した。加えて、この滞留を解消しようとした複数回の flush が並走し、60秒TTLのスナップショットキャッシュを超える間隔で同一判定が再送されたことで、197件が重複追記（393行）された。上記の直列化・画面反映・バッジ・分類はこの事故の再発防止として追加したもの
 
 ### エラーハンドリング
 
@@ -1255,6 +1275,8 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+
+**トークンは1時間固定で、無音更新はできない。** GIS の `TokenClient` はサイレントリフレッシュの仕組みを持たないため、`chrome.identity` 版のようなバックグラウンド更新はできない。トークンはメモリ保持のみ（`src/platform/web/auth.ts`）で、1時間経過後は次回の保存操作が失敗して初めて失効に気づく。この前提のため、失効の検知と再ログイン導線はユーザー操作（判定クリック・未送信バッジクリック）起点で設計している（`classifySaveFailure` で `'auth'` と判定された場合のみ、その場で対話的な再ログインを試す。詳細は「オフライン同期の方針」節）。対話的な再ログインでは `PlatformAdapter.setAuthHint`（`showProjectSection` でログイン中のメールを渡す）経由で GIS の `login_hint` を設定し、複数 Google アカウントログイン中でもアカウント選択を省略できるようにしている。
 
 **HTML は複製ではなく機械変換で生成する。** `webpack.config.js` の `transformSidepanelHtml()` が拡張版の `src/sidepanel/sidepanel.html` を変換して `docs/app/index.html` を出力する。これにより表示系の新機能が自動で Web 版へ載る。変換対象の文字列が見つからない場合は `replaceOrThrow` が例外を投げてビルドを止めるので、`sidepanel.html` の該当行（`<title>` / `<h1>` / `<body>` / stylesheet link / entry script / viewport meta）を書き換えたら変換ルールも必ず更新すること。
 

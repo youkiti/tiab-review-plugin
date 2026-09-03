@@ -202,6 +202,39 @@
   "screening_offlineQueued": {
     "message": "オフラインのため判定をキューに保存しました"
   },
+  "screening_reloginQueued": {
+    "message": "ログインの有効期限が切れたため保存できませんでした。判定は未送信として保存しました。「未送信」ボタンを押して再ログインしてください"
+  },
+  "screening_saveFailedQueued": {
+    "message": "保存に失敗したため判定を未送信として保存しました。「未送信」ボタンで再送信できます"
+  },
+  "screening_unsentBadge": {
+    "message": "⚠ 未送信 $1件",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_unsentBadgeHint": {
+    "message": "シートにまだ届いていない判定があります。クリックすると送信します（必要なら再ログインします）"
+  },
+  "screening_unsentFlushed": {
+    "message": "未送信の判定 $1件を送信しました",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_unsentRemaining": {
+    "message": "$1件の判定がまだ送信できていません",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
   "screening_historyPosition": {
     "message": "履歴 $1 / $2"
   },
@@ -1797,6 +1830,9 @@
   "llm_targetAll": {
     "message": "全件（$1件）"
   },
+  "llm_targetAllResume": {
+    "message": "全件（未判定 $1 / $2件）"
+  },
   "llm_targetSelected": {
     "message": "選択した $1 件"
   },
@@ -1815,14 +1851,20 @@
   "llm_targetPickerTitle": {
     "message": "対象レコードを選択"
   },
-  "llm_targetPickerSetLabel": {
-    "message": "担当セット:"
+  "llm_targetPickerGroupLabel": {
+    "message": "グループで選択:"
   },
-  "llm_targetPickerSetAll": {
-    "message": "すべて"
+  "llm_targetPickerGroupPlaceholder": {
+    "message": "選択してください"
   },
-  "llm_targetPickerSelectSet": {
-    "message": "このセットを全選択（$1件）"
+  "llm_targetPickerGroupSets": {
+    "message": "担当セット"
+  },
+  "llm_targetPickerGroupFiles": {
+    "message": "取り込みファイル"
+  },
+  "llm_targetPickerSelectGroup": {
+    "message": "このグループを全選択（$1件）"
   },
   "llm_targetPickerSearchPlaceholder": {
     "message": "タイトル・抄録を検索"

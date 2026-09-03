@@ -1034,25 +1034,28 @@
                         "Assignment Sets" inside Settings (⚙️).</span>
                 </p>
                 <p>
-                    <span class="ja">実行ボタンの上にある「対象:」欄で、上記の絞り込みからさらに対象を限定できます。既定は「全件（N件）」で、これまでどおり自分の未判定分すべてが対象です。「選択...」ボタンを押すと対象レコード選択モーダル（「対象レコードを選択」）が開き、担当セットで絞り込む・このセットを全選択する・タイトルや抄録で検索する・すべて表示/選択済みのみ/未選択のみを切り替える・表示中を全選択する・すべて解除する、といった操作で対象を選んで「確定する」ボタンで確定します。「解除」ボタンを押すと選択を破棄して「全件」に戻ります。</span>
+                    <span class="ja">実行ボタンの上にある「対象:」欄で、上記の絞り込みからさらに対象を限定できます。既定は「全件（N件）」で、これまでどおり自分の未判定分すべてが対象です。「選択...」ボタンを押すと対象レコード選択モーダル（「対象レコードを選択」）が開き、グループ（担当セットまたは取り込みファイル）を選んで全選択する・タイトルや抄録で検索する・すべて表示/選択済みのみ/未選択のみを切り替える・表示中を全選択する・すべて解除する、といった操作で対象を選んで「確定する」ボタンで確定します。「解除」ボタンを押すと選択を破棄して「全件」に戻ります。</span>
                     <span class="en">The "Target:" field above the run button lets you narrow the target further,
                         on top of the pending/assignment filtering above. It defaults to "All (N items)" — every
                         pending reference of yours, as before. Clicking "Select..." opens the target-selection modal
-                        ("Select target references"), where you can filter by assigned set, select an entire set,
-                        search title/abstract, switch between showing all/selected only/unselected only, select all
-                        visible items, or clear all, then finalize with "Confirm". Clicking "Clear" discards the
-                        selection and reverts to "All".</span>
+                        ("Select target references"), where you can choose a group (an assigned set or an import
+                        file) and select all of it, search title/abstract, switch between showing all/selected
+                        only/unselected only, select all visible items, or clear all, then finalize with "Confirm".
+                        Clicking "Clear" discards the selection and reverts to "All".</span>
                 </p>
                 <p>
                     <span class="ja">選択内容は個人ごとではなく<strong>プロジェクト共有の設定としてスプレッドシートのConfigへ保存され</strong>、実行のたびに再利用されます。そのため、他のメンバーが対象を絞ると自分の一括実行の対象も変わります。実行時には、選択したもののうち「このプロジェクトに見つからない」「この
-                        Runで判定済み」のものは自動的に除外され、その件数が注記されます。選択件数が上限（1,000件）を超えると警告が表示され、それ以上は選択できません。Blind中はこのモーダルに他レビュアーの判定状況が表示されません。</span>
+                        Runで判定済み」のものは自動的に除外され、その件数が注記されます。選択件数が上限（1,000件）を超えると警告が表示され、それ以上は選択できません。Blind中はこのモーダルに他レビュアーの判定状況が表示されません。また、同じ設定（モデル・プロンプト・基準）で既に一部を判定済みの場合、対象欄は「全件（未判定
+                        N / M件）」と表示され、開始すると未判定分だけが処理されます。</span>
                     <span class="en">The selection is not per-user — it is saved to the spreadsheet's Config as a
                         <strong>project-wide, shared setting</strong> and reused across runs. This means if another
                         member narrows the target, it also changes the target of your own batch run. At run time, any
                         selected items that are "not found in this project" or "already judged in this run" are
                         automatically excluded, with a note showing how many. Selecting more than the limit (1,000
                         items) shows a warning and blocks further selection. While blinded, this modal does not show
-                        other reviewers' decision status.</span>
+                        other reviewers' decision status. Also, if some references have already been judged with the
+                        same settings (model, prompt, criteria), the target field shows "All (pending N / M items)",
+                        and starting the run processes only the pending ones.</span>
                 </p>
                 <p>
                     <span class="ja">初めて実行する場合（まだ確定していないRun）は、一括実行が終わると画面下部にInclude閾値を確認するエリアが表示されます。「💾 閾値を確定して判断をGoogleスプレッドシートに保存」ボタンをクリックして初めて、判定がDecisionsシートへ確定保存されます。このステップを行わないと、判定は未確定のままになるので注意してください（詳しくは次の「AI判定が画面に出ないとき」参照）。</span>
@@ -1659,6 +1662,12 @@
                             reasoning, and evidence highlighting are shown, but you cannot run AI screening)</span>
                     </li>
                 </ul>
+                <p>
+                    <span class="ja">ログインは1時間で切れます。切れた後に付けた判定は「未送信」として端末に保存され、画面上部の「未送信」ボタンから再ログイン・送信できます。</span>
+                    <span class="en">Sign-in expires after 1 hour. Decisions made after that are saved on your device
+                        as "unsent" — use the "Unsent" button near the top of the screen to sign in again and send
+                        them.</span>
+                </p>
 
                 <h3>
                     <span class="ja">できないこと（Chrome拡張機能版のみの機能）</span>

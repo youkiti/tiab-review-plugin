@@ -1,0 +1,458 @@
+{
+  "args": {
+    "input": "experiments/registry-linkage/data/ground-truth-jrct-secondary.json",
+    "outDir": "experiments/registry-linkage/results",
+    "delayMs": 350,
+    "pairDelayMs": 1000,
+    "email": "(指定あり・記録しない)"
+  },
+  "warnings": [],
+  "summary": {
+    "overall": {
+      "n": 34,
+      "found": 21,
+      "missed": 13,
+      "miss_rate": 0.38235294117647056,
+      "mean_candidate_count": 4.088235294117647,
+      "found_by": {
+        "ctgov_reference": 19,
+        "pubmed_id": 2
+      }
+    },
+    "by_stratum": {
+      "umin": {
+        "n": 9,
+        "found": 2,
+        "missed": 7,
+        "miss_rate": 0.7777777777777778,
+        "mean_candidate_count": 0.4444444444444444,
+        "found_by": {
+          "pubmed_id": 2
+        }
+      },
+      "other": {
+        "n": 4,
+        "found": 0,
+        "missed": 4,
+        "miss_rate": 1,
+        "mean_candidate_count": 0.25,
+        "found_by": {}
+      },
+      "ctgov": {
+        "n": 21,
+        "found": 19,
+        "missed": 2,
+        "miss_rate": 0.09523809523809523,
+        "mean_candidate_count": 6.380952380952381,
+        "found_by": {
+          "ctgov_reference": 19
+        }
+      }
+    }
+  },
+  "results": [
+    {
+      "trial_id": "UMIN000026002",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "JapicCTI-183943",
+      "stratum": "other",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "NCT03024996",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 4,
+      "count_by_strategy": {
+        "ctgov_reference": 2,
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000026159",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "UMIN000010298",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT04270760",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 3,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "NCT03745157",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT04272775",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "UMIN000014875",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "JapicCTI-122013",
+      "stratum": "other",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "NCT02100228",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT04546581",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 2,
+      "candidate_count": 5,
+      "count_by_strategy": {
+        "ctgov_reference": 3,
+        "europepmc": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000026553",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "NCT01465763",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 35,
+      "candidate_count": 38,
+      "count_by_strategy": {
+        "ctgov_reference": 35,
+        "pubmed_id": 2,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "JapicCTI-121807",
+      "stratum": "other",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT03553836",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 8,
+      "candidate_count": 10,
+      "count_by_strategy": {
+        "ctgov_reference": 9,
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "JapicCTI-152996",
+      "stratum": "other",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "NCT03834519",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "NCT01470599",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000011994",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT04327388",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT01668784",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 8,
+      "candidate_count": 12,
+      "count_by_strategy": {
+        "ctgov_reference": 8,
+        "pubmed_id": 3,
+        "europepmc": 1
+      }
+    },
+    {
+      "trial_id": "NCT04521621",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "UMIN000025010",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "pubmed_id",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT02980341",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 25,
+      "count_by_strategy": {
+        "ctgov_reference": 1,
+        "europepmc": 24
+      }
+    },
+    {
+      "trial_id": "NCT02579616",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT03675737",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "ctgov_reference": 5,
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT02872116",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 6,
+      "candidate_count": 8,
+      "count_by_strategy": {
+        "ctgov_reference": 6,
+        "pubmed_id": 2
+      }
+    },
+    {
+      "trial_id": "NCT02476123",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "ctgov_reference": 1
+      }
+    },
+    {
+      "trial_id": "NCT03443973",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 6,
+      "candidate_count": 6,
+      "count_by_strategy": {
+        "ctgov_reference": 6
+      }
+    },
+    {
+      "trial_id": "UMIN000030598",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 1,
+      "count_by_strategy": {
+        "pubmed_id": 1
+      }
+    },
+    {
+      "trial_id": "NCT03075644",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 2,
+      "count_by_strategy": {
+        "ctgov_reference": 2
+      }
+    },
+    {
+      "trial_id": "UMIN000025815",
+      "stratum": "umin",
+      "provenance": "registry_declared",
+      "found": false,
+      "found_by": null,
+      "rank": null,
+      "candidate_count": 0,
+      "count_by_strategy": {}
+    },
+    {
+      "trial_id": "NCT03021187",
+      "stratum": "ctgov",
+      "provenance": "registry_declared",
+      "found": true,
+      "found_by": "ctgov_reference",
+      "rank": 1,
+      "candidate_count": 5,
+      "count_by_strategy": {
+        "ctgov_reference": 5
+      }
+    }
+  ],
+  "rejected": []
+}

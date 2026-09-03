@@ -2,7 +2,6 @@ import { state } from '../../state';
 import { dom } from '../../dom';
 
 import { mlClient } from '../../../lib/ml/worker-client';
-import { saveDecision as apiSaveDecision } from '../../../lib/sheets-api';
 import { Decision } from '../../../lib/types';
 import { createStoppingRule, isCmhStoppingRule } from '../../../lib/ml/types';
 import { renderMlSection, renderMlStats } from './render';
@@ -11,7 +10,7 @@ import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopp
 import { showToast, hideToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
 import { buildMlLabelsFromReferences, initMlWorker } from './operations';
-import { enqueueDecision, flushDecisionQueue } from '../../utils/offline-queue';
+import { saveDecisionOrQueue } from '../unsent-queue';
 import { getMlClientVersion } from './version';
 import { t } from '../../../lib/i18n';
 
@@ -114,22 +113,9 @@ export function initMlHandlers() {
 }
 
 async function saveMlDecisionWithQueue(decision: Decision) {
-    try {
-        await apiSaveDecision(state.spreadsheetId, decision);
-    } catch (err) {
-        console.error('Failed to save decision', err);
-        await enqueueDecision(state.spreadsheetId, state.userEmail, decision);
-        showToast(t('screening_offlineQueued'));
-        return;
-    }
-
-    try {
-        await flushDecisionQueue(state.spreadsheetId, state.userEmail, (queued) =>
-            apiSaveDecision(state.spreadsheetId, queued)
-        );
-    } catch (err) {
-        console.error('Queue flush error:', err);
-    }
+    // 保存失敗の分類・再ログイン・キュー退避・種類別トーストは unsent-queue.ts の共通ロジックへ
+    // 委譲する（screening/actions.ts の saveDecisionWithQueue と同じロジックを共有する）
+    await saveDecisionOrQueue(decision, { notifyOnFailure: true });
 }
 
 export async function activateMlTab(): Promise<boolean> {
