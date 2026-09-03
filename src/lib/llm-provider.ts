@@ -16,7 +16,9 @@ export interface LlmScreenParams {
     abstract: string;
     screeningPrompt: string;
     model: string;
-    temperature: number;
+    // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
+    // 未指定なら送らない運用を許容する optional にしている。
+    temperature?: number;
     topP?: number;
     thinkingLevel?: string;
     reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
@@ -66,7 +68,9 @@ export function filterModelsByConfiguredProviders<T extends { provider: LlmProvi
 export interface ConvertCriteriaParams {
     protocolText: string;
     model: string;
-    temperature: number;
+    // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
+    // 未指定なら送らない運用を許容する optional にしている。
+    temperature?: number;
     topP?: number;
     thinkingLevel?: string;                                  // Gemini 専用
     reasoningEffort?: 'none' | 'low' | 'medium' | 'high';    // OpenRouter / OpenAI 専用

@@ -132,7 +132,9 @@ export interface BatchProcessOptions {
     batchSize: number; // 1回の保存単位の件数
     screeningPrompt: string;
     model: string;
-    temperature: number;
+    // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
+    // 未指定なら送らない運用を許容する optional にしている。
+    temperature?: number;
     topP?: number;
     thinkingLevel?: string;
     maxOutputTokens?: number;
