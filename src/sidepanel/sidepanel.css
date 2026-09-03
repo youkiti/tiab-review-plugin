@@ -49,3 +49,6 @@
 
 /* チーム進捗パネル */
 @import url('./styles/team-progress.css');
+
+/* 重複候補のレビューUI */
+@import url('./styles/duplicate-review.css');

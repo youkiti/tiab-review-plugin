@@ -582,6 +582,69 @@
                 </p>
 
                 <h3>
+                    <span class="ja">重複の確認</span>
+                    <span class="en">Duplicate Review</span>
+                </h3>
+                <p>
+                    <span class="ja">インポート時、PMID・DOI・同じレジストリの試験IDが一致する明らかな重複は自動的に除外されます。一方、タイトルだけが一致する組など、どちらを残すか人が決める必要があるものは自動では除外されず、確認待ちの候補として記録されます。</span>
+                    <span class="en">During import, obvious duplicates — matching PMID, DOI, or the same registry's
+                        trial ID — are excluded automatically. Pairs that match only by title, where a person needs
+                        to decide which record to keep, are not excluded automatically; they are recorded as
+                        candidates awaiting review.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja">確認待ちの候補があるインポート直後には、確認用のモーダルが自動的に開きます。「あとでまとめて確認」を押すとモーダルを閉じられます。閉じた後も、TiAbスクリーニング画面下部の「重複の確認」セクションから、いつでも確認を再開できます。</span>
+                        <span class="en">If there are candidates awaiting review, a confirmation modal opens
+                            automatically right after import. Selecting "Review Later" closes it; you can resume the
+                            review at any time afterward from the "Duplicate Review" section at the bottom of the
+                            TiAb screening screen.</span>
+                    </li>
+                    <li>
+                        <span class="ja">モーダルでは左右の書誌情報を見比べ、「左を残す」「右を残す」「別々の文献」のいずれかを選びます。残さなかった側は一覧から見えなくなりますが、行そのものは削除されず残ります。ただし、この画面からその判断を取り消す機能は現時点ではありません。元に戻したい場合は、スプレッドシートを直接開き、対象行の「duplicate_of」列の値を削除してください。</span>
+                        <span class="en">In the modal, compare the two records side by side and choose "Keep Left",
+                            "Keep Right", or "Different Records". The side you did not keep disappears from the
+                            list, but its underlying record is not deleted. There is currently no way to undo that
+                            decision from within the app; to reverse it, open the spreadsheet directly and clear the
+                            value in that row's "duplicate_of" column.</span>
+                    </li>
+                    <li>
+                        <span class="ja">「自動判定ぶんをすべて適用」を押すと、PMID・DOI・同じレジストリの試験IDが一致する組（人の判断が要らないもの）だけをまとめて処理できます。残す側は、判定が付いている件数が多いほうが自動的に選ばれます。3件以上が同じ文献としてつながっている場合も、まとめて1件だけを残す形で一貫して解決されます。タイトルだけが一致する組は、この一括操作の対象にはなりません。</span>
+                        <span class="en">"Apply All Auto-Resolvable" processes in one step only the pairs that need
+                            no human judgement — those matching by PMID, DOI, or the same registry's trial ID. The
+                            side with more decisions recorded on it is kept automatically. When three or more records
+                            are linked together as the same publication, they are resolved together, consistently
+                            keeping just one of them. Pairs matching only by
+                            title are never included in this bulk action.</span>
+                    </li>
+                    <li>
+                        <span class="ja">除外しようとした側に既に判定（Include/Exclude/Maybe）が付いている場合は、その判定が宙に浮くことを防ぐため、確認が求められます。</span>
+                        <span class="en">If the side you are about to remove already has a decision
+                            (Include/Exclude/Maybe) recorded on it, you will be asked to confirm before proceeding,
+                            since removing it would leave that decision orphaned.</span>
+                    </li>
+                    <li>
+                        <span class="ja">「重複を再スキャン」を押すと、これまでに取り込んだ文献全体をもう一度調べ直し、新たな重複候補を見つけます。</span>
+                        <span class="en">Selecting "Rescan Duplicates" checks all previously imported references
+                            again and finds any new duplicate candidates.</span>
+                    </li>
+                    <li>
+                        <span class="ja">複数人・複数ファイルで同時に作業していても、決定を適用する直前に最新の状態を読み直すため、他の人が先に片付けた組を二重に処理してしまうことはありません。ごくまれに複数人がほぼ同時に同じ組へ異なる判断を適用してしまった場合も、自動的に検知して安全な状態に戻します（万一直せなかった場合は、その旨をお知らせします）。</span>
+                        <span class="en">Even when multiple people work on multiple files at the same time, the app
+                            re-reads the latest state immediately before applying a decision, so a pair someone else
+                            has already resolved will not be processed twice. In the rare case where multiple people
+                            apply conflicting decisions to the same pair at nearly the same moment, this is detected
+                            and repaired automatically (and you'll be notified if it could not be repaired).</span>
+                    </li>
+                    <li>
+                        <span class="ja">重複として除外した件数は、論文用テキストのPRISMAフロー図における重複除去数に自動的に反映されます。</span>
+                        <span class="en">The number of records excluded as duplicates is automatically reflected in
+                            the duplicate-removal count of the PRISMA flow diagram when generating manuscript
+                            text.</span>
+                    </li>
+                </ul>
+
+                <h3>
                     <span class="ja">判定ボタン</span>
                     <span class="en">Decision Buttons</span>
                 </h3>

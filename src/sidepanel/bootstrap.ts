@@ -22,6 +22,7 @@ import * as screeningActions from './features/screening/actions';
 import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import * as reviewCriteria from './features/review-criteria';
+import { setDuplicateReviewDeps } from './features/duplicate-review';
 import { setupTeamProgressListeners } from './features/team-progress';
 import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
 import { hideToast } from './ui/feedback';
@@ -65,6 +66,16 @@ export function bootstrapCommon(): void {
     screeningFilters.setFilterDependencies({
         renderCurrentReference: screeningRender.renderCurrentReference,
         loadDataAndShowScreening: project.loadDataAndShowScreening
+    });
+
+    // 重複レビューUI（Issue #147）。拡張版・Web版の両エントリで共通のため bootstrapCommon() に
+    // 置く（sidepanel.ts だけが呼んでいたため、Web版バンドル（docs/app/app.js）には一度も
+    // 呼ばれず、統合・一括適用のたびに dupReview_depsMissing が出て一覧が更新されなかった。
+    // Issue #147 外部レビュー指摘）。src/webapp/index.ts には足さない
+    // （拡張専用機能を import しない方針で意図的に最小化されているファイルのため）。
+    // すぐ上の screeningFilters.setFilterDependencies() とまったく同じ依存を渡す。
+    setDuplicateReviewDeps({
+        reloadAfterApply: project.loadDataAndShowScreening
     });
 
     // 共有版の settings 依存注入（ML 分岐を含まない）。

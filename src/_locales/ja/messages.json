@@ -3383,5 +3383,182 @@
   },
   "ftReason_errDuplicateKey": {
     "message": "内部キーが重複しています"
+  },
+  "dupReview_sectionTitle": {
+    "message": "重複の確認"
+  },
+  "dupReview_countLoading": {
+    "message": "読み込み中…"
+  },
+  "dupReview_countLabel": {
+    "message": "未確認の重複候補 $1件"
+  },
+  "dupReview_countError": {
+    "message": "件数の取得に失敗しました"
+  },
+  "dupReview_openBtn": {
+    "message": "重複を確認"
+  },
+  "dupReview_rescanBtn": {
+    "message": "重複を再スキャン"
+  },
+  "dupReview_modalTitle": {
+    "message": "重複候補の確認"
+  },
+  "dupReview_noneToReview": {
+    "message": "未確認の重複候補はありません"
+  },
+  "dupReview_brokenPair": {
+    "message": "このペアはデータが壊れているため「左を残す」「右を残す」は選べません（duplicate_of の循環または参照先の欠落）。「別々の文献」として片付けることはできます。統合が必要な場合は管理者に確認してください。"
+  },
+  "dupReview_keepLeftBtn": {
+    "message": "左を残す"
+  },
+  "dupReview_keepRightBtn": {
+    "message": "右を残す"
+  },
+  "dupReview_separateBtn": {
+    "message": "別々の文献"
+  },
+  "dupReview_bulkApplyBtn": {
+    "message": "自動判定ぶんをすべて適用"
+  },
+  "dupReview_laterBtn": {
+    "message": "あとでまとめて確認"
+  },
+  "dupReview_closeBtn": {
+    "message": "閉じる"
+  },
+  "dupReview_fieldColumnHeader": {
+    "message": "項目"
+  },
+  "dupReview_leftColumnHeader": {
+    "message": "左"
+  },
+  "dupReview_rightColumnHeader": {
+    "message": "右"
+  },
+  "dupReview_field_title": {
+    "message": "タイトル"
+  },
+  "dupReview_field_journal": {
+    "message": "ジャーナル"
+  },
+  "dupReview_field_volume": {
+    "message": "巻"
+  },
+  "dupReview_field_issue": {
+    "message": "号"
+  },
+  "dupReview_field_pages": {
+    "message": "ページ"
+  },
+  "dupReview_field_doi": {
+    "message": "DOI"
+  },
+  "dupReview_field_pmid": {
+    "message": "PMID"
+  },
+  "dupReview_field_year": {
+    "message": "出版年"
+  },
+  "dupReview_field_source": {
+    "message": "取り込み元"
+  },
+  "dupReview_field_sourceFile": {
+    "message": "取り込みファイル"
+  },
+  "dupReview_matchType_pmid": {
+    "message": "PMID一致"
+  },
+  "dupReview_matchType_doi": {
+    "message": "DOI一致"
+  },
+  "dupReview_matchType_trialId": {
+    "message": "試験ID一致"
+  },
+  "dupReview_matchType_title": {
+    "message": "タイトル一致"
+  },
+  "dupReview_decisionCount": {
+    "message": "判定 $1件（うちAI $2件）"
+  },
+  "dupReview_confirmRemoveWithDecisions": {
+    "message": "この文献には既に人間による判定が $1 件付いています。統合すると除外側の判定は宙に浮きます。続行しますか？"
+  },
+  "dupReview_applyDone": {
+    "message": "重複を統合しました"
+  },
+  "dupReview_applyError": {
+    "message": "重複の統合に失敗しました: $1"
+  },
+  "dupReview_statusUpdateFailedAfterRemoval": {
+    "message": "除外は適用しましたが、候補の記録更新に失敗しました。次回開いたときは「他のレビュアーが処理済み」と表示されます。"
+  },
+  "dupReview_alreadyProcessed": {
+    "message": "他のレビュアーが処理済みです"
+  },
+  "dupReview_dismissDone": {
+    "message": "別々の文献として記録しました"
+  },
+  "dupReview_dismissError": {
+    "message": "記録の更新に失敗しました: $1"
+  },
+  "dupReview_depsMissing": {
+    "message": "この画面では自動反映できません。手動で再読み込みしてください。"
+  },
+  "dupReview_loadError": {
+    "message": "重複候補の読み込みに失敗しました: $1"
+  },
+  "dupReview_bulkApplyNone": {
+    "message": "自動適用できる候補はありませんでした"
+  },
+  "dupReview_bulkApplyDone": {
+    "message": "$1件を自動適用しました"
+  },
+  "dupReview_bulkApplyPartialError": {
+    "message": "$1件を適用しましたが、一部の記録更新に失敗しました"
+  },
+  "dupReview_bulkApplyError": {
+    "message": "自動適用に失敗しました: $1"
+  },
+  "dupReview_rescanDone": {
+    "message": "新しい重複候補を$1件見つけました"
+  },
+  "dupReview_rescanNone": {
+    "message": "新しい重複候補は見つかりませんでした"
+  },
+  "dupReview_rescanError": {
+    "message": "再スキャンに失敗しました: $1"
+  },
+  "dupReview_deferredReminder": {
+    "message": "重複候補の確認は後回しにしました。TiAbスクリーニング画面下部の「重複の確認」セクションから、いつでも確認を再開できます。"
+  },
+  "dupReview_moreRemaining": {
+    "message": "残り$1組は、この画面の候補を片付けると表示されます"
+  },
+  "dupReview_mutualDeletionRepaired": {
+    "message": "他のレビュアーと同時に操作したため、片方の除外を自動で取り消しました"
+  },
+  "dupReview_mutualDeletionRepairError": {
+    "message": "重複の競合を自動修復できませんでした: $1"
+  },
+  "dupReview_refreshError": {
+    "message": "候補データの取得に失敗しました。もう一度お試しください: $1"
+  },
+  "dupReview_reloadAfterApplyFailed": {
+    "message": "適用はできましたが、画面の自動反映に失敗しました。手動で再読み込みしてください。"
+  },
+  "dupReview_repairBtn": {
+    "message": "修復する"
+  },
+  "dupReview_manualRepairDone": {
+    "message": "相互削除の状態を修復しました"
+  },
+  "dupReview_manualRepairAlreadyDone": {
+    "message": "既に修復済みでした（今回は書き込みを行っていません）"
+  },
+  "dupReview_manualRepairError": {
+    "message": "修復に失敗しました: $1"
   }
 }

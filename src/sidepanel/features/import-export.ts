@@ -7,11 +7,12 @@ import { showToast, showLoading } from '../ui/feedback';
 import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences } from './screening/filters';
 import { collectReviewerKeys, summarizeTeamDecision, formatDecisionNotes } from './screening/decision-summary';
-import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats } from '../../lib/sheets-api';
+import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats, saveDuplicateCandidates } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
 import { parseImportFile } from '../../lib/file-dispatcher';
 import { partitionIncomingReferences } from '../../lib/duplicate-import-filter';
+import { openDuplicateReviewModal, invalidatePendingCountAndRerenderSection } from './duplicate-review';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -78,13 +79,6 @@ export async function handleRISImport(e: Event) {
             partitionIncomingReferences(allReferences, newReferences);
         const duplicateCount = autoSkipped.length;
 
-        // タイトルだけ一致した組（reviewPairs）は、現時点では消費先が無いため
-        // 件数を出すだけにとどめる。取り込みは通しており、消費（表示・解決UI）は
-        // 後続で実装する重複レビューUI（Issue #145 チャンク3）で行う。
-        if (reviewPairs.length > 0) {
-            console.log(`[handleRISImport] ${reviewPairs.length} review pairs (title match) detected.`);
-        }
-
         if (duplicateCount > 0) {
             console.log(`Skipped ${duplicateCount} duplicates.`);
             showToast(t('import_skippedDuplicates', String(duplicateCount)));
@@ -123,6 +117,27 @@ export async function handleRISImport(e: Event) {
             console.log('[handleRISImport] Failed to save import stats:', statsError);
         }
 
+        // タイトルだけ一致した組（reviewPairs）を重複レビューUI（Issue #145 チャンク3）向けに
+        // 保存する。reviewPairs はこの時点でシートに追加されたばかりの ref_id を含むため、
+        // 必ず addReferences() のバッチ追加が全部終わったあとに呼ぶこと（追加前に呼ぶと、
+        // まだ存在しない ref_id を指す候補行ができてしまう）。
+        // saveImportStats と同じ扱いで、保存の失敗は取り込み自体の成否に影響させない。
+        let duplicateCandidatesSaved = false;
+        if (reviewPairs.length > 0) {
+            try {
+                await saveDuplicateCandidates(state.spreadsheetId, reviewPairs);
+                duplicateCandidatesSaved = true;
+                // セクションの「未確認の重複候補」件数キャッシュを破棄して再描画する（Issue #147
+                // 外部レビュー指摘）。openDuplicateReviewModal({ fromImport: true }) はモーダルを
+                // 出さないことがある（未確認0件のとき）ため、モーダル任せにせず保存直後に必ず呼ぶ。
+                // 保存が失敗したとき（catch側）は呼ばない。古い値のほうがまだましで、失敗は上の
+                // console.log で別途分かるため。
+                invalidatePendingCountAndRerenderSection();
+            } catch (candidateError) {
+                console.log('[handleRISImport] Failed to save duplicate candidates:', candidateError);
+            }
+        }
+
         // 状態を更新
         dom.importStatus.textContent = t('import_updating');
         state.addSourceFile(file.name);
@@ -136,6 +151,14 @@ export async function handleRISImport(e: Event) {
         const completionMsg = t('import_complete', [String(uniqueReferences.length), String(duplicateCount)]);
         dom.importStatus.textContent = completionMsg;
         showToast(completionMsg);
+
+        // 候補の保存に成功し、かつ実際に検出があったときだけ自動起動する。
+        // saveDuplicateCandidates() は既出の組を内部で落とすため、渡した件数と実際に新規保存
+        // された件数は一致しない。モーダル側は自分でシートを読み直して未確認の候補を表示するため、
+        // ここでは件数の正確さを主張する文言は出さない。
+        if (duplicateCandidatesSaved && reviewPairs.length > 0) {
+            void openDuplicateReviewModal({ fromImport: true });
+        }
 
     } catch (error) {
         console.error('Import error:', error);
