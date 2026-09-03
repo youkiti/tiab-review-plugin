@@ -102,6 +102,18 @@ export function isLogicallyDeleted(ref: Pick<Reference, 'duplicate_of'>): boolea
 }
 
 /**
+ * source（レジストリ名）の比較用正規化。trim + 小文字化。未設定は空文字として扱う。
+ *
+ * 取り込み時の自動スキップ判定（duplicate-import-filter.ts の trialId 一致判定）と
+ * 重複レビューの自動適用判定（duplicate-review.ts の isAutoApplicableCandidate()）が
+ * 同じ正規化を使う必要があるため、ここに一元化する。isLogicallyDeleted() と同じ理由で、
+ * 呼び出し元ごとに同じ実装をコピーすると、片方だけ直す事故が起きる。
+ */
+export function normalizeSource(source: string | undefined): string {
+    return source?.trim().toLowerCase() ?? '';
+}
+
+/**
  * Duplicate_Candidates タブへ既に記録済みの組（重複ペア）を除外する。
  * `saveDuplicateCandidates()`（src/lib/sheets-api.ts）が保存直前に使う（Issue #145 チャンク2）。
  *

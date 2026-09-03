@@ -19,6 +19,7 @@ import { bootstrapCommon } from './bootstrap';
 import * as project from './features/project';
 import * as settings from './features/settings';
 import * as importExport from './features/import-export';
+import { setDuplicateReviewDeps } from './features/duplicate-review';
 import { showManuscriptModal } from './features/manuscript';
 import * as llm from './features/llm';
 import * as screeningRender from './features/screening/render';
@@ -51,6 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     importExport.setImportExportDependencies({
         renderCurrentReference: screeningRender.renderCurrentReference,
         loadDataAndShowScreening: project.loadDataAndShowScreening
+    });
+
+    setDuplicateReviewDeps({
+        reloadAfterApply: project.loadDataAndShowScreening,
     });
 
     llm.setHandleBack(project.handleBack);

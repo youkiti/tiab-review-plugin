@@ -83,7 +83,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
 | record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサと、論文候補の取り込み（`buildImportedPublicationReference()`。取り込んだ論文行は常に `article` を確定値として書く）。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
 | related_ref_id  | 取り込んだ論文行から、発見元のregistration行の `ref_id` への**一方向**の参照（registration行側に逆リンクは張らない。`src/lib/publication-import.ts` の `buildImportedPublicationReference()` が書く）。この列が非空の行は、TiAb票を一切持たなくても `src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` が無条件でフルテキスト候補として扱う（レジストリ連携フェーズ1チャンク3、Issue #118。下記「論文候補の取り込み（Referencesへの追加）」参照）（Z列） |      |
-| duplicate_of    | 重複として論理削除済みかどうかのフラグ。非空なら、この行は重複として除外済みで、値は**残す側の** `ref_id`。空文字（未設定）は生きている行。判定は必ず `src/lib/duplicate-detect.ts` の `isLogicallyDeleted()` を経由すること（自前で `ref.duplicate_of` を直接見る分岐を書かない）。書き込みは `src/lib/sheets-api.ts` の `setDuplicateOf()`（`duplicateOf: null` を渡すと空文字を書いて除外を取り消せる＝「やっぱり戻す」）。物理削除ではないため行自体は残る（Issue #145 チャンク2、AA列） |      |
+| duplicate_of    | 重複として論理削除済みかどうかのフラグ。非空なら、この行は重複として除外済みで、値は**残す側の** `ref_id`。空文字（未設定）は生きている行。判定は必ず `src/lib/duplicate-detect.ts` の `isLogicallyDeleted()` を経由すること（自前で `ref.duplicate_of` を直接見る分岐を書かない）。書き込みは `src/lib/sheets-api.ts` の `setDuplicateOf()`（`duplicateOf: null` を渡すと空文字を書いて除外を取り消せる＝「やっぱり戻す」）。実際の呼び出し元は重複レビューUI（`src/sidepanel/features/duplicate-review.ts`）。物理削除ではないため行自体は残る（Issue #145 チャンク2、AA列） |      |
 
 **References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。duplicate_of（AA列）はIssue #145 チャンク2で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
@@ -760,7 +760,7 @@ registration行から「その試験の結果論文（linked publication）」�
 
 ### 書誌重複の検出とレビュー（Duplicate_Candidates タブ）
 
-取り込み時にスキップしなかった重複候補ペア（正規化タイトル一致、source が不一致な試験ID一致）を、人が「統合する／別々の文献だ」を決めるまで記憶しておくタブ（Issue #145 チャンク2）。検出そのものの設計判断（自動スキップを絞る理由、PMID/DOI/試験ID/タイトルの4本キーを和集合で見る方式）は上記データ設計の総論を参照。**このチャンクでは器（検出・保存・冪等フィルタ）を作るところまでで、検出結果を実際にここへ流す配線と、ペアを見比べて決めるレビューUIはチャンク3。**
+取り込み時にスキップしなかった重複候補ペア（正規化タイトル一致、source が不一致な試験ID一致）を、人が「統合する／別々の文献だ」を決めるまで記憶しておくタブ（Issue #145 チャンク2）。検出そのものの設計判断（自動スキップを絞る理由、PMID/DOI/試験ID/タイトルの4本キーを和集合で見る方式）は上記データ設計の総論を参照。**検出結果を実際にここへ流す配線と、ペアを見比べて決めるレビューUIはチャンク3（Issue #147）で実装済み。** 純関数層は `src/lib/duplicate-review.ts`、UI層は `src/sidepanel/features/duplicate-review.ts`（設計判断は下記）。
 
 - 検出ロジックは `src/lib/duplicate-detect.ts`（UI非依存の純関数）。`buildMatchKeys()` が1件の Reference から pmid/trialId/doi/title の4本のキーを作り（`normalizeDoi()` は `^10\.\d{4,9}/` で検証済みのDOIのみ、DOIの接頭辞剥がし自体は `src/lib/doi.ts` の `stripDoiPrefix()` に委譲する）、どれか一つでも既出なら一致とみなす和集合方式を取る。取り込み時フィルタ本体（`partitionIncomingReferences()`、自動スキップとレビュー候補の振り分け）は `src/lib/duplicate-import-filter.ts`
 - `Duplicate_Candidates` タブのヘッダー（この順、`DUPLICATE_CANDIDATES_HEADERS`）:
@@ -774,7 +774,7 @@ registration行から「その試験の結果論文（linked publication）」�
   | match_key | 一致したキーの値（正規化後） |
   | status | `suggested`（検出直後、未決）/ `merged`（どちらかを残すと決めた。`kept_ref_id` に残す側の ref_id が入る）/ `dismissed`（「別々の文献だ」と決めた。再スキャンでも二度と提示しない） |
   | suggested_at | 検出日時（ISO 8601） |
-  | decided_by | 決定者（email）。`updateDuplicateCandidateStatus()`（チャンク3で配線）が書く |
+  | decided_by | 決定者（email）。`updateDuplicateCandidateStatus()`（チャンク3、Issue #147で配線済み。呼び出し元は `src/sidepanel/features/duplicate-review.ts`）が書く |
   | decided_at | 決定日時（ISO 8601）。同上 |
   | kept_ref_id | 残す側の ref_id（`status: 'merged'` のときのみ埋まる）。同上 |
 
@@ -782,6 +782,22 @@ registration行から「その試験の結果論文（linked publication）」�
 - **冪等フィルタ `filterNewDuplicatePairs()`**（`duplicate-detect.ts`）は `saveDuplicateCandidates()` が保存直前に使う。`Publication_Candidates` の `filterNewCandidates()` との違いは、キーが ref_id 1本ではなく「2つの ref_id の組」であること。`status` は見ない（`dismissed`/`merged` になった組も既出として弾く。一度決着した組を再スキャンのたびに再提示しないことがこの関数の存在理由そのもの）
 - 5点セットの永続化関数（`sheets-api.ts`、`Publication_Candidates` 系と同型）: `ensureDuplicateCandidatesSheet()`（タブ欠落時の自動作成・列欠落時の末尾追記）/ `readDuplicateCandidatesRows()`（内部専用の読み取り）/ `saveDuplicateCandidates()`（ensure → 既存行読み取り → `filterNewDuplicatePairs()` → 追記）/ `getDuplicateCandidates()`（チャンク3向けの公開読み取りAPI）/ `updateDuplicateCandidateStatus()`（`status`/`decided_by`/`decided_at`/`kept_ref_id` の更新）
 - **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions/Publication_Candidates と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `DUPLICATE_CANDIDATES_HEADERS` ミラーも必ず追従させること
+
+**レビューUIの設計判断（チャンク3、Issue #147）**:
+
+- **純関数層とUI層の分離**: 計算ロジックは `src/lib/duplicate-review.ts`（`resolveSurvivor()` / `diffReferenceFields()` / `scanReferencesForDuplicatePairs()` / `isAutoApplicableCandidate()` / `isPairAlreadySettled()` / `chooseKeptRefId()`。テストは `tests/duplicate-review.test.ts`）に置き、DOM/state に依存するUIは `src/sidepanel/features/duplicate-review.ts` に分離した。`fulltext-consensus.ts` / `prisma-identification.ts` と同じ方針
+- **論理削除済みの相手を辿り直す**: `partitionIncomingReferences()` が既存インデックスに論理削除済みの行も含めている帰結として、候補の相手が論理削除済みの行になることがある。`resolveSurvivor()` が `duplicate_of` を辿って「残っている側」を返す。循環・参照先欠落・深さ上限（100 hops）は `broken` として返し、UIは壊れたペアを黙って隠さず「左を残す」「右を残す」だけ無効化して「別々の文献」は残す（後者は `Duplicate_Candidates` タブしか触らないため安全に実行でき、これが無いと壊れたペアがアプリ内から永久に片付けられなくなる。`deleteReferencesBySourceFile()` は行を物理削除するため、この状態は実際に作れる）
+- **書き込み順序は `setDuplicateOf()` → `updateDuplicateCandidateStatus()` で固定**。逆にすると、候補は決着済みなのに References の行が生きている＝重複除去が黙って失われる状態を作りうる。この順序なら後者が失敗しても行は正しく除外済みで、次回 `isPairAlreadySettled()` が survivor の収束として検出できる。後者だけ失敗したときは「除外は適用したが候補の記録更新に失敗した」旨を事実どおり表示する
+- **適用の直前に読み直す**: References・Duplicate_Candidates・Decisions をボタン押下時点で再取得し、`isPairAlreadySettled()` が true なら書き込まずスキップして「他のレビュアーが処理済み」と表示する（`fulltext-publication-candidates.ts` の `handleImportCandidate()` と同じ理由の前例に倣う）。警告に使う判定件数も再取得したものを使う（描画時点の値を使うと、モーダルを開いたまま他のレビュアーが判定を付けた場合に警告が出ない）
+- **判定件数の表示はブラインド配慮で集計値のみ**: レビュアー名・判定値は出さない。警告・一括適用の判断に使うのは「総数 − AI判定数」（AI判定は `isLlmDecision()` / `isMlDecision()`）。`client_version` が空の古い行はAIと判定できないため人の判定として数える（意図した安全側の倒し方）。`decision` が `'pending'` または空の行は未判定として数えない（`decision-summary.ts` の `buildReviewerDecisionMap()` と同じ扱い）
+- **一括適用で残す側の規則**: 自動判定ぶん（`isAutoApplicableCandidate()` が true。PMID一致・検証済みDOI一致・source も一致する試験ID一致。タイトル一致は常に false）に対し、`chooseKeptRefId()` がAI以外の判定数が多い側を残し、同数なら `ref_id_a`（先に存在していた側）を残す。無人で走る一括適用では、個別レビューのような警告ではなく判定を宙に浮かせない側を機械的に選ぶ
+- **`isAutoApplicableCandidate()` は source 一致を `Duplicate_Candidates` の列に持たない**。source は References 側の値なので適用時点で引き直せば足り、スキーマ変更を避けた
+- **導線は2つ**: 取り込み直後のモーダル（`handleRISImport()` が `saveDuplicateCandidates()` の後に呼ぶ。未確認の候補が0件なら開かない）と、TiAbスクリーニング画面の独立セクション（`renderSourceFilters()` の冒頭で `renderDuplicateReviewSection()` を呼ぶ。`sourceFiles` が0件でも出す必要があるため早期returnより前）。セクションは `sidepanel.html` を触らず `dom.sourceFiltersSection` の直前へ動的に挿入する
+- **「あとでまとめて確認」**: 押すとセッション中は取り込み直後の自動モーダルを出さなくなり、どこから再開できるかを必ず案内する（連続インポート中にレビューを強制しないため）。セクションのボタンからの明示操作はフラグに関係なく必ず開く
+- **再スキャン**: `scanReferencesForDuplicatePairs()` が References 全件を対象に4本のキーでバケットを作り、バケット内の2件目以降を先頭とペアにする（全組み合わせ C(n,2) にしない。n が大きいと件数が爆発してレビューが実用にならない）。既出の組の除外は `saveDuplicateCandidates()` 内部の `filterNewDuplicatePairs()` に任せる。新規0件でも必ずトーストを1行出す
+- **モーダルの一度の描画上限は50組**。超過分は「残りは片付けると出る」旨を案内する（1組につき10行の比較テーブルを作るため、数百組を一度に描くと狭いサイドパネルで重くなる）
+- **`normalizeSource()` は `duplicate-detect.ts` に一元化**（trim + 小文字化）。取り込み時のtrialId自動スキップ判定とレビューUIの自動適用判定が同じ正規化を使う必要があるため。`isLogicallyDeleted()` と同じ理由で、呼び出し元ごとのコピーを作らない
+- **`src/sidepanel/` 配下は Web版（`docs/app/`）にも入る**ため、このUIモジュールは `chrome.*` API を一切使わない。Web版では `initModal()` が呼ばれず ✕ ボタンが未配線のため、モーダルのフッターには自前の閉じるボタンを置き `hideModal()` を直接呼ぶ
 
 ### 論文候補の取り込み（Referencesへの追加）
 

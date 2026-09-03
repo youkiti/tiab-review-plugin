@@ -17,6 +17,7 @@ import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/ful
 import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../lib/fulltext-candidates';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
+import { renderDuplicateReviewSection } from '../duplicate-review';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -372,6 +373,10 @@ function fulltextCandidateOptionLabel(count: number): string {
  * ソースファイルフィルターを描画
  */
 export function renderSourceFilters() {
+    // 独立セクション（重複の確認）。sourceFiles が0件でも出す必要があるため、
+    // 下の早期returnより前で呼ぶこと（Issue #147）。
+    renderDuplicateReviewSection();
+
     dom.sourceFileListDiv.innerHTML = '';
 
     if (state.sourceFiles.size === 0) {

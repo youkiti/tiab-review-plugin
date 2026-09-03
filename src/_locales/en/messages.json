@@ -3383,5 +3383,158 @@
   },
   "ftReason_errDuplicateKey": {
     "message": "Internal keys are duplicated"
+  },
+  "dupReview_sectionTitle": {
+    "message": "Duplicate Review"
+  },
+  "dupReview_countLoading": {
+    "message": "Loading…"
+  },
+  "dupReview_countLabel": {
+    "message": "$1 unresolved duplicate candidate(s)"
+  },
+  "dupReview_countError": {
+    "message": "Failed to load the count"
+  },
+  "dupReview_openBtn": {
+    "message": "Review Duplicates"
+  },
+  "dupReview_rescanBtn": {
+    "message": "Rescan Duplicates"
+  },
+  "dupReview_modalTitle": {
+    "message": "Review Duplicate Candidates"
+  },
+  "dupReview_noneToReview": {
+    "message": "No unresolved duplicate candidates"
+  },
+  "dupReview_brokenPair": {
+    "message": "This pair's data is broken (a duplicate_of cycle or a missing target), so \"Keep Left\" and \"Keep Right\" are unavailable. You can still resolve it as \"Different Records.\" Ask an administrator if a merge is needed."
+  },
+  "dupReview_keepLeftBtn": {
+    "message": "Keep Left"
+  },
+  "dupReview_keepRightBtn": {
+    "message": "Keep Right"
+  },
+  "dupReview_separateBtn": {
+    "message": "Different Records"
+  },
+  "dupReview_bulkApplyBtn": {
+    "message": "Apply All Auto-Resolvable"
+  },
+  "dupReview_laterBtn": {
+    "message": "Review Later"
+  },
+  "dupReview_closeBtn": {
+    "message": "Close"
+  },
+  "dupReview_fieldColumnHeader": {
+    "message": "Field"
+  },
+  "dupReview_leftColumnHeader": {
+    "message": "Left"
+  },
+  "dupReview_rightColumnHeader": {
+    "message": "Right"
+  },
+  "dupReview_field_title": {
+    "message": "Title"
+  },
+  "dupReview_field_journal": {
+    "message": "Journal"
+  },
+  "dupReview_field_volume": {
+    "message": "Volume"
+  },
+  "dupReview_field_issue": {
+    "message": "Issue"
+  },
+  "dupReview_field_pages": {
+    "message": "Pages"
+  },
+  "dupReview_field_doi": {
+    "message": "DOI"
+  },
+  "dupReview_field_pmid": {
+    "message": "PMID"
+  },
+  "dupReview_field_year": {
+    "message": "Year"
+  },
+  "dupReview_field_source": {
+    "message": "Source"
+  },
+  "dupReview_field_sourceFile": {
+    "message": "Source file"
+  },
+  "dupReview_matchType_pmid": {
+    "message": "PMID match"
+  },
+  "dupReview_matchType_doi": {
+    "message": "DOI match"
+  },
+  "dupReview_matchType_trialId": {
+    "message": "Trial ID match"
+  },
+  "dupReview_matchType_title": {
+    "message": "Title match"
+  },
+  "dupReview_decisionCount": {
+    "message": "$1 decision(s) ($2 by AI)"
+  },
+  "dupReview_confirmRemoveWithDecisions": {
+    "message": "This record already has $1 human decision(s). Merging it will leave the removed side's decisions orphaned. Continue?"
+  },
+  "dupReview_applyDone": {
+    "message": "Duplicate merged"
+  },
+  "dupReview_applyError": {
+    "message": "Failed to merge the duplicate: $1"
+  },
+  "dupReview_statusUpdateFailedAfterRemoval": {
+    "message": "The record was removed, but updating the candidate record failed. Next time you open this, it will show as \"already handled by another reviewer\"."
+  },
+  "dupReview_alreadyProcessed": {
+    "message": "Another reviewer has already handled this"
+  },
+  "dupReview_dismissDone": {
+    "message": "Recorded as different records"
+  },
+  "dupReview_dismissError": {
+    "message": "Failed to update the record: $1"
+  },
+  "dupReview_depsMissing": {
+    "message": "This screen can't refresh automatically. Please reload manually."
+  },
+  "dupReview_loadError": {
+    "message": "Failed to load duplicate candidates: $1"
+  },
+  "dupReview_bulkApplyNone": {
+    "message": "No candidates could be auto-applied"
+  },
+  "dupReview_bulkApplyDone": {
+    "message": "Auto-applied $1 pair(s)"
+  },
+  "dupReview_bulkApplyPartialError": {
+    "message": "Applied $1 pair(s), but some candidate records failed to update"
+  },
+  "dupReview_bulkApplyError": {
+    "message": "Failed to auto-apply: $1"
+  },
+  "dupReview_rescanDone": {
+    "message": "Found $1 new duplicate candidate(s)"
+  },
+  "dupReview_rescanNone": {
+    "message": "No new duplicate candidates found"
+  },
+  "dupReview_rescanError": {
+    "message": "Rescan failed: $1"
+  },
+  "dupReview_deferredReminder": {
+    "message": "Duplicate review postponed. You can resume it anytime from the \"Duplicate Review\" section at the bottom of the TiAb screening screen."
+  },
+  "dupReview_moreRemaining": {
+    "message": "$1 more pair(s) will appear once you resolve the ones shown here"
   }
 }

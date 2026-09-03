@@ -8,7 +8,7 @@
 
 import type { Reference } from './types';
 import type { DuplicateMatch, DuplicateMatchType } from './duplicate-detect';
-import { buildMatchKeys, normalizePairKey } from './duplicate-detect';
+import { buildMatchKeys, normalizePairKey, normalizeSource } from './duplicate-detect';
 
 /** PMID・DOI・試験IDの一致により自動的にスキップされた1件 */
 export interface AutoSkippedReference {
@@ -22,11 +22,6 @@ export interface PartitionResult {
     toImport: Reference[];
     autoSkipped: AutoSkippedReference[];
     reviewPairs: DuplicateMatch[];
-}
-
-/** source の比較用に正規化する（trim + 小文字化）。未設定は空文字扱いにする。 */
-function normalizeSource(source: string | undefined): string {
-    return source?.trim().toLowerCase() ?? '';
 }
 
 /**

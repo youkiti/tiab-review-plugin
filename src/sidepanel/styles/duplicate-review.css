@@ -1,0 +1,161 @@
+/**
+ * duplicate-review.css - 重複候補のレビューUI（Issue #147、Issue #145 チャンク3）
+ *
+ * 既存のクラス名と衝突しないよう、すべて dup-review- 接頭辞を付ける。
+ * 差異の強調は色だけに頼らない（太字＋▲マーカーを併用する）。
+ */
+
+/* ---------- 独立セクション（screening 画面下部、.source-filters-section の直前） ---------- */
+
+.dup-review-section {
+    margin-top: 15px;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.dup-review-section h4 {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.dup-review-count {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: #555;
+}
+
+.dup-review-section-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ---------- モーダル本体 ---------- */
+
+.dup-review-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dup-review-empty {
+    font-size: 13px;
+    color: #666;
+}
+
+.dup-review-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dup-review-pair:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.dup-review-pair-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dup-review-match-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #eafaf1;
+    color: #16a085;
+    border: 1px solid #a8e6cf;
+    white-space: nowrap;
+}
+
+.dup-review-match-key {
+    font-size: 11px;
+    color: #888;
+    word-break: break-all;
+}
+
+.dup-review-broken-message {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b8860b;
+    background: #fff8e1;
+    border: 1px solid #f0d98c;
+    border-radius: 4px;
+}
+
+/* ---------- 左右比較テーブル ---------- */
+
+.dup-review-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.dup-review-compare-table th,
+.dup-review-compare-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.dup-review-compare-table thead th {
+    font-size: 11px;
+    color: #999;
+    font-weight: 600;
+    border-bottom: 1px solid #ccc;
+}
+
+.dup-review-compare-table tbody th {
+    width: 90px;
+    color: #666;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* 差異のある行: 色だけに頼らず、太字と▲マーカーを併用する */
+.dup-review-diff-row th,
+.dup-review-diff-row td {
+    font-weight: 700;
+    background: #fff8e1;
+}
+
+.dup-review-diff-row th::before {
+    content: "▲ ";
+    color: #b8860b;
+}
+
+/* ---------- 判定件数・操作ボタン ---------- */
+
+.dup-review-decision-counts {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #888;
+}
+
+.dup-review-pair-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ---------- モーダルフッター ---------- */
+
+.dup-review-modal-footer {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
