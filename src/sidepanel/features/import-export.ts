@@ -12,7 +12,7 @@ import { t } from '../../lib/i18n';
 
 import { parseImportFile } from '../../lib/file-dispatcher';
 import { partitionIncomingReferences } from '../../lib/duplicate-import-filter';
-import { openDuplicateReviewModal } from './duplicate-review';
+import { openDuplicateReviewModal, invalidatePendingCountAndRerenderSection } from './duplicate-review';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -127,6 +127,12 @@ export async function handleRISImport(e: Event) {
             try {
                 await saveDuplicateCandidates(state.spreadsheetId, reviewPairs);
                 duplicateCandidatesSaved = true;
+                // セクションの「未確認の重複候補」件数キャッシュを破棄して再描画する（Issue #147
+                // 外部レビュー指摘）。openDuplicateReviewModal({ fromImport: true }) はモーダルを
+                // 出さないことがある（未確認0件のとき）ため、モーダル任せにせず保存直後に必ず呼ぶ。
+                // 保存が失敗したとき（catch側）は呼ばない。古い値のほうがまだましで、失敗は上の
+                // console.log で別途分かるため。
+                invalidatePendingCountAndRerenderSection();
             } catch (candidateError) {
                 console.log('[handleRISImport] Failed to save duplicate candidates:', candidateError);
             }

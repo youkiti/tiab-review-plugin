@@ -19,7 +19,6 @@ import { bootstrapCommon } from './bootstrap';
 import * as project from './features/project';
 import * as settings from './features/settings';
 import * as importExport from './features/import-export';
-import { setDuplicateReviewDeps } from './features/duplicate-review';
 import { showManuscriptModal } from './features/manuscript';
 import * as llm from './features/llm';
 import * as screeningRender from './features/screening/render';
@@ -54,9 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDataAndShowScreening: project.loadDataAndShowScreening
     });
 
-    setDuplicateReviewDeps({
-        reloadAfterApply: project.loadDataAndShowScreening,
-    });
+    // 重複レビューUI（Issue #147）の setDuplicateReviewDeps() 呼び出しは bootstrap.ts の
+    // bootstrapCommon() へ移した（拡張版・Web版の両方に効かせるため）。ここでは呼ばない。
 
     llm.setHandleBack(project.handleBack);
     llm.setLoadDataAndShowScreening(project.loadDataAndShowScreening);

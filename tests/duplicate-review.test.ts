@@ -8,6 +8,9 @@ import {
     isAutoApplicableCandidate,
     isPairAlreadySettled,
     chooseKeptRefId,
+    planBulkApply,
+    arePairRefsMutuallyDeleted,
+    chooseMutualDeletionSurvivor,
 } from '../src/lib/duplicate-review';
 import type { Reference, DuplicateCandidate, DuplicateCandidateStatus } from '../src/lib/types';
 
@@ -153,6 +156,36 @@ test('diffReferenceFields: yearの数値が文字列化される', () => {
 test('diffReferenceFields: 大文字小文字の違いは差異として扱われる（titleも例外にしない）', () => {
     const a = ref({ ref_id: 'a', title: 'A Sample Trial' });
     const b = ref({ ref_id: 'b', title: 'a sample trial' });
+    const result = diffReferenceFields(a, b);
+    assert.equal(result.find((r) => r.field === 'title')?.differs, true);
+});
+
+test('diffReferenceFields: 二重スペースだけが違う値はdiffers:falseになる（.nbibの継続行結合由来）', () => {
+    const a = ref({ ref_id: 'a', title: 'Outcomes in Patients Undergoing Surgery' });
+    const b = ref({ ref_id: 'b', title: 'Outcomes in Patients  Undergoing Surgery' });
+    const result = diffReferenceFields(a, b);
+    assert.equal(result.find((r) => r.field === 'title')?.differs, false);
+});
+
+test('diffReferenceFields: 前後の空白だけの違いもdiffers:falseになる', () => {
+    const a = ref({ ref_id: 'a', title: 'T', journal: 'The Lancet' });
+    const b = ref({ ref_id: 'b', title: 'T', journal: '  The Lancet  ' });
+    const result = diffReferenceFields(a, b);
+    assert.equal(result.find((r) => r.field === 'journal')?.differs, false);
+});
+
+test('diffReferenceFields: valueA/valueBは空白を潰さずrawのまま返る', () => {
+    const a = ref({ ref_id: 'a', title: 'Outcomes in Patients Undergoing Surgery' });
+    const b = ref({ ref_id: 'b', title: 'Outcomes in Patients  Undergoing Surgery' });
+    const result = diffReferenceFields(a, b);
+    const titleRow = result.find((r) => r.field === 'title');
+    assert.equal(titleRow?.valueA, 'Outcomes in Patients Undergoing Surgery');
+    assert.equal(titleRow?.valueB, 'Outcomes in Patients  Undergoing Surgery');
+});
+
+test('diffReferenceFields: 空白を除いて実際に文字が違えばdiffers:trueのまま', () => {
+    const a = ref({ ref_id: 'a', title: 'Outcomes in  Patients Undergoing Surgery A' });
+    const b = ref({ ref_id: 'b', title: 'Outcomes in  Patients Undergoing Surgery B' });
     const result = diffReferenceFields(a, b);
     assert.equal(result.find((r) => r.field === 'title')?.differs, true);
 });
@@ -372,4 +405,182 @@ test('chooseKeptRefId: 同数ならAを残す', () => {
 
 test('chooseKeptRefId: 両方0件でもAを残す', () => {
     assert.deepEqual(chooseKeptRefId('a', 'b', 0, 0), { keptRefId: 'a', removedRefId: 'b' });
+});
+
+// ---------------------------------------------------------------------------
+// isPairAlreadySettled: 相互削除（同時更新の競合）は隠さない
+// ---------------------------------------------------------------------------
+
+test('isPairAlreadySettled: statusがmergedでも相互削除ならfalse（隠さない）', () => {
+    const map = refsMap([
+        { ref_id: 'a', duplicate_of: 'b' },
+        { ref_id: 'b', duplicate_of: 'a' },
+    ]);
+    assert.equal(isPairAlreadySettled(candidate('a', 'b', 'merged'), map), false);
+});
+
+test('isPairAlreadySettled: 相互削除でないmergedは従来どおりtrue', () => {
+    const map = refsMap([
+        { ref_id: 'a', duplicate_of: undefined },
+        { ref_id: 'b', duplicate_of: 'a' },
+    ]);
+    assert.equal(isPairAlreadySettled(candidate('a', 'b', 'merged'), map), true);
+});
+
+// ---------------------------------------------------------------------------
+// arePairRefsMutuallyDeleted
+// ---------------------------------------------------------------------------
+
+test('arePairRefsMutuallyDeleted: 相互に指し合うならtrue', () => {
+    const map = refsMap([
+        { ref_id: 'a', duplicate_of: 'b' },
+        { ref_id: 'b', duplicate_of: 'a' },
+    ]);
+    assert.equal(arePairRefsMutuallyDeleted('a', 'b', map), true);
+});
+
+test('arePairRefsMutuallyDeleted: 片方向のみならfalse', () => {
+    const map = refsMap([
+        { ref_id: 'a', duplicate_of: undefined },
+        { ref_id: 'b', duplicate_of: 'a' },
+    ]);
+    assert.equal(arePairRefsMutuallyDeleted('a', 'b', map), false);
+});
+
+test('arePairRefsMutuallyDeleted: どちらも生きているならfalse', () => {
+    const map = refsMap([
+        { ref_id: 'a', duplicate_of: undefined },
+        { ref_id: 'b', duplicate_of: undefined },
+    ]);
+    assert.equal(arePairRefsMutuallyDeleted('a', 'b', map), false);
+});
+
+test('arePairRefsMutuallyDeleted: 行が存在しないならfalse', () => {
+    const map = refsMap([{ ref_id: 'a', duplicate_of: 'b' }]);
+    assert.equal(arePairRefsMutuallyDeleted('a', 'b', map), false);
+    assert.equal(arePairRefsMutuallyDeleted('b', 'a', map), false);
+});
+
+// ---------------------------------------------------------------------------
+// chooseMutualDeletionSurvivor
+// ---------------------------------------------------------------------------
+
+test('chooseMutualDeletionSurvivor: 辞書順で決まる', () => {
+    assert.deepEqual(chooseMutualDeletionSurvivor('b', 'a'), { survivor: 'a', removed: 'b' });
+});
+
+test('chooseMutualDeletionSurvivor: 引数の順序を入れ替えても同じ結果になる（両クライアントが同じ答えを出す）', () => {
+    assert.deepEqual(chooseMutualDeletionSurvivor('x1', 'x2'), chooseMutualDeletionSurvivor('x2', 'x1'));
+});
+
+// ---------------------------------------------------------------------------
+// planBulkApply
+// ---------------------------------------------------------------------------
+
+function nonAiCounts(counts: Record<string, number>): (refId: string) => number {
+    return (refId) => counts[refId] ?? 0;
+}
+
+test('planBulkApply: 空入力は空の計画を返す', () => {
+    assert.deepEqual(planBulkApply([], () => 0), { duplicateOfUpdates: [], statusUpdates: [] });
+});
+
+test('planBulkApply: 再現ケース（辺A-B, A-C、非AI判定数A=0/B=1/C=2）でAが1回だけ現れ、生存者はC', () => {
+    const inputs = [
+        { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+        { candidateId: 'cand-ac', refIdA: 'A', refIdB: 'C' },
+    ];
+    const plan = planBulkApply(inputs, nonAiCounts({ A: 0, B: 1, C: 2 }));
+
+    const aUpdates = plan.duplicateOfUpdates.filter((u) => u.refId === 'A');
+    assert.equal(aUpdates.length, 1);
+    assert.equal(aUpdates[0].duplicateOf, 'C');
+
+    assert.equal(plan.statusUpdates.length, 2);
+    assert.ok(plan.statusUpdates.every((u) => u.keptRefId === 'C'));
+});
+
+test('planBulkApply: 2件だけの成分で判定数が同数ならrefIdAが生存する（chooseKeptRefIdと一致）', () => {
+    const inputs = [{ candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' }];
+    const plan = planBulkApply(inputs, nonAiCounts({ A: 2, B: 2 }));
+
+    assert.deepEqual(plan.duplicateOfUpdates, [{ refId: 'B', duplicateOf: 'A' }]);
+    assert.deepEqual(plan.statusUpdates, [{ candidateId: 'cand-ab', keptRefId: 'A' }]);
+
+    // chooseKeptRefId() の「同数ならrefIdA」と一致することを明示的に確認する
+    assert.deepEqual(chooseKeptRefId('A', 'B', 2, 2), { keptRefId: 'A', removedRefId: 'B' });
+});
+
+test('planBulkApply: 独立した2成分（A-B と C-D）はそれぞれ別に解決される', () => {
+    const inputs = [
+        { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+        { candidateId: 'cand-cd', refIdA: 'C', refIdB: 'D' },
+    ];
+    const plan = planBulkApply(inputs, nonAiCounts({ A: 0, B: 1, C: 1, D: 0 }));
+
+    const byCandidate = new Map(plan.statusUpdates.map((u) => [u.candidateId, u.keptRefId]));
+    assert.equal(byCandidate.get('cand-ab'), 'B');
+    assert.equal(byCandidate.get('cand-cd'), 'C');
+
+    assert.deepEqual(
+        [...plan.duplicateOfUpdates].sort((x, y) => x.refId.localeCompare(y.refId)),
+        [
+            { refId: 'A', duplicateOf: 'B' },
+            { refId: 'D', duplicateOf: 'C' },
+        ]
+    );
+});
+
+test('planBulkApply: 4件以上の連鎖（A-B, B-C, C-D）が1成分にまとまる', () => {
+    const inputs = [
+        { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+        { candidateId: 'cand-bc', refIdA: 'B', refIdB: 'C' },
+        { candidateId: 'cand-cd', refIdA: 'C', refIdB: 'D' },
+    ];
+    const plan = planBulkApply(inputs, nonAiCounts({ A: 0, B: 0, C: 0, D: 5 }));
+
+    assert.ok(plan.statusUpdates.every((u) => u.keptRefId === 'D'));
+    const removedRefIds = plan.duplicateOfUpdates.map((u) => u.refId).sort();
+    assert.deepEqual(removedRefIds, ['A', 'B', 'C']);
+    assert.ok(plan.duplicateOfUpdates.every((u) => u.duplicateOf === 'D'));
+});
+
+test('planBulkApply: duplicateOfUpdatesに同じrefIdが2回現れない（全ケース共通の不変条件）', () => {
+    const cases: Array<{ candidateId: string; refIdA: string; refIdB: string }[]> = [
+        [
+            { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+            { candidateId: 'cand-ac', refIdA: 'A', refIdB: 'C' },
+        ],
+        [
+            { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+            { candidateId: 'cand-bc', refIdA: 'B', refIdB: 'C' },
+            { candidateId: 'cand-cd', refIdA: 'C', refIdB: 'D' },
+        ],
+        [
+            { candidateId: 'cand-ab', refIdA: 'A', refIdB: 'B' },
+            { candidateId: 'cand-cd', refIdA: 'C', refIdB: 'D' },
+        ],
+    ];
+
+    for (const inputs of cases) {
+        const plan = planBulkApply(inputs, () => 0);
+        const seen = new Set<string>();
+        for (const update of plan.duplicateOfUpdates) {
+            assert.equal(seen.has(update.refId), false, `refId ${update.refId} が重複している`);
+            seen.add(update.refId);
+        }
+    }
+});
+
+test('planBulkApply: 判定数の最大が複数、refIdA出現回数も同じなら辞書順最小が勝つ', () => {
+    // A-C（AがrefIdA）、B-C（BがrefIdA）: A・Bともに判定数2・refIdA出現1回で並ぶ → 辞書順でAが勝つ
+    const inputs = [
+        { candidateId: 'cand-ac', refIdA: 'A', refIdB: 'C' },
+        { candidateId: 'cand-bc', refIdA: 'B', refIdB: 'C' },
+    ];
+    const plan = planBulkApply(inputs, nonAiCounts({ A: 2, B: 2, C: 0 }));
+
+    assert.ok(plan.statusUpdates.every((u) => u.keptRefId === 'A'));
+    const removedRefIds = plan.duplicateOfUpdates.map((u) => u.refId).sort();
+    assert.deepEqual(removedRefIds, ['B', 'C']);
 });

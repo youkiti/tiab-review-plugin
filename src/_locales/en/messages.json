@@ -3536,5 +3536,29 @@
   },
   "dupReview_moreRemaining": {
     "message": "$1 more pair(s) will appear once you resolve the ones shown here"
+  },
+  "dupReview_mutualDeletionRepaired": {
+    "message": "Another reviewer made a conflicting change at the same time, so one side's removal was automatically undone"
+  },
+  "dupReview_mutualDeletionRepairError": {
+    "message": "Failed to auto-repair the duplicate conflict: $1"
+  },
+  "dupReview_refreshError": {
+    "message": "Failed to fetch candidate data. Please try again: $1"
+  },
+  "dupReview_reloadAfterApplyFailed": {
+    "message": "The change was applied, but the screen could not refresh automatically. Please reload manually."
+  },
+  "dupReview_repairBtn": {
+    "message": "Repair"
+  },
+  "dupReview_manualRepairDone": {
+    "message": "Repaired the mutual-deletion conflict"
+  },
+  "dupReview_manualRepairAlreadyDone": {
+    "message": "This was already repaired (no changes were made this time)"
+  },
+  "dupReview_manualRepairError": {
+    "message": "Failed to repair: $1"
   }
 }

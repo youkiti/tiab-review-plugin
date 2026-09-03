@@ -860,8 +860,13 @@ function parseReferenceValues(values: string[][]): Reference[] {
  * References タブから文献一覧を取得する。
  *
  * 【除外なしの経路】論理削除された行（duplicate_of 非空、isLogicallyDeleted() 参照）も
- * 含めて全件返す。重複レビューUI（Issue #145 チャンク3）は除外済みの行も表示して
- * 「やっぱり戻す」を可能にする必要があるため、この関数は意図的にフィルタしない。
+ * 含めて全件返す。重複レビューUI（src/sidepanel/features/duplicate-review.ts）が
+ * 論理削除済みの行を必要とする理由は2つ: ① resolveSurvivor() が「論理削除済みの相手から
+ * 残っている側」を辿り直すのに duplicate_of の指す先の行が要る、② isPairAlreadySettled() が
+ * survivor の収束判定・相互削除（同時更新の競合）の検出に論理削除済みの行を見る必要がある
+ * （Issue #147 外部レビュー指摘。以前は「重複レビューUIの『やっぱり戻す』操作に必要」と
+ * 書いていたが、個別の統合判断をユーザーが取り消す一般的なUIは実装されていない。実際に
+ * duplicateOf: null を書くのは相互削除の自動修復と手動の「修復する」ボタンに限られる）。
  * 除外を反映してほしい呼び出し元（TiAb スクリーニング画面など）は getReferencesWithStatus() を使うこと。
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
@@ -1384,7 +1389,9 @@ function buildAllFulltextDecisionsMap(
  * 各呼び出し元へ分散させず、共通のこの一箇所で外すことで全呼び出し元に一度に効かせる
  * （同じ判断のコピーが呼び出し元ごとに散ると、片方だけ直して漏れる事故につながるため）。
  * 除外なしで全件（論理削除済みの行も含む）が必要な場合は getReferences() を使うこと
- * （重複レビューUIでの「やっぱり戻す」操作に必要）。
+ * （重複レビューUIの resolveSurvivor() / isPairAlreadySettled() が判定に論理削除済みの
+ * 行を必要とするため。Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは
+ * 実装されていない）。
  */
 export async function getReferencesWithStatus(
     spreadsheetId: string,
@@ -3836,17 +3843,23 @@ export async function saveDuplicateCandidates(
 
 /**
  * Duplicate_Candidates シートの全行を取得する（ヘッダ駆動。getPublicationCandidates() と同じ流儀）。
- * レビューUI（チャンク3）向けの公開API。ensure してから読む。失敗時は空配列を返す
- * （getPublicationCandidates() と同じ「読み取り単体は失敗を握りつぶす」流儀）。
+ * レビューUI（チャンク3）向けの公開API。ensure してから読む。
+ *
+ * 【例外はそのまま呼び出し元へ投げる】（Issue #147。以前は
+ * getPublicationCandidates() と同じ「読み取り単体は失敗を握りつぶす」流儀で失敗時に空配列を
+ * 返していたが、それをやめた）。理由: この関数の失敗を候補0件に握りつぶすと、レビューUI
+ * （src/sidepanel/features/duplicate-review.ts）が「未確認候補0件」「候補なし」という
+ * 事実と異なる表示を出す。件数はキャッシュされるため、一時的な通信障害でも0件表示が
+ * 固定化してしまう。さらに applyPairDecision() の適用直前の再読み込みも同じ関数を使っており、
+ * 失敗して `[]` が返ると該当候補が見つからず「他のレビュアーが処理済み」という事実と異なる
+ * 表示のまま書き込みを黙ってスキップしてしまう。0件と取得失敗を呼び出し元が区別できることが
+ * 必須なため、この関数では例外を握りつぶさない。呼び出し元（duplicate-review.ts の全6箇所）は
+ * それぞれ try/catch で取得失敗を検知し、ユーザーへ明示的に伝える。
+ * getPublicationCandidates() は別機能・別の呼び出し元セットのため、こちらに合わせて変更しない。
  */
 export async function getDuplicateCandidates(spreadsheetId: string): Promise<DuplicateCandidate[]> {
-    try {
-        await ensureDuplicateCandidatesSheet(spreadsheetId);
-        return await readDuplicateCandidatesRows(spreadsheetId);
-    } catch (error) {
-        console.error('[getDuplicateCandidates] Error:', error);
-        return [];
-    }
+    await ensureDuplicateCandidatesSheet(spreadsheetId);
+    return await readDuplicateCandidatesRows(spreadsheetId);
 }
 
 /**

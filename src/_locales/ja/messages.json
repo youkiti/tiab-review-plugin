@@ -3536,5 +3536,29 @@
   },
   "dupReview_moreRemaining": {
     "message": "残り$1組は、この画面の候補を片付けると表示されます"
+  },
+  "dupReview_mutualDeletionRepaired": {
+    "message": "他のレビュアーと同時に操作したため、片方の除外を自動で取り消しました"
+  },
+  "dupReview_mutualDeletionRepairError": {
+    "message": "重複の競合を自動修復できませんでした: $1"
+  },
+  "dupReview_refreshError": {
+    "message": "候補データの取得に失敗しました。もう一度お試しください: $1"
+  },
+  "dupReview_reloadAfterApplyFailed": {
+    "message": "適用はできましたが、画面の自動反映に失敗しました。手動で再読み込みしてください。"
+  },
+  "dupReview_repairBtn": {
+    "message": "修復する"
+  },
+  "dupReview_manualRepairDone": {
+    "message": "相互削除の状態を修復しました"
+  },
+  "dupReview_manualRepairAlreadyDone": {
+    "message": "既に修復済みでした（今回は書き込みを行っていません）"
+  },
+  "dupReview_manualRepairError": {
+    "message": "修復に失敗しました: $1"
   }
 }

@@ -95,14 +95,30 @@ function toDisplayValue(value: unknown): string {
 }
 
 /**
+ * 差異判定専用に空白を正規化する（表示には使わない）。
+ *
+ * 理由: PubMed の `.nbib` は長いタイトルを行末スペース＋折り返しで畳んでおり、`parseRIS()` の
+ * 継続行結合（`currentValue += ' ' + line.trim()`）が二重スペースを作る
+ * （例: `in Patients  Undergoing`）。これを trim だけで比較すると、字句的に同一のタイトルでも
+ * 常に differs: true になり、比較テーブルのハイライトが情報を持たなくなる（Issue #147
+ * 外部レビュー指摘。デモ10件中8件が該当し、検出した3ペアすべてで全フィールドに ▲ が付いた）。
+ * マッチング側（duplicate-detect.ts の normalizeTitle()）は既に空白を潰しているため、
+ * ずれているのは表示側の比較だけ。パーサ（parseRIS()）側は影響範囲が広いため触らない。
+ */
+function normalizeForDiff(value: string): string {
+    return value.trim().replace(/\s+/g, ' ');
+}
+
+/**
  * 2件の Reference を DUPLICATE_REVIEW_COMPARE_FIELDS の10フィールドで比較し、全件を
  * その順序どおりに返す（差異のあるものだけに絞らない。UIが「全フィールドを並べて差異だけ
  * 強調」できるようにするため）。
  *
- * differs は表示値を trim してから比較する（undefined・空文字・空白のみは同値扱い）。
- * 大文字小文字は区別する（別表記は差異として見せたい）。title も含めて例外は作らない
- * （正規化タイトルでの一致はマッチキー側（duplicate-detect.ts）の関心であり、ここは
- * 人が目で見る差異を出す層のため）。
+ * valueA/valueB は raw のまま返す（人が実際のセルの中身を見られる必要があるため）。
+ * differs だけは normalizeForDiff() で空白を正規化してから比較する（undefined・空文字・
+ * 前後や連続する空白の違いは同値扱い）。大文字小文字は区別する（別表記は差異として見せたい）。
+ * title も含めて例外は作らない（正規化タイトルでの一致はマッチキー側（duplicate-detect.ts）
+ * の関心であり、ここは人が目で見る差異を出す層のため）。
  */
 export function diffReferenceFields(
     a: Reference,
@@ -115,7 +131,7 @@ export function diffReferenceFields(
             field,
             valueA,
             valueB,
-            differs: valueA.trim() !== valueB.trim(),
+            differs: normalizeForDiff(valueA) !== normalizeForDiff(valueB),
         };
     });
 }
@@ -236,15 +252,48 @@ export function isAutoApplicableCandidate(
 }
 
 /**
+ * 組の2行が互いを指し合って両方とも論理削除されている状態か判定する（Issue #147）。
+ *
+ * Google Sheets の values API には条件付き更新（CAS）が無いため、クライアント間の真の排他制御・
+ * 書き込みの直列化は実装できない。2人のレビュアーが同じ組を同時に開き、一方が「左を残す」、
+ * 他方が「右を残す」を選ぶと、両者とも `suggested` を読んだ後に書き込める。結果
+ * duplicate_of[A]=B と duplicate_of[B]=A が並び、isLogicallyDeleted() が両方 true になって
+ * その文献がレビューから丸ごと消える。これが同時更新の競合で実際に起きうる唯一の決定的な
+ * 破損パターンのため、この形（相互に指し合っている状態）に絞って検出する。
+ * `resolveSurvivor()` の `broken` 全般（物理削除・循環等）は対象にしない。`broken` は
+ * 他の原因でも立ち、`dismissed` 済みの無関係な組まで毎回蒸し返してしまうため。
+ *
+ * 判定: refsById[a].duplicate_of の trim が b と一致し、かつ refsById[b].duplicate_of の
+ * trim が a と一致する。どちらかが refsById に無ければ false。
+ */
+export function arePairRefsMutuallyDeleted(
+    refIdA: string,
+    refIdB: string,
+    refsById: Map<string, Pick<Reference, 'ref_id' | 'duplicate_of'>>
+): boolean {
+    const refA = refsById.get(refIdA);
+    const refB = refsById.get(refIdB);
+    if (!refA || !refB) return false;
+
+    return (refA.duplicate_of ?? '').trim() === refIdB && (refB.duplicate_of ?? '').trim() === refIdA;
+}
+
+/**
  * 書き込み直前に読み直したデータから、「他のレビュアーが同じ組を先に処理している」ことを
  * 判定する。true ならUI側は書き込まずスキップし「他のレビュアーが処理済み」と表示する。
  *
- * true になる条件（いずれか）:
- * - candidate.status が 'suggested' 以外（既に merged / dismissed になっている）。
- * - どちらかの ref_id が refsById に存在しない（行が消えている＝物理削除された等）。
- * - 両側を resolveSurvivor() で辿った結果が同じ ref_id になる（片方が既にもう片方へ統合された）。
+ * 判定順序（上から順に適用。この順序自体が重要）:
+ * 1. arePairRefsMutuallyDeleted() が true → false を返す（settled とみなさない）。
+ *    status の短絡より前に見る。相互に指し合って両方とも論理削除されている組を
+ *    merged/dismissed 扱いで覆い隠すと、その文献がレビューから丸ごと消えたまま
+ *    誰も気付けなくなる（Issue #147）。壊れた組は既存の broken 表示経路
+ *    （resolveSurvivor() が broken を返すケースの表示）にそのまま乗せて人に見せる。
+ * 2. candidate.status が 'suggested' 以外（既に merged / dismissed になっている）→ true。
+ * 3. どちらかの ref_id が refsById に存在しない（行が消えている＝物理削除された等）→ true。
+ * 4. 両側を resolveSurvivor() で辿った結果が同じ ref_id になる（片方が既にもう片方へ
+ *    統合された）→ true。
  *
- * 判定の順序が重要: ref_id の存在確認を resolveSurvivor() を呼ぶより先に行う。
+ * 3・4の順序も重要: ref_id の存在確認を resolveSurvivor() を呼ぶより先に行う。
  * resolveSurvivor() は「入力の refId 自体が refsById に無い」場合も broken: true を返すが、
  * その broken は「壊れたデータなので settled とみなさない」対象の broken とは意味が違う
  * （行が消えているのは決着の一種として扱ってよいが、生きている行同士の duplicate_of が
@@ -259,6 +308,8 @@ export function isPairAlreadySettled(
     candidate: Pick<DuplicateCandidate, 'ref_id_a' | 'ref_id_b' | 'status'>,
     refsById: Map<string, Pick<Reference, 'ref_id' | 'duplicate_of'>>
 ): boolean {
+    if (arePairRefsMutuallyDeleted(candidate.ref_id_a, candidate.ref_id_b, refsById)) return false;
+
     if (candidate.status !== 'suggested') return true;
 
     if (!refsById.has(candidate.ref_id_a) || !refsById.has(candidate.ref_id_b)) return true;
@@ -272,12 +323,33 @@ export function isPairAlreadySettled(
 }
 
 /**
- * 一括適用でどちらを残すか決める。判定数が多い側を残す。同数なら refIdA（先に存在していた側）
- * を残す。
+ * 相互削除の修復で生き残る側を決める（Issue #147）。競合した両クライアントが
+ * 同じ答えを計算できることが唯一の要件のため、判定数などクライアントごとに違いうる情報は
+ * 使わず ref_id の辞書順だけで決める（normalizePairKey() と同じ流儀）。どちらが後に書いても
+ * 最終状態が一致する。
+ */
+export function chooseMutualDeletionSurvivor(
+    refIdA: string,
+    refIdB: string
+): { survivor: string; removed: string } {
+    const [survivor, removed] = [refIdA, refIdB].sort();
+    return { survivor, removed };
+}
+
+/**
+ * 2件（1組）のどちらを残すか決める。判定数が多い側を残す。同数なら refIdA（先に存在していた側）
+ * を残す。個別レビューの「左を残す/右を残す」は人が選ぶためこの関数を使わない。
  *
  * 理由: 判定（Decisions）は ref_id で紐づくだけなので、判定が付いている側を消すとその判定が
  * 宙に浮く。個別レビューでは警告を出して人に確認させるが、一括適用は無人で走るため、
  * 判定を宙に浮かせない側を機械的に選ぶ。
+ *
+ * 【一括適用ではこの関数を直接使わない】（Issue #147）: 一括適用の対象候補は
+ * バケット先頭を軸にした複数ペア（A-B, A-C 等）を含みうるため、候補ごとに独立してこの関数を
+ * 呼ぶと同じ ref_id へ複数回書き込みが発生し、後勝ちでデータが壊れる。一括適用は
+ * planBulkApply() を使うこと（候補を連結成分にまとめ、成分ごとに1回だけ決める）。
+ * この関数自体は2件だけの組を決定的に決める最小単位として残しており、planBulkApply() の
+ * 「2件だけの成分」のケースはこの関数と同じ結果になる。
  */
 export function chooseKeptRefId(
     refIdA: string,
@@ -289,4 +361,160 @@ export function chooseKeptRefId(
         return { keptRefId: refIdB, removedRefId: refIdA };
     }
     return { keptRefId: refIdA, removedRefId: refIdB };
+}
+
+// ---------------------------------------------------------------------------
+// 一括適用の更新計画（Issue #147）
+// ---------------------------------------------------------------------------
+
+/** planBulkApply() への1候補分の入力。 */
+export interface BulkApplyCandidateInput {
+    candidateId: string;
+    /** resolveSurvivor() で辿り直した後の、生きている ref_id */
+    refIdA: string;
+    refIdB: string;
+}
+
+/** planBulkApply() の戻り値。 */
+export interface BulkApplyPlan {
+    duplicateOfUpdates: Array<{ refId: string; duplicateOf: string }>;
+    statusUpdates: Array<{ candidateId: string; keptRefId: string }>;
+}
+
+/**
+ * 一括適用（「自動判定ぶんをすべて適用」）の更新計画を作る（Issue #147）。
+ *
+ * 背景: scanReferencesForDuplicatePairs() は設計としてバケット先頭と各後続をペアにするため、
+ * 同一DOIの3件 A/B/C からは A–B と A–C の2ペアが出る（C(n,2) を避けるための意図的な設計。
+ * 同関数のコメント参照）。候補ごとに独立して chooseKeptRefId() で残す側を決めて全更新を
+ * そのまま setDuplicateOf() へ渡すと、非AI判定数が A=0 / B=1 / C=2 のとき
+ * duplicate_of[A] に B と C を続けて書き込むことになる。updateReferenceColumnByRefId()
+ * （src/lib/sheets-api.ts）は ref_id で重複排除しないため、同じセルへ2回書き込まれて
+ * 後勝ちで片方が失われる。しかもこの状態では両候補が merged になり、
+ * filterNewDuplicatePairs() が二度と再提示しないため、B–C の真の重複が恒久的に見えなくなる。
+ *
+ * この関数は候補を連結成分（Union-Find）にまとめ、成分ごとに生存者を1件だけ決め、
+ * 各 ref_id を最大1回だけ更新する計画を返す。同じ refId が duplicateOfUpdates に2回
+ * 現れないことが、この関数の存在理由そのもの。
+ *
+ * 生存者の決定規則（成分内の全 ref_id に対して、以下を上から順に適用。必ず決定的）:
+ * 1. nonAiDecisionCountOf() が最も多いもの
+ * 2. 同数なら、その成分の辺の中で refIdA として現れた回数が多いもの
+ *    （＝先に存在していた側。バケット先頭は常に refIdA になる）
+ * 3. なお同数なら ref_id の辞書順で最小のもの（normalizePairKey() と同じ流儀）
+ *
+ * 2件だけの成分（辺1本、A が refIdA）で判定数が同数のときは規則2で A が勝つ。これは
+ * chooseKeptRefId() の「同数なら refIdA」と一致する（テストで固定）。
+ *
+ * duplicateOfUpdates は成分の生存者以外の各 ref_id につきちょうど1件（生存者自身は含めない）。
+ * statusUpdates は入力の全候補につき1件で、keptRefId はその候補が属する成分の生存者
+ * （成分内で全候補が同じ値になる。候補ごとにバラバラの kept_ref_id を書かない）。
+ *
+ * 入力順に対して決定的（同じ入力なら常に同じ出力・同じ順序）: Union-Find の併合順と
+ * ref_id の初出順（挿入順を保つ Map・配列）が入力順だけで決まるため。
+ */
+export function planBulkApply(
+    inputs: BulkApplyCandidateInput[],
+    nonAiDecisionCountOf: (refId: string) => number
+): BulkApplyPlan {
+    if (inputs.length === 0) {
+        return { duplicateOfUpdates: [], statusUpdates: [] };
+    }
+
+    // Union-Find（経路圧縮のみ。union by rank は不要 ―― 成分の中身は併合順に依存しない）。
+    const parent = new Map<string, string>();
+    const ensureNode = (refId: string): void => {
+        if (!parent.has(refId)) parent.set(refId, refId);
+    };
+    const find = (refId: string): string => {
+        let root = refId;
+        while (parent.get(root) !== root) {
+            root = parent.get(root) as string;
+        }
+        let current = refId;
+        while (parent.get(current) !== root) {
+            const next = parent.get(current) as string;
+            parent.set(current, root);
+            current = next;
+        }
+        return root;
+    };
+    const union = (a: string, b: string): void => {
+        const rootA = find(a);
+        const rootB = find(b);
+        if (rootA !== rootB) parent.set(rootA, rootB);
+    };
+
+    // refId ごとの「refIdA として現れた回数」と、初出順（入力順で決まる。決定性の担保）。
+    const refIdAAppearances = new Map<string, number>();
+    const orderedRefIds: string[] = [];
+    const seenRefIds = new Set<string>();
+    const noteRefId = (refId: string): void => {
+        if (!seenRefIds.has(refId)) {
+            seenRefIds.add(refId);
+            orderedRefIds.push(refId);
+        }
+    };
+
+    for (const input of inputs) {
+        ensureNode(input.refIdA);
+        ensureNode(input.refIdB);
+        noteRefId(input.refIdA);
+        noteRefId(input.refIdB);
+        union(input.refIdA, input.refIdB);
+        refIdAAppearances.set(input.refIdA, (refIdAAppearances.get(input.refIdA) ?? 0) + 1);
+    }
+
+    // root ごとに成分のメンバーを集める（orderedRefIds の順、つまり入力順を保つ）。
+    const membersByRoot = new Map<string, string[]>();
+    for (const refId of orderedRefIds) {
+        const root = find(refId);
+        const list = membersByRoot.get(root);
+        if (list) {
+            list.push(refId);
+        } else {
+            membersByRoot.set(root, [refId]);
+        }
+    }
+
+    // candidate が current より生存者としてふさわしいか（規則1→2→3の順で厳密に良い場合のみ true）。
+    const isBetterSurvivor = (candidate: string, current: string): boolean => {
+        const candidateNonAi = nonAiDecisionCountOf(candidate);
+        const currentNonAi = nonAiDecisionCountOf(current);
+        if (candidateNonAi !== currentNonAi) return candidateNonAi > currentNonAi;
+
+        const candidateAppearances = refIdAAppearances.get(candidate) ?? 0;
+        const currentAppearances = refIdAAppearances.get(current) ?? 0;
+        if (candidateAppearances !== currentAppearances) return candidateAppearances > currentAppearances;
+
+        return candidate < current;
+    };
+
+    const survivorByRoot = new Map<string, string>();
+    for (const [root, members] of membersByRoot) {
+        let survivor = members[0];
+        for (let i = 1; i < members.length; i++) {
+            if (isBetterSurvivor(members[i], survivor)) {
+                survivor = members[i];
+            }
+        }
+        survivorByRoot.set(root, survivor);
+    }
+
+    const duplicateOfUpdates: Array<{ refId: string; duplicateOf: string }> = [];
+    for (const [root, members] of membersByRoot) {
+        const survivor = survivorByRoot.get(root) as string;
+        for (const member of members) {
+            if (member !== survivor) {
+                duplicateOfUpdates.push({ refId: member, duplicateOf: survivor });
+            }
+        }
+    }
+
+    const statusUpdates = inputs.map((input) => ({
+        candidateId: input.candidateId,
+        keptRefId: survivorByRoot.get(find(input.refIdA)) as string,
+    }));
+
+    return { duplicateOfUpdates, statusUpdates };
 }

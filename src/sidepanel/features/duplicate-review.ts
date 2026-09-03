@@ -25,10 +25,12 @@ import {
     diffReferenceFields,
     isAutoApplicableCandidate,
     isPairAlreadySettled,
-    chooseKeptRefId,
+    arePairRefsMutuallyDeleted,
+    chooseMutualDeletionSurvivor,
+    planBulkApply,
     scanReferencesForDuplicatePairs,
 } from '../../lib/duplicate-review';
-import { filterNewDuplicatePairs } from '../../lib/duplicate-detect';
+import { filterNewDuplicatePairs, isLogicallyDeleted } from '../../lib/duplicate-detect';
 import { isLlmDecision, isMlDecision } from '../../lib/client-version';
 import {
     getReferences,
@@ -40,6 +42,7 @@ import {
 } from '../../lib/sheets-api';
 import type { Reference, DuplicateCandidate, Decision } from '../../lib/types';
 import type { DuplicateMatchType } from '../../lib/duplicate-detect';
+import type { BulkApplyCandidateInput } from '../../lib/duplicate-review';
 
 // ---------------------------------------------------------------------------
 // 依存注入（project.loadDataAndShowScreening への依存を回避する。循環import回避）
@@ -168,8 +171,18 @@ function fieldLabel(field: string): string {
     return key ? t(key) : field;
 }
 
-/** 未確認候補件数キャッシュを破棄し、独立セクションを再描画（読み直しは投げっぱなし）する */
-function invalidatePendingCountAndRerenderSection(): void {
+/**
+ * 未確認候補件数キャッシュを破棄し、独立セクションを再描画（読み直しは投げっぱなし）する。
+ *
+ * export する理由（Issue #147 外部レビュー指摘）: `handleRISImport()`（import-export.ts）が
+ * `saveDuplicateCandidates()` 成功直後に呼ぶ。初回ロードで 0 件がキャッシュされた後は
+ * `pendingCount === null` ガードにより非nullのまま固定され、以後どのボタンも押さない限り
+ * 古い件数（0件）が残り続ける。「あとでまとめて確認」でモーダルを閉じてセクションへ戻る導線が
+ * まさにこの経路のため、保存直後に必ずここを呼んで無効化する（モーダルが開くかどうかには
+ * 依存させない。未確認0件のときは openDuplicateReviewModal({ fromImport: true }) がモーダルを
+ * 出さないため）。
+ */
+export function invalidatePendingCountAndRerenderSection(): void {
     pendingCount = null;
     pendingCountFailed = false;
     renderDuplicateReviewSection();
@@ -442,13 +455,19 @@ function buildPairRow(
         msg.className = 'dup-review-broken-message';
         msg.textContent = t('dupReview_brokenPair');
         row.appendChild(msg);
-        row.appendChild(buildPairActions(candidate, undefined, undefined));
+        // 相互削除（duplicate_of[A]=B かつ duplicate_of[B]=A）に限り「修復する」ボタンを出す
+        // （Issue #147）。判定は候補の元の ref_id_a/ref_id_b を直接見る（resolveSurvivor() が
+        // 循環検出時に返す refId は循環に入った時点の行であり、必ずしも ref_id_a/ref_id_b
+        // 自身とは限らないため）。相互削除でない broken（物理削除で参照先が消えた等）は
+        // 生存者を安全に決められないためボタンを出さない。
+        const mutuallyDeleted = arePairRefsMutuallyDeleted(candidate.ref_id_a, candidate.ref_id_b, refsById);
+        row.appendChild(buildPairActions(candidate, undefined, undefined, mutuallyDeleted));
         return row;
     }
 
     row.appendChild(buildCompareTable(refA, refB));
     row.appendChild(buildDecisionCountsRow(refA.ref_id, refB.ref_id, decisionCounts));
-    row.appendChild(buildPairActions(candidate, refA, refB));
+    row.appendChild(buildPairActions(candidate, refA, refB, false));
 
     return row;
 }
@@ -536,7 +555,8 @@ function buildDecisionCountsRow(
 function buildPairActions(
     candidate: DuplicateCandidate,
     refA: Reference | undefined,
-    refB: Reference | undefined
+    refB: Reference | undefined,
+    mutuallyDeleted: boolean
 ): HTMLElement {
     const actions = document.createElement('div');
     actions.className = 'dup-review-pair-actions';
@@ -569,22 +589,74 @@ function buildPairActions(
         separateBtn.addEventListener('click', () => {
             void dismissPairDecision(candidate, [separateBtn]);
         });
-    } else {
-        const keepA = refA;
-        const keepB = refB;
-        keepLeftBtn.addEventListener('click', () => {
-            void applyPairDecision(candidate, keepA.ref_id, keepB.ref_id, buttons);
-        });
-        keepRightBtn.addEventListener('click', () => {
-            void applyPairDecision(candidate, keepB.ref_id, keepA.ref_id, buttons);
-        });
-        separateBtn.addEventListener('click', () => {
-            void dismissPairDecision(candidate, buttons);
-        });
+
+        actions.append(keepLeftBtn, keepRightBtn, separateBtn);
+
+        // 相互削除（同時更新の競合）に限り「修復する」ボタンを追加する（Issue #147）。
+        // 物理削除等の通常の broken には出さない（生存者を安全に決められないため）。
+        // in-flight 制御は自分自身だけを渡す（separateBtn と同じ理由）。
+        if (mutuallyDeleted) {
+            const repairBtn = document.createElement('button');
+            repairBtn.type = 'button';
+            repairBtn.className = 'btn btn-secondary btn-small';
+            repairBtn.textContent = t('dupReview_repairBtn');
+            repairBtn.addEventListener('click', () => {
+                void handleManualRepair(candidate, [repairBtn]);
+            });
+            actions.appendChild(repairBtn);
+        }
+
+        return actions;
     }
+
+    const keepA = refA;
+    const keepB = refB;
+    keepLeftBtn.addEventListener('click', () => {
+        void applyPairDecision(candidate, keepA.ref_id, keepB.ref_id, buttons);
+    });
+    keepRightBtn.addEventListener('click', () => {
+        void applyPairDecision(candidate, keepB.ref_id, keepA.ref_id, buttons);
+    });
+    separateBtn.addEventListener('click', () => {
+        void dismissPairDecision(candidate, buttons);
+    });
 
     actions.append(keepLeftBtn, keepRightBtn, separateBtn);
     return actions;
+}
+
+// ---------------------------------------------------------------------------
+// 相互削除ペアの修復（自動修復・手動「修復する」ボタンの共有ロジック、Issue #147）
+// ---------------------------------------------------------------------------
+
+/**
+ * 相互削除ペア（duplicate_of[A]=B かつ duplicate_of[B]=A）を修復する。
+ * applyPairDecision() の書き込み直後の自動修復と、壊れたペアに出す手動の「修復する」ボタンの
+ * 両方から呼ぶ共有ロジック（二重実装しない）。
+ *
+ * 呼び出し直前に References を読み直し、まだ相互削除の状態が残っているかを再確認する
+ * （他のレビュアーやこの関数の別の呼び出し元が先に直している可能性があるため）。
+ * 既に直っていれば何も書き込まず repaired: false を返す。
+ *
+ * 生存者は chooseMutualDeletionSurvivor()（ref_id の辞書順のみで決める）で決め、
+ * 生存者の duplicate_of を空へ戻しつつ、もう一方へ生存者を書く（setDuplicateOf() 1回）。
+ */
+async function repairMutualDeletion(
+    refIdA: string,
+    refIdB: string
+): Promise<{ repaired: boolean; survivor?: string }> {
+    const verifyRefs = await getReferences(state.spreadsheetId);
+    const verifyRefsById = buildRefsById(verifyRefs);
+    if (!arePairRefsMutuallyDeleted(refIdA, refIdB, verifyRefsById)) {
+        return { repaired: false };
+    }
+
+    const { survivor, removed } = chooseMutualDeletionSurvivor(refIdA, refIdB);
+    await setDuplicateOf(state.spreadsheetId, [
+        { refId: survivor, duplicateOf: null },
+        { refId: removed, duplicateOf: survivor },
+    ]);
+    return { repaired: true, survivor };
 }
 
 // ---------------------------------------------------------------------------
@@ -604,6 +676,14 @@ function buildPairActions(
  * 後者を先にすると、後者が成功して前者が失敗した場合に「候補は決着済みなのに行は生きている」
  * ＝重複除去が黙って失われた状態になる。前者を先にすれば、後者が失敗しても行は正しく
  * 除外済みで、次回の再読み込みで isPairAlreadySettled() が survivor 収束を検出できる。
+ *
+ * 【同時更新対策】（Issue #147。Google Sheets の values API に CAS が無いため、
+ * 排他制御ではなく「壊れても必ず表に出し、決定的に収束させる」方向で対処する）:
+ * - 書き込み直前: 残す側（keepRefId）が fresh なデータで既に論理削除されていないかを見る。
+ *   既に削除済みなら書き込まない（「消された行を指す duplicate_of」を新たに作らないため）。
+ * - 書き込み直後: References を読み直し、相互削除（duplicate_of[A]=B かつ duplicate_of[B]=A）
+ *   が起きていないか再検証する。起きていれば chooseMutualDeletionSurvivor() の辞書順ルールで
+ *   決定的に修復し、結果をトーストで知らせる（黙って直さない）。
  */
 async function applyPairDecision(
     candidate: DuplicateCandidate,
@@ -637,12 +717,32 @@ async function applyPairDecision(
             if (!proceed) return;
         }
 
+        // 残す側が fresh なデータで既に論理削除されているなら書き込まない（同時更新対策）。
+        const freshKeepRef = freshRefsById.get(keepRefId);
+        if (freshKeepRef && isLogicallyDeleted(freshKeepRef)) {
+            showToast(t('dupReview_alreadyProcessed'), 5000);
+            await refreshModalContents();
+            return;
+        }
+
         try {
             await setDuplicateOf(state.spreadsheetId, [{ refId: removeRefId, duplicateOf: keepRefId }]);
         } catch (err) {
             console.error('[duplicate-review] setDuplicateOf に失敗:', err);
             showToast(t('dupReview_applyError', (err as Error).message), 6000);
             return;
+        }
+
+        // 書き込み直後に相互削除（同時更新の競合）が起きていないか再検証し、決定的に修復する
+        // （repairMutualDeletion() は手動の「修復する」ボタンとも共有する。二重実装しない）。
+        try {
+            const result = await repairMutualDeletion(keepRefId, removeRefId);
+            if (result.repaired) {
+                showToast(t('dupReview_mutualDeletionRepaired'), 6000);
+            }
+        } catch (err) {
+            console.error('[duplicate-review] 相互削除の検証/修復に失敗:', err);
+            showToast(t('dupReview_mutualDeletionRepairError', (err as Error).message), 8000);
         }
 
         let statusUpdateOk = true;
@@ -662,12 +762,32 @@ async function applyPairDecision(
         await refreshModalContents();
 
         const messages = [statusUpdateOk ? t('dupReview_applyDone') : t('dupReview_statusUpdateFailedAfterRemoval')];
+        let reloadOk = true;
         if (deps) {
-            await deps.reloadAfterApply();
+            // deps.reloadAfterApply() を個別の try/catch で包む（Issue #147 外部レビュー指摘）。
+            // ここで throw させたまま外側の catch-all に流すと、適用自体（setDuplicateOf /
+            // updateDuplicateCandidateStatus）は成功しているにもかかわらず、外側catchの
+            // dupReview_refreshError（「候補データの取得に失敗しました」）という事実と異なる
+            // 文言が出てしまう。再読み込み失敗であることが分かる専用の文言に差し替える。
+            try {
+                await deps.reloadAfterApply();
+            } catch (err) {
+                console.error('[duplicate-review] reloadAfterApply に失敗:', err);
+                reloadOk = false;
+                messages.push(t('dupReview_reloadAfterApplyFailed'));
+            }
         } else {
             messages.push(t('dupReview_depsMissing'));
         }
-        showToast(messages.join(' / '), statusUpdateOk && deps ? 3000 : 8000);
+        showToast(messages.join(' / '), statusUpdateOk && deps && reloadOk ? 3000 : 8000);
+    } catch (err) {
+        // getDuplicateCandidates() 等の取得失敗がここへ流れてくる（Issue #147。
+        // 以前は getDuplicateCandidates() が例外を握りつぶして空配列を返していたため、
+        // このcatchが無くても freshCandidate が undefined になるだけで気付けなかった）。
+        // 「他のレビュアーが処理済み」とは事実が異なるため、別の文言で知らせる。
+        // deps.reloadAfterApply() の失敗はここには流れてこない（上の個別try/catchが拾う）。
+        console.error('[duplicate-review] 適用処理に失敗:', err);
+        showToast(t('dupReview_refreshError', (err as Error).message), 6000);
     } finally {
         applyInFlight.delete(candidate.candidate_id);
         buttons.forEach((b) => { b.disabled = false; });
@@ -712,6 +832,44 @@ async function dismissPairDecision(candidate: DuplicateCandidate, buttons: HTMLB
         showToast(t('dupReview_dismissDone'), 3000);
         invalidatePendingCountAndRerenderSection();
         await refreshModalContents();
+    } catch (err) {
+        // getDuplicateCandidates() 等の取得失敗がここへ流れてくる（Issue #147。
+        // 「他のレビュアーが処理済み」とは事実が異なるため、別の文言で知らせる）。
+        console.error('[duplicate-review] 別々の文献への記録処理に失敗:', err);
+        showToast(t('dupReview_refreshError', (err as Error).message), 6000);
+    } finally {
+        applyInFlight.delete(candidate.candidate_id);
+        buttons.forEach((b) => { b.disabled = false; });
+    }
+}
+
+/**
+ * 「修復する」ボタン（相互削除ペアの手動回復、Issue #147）。自動修復に使う
+ * repairMutualDeletion() をそのまま呼び、二重実装を避ける。
+ *
+ * repairMutualDeletion() は呼び出し直前に References を読み直し、既に相互削除の状態が
+ * 解消されていれば（他のレビュアーが先に直した等）何も書き込まず repaired: false を返す。
+ * その場合は「既に修復済み」の旨を表示するだけで済ませる（他の操作と同じ流儀）。
+ *
+ * 二重クリックガードと finally でのボタン復帰は applyPairDecision() / dismissPairDecision()
+ * と同じ流儀（applyInFlight を candidate_id で共有する）。
+ */
+async function handleManualRepair(candidate: DuplicateCandidate, buttons: HTMLButtonElement[]): Promise<void> {
+    if (applyInFlight.has(candidate.candidate_id)) return;
+    applyInFlight.add(candidate.candidate_id);
+    buttons.forEach((b) => { b.disabled = true; });
+
+    try {
+        const result = await repairMutualDeletion(candidate.ref_id_a, candidate.ref_id_b);
+        showToast(
+            result.repaired ? t('dupReview_manualRepairDone') : t('dupReview_manualRepairAlreadyDone'),
+            4000
+        );
+        invalidatePendingCountAndRerenderSection();
+        await refreshModalContents();
+    } catch (err) {
+        console.error('[duplicate-review] 手動修復に失敗:', err);
+        showToast(t('dupReview_manualRepairError', (err as Error).message), 6000);
     } finally {
         applyInFlight.delete(candidate.candidate_id);
         buttons.forEach((b) => { b.disabled = false; });
@@ -722,6 +880,12 @@ async function dismissPairDecision(candidate: DuplicateCandidate, buttons: HTMLB
 // 「自動判定ぶんをすべて適用」
 // ---------------------------------------------------------------------------
 
+/**
+ * 対象候補を集めたら planBulkApply()（src/lib/duplicate-review.ts）へ渡し、連結成分単位で
+ * 解決済みの更新計画を作る（Issue #147）。候補ごとに独立して chooseKeptRefId()
+ * で残す側を決めていた旧実装は、同一DOIの3件 A/B/C から出る A-B・A-C の2ペアで
+ * duplicate_of[A] に2回書き込む事故があったため、この形に置き換えた。
+ */
 async function handleBulkApply(buttons: HTMLButtonElement[]): Promise<void> {
     if (bulkApplyInFlight) return;
     bulkApplyInFlight = true;
@@ -736,7 +900,7 @@ async function handleBulkApply(buttons: HTMLButtonElement[]): Promise<void> {
         const refsById = buildRefsById(refs);
         const decisionCounts = buildDecisionCounts(decisionsData.map((d) => ({ decision: d.decision })));
 
-        const targets: Array<{ candidate: DuplicateCandidate; keepRefId: string; removeRefId: string }> = [];
+        const planInputs: BulkApplyCandidateInput[] = [];
 
         for (const candidate of candidates) {
             if (candidate.status !== 'suggested') continue;
@@ -752,25 +916,18 @@ async function handleBulkApply(buttons: HTMLButtonElement[]): Promise<void> {
 
             if (!isAutoApplicableCandidate(candidate.match_type, refA, refB)) continue;
 
-            const { keptRefId, removedRefId } = chooseKeptRefId(
-                refA.ref_id,
-                refB.ref_id,
-                nonAiCountOf(decisionCounts, refA.ref_id),
-                nonAiCountOf(decisionCounts, refB.ref_id)
-            );
-            targets.push({ candidate, keepRefId: keptRefId, removeRefId: removedRefId });
+            planInputs.push({ candidateId: candidate.candidate_id, refIdA: refA.ref_id, refIdB: refB.ref_id });
         }
 
-        if (targets.length === 0) {
+        if (planInputs.length === 0) {
             showToast(t('dupReview_bulkApplyNone'), 4000);
             return;
         }
 
+        const plan = planBulkApply(planInputs, (refId) => nonAiCountOf(decisionCounts, refId));
+
         try {
-            await setDuplicateOf(
-                state.spreadsheetId,
-                targets.map((target) => ({ refId: target.removeRefId, duplicateOf: target.keepRefId }))
-            );
+            await setDuplicateOf(state.spreadsheetId, plan.duplicateOfUpdates);
         } catch (err) {
             console.error('[duplicate-review] 一括適用のsetDuplicateOfに失敗:', err);
             showToast(t('dupReview_bulkApplyError', (err as Error).message), 8000);
@@ -781,11 +938,11 @@ async function handleBulkApply(buttons: HTMLButtonElement[]): Promise<void> {
         try {
             await updateDuplicateCandidateStatus(
                 state.spreadsheetId,
-                targets.map((target) => ({
-                    candidateId: target.candidate.candidate_id,
+                plan.statusUpdates.map((update) => ({
+                    candidateId: update.candidateId,
                     status: 'merged' as const,
                     decidedBy: state.userEmail,
-                    keptRefId: target.keepRefId,
+                    keptRefId: update.keptRefId,
                 }))
             );
         } catch (err) {
@@ -798,16 +955,28 @@ async function handleBulkApply(buttons: HTMLButtonElement[]): Promise<void> {
 
         const messages = [
             statusUpdateOk
-                ? t('dupReview_bulkApplyDone', String(targets.length))
-                : t('dupReview_bulkApplyPartialError', String(targets.length)),
+                ? t('dupReview_bulkApplyDone', String(plan.statusUpdates.length))
+                : t('dupReview_bulkApplyPartialError', String(plan.statusUpdates.length)),
         ];
+        let reloadOk = true;
         if (deps) {
-            await deps.reloadAfterApply();
+            // applyPairDecision() と同じ理由で個別の try/catch にする。ここで throw させると、
+            // setDuplicateOf / updateDuplicateCandidateStatus は成功しているのに外側catchの
+            // dupReview_bulkApplyError（「一括適用に失敗しました」）が出て、実際には
+            // 書き込み済みの作業を失敗として報告してしまう。
+            try {
+                await deps.reloadAfterApply();
+            } catch (err) {
+                console.error('[duplicate-review] 一括適用後の reloadAfterApply に失敗:', err);
+                reloadOk = false;
+                messages.push(t('dupReview_reloadAfterApplyFailed'));
+            }
         } else {
             messages.push(t('dupReview_depsMissing'));
         }
-        showToast(messages.join(' / '), statusUpdateOk && deps ? 4000 : 8000);
+        showToast(messages.join(' / '), statusUpdateOk && deps && reloadOk ? 4000 : 8000);
     } catch (err) {
+        // deps.reloadAfterApply() の失敗はここには流れてこない（上の個別try/catchが拾う）。
         console.error('[duplicate-review] 一括適用に失敗:', err);
         showToast(t('dupReview_bulkApplyError', (err as Error).message), 8000);
     } finally {

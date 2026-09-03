@@ -601,16 +601,20 @@
                             TiAb screening screen.</span>
                     </li>
                     <li>
-                        <span class="ja">モーダルでは左右の書誌情報を見比べ、「左を残す」「右を残す」「別々の文献」のいずれかを選びます。残さなかった側は一覧から見えなくなりますが、行そのものは削除されず残ります（あとで取り消せます）。</span>
+                        <span class="ja">モーダルでは左右の書誌情報を見比べ、「左を残す」「右を残す」「別々の文献」のいずれかを選びます。残さなかった側は一覧から見えなくなりますが、行そのものは削除されず残ります。ただし、この画面からその判断を取り消す機能は現時点ではありません。元に戻したい場合は、スプレッドシートを直接開き、対象行の「duplicate_of」列の値を削除してください。</span>
                         <span class="en">In the modal, compare the two records side by side and choose "Keep Left",
                             "Keep Right", or "Different Records". The side you did not keep disappears from the
-                            list, but its underlying record is not deleted — it can still be reversed later.</span>
+                            list, but its underlying record is not deleted. There is currently no way to undo that
+                            decision from within the app; to reverse it, open the spreadsheet directly and clear the
+                            value in that row's "duplicate_of" column.</span>
                     </li>
                     <li>
-                        <span class="ja">「自動判定ぶんをすべて適用」を押すと、PMID・DOI・同じレジストリの試験IDが一致する組（人の判断が要らないもの）だけをまとめて処理できます。残す側は、判定が付いている件数が多いほうが自動的に選ばれます。タイトルだけが一致する組は、この一括操作の対象にはなりません。</span>
+                        <span class="ja">「自動判定ぶんをすべて適用」を押すと、PMID・DOI・同じレジストリの試験IDが一致する組（人の判断が要らないもの）だけをまとめて処理できます。残す側は、判定が付いている件数が多いほうが自動的に選ばれます。3件以上が同じ文献としてつながっている場合も、まとめて1件だけを残す形で一貫して解決されます。タイトルだけが一致する組は、この一括操作の対象にはなりません。</span>
                         <span class="en">"Apply All Auto-Resolvable" processes in one step only the pairs that need
                             no human judgement — those matching by PMID, DOI, or the same registry's trial ID. The
-                            side with more decisions recorded on it is kept automatically. Pairs matching only by
+                            side with more decisions recorded on it is kept automatically. When three or more records
+                            are linked together as the same publication, they are resolved together, consistently
+                            keeping just one of them. Pairs matching only by
                             title are never included in this bulk action.</span>
                     </li>
                     <li>
@@ -625,10 +629,12 @@
                             again and finds any new duplicate candidates.</span>
                     </li>
                     <li>
-                        <span class="ja">複数人・複数ファイルで同時に作業していても、決定を適用する直前に最新の状態を読み直すため、他の人が先に片付けた組を二重に処理してしまうことはありません。</span>
+                        <span class="ja">複数人・複数ファイルで同時に作業していても、決定を適用する直前に最新の状態を読み直すため、他の人が先に片付けた組を二重に処理してしまうことはありません。ごくまれに複数人がほぼ同時に同じ組へ異なる判断を適用してしまった場合も、自動的に検知して安全な状態に戻します（万一直せなかった場合は、その旨をお知らせします）。</span>
                         <span class="en">Even when multiple people work on multiple files at the same time, the app
                             re-reads the latest state immediately before applying a decision, so a pair someone else
-                            has already resolved will not be processed twice.</span>
+                            has already resolved will not be processed twice. In the rare case where multiple people
+                            apply conflicting decisions to the same pair at nearly the same moment, this is detected
+                            and repaired automatically (and you'll be notified if it could not be repaired).</span>
                     </li>
                     <li>
                         <span class="ja">重複として除外した件数は、論文用テキストのPRISMAフロー図における重複除去数に自動的に反映されます。</span>
