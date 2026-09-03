@@ -1303,6 +1303,22 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 5. 開発中は `npm run watch` でホットリロード
 6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
 
+### `.env` が無い環境（git worktree 等）で production ビルドを検証する
+
+`git worktree` で切ったツリーには `.env` が無いため、production ビルドは fail-fast で落ちる。**`ALLOW_NO_AUTH=1` は dev ビルドしか救わない**（`webpack.config.js` の production 側の throw は、コード中の注記どおりこの変数の影響を受けない）。そのため「`npm run dev` は通ったが `npm run build` / `npm run build:web` は未検証」のまま PR を出すことになりやすい。
+
+これらの値は **webpack DefinePlugin の文字列置換にしか使われない**ので、コンパイルが通ることの確認には本物である必要がない。プレースホルダをインラインで渡せば production 経路（minify ＋ 環境変数チェック）をそのまま通せる。
+
+```bash
+WEBAUTH_CLIENT_ID=placeholder npm run build
+WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=000000000000 npm run build:web
+```
+
+- 出力先の `dist/` と `docs/app/` はどちらも `.gitignore` 済みなので、差分は汚れない。
+- **プレースホルダで作った成果物を配布・アップロードしないこと。**認証が通らないビルドになる。用途はコンパイル検証のみで、実際に配布する `dist.zip` は必ず `.env` のある環境で `npm run release` から作る。
+- **`src/sidepanel/` 配下を変更したら両方のビルドを通すこと。**そのコードは Web版バンドルにも入る（`src/webapp/index.ts` が `src/sidepanel/bootstrap.ts` の `bootstrapCommon()` を呼ぶ）。拡張版だけ確認して Web版の回帰を見落とす事故を防ぐ。
+- メインチェックアウトの `.env` を worktree へコピーする回避策は取らないこと。秘密情報を余計な場所へ広げる。
+
 ### リリース（Chrome Web Store）
 
 正式リリース済み（2026-07〜）のため、**リリースビルドは常にストア用**。zip を Google Drive で配布する経路は廃止した（最後の zip 配布は v0.24.0）。
