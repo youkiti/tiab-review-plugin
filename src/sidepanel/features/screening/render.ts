@@ -17,6 +17,8 @@ import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
 import { platform } from '../../../platform';
 import type { DecisionStatus } from '../../../lib/types';
+import { setLastScreeningPosition } from '../../../lib/storage';
+import { isScreeningStatusFilter } from '../../../lib/screening-position';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -384,6 +386,18 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     // noteInputの現所有者として記録する。persistDisplayedNote側で
     // 別文献に対する誤保存（幽霊pending判定）を防ぐための照合用。
     state.setLastRenderedRefId(ref.ref_id);
+
+    // TiAb 表示位置の記憶（Issue #140）。
+    // Blind中は復元しない（未判定フィルターでは判定済みが抜けるので実質先頭に等しく、初回体験を
+    // 変えないため。復元しないので保存だけしても無駄）。
+    // 履歴ナビ中の一時表示（isHistoryView）は「現在位置」ではないため保存対象から外す。
+    if (state.isKeyOpened && !isHistoryView && state.spreadsheetId && isScreeningStatusFilter(state.currentFilter)) {
+        void setLastScreeningPosition(state.spreadsheetId, {
+            filter: state.currentFilter,
+            refId: ref.ref_id,
+            index: state.currentIndex,
+        });
+    }
 }
 
 /**

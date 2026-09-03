@@ -1,6 +1,7 @@
 // storage.ts - ローカルストレージ管理（APIキー等）
 
 import { platform } from '../platform';
+import { parseScreeningPosition, type ScreeningPosition } from './screening-position';
 
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
@@ -545,4 +546,79 @@ export async function setCriteriaSeenAt(spreadsheetId: string, updatedAt: string
     } catch {
         // 既読マーカーは UX 補助であり、保存に失敗しても致命的ではないため握りつぶす
     }
+}
+
+// ========== TiAb 表示位置の記憶（Issue #140） ==========
+// 「キー開封中に最後に表示していた文献」をプロジェクトごとにローカル保存し、
+// 次回読み込み時にステータスフィルターごと復元するために使う。
+
+/** Record<spreadsheetId, ScreeningPosition> のマップとして1キーに保存する */
+const SCREENING_POSITION_STORAGE_KEY = 'tiab_last_position';
+
+/**
+ * 直前に保存した内容と同一かどうかを判定するための記録（モジュール内変数）。
+ * 再描画のたびに setLastScreeningPosition が呼ばれても、内容が変わっていなければ
+ * storageSet を走らせないようにするためのガード。
+ */
+let _lastSavedKey: string | null = null;
+
+/**
+ * setLastScreeningPosition の read-modify-write を直列化するためのキュー。
+ * _lastSavedKey は await 完了後にしか更新されないため、直列化しないと短い間隔で2回呼ばれた
+ * ときに両方が重複チェックを通過してしまい、read-modify-write が交錯して古い方が最後に
+ * 書かれてしまうことがある。呼び出しのたびにこの Promise へ処理をつなげ、前の呼び出しの
+ * 読み書きが完了してから次の読み書きを始めるようにする。
+ */
+let _writeChain: Promise<void> = Promise.resolve();
+
+function buildScreeningPositionKey(spreadsheetId: string, position: ScreeningPosition): string {
+    return `${spreadsheetId} ${position.filter} ${position.refId} ${position.index}`;
+}
+
+/**
+ * 指定プロジェクトの最後の表示位置を返す（未保存・壊れた値は null）。
+ * 壊れた値・型が違う値は握りつぶして null を返す（getCriteriaSeenAt と同じ方針）。
+ */
+export async function getLastScreeningPosition(spreadsheetId: string): Promise<ScreeningPosition | null> {
+    try {
+        const result = await platform().storageGet([SCREENING_POSITION_STORAGE_KEY]);
+        const map = result[SCREENING_POSITION_STORAGE_KEY];
+        if (!map || typeof map !== 'object') return null;
+        const value = (map as Record<string, unknown>)[spreadsheetId];
+        return parseScreeningPosition(value);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * 指定プロジェクトの最後の表示位置を記録する。
+ * 直前に保存した内容と同一（spreadsheetId・filter・refId・index が全部同じ）なら
+ * 書き込みをスキップする（文献表示のたびに storageSet が走るのを避けるため）。
+ * 保存に失敗しても致命的ではないため握りつぶす（getCriteriaSeenAt / setCriteriaSeenAt と同じ方針）。
+ * 呼び出しは _writeChain で直列化するため、await せず連続で呼んでも read-modify-write が
+ * 交錯しない（重複チェックも直列化された処理の中で行うため、キュー待ち中に同一内容が
+ * 先に書かれた場合もスキップできる）。
+ */
+export function setLastScreeningPosition(spreadsheetId: string, position: ScreeningPosition): Promise<void> {
+    const key = buildScreeningPositionKey(spreadsheetId, position);
+
+    _writeChain = _writeChain.then(async () => {
+        if (key === _lastSavedKey) return;
+
+        try {
+            const result = await platform().storageGet([SCREENING_POSITION_STORAGE_KEY]);
+            const existing = result[SCREENING_POSITION_STORAGE_KEY];
+            const map: Record<string, ScreeningPosition> = existing && typeof existing === 'object'
+                ? { ...(existing as Record<string, ScreeningPosition>) }
+                : {};
+            map[spreadsheetId] = position;
+            await platform().storageSet({ [SCREENING_POSITION_STORAGE_KEY]: map });
+            _lastSavedKey = key;
+        } catch {
+            // 表示位置の記憶は UX 補助であり、保存に失敗しても致命的ではないため握りつぶす
+        }
+    });
+
+    return _writeChain;
 }

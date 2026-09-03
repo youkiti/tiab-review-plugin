@@ -28,6 +28,7 @@ import {
 import { setupProjectFolder } from '../../lib/drive-api';
 import { platform } from '../../platform';
 import { getReviewerKey } from './screening/reviewer-utils';
+import { getFilteredReferences } from './screening/filters';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
 import { initializeFulltextAssignmentSelection } from './fulltext-assignment-ui';
 import { initTeamProgress } from './team-progress';
@@ -52,6 +53,7 @@ import {
     setEnabledReviewers as syncSetEnabledReviewers,
     setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds,
     setCurrentIndex as syncSetCurrentIndex,
+    setCurrentFilter as syncSetCurrentFilter,
     setMlState as syncSetMlState,
     setFulltextPoolRule as syncSetFulltextPoolRule,
     setFulltextAssignment as syncSetFulltextAssignment,
@@ -59,6 +61,8 @@ import {
 import { getFulltextSetsForUser } from '../../lib/fulltext-assignment';
 import { createInitialMlState } from '../../lib/ml/types';
 import { maybeShowCriteriaNotice } from './review-criteria';
+import { getLastScreeningPosition } from '../../lib/storage';
+import { resolveRestoredIndex } from '../../lib/screening-position';
 
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
@@ -619,6 +623,32 @@ export async function loadDataAndShowScreening() {
         renderAssignmentFilters();
         // フルテキストタブの担当セットフィルタ選択状態（state.fulltextAssignment 設定後に読み込む）
         await initializeFulltextAssignmentSelection(spreadsheetId, userEmail);
+
+        // TiAb 表示位置の復元（Issue #140）。担当セットフィルター等の初期化が終わった後でないと
+        // getFilteredReferences() の結果が変わってしまうため、この位置（_renderCurrentReference
+        // の直前）で読む。Blind中は復元しない（未判定フィルターでは判定済みが抜けるので実質先頭に
+        // 等しく、初回体験を変えないため。復元しないので保存も不要）。
+        // 復元に失敗しても画面表示は壊さず、従来どおり index 0 のまま続行する。
+        if (keyOpenedStatus) {
+            try {
+                const saved = await getLastScreeningPosition(spreadsheetId);
+                if (saved) {
+                    dom.statusFilter.value = saved.filter;
+                    syncSetCurrentFilter(saved.filter);
+                    const filtered = getFilteredReferences();
+                    const restoredIndex = resolveRestoredIndex(filtered.map((r) => r.ref_id), saved);
+                    syncSetCurrentIndex(restoredIndex);
+                    // 既定の表示（未判定フィルターの先頭）と同じなら、復元したと知らせる意味がないため
+                    // トーストは出さない。
+                    if (filtered.length > 0 && (saved.filter !== 'pending' || restoredIndex > 0)) {
+                        showToast(t('screening_resumedPosition'));
+                    }
+                }
+            } catch (error) {
+                console.warn('[loadDataAndShowScreening] 表示位置の復元に失敗:', error);
+            }
+        }
+
         if (_renderCurrentReference) _renderCurrentReference();
         void maybeShowAssignmentWizard('load');
         // 基準更新通知（案D）。画面表示は完了しているので await せず、失敗しても画面を壊さない

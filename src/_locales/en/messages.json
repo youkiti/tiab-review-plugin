@@ -290,6 +290,9 @@
   "screening_tiabDoneToast": {
     "message": "TiAb screening complete! Head to the \"📄 Full-text\" tab next"
   },
+  "screening_resumedPosition": {
+    "message": "Resumed from the reference you last viewed"
+  },
   "nav_prev": {
     "message": "Prev (←)"
   },

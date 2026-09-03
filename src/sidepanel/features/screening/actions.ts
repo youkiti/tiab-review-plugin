@@ -324,8 +324,15 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         syncCurrentIndexToRefId(historyReturnRefId, getFilteredReferences());
         renderCurrentReference();
     } else if (state.autoNavigateAfterDecision) {
-        if (state.currentFilter === 'pending') {
-            syncCurrentIndexToRefId(null, getFilteredReferences());
+        // 判定後にその文献が絞り込み結果から抜けたか（Issue #140）。
+        // 未判定フィルターだけでなく、不一致フィルターで不一致が解消したときや
+        // include/exclude/maybe フィルターで判定を変えたときも文献が一覧から抜けるため、
+        // navigate(1) すると繰り上がった次の1件を飛ばしてしまう。判定後に
+        // getFilteredReferences() を呼び直せば、抜けたかどうかを一律に判定できる。
+        const filteredAfter = getFilteredReferences();
+        const stillListed = filteredAfter.some((r) => r.ref_id === ref.ref_id);
+        if (!stillListed) {
+            syncCurrentIndexToRefId(null, filteredAfter);
             renderCurrentReference();
         } else {
             navigate(1);

@@ -544,6 +544,12 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - **PRISMA の腕別集計（Issue #120）**: Registry linkage 由来の取り込み行（`related_ref_id` 非空）は PRISMA 2020 の「Identification of studies via other methods」腕として database 腕から分離集計する。判定と分割は `src/lib/identification-route.ts`（純関数）の `identificationRouteOf()` / `splitByIdentificationRoute()`。**判定条件は `related_ref_id` 非空のみにそろえること。** `src/lib/fulltext-candidates.ts` の `isProjectFulltextCandidateRef()` が候補プールへ無条件投入する条件と一致させないと、腕別集計の合計が候補総数と合わなくなる。`source` の `Registry linkage` 接頭辞は使わない。`getFulltextResultsSummary()` は**database 腕だけ**を返す。両腕が要るときは `getFulltextResultsSummaryByRoute()` を使う。other methods 腕の PRISMA 行組み立ては `buildOtherMethodsPrismaLines()`。該当0件なら**空配列**を返す（0件時に現行出力と1文字も変わらないことをこの性質で担保している）。全文結果CSVには `identification_route` 列（`database` / `registry_linkage`）が**ヘッダ配列の一番最後**に入る（既存の固定列・判定者列のインデックスをずらさないため）
    - **同じ原因（取り込み行が `state.allReferences` に混ざっている）で database 腕の数字が汚れる箇所が複数ある**ので、`state.allReferences` や候補一覧をそのまま数える処理を足すときは腕別に分けるかを必ず確認すること。`collectIdentification()`: 取り込み行は `source_file` を設定していないので、除外しないと `(unknown source)` として `Records identified from databases` と `Records screened` を水増しし、「* Import statistics were not recorded」の脚注まで出る。`countUnscreenedTiab()`: 取り込み行は**設計上TiAb票を一切持たない**ので、除外しないと全件「TiAb未判定」として数えられ実態のない警告が出る。論文用テキストの `sought`: 両腕の合算のままだと registry 行が同じフロー図内で**二重に数えられる**（`Reports sought for retrieval` と `Records excluded` の両方）。ただし**未決着の警告は逆に両腕の合算で出す**こと。database 腕だけを見ると registry 腕に pending / maybe / 未解消が残っていても「数値は最終値」と誤読させるため
 
+### TiAb 表示位置の記憶と復元（Issue #140）
+
+- 保存: `renderReferenceDetails`（`src/sidepanel/features/screening/render.ts`）がキー開封中かつ履歴ビューでないときに `{filter, refId, index}` を `tiab_last_position`（`Record<spreadsheetId, ScreeningPosition>`、`chrome.storage` ローカル）へ保存する。同一内容の連続保存は書き込みをスキップする
+- 復元: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）がキー開封中のみ読み、ステータスフィルターを切り替えてから ref_id で位置を探し、見つからなければ index にフォールバックする（`resolveRestoredIndex`）。Blind中は復元しない（未判定フィルターでは判定済みが抜けるので実質先頭に等しく、初回体験を変えないため）
+- 純関数は `src/lib/screening-position.ts`、テストは `tests/screening-position.test.ts`
+
 ### キーボードショートカット
 
 - `i` : Include
