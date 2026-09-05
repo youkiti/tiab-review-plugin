@@ -198,7 +198,7 @@ export interface LlmExecution {
     failed_count?: number;            // 失敗総数
     // 失敗内訳のJSON文字列（例 '{"drive_denied":3,"llm":1}'）。オブジェクトではなくstring型にしているのは
     // updateLlmExecution がヘッダ駆動で行を組み立てており、オブジェクト型にすると criteria_snapshot の
-    // ような特別扱いの分岐を追加で足す必要が出るため（sheets-api.ts 側の実装コメント参照）
+    // ような特別扱いの分岐を追加で足す必要が出るため（sheets/llm-history.ts 側の実装コメント参照）
     failure_breakdown?: string;
     /**
      * フルテキストAI判定時点の除外理由リストのスナップショット（JSON文字列。
@@ -643,7 +643,7 @@ export type PublicationCandidateStatus = 'suggested' | 'imported' | 'dismissed';
 
 /**
  * 試験登録レコード（registration行）に対して発見された、結果論文（linked publication）の候補。
- * Publication_Candidates シートの1行に対応する（src/lib/sheets-api.ts の
+ * Publication_Candidates シートの1行に対応する（src/lib/sheets/schema.ts の
  * PUBLICATION_CANDIDATES_HEADERS と同じ並びの情報を持つ）。
  *
  * decided_by / decided_at / imported_ref_id はチャンク3（候補の取り込み・棄却UI）で使う列で、

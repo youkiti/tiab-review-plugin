@@ -50,7 +50,7 @@ export interface DriveImportClassification {
  *
  * **1つのソースPDFを2件目の文献へ対応付けることはできない（表示フェーズの仕様。PR #105 指摘3）**:
  * 判定順1は「有効なクレームが**1件でも**あれば done」なので、既にどこかの文献へ取り込まれた
- * ソースPDFは対応付けモーダルで候補から外れる。データ層（sheets-api.ts の bySourceId）が
+ * ソースPDFは対応付けモーダルで候補から外れる。データ層（sheets/references.ts の bySourceId）が
  * クレームを配列で持つのは「同一sourceへの複数対応付けを表示フェーズで支援するため」ではなく、
  * **無効化された古いクレームに紛れた有効なクレームを取りこぼさないため**である
  * （実行フェーズの resolveImportAction は別文献への `copy-and-update` を今も許容しており、

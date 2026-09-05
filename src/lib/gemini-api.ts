@@ -869,7 +869,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
 ];
 
-// MODEL_ID_MIGRATIONS は共有コード（sheets-api）からも参照するため
+// MODEL_ID_MIGRATIONS は共有コード（sheets/config-schema.ts）からも参照するため
 // chrome/LLM 非依存の model-migrations.ts へ分離。互換のため再エクスポートする。
 export { MODEL_ID_MIGRATIONS } from './model-migrations';
 

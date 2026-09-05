@@ -550,7 +550,7 @@ export interface BenchLlmRound {
  * には、そのヘッダー定義を bench-fixtures.ts 側へ複製する必要があるが、それは制約
  * （ヘッダー定義を複製しないこと）に反する。LlmRun / LlmExecution 型（src/lib/types.ts）の
  * プロパティ名はヘッダー名と一致しているため、呼び出し側（src/demo/seed.ts）が
- * src/lib/sheets-api.ts の serializeLlmRunRow() と同じ「ヘッダー名でプロパティを引く」方式で
+ * src/lib/sheets/llm-history.ts の serializeLlmRunRow() と同じ「ヘッダー名でプロパティを引く」方式で
  * 行配列へ並べ替えられる。ヘッダー配列は seed.ts が既存の LLM_RUNS_HEADERS /
  * LLM_EXECUTIONS_HEADERS ミラーをそのまま使う。
  *

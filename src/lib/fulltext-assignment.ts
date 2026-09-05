@@ -10,7 +10,7 @@
 // - 管理者は常に全候補を見る
 //
 // 永続化:
-// - グループ構成・担当者 → Config シートの fulltext_assignment_* キー（sheets-api.ts）
+// - グループ構成・担当者 → Config シートの fulltext_assignment_* キー（sheets/config.ts）
 // - 文献ごとの所属グループ → References シートの fulltext_set 列（screening_set と同型）
 
 import { t } from './i18n';

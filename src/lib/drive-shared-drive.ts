@@ -65,8 +65,8 @@ export interface DriveFetchOptions {
  * `drive-api.ts` に `fetch(` の直呼びが残っていないことは
  * `tests/drive-shared-drive.test.ts` で機械的に見張っている。
  *
- * 認証トークンは呼び出し側から受け取る（このモジュールが `sheets-api.ts` の
- * `getAuthToken` を import すると、`sheets-api.ts` → `drive-shared-drive.ts` と
+ * 認証トークンは呼び出し側から受け取る（このモジュールが互換窓口 `sheets-api.ts` 経由で
+ * `getAuthToken`（実体は `sheets/transport.ts`）を import すると、`sheets-api.ts` → `drive-shared-drive.ts` と
  * 循環参照になるため）。
  */
 export function driveFetch(url: string, init: RequestInit, opts: DriveFetchOptions): Promise<Response> {

@@ -43,7 +43,7 @@ export interface FulltextUrlRangeUpdate {
  * （fulltext_drive_source_id/fulltext_drive_copy_id）も非連続レンジとして追加で生成する
  * （V列＝fulltext_set には絶対に触れない）。
  * includeDriveColumns=false は、W/X列がユーザー独自データと衝突していて書き込めない場合に使う
- * （呼び出し側 sheets-api.ts の ensureFulltextDriveColumnsOnce 参照）。
+ * （呼び出し側 sheets/references.ts の ensureFulltextDriveColumnsOnce 参照）。
  * rowByRefId に行番号が見つからない ref_id は結果から除外する。
  */
 export function buildFulltextUrlUpdateData(
@@ -77,7 +77,7 @@ export const FULLTEXT_DRIVE_COPY_HEADER = 'fulltext_drive_copy_id';
 /**
  * W/X ヘッダーの検証結果。
  * ユーザー向け文言はここでは組み立てない（AGENTS.md の i18n 規約により、UI文言は
- * messages.json 経由にする必要があるため）。呼び出し側（sheets-api.ts）が actualW/actualX を
+ * messages.json 経由にする必要があるため）。呼び出し側（sheets/references.ts）が actualW/actualX を
  * 使ってメッセージを組み立てること。
  */
 export interface FulltextDriveHeaderCheck {

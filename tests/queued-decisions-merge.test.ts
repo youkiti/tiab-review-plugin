@@ -87,7 +87,7 @@ test('decision=pending（メモのみ保存）のキュー項目は status を p
 
 // PR #138 レビュー指摘（キー開封後のマージで hasConflict/status を再計算していなかった問題）:
 // keyOpened===true かつ allDecisions が配列のときは、更新後の allDecisions を
-// detectConflict()（sheets-api.ts、getReferencesWithAllDecisions と同じ関数）へ渡して
+// detectConflict()（sheets/decisions.ts、getReferencesWithAllDecisions と同じ関数）へ渡して
 // hasConflict と status を作り直す。以下3ケースはブリーフが指定した規則そのものを検証する。
 
 test('他者includeとの不一致(conflict)へ自分のキュー票includeが重なると不一致が解消する', () => {

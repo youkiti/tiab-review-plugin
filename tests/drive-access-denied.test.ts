@@ -152,7 +152,7 @@ test('resolveFolderState: 200だがJSONパース失敗はtransient-error', async
 });
 
 // ---------------------------------------------------------------------------
-// sheets-api.ts: Config読み取りの握り潰し分離（B-3）
+// sheets/config.ts: Config読み取りの握り潰し分離（B-3）
 // ---------------------------------------------------------------------------
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';

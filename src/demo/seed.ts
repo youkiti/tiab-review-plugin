@@ -35,9 +35,9 @@ import {
 /** bench プロファイル未指定時（options省略呼び出し）のフォールバックサイズ。profile.ts の DEFAULT_BENCH_SIZE と同じ値。 */
 const FALLBACK_BENCH_SIZE = 1000;
 
-// 以下2つの定数は src/lib/sheets-api.ts の REFERENCES_HEADERS / DECISIONS_HEADERS と
+// 以下2つの定数は src/lib/sheets/schema.ts の REFERENCES_HEADERS / DECISIONS_HEADERS と
 // 同じ並び順（同ファイルはこれらを export していないためここでミラーする）。
-// sheets-api.ts 側の列構成を変更した場合はこちらも必ず追従させること。
+// schema.ts 側の列構成を変更した場合はこちらも必ず追従させること。
 const REFERENCES_HEADERS = [
     'ref_id', 'title', 'abstract', 'year', 'authors',
     'journal', 'volume', 'issue', 'pages', 'issn',
@@ -55,7 +55,7 @@ const DECISIONS_HEADERS = [
     'context_json',
 ];
 
-// sheets-api.ts の LLM_EXECUTIONS_HEADERS と完全一致させること（末尾追記のみ許容）。
+// src/lib/sheets/schema.ts の LLM_EXECUTIONS_HEADERS と完全一致させること（末尾追記のみ許容）。
 const LLM_EXECUTIONS_HEADERS = [
     'execution_id', 'execution_type', 'timestamp', 'model',
     'temperature', 'topP', 'thinkingLevel',
@@ -76,7 +76,7 @@ const LLM_RUNS_HEADERS = [
     'requested_model', 'model_version', 'response_id',
 ];
 
-// sheets-api.ts の PUBLICATION_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
+// src/lib/sheets/schema.ts の PUBLICATION_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
 // Issue #118 チャンク2 パスB（レジストリ連携フェーズ1: 論文候補探索）で追加。
 export const PUBLICATION_CANDIDATES_HEADERS = [
     'candidate_id', 'ref_id', 'trial_id', 'pmid', 'doi',
@@ -84,7 +84,7 @@ export const PUBLICATION_CANDIDATES_HEADERS = [
     'suggested_at', 'decided_by', 'decided_at', 'imported_ref_id',
 ];
 
-// sheets-api.ts の DUPLICATE_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
+// src/lib/sheets/schema.ts の DUPLICATE_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
 // Issue #145 チャンク2で追加。
 export const DUPLICATE_CANDIDATES_HEADERS = [
     'candidate_id', 'ref_id_a', 'ref_id_b', 'match_type', 'match_key',
@@ -256,15 +256,15 @@ function buildDemoConfig(profile: DemoProfile, options?: BenchOptions): string[]
         ['assignment_status', 'dismissed'],
     ];
     if (profile === 'bench' && options?.keyOpened) {
-        // key_opened の値書式: src/lib/sheets-api.ts の getKeyOpenedStatus()/trySetKeyOpened() が
+        // key_opened の値書式: src/lib/sheets/config.ts の getKeyOpenedStatus()/trySetKeyOpened() が
         // row[1]?.toLowerCase() === 'true' で判定する小文字文字列 'true'/'false'
-        // （sheets-api.ts 2399行目・3092行目・3127行目で確認済み）。
+        // （src/lib/sheets/config.ts の getKeyOpenedStatus() / setKeyOpenedStatus() / trySetKeyOpened() で確認済み）。
         rows.push(['key_opened', 'true']);
     }
     if (profile === 'bench') {
         // フルテキストAI判定の根拠ジャンプ計測用（Issue #151（#150 工程0）チャンク3b）。
         // src/fulltext/fulltext.ts の findAiFulltext() は「採用ラウンド」
-        // （Config.fulltext_ai_active_round = sheets-api.ts の parseConfigBundle() が
+        // （Config.fulltext_ai_active_round = src/lib/sheets/config-schema.ts の parseConfigBundle() が
         // fulltextAiActiveRound として読む）の reviewer_id と一致する
         // screening_phase='fulltext' の判定しか拾わない。buildBenchDecisionSeeds() が
         // BENCH_FULLTEXT_CACHED_REF_ID へ追加するフルテキストAI判定の reviewer_id を
@@ -278,7 +278,7 @@ function buildDemoConfig(profile: DemoProfile, options?: BenchOptions): string[]
 
 /**
  * LlmRun / LlmExecution を LLM_RUNS_HEADERS / LLM_EXECUTIONS_HEADERS の順の行配列へ並べ替える。
- * src/lib/sheets-api.ts の serializeLlmRunRow()（非公開関数のため import できない）と同じ
+ * src/lib/sheets/llm-history.ts の serializeLlmRunRow()（非公開関数のため import できない）と同じ
  * 「ヘッダー名でプロパティを引く」方式をここでミラーする（ファイル冒頭コメントの
  * ヘッダーミラー方針と同じ理由）。bench-fixtures.ts の buildBenchLlmRound() がオブジェクトを
  * 返す設計を選んだのはこの並べ替えを seed.ts 側に持たせるため（bench-fixtures.ts 側のコメント参照）。

@@ -13,7 +13,7 @@ import type { PublicationCandidate } from '../src/lib/types';
 
 // Issue #118 チャンク2 パスB: registration行から結果論文候補を発見するロジックの回帰テスト。
 // References への行追加やPublication_Candidatesへの永続化はここでは検証しない
-// （永続化は src/lib/sheets-api.ts 側。tests/publication-candidates-headers.test.ts 参照）。
+// （永続化は src/lib/sheets/publication-candidates.ts 側。tests/publication-candidates-headers.test.ts 参照）。
 
 function draft(overrides: Partial<PublicationCandidateDraft> = {}): PublicationCandidateDraft {
     return {

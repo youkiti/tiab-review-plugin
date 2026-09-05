@@ -389,7 +389,7 @@ export interface BulkApplyPlan {
  * 同関数のコメント参照）。候補ごとに独立して chooseKeptRefId() で残す側を決めて全更新を
  * そのまま setDuplicateOf() へ渡すと、非AI判定数が A=0 / B=1 / C=2 のとき
  * duplicate_of[A] に B と C を続けて書き込むことになる。updateReferenceColumnByRefId()
- * （src/lib/sheets-api.ts）は ref_id で重複排除しないため、同じセルへ2回書き込まれて
+ * （src/lib/sheets/references.ts）は ref_id で重複排除しないため、同じセルへ2回書き込まれて
  * 後勝ちで片方が失われる。しかもこの状態では両候補が merged になり、
  * filterNewDuplicatePairs() が二度と再提示しないため、B–C の真の重複が恒久的に見えなくなる。
  *

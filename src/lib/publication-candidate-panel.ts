@@ -40,7 +40,7 @@ export function selectSuggestedPublicationCandidates(
 
 /**
  * STRATEGY_ORDER を安全に引く。strategy は Publication_Candidates シート由来で、
- * readPublicationCandidatesRows()（sheets-api.ts）が `value as PublicationCandidateStrategy` と
+ * readPublicationCandidatesRows()（sheets/publication-candidates.ts）が `value as PublicationCandidateStrategy` と
  * 無検証キャストしているため、ユーザーがセルを直接編集/削除すると想定外の値が入りうる。
  * `STRATEGY_ORDER[x]` を直接引くと undefined になり、sort の比較子が `undefined - undefined`
  * = NaN を返して並び順が実装依存になる（PR #124 レビュー指摘4）。未知の戦略は

@@ -36,7 +36,7 @@ function sortQueue(items: Decision[]): Decision[] {
 
 /**
  * キュー内の重複判定キー（ref_id/reviewer_id/screening_phase、phase省略時は 'tiab' 扱い）。
- * sheets-api.ts の decisionRowKey() と同じ「同一判定キー」の概念のため、ref_id/reviewer_id の
+ * sheets/decisions.ts の decisionRowKey() と同じ「同一判定キー」の概念のため、ref_id/reviewer_id の
  * trim 正規化も揃える。
  */
 function decisionQueueKey(decision: Decision): string {
@@ -160,7 +160,7 @@ async function saveQueue(queueKey: string, items: Decision[]): Promise<void> {
 // queueKey ごとの書き込み系操作（load→加工→save のread-modify-write）を1本の Promise チェーンで
 // 直列化する。enqueueDecision のRMWと、flush末尾の再読込→saveが交差すると、後勝ちの書き戻しで
 // 片方の変更が消える（2026-09 Web版ログイン切れによるキュー滞留・重複追記の事故対応で判明した
-// データ消失経路の一つ）。sheets-api.ts の saveDecisionChain と同じ「チェーンに積んで順番に流す」
+// データ消失経路の一つ）。sheets/decisions.ts の saveDecisionChain と同じ「チェーンに積んで順番に流す」
 // 流儀を queueKey 単位に一般化したもの。
 const queueWriteChains = new Map<string, Promise<void>>();
 

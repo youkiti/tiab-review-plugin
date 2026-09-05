@@ -801,7 +801,7 @@ async function handleBulkFetch(): Promise<void> {
     const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus; driveSource: null }> = [];
     // registration行の論文候補（Issue #118 チャンク2 パスB）。pendingWrites と同じ流儀で
     // ため込み、flush() でまとめて savePublicationCandidates() を呼ぶ。行ごとに保存すると
-    // Sheets APIの読み取りクォータを容易に超えるため（詳細は sheets-api.ts 側のコメント参照）。
+    // Sheets APIの読み取りクォータを容易に超えるため（詳細は sheets/publication-candidates.ts の savePublicationCandidates() のコメント参照）。
     const pendingCandidates: PublicationCandidateDraft[] = [];
     const flush = async () => {
         // URL書き込みと候補保存は互いに独立させる: 片方の失敗がもう片方のフラッシュを

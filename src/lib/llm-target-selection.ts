@@ -209,7 +209,7 @@ export function selectVisibleRefIds<T extends TargetSelectionRef>(
 /**
  * Config シートへの書き込み順（1件ずつの Partial<LlmConfig>）を返す。
  *
- * tryUpdateLlmConfig（src/lib/sheets-api.ts）は渡された updates を Object.entries() で
+ * tryUpdateLlmConfig（src/lib/sheets/config.ts）は渡された updates を Object.entries() で
  * 回し、キー1個につき1回 updateRange を逐次実行する。つまり2キーの更新は「独立した2回の
  * HTTPリクエスト」であり、途中で失敗すると中途半端な状態がシートに残りうる。
  * そこで、方向によらず「失敗しても安全側（従来どおり全件対象）に倒れる」順序を明示的に返す。

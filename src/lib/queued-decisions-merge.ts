@@ -17,7 +17,7 @@ import { detectConflict } from './sheets-api';
  *   無い場合）だけ myDecision を差し替える
  * - `keyOpened` が true かつ allDecisions が配列で存在する場合（キー開封後）は、自分の
  *   reviewer_id の要素を差し替え（無ければ push）た上で、更新後の allDecisions から
- *   `detectConflict()`（sheets-api.ts、getReferencesWithAllDecisions と同じ関数）で
+ *   `detectConflict()`（sheets/decisions.ts、getReferencesWithAllDecisions と同じ関数）で
  *   hasConflict を再計算し、status も hasConflict なら 'conflict'、そうでなければ
  *   `myDecision.decision !== 'pending' ? decision : 'pending'` で決め直す
  *   （PR #138 レビュー指摘: 未送信票を重ねて不一致が解消/新規発生しても、この再計算をしないと

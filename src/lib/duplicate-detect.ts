@@ -115,7 +115,7 @@ export function normalizeSource(source: string | undefined): string {
 
 /**
  * Duplicate_Candidates タブへ既に記録済みの組（重複ペア）を除外する。
- * `saveDuplicateCandidates()`（src/lib/sheets-api.ts）が保存直前に使う（Issue #145 チャンク2）。
+ * `saveDuplicateCandidates()`（src/lib/sheets/duplicate-candidates.ts）が保存直前に使う（Issue #145 チャンク2）。
  *
  * publication-suggest.ts の filterNewCandidates() との決定的な違い: あちらのキーは ref_id 1本
  * だが、こちらはキーが「2つの ref_id の組」であり、順序が逆（A→B で記録済みの組を B→A で

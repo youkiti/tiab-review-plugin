@@ -125,7 +125,7 @@ function match(refIdA: string, refIdB: string, overrides: Partial<DuplicateMatch
     return { refIdA, refIdB, matchType: 'title', matchKey: 'a sample trial', ...overrides };
 }
 
-// getDuplicateCandidates()（src/lib/sheets-api.ts）がシートから読んで返す実際の形
+// getDuplicateCandidates()（src/lib/sheets/duplicate-candidates.ts）がシートから読んで返す実際の形
 // （status を含む完全な DuplicateCandidate）を再現するファクトリ。existing の絞り込み型
 // （Pick<DuplicateCandidate, 'ref_id_a' | 'ref_id_b'>）はTypeScriptの構造的部分型のもとでは
 // 「余分なプロパティを持つオブジェクトも代入できる」だけで、「status を無視することを保証する」

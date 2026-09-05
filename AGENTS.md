@@ -83,7 +83,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
 | record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサと、論文候補の取り込み（`buildImportedPublicationReference()`。取り込んだ論文行は常に `article` を確定値として書く）。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
 | related_ref_id  | 取り込んだ論文行から、発見元のregistration行の `ref_id` への**一方向**の参照（registration行側に逆リンクは張らない。`src/lib/publication-import.ts` の `buildImportedPublicationReference()` が書く）。この列が非空の行は、TiAb票を一切持たなくても `src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` が無条件でフルテキスト候補として扱う（レジストリ連携フェーズ1チャンク3、Issue #118。下記「論文候補の取り込み（Referencesへの追加）」参照）（Z列） |      |
-| duplicate_of    | 重複として論理削除済みかどうかのフラグ。非空なら、この行は重複として除外済みで、値は**残す側の** `ref_id`。空文字（未設定）は生きている行。判定は必ず `src/lib/duplicate-detect.ts` の `isLogicallyDeleted()` を経由すること（自前で `ref.duplicate_of` を直接見る分岐を書かない）。書き込みは `src/lib/sheets-api.ts` の `setDuplicateOf()`（`duplicateOf: null` を渡すと空文字を書いて除外を取り消せる）。**この経路（`duplicateOf: null`）の実際の呼び出し元は相互削除（同時更新の競合）の修復に限られる**: `applyPairDecision()` の書き込み直後の自動修復と、壊れたペアに出す手動の「修復する」ボタン（どちらも `repairMutualDeletion()` を共有）。通常の統合判断（「左を残す」「右を残す」）をユーザーが取り消す一般的なUIは実装されていない。取り消したい場合はスプレッドシートの `duplicate_of` 列を直接編集する必要がある（Issue #147 外部レビュー指摘）。物理削除ではないため行自体は残る（Issue #145 チャンク2、AA列） |      |
+| duplicate_of    | 重複として論理削除済みかどうかのフラグ。非空なら、この行は重複として除外済みで、値は**残す側の** `ref_id`。空文字（未設定）は生きている行。判定は必ず `src/lib/duplicate-detect.ts` の `isLogicallyDeleted()` を経由すること（自前で `ref.duplicate_of` を直接見る分岐を書かない）。書き込みは `src/lib/sheets/references.ts` の `setDuplicateOf()`（`duplicateOf: null` を渡すと空文字を書いて除外を取り消せる）。**この経路（`duplicateOf: null`）の実際の呼び出し元は相互削除（同時更新の競合）の修復に限られる**: `applyPairDecision()` の書き込み直後の自動修復と、壊れたペアに出す手動の「修復する」ボタン（どちらも `repairMutualDeletion()` を共有）。通常の統合判断（「左を残す」「右を残す」）をユーザーが取り消す一般的なUIは実装されていない。取り消したい場合はスプレッドシートの `duplicate_of` 列を直接編集する必要がある（Issue #147 外部レビュー指摘）。物理削除ではないため行自体は残る（Issue #145 チャンク2、AA列） |      |
 
 **References も列は末尾追記のみ**（`LLM_Executions タブ`の注意と同趣旨）。上記2列（W/X）はIssue #73 Phase 2 で末尾に追加した。record_type/related_ref_id（Y/Z列）はIssue #118 チャンク1（レジストリ連携フェーズ1）で追加した。duplicate_of（AA列）はIssue #145 チャンク2で追加した。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `REFERENCES_HEADERS` ミラーも追従させること（今回も追従済み）。
 
@@ -244,7 +244,7 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 
 | 列 | 算出元 | 「判定1件のみ」の扱い |
 |---|---|---|
-| `status`（既存・互換維持のため変更しない） | `sheets-api.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
+| `status`（既存・互換維持のため変更しない） | `sheets/decisions.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
 | `team_status`（新設） | `decision-summary.ts` の `summarizeTeamDecision()` | 2人以上で判定が割れた場合だけ `conflict`。分母（`n_expected`）に満たなければ `incomplete` |
 
 `team_status` の値:
@@ -471,7 +471,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
        再現できるようにするため。ref_id は UUID なので1セル5万字上限から約1,350件が物理上限で、
        余裕を見て**1,000件で頭打ち**（`LLM_TARGET_REF_ID_LIMIT`）
      - **`updateLlmConfig` は複数キーを渡しても「1回の書き込み」にはならない**。`tryUpdateLlmConfig`
-       （`sheets-api.ts`）は updates を `Object.entries()` で回し、**キー1個につき1回 `updateRange` を
+       （`sheets/config.ts`）は updates を `Object.entries()` で回し、**キー1個につき1回 `updateRange` を
        逐次実行する**。途中で失敗すると中途半端な状態がシートに残るため、`llm_target_mode` と
        `llm_target_ref_ids` のように意味が結びついた2キーは、**失敗しても安全側（＝従来どおり全件対象）へ
        倒れる順序**で1件ずつ書くこと。順序は方向で変わる（絞り込む `selection` 方向は ref_ids → mode、
@@ -861,7 +861,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **同期順序**: `decided_at` の昇順で送信し、失敗時は次回再試行
 - **冪等性**: ML自動判定・LLM判定は既存行への upsert のため再送しても重複しない。human判定・ML手動確認判定は追記専用のため、内容が直前の保存と完全一致する場合のみ保存側のスナップショットキャッシュ（60秒TTL、詳細は `decisionContentCache`）で重複追記を防げる。それを超える間隔での再送（長時間オフライン後のflushなど、サーバ側の書き込み成功をクライアントが確認できずに再試行するケース）は重複行を生みうる既知のトレードオフ
 - **flush の直列化**: `src/sidepanel/utils/offline-queue.ts` の `flushDecisionQueue` は queueKey（spreadsheetId::userEmail）ごとにコールセーサーで直列化する。flush 中に新たに `enqueueDecision` された項目は、書き戻し時にキューを再読込してから送信済み分だけを取り除く実装のため消えない。合流した呼び出しは同じ結果（最後の失敗 `lastError` を含む）を受け取るため、対話的flushとバックグラウンドflushが合流しても失敗種別がどちらの呼び出し元にも届く（PR #138 レビュー指摘対応）
-- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう。読み込み時のマージは、キー開封後は `detectConflict`（`sheets-api.ts`、`export` 済み）で不一致状態（`hasConflict`/`status`）も再計算する（PR #138 レビュー指摘対応）
+- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう。読み込み時のマージは、キー開封後は `detectConflict`（`sheets/decisions.ts`。互換窓口 `sheets-api.ts` からも `export` 済み）で不一致状態（`hasConflict`/`status`）も再計算する（PR #138 レビュー指摘対応）
 - **未送信バッジ**: `src/sidepanel/features/unsent-queue.ts` がツールバーの未送信件数バッジ（クリックで送信。認証切れなら対話的な再ログインを挟んで1回だけ再試行）と、判定保存の共通ロジック（`saveDecisionOrQueue`）を提供する。TiAb判定・ML確認判定の両方（`screening/actions.ts` / `ml/actions.ts`）がここへ委譲する
 - **保存失敗の分類**: `src/lib/save-failure.ts` の `classifySaveFailure` が保存失敗を `'auth'`（ログイン切れ、再ログインで直る可能性がある）/ `'offline'` / `'other'`（権限不足等、再ログインでは直らない）に分類する。判定クリック直後の保存失敗が `'auth'` の場合はキューへ積む前にその場で再ログインを試し、成功すれば1回だけ保存を再試行する
 - **2026-09 事故の要約**: Web版（GIS認証、トークンはメモリ上で1時間のみ）でログイン切れ後の判定保存が軒並みオフラインキューへ退避される一方、ユーザーはそれに気づかず判定を続け、退避先のブラウザプロファイルで264件が滞留した。加えて、この滞留を解消しようとした複数回の flush が並走し、60秒TTLのスナップショットキャッシュを超える間隔で同一判定が再送されたことで、197件が重複追記（393行）された。上記の直列化・画面反映・バッジ・分類はこの事故の再発防止として追加したもの
@@ -912,7 +912,8 @@ tiab-review-plugin/
 │   │   └── fulltext.ts        # エントリポイント（URL param: ref_id）
 │   ├── lib/
 │   │   ├── gemini-api.ts      # Gemini API クライアント
-│   │   ├── sheets-api.ts      # Sheets API (Annotations タブも扱う)
+│   │   ├── sheets-api.ts      # Sheets API の互換窓口（実装は sheets/ 配下を再 export）
+│   │   ├── sheets/            # transport / schema / codecs / references / decisions / config / config-schema / llm-history / publication-candidates / duplicate-candidates
 │   │   ├── types.ts           # 共有型定義（Reference / Decision / Annotation 等）
 │   │   └── ...
 │   └── utils/
@@ -992,7 +993,7 @@ POST https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values/{range
 
 ### 判定保存フロー
 
-判定種別によって分岐する（`src/lib/sheets-api.ts` の `saveDecisionInner`）。human判定・ML手動確認判定は
+判定種別によって分岐する（`src/lib/sheets/decisions.ts` の `saveDecisionInner`）。human判定・ML手動確認判定は
 追記専用（既存行の検索・読み取りをしない）、ML自動判定・LLM判定は従来どおりの upsert。
 
 ```typescript
@@ -1186,7 +1187,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 - **Drive API は `driveFetch()`（`src/lib/drive-shared-drive.ts`）以外から叩かないこと。`fetch()` で直接叩いてはならない。** 共有ドライブ用パラメータと `Authorization` ヘッダをここで必ず付ける。呼び出しごとに要否を判断せず**全経路へ機械的に付ける**方針にしている。`item`（単一リソース）は `supportsAllDrives`、`kind: 'list'`（`files.list`）は `includeItemsFromAllDrives` も付く。マイドライブのファイルには無害なので出し分けはしない。`corpora=drive&driveId=` を足す実装を新設しないこと
   - パラメータ組み立て自体は純粋関数 `withSharedDriveParams()` に分離してある（テスト対象）
-  - 認証トークンは呼び出し側から渡す。`drive-shared-drive.ts` が `sheets-api.ts` の `getAuthToken` を import すると循環参照になるため
+  - 認証トークンは呼び出し側から渡す。`drive-shared-drive.ts` が互換窓口 `sheets-api.ts` 経由で `getAuthToken`（実体は `sheets/transport.ts`）を import すると循環参照になるため
 - 適用先は `src/lib/drive-api.ts` の13箇所と **`src/lib/sheets-api.ts` の5箇所**（`getRecentSpreadsheets` の `files.list`、permissions の list/create/delete、`isUserAdmin` の capabilities）。特に `getRecentSpreadsheets` は `files.list` なので、欠けると**共有ドライブ上のスプレッドシートが一覧から黙って消える**
 - **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は `tests/drive-shared-drive.test.ts` で検出する。実際に飛ぶ URL を見張るテストに加え、**`drive-api.ts` のソースに `fetch(` の直呼びが残っていないことを機械的に検査**している（新しい経路が `driveFetch` を通さずに増えた瞬間に落ちる）
 - **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
@@ -1242,7 +1243,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **書き込みは `T:U` と `W:X` の2つの非連続レンジを同一 `values:batchUpdate` に積む（`fulltext-drive-write.ts`）。`T:X` の連続レンジにしてはならない**（V列 `fulltext_set`＝フルテキスト担当割り振りを消してしまう）
 - **`updateReferenceFulltextUrl(s)` の `driveSource` は必須引数**。Drive直接取り込みだけが実値を渡し、残り9経路（OA取得・手動アップロード・リンクPDF自動保存・PDF削除等）は必ず `null` を渡してW/Xをクリアすること。**クリアし忘れると、Drive側 `findImportedCopy` のクエリが持っていた `trashed=false` の暗黙保証がシート側の真値には無いため、ゴミ箱にあるコピーを「取り込み済み」と誤判定する**
 - **クレームの自己検証**（`drive-import-claim.ts` の `isFulltextClaimValid`）: シートのクレームが有効なのは `status === 'cached'` かつ `fulltext_url` 非空 かつ `extractDriveFileId(fulltext_url) === fulltext_drive_copy_id` の3条件をすべて満たすときだけ。旧バージョンの拡張は `T:U` しか書かずW/Xをクリアしないため、「誰かがDrive取り込み→旧版ユーザーがOA取得や差し替えでPDFを交換」という自動更新ラグ中の操作で「別PDFのURL＋古いsource ID」が同じ行に共存しうる。URLとコピーIDの食い違いでそうしたクレームは自動的に失効する
-- **W/X書き込み前のヘッダー検証**（`validateFulltextDriveHeaders()`、spreadsheetId単位でメモ化）。ユーザーが独自の23列目以降を足していた場合、Drive直接取り込みはfail-fastでエラー、それ以外の経路はW/Xをスキップして`T:U`だけ書く（独自データを空文字で壊さないため）。**`ensureHeaders`（`sheets-api.ts`）は目的の異なる別関数 `validateReferencesManagedHeaders()` で同様にガードする**（PR #105 実機確認で発覚した回帰の修正）。2つ要るのは目的が違うため:
+- **W/X書き込み前のヘッダー検証**（`validateFulltextDriveHeaders()`、spreadsheetId単位でメモ化）。ユーザーが独自の23列目以降を足していた場合、Drive直接取り込みはfail-fastでエラー、それ以外の経路はW/Xをスキップして`T:U`だけ書く（独自データを空文字で壊さないため）。**`ensureHeaders`（`sheets/references.ts`）は目的の異なる別関数 `validateReferencesManagedHeaders()` で同様にガードする**（PR #105 実機確認で発覚した回帰の修正）。2つ要るのは目的が違うため:
   - `ensureFulltextDriveColumnsOnce`（`updateReferenceFulltextUrls` の前段）側は、フルテキストページ（`src/fulltext/fulltext.ts`）がサイドパネル接続時の `ensureHeaders` を経由しないための、W/X書き込み前の唯一の保証経路
   - `ensureHeaders` 側は、**ユーザー独自のヘッダー名を改名しない**ための保護。列数に関わらず常に `validateReferencesManagedHeaders()`（検証対象は `REFERENCES_MANAGED_TAIL_START_INDEX`＝22＝W列以降から、終端は `REFERENCES_HEADERS.length`（配列長から導出。現在26列 = Z列まで）まで）を実行し、衝突があれば列名・期待値・実際値を警告してPUTしない。衝突がなく、かつ列数も足りているときだけPUTする。もともとW/X列（index 22/23）限定の検証だったため、record_type/related_ref_id（Y/Z列）追加時にこの検証が追従しておらず同じ穴が再発した（25列シート＝独自1列足し：`25 < 26`で「不足」分岐に入るが旧検証はW/Xしか見ず通過し独自列を無警告で改名／26列シート：列数一致で「移行済み」誤判定となり検証自体が走らない）。検証範囲を配列長から導出する形に一般化したので、以後は末尾に列を足すだけなら呼び出し側の追従は不要。ただし `REFERENCES_MANAGED_TAIL_START_INDEX` は「後付け列はここから始まる」という前提そのものであり、列の**途中挿入**をすればこの前提が崩れる（「データ設計 > スプレッドシート構造」の**References も列は末尾追記のみ**の規約を守ること）
   - **検証は `ensureHeaders` のヘッダー行書き込みの前に置くこと**。後に置くと自分が改名した結果を検証することになり、常に一致して素通りする
@@ -1405,7 +1406,7 @@ ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
 - **`npm run test` は `scripts/run-tests.mjs` 経由で、毎回 `.tmp/tests` を全消去してから現在 `tests/` に存在する `*.test.ts` だけを `node --test` に渡す**（Issue #162）。以前は `.tmp/tests/tests/*.test.js` を glob で拾っていたため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされた（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。ラッパーは実行したテストファイル数を `N / N テストファイルを実行` と出すので、`tests/*.test.ts` の数と一致することを確認できる。対象を絞るときは `npm test -- doi fulltext-pool` のようにファイル名の部分一致で指定する（コンパイルは全件行う）。
 - **`node:assert/strict` の `deepEqual` は「値が `undefined` のプロパティ」と「プロパティ自体が無い」を区別する。** 戻り値の型（例: `FulltextFetchOutcome`）に**任意**フィールドを1本足しただけで、その戻り値を `deepEqual` で丸ごと比較している既存テストが「actual に余分なキーがある」と落ちる。実装のバグではないので、期待値側にそのキーを明示して追従させること（Issue #118 チャンク2で `registryPmids` を足した際に3件が落ちた）。
-- **`src/demo/seed.ts` はテストから直接 import できない。** `sample/*.nbib` を raw-text import（`declare module '*.nbib'`、webpack ローダー前提）しているため、`tsc` + `node --test` の経路では `.nbib` を JS として読もうとして落ちる。そのためヘッダーミラーのドリフト検出テストは、seed.ts 側の期待値をテストファイルへ直書きして `sheets-api.ts` の実エクスポートと突き合わせる流儀になっている（`tests/references-headers-record-type.test.ts` / `tests/publication-candidates-headers.test.ts`）。**seed.ts だけを変えるとドリフトを検出できない**ので、列を足すときは seed.ts・sheets-api.ts・テストの3箇所を必ず同時に直すこと。
+- **`src/demo/seed.ts` はテストから直接 import できない。** `sample/*.nbib` を raw-text import（`declare module '*.nbib'`、webpack ローダー前提）しているため、`tsc` + `node --test` の経路では `.nbib` を JS として読もうとして落ちる。そのためヘッダーミラーのドリフト検出テストは、seed.ts 側の期待値をテストファイルへ直書きして `sheets-api.ts` の実エクスポートと突き合わせる流儀になっている（`tests/references-headers-record-type.test.ts` / `tests/publication-candidates-headers.test.ts`）。**seed.ts だけを変えるとドリフトを検出できない**ので、列を足すときは seed.ts・sheets/schema.ts・テストの3箇所を必ず同時に直すこと。
 - **lint は型の緩さを検出しない。** `.eslintrc.cjs` は `@typescript-eslint/no-explicit-any` も `no-unused-vars` も有効にしていないため、`any` や未使用変数は CI を素通りする。`src/lib/` の既存コードが `any` を使っていないのは規約であって強制ではないので、レビュー側で見ること。
 - **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
 - **`Pick<Reference, ...>` のように `Reference` を絞り込んだ型は、絞り込んだフィールドが全て optional だと構造的部分型のせいで typecheck をすり抜ける。** 絞り込み型Aが「実際に必要なフィールドの一部だけ持つ、より狭い絞り込み型B」を要求する関数に、Bより広いはずのAの値を渡しても、Aに欠けているフィールドがBの型定義上 optional なら、コンパイラは「無い」ことを検出できずコンパイルが通る。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`src/lib/team-progress.ts` の `TeamProgressRef` が `related_ref_id` を持たないまま `fulltext-candidates.ts` の関数へ渡され、`isSharedFulltextPoolMember()` の分岐が本番で一度も発火しなかった。詳細は「論文候補の取り込み」節参照）。**`Reference` を絞り込んだ型を新設・変更するときは、型チェックだけで安心せず、配線の全経路（絞り込み型を組み立てている全箇所）が本当に必要なフィールドを運んでいるか目視確認すること。** 純関数のユニットテストも、引数へ絞り込んだオブジェクトリテラルを直接手書きして渡す形だと、配線側の欠落を再現できず検出できない（配線の境界＝実際に絞り込み型を組み立てている関数の入出力でテストすること）。PR #124 レビュー指摘7でこの教訓を実際に適用した: `ReferenceWithStatus` → `TeamProgressRef` の変換を `src/lib/team-progress.ts` の `toTeamProgressRef()` という小さな純関数へ切り出し（呼び出し元だった `initTeamProgress()` / `buildFooter()` の2箇所の重複実装を統一）、`tests/team-progress.test.ts` にこの関数自体の入出力を検証するテストを追加して、配線の境界へ実際に移した。

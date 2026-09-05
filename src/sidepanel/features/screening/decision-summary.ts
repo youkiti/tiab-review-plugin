@@ -2,7 +2,7 @@
  * チーム判定サマリー（エクスポート用）
  *
  * TiAb エクスポート（CSV/RIS）に「誰が何と判定したか」を出すための集計ロジック。
- * `ref.status`（`src/lib/sheets-api.ts` の `detectConflict()`、判定1件のみでも
+ * `ref.status`（`src/lib/sheets/decisions.ts` の `detectConflict()`、判定1件のみでも
  * conflict 扱いになる旧定義）とは別に、判定人数を考慮した `team_status` を計算する。
  *
  * 純関数のみで構成する（`../../state` / `../../dom` を import しないこと）。
