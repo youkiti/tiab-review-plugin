@@ -221,6 +221,15 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'saveDuplicateCandidates',
         'getDuplicateCandidates',
         'updateDuplicateCandidateStatus',
+        'getRecentSpreadsheets',
+        'getLocalRecentSheets',
+        'rememberLocalRecentSheet',
+        'getFilePermissions',
+        'getSpreadsheetPermissions',
+        'DrivePermissionError',
+        'deletePermission',
+        'addPermission',
+        'isUserAdmin',
     ];
 
     const facade = sheetsApi as unknown as Record<string, unknown>;
@@ -283,4 +292,18 @@ test('config.ts は references.ts と decisions.ts を import していない', 
         !/from\s+['"]\.\/decisions['"]/.test(source),
         'config.ts は ./decisions を import してはならない'
     );
+});
+
+test('drive-recent-files.ts と drive-permissions.ts は互換窓口と sheets/ を import していない', () => {
+    for (const name of ['drive-recent-files.ts', 'drive-permissions.ts']) {
+        const source = readFileSync(join(LIB_DIR, name), 'utf8');
+        const specifiers = importSpecifiers(source);
+        const disallowed = specifiers.filter(s => s === './sheets-api' || s.includes('/sheets/'));
+
+        assert.deepEqual(
+            disallowed,
+            [],
+            `${name} は互換窓口にも sheets/ にも依存してはならない: ${disallowed.join(', ')}`
+        );
+    }
 });
