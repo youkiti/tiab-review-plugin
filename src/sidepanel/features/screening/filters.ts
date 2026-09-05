@@ -7,8 +7,7 @@ import { t } from '../../../lib/i18n';
 import { state } from '../../state';
 import { dom } from '../../dom';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
-import { createSmartRegex } from '../../utils/text';
-import { parseSearchQuery } from '../../utils/search';
+import { applyTextFilters } from '../../utils/search';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
@@ -204,52 +203,9 @@ function getFilteredReferencesImpl(): ReferenceWithStatus[] {
         filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
     }
 
-    // 検索フィルター
-    const rawSearch = dom.searchInput.value;
-    if (rawSearch.trim()) {
-        const { terms, mode } = parseSearchQuery(rawSearch, state.termFilterUseAnd);
-
-        filtered = filtered.filter(r => {
-            const text = `${r.title} ${r.abstract || ''}`;
-            const regexes = terms.map(t => createSmartRegex(t));
-
-            if (mode === 'and') {
-                return regexes.every(regex => {
-                    regex.lastIndex = 0;
-                    return regex.test(text);
-                });
-            } else {
-                return regexes.some(regex => {
-                    regex.lastIndex = 0;
-                    return regex.test(text);
-                });
-            }
-        });
-    }
-
-    // タームフィルター（AND/OR条件）
-    const termFilters = state.activeTermFilters;
-    if (termFilters.length > 0) {
-        if (state.termFilterUseAnd) {
-            // AND条件: すべてのtermにマッチ
-            for (const termFilter of termFilters) {
-                const regex = createSmartRegex(termFilter.term);
-                filtered = filtered.filter(r => {
-                    const text = `${r.title} ${r.abstract || ''}`;
-                    return regex.test(text);
-                });
-            }
-        } else {
-            // OR条件: いずれかのtermにマッチ
-            filtered = filtered.filter(r => {
-                const text = `${r.title} ${r.abstract || ''}`;
-                return termFilters.some(termFilter => {
-                    const regex = createSmartRegex(termFilter.term);
-                    return regex.test(text);
-                });
-            });
-        }
-    }
+    // 検索・タームフィルターは二重実装を避けて applyTextFilters() に集約している
+    // （Issue #152（#150 工程1））。
+    filtered = applyTextFilters(filtered, dom.searchInput.value, state.activeTermFilters, state.termFilterUseAnd);
 
     // 判定フィルター (Blind off時のみ、レビュアーごとに独立して適用)
     if (state.isKeyOpened) {
@@ -281,16 +237,28 @@ function getFilteredReferencesImpl(): ReferenceWithStatus[] {
  * - enabledReviewers / isKeyOpened / treatMlAsManual は既存の updateFilterCounts と同じく state から直接参照する
  */
 export function getScreeningCounts(refs: ReferenceWithStatus[]) {
-    return {
-        pending: refs.filter(r => getMyManualDecisionStatus(r) === 'pending').length,
-        all: refs.length,
-        include: refs.filter(r => getMyManualDecisionStatus(r) === 'include').length,
-        exclude: refs.filter(r => getMyManualDecisionStatus(r) === 'exclude').length,
-        maybe: refs.filter(r => getMyManualDecisionStatus(r) === 'maybe').length,
-        conflict: refs.filter(r =>
-            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
-        ).length,
-    };
+    // 5回 filter() を回す代わりに1回の for ループで判定し、各文献につき
+    // getMyManualDecisionStatus() / hasEffectiveConflict() をそれぞれ1回だけ呼ぶ
+    // （Issue #152（#150 工程1））。
+    let pending = 0;
+    let include = 0;
+    let exclude = 0;
+    let maybe = 0;
+    let conflict = 0;
+
+    for (const r of refs) {
+        switch (getMyManualDecisionStatus(r)) {
+            case 'pending': pending++; break;
+            case 'include': include++; break;
+            case 'exclude': exclude++; break;
+            case 'maybe': maybe++; break;
+        }
+        if (hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)) {
+            conflict++;
+        }
+    }
+
+    return { pending, all: refs.length, include, exclude, maybe, conflict };
 }
 
 /**
