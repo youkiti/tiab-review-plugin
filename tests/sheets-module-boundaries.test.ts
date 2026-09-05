@@ -86,6 +86,24 @@ test('schema.ts / codecs.ts の import は ../types のみ（platform・通信�
 });
 
 // ---------------------------------------------------------------------------
+// references.ts / decisions.ts は互いを import しない（Issue #153 工程2）。
+// ---------------------------------------------------------------------------
+
+test('references.ts と decisions.ts は互いを import していない', () => {
+    const referencesSource = readFileSync(join(SHEETS_DIR, 'references.ts'), 'utf8');
+    const decisionsSource = readFileSync(join(SHEETS_DIR, 'decisions.ts'), 'utf8');
+
+    assert.ok(
+        !/from\s+['"]\.\/decisions['"]/.test(referencesSource),
+        'references.ts は ./decisions を import してはならない'
+    );
+    assert.ok(
+        !/from\s+['"]\.\/references['"]/.test(decisionsSource),
+        'decisions.ts は ./references を import してはならない'
+    );
+});
+
+// ---------------------------------------------------------------------------
 // src/lib/sheets/ の利用元は sheets-api.ts（互換窓口）だけに閉じる。
 // 分割を機械的な移動に閉じるため、他の src ファイルが直接 sheets/ 配下を
 // import すると、次の分割PRで互換窓口を経由しない依存が紛れ込む。
@@ -128,6 +146,28 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'PUBLICATION_CANDIDATES_HEADERS',
         'DUPLICATE_CANDIDATES_HEADERS',
         'validateReferencesManagedHeaders',
+        'ensureHeaders',
+        'invalidateFulltextDriveColumnsMemo',
+        'validateSpreadsheetFormat',
+        'getReferences',
+        'buildReferenceInsertRow',
+        'addReferences',
+        'updateReferenceFulltextUrl',
+        'updateReferenceFulltextUrls',
+        'getReferenceFulltextState',
+        'getFulltextClaimsSnapshot',
+        'deleteReferencesBySourceFile',
+        'updateReferenceScreeningSets',
+        'updateReferenceFulltextSets',
+        'setDuplicateOf',
+        'getDecisions',
+        'detectConflict',
+        'invalidateDecisionRowCache',
+        'saveDecision',
+        'appendDecisions',
+        'getDecisionsByReviewerId',
+        'updateDecisionsBatch',
+        'getLlmPendingDecisions',
     ];
 
     const facade = sheetsApi as unknown as Record<string, unknown>;
