@@ -517,14 +517,12 @@ async function loadDataAndShowScreeningImpl() {
         // 従来もその取得失敗（loadPendingCount() 内の try/catch）でスクリーニング画面自体の表示を
         // 止めていなかった。References/Decisions/Config/履歴の取得失敗は従来どおりここで
         // 素通しし、画面表示自体を失敗させる（catch していないので画面必須データの欠落を隠さない）。
-        const [[adminStatus, config, history], allReferencesRaw, decisionsDataRaw, duplicateCandidatesRaw] = await perfSpan(
+        const [adminStatus, config, history, allReferencesRaw, decisionsDataRaw, duplicateCandidatesRaw] = await perfSpan(
             'tiab:project.fetch.meta',
             () => Promise.all([
-                Promise.all([
-                    isUserAdmin(spreadsheetId, userEmail),
-                    getProjectLoadConfig(spreadsheetId),
-                    getLlmHistory(spreadsheetId),
-                ]),
+                isUserAdmin(spreadsheetId, userEmail),
+                getProjectLoadConfig(spreadsheetId),
+                getLlmHistory(spreadsheetId),
                 getReferences(spreadsheetId),
                 getDecisions(spreadsheetId),
                 getDuplicateCandidates(spreadsheetId).catch((error) => {
@@ -536,6 +534,15 @@ async function loadDataAndShowScreeningImpl() {
         const { configBundle, assignmentConfig, fulltextAiActiveRound } = config;
         const { llmExecutions, llmRuns } = history;
         const keyOpenedStatus = configBundle.keyOpened;
+
+        // getReferencesWithStatus/AllDecisions() は allReferencesRaw/decisionsDataRaw の要素を
+        // in-place で正規化する（reviewer_id 空欄の補完・ref_id の trim。sheets-api.ts の
+        // ReferencesAndDecisionsLoaded 参照）。initTeamProgress/primeDuplicateReviewSection は
+        // 正規化前の状態で件数判定したいため、getReferencesWith* を呼ぶ前にシャローコピーを
+        // 取っておく（呼んだ後にコピーしても書き換わった後の値をコピーするだけで意味が無い。
+        // PR #161 レビュー指摘対応）。
+        const decisionsDataForPanels = decisionsDataRaw.map((r) => ({ ...r, decision: { ...r.decision } }));
+        const allReferencesForPanels = allReferencesRaw.map((r) => ({ ...r }));
 
         // Store経由で両方に同期
         syncSetIsAdmin(adminStatus);
@@ -560,9 +567,12 @@ async function loadDataAndShowScreeningImpl() {
             : new Set<string>();
         syncSetActiveLlmExecutionIds(activeBatchIds);
 
-        // tiab:project.fetch.refs: 文献取得（通信待ち）。取得件数は fn 内で確定するため、
-        // 呼び出し時点では値の決まっていない detail オブジェクトを渡し、fn がそれを書き換える
-        // （perfSpan は fn の完了後に detail を読むため、この破壊的更新が計測へ反映される）。
+        // tiab:project.fetch.refs: References/Decisions/LLM履歴は全て上のtiab:project.fetch.metaで
+        // loaded 済みのため通信は発生しない。ここで測っているのは取得済みデータのマージ（CPU、
+        // getReferencesWithStatus/AllDecisions() 内の正規化・突き合わせ処理）（PR #161 レビュー
+        // 指摘対応。スパン名は bench 側が名前で拾っているため変更しない）。取得件数は fn 内で
+        // 確定するため、呼び出し時点では値の決まっていない detail オブジェクトを渡し、fn がそれを
+        // 書き換える（perfSpan は fn の完了後に detail を読むため、この破壊的更新が計測へ反映される）。
         const fetchRefsDetail: { count?: number } = {};
         const fetchedRefs = await perfSpan(
             'tiab:project.fetch.refs',
@@ -615,7 +625,9 @@ async function loadDataAndShowScreeningImpl() {
             // チーム進捗: 割り振り前の全文献を分母計算に使う。
             // Decisions は上のtiab:project.fetch.metaで取得済みのものを渡し、
             // team-progress 自身の getDecisions() 再取得を省略する（Issue #153 工程2 チャンク2）。
-            initTeamProgress(refs, decisionsDataRaw);
+            // decisionsDataForPanels は getReferencesWithStatus/AllDecisions() による
+            // in-place 正規化を受けていないコピー（PR #161 レビュー指摘対応。上のコメント参照）。
+            initTeamProgress(refs, decisionsDataForPanels);
 
             // 重複候補レビューの独立セクションも、同じタイミングで取得済みの
             // References（論理削除を含む全件）・Duplicate_Candidates で未確認件数を温めておく。
@@ -624,8 +636,9 @@ async function loadDataAndShowScreeningImpl() {
             // Duplicate_Candidates の取得に失敗していた場合（duplicateCandidatesRaw === null）は
             // 温めず、_renderSourceFilters() 側の renderDuplicateReviewSection() が
             // 従来どおり loadPendingCount() で再取得・エラー表示するのに任せる。
+            // allReferencesForPanels も同じ理由で正規化前のコピーを渡す（PR #161 レビュー指摘対応）。
             if (duplicateCandidatesRaw !== null) {
-                primeDuplicateReviewSection(spreadsheetId, allReferencesRaw, duplicateCandidatesRaw);
+                primeDuplicateReviewSection(spreadsheetId, allReferencesForPanels, duplicateCandidatesRaw);
             }
 
             // MLの状態をリセット（前のプロジェクトのデータをクリア）

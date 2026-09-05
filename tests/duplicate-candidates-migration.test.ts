@@ -38,7 +38,12 @@ test.afterEach(() => {
 
 interface MockCall { method: string; url: string; body?: unknown; }
 
-/** Duplicate_Candidates の本体GET（A:J）・ヘッダーのみGET（1:1）・ヘッダー行PUTだけを扱う軽量モック */
+// 本体GETの range はシート名のみ（全列）になった（PR #161 レビュー指摘対応）。標準列数で
+// 終端列を切り詰めると、ユーザーが独自列を足したシートでヘッダー判定がずれるため。
+const isDuplicateCandidatesGetUrl = (url: string): boolean =>
+    /\/values\/Duplicate_Candidates(\?|$)/.test(url);
+
+/** Duplicate_Candidates の本体GET（シート名のみ・全列）・ヘッダー行PUTだけを扱う軽量モック */
 function installMock(headerRow: string[], dataRows: string[][] = []): { calls: MockCall[] } {
     const calls: MockCall[] = [];
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -47,11 +52,8 @@ function installMock(headerRow: string[], dataRows: string[][] = []): { calls: M
         const body = init?.body ? JSON.parse(init.body as string) : undefined;
         calls.push({ method, url, body });
 
-        if (method === 'GET' && url.includes('/values/Duplicate_Candidates!A%3AJ')) {
+        if (method === 'GET' && isDuplicateCandidatesGetUrl(url)) {
             return new Response(JSON.stringify({ values: [headerRow, ...dataRows] }), { status: 200 });
-        }
-        if (method === 'GET' && url.includes('/values/Duplicate_Candidates!1%3A1')) {
-            return new Response(JSON.stringify({ values: [headerRow] }), { status: 200 });
         }
         if (method === 'PUT' && url.includes('/values/Duplicate_Candidates!')) {
             return new Response(JSON.stringify({}), { status: 200 });
@@ -72,7 +74,7 @@ test('ヘッダーが不足しているシートを読んだとき、追加のGE
 
     const gets = mock.calls.filter((c) => c.method === 'GET');
     assert.equal(gets.length, 1, '本体読み取り1回のみで済み、ensureDuplicateCandidatesSheet() 側の1:1GETは発生しない');
-    assert.ok(gets[0].url.includes('/values/Duplicate_Candidates!A%3AJ'));
+    assert.ok(isDuplicateCandidatesGetUrl(gets[0].url));
 
     const puts = mock.calls.filter((c) => c.method === 'PUT');
     assert.equal(puts.length, 1, '不足列（kept_ref_id）の追加PUTがちょうど1回発行される');
@@ -88,7 +90,7 @@ test('ヘッダーが揃っているシートでは、追加のGET・書き込�
     assert.deepEqual(result, []);
     assert.equal(mock.calls.length, 1, '本体読み取り1回だけで完結し、ensureのGETもヘッダーPUTも発生しない');
     assert.equal(mock.calls[0].method, 'GET');
-    assert.ok(mock.calls[0].url.includes('/values/Duplicate_Candidates!A%3AJ'));
+    assert.ok(isDuplicateCandidatesGetUrl(mock.calls[0].url));
 });
 
 test('複数列（decided_by・decided_at・kept_ref_id）が不足していても、1回のPUTでまとめて追加される', async () => {
@@ -112,4 +114,27 @@ test('複数列（decided_by・decided_at・kept_ref_id）が不足していて�
         (puts[0].body as { values: string[][] }).values,
         [['decided_by', 'decided_at', 'kept_ref_id']]
     );
+});
+
+test('ユーザーが独自列を足したシートでは、追加PUTがユーザー列を上書きしない（PR #161 レビュー指摘対応）', async () => {
+    // 標準9列（kept_ref_id 無し）＋ ユーザー独自列2本の計11セル。
+    // 読み取り範囲を標準列数（A:J）に切り詰めていた頃は、この状態で startCol がずれ、
+    // 追加PUTがユーザー列のヘッダー（K1相当）を上書きしかねなかった。
+    const headers = [...DUPLICATE_CANDIDATES_HEADERS.slice(0, -1), 'my_note', 'other'];
+    const mock = installMock(headers);
+
+    const result = await getDuplicateCandidates('sheet-d');
+
+    assert.deepEqual(result, [], 'データ行が無いので結果は空配列');
+
+    const gets = mock.calls.filter((c) => c.method === 'GET');
+    assert.equal(gets.length, 1, '本体読み取り1回のみ');
+
+    const puts = mock.calls.filter((c) => c.method === 'PUT');
+    assert.equal(puts.length, 1, '不足列（kept_ref_id）の追加PUTがちょうど1回発行される');
+    assert.ok(
+        puts[0].url.includes('/values/Duplicate_Candidates!L1%3AL1'),
+        `想定外のPUT range: ${puts[0].url}`
+    );
+    assert.deepEqual((puts[0].body as { values: string[][] }).values, [['kept_ref_id']]);
 });

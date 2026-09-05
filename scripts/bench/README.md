@@ -69,7 +69,8 @@ npm run bench -- --key-opened --net-delay 200
 
 1. **起動とプロジェクト読み込み** — サイドパネルを開いてデモプロジェクトへ接続するまで
    （`tiab:boot` / `tiab:project.load` / `tiab:project.fetch.meta` / `tiab:project.fetch.refs` /
-   `tiab:project.render` と、この間の通信内訳）
+   `tiab:project.render` と、この間の通信内訳。`tiab:project.fetch.refs` は Issue #153 工程2
+   チャンク2 以降、通信を含まず取得済みデータのマージ処理のみを測る）
 2. **判定を連続変更** — Include/Maybe/Exclude を `--repeat` 回クリック
 3. **メモ付きで前後移動** — メモを入れてから前後移動を `--repeat` 回
 4. **検索・フィルター変更** — 検索語を20回入れ替え、ステータスフィルターも数回変更

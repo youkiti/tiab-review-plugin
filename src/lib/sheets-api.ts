@@ -139,10 +139,6 @@ export const DUPLICATE_CANDIDATES_HEADERS = [
     'status', 'suggested_at', 'decided_by', 'decided_at', 'kept_ref_id'
 ];
 
-// Duplicate_Candidates タブの終端列（A1形式）。PUBLICATION_CANDIDATES_LAST_COLUMN と同じ流儀で
-// DUPLICATE_CANDIDATES_HEADERS の長さから動的に導出する。
-const DUPLICATE_CANDIDATES_LAST_COLUMN = columnLetter(DUPLICATE_CANDIDATES_HEADERS.length);
-
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
 export const PRESET_RCT = {
     include: [
@@ -1399,6 +1395,22 @@ function buildAllFulltextDecisionsMap(
 }
 
 /**
+ * 【渡した配列の要素は in-place で書き換えられる】（PR #161 レビュー指摘対応）。
+ * getReferencesWithStatus() / getReferencesWithAllDecisions() は allReferences の各要素の
+ * ref_id、decisionsData の各要素の decision.reviewer_id（空欄→reviewerEmail の補完）・
+ * decision.ref_id を trim して直接書き換える（正規化ロジック自体はこの対応で変更していない）。
+ * 呼び出し側がこの配列を同じ呼び出しの中で他の関数（team-progress・duplicate-review等）へも
+ * 配る場合は、getReferencesWith* を呼ぶ前にシャローコピーを渡すこと。同じ参照を渡すと、
+ * 正規化前を期待する側が正規化後（reviewer_id 補完済み）のデータを受け取ってしまう。
+ */
+export interface ReferencesAndDecisionsLoaded {
+    /** 論理削除済み行を含む全件（getReferences() と同じ契約）。未指定ならここで取得する。 */
+    allReferences?: Reference[];
+    /** getDecisions() と同じ契約（畳み込み済み・全レビュアー分）。未指定ならここで取得する。 */
+    decisionsData?: { decision: Decision; rowIndex: number }[];
+}
+
+/**
  * 文献一覧に判定状態をマージ（キーオープン前）
  *
  * 【論理削除された行（重複）をここで除外する】isLogicallyDeleted() が true の行
@@ -1411,13 +1423,6 @@ function buildAllFulltextDecisionsMap(
  * 行を必要とするため。Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは
  * 実装されていない）。
  */
-export interface ReferencesAndDecisionsLoaded {
-    /** 論理削除済み行を含む全件（getReferences() と同じ契約）。未指定ならここで取得する。 */
-    allReferences?: Reference[];
-    /** getDecisions() と同じ契約（畳み込み済み・全レビュアー分）。未指定ならここで取得する。 */
-    decisionsData?: { decision: Decision; rowIndex: number }[];
-}
-
 export async function getReferencesWithStatus(
     spreadsheetId: string,
     reviewerEmail: string,
@@ -3195,13 +3200,15 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
 }
 
 /**
- * Config タブ自体が存在しない（＝本当に未設定）ことを示すエラーかを判定する。
+ * 対象タブ自体が存在しない（＝本当に未設定・未作成）ことを示すエラーかを判定する。
  * getSheetValues が投げる「Unable to parse range」等のメッセージ文言で判定する
- * （saveFulltextDriveFolderId 等が Config シート新規作成のトリガーに使っている判定と同じ）。
+ * （saveFulltextDriveFolderId 等が Config シート新規作成のトリガーに使っている判定と同じ。
+ * Config タブに限らず、getDuplicateCandidates() 等シート欠落時に ensure して読み直す
+ * 他の経路からも共通で使う。PR #161 レビュー指摘対応で `isConfigSheetMissingError` から改名）。
  * SheetsAccessDeniedError（403/404）のデフォルトメッセージにも "not found" を含みうるため、
  * ここでは常に false 扱いにして呼び出し側へ再送出させる（アクセス拒否を「未設定」に潰さないため）。
  */
-function isConfigSheetMissingError(error: unknown): boolean {
+function isSheetMissingError(error: unknown): boolean {
     if (error instanceof SheetsAccessDeniedError) return false;
     const message = error instanceof Error ? error.message : String(error ?? '');
     return message.includes('Unable to parse range') || message.includes('not found');
@@ -3223,7 +3230,7 @@ export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<s
         }
         return null;
     } catch (error) {
-        if (isConfigSheetMissingError(error)) {
+        if (isSheetMissingError(error)) {
             console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
             return null;
         }
@@ -3267,7 +3274,7 @@ async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: str
  * プロジェクト用 Drive フォルダIDを取得（未設定は null）
  * このフォルダ配下にスプレッドシート本体と fulltext サブフォルダを格納する。
  * Config タブが本当に無い場合だけ null を返す。アクセス拒否・一時エラーは
- * 「未設定」に見せず throw する（isConfigSheetMissingError のコメント参照）。
+ * 「未設定」に見せず throw する（isSheetMissingError のコメント参照）。
  */
 export async function getProjectDriveFolderId(spreadsheetId: string): Promise<string | null> {
     try {
@@ -3279,7 +3286,7 @@ export async function getProjectDriveFolderId(spreadsheetId: string): Promise<st
         }
         return null;
     } catch (error) {
-        if (isConfigSheetMissingError(error)) {
+        if (isSheetMissingError(error)) {
             console.log('[getProjectDriveFolderId] Config not found, returning null:', error);
             return null;
         }
@@ -3872,7 +3879,7 @@ export async function ensureDuplicateCandidatesSheet(spreadsheetId: string): Pro
 
         await migrateDuplicateCandidatesHeaderColumns(spreadsheetId, existingHeaders);
     } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+        if (isSheetMissingError(error)) {
             console.log('[ensureDuplicateCandidatesSheet] Creating Duplicate_Candidates sheet...');
             await addSheet(spreadsheetId, DUPLICATE_CANDIDATES_SHEET);
             await appendRows(spreadsheetId, DUPLICATE_CANDIDATES_SHEET, [DUPLICATE_CANDIDATES_HEADERS]);
@@ -3899,9 +3906,16 @@ export async function ensureDuplicateCandidatesSheet(spreadsheetId: string): Pro
  * この読み取りで既に得ているヘッダー行（values[0]）を migrateDuplicateCandidatesHeaderColumns()
  * にそのまま渡すことで、追加のGETなしで移行機構を維持する。ヘッダーが既に揃っている通常時は
  * missingHeaders が空になり、書き込みも発生しない。
+ *
+ * 【読み取り範囲はシート名のみ（全列）】（PR #161 レビュー指摘対応）。以前は
+ * `A:${DUPLICATE_CANDIDATES_LAST_COLUMN}`（標準列数ぶんの終端列）で切り詰めて読んでいたが、
+ * 「標準列が1本欠けている＋ユーザーが独自列を足している」シートではこの終端列がユーザー列の
+ * 途中で切れてしまい、そのヘッダーを渡された migrateDuplicateCandidatesHeaderColumns() の
+ * startCol がずれて、追加PUTがユーザー列のヘッダーを上書きしかねない。シート名のみの range は
+ * 全列・全行を返すため、行のパースはヘッダー駆動のこのロジックを変更せずに済む。
  */
 async function readDuplicateCandidatesRows(spreadsheetId: string): Promise<DuplicateCandidate[]> {
-    const values = await getSheetValues(spreadsheetId, `${DUPLICATE_CANDIDATES_SHEET}!A:${DUPLICATE_CANDIDATES_LAST_COLUMN}`);
+    const values = await getSheetValues(spreadsheetId, DUPLICATE_CANDIDATES_SHEET);
 
     if (values.length === 0) return [];
 
@@ -4003,14 +4017,17 @@ export async function saveDuplicateCandidates(
  * 表示のまま書き込みを黙ってスキップしてしまう。0件と取得失敗を呼び出し元が区別できることが
  * 必須なため、この関数では例外を握りつぶさない（ensure後の再読み取りが失敗した場合も同様）。
  * 呼び出し元（duplicate-review.ts の全6箇所）はそれぞれ try/catch で取得失敗を検知し、
- * ユーザーへ明示的に伝える。
+ * ユーザーへ明示的に伝える。7箇所目の呼び出し元 project.ts の loadDataAndShowScreening は
+ * プロジェクト読み込み処理全体を止めないよう、失敗を console.warn で null 化して飲み込み、
+ * 独立セクション（duplicate-review.ts）側の renderDuplicateReviewSection() による
+ * 再取得・エラー表示に任せる（PR #161 レビュー指摘対応で追記）。
  * getPublicationCandidates() は別機能・別の呼び出し元セットのため、こちらに合わせて変更しない。
  */
 export async function getDuplicateCandidates(spreadsheetId: string): Promise<DuplicateCandidate[]> {
     try {
         return await readDuplicateCandidatesRows(spreadsheetId);
     } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
+        if (isSheetMissingError(error)) {
             await ensureDuplicateCandidatesSheet(spreadsheetId);
             return await readDuplicateCandidatesRows(spreadsheetId);
         }
@@ -4027,6 +4044,10 @@ export async function getDuplicateCandidates(spreadsheetId: string): Promise<Dup
  * 全 update × 4列ぶんの range をまとめて1回の values:batchUpdate（batchUpdateRanges()）で送る。
  * ensureDuplicateCandidatesSheet() を先に呼ぶ。該当 candidate_id が見つからない更新は黙って
  * スキップする（updatePublicationCandidateStatus() と同じ振る舞い）。
+ *
+ * 読み取り範囲はシート名のみ（全列）。readDuplicateCandidatesRows() と同じ理由
+ * （PR #161 レビュー指摘対応）で、終端列を標準列数に切り詰めるとユーザー独自列がある
+ * シートで列インデックスがずれ、`Duplicate_Candidates column not found` になりうる。
  */
 export async function updateDuplicateCandidateStatus(
     spreadsheetId: string,
@@ -4036,7 +4057,7 @@ export async function updateDuplicateCandidateStatus(
 
     await ensureDuplicateCandidatesSheet(spreadsheetId);
 
-    const values = await getSheetValues(spreadsheetId, `${DUPLICATE_CANDIDATES_SHEET}!A:${DUPLICATE_CANDIDATES_LAST_COLUMN}`);
+    const values = await getSheetValues(spreadsheetId, DUPLICATE_CANDIDATES_SHEET);
     if (values.length <= 1) return;
 
     const headers = values[0];
