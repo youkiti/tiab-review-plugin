@@ -196,6 +196,23 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'saveProjectDriveFolderId',
         'getLlmConfig',
         'updateLlmConfig',
+        'clearLlmSheetEnsureMemo',
+        'ensureLlmExecutionsSheet',
+        'ensureLlmRunsSheet',
+        'saveLlmExecution',
+        'getLlmExecutions',
+        'updateLlmExecution',
+        'saveLlmRun',
+        'updateLlmRun',
+        'getLlmRuns',
+        'getLlmHistory',
+        'findRunByConfigHash',
+        'getActiveLlmRun',
+        'getRunForBatchId',
+        'getBatchIdsForRun',
+        'getJudgedRefIdsForBatches',
+        'getActiveBatchIdsForActiveRun',
+        'setSingleActiveRun',
     ];
 
     const facade = sheetsApi as unknown as Record<string, unknown>;
@@ -215,6 +232,19 @@ test('config-schema.ts は通信・シート定義・platform・他タブの読�
         disallowed,
         [],
         `config-schema.ts に禁止された依存がある: ${disallowed.join(', ')}`
+    );
+});
+
+test('llm-history.ts は references.ts / config.ts / config-schema.ts を import していない', () => {
+    const source = readFileSync(join(SHEETS_DIR, 'llm-history.ts'), 'utf8');
+    const specifiers = importSpecifiers(source);
+    const forbidden = ['./references', './config', './config-schema'];
+    const disallowed = specifiers.filter(s => forbidden.includes(s));
+
+    assert.deepEqual(
+        disallowed,
+        [],
+        `llm-history.ts に禁止された依存がある: ${disallowed.join(', ')}`
     );
 });
 
