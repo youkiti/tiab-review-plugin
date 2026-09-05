@@ -397,7 +397,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
        どちらも未設定時は「—」
      - 進捗にカウントする判定: 人間判定＋確定ML判定（LLM判定・ML自動判定・メモのみの pending 行は除外）
      - 3日以上判定がなく残作業があるメンバーに ⚠ を表示
-     - データは Decisions タブから読み込み時に非同期取得し、🔄ボタンで再取得。自分の判定保存は即時反映
+     - データはプロジェクト読み込み時に取得済みの Decisions を受け取り（通信は発生しない）、🔄ボタンで再取得。自分の判定保存は即時反映
        （フルテキストページ＝別タブでの保存も `chrome.runtime.sendMessage`（`team-progress:decision-saved`）で
        サイドパネルへ通知され即時反映。他メンバーの判定の反映は🔄再取得）
      - メンバーが1人だけのプロジェクトでは表示しない
@@ -780,7 +780,7 @@ registration行から「その試験の結果論文（linked publication）」�
 
 - **ペアキーは順序非依存**: `normalizePairKey()`（`duplicate-detect.ts`）が2つの ref_id を辞書順にソートしてから連結するため、`ref_id_a`/`ref_id_b` の向きが逆でも同じペアとして扱える。同じ試験・同じ論文の組が「Aから見てB」「Bから見てA」の両方向で検出されても二重登録されない
 - **冪等フィルタ `filterNewDuplicatePairs()`**（`duplicate-detect.ts`）は `saveDuplicateCandidates()` が保存直前に使う。`Publication_Candidates` の `filterNewCandidates()` との違いは、キーが ref_id 1本ではなく「2つの ref_id の組」であること。`status` は見ない（`dismissed`/`merged` になった組も既出として弾く。一度決着した組を再スキャンのたびに再提示しないことがこの関数の存在理由そのもの）
-- 5点セットの永続化関数（`sheets-api.ts`、`Publication_Candidates` 系と同型）: `ensureDuplicateCandidatesSheet()`（タブ欠落時の自動作成・列欠落時の末尾追記）/ `readDuplicateCandidatesRows()`（内部専用の読み取り）/ `saveDuplicateCandidates()`（ensure → 既存行読み取り → `filterNewDuplicatePairs()` → 追記）/ `getDuplicateCandidates()`（チャンク3向けの公開読み取りAPI。**例外を握りつぶさずそのまま投げる**。`getPublicationCandidates()` とは流儀が違う。0件と取得失敗を呼び出し元が区別できないと、レビューUIが「未確認候補0件」という事実と異なる表示をキャッシュ経由で出し続けるため。Issue #147 外部レビュー指摘）/ `updateDuplicateCandidateStatus()`（`status`/`decided_by`/`decided_at`/`kept_ref_id` の更新）
+- 6点セットの永続化関数（`sheets-api.ts`、`Publication_Candidates` 系と同型）: `ensureDuplicateCandidatesSheet()`（タブ欠落時の自動作成・列欠落時の末尾追記）/ `migrateDuplicateCandidatesHeaderColumns()`（ヘッダー不足列の末尾追記。ensure 経路と読み取り経路の共有ロジック）/ `readDuplicateCandidatesRows()`（内部専用の読み取り。シート全列を読み、自分が読んだ全幅ヘッダー行で不足列の追記 PUT も行う）/ `saveDuplicateCandidates()`（ensure → 既存行読み取り → `filterNewDuplicatePairs()` → 追記）/ `getDuplicateCandidates()`（チャンク3向けの公開読み取りAPI。まず読む→範囲エラー（`isSheetMissingError()`）時だけ ensure して読み直す。**例外を握りつぶさずそのまま投げる**。`getPublicationCandidates()` とは流儀が違う。0件と取得失敗を呼び出し元が区別できないと、レビューUIが「未確認候補0件」という事実と異なる表示をキャッシュ経由で出し続けるため。Issue #147 外部レビュー指摘）/ `updateDuplicateCandidateStatus()`（`status`/`decided_by`/`decided_at`/`kept_ref_id` の更新）
 - **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions/Publication_Candidates と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `DUPLICATE_CANDIDATES_HEADERS` ミラーも必ず追従させること
 
 **レビューUIの設計判断（チャンク3、Issue #147）**:

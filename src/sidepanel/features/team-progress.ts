@@ -84,9 +84,20 @@ function hostOf(kind: HostKind): HTMLElement {
 
 /**
  * プロジェクト読み込み時に呼ぶ（担当割り振りで絞り込む前の全文献を渡す）
- * 判定データの取得は非同期で行い、画面表示をブロックしない。
+ *
+ * preloadedDecisions を渡すと、この関数自身の getDecisions() 呼び出しを省略して
+ * そのまま cache を同期的に温める（Issue #153 工程2 チャンク2: プロジェクト読み込み側が
+ * 既に取得済みの Decisions を渡し、初回の重複取得をなくす。現状の唯一の呼び出し元
+ * （project.ts の loadDataAndShowScreening）は常にこちらを通り、判定データ取得の通信は
+ * 発生しない。PR #161 レビュー指摘対応で「判定データの取得は非同期」というこの docstring の
+ * 記述を訂正）。preloadedDecisions を省略した場合だけ、従来どおり非同期の getDecisions() で
+ * 取得し画面表示をブロックしない。🔄ボタン（buildFooter() 内）は
+ * fetchDecisions() を直接呼んで独立に再取得する。
  */
-export function initTeamProgress(fullRefs: ReferenceWithStatus[]): void {
+export function initTeamProgress(
+    fullRefs: ReferenceWithStatus[],
+    preloadedDecisions?: { decision: Decision; rowIndex: number }[]
+): void {
     const spreadsheetId = state.spreadsheetId;
     cache = null;
     loadError = false;
@@ -95,6 +106,17 @@ export function initTeamProgress(fullRefs: ReferenceWithStatus[]): void {
 
     const baseRefs: TeamProgressRef[] = fullRefs.map(toTeamProgressRef);
     baseRefsStore = { spreadsheetId, refs: baseRefs };
+
+    if (preloadedDecisions) {
+        cache = {
+            spreadsheetId,
+            baseRefs,
+            decisions: preloadedDecisions.map((r) => r.decision),
+            fetchedAt: new Date(),
+        };
+        renderTeamProgress();
+        return;
+    }
 
     // 取得開始（同期的に「取得中」状態と初回描画まで進む）→ その後に念のため描画。
     // 既に同じプロジェクトを取得中で fetchDecisions が即 return した場合も、

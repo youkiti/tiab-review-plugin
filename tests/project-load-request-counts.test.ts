@@ -6,7 +6,8 @@ import {
     getFulltextAiActiveRound, parseAssignmentConfig, parseFulltextAiActiveRound,
     getReferencesWithAllDecisions, getReferencesWithStatus, getActiveBatchIdsForActiveRun,
     getReferences, getDecisions, getDuplicateCandidates, isUserAdmin,
-    getSpreadsheetInfo, getUserEmail, ensureHeaders, REFERENCES_HEADERS, DUPLICATE_CANDIDATES_HEADERS,
+    getSpreadsheetInfo, getUserEmail, ensureHeaders, validateSpreadsheetFormat,
+    REFERENCES_HEADERS, DUPLICATE_CANDIDATES_HEADERS,
 } from '../src/lib/sheets-api';
 import { setPlatform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
@@ -86,7 +87,9 @@ function installMock(keyOpened = true, legacy = false) {
     const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status });
     globalThis.fetch = async (input, init) => {
         const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
-        const match = decodeURIComponent(url.pathname).match(/\/values\/([^!]+)!(.+)/);
+        // Duplicate_Candidates はシート名のみ（範囲指定なし）で読むため、range部分（!以降）は
+        // 無いことがある（PR #161 レビュー指摘対応）。
+        const match = decodeURIComponent(url.pathname).match(/\/values\/([^!]+?)(?:!(.+))?$/);
         const endpoint = match?.[1] ?? (url.pathname.includes('oauth2') ? 'oauth2'
             : url.hostname === 'www.googleapis.com' ? 'drive' : 'metadata');
         if (init?.method && init.method !== 'GET') {
@@ -111,32 +114,47 @@ function installMock(keyOpened = true, legacy = false) {
 }
 
 for (const keyOpened of [false, true]) {
-    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 履歴各2回・Config1回・合計18回以下`, async () => {
+    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 履歴各2回・Config1回・References/Decisions各2回・Duplicate_Candidates1回`, async () => {
         const mock = installMock(keyOpened);
-        // 接続前後のAPI列: 認証、project.tsの接続時ヘッダー確認・メタ情報取得。
+        // 接続前後のAPI列: 認証、project.tsの接続時フォーマット検証・メタ情報取得。
+        // validateSpreadsheetFormat() が返す referencesHeader を ensureHeaders() へ渡し、
+        // ensureHeaders() 内での References ヘッダー再取得（GET）を省略する
+        // （Issue #153 工程2 チャンク2）。Decisions側のヘッダー確認は独立して必ず読み直す
+        // 既存の不変条件（tests/ensure-headers-drive-columns.test.ts で固定済み）は変えていない。
         const user = await getUserEmail();
         await getSpreadsheetInfo('project');
-        await ensureHeaders('project');
-        const [, config, history] = await Promise.all([
+        const validation = await validateSpreadsheetFormat('project');
+        await ensureHeaders('project', validation.referencesHeader);
+
+        // References（論理削除を含む全件）・Decisions（全レビュアー分）・Duplicate_Candidates を
+        // 設定・割り振り・AI履歴の取得と同じタイミングで1回だけ取得し、下流
+        // （getReferencesWithStatus/AllDecisions・team-progress・duplicate-review の初回描画）へ
+        // 引数で配る（Issue #153 工程2 チャンク2: プロジェクト読み込み1回あたりの重複取得解消）。
+        const [, config, history, allReferences, decisionsData, duplicateCandidates] = await Promise.all([
             isUserAdmin('project', user), getProjectLoadConfig('project'), getLlmHistory('project'),
+            getReferences('project'),
+            getDecisions('project'),
+            getDuplicateCandidates('project'),
         ]);
-        const loaded = { ...history, fulltextAiActiveRound: config.fulltextAiActiveRound };
+        const loaded = {
+            ...history, fulltextAiActiveRound: config.fulltextAiActiveRound,
+            allReferences, decisionsData,
+        };
         const refs = keyOpened
             ? await getReferencesWithAllDecisions('project', user, loaded)
-            : await getReferencesWithStatus('project', user);
-        // 画面表示後: team-progress、duplicate-reviewの件数、manuscriptの全件取得。
-        await Promise.all([
-            getDecisions('project'), getReferences('project'), getDuplicateCandidates('project'),
-            getReferences('project'),
-        ]);
+            : await getReferencesWithStatus('project', user, loaded);
+        // 画面表示後: team-progress・duplicate-reviewの初回描画は上で取得済みの
+        // allReferences/decisionsData/duplicateCandidates をそのまま使う
+        // （initTeamProgress の preloadedDecisions・primeDuplicateReviewSection 引数）ため、
+        // ここで追加のGETは発生しない。
         assert.deepEqual(mock.counts, {
-            oauth2: 1, metadata: 1, References: 4, Decisions: 3, drive: 2,
-            Config: 1, LLM_Executions: 2, LLM_Runs: 2, Duplicate_Candidates: 2,
+            oauth2: 1, metadata: 1, References: 2, Decisions: 2, drive: 2,
+            Config: 1, LLM_Executions: 2, LLM_Runs: 2, Duplicate_Candidates: 1,
         });
-        assert.ok(Object.values(mock.counts).reduce((a, b) => a + b, 0) <= 18);
         assert.equal(mock.writes.length, 0, '移行不要なら書き込みはゼロ');
         assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['batch-1']));
         assert.equal(config.assignmentConfig.status, 'configured');
+        assert.equal(duplicateCandidates.length, 0);
         const reviewers = refs[0].allDecisions?.map(d => d.reviewer_id) ?? [];
         assert.equal(reviewers.includes('other'), keyOpened, 'Blindでは他者票を出さない');
         assert.equal(mock.counts.LLM_Runs, 2, '下流の採用Run解決は再取得しない');
