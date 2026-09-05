@@ -341,7 +341,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 
 #### LLM_Executions タブ（列は末尾追記しかできない）
 
-`saveLlmExecution`（`src/lib/sheets/llm-history.ts`）は行を**位置ベース**で組み立てて `appendRows` する。ヘッダ名は見ていない。既存シートのヘッダは `ensureLlmExecutionsSheet` が不足列を**末尾へ追記**する形でしか育たない。したがって `LLM_EXECUTIONS_HEADERS` の途中に列を挿入すると、既存プロジェクトのシートで列がずれて壊れる。**新しい列は必ず配列の末尾に足すこと。**
+`saveLlmExecution`（`src/lib/sheets/llm-history.ts`）は行を**位置ベース**で組み立てて `appendRows` する。ヘッダ名は見ていない。既存シートのヘッダは `ensureLlmExecutionsSheet` に加え、読み取り（`getLlmExecutions` / `getLlmRuns`）でも本体の1行目から不足列を**末尾へ追記**する同じ移行を行う。したがって `LLM_EXECUTIONS_HEADERS` の途中に列を挿入すると、既存プロジェクトのシートで列がずれて壊れる。**新しい列は必ず配列の末尾に足すこと。**
 
 - 読み取り側（`getLlmExecutions` / `updateLlmExecution`）はヘッダ駆動なので、新しい列の型変換が必要なら `getLlmExecutions` の `switch (header)` に case を足す
 - `src/demo/seed.ts` に `REFERENCES_HEADERS` / `DECISIONS_HEADERS` / `LLM_EXECUTIONS_HEADERS` / `LLM_RUNS_HEADERS` のミラーがあり、**実際に drift していた**（Issue #62 時点で `LLM_EXECUTIONS_HEADERS` のミラーが `target_mode` / `target_sets` / `target_selected_count` の3列ぶん古かった）。列を変更したら両方を確認すること

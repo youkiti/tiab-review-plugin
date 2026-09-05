@@ -114,7 +114,7 @@ function installMock(keyOpened = true, legacy = false) {
 }
 
 for (const keyOpened of [false, true]) {
-    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 履歴各2回・Config1回・References/Decisions各2回・Duplicate_Candidates1回`, async () => {
+    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 履歴各1回・Config1回・References/Decisions各2回・Duplicate_Candidates1回`, async () => {
         const mock = installMock(keyOpened);
         // 接続前後のAPI列: 認証、project.tsの接続時フォーマット検証・メタ情報取得。
         // validateSpreadsheetFormat() が返す referencesHeader を ensureHeaders() へ渡し、
@@ -149,7 +149,7 @@ for (const keyOpened of [false, true]) {
         // ここで追加のGETは発生しない。
         assert.deepEqual(mock.counts, {
             oauth2: 1, metadata: 1, References: 2, Decisions: 2, drive: 2,
-            Config: 1, LLM_Executions: 2, LLM_Runs: 2, Duplicate_Candidates: 1,
+            Config: 1, LLM_Executions: 1, LLM_Runs: 1, Duplicate_Candidates: 1,
         });
         assert.equal(mock.writes.length, 0, '移行不要なら書き込みはゼロ');
         assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['batch-1']));
@@ -157,7 +157,7 @@ for (const keyOpened of [false, true]) {
         assert.equal(duplicateCandidates.length, 0);
         const reviewers = refs[0].allDecisions?.map(d => d.reviewer_id) ?? [];
         assert.equal(reviewers.includes('other'), keyOpened, 'Blindでは他者票を出さない');
-        assert.equal(mock.counts.LLM_Runs, 2, '下流の採用Run解決は再取得しない');
+        assert.equal(mock.counts.LLM_Runs, 1, '下流の採用Run解決は再取得しない');
     });
 }
 
@@ -206,14 +206,46 @@ test('次のロードではConfigと履歴の内容を再取得する', async ()
     const [history, config] = await Promise.all([getLlmHistory('project'), getProjectLoadConfig('project')]);
     assert.equal(history.llmRuns.length, 0);
     assert.equal(config.configBundle.keyOpened, false);
-    assert.equal(mock.counts.LLM_Executions, 3);
-    assert.equal(mock.counts.LLM_Runs, 3);
+    assert.equal(mock.counts.LLM_Executions, 2);
+    assert.equal(mock.counts.LLM_Runs, 2);
     assert.equal(mock.counts.Config, 2);
 });
 
 for (const [sheet, ensure] of [
     ['LLM_Executions', ensureLlmExecutionsSheet], ['LLM_Runs', ensureLlmRunsSheet],
 ] as const) {
+    test(`${sheet}: 読み取りでヘッダー不足列を追加GETなしで末尾へ追記する`, async () => {
+        const mock = installMock();
+        const headers = mock.tables[sheet][0];
+        mock.tables[sheet] = [headers.slice(0, -1)];
+        await getLlmHistory('project');
+        assert.equal(mock.writes.length, 1, '不足列だけを書き込む');
+        assert.deepEqual(mock.writes[0].body.values, [[headers[headers.length - 1]]]);
+        assert.equal(mock.counts[sheet], 1, '本体取得のヘッダーを移行に使う');
+    });
+
+    test(`${sheet}: 読み取り時のタブ欠落はensureして読み直す`, async () => {
+        const mock = installMock();
+        mock.failures.set(sheet, 'Unable to parse range');
+        const history = await getLlmHistory('project');
+        assert.equal(mock.writes.length, 2, 'addSheetとヘッダーappend');
+        assert.ok(mock.writes[0].body.requests);
+        assert.deepEqual(mock.writes[1].body.values, [mock.tables[sheet][0]]);
+        assert.equal(mock.counts[sheet], 3, '初回読み取り・ensure・読み直しが各1回');
+        assert.deepEqual(sheet === 'LLM_Executions' ? history.llmExecutions : history.llmRuns, [],
+            '読み直しも失敗したタブの履歴は空で返す');
+    });
+
+    test(`${sheet}: 読み取り成功後のensureは明示失効までヘッダーGETを省く`, async () => {
+        const mock = installMock();
+        await getLlmHistory('project');
+        await ensure('project');
+        assert.equal(mock.counts[sheet], 1, '読み取り成功でmemoが温まる');
+        clearLlmSheetEnsureMemo();
+        await ensure('project');
+        assert.equal(mock.counts[sheet], 2, '明示失効後はヘッダーを再確認する');
+    });
+
     test(`${sheet}: 同時ensure合流・TTL・プロジェクト切替・明示失効`, async t => {
         const mock = installMock();
         let now = 1_000;
@@ -274,8 +306,8 @@ test('旧形式移行は一度だけ書き込み、共有した履歴で採用Ba
     assert.equal(history.llmExecutions[0].run_id, history.llmRuns[0].run_id);
     assert.equal(mock.writes.length, 2, 'Run追加とBatch所属更新が各1回');
     // 移行時だけ、書き込み先の行位置を再確認する既存の本体GETが1回増える。
-    assert.equal(mock.counts.LLM_Executions, 3);
-    assert.equal(mock.counts.LLM_Runs, 2);
+    assert.equal(mock.counts.LLM_Executions, 2);
+    assert.equal(mock.counts.LLM_Runs, 1);
     const before = { ...mock.counts };
     await getReferencesWithAllDecisions('project', 'self', { ...history, fulltextAiActiveRound: null });
     assert.equal(mock.counts.LLM_Runs, before.LLM_Runs);
