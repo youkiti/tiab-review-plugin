@@ -8,7 +8,7 @@
 
 /**
  * Google Drive Permissions API のレスポンス（の一部）を表す最小限の型。
- * sheets-api.ts の SpreadsheetPermission とは独立させ、このモジュールを
+ * drive-permissions.ts の SpreadsheetPermission とは独立させ、このモジュールを
  * DOM/fetch非依存の純粋関数のみに保つ。
  */
 export interface DrivePermissionLike {

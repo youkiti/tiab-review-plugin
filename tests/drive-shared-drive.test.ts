@@ -123,22 +123,24 @@ test('driveFetch: 呼び出し側の method / headers / body はそのまま透�
 // 通常のテストではすり抜ける。ソースを直接見張って、経路が増えた瞬間に落とす。
 // ---------------------------------------------------------------------------
 
-test('drive-api.ts に fetch() の直呼びが残っていない（driveFetch 経由のみ）', () => {
-    const source = readFileSync(join(process.cwd(), 'src', 'lib', 'drive-api.ts'), 'utf8');
-    // コメント中の記述を拾わないよう除去する。URL の "://" を先に退避してから
-    // 行コメントを落とす（https:// を行コメント開始と誤認しないため）。
-    const code = source
-        .replace(/:\/\//g, ':__SCHEME__')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
-    // driveFetch( / getResp = await driveFetch( などは前方に識別子文字が付くため除外される
-    const directCalls = code.match(/(?<![A-Za-z0-9_$])fetch\s*\(/g) ?? [];
+test('Drive モジュール（drive-api.ts / drive-permissions.ts / drive-recent-files.ts）に fetch() の直呼びが残っていない（driveFetch 経由のみ）', () => {
+    for (const name of ['drive-api.ts', 'drive-permissions.ts', 'drive-recent-files.ts']) {
+        const source = readFileSync(join(process.cwd(), 'src', 'lib', name), 'utf8');
+        // コメント中の記述を拾わないよう除去する。URL の "://" を先に退避してから
+        // 行コメントを落とす（https:// を行コメント開始と誤認しないため）。
+        const code = source
+            .replace(/:\/\//g, ':__SCHEME__')
+            .replace(/\/\*[\s\S]*?\*\//g, '')
+            .replace(/\/\/.*$/gm, '');
+        // driveFetch( / getResp = await driveFetch( などは前方に識別子文字が付くため除外される
+        const directCalls = code.match(/(?<![A-Za-z0-9_$])fetch\s*\(/g) ?? [];
 
-    assert.deepEqual(
-        directCalls,
-        [],
-        'Drive API は driveFetch() 経由で呼ぶこと（supportsAllDrives が落ちると共有ドライブで silent に壊れる）'
-    );
+        assert.deepEqual(
+            directCalls,
+            [],
+            `${name}: Drive API は driveFetch() 経由で呼ぶこと（supportsAllDrives が落ちると共有ドライブで silent に壊れる）`
+        );
+    }
 });
 
 // ---------------------------------------------------------------------------
