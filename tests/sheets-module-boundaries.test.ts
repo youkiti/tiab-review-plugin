@@ -168,10 +168,65 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'getDecisionsByReviewerId',
         'updateDecisionsBatch',
         'getLlmPendingDecisions',
+        'PRESET_RCT',
+        'PRESET_SR',
+        'parseAssignmentConfig',
+        'parseFulltextAiActiveRound',
+        'DEFAULT_LLM_CONFIG',
+        'getAssignmentConfig',
+        'saveAssignmentConfig',
+        'getFulltextAssignmentConfig',
+        'saveFulltextAssignmentConfig',
+        'getProjectConfigBundle',
+        'getProjectLoadConfig',
+        'getHighlightKeywords',
+        'updateConfigKeywords',
+        'getFulltextPoolRule',
+        'saveFulltextPoolRule',
+        'saveReviewCriteria',
+        'saveExcludeReasonConfig',
+        'saveImportStats',
+        'getFulltextAiActiveRound',
+        'setFulltextAiActiveRound',
+        'getKeyOpenedStatus',
+        'setKeyOpenedStatus',
+        'getFulltextDriveFolderId',
+        'saveFulltextDriveFolderId',
+        'getProjectDriveFolderId',
+        'saveProjectDriveFolderId',
+        'getLlmConfig',
+        'updateLlmConfig',
     ];
 
     const facade = sheetsApi as unknown as Record<string, unknown>;
     for (const name of exportedNames) {
         assert.notEqual(facade[name], undefined, `sheets-api.ts から ${name} が export されていない`);
     }
+});
+
+
+test('config-schema.ts は通信・シート定義・platform・他タブの読み書きに依存しない', () => {
+    const source = readFileSync(join(SHEETS_DIR, 'config-schema.ts'), 'utf8');
+    const specifiers = importSpecifiers(source);
+    const forbidden = ['./transport', './schema', '../platform', './references', './decisions', './config'];
+    const disallowed = specifiers.filter(s => forbidden.includes(s));
+
+    assert.deepEqual(
+        disallowed,
+        [],
+        `config-schema.ts に禁止された依存がある: ${disallowed.join(', ')}`
+    );
+});
+
+test('config.ts は references.ts と decisions.ts を import していない', () => {
+    const source = readFileSync(join(SHEETS_DIR, 'config.ts'), 'utf8');
+
+    assert.ok(
+        !/from\s+['"]\.\/references['"]/.test(source),
+        'config.ts は ./references を import してはならない'
+    );
+    assert.ok(
+        !/from\s+['"]\.\/decisions['"]/.test(source),
+        'config.ts は ./decisions を import してはならない'
+    );
 });

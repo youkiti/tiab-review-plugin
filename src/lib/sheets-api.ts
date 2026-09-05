@@ -1,21 +1,12 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmConfig, LlmCriteria, LlmExecution, LlmRun, AssignmentConfig, ImportStatsMap, PublicationCandidate, PublicationCandidateStrategy, PublicationCandidateStatus, DuplicateCandidate, DuplicateCandidateStatus, DuplicateCandidateDraft, DuplicateCandidateStatusUpdate } from './types';
-import { MODEL_ID_MIGRATIONS } from './model-migrations';
+import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmCriteria, LlmExecution, LlmRun, PublicationCandidate, PublicationCandidateStrategy, PublicationCandidateStatus, DuplicateCandidate, DuplicateCandidateStatus, DuplicateCandidateDraft, DuplicateCandidateStatusUpdate } from './types';
 import { platform } from '../platform';
 import { createAsyncCoalescer } from './async-coalesce';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } from './llm-batch-target';
-import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './llm-target-selection';
-import { parseFulltextPoolRule } from './fulltext-pool';
-import type { FulltextPoolRule } from './fulltext-pool';
-import { parseReviewCriteria, serializeReviewCriteria } from './review-criteria';
-import type { ReviewCriteria } from './review-criteria';
-import { parseExcludeReasonConfig, serializeExcludeReasonConfig } from './exclude-reason-config';
-import type { ExcludeReasonConfig } from './exclude-reason-config';
-import { DEFAULT_FULLTEXT_ASSIGNMENT, normalizeFulltextReviewerMap } from './fulltext-assignment';
+import { parseLlmTargetMode } from './llm-target-selection';
 import { driveFetch } from './drive-shared-drive';
-import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { AUDIT_LOG_HEADERS, buildAuditEventRow } from './audit-log';
 import { isLogicallyDeleted, filterNewDuplicatePairs } from './duplicate-detect';
 import type { AuditLogEvent } from './audit-log';
@@ -71,6 +62,9 @@ import {
     filterDecisionsForBlind,
     invalidateDecisionRowCache,
 } from './sheets/decisions';
+import type { ProjectConfigBundle } from './sheets/config-schema';
+import { DEFAULT_CONFIG_BUNDLE, parseConfigBundle } from './sheets/config-schema';
+import { getFulltextAiActiveRound, setFulltextAiActiveRound } from './sheets/config';
 export {
     SheetsAccessDeniedError,
     isSheetsAccessDeniedStatus,
@@ -109,43 +103,40 @@ export {
     updateDecisionsBatch,
     getLlmPendingDecisions,
 } from './sheets/decisions';
+export {
+    PRESET_RCT,
+    PRESET_SR,
+    parseAssignmentConfig,
+    parseFulltextAiActiveRound,
+    DEFAULT_LLM_CONFIG,
+} from './sheets/config-schema';
+export type { HighlightKeywords, ProjectConfigBundle, FulltextEvidenceDisplay } from './sheets/config-schema';
+export {
+    getAssignmentConfig,
+    saveAssignmentConfig,
+    getFulltextAssignmentConfig,
+    saveFulltextAssignmentConfig,
+    getProjectConfigBundle,
+    getProjectLoadConfig,
+    getHighlightKeywords,
+    updateConfigKeywords,
+    getFulltextPoolRule,
+    saveFulltextPoolRule,
+    saveReviewCriteria,
+    saveExcludeReasonConfig,
+    saveImportStats,
+    getFulltextAiActiveRound,
+    setFulltextAiActiveRound,
+    getKeyOpenedStatus,
+    setKeyOpenedStatus,
+    getFulltextDriveFolderId,
+    saveFulltextDriveFolderId,
+    getProjectDriveFolderId,
+    saveProjectDriveFolderId,
+    getLlmConfig,
+    updateLlmConfig,
+} from './sheets/config';
 
-// デフォルトハイライトキーワード（RCT フィルタリング想定）
-export const PRESET_RCT = {
-    include: [
-        'randomized', 'randomised', 'RCT', 'controlled trial',
-        'random allocation', 'randomly assigned', 'randomly allocated', 'placebo'
-    ],
-    exclude: [
-        'animal', 'mice', 'rat', 'in vitro', 'cell line',
-        'protocol', 'review', 'meta-analysis', 'case report', 'case series',
-        'commentary', 'editorial', 'letter', 'conference'
-    ]
-};
-
-// システマティックレビュー（SR）用プリセット
-export const PRESET_SR = {
-    include: [
-        'systematic review', 'meta-analysis', 'network meta-analysis', 'pooled analysis',
-        'search strategy', 'database search', 'risk of bias', 'quality assessment',
-        'eligibility criteria', 'selection criteria'
-    ],
-    exclude: [
-        'case report', 'case series', 'editorial', 'commentary', 'letter',
-        'protocol', 'narrative review', 'overview', 'animal', 'mice', 'rat',
-        'in vitro', 'cell line'
-    ]
-};
-
-const DEFAULT_INCLUDE_KEYWORDS = PRESET_RCT.include;
-const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
-
-const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
-    status: 'none',
-    calibrationSize: 50,
-    groupCount: 4,
-    reviewerMap: {},
-};
 
 /**
  * ユーザーのメールアドレスを取得（OAuth userinfo APIを使用）
@@ -609,408 +600,6 @@ export async function getReferencesWithAllDecisions(
     });
 }
 
-/**
- * ハイライトキーワードの型
- */
-export interface HighlightKeywords {
-    include: string[];
-    exclude: string[];
-}
-
-const ASSIGNMENT_CONFIG_KEYS = [
-    'assignment_status',
-    'assignment_calibration_size',
-    'assignment_group_count',
-    'assignment_reviewer_map',
-    'assignment_seed',
-    'assignment_generated_at',
-    'assignment_dismissed_at',
-];
-
-export async function getAssignmentConfig(spreadsheetId: string): Promise<AssignmentConfig> {
-    try {
-        return parseAssignmentConfig(await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`));
-    } catch (error) {
-        console.log('[getAssignmentConfig] Config not found, using defaults:', error);
-        return parseAssignmentConfig([]);
-    }
-}
-
-/** 取得済みの Config 値から担当割り振りを組み立てる。 */
-export function parseAssignmentConfig(values: string[][]): AssignmentConfig {
-    const config: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
-
-    for (const row of values) {
-        const key = row[0];
-        const value = row[1];
-
-        if (!ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
-
-        switch (key) {
-            case 'assignment_status':
-                if (value === 'dismissed' || value === 'configured' || value === 'none') {
-                    config.status = value;
-                }
-                break;
-            case 'assignment_calibration_size':
-                config.calibrationSize = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.calibrationSize;
-                break;
-            case 'assignment_group_count':
-                config.groupCount = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.groupCount;
-                break;
-            case 'assignment_reviewer_map':
-                try {
-                    config.reviewerMap = JSON.parse(value) || {};
-                } catch {
-                    config.reviewerMap = {};
-                }
-                break;
-            case 'assignment_seed':
-                config.seed = value;
-                break;
-            case 'assignment_generated_at':
-                config.generatedAt = value;
-                break;
-            case 'assignment_dismissed_at':
-                config.dismissedAt = value;
-                break;
-        }
-    }
-    return config;
-}
-
-export async function saveAssignmentConfig(spreadsheetId: string, config: AssignmentConfig): Promise<void> {
-    try {
-        await trySaveAssignmentConfig(spreadsheetId, config);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveAssignmentConfig] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveAssignmentConfig(spreadsheetId, config);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveAssignmentConfig(spreadsheetId: string, config: AssignmentConfig): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    const rowIndices: Record<string, number> = {};
-
-    values.forEach((row, index) => {
-        if (ASSIGNMENT_CONFIG_KEYS.includes(row[0])) {
-            rowIndices[row[0]] = index + 1;
-        }
-    });
-
-    const entries: Record<string, string> = {
-        assignment_status: config.status,
-        assignment_calibration_size: String(config.calibrationSize),
-        assignment_group_count: String(config.groupCount),
-        assignment_reviewer_map: JSON.stringify(config.reviewerMap || {}),
-        assignment_seed: config.seed || '',
-        assignment_generated_at: config.generatedAt || '',
-        assignment_dismissed_at: config.dismissedAt || '',
-    };
-
-    for (const [key, value] of Object.entries(entries)) {
-        if (rowIndices[key]) {
-            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[value]]);
-        } else {
-            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// フルテキスト担当割り振り（Config シート fulltext_assignment_* キー）
-// ---------------------------------------------------------------------------
-
-const FT_ASSIGNMENT_CONFIG_KEYS = [
-    'fulltext_assignment_status',
-    'fulltext_assignment_group_count',
-    'fulltext_assignment_reviewer_map',
-    'fulltext_assignment_seed',
-    'fulltext_assignment_generated_at',
-];
-
-/** Config タブの A:B 行列から FulltextAssignmentConfig を組み立てる */
-function parseFulltextAssignmentRows(values: string[][]): FulltextAssignmentConfig {
-    const config: FulltextAssignmentConfig = { ...DEFAULT_FULLTEXT_ASSIGNMENT, reviewerMap: {} };
-
-    for (const row of values) {
-        const key = row[0];
-        const value = row[1];
-        if (!FT_ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
-
-        switch (key) {
-            case 'fulltext_assignment_status':
-                if (value === 'configured' || value === 'none') {
-                    config.status = value;
-                }
-                break;
-            case 'fulltext_assignment_group_count':
-                config.groupCount = parseInt(value, 10) || DEFAULT_FULLTEXT_ASSIGNMENT.groupCount;
-                break;
-            case 'fulltext_assignment_reviewer_map':
-                try {
-                    config.reviewerMap = normalizeFulltextReviewerMap(JSON.parse(value) || {});
-                } catch {
-                    config.reviewerMap = {};
-                }
-                break;
-            case 'fulltext_assignment_seed':
-                config.seed = value;
-                break;
-            case 'fulltext_assignment_generated_at':
-                config.generatedAt = value;
-                break;
-        }
-    }
-
-    return config;
-}
-
-export async function getFulltextAssignmentConfig(spreadsheetId: string): Promise<FulltextAssignmentConfig> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        return parseFulltextAssignmentRows(values);
-    } catch (error) {
-        console.log('[getFulltextAssignmentConfig] Config not found, using defaults:', error);
-        return { ...DEFAULT_FULLTEXT_ASSIGNMENT, reviewerMap: {} };
-    }
-}
-
-export async function saveFulltextAssignmentConfig(
-    spreadsheetId: string,
-    config: FulltextAssignmentConfig
-): Promise<void> {
-    try {
-        await trySaveFulltextAssignmentConfig(spreadsheetId, config);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveFulltextAssignmentConfig] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveFulltextAssignmentConfig(spreadsheetId, config);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveFulltextAssignmentConfig(
-    spreadsheetId: string,
-    config: FulltextAssignmentConfig
-): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    const rowIndices: Record<string, number> = {};
-
-    values.forEach((row, index) => {
-        if (FT_ASSIGNMENT_CONFIG_KEYS.includes(row[0])) {
-            rowIndices[row[0]] = index + 1;
-        }
-    });
-
-    const entries: Record<string, string> = {
-        fulltext_assignment_status: config.status,
-        fulltext_assignment_group_count: String(config.groupCount),
-        fulltext_assignment_reviewer_map: JSON.stringify(config.reviewerMap || {}),
-        fulltext_assignment_seed: config.seed || '',
-        fulltext_assignment_generated_at: config.generatedAt || '',
-    };
-
-    for (const [key, value] of Object.entries(entries)) {
-        if (rowIndices[key]) {
-            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[value]]);
-        } else {
-            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
-        }
-    }
-}
-
-/**
- * Config タブの共有設定（キー開封・キーワード・フルテキスト候補ルール）
- */
-export interface ProjectConfigBundle {
-    keyOpened: boolean;
-    keywords: HighlightKeywords;
-    fulltextPoolRule: FulltextPoolRule | null;
-    // 採用するフルテキストAI判定ラウンド（reviewer_id = `llm:{model}@{timestamp}`）。未設定は null。
-    fulltextAiActiveRound: string | null;
-    // ブラインド中（AI判断 非開示時）のAI evidence 表示レベル。実験条件（ヒト単独 vs AI支援）の制御に使う。
-    fulltextEvidenceDisplay: FulltextEvidenceDisplay;
-    // インポート統計（PRISMA識別件数・重複除去数の自動記入用）
-    importStats: ImportStatsMap;
-    // フルテキスト担当割り振り（未設定は status 'none' = 全員が全候補）
-    fulltextAssignment: FulltextAssignmentConfig;
-    // レビュー基準（人間レビュアー向けの表示用。AI 判定用の llm_criteria とは別物）
-    reviewCriteria: ReviewCriteria | null;
-    // フルテキスト除外理由リスト（未設定は null = 既定のPICO7区分）
-    excludeReasonConfig: ExcludeReasonConfig | null;
-}
-
-/**
- * ブラインド中のAI evidence（ハイライト・根拠カード）の表示レベル。
- * Config タブのキー `fulltext_evidence_display` で共有設定する。
- * - none:    evidence 自体を表示しない（AI判定なしの文献と見分けが付かない表示にする）
- * - neutral: 単色ハイライト＋「AI注目箇所」ラベルのみ（polarity 非表示。既定値）
- * - full:    ブラインド中でも組入/除外の色分け・ラベルまで表示する
- * AI判断の開示時（keyOpened / 管理者トグル）は設定によらず full 相当で表示する。
- */
-export type FulltextEvidenceDisplay = 'none' | 'neutral' | 'full';
-
-function parseFulltextEvidenceDisplay(value: string | undefined): FulltextEvidenceDisplay {
-    const v = (value ?? '').trim().toLowerCase();
-    return v === 'none' || v === 'neutral' || v === 'full' ? v : 'neutral';
-}
-
-const DEFAULT_CONFIG_BUNDLE: ProjectConfigBundle = {
-    keyOpened: false,
-    keywords: { include: DEFAULT_INCLUDE_KEYWORDS, exclude: DEFAULT_EXCLUDE_KEYWORDS },
-    fulltextPoolRule: null,
-    fulltextAiActiveRound: null,
-    fulltextEvidenceDisplay: 'neutral',
-    importStats: {},
-    fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
-    reviewCriteria: null,
-    excludeReasonConfig: null,
-};
-
-/**
- * Config タブの import_stats 値（JSON）をパースする。不正値は空として扱う。
- */
-function parseImportStats(value: string | undefined): ImportStatsMap {
-    if (!value) return {};
-    try {
-        const parsed = JSON.parse(value);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        const stats: ImportStatsMap = {};
-        for (const [file, raw] of Object.entries(parsed as Record<string, unknown>)) {
-            if (!raw || typeof raw !== 'object') continue;
-            const entry = raw as Record<string, unknown>;
-            const identified = Number(entry.identified);
-            const duplicates = Number(entry.duplicates);
-            if (!Number.isFinite(identified) || !Number.isFinite(duplicates)) continue;
-            stats[file] = {
-                identified,
-                duplicates,
-                imported_at: typeof entry.imported_at === 'string' ? entry.imported_at : undefined,
-            };
-        }
-        return stats;
-    } catch {
-        return {};
-    }
-}
-
-/**
- * Config タブ（Key-Value 形式: A列=キー、B列=値）のシート値を共有設定に変換
- */
-function parseConfigBundle(values: string[][]): ProjectConfigBundle {
-    let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
-    let excludeKeywords = DEFAULT_EXCLUDE_KEYWORDS;
-    let keyOpened = false;
-    let fulltextPoolRule: FulltextPoolRule | null = null;
-    let fulltextAiActiveRound: string | null = null;
-    let fulltextEvidenceDisplay: FulltextEvidenceDisplay = 'neutral';
-    let importStats: ImportStatsMap = {};
-    let reviewCriteria: ReviewCriteria | null = null;
-    let excludeReasonConfig: ExcludeReasonConfig | null = null;
-
-    for (const row of values) {
-        if (row[0] === 'include_keywords' && row[1]) {
-            const keywords = row[1]
-                .split(',')
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
-            if (keywords.length > 0) {
-                includeKeywords = keywords;
-            }
-        }
-        if (row[0] === 'exclude_keywords' && row[1]) {
-            const keywords = row[1]
-                .split(',')
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
-            if (keywords.length > 0) {
-                excludeKeywords = keywords;
-            }
-        }
-        if (row[0] === 'key_opened') {
-            keyOpened = row[1]?.toLowerCase() === 'true';
-        }
-        if (row[0] === 'fulltext_pool_rule' && row[1]) {
-            fulltextPoolRule = parseFulltextPoolRule(row[1]);
-        }
-        if (row[0] === 'fulltext_ai_active_round') {
-            fulltextAiActiveRound = row[1] ? row[1].trim() || null : null;
-        }
-        if (row[0] === 'fulltext_evidence_display') {
-            fulltextEvidenceDisplay = parseFulltextEvidenceDisplay(row[1]);
-        }
-        if (row[0] === 'import_stats' && row[1]) {
-            importStats = parseImportStats(row[1]);
-        }
-        if (row[0] === 'review_criteria') {
-            reviewCriteria = parseReviewCriteria(row[1]);
-        }
-        if (row[0] === 'fulltext_exclude_reasons') {
-            excludeReasonConfig = parseExcludeReasonConfig(row[1]);
-        }
-    }
-
-    return {
-        keyOpened,
-        keywords: { include: includeKeywords, exclude: excludeKeywords },
-        fulltextPoolRule,
-        fulltextAiActiveRound,
-        fulltextEvidenceDisplay,
-        importStats,
-        fulltextAssignment: parseFulltextAssignmentRows(values),
-        reviewCriteria,
-        excludeReasonConfig,
-    };
-}
-
-/**
- * Config タブの共有設定をまとめて取得（1リクエスト）
- * getKeyOpenedStatus + getHighlightKeywords + getFulltextPoolRule を
- * 個別に呼ぶとConfigを3回読むため、初期ロードではこちらを使うこと（429対策）。
- */
-export async function getProjectConfigBundle(spreadsheetId: string): Promise<ProjectConfigBundle> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        return parseConfigBundle(values);
-    } catch (error) {
-        console.log('[getProjectConfigBundle] Config not found, using defaults:', error);
-        return { ...DEFAULT_CONFIG_BUNDLE };
-    }
-}
-
-/** 初期ロード専用。Config の内容は呼び出し元だけで共有し、保持しない。 */
-export async function getProjectLoadConfig(spreadsheetId: string): Promise<{
-    configBundle: ProjectConfigBundle;
-    assignmentConfig: AssignmentConfig;
-    fulltextAiActiveRound: string | null;
-}> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        return {
-            configBundle: parseConfigBundle(values),
-            assignmentConfig: parseAssignmentConfig(values),
-            fulltextAiActiveRound: parseFulltextAiActiveRound(values),
-        };
-    } catch (error) {
-        console.log('[getProjectLoadConfig] Config not found, using defaults:', error);
-        return {
-            configBundle: { ...DEFAULT_CONFIG_BUNDLE },
-            assignmentConfig: parseAssignmentConfig([]),
-            fulltextAiActiveRound: null,
-        };
-    }
-}
-
-
 
 /**
  * フルテキストページの初期データをまとめて取得（1リクエスト）
@@ -1067,15 +656,6 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
     }
 }
 
-/**
- * Config タブからハイライトキーワードを取得
- * Config タブは Key-Value 形式（A列=キー、B列=値）を想定
- * 見つからない場合はデフォルト値を返す
- */
-export async function getHighlightKeywords(spreadsheetId: string): Promise<HighlightKeywords> {
-    const bundle = await getProjectConfigBundle(spreadsheetId);
-    return bundle.keywords;
-}
 
 /**
  * key開閉などの監査イベントを Audit_Log タブへ1行追記する（AGENTS.md「Audit_Log タブ」参照）。
@@ -1113,58 +693,6 @@ export async function logAuditEvent(
     }
 }
 
-/**
- * Config タブのハイライトキーワードを更新
- */
-export async function updateConfigKeywords(
-    spreadsheetId: string,
-    keywords: HighlightKeywords
-): Promise<void> {
-    try {
-        await tryUpdateConfig(spreadsheetId, keywords);
-    } catch (error) {
-        // シートがない場合のエラーハンドリング
-        // "Unable to parse range: Config!A:B" のようなエラーが返る
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[updateConfigKeywords] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            // 再試行
-            await tryUpdateConfig(spreadsheetId, keywords);
-        } else {
-            console.error('[updateConfigKeywords] Failed:', error);
-            throw error;
-        }
-    }
-}
-
-async function tryUpdateConfig(spreadsheetId: string, keywords: HighlightKeywords) {
-    // Config シートの全データを取得
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let includeRowIndex = -1;
-    let excludeRowIndex = -1;
-
-    // 既存の行を探す
-    values.forEach((row, index) => {
-        if (row[0] === 'include_keywords') includeRowIndex = index + 1; // 1-indexed
-        if (row[0] === 'exclude_keywords') excludeRowIndex = index + 1;
-    });
-
-    // include_keywords 更新
-    const includeValue = keywords.include.join(',');
-    if (includeRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${includeRowIndex}`, [[includeValue]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['include_keywords', includeValue]]);
-    }
-
-    // exclude_keywords 更新
-    const excludeValue = keywords.exclude.join(',');
-    if (excludeRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${excludeRowIndex}`, [[excludeValue]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['exclude_keywords', excludeValue]]);
-    }
-}
 
 /**
  * スプレッドシートの権限情報を取得
@@ -1415,144 +943,6 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
     }
 }
 
-/**
- * フルテキスト候補ルールを取得（未設定・不正値は null）
- */
-export async function getFulltextPoolRule(spreadsheetId: string): Promise<FulltextPoolRule | null> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        for (const row of values) {
-            if (row[0] === 'fulltext_pool_rule' && row[1]) {
-                return parseFulltextPoolRule(row[1]);
-            }
-        }
-        return null;
-    } catch (error) {
-        console.log('[getFulltextPoolRule] Config not found, returning null:', error);
-        return null;
-    }
-}
-
-/**
- * Config タブへ key=value の1行を保存する（既存なら B列を上書き、無ければ末尾に追記）。
- * fulltext_pool_rule / review_criteria / fulltext_exclude_reasons / import_stats など、
- * Config タブに「1キー1行」で保存する値はすべてこれを経由する
- * （旧実装ではキー名とシリアライザ以外ほぼ同一の関数が4つ並んでいたのを集約した）。
- * Config シート自体が無いプロジェクトでは自動作成してから1回だけリトライする。
- */
-async function saveConfigValue(spreadsheetId: string, key: string, value: string): Promise<void> {
-    try {
-        await trySaveConfigValue(spreadsheetId, key, value);
-    } catch (error) {
-        // reject の中身が Error とは限らない（Promise.reject(文字列) 等）ため、
-        // .message への安全なアクセスに寄せる。
-        const message = String((error as { message?: unknown } | undefined)?.message ?? error);
-        if (message.includes('Unable to parse range') || message.includes('not found')) {
-            console.log(`[saveConfigValue] Config sheet missing, creating... (key=${key})`);
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveConfigValue(spreadsheetId, key, value);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveConfigValue(spreadsheetId: string, key: string, value: string): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let rowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === key) rowIndex = index + 1;
-    });
-
-    if (rowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [[key, value]]);
-    }
-}
-
-/**
- * フルテキスト候補ルールを保存
- */
-export async function saveFulltextPoolRule(spreadsheetId: string, rule: FulltextPoolRule): Promise<void> {
-    await saveConfigValue(spreadsheetId, 'fulltext_pool_rule', JSON.stringify(rule));
-}
-
-/**
- * レビュー基準（組入・除外基準）を保存
- */
-export async function saveReviewCriteria(spreadsheetId: string, criteria: ReviewCriteria): Promise<void> {
-    await saveConfigValue(spreadsheetId, 'review_criteria', serializeReviewCriteria(criteria));
-}
-
-/**
- * フルテキスト除外理由リストを Config タブの fulltext_exclude_reasons キーへ保存する
- */
-export async function saveExcludeReasonConfig(spreadsheetId: string, config: ExcludeReasonConfig): Promise<void> {
-    await saveConfigValue(spreadsheetId, 'fulltext_exclude_reasons', serializeExcludeReasonConfig(config));
-}
-
-/**
- * インポート統計を Config タブの import_stats キーへ保存する
- */
-export async function saveImportStats(spreadsheetId: string, stats: ImportStatsMap): Promise<void> {
-    await saveConfigValue(spreadsheetId, 'import_stats', JSON.stringify(stats));
-}
-
-// ---------------------------------------------------------------------------
-// フルテキストAI判定の採用ラウンド（reviewer_id = `llm:{model}@{timestamp}`）
-// ---------------------------------------------------------------------------
-
-/** 取得済みの Config 値から採用ラウンドを取得する（最初の一致を採用）。 */
-export function parseFulltextAiActiveRound(values: string[][]): string | null {
-    for (const row of values) {
-        if (row[0] === 'fulltext_ai_active_round') {
-            const v = (row[1] || '').trim();
-            return v || null;
-        }
-    }
-    return null;
-}
-
-/** 採用中のフルテキストAI判定ラウンド（reviewer_id）を取得。未設定は null。 */
-export async function getFulltextAiActiveRound(spreadsheetId: string): Promise<string | null> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        return parseFulltextAiActiveRound(values);
-    } catch (error) {
-        console.log('[getFulltextAiActiveRound] Config not found:', error);
-        return null;
-    }
-}
-
-/** 採用するフルテキストAI判定ラウンドを設定する（null で採用解除）。 */
-export async function setFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
-    try {
-        await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySetFulltextAiActiveRound(spreadsheetId, reviewerId);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySetFulltextAiActiveRound(spreadsheetId: string, reviewerId: string | null): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let rowIndex = -1;
-    values.forEach((row, index) => {
-        if (row[0] === 'fulltext_ai_active_round') rowIndex = index + 1;
-    });
-    const value = reviewerId ?? '';
-    if (rowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_ai_active_round', value]]);
-    }
-}
 
 /**
  * フルテキストAI判定の1ラウンド（特定 reviewer_id・fulltext フェーズ）の判定行を全削除する。
@@ -1605,328 +995,9 @@ export async function deleteFulltextAiRound(spreadsheetId: string, reviewerId: s
     return targetRows.length;
 }
 
-/**
- * キーオープン状態を取得
- */
-export async function getKeyOpenedStatus(spreadsheetId: string): Promise<boolean> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        for (const row of values) {
-            if (row[0] === 'key_opened') {
-                return row[1]?.toLowerCase() === 'true';
-            }
-        }
-        return false;
-    } catch (error) {
-        console.log('[getKeyOpenedStatus] Config not found, returning false:', error);
-        return false;
-    }
-}
-
-/**
- * キーオープン状態を設定
- */
-export async function setKeyOpenedStatus(spreadsheetId: string, opened: boolean): Promise<void> {
-    try {
-        await trySetKeyOpened(spreadsheetId, opened);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[setKeyOpenedStatus] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySetKeyOpened(spreadsheetId, opened);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let keyOpenedRowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'key_opened') keyOpenedRowIndex = index + 1;
-    });
-
-    const value = opened ? 'true' : 'false';
-    if (keyOpenedRowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${keyOpenedRowIndex}`, [[value]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
-    }
-}
-
-/**
- * フルテキストPDF保存用 Drive フォルダIDを取得（未設定は null）。
- * Config タブが本当に無い場合だけ null を返す。アクセス拒否・一時エラーは
- * 「未設定」に見せず throw する（呼び出し元の ensureFulltextFolder が誤ってフォルダを
- * 作り直さないようにするため。詳細は drive-api.ts の resolveFolderState 参照）。
- */
-export async function getFulltextDriveFolderId(spreadsheetId: string): Promise<string | null> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        for (const row of values) {
-            if (row[0] === 'fulltext_drive_folder' && row[1]) {
-                return row[1];
-            }
-        }
-        return null;
-    } catch (error) {
-        if (isSheetMissingError(error)) {
-            console.log('[getFulltextDriveFolderId] Config not found, returning null:', error);
-            return null;
-        }
-        throw error;
-    }
-}
-
-/**
- * フルテキストPDF保存用 Drive フォルダIDを保存
- */
-export async function saveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
-    try {
-        await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveFulltextDriveFolderId] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveFulltextDriveFolderId(spreadsheetId, folderId);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveFulltextDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let rowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'fulltext_drive_folder') rowIndex = index + 1;
-    });
-
-    if (rowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[folderId]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['fulltext_drive_folder', folderId]]);
-    }
-}
-
-/**
- * プロジェクト用 Drive フォルダIDを取得（未設定は null）
- * このフォルダ配下にスプレッドシート本体と fulltext サブフォルダを格納する。
- * Config タブが本当に無い場合だけ null を返す。アクセス拒否・一時エラーは
- * 「未設定」に見せず throw する（isSheetMissingError のコメント参照）。
- */
-export async function getProjectDriveFolderId(spreadsheetId: string): Promise<string | null> {
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        for (const row of values) {
-            if (row[0] === 'project_drive_folder' && row[1]) {
-                return row[1];
-            }
-        }
-        return null;
-    } catch (error) {
-        if (isSheetMissingError(error)) {
-            console.log('[getProjectDriveFolderId] Config not found, returning null:', error);
-            return null;
-        }
-        throw error;
-    }
-}
-
-/**
- * プロジェクト用 Drive フォルダIDを保存
- */
-export async function saveProjectDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
-    try {
-        await trySaveProjectDriveFolderId(spreadsheetId, folderId);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[saveProjectDriveFolderId] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await trySaveProjectDriveFolderId(spreadsheetId, folderId);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function trySaveProjectDriveFolderId(spreadsheetId: string, folderId: string): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-    let rowIndex = -1;
-
-    values.forEach((row, index) => {
-        if (row[0] === 'project_drive_folder') rowIndex = index + 1;
-    });
-
-    if (rowIndex !== -1) {
-        await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndex}`, [[folderId]]);
-    } else {
-        await appendRows(spreadsheetId, CONFIG_SHEET, [['project_drive_folder', folderId]]);
-    }
-}
 
 // ========== LLM関連の関数 ==========
 
-/**
- * デフォルトのLLM設定
- */
-export const DEFAULT_LLM_CONFIG: LlmConfig = {
-    llm_enabled: false,
-    llm_model: 'gemini-3.1-flash-lite',
-    llm_temperature: 0,
-    llm_thinking: 'low',
-    llm_protocol_text: '',
-    llm_criteria: null,
-    llm_screening_prompt: '',
-    llm_include_threshold: 0.3,
-    llm_max_output_tokens: 2048,
-    llm_output_language: 'ja',
-    llm_target_mode: 'all',
-    llm_target_ref_ids: '',
-};
-
-/**
- * LLM設定キーのリスト
- */
-const LLM_CONFIG_KEYS = [
-    'llm_enabled',
-    'llm_model',
-    'llm_temperature',
-    'llm_thinking',
-    'llm_protocol_text',
-    'llm_criteria',
-    'llm_screening_prompt',
-    'llm_include_threshold',
-    'llm_max_output_tokens',
-    'llm_output_language',
-    'llm_target_mode',
-    'llm_target_ref_ids',
-];
-
-/**
- * ConfigシートからLLM設定を取得
- */
-export async function getLlmConfig(spreadsheetId: string): Promise<LlmConfig> {
-    const config = { ...DEFAULT_LLM_CONFIG };
-
-    try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-
-        for (const row of values) {
-            const key = row[0];
-            const value = row[1];
-
-            if (!LLM_CONFIG_KEYS.includes(key) || !value) continue;
-
-            switch (key) {
-                case 'llm_enabled':
-                    config.llm_enabled = value.toLowerCase() === 'true';
-                    break;
-                case 'llm_model':
-                    // latest エイリアスを固定バージョン ID へマイグレーション
-                    // (2026-05 以降の保存値は固定 ID。既存シートの latest 値はここで透過的に変換)
-                    config.llm_model = MODEL_ID_MIGRATIONS[value] || value;
-                    break;
-                case 'llm_temperature':
-                    config.llm_temperature = parseFloat(value) || 0;
-                    break;
-                case 'llm_thinking':
-                    config.llm_thinking = value === 'high' ? 'high' : 'low';
-                    break;
-                case 'llm_protocol_text':
-                    config.llm_protocol_text = value;
-                    break;
-                case 'llm_criteria':
-                    try {
-                        config.llm_criteria = JSON.parse(value);
-                    } catch {
-                        config.llm_criteria = null;
-                    }
-                    break;
-                case 'llm_screening_prompt':
-                    config.llm_screening_prompt = value;
-                    break;
-                case 'llm_include_threshold':
-                    config.llm_include_threshold = parseFloat(value) || 0.3;
-                    break;
-                case 'llm_max_output_tokens':
-                    config.llm_max_output_tokens = parseInt(value, 10) || 2048;
-                    break;
-                case 'llm_output_language':
-                    config.llm_output_language = value;
-                    break;
-                case 'llm_target_mode':
-                    config.llm_target_mode = parseLlmTargetMode(value);
-                    break;
-                case 'llm_target_ref_ids':
-                    // シート直編集で混じる改行・重複・空白をここで正規化する
-                    config.llm_target_ref_ids = serializeTargetRefIds(parseTargetRefIds(value));
-                    break;
-            }
-        }
-    } catch (error) {
-        console.log('[getLlmConfig] Config not found, using defaults:', error);
-    }
-
-    return config;
-}
-
-/**
- * LLM設定を更新
- */
-export async function updateLlmConfig(
-    spreadsheetId: string,
-    updates: Partial<LlmConfig>
-): Promise<void> {
-    try {
-        await tryUpdateLlmConfig(spreadsheetId, updates);
-    } catch (error) {
-        if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
-            console.log('[updateLlmConfig] Config sheet missing, creating...');
-            await addSheet(spreadsheetId, CONFIG_SHEET);
-            await tryUpdateLlmConfig(spreadsheetId, updates);
-        } else {
-            throw error;
-        }
-    }
-}
-
-async function tryUpdateLlmConfig(spreadsheetId: string, updates: Partial<LlmConfig>): Promise<void> {
-    const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-
-    // 既存行のインデックスをマップ
-    const rowIndices: Record<string, number> = {};
-    values.forEach((row, index) => {
-        if (LLM_CONFIG_KEYS.includes(row[0])) {
-            rowIndices[row[0]] = index + 1; // 1-indexed
-        }
-    });
-
-    // 各キーを更新
-    for (const [key, value] of Object.entries(updates)) {
-        if (!LLM_CONFIG_KEYS.includes(key)) continue;
-
-        let stringValue: string;
-        if (typeof value === 'boolean') {
-            stringValue = value ? 'true' : 'false';
-        } else if (typeof value === 'object' && value !== null) {
-            stringValue = JSON.stringify(value);
-        } else if (value === null) {
-            stringValue = '';
-        } else {
-            stringValue = String(value);
-        }
-
-        if (rowIndices[key]) {
-            await updateRange(spreadsheetId, `${CONFIG_SHEET}!B${rowIndices[key]}`, [[stringValue]]);
-        } else {
-            await appendRows(spreadsheetId, CONFIG_SHEET, [[key, stringValue]]);
-        }
-    }
-}
 
 // 内容は保持せず、直近のプロジェクトのタブ・ヘッダー確認成功だけを短時間記録する。
 const LLM_SHEET_ENSURE_TTL_MS = 60_000;
@@ -3189,8 +2260,5 @@ export async function setSingleActiveRun(spreadsheetId: string, runId: string): 
         }
     }
 }
-
-
-
 
 
