@@ -115,8 +115,9 @@ npm run watch
 | `npm run build`     | 本番用ビルド       |
 | `npm run dev`       | 開発用ビルド       |
 | `npm run watch`     | ホットリロード開発 |
-| `npm run lint`      | ESLint実行         |
+| `npm run lint`      | ESLint実行（`.tmp/eslint/` にキャッシュ） |
 | `npm run typecheck` | 型チェック         |
+| `npm test`          | 全テスト実行（`npm test -- doi` でファイル名の部分一致に絞り込み） |
 
 ## Codex PR自動レビュー
 
