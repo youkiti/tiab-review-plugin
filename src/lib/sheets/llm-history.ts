@@ -9,7 +9,7 @@ import { createAsyncCoalescer } from '../async-coalesce';
 import { computeConfigHash, isHashable, legacyHash } from '../llm-config-hash';
 import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } from '../llm-batch-target';
 import { parseLlmTargetMode } from '../llm-target-selection';
-import { getSheetValues, appendRows, updateRange, addSheet, batchUpdateRanges } from './transport';
+import { getSheetValues, appendRows, updateRange, addSheet, batchUpdateRanges, isSheetMissingError } from './transport';
 import { LLM_EXECUTIONS_SHEET, LLM_RUNS_SHEET, LLM_EXECUTIONS_HEADERS, LLM_RUNS_HEADERS, columnNumberToLetter } from './schema';
 import { getDecisions } from './decisions';
 
@@ -18,7 +18,7 @@ import { getDecisions } from './decisions';
 
 // 内容は保持せず、直近のプロジェクトのタブ・ヘッダー確認成功だけを短時間記録する。
 const LLM_SHEET_ENSURE_TTL_MS = 60_000;
-type LlmSheetEnsureMemo = { spreadsheetId: string; ensure: () => Promise<void> };
+type LlmSheetEnsureMemo = { spreadsheetId: string; ensure: () => Promise<void>; markChecked: () => void };
 let llmExecutionsEnsureMemo: LlmSheetEnsureMemo | null = null;
 let llmRunsEnsureMemo: LlmSheetEnsureMemo | null = null;
 
@@ -35,6 +35,7 @@ function createLlmSheetEnsureMemo(
     let checkedAt: number | null = null;
     return {
         spreadsheetId,
+        markChecked: () => { checkedAt = Date.now(); },
         ensure: createAsyncCoalescer(async () => {
             if (checkedAt !== null && Date.now() - checkedAt < LLM_SHEET_ENSURE_TTL_MS) return;
             await check(spreadsheetId);
@@ -50,10 +51,14 @@ function createLlmSheetEnsureMemo(
  * 既存データ行は影響を受けない（run_id は空文字として読まれる）。
  */
 export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
+    await getLlmExecutionsEnsureMemo(spreadsheetId).ensure();
+}
+
+function getLlmExecutionsEnsureMemo(spreadsheetId: string): LlmSheetEnsureMemo {
     if (llmExecutionsEnsureMemo?.spreadsheetId !== spreadsheetId) {
         llmExecutionsEnsureMemo = createLlmSheetEnsureMemo(spreadsheetId, checkLlmExecutionsSheet);
     }
-    await llmExecutionsEnsureMemo.ensure();
+    return llmExecutionsEnsureMemo;
 }
 
 async function checkLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
@@ -67,19 +72,7 @@ async function checkLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
             return;
         }
 
-        // 不足している列を末尾に追加（後方互換マイグレーション）
-        const missingHeaders = LLM_EXECUTIONS_HEADERS.filter(h => !existingHeaders.includes(h));
-        if (missingHeaders.length > 0) {
-            const newHeaders = [...existingHeaders, ...missingHeaders];
-            const startCol = columnNumberToLetter(existingHeaders.length);
-            const endCol = columnNumberToLetter(newHeaders.length - 1);
-            await updateRange(
-                spreadsheetId,
-                `${LLM_EXECUTIONS_SHEET}!${startCol}1:${endCol}1`,
-                [missingHeaders]
-            );
-            console.log(`[ensureLlmExecutionsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
-        }
+        await migrateLlmExecutionsHeaderColumns(spreadsheetId, existingHeaders);
     } catch (error) {
         if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
             console.log('[ensureLlmExecutionsSheet] Creating LLM_Executions sheet...');
@@ -95,10 +88,14 @@ async function checkLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
  * LLM_Runs シートを初期化（存在しない場合）
  */
 export async function ensureLlmRunsSheet(spreadsheetId: string): Promise<void> {
+    await getLlmRunsEnsureMemo(spreadsheetId).ensure();
+}
+
+function getLlmRunsEnsureMemo(spreadsheetId: string): LlmSheetEnsureMemo {
     if (llmRunsEnsureMemo?.spreadsheetId !== spreadsheetId) {
         llmRunsEnsureMemo = createLlmSheetEnsureMemo(spreadsheetId, checkLlmRunsSheet);
     }
-    await llmRunsEnsureMemo.ensure();
+    return llmRunsEnsureMemo;
 }
 
 async function checkLlmRunsSheet(spreadsheetId: string): Promise<void> {
@@ -111,18 +108,7 @@ async function checkLlmRunsSheet(spreadsheetId: string): Promise<void> {
             return;
         }
 
-        const missingHeaders = LLM_RUNS_HEADERS.filter(h => !existingHeaders.includes(h));
-        if (missingHeaders.length > 0) {
-            const newHeaders = [...existingHeaders, ...missingHeaders];
-            const startCol = columnNumberToLetter(existingHeaders.length);
-            const endCol = columnNumberToLetter(newHeaders.length - 1);
-            await updateRange(
-                spreadsheetId,
-                `${LLM_RUNS_SHEET}!${startCol}1:${endCol}1`,
-                [missingHeaders]
-            );
-            console.log(`[ensureLlmRunsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
-        }
+        await migrateLlmRunsHeaderColumns(spreadsheetId, existingHeaders);
     } catch (error) {
         if ((error as Error).message.includes('Unable to parse range') || (error as Error).message.includes('not found')) {
             console.log('[ensureLlmRunsSheet] Creating LLM_Runs sheet...');
@@ -132,6 +118,77 @@ async function checkLlmRunsSheet(spreadsheetId: string): Promise<void> {
             throw error;
         }
     }
+}
+
+async function migrateLlmExecutionsHeaderColumns(spreadsheetId: string, existingHeaders: string[]): Promise<void> {
+    if (existingHeaders.length === 0) return;
+
+    // 不足している列を末尾に追加（後方互換マイグレーション）
+    const missingHeaders = LLM_EXECUTIONS_HEADERS.filter(h => !existingHeaders.includes(h));
+    if (missingHeaders.length === 0) return;
+
+    const newHeaders = [...existingHeaders, ...missingHeaders];
+    const startCol = columnNumberToLetter(existingHeaders.length);
+    const endCol = columnNumberToLetter(newHeaders.length - 1);
+    await updateRange(
+        spreadsheetId,
+        `${LLM_EXECUTIONS_SHEET}!${startCol}1:${endCol}1`,
+        [missingHeaders]
+    );
+    console.log(`[ensureLlmExecutionsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
+}
+
+async function migrateLlmRunsHeaderColumns(spreadsheetId: string, existingHeaders: string[]): Promise<void> {
+    if (existingHeaders.length === 0) return;
+
+    const missingHeaders = LLM_RUNS_HEADERS.filter(h => !existingHeaders.includes(h));
+    if (missingHeaders.length === 0) return;
+
+    const newHeaders = [...existingHeaders, ...missingHeaders];
+    const startCol = columnNumberToLetter(existingHeaders.length);
+    const endCol = columnNumberToLetter(newHeaders.length - 1);
+    await updateRange(
+        spreadsheetId,
+        `${LLM_RUNS_SHEET}!${startCol}1:${endCol}1`,
+        [missingHeaders]
+    );
+    console.log(`[ensureLlmRunsSheet] Added missing columns: ${missingHeaders.join(', ')}`);
+}
+
+/**
+ * 本体を先に読み、履歴読み込み1回あたりのヘッダーGETを両タブ合計2本削減する（Issue #153）。
+ * 通常読み取りがensureの移行分岐を通らなくなるため、本体の1行目で不足列を末尾へ追加する。
+ * これを省くと古いヘッダーの移行が永久に走らず、ヘッダー駆動のパースで欠けた列がundefinedになる。
+ * 独自列のヘッダーを上書きしないよう、標準列数で切らずシート名のみで全列を読む（PR #161）。
+ */
+async function readLlmExecutionsValues(spreadsheetId: string): Promise<string[][]> {
+    const memo = getLlmExecutionsEnsureMemo(spreadsheetId);
+    const values = await getSheetValues(spreadsheetId, LLM_EXECUTIONS_SHEET);
+    if (values.length === 0) {
+        await ensureLlmExecutionsSheet(spreadsheetId);
+        return [];
+    }
+    await migrateLlmExecutionsHeaderColumns(spreadsheetId, values[0]);
+    memo.markChecked();
+    return values;
+}
+
+/**
+ * 本体を先に読み、履歴読み込み1回あたりのヘッダーGETを両タブ合計2本削減する（Issue #153）。
+ * 通常読み取りがensureの移行分岐を通らなくなるため、本体の1行目で不足列を末尾へ追加する。
+ * これを省くと古いヘッダーの移行が永久に走らず、ヘッダー駆動のパースで欠けた列がundefinedになる。
+ * 独自列のヘッダーを上書きしないよう、標準列数で切らずシート名のみで全列を読む（PR #161）。
+ */
+async function readLlmRunsValues(spreadsheetId: string): Promise<string[][]> {
+    const memo = getLlmRunsEnsureMemo(spreadsheetId);
+    const values = await getSheetValues(spreadsheetId, LLM_RUNS_SHEET);
+    if (values.length === 0) {
+        await ensureLlmRunsSheet(spreadsheetId);
+        return [];
+    }
+    await migrateLlmRunsHeaderColumns(spreadsheetId, values[0]);
+    memo.markChecked();
+    return values;
 }
 
 /**
@@ -183,9 +240,14 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
  */
 export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
     try {
-        await ensureLlmExecutionsSheet(spreadsheetId);
-        const endCol = columnNumberToLetter(LLM_EXECUTIONS_HEADERS.length - 1);
-        const values = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!A:${endCol}`);
+        let values: string[][];
+        try {
+            values = await readLlmExecutionsValues(spreadsheetId);
+        } catch (error) {
+            if (!isSheetMissingError(error)) throw error;
+            await ensureLlmExecutionsSheet(spreadsheetId);
+            values = await readLlmExecutionsValues(spreadsheetId);
+        }
 
         if (values.length <= 1) {
             return [];
@@ -379,9 +441,14 @@ function serializeLlmRunRow(run: LlmRun): string[] {
  * LLM_Runs シートの全 Run 行を生データのまま取得（移行を起こさない内部関数）
  */
 async function getLlmRunsRaw(spreadsheetId: string): Promise<LlmRun[]> {
-    await ensureLlmRunsSheet(spreadsheetId);
-    const endCol = columnNumberToLetter(LLM_RUNS_HEADERS.length - 1);
-    const values = await getSheetValues(spreadsheetId, `${LLM_RUNS_SHEET}!A:${endCol}`);
+    let values: string[][];
+    try {
+        values = await readLlmRunsValues(spreadsheetId);
+    } catch (error) {
+        if (!isSheetMissingError(error)) throw error;
+        await ensureLlmRunsSheet(spreadsheetId);
+        values = await readLlmRunsValues(spreadsheetId);
+    }
     if (values.length <= 1) return [];
     const headers = values[0];
     return values.slice(1).map(row => parseLlmRunRow(row, headers));
@@ -631,7 +698,7 @@ export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
 
 /**
  * 履歴を一度ずつ読み、移行後の所属情報も同じロード内のスナップショットへ反映する。
- * 初回は各タブのヘッダー確認＋本体取得の2回。内容はモジュールに保持しない。
+ * 各タブの本体取得の1回（ヘッダー確認は本体の1行目で兼ねる。タブ欠落時だけensureして読み直す）。内容はモジュールに保持しない。
  * 旧形式移行が必要な場合は、所属を書き込む直前の行位置確認の取得も従来どおり行う。
  */
 export async function getLlmHistory(spreadsheetId: string): Promise<{
