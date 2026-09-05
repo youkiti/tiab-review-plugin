@@ -53,6 +53,36 @@ function assertOutputPathIsSafe(resolvedOutputPath) {
     }
 }
 
+/**
+ * Webpack 永続キャッシュ（Issue #162）。2回目以降のビルドと watch の再起動を速くする。
+ * - `name` は拡張/デモ/Web × production/development で分け、別ビルドの成果物を取り違えない
+ *   （エントリ・DefinePlugin 値・NormalModuleReplacementPlugin の有無が違うため）。
+ * - `buildDependencies.config` にこのファイル・tsconfig.json・package-lock.json を入れ、
+ *   これらが変わったらキャッシュ全体を捨てる（このファイルが require する package.json や
+ *   dotenv も webpack が依存として自動追跡する）。
+ * - DefinePlugin に渡す環境変数由来の値（クライアントID等）は webpack が値ごとの
+ *   バージョン（valueCacheVersions）で追跡するため、`.env` を変えれば該当モジュールだけ
+ *   再ビルドされる。導入時に WEBAUTH_CLIENT_ID をプレースホルダ→別値へ変えて
+ *   dist/ に新しい値が焼き込まれることを実測で確認済み。
+ * - 保存先は `.tmp/webpack/`（`.gitignore` 済み）。既定の node_modules/.cache/ にしないのは、
+ *   git worktree では node_modules を junction で本体と共有しており、複数の作業ツリーが
+ *   同じキャッシュを上書きし合うのを避けるため。
+ */
+function buildFilesystemCache(name) {
+    return {
+        type: 'filesystem',
+        name,
+        cacheDirectory: path.resolve(__dirname, '.tmp/webpack'),
+        buildDependencies: {
+            config: [
+                __filename,
+                path.resolve(__dirname, 'tsconfig.json'),
+                path.resolve(__dirname, 'package-lock.json'),
+            ],
+        },
+    };
+}
+
 // dev ビルドで OAuth 系の必須環境変数が未設定のときに fail-fast する既定を、
 // 明示的にオプトインしたときだけ警告のみへ格下げするための環境変数。
 // CI（.env が無い環境）はこれを立てて typecheck/lint/test 相当のビルド疎通確認だけ行う。
@@ -123,8 +153,16 @@ function buildExtensionConfig(env, argv) {
         );
     }
     const pickerPageUrl = resolvePickerPageUrlOverride(isProduction);
+    // keepKey は manifest 変換の分岐にしか効かないが、成果物が別物になるためキャッシュ名も分ける。
+    const cacheName = [
+        'extension',
+        isDemo ? 'demo' : null,
+        env && env.keepKey ? 'keepkey' : null,
+        isProduction ? 'production' : 'development',
+    ].filter(Boolean).join('-');
 
     return {
+        cache: buildFilesystemCache(cacheName),
         entry: {
             'background/service-worker': './src/background/service-worker.ts',
             'popup/popup': isDemo ? './src/demo/popup-entry.ts' : './src/popup/popup.ts',
@@ -301,6 +339,7 @@ function buildWebConfig(env, argv) {
         );
     }
     return {
+        cache: buildFilesystemCache(`web-${isProduction ? 'production' : 'development'}`),
         entry: { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },
         output: {
             path: resolveOutputPath(env, path.resolve(__dirname, 'docs/app')),

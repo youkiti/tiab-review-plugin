@@ -6,8 +6,8 @@ Chrome拡張機能 - Systematic Reviewのタイトル・抄録スクリーニン
 
 ## 必要条件
 
-- **Node.js** >= 18.0.0
-- **npm** >= 9.0.0
+- **Node.js** 22 系（`.nvmrc` と `package.json` の `engines` で指定。CI も同じファイルを参照）
+- **npm** >= 10（Node 22 同梱）
 - **Google Cloud CLI** (`gcloud`) - OAuth設定に使用
 
 ## セットアップ
