@@ -193,6 +193,30 @@ export function invalidatePendingCountAndRerenderSection(): void {
 // ---------------------------------------------------------------------------
 
 /**
+ * プロジェクト読み込み側（project.ts の loadDataAndShowScreening）が既に取得済みの
+ * References（論理削除を含む全件）と Duplicate_Candidates を渡し、未確認件数キャッシュを
+ * 直接温める（Issue #153 工程2 チャンク2）。これにより、続けて呼ぶ renderDuplicateReviewSection()
+ * 内の「pendingCount === null なら loadPendingCount() で取得」が発火せず、初回描画のたびに
+ * getReferences() + getDuplicateCandidates() を再取得する重複がなくなる。
+ *
+ * 🔄ボタン相当の明示的な再取得経路（invalidatePendingCountAndRerenderSection・
+ * rescanDuplicates・モーダルを開く操作）はこの関数を経由せず、従来どおり内部で取得し直す
+ * （判定を進めても未確認件数が更新されなくなる、という事態を避けるため）。
+ */
+export function primeDuplicateReviewSection(
+    spreadsheetId: string,
+    allReferences: Reference[],
+    candidates: DuplicateCandidate[]
+): void {
+    cachedSpreadsheetId = spreadsheetId;
+    const refsById = buildRefsById(allReferences);
+    pendingCount = candidates.filter((c) => !isPairAlreadySettled(c, refsById)).length;
+    pendingCountFailed = false;
+    loadingPendingCount = false;
+    renderDuplicateReviewSection();
+}
+
+/**
  * 管理画面の独立セクションを描画する。同期関数で返り、件数の読み込みは投げっぱなし（void）にする
  * （呼び出し元の renderSourceFilters() が同期関数のため）。
  *

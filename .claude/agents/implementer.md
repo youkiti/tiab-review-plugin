@@ -81,6 +81,17 @@ report back so the commander can review.
   endpoints, saved from harm only by a placeholder project id (2026-08-27). Verify with unit
   tests, fakes, and dry-run modes; if the brief seems to require a live external call, stop
   and report that back instead of making it.
+- **When you fake an external command for a test, substitute where the process cannot
+  escape it, and keep every safety flag on while you do.** Shadowing a command by
+  prepending a fake to `PATH` fails *silently*: Git Bash's own lookup and the `cmd.exe`
+  that Node's `execFileSync(..., {shell: true})` spawns both resolved the real `npm` past
+  a fake one and the test looked like it was running (2026-09-05). That run had also
+  dropped the code's own dry-run flag — "that branch returns before the install anyway" —
+  so when the stub did not take, it really upgraded three of the machine's global
+  packages. Replace the call itself instead (a preloaded module that overrides
+  `child_process.execFileSync`, an injected client, a fake passed in), and never turn off
+  a safety flag as part of test setup: the flag is the backstop for exactly the case where
+  your substitution missed.
 
 ## How to report back
 
