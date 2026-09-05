@@ -213,6 +213,14 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'getJudgedRefIdsForBatches',
         'getActiveBatchIdsForActiveRun',
         'setSingleActiveRun',
+        'ensurePublicationCandidatesSheet',
+        'savePublicationCandidates',
+        'getPublicationCandidates',
+        'updatePublicationCandidateStatus',
+        'ensureDuplicateCandidatesSheet',
+        'saveDuplicateCandidates',
+        'getDuplicateCandidates',
+        'updateDuplicateCandidateStatus',
     ];
 
     const facade = sheetsApi as unknown as Record<string, unknown>;
@@ -246,6 +254,22 @@ test('llm-history.ts は references.ts / config.ts / config-schema.ts を import
         [],
         `llm-history.ts に禁止された依存がある: ${disallowed.join(', ')}`
     );
+});
+
+test('publication-candidates.ts と duplicate-candidates.ts は他タブのモジュールと互いを import していない', () => {
+    for (const name of ['publication-candidates', 'duplicate-candidates']) {
+        const source = readFileSync(join(SHEETS_DIR, `${name}.ts`), 'utf8');
+        const specifiers = importSpecifiers(source);
+        const forbidden = ['./references', './decisions', './config', './config-schema', './llm-history', './publication-candidates', './duplicate-candidates']
+            .filter(s => s !== `./${name}`);
+        const disallowed = specifiers.filter(s => forbidden.includes(s));
+
+        assert.deepEqual(
+            disallowed,
+            [],
+            `${name}.ts に禁止された依存がある: ${disallowed.join(', ')}`
+        );
+    }
 });
 
 test('config.ts は references.ts と decisions.ts を import していない', () => {
