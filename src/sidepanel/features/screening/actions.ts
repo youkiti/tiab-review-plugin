@@ -26,6 +26,7 @@ import { saveDecisionOrQueue } from '../unsent-queue';
 import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
 import { toggleReviewCriteriaModal, closeReviewCriteriaModal, isCriteriaModalOpen, isCriteriaEditMode } from '../review-criteria';
+import { perfSpan, perfSpanSync } from '../../../lib/perf';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -221,6 +222,11 @@ function handleReviewHistoryNavigation(direction: number, filtered = getFiltered
  * ナビゲーション処理
  */
 export async function navigate(direction: number) {
+    // Issue #151（#150 工程0）: tiab:screening.navigate として計測（前後移動）。
+    return perfSpan('tiab:screening.navigate', () => navigateImpl(direction));
+}
+
+async function navigateImpl(direction: number) {
     const filtered = getFilteredReferences();
     const currentRef = getDisplayedReference(filtered);
 
@@ -251,6 +257,17 @@ export async function navigate(direction: number) {
  * 判定処理
  */
 export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') {
+    // Issue #151（#150 工程0）: 判定操作の全体を tiab:decision.total として計測する。
+    // 内側で「人が結果を見られるまで（tiab:decision.local）」と「保存（tiab:decision.save）」を
+    // 別々に計測する。この関数は現状 await を含まない同期的な処理のため、tiab:decision.local は
+    // perfSpanSync で包んでいる（handleDecision 自体は既存のシグネチャ通り async のまま維持）。
+    // 注意: 保存（tiab:decision.save）は handleDecisionImpl 内で await せず fire-and-forget の
+    // まま実行されるため、tiab:decision.total には保存の完了時間が含まれない。保存はバック
+    // グラウンドで total の外まで継続し、その所要時間は別途 tiab:decision.save として計測される。
+    return perfSpan('tiab:decision.total', () => handleDecisionImpl(decision));
+}
+
+async function handleDecisionImpl(decision: 'include' | 'exclude' | 'maybe') {
     const filtered = getFilteredReferences();
     const ref = getDisplayedReference(filtered);
     const wasReviewHistoryActive = state.isReviewHistoryActive();
@@ -283,68 +300,72 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
         }),
     };
 
-    // ローカル状態を更新
-    ref.myDecision = decisionObj;
+    // tiab:decision.local: ローカル状態更新＋画面反映まで（人が結果を見られるまでの体感時間）。
+    perfSpanSync('tiab:decision.local', () => {
+        // ローカル状態を更新
+        ref.myDecision = decisionObj;
 
-    // キーオープン後の場合、allDecisionsも更新
-    if (state.isKeyOpened && ref.allDecisions) {
-        const existingIndex = ref.allDecisions.findIndex(d => d.reviewer_id === state.userEmail);
-        if (existingIndex !== -1) {
-            ref.allDecisions[existingIndex] = decisionObj;
+        // キーオープン後の場合、allDecisionsも更新
+        if (state.isKeyOpened && ref.allDecisions) {
+            const existingIndex = ref.allDecisions.findIndex(d => d.reviewer_id === state.userEmail);
+            if (existingIndex !== -1) {
+                ref.allDecisions[existingIndex] = decisionObj;
+            } else {
+                ref.allDecisions.push(decisionObj);
+            }
+
+            // 不一致状態を再計算
+            const decisions = ref.allDecisions;
+            if (decisions.length === 0) {
+                ref.hasConflict = false;
+                ref.status = 'pending';
+            } else if (decisions.length === 1) {
+                ref.hasConflict = true;
+                ref.status = 'conflict';
+            } else {
+                const uniqueDecisions = new Set(decisions.map(d => d.decision));
+                ref.hasConflict = uniqueDecisions.size > 1;
+                ref.status = ref.hasConflict ? 'conflict' : decision;
+            }
         } else {
-            ref.allDecisions.push(decisionObj);
+            ref.status = decision;
         }
 
-        // 不一致状態を再計算
-        const decisions = ref.allDecisions;
-        if (decisions.length === 0) {
-            ref.hasConflict = false;
-            ref.status = 'pending';
-        } else if (decisions.length === 1) {
-            ref.hasConflict = true;
-            ref.status = 'conflict';
+        if (state.currentFilter === 'pending' || wasReviewHistoryActive) {
+            state.pushReviewHistoryRefId(ref.ref_id);
         } else {
-            const uniqueDecisions = new Set(decisions.map(d => d.decision));
-            ref.hasConflict = uniqueDecisions.size > 1;
-            ref.status = ref.hasConflict ? 'conflict' : decision;
+            state.resetReviewHistoryNavigation();
         }
-    } else {
-        ref.status = decision;
-    }
 
-    if (state.currentFilter === 'pending' || wasReviewHistoryActive) {
-        state.pushReviewHistoryRefId(ref.ref_id);
-    } else {
-        state.resetReviewHistoryNavigation();
-    }
-
-    // 次の文献へ（自動遷移設定が有効な場合のみ）
-    if (wasReviewHistoryActive) {
-        state.resetReviewHistoryNavigation();
-        syncCurrentIndexToRefId(historyReturnRefId, getFilteredReferences());
-        renderCurrentReference();
-    } else if (state.autoNavigateAfterDecision) {
-        // 判定後にその文献が絞り込み結果から抜けたか（Issue #140）。
-        // 未判定フィルターだけでなく、不一致フィルターで不一致が解消したときや
-        // include/exclude/maybe フィルターで判定を変えたときも文献が一覧から抜けるため、
-        // navigate(1) すると繰り上がった次の1件を飛ばしてしまう。判定後に
-        // getFilteredReferences() を呼び直せば、抜けたかどうかを一律に判定できる。
-        const filteredAfter = getFilteredReferences();
-        const stillListed = filteredAfter.some((r) => r.ref_id === ref.ref_id);
-        if (!stillListed) {
-            syncCurrentIndexToRefId(null, filteredAfter);
+        // 次の文献へ（自動遷移設定が有効な場合のみ）
+        if (wasReviewHistoryActive) {
+            state.resetReviewHistoryNavigation();
+            syncCurrentIndexToRefId(historyReturnRefId, getFilteredReferences());
             renderCurrentReference();
+        } else if (state.autoNavigateAfterDecision) {
+            // 判定後にその文献が絞り込み結果から抜けたか（Issue #140）。
+            // 未判定フィルターだけでなく、不一致フィルターで不一致が解消したときや
+            // include/exclude/maybe フィルターで判定を変えたときも文献が一覧から抜けるため、
+            // navigate(1) すると繰り上がった次の1件を飛ばしてしまう。判定後に
+            // getFilteredReferences() を呼び直せば、抜けたかどうかを一律に判定できる。
+            const filteredAfter = getFilteredReferences();
+            const stillListed = filteredAfter.some((r) => r.ref_id === ref.ref_id);
+            if (!stillListed) {
+                syncCurrentIndexToRefId(null, filteredAfter);
+                renderCurrentReference();
+            } else {
+                navigate(1);
+            }
         } else {
-            navigate(1);
+            // 自動遷移オフ: 同じ文献に留まる
+            // フィルター結果ではなく、判定した文献を直接表示
+            if (_renderSpecificReference) _renderSpecificReference(ref);
         }
-    } else {
-        // 自動遷移オフ: 同じ文献に留まる
-        // フィルター結果ではなく、判定した文献を直接表示
-        if (_renderSpecificReference) _renderSpecificReference(ref);
-    }
+    });
 
-    // APIに保存（バックグラウンド、UIブロックしない）
-    saveDecisionWithQueue(decisionObj, true);
+    // APIに保存（バックグラウンド、UIブロックしない）。tiab:decision.save で計測するが、
+    // 既存どおり fire-and-forget のまま保つ（await しない。Issue #151（#150 工程0））。
+    void perfSpan('tiab:decision.save', () => saveDecisionWithQueue(decisionObj, true));
 }
 
 /**

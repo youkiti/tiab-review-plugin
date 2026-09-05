@@ -9,13 +9,18 @@
 // src/demo/ml-fixtures.ts の合成文献1,090件（計1,100件）と、その一部への
 // デモユーザーのヒト判定40件を追加する。MLタブは文献数1,000件以上でのみ開放される
 // （src/lib/ml/cmh-defaults.ts）ため、既定プロファイルではこのタブを開けない。
+//
+// profile='bench' 指定時は、実データを一切使わず src/demo/bench-fixtures.ts のサイズ可変な
+// 合成データ（References / Decisions / LLM_Runs / LLM_Executions）で置き換える
+// （Issue #151（#150 工程0）チャンク2）。'default' / 'ml' の出力バイトには一切影響しない。
 
 import nbibContent from '../../sample/pubmed-srws-psgad-set.nbib';
 import { parseRIS } from '../lib/ris-parser';
 import type { Reference } from '../lib/types';
 import { resetDemoStore } from './sheet-store';
-import type { DemoProfile } from './profile';
+import type { DemoProfile, BenchOptions } from './profile';
 import { buildSyntheticReferences, buildSyntheticDecisionSeeds } from './ml-fixtures';
+import { buildBenchReferences, buildBenchDecisionSeeds, buildBenchLlmRound } from './bench-fixtures';
 import {
     DEMO_SPREADSHEET_TITLE,
     DEMO_USER_EMAIL,
@@ -26,6 +31,9 @@ import {
     DEMO_FULLTEXT_DRIVE_FILE_ID,
     DEMO_FULLTEXT_SOURCE_FILE_ID,
 } from './constants';
+
+/** bench プロファイル未指定時（options省略呼び出し）のフォールバックサイズ。profile.ts の DEFAULT_BENCH_SIZE と同じ値。 */
+const FALLBACK_BENCH_SIZE = 1000;
 
 // 以下2つの定数は src/lib/sheets-api.ts の REFERENCES_HEADERS / DECISIONS_HEADERS と
 // 同じ並び順（同ファイルはこれらを export していないためここでミラーする）。
@@ -110,8 +118,15 @@ function buildRealDemoReferences(): Reference[] {
     });
 }
 
-/** References タブ全体（実データ + プロファイルに応じた合成文献）を組み立てる */
-function buildDemoReferences(profile: DemoProfile): Reference[] {
+/**
+ * References タブ全体を組み立てる。
+ * profile==='bench' のときは実データを一切使わず、options.size 件のベンチ合成データに
+ * 完全に置き換える（Issue #151（#150 工程0）チャンク2）。default/ml の出力には影響しない。
+ */
+function buildDemoReferences(profile: DemoProfile, options?: BenchOptions): Reference[] {
+    if (profile === 'bench') {
+        return buildBenchReferences(options?.size ?? FALLBACK_BENCH_SIZE);
+    }
     const references = buildRealDemoReferences();
     if (profile === 'ml') {
         references.push(...buildSyntheticReferences());
@@ -133,6 +148,12 @@ interface SeedDecisionInput {
     decision: 'include' | 'exclude' | 'maybe';
     reason?: string;
     decidedAt: string;
+    /** 省略時は '' （メモなし。既存のdefault/ml呼び出しと同じ挙動） */
+    note?: string;
+    /** 省略時は DEMO_HUMAN_CLIENT_VERSION（既存のdefault/ml呼び出しと同じ挙動） */
+    clientVersion?: string;
+    /** 省略時は '' = 'tiab' 扱い（既存のdefault/ml呼び出しと同じ挙動） */
+    screeningPhase?: string;
 }
 
 function buildDecisionRow(input: SeedDecisionInput): string[] {
@@ -143,13 +164,15 @@ function buildDecisionRow(input: SeedDecisionInput): string[] {
         decision: input.decision,
         reason: input.reason || '',
         labels: '', // 機能廃止のため常に空文字
-        note: '',
+        note: input.note || '',
         decided_at: input.decidedAt,
         // isHumanDecision() は client_version に '-human' を含むかで判定するため、
         // 実バージョンに依存しない固定リテラルを使う（空文字だと全件「未判定」扱いになるバグを踏む）。
-        client_version: DEMO_HUMAN_CLIENT_VERSION,
+        // bench プロファイルは LLM 判定など別の client_version を渡す必要があるため、
+        // 呼び出し側が指定すればそれを優先する（省略時は従来どおり）。
+        client_version: input.clientVersion ?? DEMO_HUMAN_CLIENT_VERSION,
         source_url: '',
-        screening_phase: '', // 省略時は 'tiab' 扱い（実際の保存挙動と同じ）
+        screening_phase: input.screeningPhase ?? '', // 省略時は 'tiab' 扱い（実際の保存挙動と同じ）
         context_json: '', // デモシードでは記録しない（実装済みプロジェクトへの後追い列のため空欄で問題ない）
     };
     return DECISIONS_HEADERS.map((header) => row[header]);
@@ -169,8 +192,26 @@ function syntheticRefId(syntheticIndex: number): string {
  * profile==='ml' のときは、ML学習用にデモユーザーの合成文献判定40件を追加する
  * （mlStoppingRule はここでは一切保存しない。ML タブ初回起動時の停止基準ダイアログを
  * 必ず表示させるため）。
+ * profile==='bench' のときは実データ由来の判定を一切使わず、bench-fixtures.ts の
+ * options.size 件ベンチ合成判定に完全に置き換える（Issue #151（#150 工程0）チャンク2）。
  */
-function buildDemoDecisions(profile: DemoProfile): string[][] {
+function buildDemoDecisions(profile: DemoProfile, options?: BenchOptions): string[][] {
+    if (profile === 'bench') {
+        const size = options?.size ?? FALLBACK_BENCH_SIZE;
+        const seeds = buildBenchDecisionSeeds(size);
+        return [DECISIONS_HEADERS, ...seeds.map((seed) => buildDecisionRow({
+            decisionId: seed.decisionId,
+            refId: seed.refId,
+            reviewerId: seed.reviewerId,
+            decision: seed.decision,
+            reason: seed.reason,
+            note: seed.note,
+            decidedAt: seed.decidedAt,
+            clientVersion: seed.clientVersion,
+            screeningPhase: seed.screeningPhase,
+        }))];
+    }
+
     const decisions: SeedDecisionInput[] = [
         // デモユーザー本人の判定（3/10: include 2件・exclude 1件）
         { decisionId: 'demo-dec-001', refId: refId(1), reviewerId: DEMO_USER_EMAIL, decision: 'include', decidedAt: '2026-01-06T01:00:00.000Z' },
@@ -200,32 +241,101 @@ function buildDemoDecisions(profile: DemoProfile): string[][] {
     return [DECISIONS_HEADERS, ...decisions.map(buildDecisionRow)];
 }
 
-/** Config タブ（Key-Value）のシード行を組み立てる */
-function buildDemoConfig(): string[][] {
-    return [
+/**
+ * Config タブ（Key-Value）のシード行を組み立てる。
+ * profile==='bench' かつ options.keyOpened===true のときだけ key_opened 行を追加する
+ * （それ以外は default/ml と同じ3行のまま。1バイトも変えないため profile==='bench' の
+ * 判定を先に見てから分岐する）。
+ */
+function buildDemoConfig(profile: DemoProfile, options?: BenchOptions): string[][] {
+    const rows: string[][] = [
         ['include_keywords', 'randomized, meta-analysis'],
         ['exclude_keywords', 'case report, protocol'],
         // 'dismissed' にしておくことで、初回接続時に担当割り振りウィザードのモーダルが
         // 出ないようにする（'none' のままだと maybeShowAssignmentWizard が表示してしまう）。
         ['assignment_status', 'dismissed'],
     ];
+    if (profile === 'bench' && options?.keyOpened) {
+        // key_opened の値書式: src/lib/sheets-api.ts の getKeyOpenedStatus()/trySetKeyOpened() が
+        // row[1]?.toLowerCase() === 'true' で判定する小文字文字列 'true'/'false'
+        // （sheets-api.ts 2399行目・3092行目・3127行目で確認済み）。
+        rows.push(['key_opened', 'true']);
+    }
+    if (profile === 'bench') {
+        // フルテキストAI判定の根拠ジャンプ計測用（Issue #151（#150 工程0）チャンク3b）。
+        // src/fulltext/fulltext.ts の findAiFulltext() は「採用ラウンド」
+        // （Config.fulltext_ai_active_round = sheets-api.ts の parseConfigBundle() が
+        // fulltextAiActiveRound として読む）の reviewer_id と一致する
+        // screening_phase='fulltext' の判定しか拾わない。buildBenchDecisionSeeds() が
+        // BENCH_FULLTEXT_CACHED_REF_ID へ追加するフルテキストAI判定の reviewer_id を
+        // buildBenchLlmRound(size).execution.execution_id にしているため、ここも同じ値に
+        // 揃える（execution_id 自体は size に依存しない固定値。bench-fixtures.ts参照）。
+        const size = options?.size ?? FALLBACK_BENCH_SIZE;
+        rows.push(['fulltext_ai_active_round', buildBenchLlmRound(size).execution.execution_id]);
+    }
+    return rows;
+}
+
+/**
+ * LlmRun / LlmExecution を LLM_RUNS_HEADERS / LLM_EXECUTIONS_HEADERS の順の行配列へ並べ替える。
+ * src/lib/sheets-api.ts の serializeLlmRunRow()（非公開関数のため import できない）と同じ
+ * 「ヘッダー名でプロパティを引く」方式をここでミラーする（ファイル冒頭コメントの
+ * ヘッダーミラー方針と同じ理由）。bench-fixtures.ts の buildBenchLlmRound() がオブジェクトを
+ * 返す設計を選んだのはこの並べ替えを seed.ts 側に持たせるため（bench-fixtures.ts 側のコメント参照）。
+ */
+function serializeBenchLlmRow<T extends Record<string, unknown>>(value: T, headers: readonly string[]): string[] {
+    return headers.map((header) => {
+        const cell = value[header];
+        if (cell === undefined || cell === null) return '';
+        if (header === 'criteria_snapshot') return cell ? JSON.stringify(cell) : '';
+        if (header === 'is_active') return cell ? 'true' : 'false';
+        return String(cell);
+    });
+}
+
+/**
+ * LLM_Executions タブのシード行。profile==='bench' のときだけ採用済みラウンド1本分の行を追加する。
+ * buildBenchLlmRound() の target_count は size 比例のため、buildDemoDecisions() と同じ
+ * options?.size ?? FALLBACK_BENCH_SIZE の解決を使って Decisions 側のAI票件数と一致させる。
+ */
+function buildDemoLlmExecutions(profile: DemoProfile, options?: BenchOptions): string[][] {
+    if (profile !== 'bench') return [LLM_EXECUTIONS_HEADERS];
+    const size = options?.size ?? FALLBACK_BENCH_SIZE;
+    const { execution } = buildBenchLlmRound(size);
+    return [LLM_EXECUTIONS_HEADERS, serializeBenchLlmRow(execution as unknown as Record<string, unknown>, LLM_EXECUTIONS_HEADERS)];
+}
+
+/**
+ * LLM_Runs タブのシード行。profile==='bench' のときだけ採用済みラウンド1本分の行を追加する。
+ * run 自体には target_count 等は含まれないが、buildBenchLlmRound() の引数は
+ * buildDemoLlmExecutions() と揃えておく（同じ size で呼ばないと意味がないため）。
+ */
+function buildDemoLlmRuns(profile: DemoProfile, options?: BenchOptions): string[][] {
+    if (profile !== 'bench') return [LLM_RUNS_HEADERS];
+    const size = options?.size ?? FALLBACK_BENCH_SIZE;
+    const { run } = buildBenchLlmRound(size);
+    return [LLM_RUNS_HEADERS, serializeBenchLlmRow(run as unknown as Record<string, unknown>, LLM_RUNS_HEADERS)];
 }
 
 /**
  * シード全体を組み立てて sheet-store へ書き込む。
- * @param profile 'default'（実データ10件のみ）/ 'ml'（+ 合成文献1,090件。MLタブ開放デモ用）
+ * @param profile 'default'（実データ10件のみ）/ 'ml'（+ 合成文献1,090件。MLタブ開放デモ用）/
+ *   'bench'（+ サイズ可変のベンチマーク合成データ。Issue #151（#150 工程0）チャンク2）
+ * @param options bench プロファイル用オプション（src/demo/profile.ts の resolveBenchOptions()）。
+ *   profile !== 'bench' のときは無視される。
  */
-export function seedDemoStore(profile: DemoProfile = 'default'): void {
-    const references = buildDemoReferences(profile);
+export function seedDemoStore(profile: DemoProfile = 'default', options?: BenchOptions): void {
+    const references = buildDemoReferences(profile, options);
 
     resetDemoStore(DEMO_SPREADSHEET_TITLE, {
         References: [REFERENCES_HEADERS, ...references.map(buildReferenceRow)],
-        Decisions: buildDemoDecisions(profile),
-        Config: buildDemoConfig(),
-        // LLM機能はこのチャンクの対象外。ensureLlmExecutionsSheet/ensureLlmRunsSheet が
-        // 「ヘッダーは揃っている」と判定できるよう、ヘッダー行のみ用意しておく。
-        LLM_Executions: [LLM_EXECUTIONS_HEADERS],
-        LLM_Runs: [LLM_RUNS_HEADERS],
+        Decisions: buildDemoDecisions(profile, options),
+        Config: buildDemoConfig(profile, options),
+        // LLM機能: default/ml は従来どおりヘッダー行のみ（ensureLlmExecutionsSheet/
+        // ensureLlmRunsSheet が「ヘッダーは揃っている」と判定できればよいため）。
+        // bench は採用済みAIラウンド1本分の行を追加する。
+        LLM_Executions: buildDemoLlmExecutions(profile, options),
+        LLM_Runs: buildDemoLlmRuns(profile, options),
         // Publication_Candidates はこのチャンクの対象外（パスBはまだ何も候補を発見しない状態からデモが
         // 始まる想定）。ensurePublicationCandidatesSheet が「ヘッダーは揃っている」と判定できるよう、
         // ヘッダー行のみ用意しておく（LLM_Executions/LLM_Runsと同じ理由）。

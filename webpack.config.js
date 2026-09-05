@@ -9,10 +9,49 @@ dotenv.config();
 module.exports = (env, argv) => {
     // Web アプリ版ビルド（GitHub Pages 配信用）。既存の拡張機能ビルドとは完全に分岐する。
     if (env && env.target === 'web') {
-        return buildWebConfig(argv);
+        return buildWebConfig(env, argv);
     }
     return buildExtensionConfig(env, argv);
 };
+
+/**
+ * バンドル統計計測（scripts/bench/bundle-stats.mjs、Issue #151（#150 工程0）チャンク3b）専用の
+ * 出力先上書き。`--env outDir=<path>` を指定したときだけ output.path をそちらへ差し替える。
+ * 未指定時は既存の dist/ dist-demo/ docs/app/ のまま（npm run build / build:web / build:demo /
+ * build:release の挙動は一切変えない）。相対パスはリポジトリルート基準で解決する。
+ * **用途は計測専用**。ここでビルドした成果物を配布・アップロードしないこと（プレースホルダー
+ * 環境変数で通した本番ビルドと同様、認証が通らない場合がある）。
+ */
+function resolveOutputPath(env, fallbackAbsolutePath) {
+    const outDirOverride = env && typeof env.outDir === 'string' ? env.outDir.trim() : '';
+    if (!outDirOverride) return fallbackAbsolutePath;
+    const resolved = path.isAbsolute(outDirOverride) ? outDirOverride : path.resolve(__dirname, outDirOverride);
+    assertOutputPathIsSafe(resolved);
+    return resolved;
+}
+
+/**
+ * `--env outDir=` の解決後のパスが「リポジトリルート自身」または「リポジトリルートの
+ * 祖先ディレクトリ」を指していないか検証する安全弁。output.clean: true は出力先を
+ * 全消去するため、誤指定（例: `--env outDir=.`）だとリポジトリごと消える余地がある。
+ * `src/` `.git` のような個別ディレクトリ名を禁止リストで列挙する方式は漏れが出るため
+ * 採らず、パスの包含関係（path.relative）だけで判定する。
+ */
+function assertOutputPathIsSafe(resolvedOutputPath) {
+    const repoRoot = path.resolve(__dirname);
+    const fromOutputToRepoRoot = path.relative(resolvedOutputPath, repoRoot);
+    // fromOutputToRepoRoot が '..' から始まらず、かつ絶対パスでもない場合、
+    // resolvedOutputPath は repoRoot と同一か、その祖先ディレクトリである
+    // （path.relative はドライブをまたぐ場合に絶対パスをそのまま返すため isAbsolute で除外する）。
+    const outputIsRepoRootOrAncestor = !fromOutputToRepoRoot.startsWith('..') && !path.isAbsolute(fromOutputToRepoRoot);
+    if (outputIsRepoRootOrAncestor) {
+        throw new Error(
+            `--env outDir= の出力先がリポジトリルート自身、またはその祖先ディレクトリを指しています: ${resolvedOutputPath}\n` +
+            'output.clean: true により、ビルド時にこのパス配下が全消去されます。リポジトリごと削除されるのを防ぐため' +
+            'ビルドを中止しました。リポジトリ内の隔離されたサブディレクトリ（例: .tmp/bench/bundle/extension）を指定してください。'
+        );
+    }
+}
 
 // dev ビルドで OAuth 系の必須環境変数が未設定のときに fail-fast する既定を、
 // 明示的にオプトインしたときだけ警告のみへ格下げするための環境変数。
@@ -93,7 +132,7 @@ function buildExtensionConfig(env, argv) {
             'fulltext/fulltext': isDemo ? './src/demo/fulltext-entry.ts' : './src/fulltext/fulltext.ts',
         },
         output: {
-            path: path.resolve(__dirname, isDemo ? 'dist-demo' : 'dist'),
+            path: resolveOutputPath(env, path.resolve(__dirname, isDemo ? 'dist-demo' : 'dist')),
             filename: '[name].js',
             clean: true,
         },
@@ -234,7 +273,7 @@ function buildExtensionConfig(env, argv) {
 // =====================================================================
 // Web アプリビルド（GitHub Pages: docs/app/ へ出力）
 // =====================================================================
-function buildWebConfig(argv) {
+function buildWebConfig(env, argv) {
     const isProduction = argv.mode === 'production';
     const webClientId = process.env.WEB_OAUTH_CLIENT_ID?.trim();
     const pickerApiKey = process.env.PICKER_API_KEY?.trim();
@@ -264,9 +303,10 @@ function buildWebConfig(argv) {
     return {
         entry: { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },
         output: {
-            path: path.resolve(__dirname, 'docs/app'),
+            path: resolveOutputPath(env, path.resolve(__dirname, 'docs/app')),
             filename: '[name].js',
-            // docs/app はビルド成果物専用ディレクトリとして全消去してよい。
+            // docs/app はビルド成果物専用ディレクトリとして全消去してよい
+            // （outDir 上書き時はその隔離先を全消去してよい、という意味になる）。
             clean: true,
         },
         module: {

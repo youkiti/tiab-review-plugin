@@ -15,6 +15,7 @@
         "watch": "webpack --mode development --watch",
         "dev": "webpack --mode development",
         "build:demo": "webpack --mode development --env demo",
+        "build:demo:prod": "webpack --mode production --env demo",
         "build:web": "webpack --mode production --env target=web",
         "dev:web": "webpack --mode development --env target=web",
         "watch:web": "webpack --mode development --watch --env target=web",
@@ -25,7 +26,9 @@
         "video:record": "node video/scripts/record.mjs",
         "video:tts": "node video/scripts/tts.mjs",
         "video:assemble": "node video/scripts/assemble.mjs",
-        "docs:screenshots": "node scripts/doc-screenshots/capture.mjs"
+        "docs:screenshots": "node scripts/doc-screenshots/capture.mjs",
+        "bench": "node scripts/bench/run.mjs",
+        "bench:bundle": "node scripts/bench/bundle-stats.mjs"
     },
     "devDependencies": {
         "@types/chrome": "^0.0.260",

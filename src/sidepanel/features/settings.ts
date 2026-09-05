@@ -9,6 +9,7 @@ import { showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
 import { handleAssignmentResetClick, handleAssignmentReshuffleClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
 import { platform } from '../../platform';
+import { perfSpanSync } from '../../lib/perf';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -63,8 +64,11 @@ export function setSettingsDependencies(deps: {
  * 設定画面を表示
  */
 export function showSettings() {
-    renderAssignmentManager();
-    changeView('settings');
+    // Issue #151（#150 工程0）: tiab:settings.show として計測。
+    return perfSpanSync('tiab:settings.show', () => {
+        renderAssignmentManager();
+        changeView('settings');
+    });
 }
 
 /**

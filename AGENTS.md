@@ -1303,6 +1303,12 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 5. 開発中は `npm run watch` でホットリロード
 6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
 
+### 性能計測
+
+実行方法は `scripts/bench/README.md` を見ること（Playwright での実測時間計測 `npm run bench` と、
+バンドル統計 `npm run bench:bundle` の2本）。計測結果は既定で `.tmp/bench/`（`.gitignore` 済み）へ
+出る。計測用ビルド（プレースホルダー環境変数・隔離した出力先）は配布しないこと。
+
 ### `.env` が無い環境（git worktree 等）で production ビルドを検証する
 
 `git worktree` で切ったツリーには `.env` が無いため、production ビルドは fail-fast で落ちる。**`ALLOW_NO_AUTH=1` は dev ビルドしか救わない**（`webpack.config.js` の production 側の throw は、コード中の注記どおりこの変数の影響を受けない）。そのため「`npm run dev` は通ったが `npm run build` / `npm run build:web` は未検証」のまま PR を出すことになりやすい。

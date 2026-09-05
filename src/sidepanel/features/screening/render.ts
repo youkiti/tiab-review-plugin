@@ -19,6 +19,7 @@ import { platform } from '../../../platform';
 import type { DecisionStatus } from '../../../lib/types';
 import { setLastScreeningPosition } from '../../../lib/storage';
 import { isScreeningStatusFilter } from '../../../lib/screening-position';
+import { perfSpanSync } from '../../../lib/perf';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -189,6 +190,11 @@ function renderAbstractHtml(rawAbstract: string, searchKeyword: string, evidence
  * 現在の文献を表示
  */
 export function renderCurrentReference() {
+    // Issue #151（#150 工程0）: tiab:screening.render として計測（文献1件の描画）。
+    return perfSpanSync('tiab:screening.render', () => renderCurrentReferenceImpl());
+}
+
+function renderCurrentReferenceImpl() {
     const filtered = getFilteredReferences();
     const historyRef = getCurrentHistoryReference();
     const ref = historyRef || filtered[state.currentIndex];

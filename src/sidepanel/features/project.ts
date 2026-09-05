@@ -63,6 +63,7 @@ import { createInitialMlState } from '../../lib/ml/types';
 import { maybeShowCriteriaNotice } from './review-criteria';
 import { getLastScreeningPosition } from '../../lib/storage';
 import { resolveRestoredIndex } from '../../lib/screening-position';
+import { perfSpan } from '../../lib/perf';
 
 // 外部関数への参照（循環依存回避）
 let _renderKeywords: (() => void) | null = null;
@@ -483,6 +484,13 @@ export async function handleCreateNew() {
  * データを読み込んでスクリーニング画面を表示
  */
 export async function loadDataAndShowScreening() {
+    // Issue #151（#150 工程0）: プロジェクト読み込み全体を tiab:project.load として計測する。
+    // 内側で通信待ち（fetch.meta / fetch.refs）と描画（render）を別々に計測するため、
+    // 合計と内訳の両方が見える。
+    return perfSpan('tiab:project.load', () => loadDataAndShowScreeningImpl());
+}
+
+async function loadDataAndShowScreeningImpl() {
     const spreadsheetId = state.spreadsheetId;
     const userEmail = state.userEmail;
 
@@ -494,13 +502,17 @@ export async function loadDataAndShowScreening() {
         // Run/Batch 分離後、active 判定は LLM_Runs を経由するため Runs も同時取得する
         // Config 由来の共有設定（キー開封・キーワード・フルテキスト候補ルール）は
         // 1リクエストにまとめて取得する（429対策）
-        const [adminStatus, configBundle, assignmentConfig, llmExecutions, llmRuns] = await Promise.all([
-            isUserAdmin(spreadsheetId, userEmail),
-            getProjectConfigBundle(spreadsheetId),
-            getAssignmentConfig(spreadsheetId),
-            getLlmExecutions(spreadsheetId),
-            getLlmRuns(spreadsheetId),
-        ]);
+        // tiab:project.fetch.meta: 設定・割り振り・AI履歴の取得（通信待ち）。
+        const [adminStatus, configBundle, assignmentConfig, llmExecutions, llmRuns] = await perfSpan(
+            'tiab:project.fetch.meta',
+            () => Promise.all([
+                isUserAdmin(spreadsheetId, userEmail),
+                getProjectConfigBundle(spreadsheetId),
+                getAssignmentConfig(spreadsheetId),
+                getLlmExecutions(spreadsheetId),
+                getLlmRuns(spreadsheetId),
+            ])
+        );
         const keyOpenedStatus = configBundle.keyOpened;
 
         // Store経由で両方に同期
@@ -526,138 +538,153 @@ export async function loadDataAndShowScreening() {
             : new Set<string>();
         syncSetActiveLlmExecutionIds(activeBatchIds);
 
-        // キーオープン状態に応じてデータを読み込み
-        const fetchedRefs = keyOpenedStatus
-            ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
-            : await getReferencesWithStatus(spreadsheetId, userEmail);
-        // 未送信キューの判定を重ねる。オフラインキュー退避中はサーバ側（Decisionsタブ）に
-        // まだ書き込まれていないため、そのままだと再読み込みのたびに「未評価」に戻って見えてしまう
-        // （2026-09 Web版ログイン切れによるキュー滞留の事故対応）
-        const queued = await getQueuedDecisions(spreadsheetId, userEmail);
-        const refs = mergeQueuedDecisions(fetchedRefs, queued, keyOpenedStatus);
-        let visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
-
-        // フルテキスト担当割り振りで自分に割り当てられた文献は、TiAb の担当セット外でも
-        // 読み込む（TiAb 分割とフルテキスト分割は独立のため、担当外グループの文献が
-        // フルテキスト担当になり得る）。TiAb 側の表示は担当セットフィルターで除外される。
-        const ftConfig = configBundle.fulltextAssignment;
-        if (!adminStatus && ftConfig.status === 'configured') {
-            const myFtSets = getFulltextSetsForUser(ftConfig, userEmail);
-            if (myFtSets.size > 0) {
-                const visibleIds = new Set(visibleRefs.map((r) => r.ref_id));
-                const extraRefs = refs.filter((r) =>
-                    !visibleIds.has(r.ref_id) && myFtSets.has((r.fulltext_set || '').trim())
-                );
-                if (extraRefs.length > 0) {
-                    visibleRefs = [...visibleRefs, ...extraRefs];
-                }
-            }
-        }
-        syncSetReferences(visibleRefs);
-        // 担当セット別の件数・担当者一覧を全員に同じ数字で見せるため、絞り込み前の全文献も保持する
-        state.setAllReferences(refs);
-
-        // チーム進捗: 割り振り前の全文献を分母計算に使う（判定データは非同期取得）
-        initTeamProgress(refs);
-
-        // MLの状態をリセット（前のプロジェクトのデータをクリア）
-        syncSetMlState(createInitialMlState());
-
-        // ソースファイルを抽出
-        const sourceFiles = new Set<string>();
-        visibleRefs.forEach(ref => {
-            if (ref.source_file) sourceFiles.add(ref.source_file);
-        });
-        syncSetSourceFiles(sourceFiles);
-        syncSetSelectedSourceFiles(new Set(sourceFiles));
-
-        // レビュアーを抽出（キーオープン時のみ）
-        const reviewers = new Set<string>();
-        if (keyOpenedStatus) {
-            visibleRefs.forEach(ref => {
-                if (ref.allDecisions) {
-                    ref.allDecisions.forEach(d => {
-                        const reviewerKey = getReviewerKey(d);
-                        if (reviewerKey) reviewers.add(reviewerKey);
-                    });
-                }
-            });
-            if (userEmail) {
-                reviewers.add(userEmail);
-            }
-        } else {
-            reviewers.add(userEmail);
-        }
-        syncSetAvailableReviewers(reviewers);
-        syncSetEnabledReviewers(new Set(reviewers)); // デフォルトは全員有効
-
-
-        // 管理者の場合、キーオープンボタンを表示
-        console.log('[loadDataAndShowScreening] isAdmin =', adminStatus);
-
-        // ユーザー情報に権限を表示
-        dom.userInfoDiv.textContent = t('auth_loggedInAsRole', [userEmail, adminStatus ? t('auth_roleAdmin') : t('auth_roleGeneral')]);
-
-        // 注意: キーセクションの表示はrenderLayoutで管理されるようになった
-        // ただし、レガシーなrenderKeyStatusとrenderReviewerFilterは既存コードを維持
-        if (adminStatus) {
-            console.log('[loadDataAndShowScreening] Admin mode');
-            if (_renderKeyStatus) _renderKeyStatus();
-            if (_renderReviewerFilter) _renderReviewerFilter();
-        }
-        // AIハイライトトグルは全ユーザーに表示（確定AI判定があれば表示される）
-        if (_renderAiHighlightToggle) _renderAiHighlightToggle();
-        // 合議モードトグルはキー開封中のみ表示（handleKeyToggle と同じガード）
-        if (_renderConsensusModeToggle) _renderConsensusModeToggle();
-        renderAssignmentManager();
-
-        // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
-        // ログイン成功時のステータスメッセージを非表示にする
-        hideStatus();
-        showScreeningView();
-
-        // 表示（Store経由で同期）
-        syncSetCurrentIndex(0);
-        if (_renderKeywords) _renderKeywords();
-        if (_renderSourceFilters) _renderSourceFilters();
-        renderAssignmentFilters();
-        // フルテキストタブの担当セットフィルタ選択状態（state.fulltextAssignment 設定後に読み込む）
-        await initializeFulltextAssignmentSelection(spreadsheetId, userEmail);
-
-        // TiAb 表示位置の復元（Issue #140）。担当セットフィルター等の初期化が終わった後でないと
-        // getFilteredReferences() の結果が変わってしまうため、この位置（_renderCurrentReference
-        // の直前）で読む。Blind中は復元しない（未判定フィルターでは判定済みが抜けるので実質先頭に
-        // 等しく、初回体験を変えないため。復元しないので保存も不要）。
-        // 復元に失敗しても画面表示は壊さず、従来どおり index 0 のまま続行する。
-        if (keyOpenedStatus) {
-            try {
-                const saved = await getLastScreeningPosition(spreadsheetId);
-                if (saved) {
-                    dom.statusFilter.value = saved.filter;
-                    syncSetCurrentFilter(saved.filter);
-                    const filtered = getFilteredReferences();
-                    const restoredIndex = resolveRestoredIndex(filtered.map((r) => r.ref_id), saved);
-                    syncSetCurrentIndex(restoredIndex);
-                    // 既定の表示（未判定フィルターの先頭）と同じなら、復元したと知らせる意味がないため
-                    // トーストは出さない。
-                    if (filtered.length > 0 && (saved.filter !== 'pending' || restoredIndex > 0)) {
-                        showToast(t('screening_resumedPosition'));
-                    }
-                }
-            } catch (error) {
-                console.warn('[loadDataAndShowScreening] 表示位置の復元に失敗:', error);
-            }
-        }
-
-        if (_renderCurrentReference) _renderCurrentReference();
-        void maybeShowAssignmentWizard('load');
-        // 基準更新通知（案D）。画面表示は完了しているので await せず、失敗しても画面を壊さない
-        maybeShowCriteriaNotice().catch(error =>
-            console.error('[loadDataAndShowScreening] maybeShowCriteriaNotice error:', error)
+        // tiab:project.fetch.refs: 文献取得（通信待ち）。取得件数は fn 内で確定するため、
+        // 呼び出し時点では値の決まっていない detail オブジェクトを渡し、fn がそれを書き換える
+        // （perfSpan は fn の完了後に detail を読むため、この破壊的更新が計測へ反映される）。
+        const fetchRefsDetail: { count?: number } = {};
+        const fetchedRefs = await perfSpan(
+            'tiab:project.fetch.refs',
+            async () => {
+                const result = keyOpenedStatus
+                    ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
+                    : await getReferencesWithStatus(spreadsheetId, userEmail);
+                fetchRefsDetail.count = result.length;
+                return result;
+            },
+            fetchRefsDetail
         );
 
-        // 画面表示後にバックグラウンドで未送信分の送信を試みる（表示順序は維持）
-        void flushUnsentQueue({ interactive: false });
+        // tiab:project.render: データ取得後に画面を表示する部分。
+        await perfSpan('tiab:project.render', async () => {
+            // 未送信キューの判定を重ねる。オフラインキュー退避中はサーバ側（Decisionsタブ）に
+            // まだ書き込まれていないため、そのままだと再読み込みのたびに「未評価」に戻って見えてしまう
+            // （2026-09 Web版ログイン切れによるキュー滞留の事故対応）
+            const queued = await getQueuedDecisions(spreadsheetId, userEmail);
+            const refs = mergeQueuedDecisions(fetchedRefs, queued, keyOpenedStatus);
+            let visibleRefs = initializeAssignmentState(refs, assignmentConfig, userEmail, adminStatus);
+
+            // フルテキスト担当割り振りで自分に割り当てられた文献は、TiAb の担当セット外でも
+            // 読み込む（TiAb 分割とフルテキスト分割は独立のため、担当外グループの文献が
+            // フルテキスト担当になり得る）。TiAb 側の表示は担当セットフィルターで除外される。
+            const ftConfig = configBundle.fulltextAssignment;
+            if (!adminStatus && ftConfig.status === 'configured') {
+                const myFtSets = getFulltextSetsForUser(ftConfig, userEmail);
+                if (myFtSets.size > 0) {
+                    const visibleIds = new Set(visibleRefs.map((r) => r.ref_id));
+                    const extraRefs = refs.filter((r) =>
+                        !visibleIds.has(r.ref_id) && myFtSets.has((r.fulltext_set || '').trim())
+                    );
+                    if (extraRefs.length > 0) {
+                        visibleRefs = [...visibleRefs, ...extraRefs];
+                    }
+                }
+            }
+            syncSetReferences(visibleRefs);
+            // 担当セット別の件数・担当者一覧を全員に同じ数字で見せるため、絞り込み前の全文献も保持する
+            state.setAllReferences(refs);
+
+            // チーム進捗: 割り振り前の全文献を分母計算に使う（判定データは非同期取得）
+            initTeamProgress(refs);
+
+            // MLの状態をリセット（前のプロジェクトのデータをクリア）
+            syncSetMlState(createInitialMlState());
+
+            // ソースファイルを抽出
+            const sourceFiles = new Set<string>();
+            visibleRefs.forEach(ref => {
+                if (ref.source_file) sourceFiles.add(ref.source_file);
+            });
+            syncSetSourceFiles(sourceFiles);
+            syncSetSelectedSourceFiles(new Set(sourceFiles));
+
+            // レビュアーを抽出（キーオープン時のみ）
+            const reviewers = new Set<string>();
+            if (keyOpenedStatus) {
+                visibleRefs.forEach(ref => {
+                    if (ref.allDecisions) {
+                        ref.allDecisions.forEach(d => {
+                            const reviewerKey = getReviewerKey(d);
+                            if (reviewerKey) reviewers.add(reviewerKey);
+                        });
+                    }
+                });
+                if (userEmail) {
+                    reviewers.add(userEmail);
+                }
+            } else {
+                reviewers.add(userEmail);
+            }
+            syncSetAvailableReviewers(reviewers);
+            syncSetEnabledReviewers(new Set(reviewers)); // デフォルトは全員有効
+
+
+            // 管理者の場合、キーオープンボタンを表示
+            console.log('[loadDataAndShowScreening] isAdmin =', adminStatus);
+
+            // ユーザー情報に権限を表示
+            dom.userInfoDiv.textContent = t('auth_loggedInAsRole', [userEmail, adminStatus ? t('auth_roleAdmin') : t('auth_roleGeneral')]);
+
+            // 注意: キーセクションの表示はrenderLayoutで管理されるようになった
+            // ただし、レガシーなrenderKeyStatusとrenderReviewerFilterは既存コードを維持
+            if (adminStatus) {
+                console.log('[loadDataAndShowScreening] Admin mode');
+                if (_renderKeyStatus) _renderKeyStatus();
+                if (_renderReviewerFilter) _renderReviewerFilter();
+            }
+            // AIハイライトトグルは全ユーザーに表示（確定AI判定があれば表示される）
+            if (_renderAiHighlightToggle) _renderAiHighlightToggle();
+            // 合議モードトグルはキー開封中のみ表示（handleKeyToggle と同じガード）
+            if (_renderConsensusModeToggle) _renderConsensusModeToggle();
+            renderAssignmentManager();
+
+            // スクリーニング画面を表示（Store経由でrenderLayoutが自動更新）
+            // ログイン成功時のステータスメッセージを非表示にする
+            hideStatus();
+            showScreeningView();
+
+            // 表示（Store経由で同期）
+            syncSetCurrentIndex(0);
+            if (_renderKeywords) _renderKeywords();
+            if (_renderSourceFilters) _renderSourceFilters();
+            renderAssignmentFilters();
+            // フルテキストタブの担当セットフィルタ選択状態（state.fulltextAssignment 設定後に読み込む）
+            await initializeFulltextAssignmentSelection(spreadsheetId, userEmail);
+
+            // TiAb 表示位置の復元（Issue #140）。担当セットフィルター等の初期化が終わった後でないと
+            // getFilteredReferences() の結果が変わってしまうため、この位置（_renderCurrentReference
+            // の直前）で読む。Blind中は復元しない（未判定フィルターでは判定済みが抜けるので実質先頭に
+            // 等しく、初回体験を変えないため。復元しないので保存も不要）。
+            // 復元に失敗しても画面表示は壊さず、従来どおり index 0 のまま続行する。
+            if (keyOpenedStatus) {
+                try {
+                    const saved = await getLastScreeningPosition(spreadsheetId);
+                    if (saved) {
+                        dom.statusFilter.value = saved.filter;
+                        syncSetCurrentFilter(saved.filter);
+                        const filtered = getFilteredReferences();
+                        const restoredIndex = resolveRestoredIndex(filtered.map((r) => r.ref_id), saved);
+                        syncSetCurrentIndex(restoredIndex);
+                        // 既定の表示（未判定フィルターの先頭）と同じなら、復元したと知らせる意味がないため
+                        // トーストは出さない。
+                        if (filtered.length > 0 && (saved.filter !== 'pending' || restoredIndex > 0)) {
+                            showToast(t('screening_resumedPosition'));
+                        }
+                    }
+                } catch (error) {
+                    console.warn('[loadDataAndShowScreening] 表示位置の復元に失敗:', error);
+                }
+            }
+
+            if (_renderCurrentReference) _renderCurrentReference();
+            void maybeShowAssignmentWizard('load');
+            // 基準更新通知（案D）。画面表示は完了しているので await せず、失敗しても画面を壊さない
+            maybeShowCriteriaNotice().catch(error =>
+                console.error('[loadDataAndShowScreening] maybeShowCriteriaNotice error:', error)
+            );
+
+            // 画面表示後にバックグラウンドで未送信分の送信を試みる（表示順序は維持）
+            void flushUnsentQueue({ interactive: false });
+        });
     } catch (error) {
         console.error('Load data error:', error);
         // 設定画面に戻す（Store経由）

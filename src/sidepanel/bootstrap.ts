@@ -28,6 +28,7 @@ import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
 import { isImeComposing } from '../lib/ime-composition';
+import { perfMeasureFromStart } from '../lib/perf';
 
 // Store（Phase 2で導入）
 import { initializeStore, subscribe, getState } from './store';
@@ -275,4 +276,8 @@ export function bootstrapCommon(): void {
     // Start App
     auth.initApp();
     void flushUnsentQueue({ interactive: false });
+
+    // Issue #151（#150 工程0）: ドキュメント開始（performance.timeOrigin）から
+    // 共有配線完了（このシンクロナスな bootstrapCommon() 本体の末尾）までの起動計測。
+    perfMeasureFromStart('tiab:boot');
 }
