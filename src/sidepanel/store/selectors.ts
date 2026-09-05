@@ -6,7 +6,7 @@
 import type { AppState } from './types';
 import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../lib/types';
 import { createSmartRegex } from '../utils/text';
-import { parseSearchQuery } from '../utils/search';
+import { parseSearchQuery, applyTextFilters } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { canSeeFulltextRef } from '../../lib/fulltext-assignment';
 import { isFulltextCandidateRef } from '../../lib/fulltext-candidates';
@@ -101,49 +101,9 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
         );
     }
 
-    // 検索フィルター
-    const rawSearch = screening.searchQuery;
-    if (rawSearch.trim()) {
-        const { terms, mode } = parseSearchQuery(rawSearch, settings.termFilterUseAnd);
-        filtered = filtered.filter(r => {
-            const text = `${r.title} ${r.abstract || ''}`;
-            const regexes = terms.map(t => createSmartRegex(t));
-
-            if (mode === 'and') {
-                return regexes.every(regex => {
-                    regex.lastIndex = 0;
-                    return regex.test(text);
-                });
-            } else {
-                return regexes.some(regex => {
-                    regex.lastIndex = 0;
-                    return regex.test(text);
-                });
-            }
-        });
-    }
-
-    // タームフィルター
-    const termFilters = screening.activeTermFilters;
-    if (termFilters.length > 0) {
-        if (settings.termFilterUseAnd) {
-            for (const termFilter of termFilters) {
-                const regex = createSmartRegex(termFilter.term);
-                filtered = filtered.filter(r => {
-                    const text = `${r.title} ${r.abstract || ''}`;
-                    return regex.test(text);
-                });
-            }
-        } else {
-            filtered = filtered.filter(r => {
-                const text = `${r.title} ${r.abstract || ''}`;
-                return termFilters.some(termFilter => {
-                    const regex = createSmartRegex(termFilter.term);
-                    return regex.test(text);
-                });
-            });
-        }
-    }
+    // 検索・タームフィルターは二重実装を避けて applyTextFilters() に集約している
+    // （Issue #152（#150 工程1））。
+    filtered = applyTextFilters(filtered, screening.searchQuery, screening.activeTermFilters, settings.termFilterUseAnd);
 
     // 判定フィルター (Blind off時のみ、レビュアーごとに独立して適用)
     if (screening.isKeyOpened) {
@@ -220,20 +180,30 @@ export function getFilterCounts(state: AppState): {
         );
     }
 
-    const getStatus = (r: ReferenceWithStatus) =>
-        getMyManualDecisionStatus(r, data.userEmail, ui.settings.treatMlAsManual);
+    // 6回 filter() を回す代わりに1回の走査で判定する（Issue #152（#150 工程1））。
+    let pending = 0;
+    let include = 0;
+    let exclude = 0;
+    let maybe = 0;
+    let conflict = 0;
+    let fulltextCandidates = 0;
 
-    return {
-        pending: filtered.filter(r => getStatus(r) === 'pending').length,
-        all: filtered.length,
-        include: filtered.filter(r => getStatus(r) === 'include').length,
-        exclude: filtered.filter(r => getStatus(r) === 'exclude').length,
-        maybe: filtered.filter(r => getStatus(r) === 'maybe').length,
-        conflict: filtered.filter(r =>
-            hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)
-        ).length,
-        fulltextCandidates: filtered.filter(r => isMyFulltextCandidate(r, data)).length,
-    };
+    for (const r of filtered) {
+        switch (getMyManualDecisionStatus(r, data.userEmail, ui.settings.treatMlAsManual)) {
+            case 'pending': pending++; break;
+            case 'include': include++; break;
+            case 'exclude': exclude++; break;
+            case 'maybe': maybe++; break;
+        }
+        if (hasEffectiveConflict(r, data.enabledReviewers, ui.screening.isKeyOpened, ui.settings.treatMlAsManual)) {
+            conflict++;
+        }
+        if (isMyFulltextCandidate(r, data)) {
+            fulltextCandidates++;
+        }
+    }
+
+    return { pending, all: filtered.length, include, exclude, maybe, conflict, fulltextCandidates };
 }
 
 // ========== ML関連 ==========
@@ -250,13 +220,16 @@ export function getMlFilteredRanking(state: AppState): string[] {
     }
 
     const { terms, mode } = parseSearchQuery(ui.ml.searchQuery, ui.settings.termFilterUseAnd);
+    // 正規表現の生成は filter() の外で1回だけ行う（Issue #152（#150 工程1）。
+    // ハイライト用途と同じ g 付き正規表現のため、使用の都度 lastIndex をリセットする
+    // 従来どおりの形は維持する）。
+    const regexes = terms.map(t => createSmartRegex(t));
 
     return ranking.filter(refId => {
         const ref = data.references.find(r => r.ref_id === refId);
         if (!ref) return false;
 
         const text = `${ref.title} ${ref.abstract || ''}`;
-        const regexes = terms.map(t => createSmartRegex(t));
 
         if (mode === 'and') {
             return regexes.every(regex => {
