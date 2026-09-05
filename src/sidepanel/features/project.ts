@@ -17,13 +17,11 @@ import {
     rememberLocalRecentSheet,
     getReferencesWithStatus,
     getReferencesWithAllDecisions,
-    getProjectConfigBundle,
-    getLlmExecutions,
-    getLlmRuns,
+    getProjectLoadConfig,
+    getLlmHistory,
     isUserAdmin,
     forceReauth,
     ensureHeaders,
-    getAssignmentConfig,
 } from '../../lib/sheets-api';
 import { setupProjectFolder } from '../../lib/drive-api';
 import { platform } from '../../platform';
@@ -499,20 +497,20 @@ async function loadDataAndShowScreeningImpl() {
         state.clearReviewHistory();
 
         // 管理者権限とキーオープン状態を確認
-        // Run/Batch 分離後、active 判定は LLM_Runs を経由するため Runs も同時取得する
-        // Config 由来の共有設定（キー開封・キーワード・フルテキスト候補ルール）は
-        // 1リクエストにまとめて取得する（429対策）
+        // 履歴の取得・旧形式移行は一度にまとめ、移行後のRuns/Executionsを下流へ渡す。
+        // Configの共有設定・担当割り振り・全文AI採用ラウンドも1リクエストから導出する。
+        // 取得内容の共有はこのロード内だけに閉じ、次のロードでは必ず読み直す。
         // tiab:project.fetch.meta: 設定・割り振り・AI履歴の取得（通信待ち）。
-        const [adminStatus, configBundle, assignmentConfig, llmExecutions, llmRuns] = await perfSpan(
+        const [adminStatus, config, history] = await perfSpan(
             'tiab:project.fetch.meta',
             () => Promise.all([
                 isUserAdmin(spreadsheetId, userEmail),
-                getProjectConfigBundle(spreadsheetId),
-                getAssignmentConfig(spreadsheetId),
-                getLlmExecutions(spreadsheetId),
-                getLlmRuns(spreadsheetId),
+                getProjectLoadConfig(spreadsheetId),
+                getLlmHistory(spreadsheetId),
             ])
         );
+        const { configBundle, assignmentConfig, fulltextAiActiveRound } = config;
+        const { llmExecutions, llmRuns } = history;
         const keyOpenedStatus = configBundle.keyOpened;
 
         // Store経由で両方に同期
@@ -546,7 +544,9 @@ async function loadDataAndShowScreeningImpl() {
             'tiab:project.fetch.refs',
             async () => {
                 const result = keyOpenedStatus
-                    ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
+                    ? await getReferencesWithAllDecisions(spreadsheetId, userEmail, {
+                        llmExecutions, llmRuns, fulltextAiActiveRound,
+                    })
                     : await getReferencesWithStatus(spreadsheetId, userEmail);
                 fetchRefsDetail.count = result.length;
                 return result;

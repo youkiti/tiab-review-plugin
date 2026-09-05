@@ -4,6 +4,7 @@ import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, Fulltext
 import { MODEL_ID_MIGRATIONS } from './model-migrations';
 import { t } from './i18n';
 import { platform } from '../platform';
+import { createAsyncCoalescer } from './async-coalesce';
 import { computeConfigHash, isHashable, legacyHash } from './llm-config-hash';
 import { pickRunByConfigHash, pickLegacyRunByConfigHash, collectJudgedRefIds } from './llm-batch-target';
 import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from './llm-target-selection';
@@ -1480,15 +1481,17 @@ export async function getReferencesWithStatus(
  */
 export async function getReferencesWithAllDecisions(
     spreadsheetId: string,
-    reviewerEmail: string
+    reviewerEmail: string,
+    loaded?: { llmExecutions?: LlmExecution[]; llmRuns?: LlmRun[]; fulltextAiActiveRound?: string | null }
 ): Promise<ReferenceWithStatus[]> {
     console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
 
     const [allReferences, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
         getReferences(spreadsheetId),
         getDecisions(spreadsheetId),
-        getLlmExecutions(spreadsheetId),
-        getFulltextAiActiveRound(spreadsheetId),
+        loaded?.llmExecutions ?? getLlmExecutions(spreadsheetId),
+        loaded?.fulltextAiActiveRound !== undefined
+            ? loaded.fulltextAiActiveRound : getFulltextAiActiveRound(spreadsheetId),
     ]);
     const references = allReferences.filter((ref) => !isLogicallyDeleted(ref));
 
@@ -1519,7 +1522,7 @@ export async function getReferencesWithAllDecisions(
 
     // 有効な LLM 判定 = active Run 配下の Batch IDs に含まれる reviewer_id のもの
     // Run/Batch 分離後、active 状態は LLM_Runs.is_active が正となる
-    const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions);
+    const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions, loaded?.llmRuns);
     const validLlmExecutionIds = activeBatchIds;
 
     // 全レビュアー（+採用ラウンドのAI）のフルテキスト判定マップ（結果集計用）
@@ -1961,51 +1964,54 @@ const ASSIGNMENT_CONFIG_KEYS = [
 ];
 
 export async function getAssignmentConfig(spreadsheetId: string): Promise<AssignmentConfig> {
-    const config: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
-
     try {
-        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-
-        for (const row of values) {
-            const key = row[0];
-            const value = row[1];
-
-            if (!ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
-
-            switch (key) {
-                case 'assignment_status':
-                    if (value === 'dismissed' || value === 'configured' || value === 'none') {
-                        config.status = value;
-                    }
-                    break;
-                case 'assignment_calibration_size':
-                    config.calibrationSize = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.calibrationSize;
-                    break;
-                case 'assignment_group_count':
-                    config.groupCount = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.groupCount;
-                    break;
-                case 'assignment_reviewer_map':
-                    try {
-                        config.reviewerMap = JSON.parse(value) || {};
-                    } catch {
-                        config.reviewerMap = {};
-                    }
-                    break;
-                case 'assignment_seed':
-                    config.seed = value;
-                    break;
-                case 'assignment_generated_at':
-                    config.generatedAt = value;
-                    break;
-                case 'assignment_dismissed_at':
-                    config.dismissedAt = value;
-                    break;
-            }
-        }
+        return parseAssignmentConfig(await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`));
     } catch (error) {
         console.log('[getAssignmentConfig] Config not found, using defaults:', error);
+        return parseAssignmentConfig([]);
     }
+}
 
+/** 取得済みの Config 値から担当割り振りを組み立てる。 */
+export function parseAssignmentConfig(values: string[][]): AssignmentConfig {
+    const config: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
+
+    for (const row of values) {
+        const key = row[0];
+        const value = row[1];
+
+        if (!ASSIGNMENT_CONFIG_KEYS.includes(key) || !value) continue;
+
+        switch (key) {
+            case 'assignment_status':
+                if (value === 'dismissed' || value === 'configured' || value === 'none') {
+                    config.status = value;
+                }
+                break;
+            case 'assignment_calibration_size':
+                config.calibrationSize = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.calibrationSize;
+                break;
+            case 'assignment_group_count':
+                config.groupCount = parseInt(value, 10) || DEFAULT_ASSIGNMENT_CONFIG.groupCount;
+                break;
+            case 'assignment_reviewer_map':
+                try {
+                    config.reviewerMap = JSON.parse(value) || {};
+                } catch {
+                    config.reviewerMap = {};
+                }
+                break;
+            case 'assignment_seed':
+                config.seed = value;
+                break;
+            case 'assignment_generated_at':
+                config.generatedAt = value;
+                break;
+            case 'assignment_dismissed_at':
+                config.dismissedAt = value;
+                break;
+        }
+    }
     return config;
 }
 
@@ -2446,6 +2452,30 @@ export async function getProjectConfigBundle(spreadsheetId: string): Promise<Pro
         return { ...DEFAULT_CONFIG_BUNDLE };
     }
 }
+
+/** 初期ロード専用。Config の内容は呼び出し元だけで共有し、保持しない。 */
+export async function getProjectLoadConfig(spreadsheetId: string): Promise<{
+    configBundle: ProjectConfigBundle;
+    assignmentConfig: AssignmentConfig;
+    fulltextAiActiveRound: string | null;
+}> {
+    try {
+        const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
+        return {
+            configBundle: parseConfigBundle(values),
+            assignmentConfig: parseAssignmentConfig(values),
+            fulltextAiActiveRound: parseFulltextAiActiveRound(values),
+        };
+    } catch (error) {
+        console.log('[getProjectLoadConfig] Config not found, using defaults:', error);
+        return {
+            configBundle: { ...DEFAULT_CONFIG_BUNDLE },
+            assignmentConfig: parseAssignmentConfig([]),
+            fulltextAiActiveRound: null,
+        };
+    }
+}
+
 
 /**
  * Blind中（keyOpened=false）の全文閲覧ウィンドウ向けに Decisions を絞り込む。
@@ -2985,17 +3015,22 @@ export async function saveImportStats(spreadsheetId: string, stats: ImportStatsM
 // フルテキストAI判定の採用ラウンド（reviewer_id = `llm:{model}@{timestamp}`）
 // ---------------------------------------------------------------------------
 
+/** 取得済みの Config 値から採用ラウンドを取得する（最初の一致を採用）。 */
+export function parseFulltextAiActiveRound(values: string[][]): string | null {
+    for (const row of values) {
+        if (row[0] === 'fulltext_ai_active_round') {
+            const v = (row[1] || '').trim();
+            return v || null;
+        }
+    }
+    return null;
+}
+
 /** 採用中のフルテキストAI判定ラウンド（reviewer_id）を取得。未設定は null。 */
 export async function getFulltextAiActiveRound(spreadsheetId: string): Promise<string | null> {
     try {
         const values = await getSheetValues(spreadsheetId, `${CONFIG_SHEET}!A:B`);
-        for (const row of values) {
-            if (row[0] === 'fulltext_ai_active_round') {
-                const v = (row[1] || '').trim();
-                return v || null;
-            }
-        }
-        return null;
+        return parseFulltextAiActiveRound(values);
     } catch (error) {
         console.log('[getFulltextAiActiveRound] Config not found:', error);
         return null;
@@ -3417,6 +3452,33 @@ async function tryUpdateLlmConfig(spreadsheetId: string, updates: Partial<LlmCon
     }
 }
 
+// 内容は保持せず、直近のプロジェクトのタブ・ヘッダー確認成功だけを短時間記録する。
+const LLM_SHEET_ENSURE_TTL_MS = 60_000;
+type LlmSheetEnsureMemo = { spreadsheetId: string; ensure: () => Promise<void> };
+let llmExecutionsEnsureMemo: LlmSheetEnsureMemo | null = null;
+let llmRunsEnsureMemo: LlmSheetEnsureMemo | null = null;
+
+/** タブ確認を失効させる。進行中の旧処理が完了しても新しい memo は温まらない。 */
+export function clearLlmSheetEnsureMemo(): void {
+    llmExecutionsEnsureMemo = null;
+    llmRunsEnsureMemo = null;
+}
+
+function createLlmSheetEnsureMemo(
+    spreadsheetId: string,
+    check: (spreadsheetId: string) => Promise<void>
+): LlmSheetEnsureMemo {
+    let checkedAt: number | null = null;
+    return {
+        spreadsheetId,
+        ensure: createAsyncCoalescer(async () => {
+            if (checkedAt !== null && Date.now() - checkedAt < LLM_SHEET_ENSURE_TTL_MS) return;
+            await check(spreadsheetId);
+            checkedAt = Date.now();
+        }),
+    };
+}
+
 /**
  * LLM_Executionsシートを初期化（存在しない場合）
  *
@@ -3424,6 +3486,13 @@ async function tryUpdateLlmConfig(spreadsheetId: string, updates: Partial<LlmCon
  * 既存データ行は影響を受けない（run_id は空文字として読まれる）。
  */
 export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
+    if (llmExecutionsEnsureMemo?.spreadsheetId !== spreadsheetId) {
+        llmExecutionsEnsureMemo = createLlmSheetEnsureMemo(spreadsheetId, checkLlmExecutionsSheet);
+    }
+    await llmExecutionsEnsureMemo.ensure();
+}
+
+async function checkLlmExecutionsSheet(spreadsheetId: string): Promise<void> {
     try {
         const headerRow = await getSheetValues(spreadsheetId, `${LLM_EXECUTIONS_SHEET}!1:1`);
         const existingHeaders = headerRow[0] || [];
@@ -3462,6 +3531,13 @@ export async function ensureLlmExecutionsSheet(spreadsheetId: string): Promise<v
  * LLM_Runs シートを初期化（存在しない場合）
  */
 export async function ensureLlmRunsSheet(spreadsheetId: string): Promise<void> {
+    if (llmRunsEnsureMemo?.spreadsheetId !== spreadsheetId) {
+        llmRunsEnsureMemo = createLlmSheetEnsureMemo(spreadsheetId, checkLlmRunsSheet);
+    }
+    await llmRunsEnsureMemo.ensure();
+}
+
+async function checkLlmRunsSheet(spreadsheetId: string): Promise<void> {
     try {
         const headerRow = await getSheetValues(spreadsheetId, `${LLM_RUNS_SHEET}!1:1`);
         const existingHeaders = headerRow[0] || [];
@@ -4423,25 +4499,41 @@ async function migrateLegacyExecutionsToRuns(
  * - run_id 空の Batch row を config_hash で集約して Run を生成
  */
 export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
-    try {
-        await ensureLlmRunsSheet(spreadsheetId);
-        await ensureLlmExecutionsSheet(spreadsheetId);
+    return (await getLlmHistory(spreadsheetId)).llmRuns;
+}
 
+/**
+ * 履歴を一度ずつ読み、移行後の所属情報も同じロード内のスナップショットへ反映する。
+ * 初回は各タブのヘッダー確認＋本体取得の2回。内容はモジュールに保持しない。
+ * 旧形式移行が必要な場合は、所属を書き込む直前の行位置確認の取得も従来どおり行う。
+ */
+export async function getLlmHistory(spreadsheetId: string): Promise<{
+    llmRuns: LlmRun[]; llmExecutions: LlmExecution[];
+}> {
+    const executionsPromise = getLlmExecutions(spreadsheetId);
+    try {
         const [existingRuns, allBatches] = await Promise.all([
             getLlmRunsRaw(spreadsheetId),
-            getLlmExecutions(spreadsheetId),
+            executionsPromise,
         ]);
 
-        const { runs } = await migrateLegacyExecutionsToRuns(
+        const { runs, assignments } = await migrateLegacyExecutionsToRuns(
             spreadsheetId,
             existingRuns,
             allBatches
         );
 
-        return runs;
+        const runIds = new Map(assignments.map(a => [a.executionId, a.runId]));
+        return {
+            llmRuns: runs,
+            llmExecutions: allBatches.map(batch => {
+                const runId = runIds.get(batch.execution_id);
+                return runId ? { ...batch, run_id: runId } : batch;
+            }),
+        };
     } catch (error) {
         console.error('[getLlmRuns] Error:', error);
-        return [];
+        return { llmRuns: [], llmExecutions: await executionsPromise };
     }
 }
 
@@ -4466,8 +4558,8 @@ export async function findRunByConfigHash(
  * 現在の active Run（is_active=true かつ confirmed）を1件返す。
  * 複数候補があれば created_at が新しい方を採用。
  */
-export async function getActiveLlmRun(spreadsheetId: string): Promise<LlmRun | null> {
-    const runs = await getLlmRuns(spreadsheetId);
+export async function getActiveLlmRun(spreadsheetId: string, loadedRuns?: LlmRun[]): Promise<LlmRun | null> {
+    const runs = loadedRuns ?? await getLlmRuns(spreadsheetId);
     const candidates = runs
         .filter(r => r.is_active && r.status === 'confirmed')
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -4533,9 +4625,10 @@ export async function getJudgedRefIdsForBatches(
  */
 export async function getActiveBatchIdsForActiveRun(
     spreadsheetId: string,
-    batches?: LlmExecution[]
+    batches?: LlmExecution[],
+    runs?: LlmRun[]
 ): Promise<Set<string>> {
-    const activeRun = await getActiveLlmRun(spreadsheetId);
+    const activeRun = await getActiveLlmRun(spreadsheetId, runs);
     if (!activeRun) return new Set();
     return getBatchIdsForRun(spreadsheetId, activeRun.run_id, batches);
 }
