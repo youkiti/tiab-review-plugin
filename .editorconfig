@@ -1,0 +1,27 @@
+# エディタ共通設定（Issue #162）。https://editorconfig.org
+# インデント幅は既存コードの実態に合わせている（src/tests の .ts、scripts/video の .mjs、
+# .css、.json、.html、.py はいずれも 4 スペースが支配的）。既存ファイルの一括再整形は行わない。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# YAML（GitHub Actions ワークフロー）と ESLint 設定は既存どおり 2 スペース
+[*.{yml,yaml}]
+indent_size = 2
+
+[.eslintrc.cjs]
+indent_size = 2
+
+# Markdown は行末 2 スペースが改行の意味を持つため削らない
+[*.md]
+trim_trailing_whitespace = false
+
+# PowerShell 5.1 は UTF-8 BOM を要求する（scripts/*.ps1 は BOM 付きで保存されている）
+[*.ps1]
+charset = utf-8-bom

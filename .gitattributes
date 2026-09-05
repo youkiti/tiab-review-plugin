@@ -1,0 +1,38 @@
+# 改行コードの正規化（Issue #162）。
+# 既定はリポジトリ内 LF・作業ツリーは OS 既定（core.autocrlf に従う）。
+# 導入前から全テキストファイルはインデックス上 LF だったため、`git add --renormalize .` の差分は出ない。
+* text=auto
+
+# シェルスクリプトは作業ツリーでも常に LF。core.autocrlf=true の Windows 環境で CRLF 化すると
+# bash が `set: pipefail\r` を invalid option として弾き、CI と挙動が食い違う。
+*.sh text eol=lf
+
+# PowerShell スクリプトは eol を固定しない（text=auto のまま）。
+# PowerShell 5.1 が要求するのは UTF-8 BOM（ファイル内容）であって改行コードではなく、
+# BOM は git の改行変換の影響を受けない。既存の scripts/*.ps1 はインデックス上 LF・
+# Windows 作業ツリーでは autocrlf により CRLF で、この挙動を変えない。
+
+# バイナリ（誤って改行変換・diff されないよう明示）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.docx binary
+*.pptx binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.mp4 binary
+*.webm binary
+*.mp3 binary
+*.wav binary
+# EndNote ライブラリ（tests/fixtures/sample.enl, sample.enlp）
+*.enl binary
+*.enlp binary
