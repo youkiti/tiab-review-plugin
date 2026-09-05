@@ -27,117 +27,54 @@ import { isDecisionVisibleDuringBlind } from './blind-visibility';
 import { filterNewCandidates } from './publication-suggest';
 import type { PublicationCandidateDraft } from './publication-suggest';
 
-const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
-
-
-export class SheetsAccessDeniedError extends Error {
-    constructor(
-        public readonly spreadsheetId: string,
-        public readonly status: number,
-        message = 'Spreadsheet access is not granted or the spreadsheet was not found'
-    ) {
-        super(message);
-        this.name = 'SheetsAccessDeniedError';
-    }
-}
-
-export function isSheetsAccessDeniedStatus(status: number): boolean {
-    return status === 403 || status === 404;
-}
-
-/**
- * エラーが Sheets/Google API のクォータ超過によるものかを判定する。
- * 429 レスポンスのメッセージには "Quota exceeded for quota metric ..." が、
- * gRPC系のエラーには "RESOURCE_EXHAUSTED" が含まれるため、どちらかを含むかで判定する。
- * UI 側で「アクセスが集中しています」という専用メッセージに差し替える際に使う。
- */
-export function isQuotaExceededError(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error ?? '');
-    return message.includes('Quota exceeded') || message.includes('RESOURCE_EXHAUSTED');
-}
-
-async function readSheetsErrorMessage(response: Response): Promise<string> {
-    try {
-        const error = await response.json();
-        return error.error?.message || response.statusText;
-    } catch {
-        return response.statusText;
-    }
-}
-
-
-// シート名定数
-const REFERENCES_SHEET = 'References';
-const DECISIONS_SHEET = 'Decisions';
-const CONFIG_SHEET = 'Config';
-const LLM_EXECUTIONS_SHEET = 'LLM_Executions';
-const LLM_RUNS_SHEET = 'LLM_Runs';
-const AUDIT_LOG_SHEET = 'Audit_Log';
-// Issue #118 チャンク2 パスB（レジストリ連携フェーズ1: 論文候補探索）で追加。
-const PUBLICATION_CANDIDATES_SHEET = 'Publication_Candidates';
-// 重複候補ペアの人による採否を記憶するタブ（Issue #145 チャンク2）。
-const DUPLICATE_CANDIDATES_SHEET = 'Duplicate_Candidates';
-
-// LLM_Executionsシートのヘッダー
-// run_id は Run/Batch 分離後に追加された列。既存シートに無い場合は ensureLlmExecutionsSheet で末尾に追加される。
-//
-// 【重要】新しい列は必ず末尾に追加すること。saveLlmExecution() は row 配列を位置ベースで
-// 組み立てており、既存シートのヘッダは「元の並び + ensureLlmExecutionsSheet が末尾へ追記した
-// 不足列」という形にしかならない。途中挿入すると既存プロジェクトのシートで列がずれる。
-const LLM_EXECUTIONS_HEADERS = [
-    'execution_id', 'execution_type', 'timestamp', 'model',
-    'temperature', 'topP', 'thinkingLevel',  // Model parameters
-    'criteria_snapshot', 'screening_prompt', 'include_threshold',
-    'target_count', 'include_count', 'exclude_count',
-    'status', 'is_active', 'run_id',
-    'requested_model', 'model_version', 'response_id',
-    'target_mode', 'target_sets', 'target_selected_count',
-    // フルテキストAI一括判定の実行履歴用（Issue #62）。ここより前には絶対に挿入しないこと。
-    'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
-    // フルテキストAI判定時点の除外理由リストのスナップショット（PR #110）。末尾に追加。
-    'exclude_reasons_snapshot'
-];
-
-// LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）
-const LLM_RUNS_HEADERS = [
-    'run_id', 'config_hash', 'created_at', 'model',
-    'temperature', 'topP', 'thinkingLevel',
-    'criteria_snapshot', 'screening_prompt',
-    'include_threshold', 'status', 'is_active',
-    'requested_model', 'model_version', 'response_id'
-];
-
-// Publication_Candidates タブのヘッダー（Issue #118 チャンク2 パスB）。
-// registration行から発見した結果論文候補を1候補1行で保存する。
-// 【重要】新しい列は必ず末尾に追加すること（LLM_EXECUTIONS_HEADERS と同じ理由）。
-// decided_by/decided_at/imported_ref_id はチャンク3（候補の取り込み・棄却UI）で使う列で、
-// このチャンクでは常に空文字のまま保存する。
-// src/demo/seed.ts の PUBLICATION_CANDIDATES_HEADERS ミラーも必ず追従させること。
-export const PUBLICATION_CANDIDATES_HEADERS = [
-    'candidate_id', 'ref_id', 'trial_id', 'pmid', 'doi',
-    'title', 'journal', 'year', 'strategy', 'status',
-    'suggested_at', 'decided_by', 'decided_at', 'imported_ref_id'
-];
-
-// Publication_Candidates タブの終端列（A1形式）。PUBLICATION_CANDIDATES_HEADERS の長さから
-// 動的に導出する（REFERENCES_LAST_COLUMN / DECISIONS_LAST_COLUMN と同じ流儀。columnLetter() は
-// 1始まりの列番号を取るヘルパーなので、他箇所で使う0始まりの columnNumberToLetter() とは
-// 引数の基準が異なる点に注意）。readPublicationCandidatesRows() と
-// updatePublicationCandidateStatus() の両方でこれを使い、終端列の導出式を重複させない。
-const PUBLICATION_CANDIDATES_LAST_COLUMN = columnLetter(PUBLICATION_CANDIDATES_HEADERS.length);
-
-// Duplicate_Candidates タブのヘッダー（Issue #145 チャンク2）。
-// 重複候補として検出したペア（ref_id_a/ref_id_b）と、人が下した採否を1候補1行で保存する。
-// 「別々の文献だ」という判断を記憶しておかないと、再スキャンのたびに同じ組が再提示されてしまう
-// ため、取り込み時にスキップしなかった組（タイトル一致・source不一致の試験ID一致）はここへ積む。
-// 【重要】新しい列は必ず末尾に追加すること（PUBLICATION_CANDIDATES_HEADERS と同じ理由）。
-// decided_by/decided_at/kept_ref_id はレビューUI（チャンク3）で使う列で、このチャンクでは
-// 常に空文字のまま保存する。
-// src/demo/seed.ts の DUPLICATE_CANDIDATES_HEADERS ミラーも必ず追従させること。
-export const DUPLICATE_CANDIDATES_HEADERS = [
-    'candidate_id', 'ref_id_a', 'ref_id_b', 'match_type', 'match_key',
-    'status', 'suggested_at', 'decided_by', 'decided_at', 'kept_ref_id'
-];
+import {
+    SHEETS_API_BASE,
+    SheetsAccessDeniedError,
+    isSheetsAccessDeniedStatus,
+    readSheetsErrorMessage,
+    getAuthToken,
+    getSheetValues,
+    getSheetValuesBatch,
+    appendRows,
+    updateRange,
+    getSheetIdByName,
+    batchUpdateRanges,
+    addSheet,
+    isSheetMissingError,
+} from './sheets/transport';
+import {
+    REFERENCES_SHEET,
+    DECISIONS_SHEET,
+    CONFIG_SHEET,
+    LLM_EXECUTIONS_SHEET,
+    LLM_RUNS_SHEET,
+    AUDIT_LOG_SHEET,
+    PUBLICATION_CANDIDATES_SHEET,
+    DUPLICATE_CANDIDATES_SHEET,
+    LLM_EXECUTIONS_HEADERS,
+    LLM_RUNS_HEADERS,
+    PUBLICATION_CANDIDATES_HEADERS,
+    DUPLICATE_CANDIDATES_HEADERS,
+    REFERENCES_HEADERS,
+    DECISIONS_HEADERS,
+    columnNumberToLetter,
+    PUBLICATION_CANDIDATES_LAST_COLUMN,
+    DECISIONS_LAST_COLUMN,
+    REFERENCES_LAST_COLUMN,
+    validateReferencesManagedHeaders,
+} from './sheets/schema';
+import { parseReferenceValues, parseDecisionValues } from './sheets/codecs';
+export {
+    SheetsAccessDeniedError,
+    isSheetsAccessDeniedStatus,
+    getAuthToken,
+    REFERENCES_HEADERS,
+    PUBLICATION_CANDIDATES_HEADERS,
+    DUPLICATE_CANDIDATES_HEADERS,
+    validateReferencesManagedHeaders,
+};
+export { isQuotaExceededError } from './sheets/transport';
+export type { ReferencesHeaderConflict, ReferencesManagedHeadersCheck } from './sheets/schema';
 
 // デフォルトハイライトキーワード（RCT フィルタリング想定）
 export const PRESET_RCT = {
@@ -175,128 +112,6 @@ const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
     groupCount: 4,
     reviewerMap: {},
 };
-
-// References タブのヘッダー
-// 【重要】新しい列は必ず末尾に追加すること。途中挿入すると既存プロジェクトのシートで列がずれる。
-// fulltext_drive_source_id（W列）/ fulltext_drive_copy_id（X列）は Issue #73 Phase 2 で追加した、
-// Drive直接取り込みの冪等性判定用の列（詳細は updateReferenceFulltextUrls の JSDoc を参照）。
-// record_type（Y列）/ related_ref_id（Z列）は Issue #118 チャンク1（レジストリ連携フェーズ1）で追加。
-// duplicate_of（AA列）は Issue #145 チャンク2 で追加。重複検出（作り直し）の論理削除フラグ。
-// 非空なら、この行は重複として除外済みで、値は残す側の ref_id（isLogicallyDeleted() で判定）。
-// 列を足すたびに src/demo/seed.ts の REFERENCES_HEADERS ミラーも必ず追従させること。
-export const REFERENCES_HEADERS = [
-    'ref_id', 'title', 'abstract', 'year', 'authors',
-    'journal', 'volume', 'issue', 'pages', 'issn',
-    'doi', 'pmid', 'url', 'source',
-    'imported_at', 'imported_by', 'dedupe_key', 'source_file', 'screening_set',
-    'fulltext_url', 'fulltext_status', 'fulltext_set',
-    'fulltext_drive_source_id', 'fulltext_drive_copy_id',
-    'record_type', 'related_ref_id',
-    'duplicate_of'
-];
-
-
-// Decisions タブのヘッダー
-// 互換性のため labels 列は残すが、機能としては使用しない
-// screening_phase: 'tiab' | 'fulltext' (省略時は 'tiab' 扱い)
-// context_json: 判定時点のAI暴露状況を記録するJSON（DecisionContextV1）。書くだけの列で
-// 読み取り側の挙動は変えない（AGENTS.md「Decisions タブ」参照）。新しい列は必ず末尾に追加すること
-// （LLM_EXECUTIONS_HEADERS と同じ理由。saveDecisionInner 等が row 配列を位置ベースで組み立てるため）。
-const DECISIONS_HEADERS = [
-    'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',
-    'labels', 'note', 'decided_at', 'client_version', 'source_url', 'screening_phase',
-    'context_json'
-];
-
-/**
- * 1始まりの列番号を A1 形式の列名（A, B, ..., Z, AA, ...）に変換する。
- * ヘッダー配列の長さから終端列を導出するために使う。Decisions のように列が末尾追記で
- * 増えていくシートでは、`A1:K1` のように終端列をハードコードすると、列追加のたびに
- * 直し忘れた箇所だけ新しい列が反映されない事故が起きる（実際に踏んだ落とし穴）ため、
- * 必ずこのヘルパーでヘッダー数から導出すること。
- */
-function columnLetter(index: number): string {
-    let n = index;
-    let letters = '';
-    while (n > 0) {
-        const rem = (n - 1) % 26;
-        letters = String.fromCharCode(65 + rem) + letters;
-        n = Math.floor((n - 1) / 26);
-    }
-    return letters;
-}
-
-// Decisions タブの終端列（A1形式）。DECISIONS_HEADERS の長さから動的に導出する。
-// 以前は 'K'（11列時代）をシート操作の各所に直書きしていたが、context_json 追加で
-// 12列目（L列）になったため、以後は列数変更に自動追従するこの定数を使うこと。
-const DECISIONS_LAST_COLUMN = columnLetter(DECISIONS_HEADERS.length);
-
-// References タブの終端列（A1形式）。REFERENCES_HEADERS の長さから動的に導出する。
-// 以前は 'References!A:X' を4箇所に直書きしていたが（24列固定の想定）、record_type/
-// related_ref_id 追加で26列（Z列）になったため、以後は列数変更に自動追従するこの定数を使うこと
-// （Decisions と同じ落とし穴。T:X（fulltext系5列の部分範囲）のように末尾以外を指す固定範囲は
-// 対象外＝変更不要）。
-const REFERENCES_LAST_COLUMN = columnLetter(REFERENCES_HEADERS.length);
-
-// References タブの「アプリ後付け列」の開始位置（0-indexed）。
-// A〜V の22列（ref_id 〜 fulltext_set）は初期バージョンから存在する安定プレフィックスで、
-// W列（index 22）以降は、このアプリが後から追加してきた列
-// （fulltext_drive_source_id/fulltext_drive_copy_id → record_type/related_ref_id、…）。
-// ユーザーが独自の列を追加するなら必ずこの位置以降になるため、
-// 「ユーザー独自ヘッダーとの衝突」検証はこの位置から REFERENCES_HEADERS.length-1 までを対象にする。
-const REFERENCES_MANAGED_TAIL_START_INDEX = 22;
-
-/** validateReferencesManagedHeaders() が検出した1列分の衝突情報 */
-export interface ReferencesHeaderConflict {
-    /** A1形式の列名（例: 'Y'） */
-    column: string;
-    /** アプリが期待するヘッダー名 */
-    expected: string;
-    /** 実際にシートへ入っていたヘッダー名（trim済み） */
-    actual: string;
-}
-
-/** validateReferencesManagedHeaders() の判定結果 */
-export interface ReferencesManagedHeadersCheck {
-    ok: boolean;
-    /** ok=false のとき、衝突した列ぶんの情報（呼び出し側がログに出すため） */
-    conflicts: ReferencesHeaderConflict[];
-}
-
-/**
- * References タブの「アプリ後付け列」（REFERENCES_MANAGED_TAIL_START_INDEX（W列）から
- * REFERENCES_HEADERS.length-1 まで）を、ユーザーが独自ヘッダー名で使っていないか検証する。
- *
- * 【経緯】この検証は元々 W/X列（fulltext_drive_source_id/fulltext_drive_copy_id）限定だった
- * （validateFulltextDriveHeaders、PR #105。ユーザーが独自の23列目以降を1本だけ足したシートで
- * W1のユーザー独自名を無警告で改名し、直後の書き込みでデータごと上書きしてしまう事故が実機で
- * 発生した）。その後 record_type/related_ref_id（Y/Z列、Issue #118）を追加した際にこの検証が
- * 追従しておらず、Y/Z列で同じ穴がそのまま再発した（詳細は ensureHeaders() のコメント参照）。
- *
- * 二度と列を足すたびに同じ穴が空かないよう、検証対象の終端を REFERENCES_HEADERS.length から
- * 動的に導出する。**ここが今回の一般化の肝**で、次に列を1本足せば、その列は呼び出し側の
- * 変更なしに自動でこの検証範囲へ含まれる。
- */
-export function validateReferencesManagedHeaders(headerRow: string[]): ReferencesManagedHeadersCheck {
-    const conflicts: ReferencesHeaderConflict[] = [];
-    for (let i = REFERENCES_MANAGED_TAIL_START_INDEX; i < REFERENCES_HEADERS.length; i++) {
-        const expected = REFERENCES_HEADERS[i];
-        const actual = (headerRow[i] ?? '').trim();
-        if (actual !== '' && actual !== expected) {
-            conflicts.push({ column: columnLetter(i + 1), expected, actual });
-        }
-    }
-    return { ok: conflicts.length === 0, conflicts };
-}
-
-/**
- * OAuth トークンを取得。
- * interactive=true のときのみユーザー操作起点の認可（Web版はポップアップ）を許可する。
- * ログインボタン等の操作起点からの呼び出しでのみ true を渡すこと。
- */
-export async function getAuthToken(interactive = false): Promise<string> {
-    return platform().getAuthToken(interactive);
-}
 
 /**
  * ユーザーのメールアドレスを取得（OAuth userinfo APIを使用）
@@ -682,192 +497,6 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
 
     const data = await response.json();
     return { title: data.properties.title };
-}
-
-/**
- * クォータ超過 (429) 用の指数バックオフリトライ。
- * 初回 1s → 2s → 4s → 8s → 16s → 32s（最大）で 5 回までリトライする (AGENTS.md 準拠)。
- * 429 以外のエラーは即座に throw する。
- */
-async function fetchGetWithQuotaRetry(url: string, token: string, label: string): Promise<Response> {
-    const maxRetries = 5;
-    let delayMs = 1000;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (response.status !== 429 || attempt === maxRetries) {
-            return response;
-        }
-        console.warn(`[getSheetValues] 429 quota exceeded for ${label}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        delayMs = Math.min(delayMs * 2, 32000);
-    }
-    // ループ終端は到達不能（return か throw のいずれか）
-    throw new Error('fetchGetWithQuotaRetry: unreachable');
-}
-
-async function fetchSheetValuesWithRetry(
-    spreadsheetId: string,
-    range: string,
-    token: string
-): Promise<Response> {
-    return fetchGetWithQuotaRetry(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-        token,
-        range
-    );
-}
-
-/**
- * シートからデータを取得
- */
-async function getSheetValues(spreadsheetId: string, range: string): Promise<string[][]> {
-    const token = await getAuthToken();
-
-    const response = await fetchSheetValuesWithRetry(spreadsheetId, range, token);
-
-    if (!response.ok) {
-        const message = await readSheetsErrorMessage(response);
-        if (isSheetsAccessDeniedStatus(response.status)) {
-            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
-        }
-        throw new Error(`Failed to get sheet values: ${message}`);
-    }
-
-    const data = await response.json();
-    return data.values || [];
-}
-
-/**
- * 複数レンジを1リクエストで取得（values:batchGet）
- * クォータは「リクエスト数」でカウントされるため、複数レンジが必要な場面では
- * getSheetValues を並べるよりこちらを使うこと（429対策）。
- * 戻り値は ranges と同じ順序。
- */
-async function getSheetValuesBatch(spreadsheetId: string, ranges: string[]): Promise<string[][][]> {
-    const token = await getAuthToken();
-    const params = ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&');
-    const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${params}`;
-
-    const response = await fetchGetWithQuotaRetry(url, token, ranges.join(', '));
-
-    if (!response.ok) {
-        const message = await readSheetsErrorMessage(response);
-        if (isSheetsAccessDeniedStatus(response.status)) {
-            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
-        }
-        throw new Error(`Failed to batch get sheet values: ${message}`);
-    }
-
-    const data = await response.json();
-    const valueRanges = (data.valueRanges ?? []) as { values?: string[][] }[];
-    return ranges.map((_, i) => valueRanges[i]?.values ?? []);
-}
-
-/**
- * values:append レスポンスの updates.updatedRange（例: `Decisions!A123:K123`、
- * シート名に空白を含む場合は `'My Sheet'!A123:K123`）から先頭行番号を取り出す。
- * シート名部分にも `!` が含まれ得るため、範囲の区切りは「最後の `!`」を基準にする。
- * パースに失敗した場合は null を返す（呼び出し側はキャッシュを無効化すること）。
- */
-function parseFirstRowIndexFromUpdatedRange(updatedRange: string | undefined): number | null {
-    if (!updatedRange) return null;
-    const bangIndex = updatedRange.lastIndexOf('!');
-    if (bangIndex === -1) return null;
-    const rangePart = updatedRange.slice(bangIndex + 1);
-    const match = rangePart.match(/^[A-Za-z]+(\d+)/);
-    if (!match) return null;
-    const rowIndex = parseInt(match[1], 10);
-    return Number.isFinite(rowIndex) ? rowIndex : null;
-}
-
-/**
- * シートに行を追加
- * 戻り値の firstRowIndex は追記した最初の行のシート行番号（1始まり）。
- * Decisions への保存で「読み取りなしで新規行の行番号をキャッシュへ登録する」ために使う。
- * 既存の呼び出し元の大半は戻り値を使わない（await するだけ）ため、そのまま動作する。
- */
-async function appendRows(
-    spreadsheetId: string,
-    sheetName: string,
-    rows: (string | number | undefined)[][]
-): Promise<{ firstRowIndex: number | null }> {
-    const token = await getAuthToken();
-
-    const response = await fetch(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-        {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                values: rows.map(row => row.map(v => v ?? '')),
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to append rows: ${error.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json().catch(() => null);
-    const firstRowIndex = parseFirstRowIndexFromUpdatedRange(data?.updates?.updatedRange);
-    return { firstRowIndex };
-}
-
-/**
- * シートの特定範囲を更新
- */
-async function updateRange(spreadsheetId: string, range: string, values: (string | number | undefined)[][]): Promise<void> {
-    const token = await getAuthToken();
-
-    const response = await fetch(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-        {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                values: values.map(row => row.map(v => v ?? '')),
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to update range: ${error.error?.message || response.statusText}`);
-    }
-}
-
-/**
- * References タブのシート値を Reference[] に変換
- */
-function parseReferenceValues(values: string[][]): Reference[] {
-    if (values.length <= 1) {
-        return []; // ヘッダーのみ or 空
-    }
-
-    const headers = values[0];
-    const rows = values.slice(1);
-
-    return rows.map(row => {
-        const ref: Record<string, string | number | undefined> = {};
-        headers.forEach((header, i) => {
-            const value = row[i] || '';
-            if (header === 'year') {
-                ref[header] = value ? parseInt(value, 10) : undefined;
-            } else {
-                ref[header] = value || undefined;
-            }
-        });
-        return ref as unknown as Reference;
-    });
 }
 
 /**
@@ -1268,52 +897,6 @@ export async function deleteReferencesBySourceFile(spreadsheetId: string, source
     }
 
     return rangesToDelete.reduce((acc, range) => acc + (range.endIndex - range.startIndex), 0);
-}
-
-/**
- * シート名からシートIDを取得
- */
-async function getSheetIdByName(spreadsheetId: string, sheetName: string): Promise<number | null> {
-    const token = await getAuthToken();
-    const response = await fetch(
-        `${SHEETS_API_BASE}/${spreadsheetId}?fields=sheets.properties`,
-        {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }
-    );
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const sheet = data.sheets.find((s: any) => s.properties.title === sheetName);
-    return sheet ? sheet.properties.sheetId : null;
-}
-
-/**
- * Decisions タブのシート値を判定一覧に変換
- */
-function parseDecisionValues(values: string[][]): { decision: Decision; rowIndex: number }[] {
-    if (values.length <= 1) {
-        return [];
-    }
-
-    const headers = values[0];
-    const rows = values.slice(1);
-
-    return rows.map((row, idx) => {
-        const dec: Record<string, string | string[] | undefined> = {};
-        headers.forEach((header, i) => {
-            const value = row[i] || '';
-            // labelsフィールドはDecision型から削除されたため、読み込み時は無視する
-            if (header !== 'labels') {
-                dec[header] = value || undefined;
-            }
-        });
-        return {
-            decision: dec as unknown as Decision,
-            rowIndex: idx + 2, // 1-indexed + ヘッダー分
-        };
-    });
 }
 
 /**
@@ -2196,45 +1779,6 @@ async function trySaveFulltextAssignmentConfig(
     }
 }
 
-function columnNumberToLetter(columnIndex: number): string {
-    let result = '';
-    let current = columnIndex + 1;
-
-    while (current > 0) {
-        const remainder = (current - 1) % 26;
-        result = String.fromCharCode(65 + remainder) + result;
-        current = Math.floor((current - 1) / 26);
-    }
-
-    return result;
-}
-
-async function batchUpdateRanges(
-    spreadsheetId: string,
-    updates: Array<{ range: string; values: string[][] }>
-): Promise<void> {
-    const token = await getAuthToken();
-    const response = await fetch(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
-        {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                valueInputOption: 'USER_ENTERED',
-                data: updates,
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to batch update ranges: ${error.error?.message || response.statusText}`);
-    }
-}
-
 export async function updateReferenceScreeningSets(
     spreadsheetId: string,
     assignments: Array<{ refId: string; screeningSet: string }>
@@ -2588,36 +2132,6 @@ export async function getFulltextPageData(spreadsheetId: string, userEmail: stri
 export async function getHighlightKeywords(spreadsheetId: string): Promise<HighlightKeywords> {
     const bundle = await getProjectConfigBundle(spreadsheetId);
     return bundle.keywords;
-}
-
-/**
- * Config タブのハイライトキーワードを更新
- */
-async function addSheet(spreadsheetId: string, title: string): Promise<void> {
-    const token = await getAuthToken();
-    const response = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            requests: [
-                {
-                    addSheet: {
-                        properties: {
-                            title: title
-                        }
-                    }
-                }
-            ]
-        })
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to add sheet: ${error.error?.message || response.statusText}`);
-    }
 }
 
 /**
@@ -3197,21 +2711,6 @@ async function trySetKeyOpened(spreadsheetId: string, opened: boolean) {
     } else {
         await appendRows(spreadsheetId, CONFIG_SHEET, [['key_opened', value]]);
     }
-}
-
-/**
- * 対象タブ自体が存在しない（＝本当に未設定・未作成）ことを示すエラーかを判定する。
- * getSheetValues が投げる「Unable to parse range」等のメッセージ文言で判定する
- * （saveFulltextDriveFolderId 等が Config シート新規作成のトリガーに使っている判定と同じ。
- * Config タブに限らず、getDuplicateCandidates() 等シート欠落時に ensure して読み直す
- * 他の経路からも共通で使う。PR #161 レビュー指摘対応で `isConfigSheetMissingError` から改名）。
- * SheetsAccessDeniedError（403/404）のデフォルトメッセージにも "not found" を含みうるため、
- * ここでは常に false 扱いにして呼び出し側へ再送出させる（アクセス拒否を「未設定」に潰さないため）。
- */
-function isSheetMissingError(error: unknown): boolean {
-    if (error instanceof SheetsAccessDeniedError) return false;
-    const message = error instanceof Error ? error.message : String(error ?? '');
-    return message.includes('Unable to parse range') || message.includes('not found');
 }
 
 /**
