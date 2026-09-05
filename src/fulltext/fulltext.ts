@@ -76,6 +76,7 @@ import type { Reference, Decision, FulltextLlmDecisionNote } from '../lib/types'
 import type { FulltextEvidenceDisplay } from '../lib/sheets-api';
 import { PdfRenderer } from './pdf-renderer';
 import type { LoadedPdf, HighlightCategory } from './pdf-renderer';
+import { perfSpanSync } from '../lib/perf';
 
 const OA_SOURCE_LABELS: Record<OaSource | 'cached' | 'linked', string> = {
     pmc_oa: 'PMC OA',
@@ -2685,6 +2686,11 @@ function renderAiCardsFallback(): void {
 }
 
 function applyHighlightsForCurrentRef(): void {
+    // Issue #151（#150 工程0）: tiab:pdf.highlight として計測（ハイライト適用）。
+    return perfSpanSync('tiab:pdf.highlight', () => applyHighlightsForCurrentRefImpl());
+}
+
+function applyHighlightsForCurrentRefImpl(): void {
     if (!pdfRenderer || !currentRef || !currentPdfInfo) return;
     pdfRenderer.clearHighlights();
 
@@ -2816,7 +2822,8 @@ function jumpToEvidence(delta: number): void {
     focusAnnotationCard(item.id);
     // オーバーレイ非表示中は（不可視要素へは scrollIntoView が効かないため）ページ単位で送る
     if (item.resolved && highlightEnabled) {
-        pdfRenderer?.scrollToHighlight(item.id);
+        // Issue #151（#150 工程0）: tiab:pdf.evidenceJump として計測（根拠カードからのジャンプ）。
+        perfSpanSync('tiab:pdf.evidenceJump', () => pdfRenderer?.scrollToHighlight(item.id));
         pdfRenderer?.flashHighlight(item.id);
     } else if (currentPdfInfo) {
         pdfRenderer?.scrollToPage(item.page);
@@ -2904,7 +2911,8 @@ function renderAnnotationsList(
                 evidenceCursor = evidenceItems.findIndex(i => i.id === item.id);
                 // オーバーレイ非表示中は（不可視要素へは scrollIntoView が効かないため）ページ単位で送る
                 if (item.resolved && highlightEnabled) {
-                    pdfRenderer?.scrollToHighlight(item.id);
+                    // Issue #151（#150 工程0）: tiab:pdf.evidenceJump として計測（根拠カードからのジャンプ）。
+                    perfSpanSync('tiab:pdf.evidenceJump', () => pdfRenderer?.scrollToHighlight(item.id));
                     pdfRenderer?.flashHighlight(item.id);
                 } else {
                     pdfRenderer?.scrollToPage(item.page);

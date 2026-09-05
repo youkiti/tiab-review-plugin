@@ -17,6 +17,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
 import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-image-only';
+import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
 
 // worker / リソースは webpack の CopyPlugin で dist 直下へ配置する。
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
@@ -110,6 +111,20 @@ export class PdfRenderer {
      * @param data PDFのバイト列（ArrayBuffer / Uint8Array）
      */
     async loadPdf(data: ArrayBuffer | Uint8Array): Promise<LoadedPdf> {
+        // Issue #151（#150 工程0）: tiab:pdf.allPages は loadPdf() 全体（この関数）の計測。
+        // ページ数は fn の完了後にしか確定しないため、呼び出し時点では値の決まっていない
+        // detail オブジェクトを渡し、fn 側がそれを書き換える（perfSpan は fn の完了後に detail を
+        // 読むため、この破壊的更新が計測へ反映される）。
+        const allPagesDetail: { pageCount?: number } = {};
+        return perfSpan('tiab:pdf.allPages', () => this.loadPdfCore(data, allPagesDetail), allPagesDetail);
+    }
+
+    /**
+     * loadPdf() の実処理（perfSpan で tiab:pdf.allPages を包むために private 関数へ切り出している）。
+     * ループ構造・token チェックによる早期終了・戻り値の形は元の実装と同一。
+     * 1ページ目の renderPage() 完了時点でだけ tiab:pdf.firstPage を追加で計測する。
+     */
+    private async loadPdfCore(data: ArrayBuffer | Uint8Array, allPagesDetail: { pageCount?: number }): Promise<LoadedPdf> {
         const token = ++this.renderToken;
         // 前の描画を破棄（destroy だと token を進めて自分を stale 化してしまうため手動で）
         this.pages = [];
@@ -136,11 +151,13 @@ export class PdfRenderer {
 
         const fitScale = this.computeFitScale();
         let totalTextLength = 0;
+        const firstPageStart = perfNow();
 
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
             if (token !== this.renderToken) break;
             const info = await this.renderPage(page, n, fitScale, token);
+            if (n === 1) perfMeasureFrom('tiab:pdf.firstPage', firstPageStart);
             if (token !== this.renderToken) break;
             if (info) {
                 this.pages.push(info);
@@ -148,6 +165,7 @@ export class PdfRenderer {
             }
         }
 
+        allPagesDetail.pageCount = pdf.numPages;
         return {
             numPages: pdf.numPages,
             isImageOnly: totalTextLength < SCANNED_TEXT_THRESHOLD,

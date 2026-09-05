@@ -18,6 +18,7 @@ import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 import { renderDuplicateReviewSection } from '../duplicate-review';
+import { perfSpanSync } from '../../../lib/perf';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -173,6 +174,11 @@ export function getMyManualDecisionStatus(r: ReferenceWithStatus): DecisionStatu
  * フィルタリング済み文献リストを取得
  */
 export function getFilteredReferences(): ReferenceWithStatus[] {
+    // Issue #151（#150 工程0）: tiab:screening.filter として計測（絞り込み対象の件数を detail に）。
+    return perfSpanSync('tiab:screening.filter', () => getFilteredReferencesImpl(), { inputCount: state.references.length });
+}
+
+function getFilteredReferencesImpl(): ReferenceWithStatus[] {
     let filtered = state.references;
 
     // ステータスフィルター
@@ -291,6 +297,11 @@ export function getScreeningCounts(refs: ReferenceWithStatus[]) {
  * フィルターの件数を更新
  */
 export function updateFilterCounts() {
+    // Issue #151（#150 工程0）: tiab:screening.counts として計測。
+    return perfSpanSync('tiab:screening.counts', () => updateFilterCountsImpl());
+}
+
+function updateFilterCountsImpl() {
     // ソースファイルフィルターを適用したものでカウント
     let filtered = state.references;
     if (state.selectedSourceFiles.size > 0 && state.selectedSourceFiles.size < state.sourceFiles.size) {
