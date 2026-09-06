@@ -26,8 +26,8 @@ import { getVisibleFulltextCandidateList, getProjectFulltextCandidateList } from
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from './assignment';
 import { setReferences as syncSetReferences } from '../store/compat';
 import {
-    getReferencesWithStatus,
-    getReferencesWithAllDecisions,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
     saveDecision,
     getLlmConfig,
     getDecisions,
@@ -788,9 +788,9 @@ export async function reloadReferences(spreadsheetId: string): Promise<void> {
     try {
         const userEmail = state.userEmail;
         const isKeyOpened = state.isKeyOpened;
-        const refs = isKeyOpened
-            ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
-            : await getReferencesWithStatus(spreadsheetId, userEmail);
+        const snapshot = await loadProjectSnapshot(spreadsheetId, userEmail, { history: isKeyOpened, duplicateCandidates: false });
+        if (snapshot.spreadsheetId !== state.spreadsheetId) return;
+        const refs = selectReferencesWithStatus(snapshot, userEmail, isKeyOpened);
 
         const visibleRefs = (() => {
             if (state.isAdmin) return refs;

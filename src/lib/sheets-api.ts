@@ -103,6 +103,8 @@ export {
 } from './sheets/config';
 export {
     getActiveBatchIdsForActiveRun,
+    selectActiveBatchIds,
+    selectActiveLlmRun,
     getLlmExecutions,
     clearLlmSheetEnsureMemo,
     ensureLlmExecutionsSheet,

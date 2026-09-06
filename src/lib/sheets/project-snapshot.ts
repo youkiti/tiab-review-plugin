@@ -95,9 +95,15 @@ export async function loadProjectSnapshot(
 /**
  * keyOpened に応じて合成関数を選ぶ。
  * キー開封後は履歴が必須。未取得のまま合成すると LLM 票が全て落ちるため例外にする（Issue #153）。
+ * キー切替は取得後に Config を書き換えるため、取得時の key_opened は切替前の値になる。
+ * 切替後の keyOpened を呼び出し側から上書きできるようにする（Issue #153）。
  */
-export function selectReferencesWithStatus(snapshot: ProjectSnapshot, userEmail: string): ReferenceWithStatus[] {
-    if (!snapshot.configBundle.keyOpened) {
+export function selectReferencesWithStatus(
+    snapshot: ProjectSnapshot,
+    userEmail: string,
+    keyOpened: boolean = snapshot.configBundle.keyOpened
+): ReferenceWithStatus[] {
+    if (!keyOpened) {
         return mergeReferencesWithStatus(snapshot.allReferences, snapshot.decisionsData, userEmail);
     }
     if (snapshot.llmRuns === null || snapshot.llmExecutions === null) {

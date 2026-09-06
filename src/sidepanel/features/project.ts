@@ -490,7 +490,10 @@ export async function loadDataAndShowScreening() {
     return perfSpan('tiab:project.load', () => loadDataAndShowScreeningImpl());
 }
 
+let loadGeneration = 0;
+
 async function loadDataAndShowScreeningImpl() {
+    const generation = ++loadGeneration;
     const spreadsheetId = state.spreadsheetId;
     const userEmail = state.userEmail;
 
@@ -510,6 +513,13 @@ async function loadDataAndShowScreeningImpl() {
                 loadProjectSnapshot(spreadsheetId, userEmail),
             ])
         );
+        // 遅れて返った旧プロジェクト／旧世代の応答を破棄する（Issue #153）。
+        // 取得中に「戻る」で state.spreadsheetId が空になった場合や、別プロジェクトの読み込みが
+        // 後から始まった場合、この snapshot を state へ適用してはならない。
+        if (generation !== loadGeneration || snapshot.spreadsheetId !== state.spreadsheetId) {
+            console.log('[loadDataAndShowScreening] 古い読み込みの応答を破棄:', snapshot.spreadsheetId);
+            return;
+        }
         const { configBundle, assignmentConfig } = snapshot;
         const keyOpenedStatus = configBundle.keyOpened;
 
@@ -684,6 +694,11 @@ async function loadDataAndShowScreeningImpl() {
             void flushUnsentQueue({ interactive: false });
         });
     } catch (error) {
+        // 旧世代の失敗は破棄する。新しい読み込みが自分の結果（成功・失敗）を画面へ反映する（Issue #153）。
+        if (generation !== loadGeneration) {
+            console.log('[loadDataAndShowScreening] 古い読み込みの失敗を破棄:', spreadsheetId, error);
+            return;
+        }
         console.error('Load data error:', error);
         // 設定画面に戻す（Store経由）
         showProjectView();
@@ -693,7 +708,8 @@ async function loadDataAndShowScreeningImpl() {
             showStatus(t('project_loadDataError', (error as Error).message), 'error');
         }
     } finally {
-        showLoading(false);
+        // 旧世代の完了で、新しい読み込みのローディング表示を消さない（Issue #153）。
+        if (generation === loadGeneration) showLoading(false);
     }
 }
 

@@ -4,7 +4,8 @@ import { Decision } from '../../../lib/types';
 import type { Label } from '../../../lib/ml/types';
 import { t } from '../../../lib/i18n';
 import {
-    getReferencesWithStatus,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
     getDecisions,
     appendDecisions,
     updateDecisionsBatch,
@@ -197,7 +198,9 @@ export async function resetAndStartNewMlReview() {
     showLoading(true);
 
     try {
-        const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+        const snapshot = await loadProjectSnapshot(state.spreadsheetId, state.userEmail, { history: false, duplicateCandidates: false });
+        if (snapshot.spreadsheetId !== state.spreadsheetId) return;
+        const refs = selectReferencesWithStatus(snapshot, state.userEmail, false);
         syncSetReferences(refs);
 
         const { createInitialMlState } = await import('../../../lib/ml/types');
