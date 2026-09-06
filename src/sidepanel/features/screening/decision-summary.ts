@@ -2,7 +2,7 @@
  * チーム判定サマリー（エクスポート用）
  *
  * TiAb エクスポート（CSV/RIS）に「誰が何と判定したか」を出すための集計ロジック。
- * `ref.status`（`src/lib/sheets/decisions.ts` の `detectConflict()`、判定1件のみでも
+ * `ref.status`（`src/lib/decision-aggregate.ts` の `detectConflict()`、判定1件のみでも
  * conflict 扱いになる旧定義）とは別に、判定人数を考慮した `team_status` を計算する。
  *
  * 純関数のみで構成する（`../../state` / `../../dom` を import しないこと）。
@@ -72,7 +72,7 @@ export function collectReviewerKeys(
  *   （フォールバック済みの実効レビュアー集合を呼び出し側から渡すこと）。
  * - 同一キーに複数判定がある場合（Decisions は追記専用）は decided_at が最大のものを採用する。
  * - 採用した最新判定の decision が 'pending' または空文字の場合は、未判定として map に入れない
- *   （sheets-api.ts の getReferencesWithAllDecisions と同じ扱い）。
+ *   （sheets/project-snapshot.ts の getReferencesWithAllDecisions と同じ扱い）。
  */
 export function buildReviewerDecisionMap(
     ref: ReferenceWithStatus,
