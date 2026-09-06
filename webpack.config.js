@@ -291,6 +291,17 @@ function buildExtensionConfig(env, argv) {
                     ...(isDemo
                         ? [{ from: 'video/fixtures/demo-paper.pdf', to: 'fixtures/demo-paper.pdf' }]
                         : []),
+                    // デモビルドのみ: ?benchPdf=20p / 57p で選べる20ページ以上のPDFフィクスチャ
+                    // （Issue #156（#150 工程5）着手前の準備。demo-paper.pdf と違いこの2本はこの
+                    // リポジトリで生成したものではなく、公開済みのCC BY 4.0論文をそのまま同梱している。
+                    // 出所表示は video/fixtures/NOTICE.md、識別子とファイルIDの対応は
+                    // src/demo/constants.ts の DEMO_PDF_FIXTURES を参照）。
+                    ...(isDemo
+                        ? [
+                            { from: 'video/fixtures/bench-paper-20p.pdf', to: 'fixtures/bench-paper-20p.pdf' },
+                            { from: 'video/fixtures/bench-paper-57p.pdf', to: 'fixtures/bench-paper-57p.pdf' },
+                        ]
+                        : []),
                 ],
             }),
         ],

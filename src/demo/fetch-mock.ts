@@ -27,8 +27,7 @@ import {
     DEMO_USER_EMAIL,
     DEMO_COLLEAGUE_EMAIL,
     DEMO_SEED_TIMESTAMP,
-    DEMO_FULLTEXT_DRIVE_FILE_ID,
-    DEMO_FULLTEXT_PDF_RESOURCE_PATH,
+    DEMO_PDF_FIXTURES,
 } from './constants';
 
 let installed = false;
@@ -296,20 +295,26 @@ function resetDemoDrivePermissions(): void {
     nextDemoPermissionId = 1;
 }
 
-/** 拡張バンドル同梱のデモPDFをバイト列で取得する（chrome-extension:// URLはisPassthroughUrlで実fetchへ流れる） */
-async function fetchBundledDemoPdfBytes(): Promise<ArrayBuffer> {
-    const resourceUrl = chrome.runtime.getURL(DEMO_FULLTEXT_PDF_RESOURCE_PATH);
+/** 拡張バンドル同梱のPDFフィクスチャをバイト列で取得する（chrome-extension:// URLはisPassthroughUrlで実fetchへ流れる） */
+async function fetchBundledPdfBytes(resourcePath: string): Promise<ArrayBuffer> {
+    const resourceUrl = chrome.runtime.getURL(resourcePath);
     const response = await fetch(resourceUrl);
     return response.arrayBuffer();
 }
 
-/** Drive files.get?alt=media（PDFバイナリ取得）の応答を組み立てる */
+/**
+ * Drive files.get?alt=media（PDFバイナリ取得）の応答を組み立てる。
+ * fileId が DEMO_PDF_FIXTURES（?benchPdf= で選べる3本。src/demo/constants.ts）のいずれかの
+ * driveFileId と一致する場合だけ、そのフィクスチャの resourcePath を返す。一致しなければ
+ * 従来どおり404にする。
+ */
 async function handleDriveMediaDownload(fileId: string): Promise<Response> {
-    if (fileId !== DEMO_FULLTEXT_DRIVE_FILE_ID) {
+    const fixture = Object.values(DEMO_PDF_FIXTURES).find((f) => f.driveFileId === fileId);
+    if (!fixture) {
         return jsonResponse(404, { error: { code: 404, message: 'File not found' } });
     }
     try {
-        const bytes = await fetchBundledDemoPdfBytes();
+        const bytes = await fetchBundledPdfBytes(fixture.resourcePath);
         return new Response(bytes, {
             status: 200,
             headers: {

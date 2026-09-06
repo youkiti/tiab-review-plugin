@@ -125,7 +125,7 @@ function buildRealDemoReferences(): Reference[] {
  */
 function buildDemoReferences(profile: DemoProfile, options?: BenchOptions): Reference[] {
     if (profile === 'bench') {
-        return buildBenchReferences(options?.size ?? FALLBACK_BENCH_SIZE);
+        return buildBenchReferences(options?.size ?? FALLBACK_BENCH_SIZE, options?.pdf ?? 'demo');
     }
     const references = buildRealDemoReferences();
     if (profile === 'ml') {
@@ -198,7 +198,7 @@ function syntheticRefId(syntheticIndex: number): string {
 function buildDemoDecisions(profile: DemoProfile, options?: BenchOptions): string[][] {
     if (profile === 'bench') {
         const size = options?.size ?? FALLBACK_BENCH_SIZE;
-        const seeds = buildBenchDecisionSeeds(size);
+        const seeds = buildBenchDecisionSeeds(size, options?.pdf ?? 'demo');
         return [DECISIONS_HEADERS, ...seeds.map((seed) => buildDecisionRow({
             decisionId: seed.decisionId,
             refId: seed.refId,

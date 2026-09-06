@@ -60,3 +60,53 @@ export const DEMO_FULLTEXT_SOURCE_FILE_ID = 'demo-pdf-source-001';
  * fetch-mock.ts が chrome.runtime.getURL() 経由で読み込む。
  */
 export const DEMO_FULLTEXT_PDF_RESOURCE_PATH = 'fixtures/demo-paper.pdf';
+
+/**
+ * ?benchPdf= で選べるPDFフィクスチャの識別子（Issue #156（#150 工程5）着手前の準備。
+ * #151 完了コメントの「同梱デモPDFは4ページしかなく、#150 の『20ページ／100ページ』の
+ * 目標を検証できない」というブロッカーの解消用）。
+ */
+export type DemoPdfFixtureId = 'demo' | '20p' | '57p';
+
+/**
+ * PDFフィクスチャ1本分の情報。
+ * - driveFileId: fetch-mock.ts の handleDriveMediaDownload() が Drive files.get?alt=media の
+ *   モック応答として、この fileId が来たときだけ resourcePath のPDFを返す（fake ID）。
+ * - resourcePath: 拡張機能パッケージ内での相対パス（webpack.config.js の CopyPlugin が
+ *   デモビルド限定でコピーする）。
+ * - pageCount: bench-fixtures.ts の evidence（quote の page）がこの値を超えないことをテストで
+ *   確認する。
+ */
+export interface DemoPdfFixture {
+    driveFileId: string;
+    resourcePath: string;
+    pageCount: number;
+}
+
+/**
+ * PDFフィクスチャの一覧。
+ * - 'demo': 既存の全文デモ（4ページ、video/fixtures/demo-paper.pdf）。DEMO_FULLTEXT_DRIVE_FILE_ID /
+ *   DEMO_FULLTEXT_PDF_RESOURCE_PATH をそのまま参照する（値を書き直すとドリフトするため）。
+ *   src/demo/seed.ts の既定デモプロファイル（demo-ref-001）は今後もこの2定数を直接使い続ける。
+ * - '20p' / '57p': Issue #156（#150 工程5）の20ページ以上フィクスチャ要求に応えるための追加分。
+ *   公開済みのCC BY 4.0論文（出所表示は video/fixtures/NOTICE.md）で、このリポジトリの
+ *   研究データではない。ページ数・バイト数は実測値（コマンダーが取得・検証済み）。
+ */
+export const DEMO_PDF_FIXTURES: Record<DemoPdfFixtureId, DemoPdfFixture> = {
+    demo: {
+        driveFileId: DEMO_FULLTEXT_DRIVE_FILE_ID,
+        resourcePath: DEMO_FULLTEXT_PDF_RESOURCE_PATH,
+        pageCount: 4,
+    },
+    '20p': {
+        // 既存の demo-pdf-001 / demo-pdf-source-001 と衝突しない fake Drive ファイルID。
+        driveFileId: 'demo-pdf-20p',
+        resourcePath: 'fixtures/bench-paper-20p.pdf',
+        pageCount: 20,
+    },
+    '57p': {
+        driveFileId: 'demo-pdf-57p',
+        resourcePath: 'fixtures/bench-paper-57p.pdf',
+        pageCount: 57,
+    },
+};
