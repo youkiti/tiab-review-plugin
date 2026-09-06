@@ -140,6 +140,8 @@ export type Action =
     | { type: 'data/setAvailableReviewers'; reviewers: Set<string> }
     | { type: 'data/setEnabledReviewers'; reviewers: Set<string> }
     | { type: 'data/toggleReviewer'; reviewerId: string }
+    | { type: 'data/addReviewer'; reviewerId: string }
+    | { type: 'data/removeReviewer'; reviewerId: string }
     | { type: 'data/setFailedRefIds'; ids: string[] }
     | { type: 'data/setCurrentBatchDecisions'; decisions: Decision[] }
     | { type: 'data/addActiveLlmExecutionId'; id: string }

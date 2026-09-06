@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from '../src/sidepanel/state';
+import { initializeStore } from '../src/sidepanel/store';
+import { setSpreadsheetId as syncSetSpreadsheetId } from '../src/sidepanel/store/compat';
 import { saveStoppingRuleToStorage } from '../src/sidepanel/features/ml/stopping-storage';
+
+// state.spreadsheetId はIssue #154 工程3でStoreを読むgetterのみになったため、
+// saveStoppingRuleToStorage() が内部で参照する前にStoreを初期化しておく必要がある。
+initializeStore();
 
 test('停止基準の保存先をプロジェクト間で分離し、保存完了まで待つ', async () => {
     const previousChrome = Object.getOwnPropertyDescriptor(globalThis, 'chrome');
@@ -15,14 +21,14 @@ test('停止基準の保存先をプロジェクト間で分離し、保存完�
         } } },
     } });
     try {
-        state.setSpreadsheetId('project-a');
+        syncSetSpreadsheetId('project-a');
         let finished = false;
         const first = saveStoppingRuleToStorage(75).then(() => { finished = true; });
         await Promise.resolve();
         assert.equal(finished, false);
         complete();
         await first;
-        state.setSpreadsheetId('project-b');
+        syncSetSpreadsheetId('project-b');
         const second = saveStoppingRuleToStorage(120);
         complete();
         await second;
@@ -31,7 +37,7 @@ test('停止基準の保存先をプロジェクト間で分離し、保存完�
             { 'mlStoppingRule_project-b': { confirmed: true, threshold: 120 } },
         ]);
     } finally {
-        state.setSpreadsheetId(previousId);
+        syncSetSpreadsheetId(previousId);
         if (previousChrome) Object.defineProperty(globalThis, 'chrome', previousChrome);
         else Reflect.deleteProperty(globalThis, 'chrome');
     }

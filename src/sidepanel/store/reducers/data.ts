@@ -207,6 +207,28 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
             };
         }
 
+        // toggleReviewerと異なり、呼び出し側が持つ真偽値をそのまま反映する（現在の集合に対する
+        // 反転ではない）。混在レビュアー（人手＋ML）のチェックボックス切替では、同じ enabled 値を
+        // 独立した2キー（本体キーと ::ml キー）へ適用するため、片方が既にその状態でも
+        // toggleReviewer だと意図せず反転してしまう。
+        case 'data/addReviewer': {
+            const newEnabled = new Set(state.data.enabledReviewers);
+            newEnabled.add(action.reviewerId);
+            return {
+                ...state,
+                data: { ...state.data, enabledReviewers: newEnabled },
+            };
+        }
+
+        case 'data/removeReviewer': {
+            const newEnabled = new Set(state.data.enabledReviewers);
+            newEnabled.delete(action.reviewerId);
+            return {
+                ...state,
+                data: { ...state.data, enabledReviewers: newEnabled },
+            };
+        }
+
         case 'data/setFailedRefIds':
             return {
                 ...state,

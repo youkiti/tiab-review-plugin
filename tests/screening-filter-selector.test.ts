@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 import { DEFAULT_ASSIGNMENT_CONFIG, resolveReferenceAssignmentSet } from '../src/lib/assignment-set';
+import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../src/lib/fulltext-assignment';
 import { createStore, initializeStore, initialState, type AppState, type Action } from '../src/sidepanel/store';
 import { getFilteredReferences, getFilterCounts, collectRefDecisions, getMyManualDecisionStatus } from '../src/sidepanel/store/selectors';
 import { state as legacyState } from '../src/sidepanel/state';
@@ -187,7 +188,7 @@ test('同じ検索・位置・フィルターをdispatchしても状態と通知
     assert.equal(store.getState().ui.screening.currentIndex, 0);
 });
 
-test('移行した値はgetterで直ちに読め、互換同期でも上書きされない', () => {
+test('移行した値はgetterで直ちに読め、legacy setterが存在しない', () => {
     const store = initializeStore(fixture([]));
     try {
         compat.setReferences([ref('a')]);
@@ -206,23 +207,122 @@ test('移行した値はgetterで直ちに読め、互換同期でも上書き�
         const migratedData = ['references', 'sourceFiles', 'selectedSourceFiles', 'assignmentConfig', 'assignmentSets', 'selectedAssignmentSets', 'selectedFulltextSets'] as const;
         for (const key of migratedData) {
             assert.equal(legacyState[key], before.data[key]);
-            assert.equal(key in compat.legacyToAppState().data, false);
         }
         for (const key of Object.keys(before.ui.screening) as (keyof AppState['ui']['screening'])[]) {
             assert.equal(legacyState[key], before.ui.screening[key]);
             assert.equal(Object.getOwnPropertyDescriptor(legacyState, key)?.set, undefined);
             assert.equal(`set${key[0].toUpperCase()}${key.slice(1)}` in legacyState, false);
         }
-        assert.equal('screening' in compat.legacyToAppState().ui, false);
-        compat.syncToLegacyState(initialState);
-        compat.initializeFromLegacy();
-        assert.equal(store.getState().ui.screening, before.ui.screening);
-        for (const key of migratedData) assert.equal(store.getState().data[key], before.data[key]);
         assert.equal(legacyState.allReferences, before.data.references);
         legacyState.setAllReferences([ref('all')]);
         assert.equal(legacyState.allReferences[0].ref_id, 'all');
     } finally {
         legacyState.setAllReferences([]);
+        initializeStore();
+    }
+});
+
+test('Issue #154 工程3で移行した9領域はgetter専用で、compatラッパーがStoreを直接更新する', () => {
+    const store = initializeStore(fixture([]));
+    try {
+        const nineAreas = [
+            'spreadsheetId', 'userEmail', 'highlightKeywords', 'isAdmin',
+            'fulltextPoolRule', 'fulltextAssignment', 'availableReviewers',
+            'enabledReviewers', 'currentTab',
+        ] as const;
+        for (const key of nineAreas) {
+            assert.equal(Object.getOwnPropertyDescriptor(legacyState, key)?.set, undefined);
+            assert.equal(`set${key[0].toUpperCase()}${key.slice(1)}` in legacyState, false);
+        }
+        // ハイライトキーワード・レビュアーのadd/removeもlegacy側からは無くなっている
+        for (const method of [
+            'addIncludeKeyword', 'removeIncludeKeyword', 'addExcludeKeyword', 'removeExcludeKeyword',
+            'addEnabledReviewer', 'removeEnabledReviewer',
+        ]) {
+            assert.equal(method in legacyState, false);
+        }
+
+        compat.setSpreadsheetId('sheet-9');
+        compat.setUserEmail('nine@example.test');
+        compat.setKeywords({ include: [], exclude: [] });
+        compat.addIncludeKeyword('rct');
+        compat.addIncludeKeyword('rct'); // 重複は追加しない
+        compat.addExcludeKeyword('case report');
+        compat.setIsAdmin(true);
+        compat.setFulltextPoolRule(null);
+        compat.setFulltextAssignment({ ...DEFAULT_FULLTEXT_ASSIGNMENT });
+        compat.setAvailableReviewers(new Set(['a@example.test', 'b@example.test']));
+        compat.setEnabledReviewers(new Set(['a@example.test']));
+        compat.addEnabledReviewer('b@example.test');
+        compat.changeTab('ml');
+
+        // compatラッパーがStoreへdispatchした値を、state.Xのgetterで直ちに同じ値として読める
+        assert.equal(legacyState.spreadsheetId, store.getState().data.spreadsheetId);
+        assert.equal(legacyState.userEmail, 'nine@example.test');
+        assert.deepEqual(legacyState.highlightKeywords, { include: ['rct'], exclude: ['case report'] });
+        assert.equal(legacyState.isAdmin, true);
+        assert.equal(legacyState.fulltextPoolRule, null);
+        assert.deepEqual(legacyState.fulltextAssignment, DEFAULT_FULLTEXT_ASSIGNMENT);
+        assert.deepEqual(legacyState.availableReviewers, new Set(['a@example.test', 'b@example.test']));
+        assert.deepEqual(legacyState.enabledReviewers, new Set(['a@example.test', 'b@example.test']));
+        assert.equal(legacyState.currentTab, 'ml');
+
+        compat.removeEnabledReviewer('a@example.test');
+        assert.deepEqual(legacyState.enabledReviewers, new Set(['b@example.test']));
+        compat.removeIncludeKeyword('rct');
+        assert.deepEqual(legacyState.highlightKeywords.include, []);
+    } finally {
+        initializeStore();
+    }
+});
+
+test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する（loadDataAndShowScreeningでの再設定が前提）', () => {
+    const store = initializeStore(fixture([]));
+    try {
+        compat.setSpreadsheetId('sheet-9');
+        compat.setUserEmail('nine@example.test');
+        compat.setKeywords({ include: ['rct'], exclude: [] });
+        compat.setIsAdmin(true);
+        compat.setFulltextPoolRule(null);
+        compat.setFulltextAssignment({ ...DEFAULT_FULLTEXT_ASSIGNMENT, status: 'configured' });
+        compat.setAvailableReviewers(new Set(['a@example.test']));
+        compat.setEnabledReviewers(new Set(['a@example.test']));
+        compat.changeTab('ml');
+
+        // reset/back: spreadsheetId・fulltextPoolRule・fulltextAssignment・availableReviewers・
+        // enabledReviewers は初期化するが、userEmail・isAdmin・highlightKeywords・currentTab は保持する
+        // （store/reducer.ts の 'reset/back' ケースの内容と一致）
+        compat.resetForBack();
+        assert.equal(store.getState().data.spreadsheetId, '');
+        assert.equal(store.getState().data.fulltextPoolRule, null);
+        assert.deepEqual(store.getState().data.fulltextAssignment, DEFAULT_FULLTEXT_ASSIGNMENT);
+        assert.deepEqual(store.getState().data.availableReviewers, new Set());
+        assert.deepEqual(store.getState().data.enabledReviewers, new Set());
+        assert.equal(store.getState().data.userEmail, 'nine@example.test');
+        assert.equal(store.getState().data.isAdmin, true);
+        assert.deepEqual(store.getState().data.highlightKeywords, { include: ['rct'], exclude: [] });
+        assert.equal(store.getState().ui.currentTab, 'ml');
+
+        // reset/logout: initialStateへ戻るため9領域すべて初期値に戻る。
+        // highlightKeywords・availableReviewers・enabledReviewers はlegacy resetForLogout()は
+        // 保持していたが、loadDataAndShowScreening()（features/project.ts）がプロジェクト読み込み時に
+        // 必ず syncSetKeywords/syncSetAvailableReviewers/syncSetEnabledReviewers で再設定するため、
+        // ログイン直後の画面には値が表示されない期間しかなく実害はない。
+        compat.setUserEmail('nine@example.test');
+        compat.setKeywords({ include: ['rct'], exclude: [] });
+        compat.setAvailableReviewers(new Set(['a@example.test']));
+        compat.setEnabledReviewers(new Set(['a@example.test']));
+        compat.resetForLogout();
+        assert.equal(store.getState().data.spreadsheetId, '');
+        assert.equal(store.getState().data.userEmail, '');
+        assert.equal(store.getState().data.isAdmin, false);
+        assert.deepEqual(store.getState().data.highlightKeywords, { include: [], exclude: [] });
+        assert.equal(store.getState().data.fulltextPoolRule, null);
+        assert.deepEqual(store.getState().data.fulltextAssignment, DEFAULT_FULLTEXT_ASSIGNMENT);
+        assert.deepEqual(store.getState().data.availableReviewers, new Set());
+        assert.deepEqual(store.getState().data.enabledReviewers, new Set());
+        assert.equal(store.getState().ui.currentTab, 'screening');
+    } finally {
         initializeStore();
     }
 });
