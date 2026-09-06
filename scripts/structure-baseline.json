@@ -86,10 +86,6 @@
       "lines": 931
     },
     {
-      "file": "src/fulltext/fulltext.ts",
-      "lines": 3097
-    },
-    {
       "file": "src/lib/drive-api.ts",
       "lines": 904
     },
@@ -111,7 +107,7 @@
     },
     {
       "file": "src/sidepanel/features/fulltext-ai.ts",
-      "lines": 845
+      "lines": 846
     },
     {
       "file": "src/sidepanel/features/fulltext-assignment-ui.ts",

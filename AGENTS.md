@@ -936,7 +936,17 @@ tiab-review-plugin/
 │   ├── fulltext/              # フルテキストスクリーニング（新規タブページ）
 │   │   ├── fulltext.html      # 2カラムレイアウト（PDF左 / 決断・アノテーション右）
 │   │   ├── fulltext.css
-│   │   └── fulltext.ts        # エントリポイント（URL param: ref_id）
+│   │   ├── fulltext.ts        # エントリポイント（初期化と依存の接続、URL param: ref_id）
+│   │   ├── session.ts         # ページ状態・世代・先読み・破棄対象リソースの保持
+│   │   ├── document-loader.ts # PDF取得・再付与・描画と表示経路の選択
+│   │   ├── document-view.ts   # フレーム・ツールバー・取得状況・記事ページの表示
+│   │   ├── registry-snapshot.ts # 登録情報スナップショットの取得・復旧案内
+│   │   ├── pdf-upload.ts      # PDFアップロード・置換・削除・ドロップ操作
+│   │   ├── decision-controller.ts # 判定・理由・保存・AIサマリ・他者票の表示
+│   │   ├── evidence-controller.ts # AI根拠・アノテーション一覧・ジャンプ・表示切替
+│   │   ├── navigation.ts      # 候補計算・文献切替・進捗・キーボード操作
+│   │   ├── page-panels.ts     # 書誌・判定の文脈・レビュー基準モーダル
+│   │   └── page-helpers.ts    # 表示文言・外部リンク・一時通知の共通処理
 │   ├── lib/
 │   │   ├── gemini-api.ts      # Gemini API クライアント
 │   │   ├── sheets-api.ts      # Sheets API の互換窓口（実装は sheets/ 配下を再 export）
