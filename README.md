@@ -119,6 +119,54 @@ npm run watch
 | `npm run typecheck` | 型チェック         |
 | `npm test`          | 全テスト実行（`npm test -- doi` でファイル名の部分一致に絞り込み） |
 
+## 最短手順
+
+起動は `npm ci` → `.env.example` を参考に `.env` に認証設定 → `npm run dev` →
+`chrome://extensions` から `dist/` を読み込む。設定値の取得は上の「セットアップ」を参照。
+開発中は `npm run watch`（Web版は `npm run watch:web`）を使う。
+依存共有済みの worktree ではインストールを省き、認証不要のコンパイル確認には
+`ALLOW_NO_AUTH=1 npm run dev` を使える。認証設定のない成果物は配布しない。
+
+| 目的 | 最短コマンド |
+| --- | --- |
+| 対象テスト | `npm test -- doi`（ファイル名の部分一致） |
+| 全品質検査 | `npm run typecheck && npm run lint && npm test && npm run check:structure` |
+| 拡張 production 検証 | `WEBAUTH_CLIENT_ID=placeholder npm run build` |
+| Web production 検証 | `WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=000000000000 npm run build:web` |
+| 実測時間・通信量 | `npm run bench`（準備・条件は [性能計測手順](scripts/bench/README.md)） |
+| バンドル量の計測 | `npm run bench:bundle` |
+| バンドル予算検査 | `npm run check:bundle`（両版を計測して比較） |
+
+プレースホルダーによる両productionビルドはコンパイル検証専用で、配布・アップロードしない。
+`src/sidepanel/` の変更は両版に入るため、両ビルドを通す。
+
+### どこに何を足すか
+
+| 変更内容 | 追加・変更先 |
+| --- | --- |
+| 新しい画面機能・処理の調整 | `src/sidepanel/features/`（フルテキスト画面は `src/fulltext/`、Web専用は `src/webapp/`） |
+| ドメイン純関数・保存 API | `src/lib/` / `src/lib/sheets/` |
+| ブラウザ間の platform 差分 | `src/platform/` |
+| 設定の既定値 | 該当機能のモジュール。シート設定は `src/lib/sheets/config-schema.ts`、ML停止基準は `src/lib/ml/cmh-defaults.ts`、列定義は `src/lib/sheets/schema.ts` |
+| テスト | `tests/<name>.test.ts`（`node:test` + `node:assert/strict`） |
+| CI | `.github/workflows/build-check.yml` |
+| 構造検査の基準値 | `scripts/structure-baseline.json` |
+| バンドル予算 | `scripts/bundle-budget.json` |
+
+依存方向は「画面 → 処理の調整 → ドメイン純関数 / 保存API → platform」。
+型・既定値からUIや通信を参照しない。新規ファイルは200〜500行を目安に、変更理由とテスト境界が
+共通の処理をまとめる。800行超の新規ファイルは設計レビュー対象で、構造検査が失敗する。
+既存の超過は改善対象として増減を表示し、コメントを削って行数を合わせない。
+
+構造検査は相対import（型・動的importを含む）の新規違反・循環を検出する。
+基準値の更新は `node scripts/check-structure.mjs --update-baseline`。
+予算の更新は `npm run bench:bundle` 後に `node scripts/check-bundle-budget.mjs --update-budget` で行う
+（実測初期JS量の101%、バイト単位で切り上げ）。既存の統計を使う場合は
+`node scripts/check-bundle-budget.mjs --stats .tmp/bench/bundle-stats-<日時>.json`。
+基準値・予算を更新するときは、設計上の理由をコミットに書く。検査を通すだけの引き上げはしない。
+重要な契約の参照先は [AGENTS.mdの参照先索引](AGENTS.md#参照先索引)、詳細は同ファイルの
+「開発規約（依存方向・ファイル規模・CI 回帰条件）」を参照。
+
 ## Codex PR自動レビュー
 
 このリポジトリでは GitHub Actions の `Codex PRレビュー` ワークフローで、PR作成・更新・再オープン時に Codex が自動レビューコメントを投稿します。

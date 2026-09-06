@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "violations": [
+    {
+      "rule": "platform-to-ui",
+      "from": "src/platform/demo/index.ts",
+      "to": "src/demo/constants.ts"
+    }
+  ],
+  "cycles": [
+    {
+      "files": [
+        "src/lib/drive-api.ts",
+        "src/lib/drive-import-action.ts",
+        "src/lib/drive-import-claim.ts"
+      ],
+      "edges": [
+        {
+          "from": "src/lib/drive-api.ts",
+          "to": "src/lib/drive-import-action.ts"
+        },
+        {
+          "from": "src/lib/drive-import-action.ts",
+          "to": "src/lib/drive-import-claim.ts"
+        },
+        {
+          "from": "src/lib/drive-import-claim.ts",
+          "to": "src/lib/drive-api.ts"
+        }
+      ]
+    },
+    {
+      "files": [
+        "src/lib/duplicate-detect.ts",
+        "src/lib/llm-target-selection.ts",
+        "src/lib/types.ts"
+      ],
+      "edges": [
+        {
+          "from": "src/lib/duplicate-detect.ts",
+          "to": "src/lib/types.ts"
+        },
+        {
+          "from": "src/lib/llm-target-selection.ts",
+          "to": "src/lib/types.ts"
+        },
+        {
+          "from": "src/lib/types.ts",
+          "to": "src/lib/duplicate-detect.ts"
+        },
+        {
+          "from": "src/lib/types.ts",
+          "to": "src/lib/llm-target-selection.ts"
+        }
+      ]
+    },
+    {
+      "files": [
+        "src/lib/llm-provider.ts",
+        "src/lib/providers/openai.ts",
+        "src/lib/providers/openrouter.ts"
+      ],
+      "edges": [
+        {
+          "from": "src/lib/llm-provider.ts",
+          "to": "src/lib/providers/openai.ts"
+        },
+        {
+          "from": "src/lib/llm-provider.ts",
+          "to": "src/lib/providers/openrouter.ts"
+        },
+        {
+          "from": "src/lib/providers/openai.ts",
+          "to": "src/lib/llm-provider.ts"
+        },
+        {
+          "from": "src/lib/providers/openrouter.ts",
+          "to": "src/lib/llm-provider.ts"
+        }
+      ]
+    }
+  ],
+  "largeFiles": [
+    {
+      "file": "src/fulltext/fulltext.css",
+      "lines": 931
+    },
+    {
+      "file": "src/fulltext/fulltext.ts",
+      "lines": 3097
+    },
+    {
+      "file": "src/lib/drive-api.ts",
+      "lines": 904
+    },
+    {
+      "file": "src/lib/gemini-api.ts",
+      "lines": 927
+    },
+    {
+      "file": "src/lib/llm-processor.ts",
+      "lines": 972
+    },
+    {
+      "file": "src/lib/sheets/llm-history.ts",
+      "lines": 857
+    },
+    {
+      "file": "src/sidepanel/features/duplicate-review.ts",
+      "lines": 1058
+    },
+    {
+      "file": "src/sidepanel/features/fulltext-ai.ts",
+      "lines": 845
+    },
+    {
+      "file": "src/sidepanel/features/fulltext-assignment-ui.ts",
+      "lines": 808
+    },
+    {
+      "file": "src/sidepanel/features/fulltext-drive-import.ts",
+      "lines": 1104
+    },
+    {
+      "file": "src/sidepanel/features/fulltext-results.ts",
+      "lines": 899
+    },
+    {
+      "file": "src/sidepanel/features/fulltext-tab.ts",
+      "lines": 1180
+    },
+    {
+      "file": "src/sidepanel/features/llm/batch.ts",
+      "lines": 1386
+    },
+    {
+      "file": "src/sidepanel/sidepanel.html",
+      "lines": 1055
+    },
+    {
+      "file": "src/sidepanel/styles/fulltext-tab.css",
+      "lines": 1629
+    },
+    {
+      "file": "src/sidepanel/styles/llm.css",
+      "lines": 1057
+    }
+  ]
+}

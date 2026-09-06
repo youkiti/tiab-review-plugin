@@ -28,6 +28,26 @@ module.exports = {
   },
   overrides: [
     {
+      // Issue #157: 現状0件の lib → UI 違反を編集時にも検出する。
+      files: ["src/lib/**"],
+      rules: {
+        "no-restricted-imports": ["error", { patterns: [{
+          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/demo", "**/demo/**"],
+          message: "純関数・保存APIは src/lib/、画面と処理の調整は src/sidepanel/ に置き、lib から画面を参照しないでください。",
+        }] }],
+      },
+    },
+    {
+      // platform → demo の既存1件だけは構造検査の基準値で管理する。
+      files: ["src/platform/**"],
+      rules: {
+        "no-restricted-imports": ["error", { patterns: [{
+          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/lib", "**/lib/**"],
+          message: "純関数・保存APIは src/lib/、画面と処理の調整は src/sidepanel/ に置き、platform から上位を参照しないでください。",
+        }] }],
+      },
+    },
+    {
       // 拡張専用ファイル: Web バンドルに含めないため chrome 直接参照を許可する。
       files: [
         "src/platform/chrome/**",

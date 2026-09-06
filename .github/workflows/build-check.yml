@@ -1,32 +1,68 @@
+# 品質検査と各productionビルドを独立して並列実行し、結果を早く得る。
+# 型・Lint・テストに加え、依存方向・循環・巨大ファイル・初期JS量の回帰を検出する。
+# npm ciを含む直列との差はCI実測で確認する。検証用成果物は配布しない。
 name: build-check
 
-# PR ごとに拡張ビルドと Web ビルドの両方を実行し、どちらかが壊れたらマージ不可にする。
-# これにより「表示系の新機能はリリース時に自動で Web 版へ載る」状態を機械的に保証する（NFR-5）。
 on:
   pull_request:
   push:
     branches: [main]
 
+concurrency:
+  group: build-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Node のバージョンは .nvmrc を単一の源にする（package.json の engines と揃える。Issue #162）
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run test
-      # dev ビルドも OAuth クライアントID未設定なら既定で fail-fast する（本番同様）。
-      # CI には .env が無く、認証を触らないビルド疎通確認が目的のため、
-      # ALLOW_NO_AUTH=1 を明示指定して警告のみで通す（本番ビルドの throw は無効化されない）。
-      - run: npm run dev        # 拡張ビルド
+      - run: npm test
+      - run: npm run check:structure
+
+  build-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
         env:
-          ALLOW_NO_AUTH: 1
-      - run: npm run dev:web    # Web ビルド
+          WEBAUTH_CLIENT_ID: placeholder
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build:web
         env:
-          ALLOW_NO_AUTH: 1
+          WEB_OAUTH_CLIENT_ID: placeholder
+          PICKER_API_KEY: placeholder
+          GCP_PROJECT_NUMBER: '000000000000'
+
+  bundle-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # bench:bundle がプレースホルダーで隔離ビルドし、統計を予算と比較する。
+      - run: npm run check:bundle

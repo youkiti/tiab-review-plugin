@@ -17,7 +17,7 @@ import { CMH_DEFAULTS } from '../../../lib/ml/cmh';
 import { showModal, hideModal } from '../../ui/modal';
 import { renderMlStats } from './render';
 import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
-import { saveStoppingRuleToStorage } from './actions';
+import { saveStoppingRuleToStorage } from './stopping-storage';
 import { showToast } from '../../ui/feedback';
 
 // Store互換レイヤー（Phase 5）
