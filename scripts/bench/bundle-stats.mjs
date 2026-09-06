@@ -116,6 +116,8 @@ function runBuild(config) {
                 relatedAssets: true,
                 chunks: true,
                 modules: true,
+                // Issue #155: 永続キャッシュ再利用時も依存一覧から既存モジュールを落とさない。
+                cachedModules: true,
                 // webpack の既定プリセットは concatenateModules（production既定）でまとまった
                 // モジュールの内訳や、モジュール一覧そのものを既定の上限（15件程度）で打ち切り
                 // 「filteredChildren」付きの集約エントリ（type: "orphan modules" 等。名前もサイズも
@@ -347,6 +349,8 @@ function buildReport(label, json) {
         entrypoints: summarizeEntrypoints(json),
         asyncChunks: summarizeAsyncChunks(json),
         topModules: topModules(aggregatedModules),
+        // 初期ロードへ戻る迂回importの確認用。ソース本文は含めない。
+        modules: aggregatedModules,
         pdfjsDist: summarizePdfjsDist(json, aggregatedModules),
         warnings: (json.warnings || []).map((w) => (w && w.message) || String(w)),
     };

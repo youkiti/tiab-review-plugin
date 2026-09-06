@@ -5,6 +5,7 @@
 
 import { state as legacyState } from '../state';
 import { getStore, dispatch, getState } from './index';
+import type { UserSettings } from '../../lib/user-settings';
 import type { AppState, Action, View, Tab } from './types';
 import type { ReferenceWithStatus, Decision, LlmConfig, DecisionStatus } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
@@ -13,9 +14,9 @@ import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
 
 /**
- * 既存stateからAppStateへ変換
+ * 既存stateから未移行のAppState領域へ変換する（設定はStoreが所有するため含めない）。
  */
-export function legacyToAppState(): AppState {
+export function legacyToAppState(): Omit<AppState, 'ui'> & { ui: Omit<AppState['ui'], 'settings'> } {
     return {
         data: {
             references: legacyState.references,
@@ -60,16 +61,6 @@ export function legacyToAppState(): AppState {
                 shareInputOpen: false,
                 settingsOpen: false,
             },
-            settings: {
-                autoNavigateAfterDecision: legacyState.autoNavigateAfterDecision,
-                showRecordCountBelow: legacyState.showRecordCountBelow,
-                termFilterUseAnd: legacyState.termFilterUseAnd,
-                treatMlAsManual: legacyState.treatMlAsManual,
-                showAiHighlights: legacyState.showAiHighlights,
-                aiDecisionFilter: legacyState.aiDecisionFilter,
-                abstractSubsectionBreakEnabled: legacyState.abstractSubsectionBreakEnabled,
-                abstractSubsectionHeadings: legacyState.abstractSubsectionHeadings,
-            },
             toast: null,
         },
     };
@@ -105,16 +96,6 @@ export function syncToLegacyState(appState: AppState): void {
     legacyState.setCurrentFilter(appState.ui.screening.currentFilter);
     legacyState.setIsKeyOpened(appState.ui.screening.isKeyOpened);
     legacyState.setActiveTermFilters(appState.ui.screening.activeTermFilters);
-
-    // 設定
-    legacyState.setAutoNavigateAfterDecision(appState.ui.settings.autoNavigateAfterDecision);
-    legacyState.setShowRecordCountBelow(appState.ui.settings.showRecordCountBelow);
-    legacyState.setTermFilterUseAnd(appState.ui.settings.termFilterUseAnd);
-    legacyState.setTreatMlAsManual(appState.ui.settings.treatMlAsManual);
-    legacyState.setShowAiHighlights(appState.ui.settings.showAiHighlights);
-    legacyState.setAiDecisionFilter(appState.ui.settings.aiDecisionFilter);
-    legacyState.setAbstractSubsectionBreakEnabled(appState.ui.settings.abstractSubsectionBreakEnabled);
-    legacyState.setAbstractSubsectionHeadings(appState.ui.settings.abstractSubsectionHeadings);
 }
 
 // ========== ラッパー関数: 両方のstateに同期 ==========
@@ -277,14 +258,6 @@ export function initializeFromLegacy(): void {
     dispatch({ type: 'screening/setIndex', index: appState.ui.screening.currentIndex });
     dispatch({ type: 'screening/setFilter', filter: appState.ui.screening.currentFilter });
     dispatch({ type: 'screening/setKeyOpened', opened: appState.ui.screening.isKeyOpened });
-
-    // 設定
-    dispatch({ type: 'settings/setAutoNavigate', value: appState.ui.settings.autoNavigateAfterDecision });
-    dispatch({ type: 'settings/setShowRecordCountBelow', value: appState.ui.settings.showRecordCountBelow });
-    dispatch({ type: 'settings/setTermFilterUseAnd', value: appState.ui.settings.termFilterUseAnd });
-    dispatch({ type: 'settings/setTreatMlAsManual', value: appState.ui.settings.treatMlAsManual });
-    dispatch({ type: 'settings/setShowAiHighlights', value: appState.ui.settings.showAiHighlights });
-    dispatch({ type: 'settings/setAiDecisionFilter', filter: appState.ui.settings.aiDecisionFilter });
 }
 
 // ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
@@ -415,39 +388,17 @@ export function removeTermFilter(term: string, type: string): void {
 }
 
 /**
- * 設定値を更新（両方に同期）
+ * 個人の表示設定を更新（Storeのみ）
  */
-export function updateSettings(key: string, value: boolean): void {
-    switch (key) {
-        case 'autoNavigateAfterDecision':
-            legacyState.setAutoNavigateAfterDecision(value);
-            dispatch({ type: 'settings/setAutoNavigate', value });
-            break;
-        case 'showRecordCountBelow':
-            legacyState.setShowRecordCountBelow(value);
-            dispatch({ type: 'settings/setShowRecordCountBelow', value });
-            break;
-        case 'termFilterUseAnd':
-            legacyState.setTermFilterUseAnd(value);
-            dispatch({ type: 'settings/setTermFilterUseAnd', value });
-            break;
-        case 'treatMlAsManual':
-            legacyState.setTreatMlAsManual(value);
-            dispatch({ type: 'settings/setTreatMlAsManual', value });
-            break;
-        case 'abstractSubsectionBreakEnabled':
-            legacyState.setAbstractSubsectionBreakEnabled(value);
-            dispatch({ type: 'settings/setAbstractSubsectionBreakEnabled', value });
-            break;
-    }
+export function updateSettings<K extends keyof UserSettings>(key: K, value: UserSettings[K]): void {
+    dispatch({ type: 'settings/patch', patch: { [key]: value } });
 }
 
 /**
- * 抄録サブセクション見出しリストを更新（両方に同期）
+ * 抄録サブセクション見出しリストを更新（Storeのみ）
  */
 export function updateAbstractSubsectionHeadings(headings: string[]): void {
-    legacyState.setAbstractSubsectionHeadings(headings);
-    dispatch({ type: 'settings/setAbstractSubsectionHeadings', value: headings });
+    updateSettings('abstractSubsectionHeadings', headings);
 }
 
 /**

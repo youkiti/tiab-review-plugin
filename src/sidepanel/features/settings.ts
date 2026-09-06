@@ -5,6 +5,13 @@
 
 import { dom } from '../dom';
 import { state } from '../state';
+import { dispatch, getState } from '../store';
+import {
+    DEFAULT_ABSTRACT_SUBSECTION_HEADINGS,
+    USER_SETTINGS_STORAGE_KEYS,
+    parseUserSettings,
+    toUserSettingsStorageRecord,
+} from '../../lib/user-settings';
 import { showToast } from '../ui/feedback';
 import { t } from '../../lib/i18n';
 import { handleAssignmentResetClick, handleAssignmentReshuffleClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
@@ -19,34 +26,7 @@ import {
     setCurrentIndex as syncSetCurrentIndex,
 } from '../store/compat';
 
-// 抄録サブセクション見出しのデフォルト
-// 構造化抄録で見かける代表的な見出しを「コロン付き」の形でデフォルト提供。
-// 大文字小文字は区別するため、各バリアントを別エントリとして列挙する。
-export const DEFAULT_ABSTRACT_SUBSECTION_HEADINGS: string[] = [
-    'Background:', 'BACKGROUND:',
-    'Introduction:', 'INTRODUCTION:',
-    'Objective:', 'OBJECTIVE:',
-    'Objectives:', 'OBJECTIVES:',
-    'Aim:', 'AIM:',
-    'Aims:', 'AIMS:',
-    'Purpose:', 'PURPOSE:',
-    'Method:', 'METHOD:',
-    'Methods:', 'METHODS:',
-    'Materials and Methods:', 'MATERIALS AND METHODS:',
-    'Design:', 'DESIGN:',
-    'Setting:', 'SETTING:',
-    'Participants:', 'PARTICIPANTS:',
-    'Patients:', 'PATIENTS:',
-    'Intervention:', 'INTERVENTION:',
-    'Interventions:', 'INTERVENTIONS:',
-    'Main Outcome Measures:', 'MAIN OUTCOME MEASURES:',
-    'Outcomes:', 'OUTCOMES:',
-    'Results:', 'RESULTS:',
-    'Findings:', 'FINDINGS:',
-    'Discussion:', 'DISCUSSION:',
-    'Conclusion:', 'CONCLUSION:',
-    'Conclusions:', 'CONCLUSIONS:',
-];
+export { DEFAULT_ABSTRACT_SUBSECTION_HEADINGS } from '../../lib/user-settings';
 
 // 外部関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -98,49 +78,21 @@ export async function handleAutoNavigateChange() {
  * ユーザー設定を保存
  */
 export async function saveUserSettings() {
-    console.log('[saveUserSettings] 保存:', {
-        autoNavigateAfterDecision: state.autoNavigateAfterDecision,
-        showRecordCountBelow: state.showRecordCountBelow,
-        termFilterUseAnd: state.termFilterUseAnd,
-        treatMlAsManual: state.treatMlAsManual,
-        abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
-        abstractSubsectionHeadings: state.abstractSubsectionHeadings,
-    });
-    await platform().storageSet({
-        autoNavigateAfterDecision: state.autoNavigateAfterDecision,
-        showRecordCountBelow: state.showRecordCountBelow,
-        termFilterUseAnd: state.termFilterUseAnd,
-        treatMlAsManual: state.treatMlAsManual,
-        abstractSubsectionBreakEnabled: state.abstractSubsectionBreakEnabled,
-        abstractSubsectionHeadings: state.abstractSubsectionHeadings,
-    });
+    const record = toUserSettingsStorageRecord(getState().ui.settings);
+    console.log('[saveUserSettings] 保存:', record);
+    await platform().storageSet(record);
 }
 
 /**
  * ユーザー設定を読み込み
  */
 export async function loadUserSettings() {
-    const result = await platform().storageGet([
-        'autoNavigateAfterDecision',
-        'showRecordCountBelow',
-        'termFilterUseAnd',
-        'treatMlAsManual',
-        'abstractSubsectionBreakEnabled',
-        'abstractSubsectionHeadings',
-    ]);
-    console.log('[loadUserSettings] 読み込み:', result);
-
-    // platform().storageGet() は unknown 値を返すため、既存の型（boolean）にキャストする
-    updateSettings('autoNavigateAfterDecision', (result.autoNavigateAfterDecision as boolean | undefined) ?? true);
-    updateSettings('showRecordCountBelow', (result.showRecordCountBelow as boolean | undefined) ?? true);
-    updateSettings('termFilterUseAnd', (result.termFilterUseAnd as boolean | undefined) ?? true);
-    updateSettings('treatMlAsManual', (result.treatMlAsManual as boolean | undefined) ?? true);
-    updateSettings('abstractSubsectionBreakEnabled', (result.abstractSubsectionBreakEnabled as boolean | undefined) ?? false);
-
-    const savedHeadings = Array.isArray(result.abstractSubsectionHeadings)
-        ? result.abstractSubsectionHeadings as string[]
-        : DEFAULT_ABSTRACT_SUBSECTION_HEADINGS;
-    updateAbstractSubsectionHeadings(savedHeadings);
+    const result = await platform().storageGet(USER_SETTINGS_STORAGE_KEYS);
+    const settings = parseUserSettings(result);
+    // 保存対象だけを一括反映し、読み込み直してもセッション内のAI表示状態は保持する。
+    dispatch({ type: 'settings/patch', patch: Object.fromEntries(
+        USER_SETTINGS_STORAGE_KEYS.map(key => [key, settings[key]])
+    ) });
 
     dom.autoNavigateCheckbox.checked = state.autoNavigateAfterDecision;
     dom.showRecordCountCheckbox.checked = state.showRecordCountBelow;

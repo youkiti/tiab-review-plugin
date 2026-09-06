@@ -172,6 +172,10 @@ function buildExtensionConfig(env, argv) {
         output: {
             path: resolveOutputPath(env, path.resolve(__dirname, isDemo ? 'dist-demo' : 'dist')),
             filename: '[name].js',
+            // Issue #155: 画面のimport()は同梱scriptを挿入する。MV3のscript-src 'self'で許可される。
+            // https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy
+            // 同一拡張内なのでweb_accessible_resourcesは不要。Service Workerにimport()は追加しない。
+            chunkFilename: 'chunks/[name].js',
             clean: true,
         },
         module: {
@@ -344,6 +348,8 @@ function buildWebConfig(env, argv) {
         output: {
             path: resolveOutputPath(env, path.resolve(__dirname, 'docs/app')),
             filename: '[name].js',
+            // publicPathは既定のautoを維持し、app.jsのURLからPagesのサブパスを解決する。
+            chunkFilename: 'chunks/[name].js',
             // docs/app はビルド成果物専用ディレクトリとして全消去してよい
             // （outDir 上書き時はその隔離先を全消去してよい、という意味になる）。
             clean: true,

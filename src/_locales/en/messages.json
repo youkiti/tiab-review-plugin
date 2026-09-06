@@ -2144,6 +2144,15 @@
   "llm_completedConfirm": {
     "message": "ML screening complete.\n\nWould you like to review the results in the Manual tab?\n(Select \"All\" or \"Include\"/\"Exclude\" in the filter to see the results)"
   },
+  "ml_featureLoading": {
+    "message": "Loading ML features…"
+  },
+  "ml_featureLoadFailed": {
+    "message": "Could not start ML features. Select the ML tab again to retry."
+  },
+  "ml_activationFailed": {
+    "message": "Failed to activate the ML tab: $1"
+  },
   "ml_title": {
     "message": "🎯 ML Screening"
   },
