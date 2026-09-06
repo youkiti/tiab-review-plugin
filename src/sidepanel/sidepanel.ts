@@ -23,11 +23,12 @@ import { showManuscriptModal } from './features/manuscript';
 import * as llm from './features/llm';
 import * as screeningRender from './features/screening/render';
 import * as reviewerFilter from './features/screening/reviewer-filter';
-import { initMlHandlers, activateMlTab, handleMlKeydown } from './features/ml/actions';
+import {
+    activateMlTab, handleMlKeydown, handleMlSearchInput,
+    addMlKeyword, renderMlSection, reportMlLoadError,
+} from './features/ml/lazy';
 import { setupFulltextTabListeners, activateFulltextTab } from './features/fulltext-tab';
 import { initModal } from './ui/modal';
-import { handleMlSearchInput, addMlKeyword, renderMlSection } from './features/ml/render';
-import { showToast } from './ui/feedback';
 import { toggleExportMenu, closeExportMenu } from './store/compat';
 import { isImeComposing } from '../lib/ime-composition';
 
@@ -109,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
     screeningRender.setFulltextTabNavigator(activateFulltextTab);
 
     // ========== ML ==========
-    initMlHandlers();
     initModal();
     document.addEventListener('keydown', handleMlKeydown);
     document.getElementById('ml-search-input')?.addEventListener('input', handleMlSearchInput);
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error activating ML tab:', error);
-            showToast(`MLタブの起動に失敗しました: ${error instanceof Error ? error.message : String(error)}`, 5000);
+            reportMlLoadError();
         }
     });
 });

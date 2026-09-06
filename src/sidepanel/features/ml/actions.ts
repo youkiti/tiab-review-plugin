@@ -65,7 +65,12 @@ const elements = {
     }
 };
 
+let handlersInitialized = false;
+
 export function initMlHandlers() {
+    // Issue #155: タブ再訪・初期化再試行でもリスナーとWorker購読を二重登録しない。
+    if (handlersInitialized) return;
+    handlersInitialized = true;
     // Buttons
     elements.buttons.include()?.addEventListener('click', () => handleMlDecision('include'));
     elements.buttons.exclude()?.addEventListener('click', () => handleMlDecision('exclude'));
@@ -118,11 +123,12 @@ async function saveMlDecisionWithQueue(decision: Decision) {
     await saveDecisionOrQueue(decision, { notifyOnFailure: true });
 }
 
-export async function activateMlTab(): Promise<boolean> {
+export async function activateMlTab(isCurrent: () => boolean = () => true): Promise<boolean> {
     console.log('activateMlTab called');
 
     const { canUseCmhStopping } = await import('../../../lib/ml/stopping-rules');
     const { CMH_DEFAULTS } = await import('../../../lib/ml/cmh');
+    if (!isCurrent()) return false;
 
     console.log('CMH_DEFAULTS:', CMH_DEFAULTS);
 
@@ -148,6 +154,7 @@ export async function activateMlTab(): Promise<boolean> {
     if (state.mlState.status === 'idle') {
         // ストレージから設定を読み込み
         const savedRule = await loadStoppingRuleFromStorage();
+        if (!isCurrent()) return false;
 
         if (!savedRule.confirmed) {
             // 初回: ダイアログを表示
@@ -174,7 +181,7 @@ export async function activateMlTab(): Promise<boolean> {
                 });
             }
             await initMlWorker();
-            renderMlSection();  // UI全体を更新
+            if (isCurrent()) renderMlSection();
         }
     }
 

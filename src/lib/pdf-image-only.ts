@@ -7,12 +7,11 @@
 // MV3 制約: worker は拡張同梱の `pdf.worker.min.mjs` をローカル参照（remote script 禁止）。
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { SCANNED_TEXT_THRESHOLD } from './pdf-constants';
+
+export { SCANNED_TEXT_THRESHOLD } from './pdf-constants';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
-
-// 抽出できた非空白文字の総数がこの値未満なら scanned（画像only）とみなす。
-// 1文字も無いとは限らない（透明テキストの断片やページ番号のみ等）ため、ある程度の閾値を置く。
-export const SCANNED_TEXT_THRESHOLD = 100;
 
 /**
  * PDFバイト列からテキストを抽出し、スキャン(画像only)PDFかどうかを判定する。

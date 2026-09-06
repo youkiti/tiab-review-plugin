@@ -15,7 +15,7 @@ export class MlWorkerClient {
         if (this.worker) return;
 
         // Webpack should handle this URL automatically
-        this.worker = new Worker(new URL('./worker.ts', import.meta.url));
+        this.worker = new Worker(new URL('./worker.ts', import.meta.url), { name: 'ml-worker' });
 
         this.worker.onmessage = (event: MessageEvent<MlWorkerResponse>) => {
             this.handleMessage(event.data);

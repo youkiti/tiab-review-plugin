@@ -52,3 +52,12 @@
 
 /* 重複候補のレビューUI */
 @import url('./styles/duplicate-review.css');
+/* Issue #155: ML読込中は既存DOMを保持したまま操作欄を隠す。 */
+#ml-section[aria-busy="true"] > :not(.ml-feature-status) {
+    display: none;
+}
+
+.ml-feature-status {
+    padding: 24px;
+    text-align: center;
+}

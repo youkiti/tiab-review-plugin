@@ -2144,6 +2144,12 @@
   "llm_completedConfirm": {
     "message": "ML判定が完了しました。\n\n手動タブで判定結果を確認しますか？\n（フィルターで「すべて」または「Include」「Exclude」を選択すると、判定された文献を確認できます）"
   },
+  "ml_featureLoading": {
+    "message": "ML機能を読み込んでいます…"
+  },
+  "ml_featureLoadFailed": {
+    "message": "ML機能の起動に失敗しました。MLタブを選び直して再試行してください。"
+  },
   "ml_title": {
     "message": "🎯 MLスクリーニング"
   },
