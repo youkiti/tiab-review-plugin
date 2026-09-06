@@ -15,8 +15,10 @@ import {
     getLlmExecutions,
     updateLlmExecution,
     updateLlmConfig,
-    getReferencesWithStatus,
-    getReferencesWithAllDecisions,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
+    selectActiveBatchIds,
+    selectActiveLlmRun,
     getLlmRuns,
     saveLlmRun,
     updateLlmRun,
@@ -182,9 +184,9 @@ async function refreshReferencesAfterBatch(spreadsheetId: string): Promise<void>
     try {
         const userEmail = state.userEmail;
         const isKeyOpened = state.isKeyOpened;
-        const refs = isKeyOpened
-            ? await getReferencesWithAllDecisions(spreadsheetId, userEmail)
-            : await getReferencesWithStatus(spreadsheetId, userEmail);
+        const snapshot = await loadProjectSnapshot(spreadsheetId, userEmail, { history: isKeyOpened, duplicateCandidates: false });
+        if (snapshot.spreadsheetId !== state.spreadsheetId) return;
+        const refs = selectReferencesWithStatus(snapshot, userEmail, isKeyOpened);
 
         // 管理者でなく担当割当が configured の場合のみ自分の担当セットで絞り込む
         // （loadDataAndShowScreening の initializeAssignmentState と同じロジック）
@@ -1278,15 +1280,9 @@ export async function loadExecutionHistory() {
         state.setLlmRunsAndExecutions(runs, executions);
 
         // active Run 配下の Batch IDs をキャッシュへ反映
-        const activeRun = runs.find(r => r.is_active && r.status === 'confirmed');
-        const activeBatchIds = activeRun
-            ? new Set(
-                executions
-                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
-                    .map(e => e.execution_id)
-              )
-            : new Set<string>();
-        syncSetActiveLlmExecutionIds(activeBatchIds);
+        syncSetActiveLlmExecutionIds(selectActiveBatchIds(runs, executions));
+        // 採用 Run の選択規則は selectActiveLlmRun に一本化する（created_at 最新。Issue #153）
+        const activeRun = selectActiveLlmRun(runs);
 
         // バッチを Run でグループ化（run_id が無いものは migration 待ちとしてスキップ）
         const batchesByRunId = new Map<string, Awaited<ReturnType<typeof getLlmExecutions>>>();

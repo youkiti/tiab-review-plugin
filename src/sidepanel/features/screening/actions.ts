@@ -10,8 +10,8 @@ import { getFilteredReferences } from './filters';
 import type { Decision, ReferenceWithStatus } from '../../../lib/types';
 import {
     setKeyOpenedStatus,
-    getReferencesWithStatus,
-    getReferencesWithAllDecisions,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
     isQuotaExceededError,
     logAuditEvent
 } from '../../../lib/sheets-api';
@@ -385,8 +385,8 @@ function buildKeyToggleErrorMessage(key: 'blind_onError' | 'blind_offError', err
  * キー状態切替処理
  *
  * 「取得してから確定する」順序で実行する: setKeyOpenedStatus による永続化やローカル状態の
- * 変更より前に getReferencesWith*() のデータ取得を成功させる。取得は isKeyOpened に依存せず
- * 引数だけで完結するため、この順序でも結果は変わらない。途中で失敗しても何も永続化・変更して
+ * 変更より前に loadProjectSnapshot() のデータ取得を成功させる。合成には切替後の keyOpened を
+ * 引数で渡すので Config の値に依存しない。途中で失敗しても何も永続化・変更して
  * いない状態を保てるため、catch側はチェックボックスの見た目を戻すだけで整合が取れる
  * （旧実装は永続化・状態更新の後にデータ取得しており、取得失敗時に isKeyOpened と
  * availableReviewers/enabledReviewers が食い違って「レビュアーが誰も表示されない」まま
@@ -419,7 +419,9 @@ export async function handleKeyToggle() {
             showLoading(true);
 
             // 1. 先にデータ取得を成功させる（失敗してもまだ何も変更していない）
-            const refs = await getReferencesWithStatus(state.spreadsheetId, state.userEmail);
+            const snapshot = await loadProjectSnapshot(state.spreadsheetId, state.userEmail, { history: false, duplicateCandidates: false });
+            if (snapshot.spreadsheetId !== state.spreadsheetId) return; // 取得中にプロジェクトが切り替わった（Issue #153）
+            const refs = selectReferencesWithStatus(snapshot, state.userEmail, false);
 
             // 2. 取得成功後に永続化
             await setKeyOpenedStatus(state.spreadsheetId, false);
@@ -483,7 +485,9 @@ export async function handleKeyToggle() {
             showLoading(true);
 
             // 1. 先にデータ取得を成功させる（失敗してもまだ何も変更していない）
-            const refs = await getReferencesWithAllDecisions(state.spreadsheetId, state.userEmail);
+            const snapshot = await loadProjectSnapshot(state.spreadsheetId, state.userEmail, { duplicateCandidates: false });
+            if (snapshot.spreadsheetId !== state.spreadsheetId) return; // 取得中にプロジェクトが切り替わった（Issue #153）
+            const refs = selectReferencesWithStatus(snapshot, state.userEmail, true);
 
             // 2. 取得成功後に永続化
             await setKeyOpenedStatus(state.spreadsheetId, true);

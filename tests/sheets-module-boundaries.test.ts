@@ -217,6 +217,8 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'getBatchIdsForRun',
         'getJudgedRefIdsForBatches',
         'getActiveBatchIdsForActiveRun',
+        'selectActiveBatchIds',
+        'selectActiveLlmRun',
         'setSingleActiveRun',
         'ensurePublicationCandidatesSheet',
         'savePublicationCandidates',

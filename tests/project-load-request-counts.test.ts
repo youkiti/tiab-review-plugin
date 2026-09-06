@@ -369,3 +369,36 @@ test('snapshotは重複候補の取得失敗だけをnullとして返す', async
     assert.equal(snapshot.duplicateCandidates, null);
     assert.equal(snapshot.references.length, 1);
 });
+
+test('Blind の再読込は batchGet 1 回', async () => {
+    const mock = installMock(false);
+    const snapshot = await loadProjectSnapshot('project', 'self', { history: false, duplicateCandidates: false });
+    const refs = selectReferencesWithStatus(snapshot, 'self', false);
+    assert.deepEqual(mock.counts, { batchGet: 1 });
+    assert.equal(refs[0].allDecisions?.some(d => d.reviewer_id === 'other') ?? false, false);
+});
+
+test('キー開封の切替は Config が切替前でも履歴込み 3 回で開封後の合成になる', async () => {
+    const mock = installMock(false);
+    mock.tables.LLM_Executions[1][executionHeaders.indexOf('execution_id')] = 'llm:batch-1';
+    const snapshot = await loadProjectSnapshot('project', 'self', { duplicateCandidates: false });
+    const refs = selectReferencesWithStatus(snapshot, 'self', true);
+    assert.deepEqual(mock.counts, { batchGet: 1, LLM_Executions: 1, LLM_Runs: 1 });
+    const reviewers = refs[0].allDecisions?.map(d => d.reviewer_id) ?? [];
+    assert.ok(reviewers.includes('other'));
+    assert.ok(reviewers.includes('llm:batch-1'));
+});
+
+test('keyOpened 上書き true は履歴無しでは throw、上書き false は開封後 Config でも Blind 合成', async () => {
+    installMock(true);
+    const snapshot = await loadProjectSnapshot('project', 'self', { history: false });
+    assert.throws(() => selectReferencesWithStatus(snapshot, 'self', true), /履歴/);
+    const refs = selectReferencesWithStatus(snapshot, 'self', false);
+    assert.equal(refs[0].allDecisions?.some(d => d.reviewer_id === 'other') ?? false, false);
+});
+
+test('snapshot は取得先の spreadsheetId を持つ', async () => {
+    installMock();
+    const snapshot = await loadProjectSnapshot('project', 'self');
+    assert.equal(snapshot.spreadsheetId, 'project');
+});
