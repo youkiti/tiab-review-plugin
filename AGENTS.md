@@ -171,13 +171,13 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 ### フルテキストの不一致解消（裁定）
 
 判定者間の不一致（判定不一致・理由不一致）を、判定後レビュー画面の「不一致の解消」セクションから
-その場で確定できる（`src/sidepanel/features/fulltext-results.ts` の `renderConflicts` /
+その場で確定できる（`src/sidepanel/features/fulltext/results.ts` の `renderConflicts` /
 `buildConflictItem` / `handleAdjudicate`）。**`state.isKeyOpened === true`（キー開封後）のときだけ表示**する。
 ブラインド中は他レビュアーの人間票がそもそもクライアントに配られない（`filterDecisionsForBlind`）ため、
 不一致の検出自体が成立しないため。
 
 **合議計算は純関数に集約**: OR合議・不一致検出・裁定の反映は `src/lib/fulltext-consensus.ts` の
-`computeFulltextConsensus()` に切り出している。`fulltext-results.ts` は DOM/state に依存する層のため
+`computeFulltextConsensus()` に切り出している。`features/fulltext/results.ts` は DOM/state に依存する層のため
 テストできない。純関数側のテストは `tests/fulltext-consensus.test.ts`。
 
 - `conflict`: 非pendingの判定値（include/exclude/maybe）が2種類以上（従来どおりの「判定不一致」）
@@ -204,7 +204,7 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
   `computeFulltextConsensus()` は `decided_at` が最新のものを最終として採用する
 
 **裁定票は判定者選択（judge selector）のチェックボックス一覧に出さない。**
-`collectJudges()`（`fulltext-results.ts`）が `isAdjudicationKey()` で除外している。
+`collectJudges()`（`features/fulltext/results.ts`）が `isAdjudicationKey()` で除外している。
 判定者選択に出てしまうと、チェックを外した瞬間に裁定票が合議計算から消えて裁定そのものが
 無効化されてしまうため。
 
@@ -563,7 +563,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - 数値は `import_stats`・判定データ・判定者選択から自動挿入。ツールが持たない情報（不一致の解消方法など）は `[ ]` で残す
    - 未判定・保留・不一致が残る場合や、インポート統計のないファイル（重複除去後の件数に `*` 付与）は警告を表示
    - PRISMA の数値・論文用テキスト・CSV/RIS エクスポートはログインユーザーに依存させず `getProjectFulltextCandidateList()`（`state.allReferences` 基準）でプロジェクト全体を集計する。候補一覧・入手状況・一括OA検索は「自分が読む対象」なので担当割り振り込みの `getVisibleFulltextCandidateList()` / 割り振りのみの `getFulltextCandidateList()` を使い分けてよいが、非管理者の `state.references` はTiAb担当セットで絞られているため論文用集計には使わない。**フルテキストAI一括判定は「人間が読む対象」ではないので既定でプロジェクト全体**（機能要件8参照）
-   - `state.allReferences` を見る画面を足したら、判定後に references を再読込する処理（`fulltext-ai.ts` の `reloadReferences` など）でも `state.setAllReferences()` を呼ぶこと。`syncSetReferences()` だけだと絞り込み前の全文献が古いままになる
+   - `state.allReferences` を見る画面を足したら、判定後に references を再読込する処理（`features/fulltext/ai.ts` の `reloadReferences` など）でも `state.setAllReferences()` を呼ぶこと。`syncSetReferences()` だけだと絞り込み前の全文献が古いままになる
    - **PRISMA の腕別集計（Issue #120）**: Registry linkage 由来の取り込み行（`related_ref_id` 非空）は PRISMA 2020 の「Identification of studies via other methods」腕として database 腕から分離集計する。判定と分割は `src/lib/identification-route.ts`（純関数）の `identificationRouteOf()` / `splitByIdentificationRoute()`。**判定条件は `related_ref_id` 非空のみにそろえること。** `src/lib/fulltext-candidates.ts` の `isProjectFulltextCandidateRef()` が候補プールへ無条件投入する条件と一致させないと、腕別集計の合計が候補総数と合わなくなる。`source` の `Registry linkage` 接頭辞は使わない。`getFulltextResultsSummary()` は**database 腕だけ**を返す。両腕が要るときは `getFulltextResultsSummaryByRoute()` を使う。other methods 腕の PRISMA 行組み立ては `buildOtherMethodsPrismaLines()`。該当0件なら**空配列**を返す（0件時に現行出力と1文字も変わらないことをこの性質で担保している）。全文結果CSVには `identification_route` 列（`database` / `registry_linkage`）が**ヘッダ配列の一番最後**に入る（既存の固定列・判定者列のインデックスをずらさないため）
    - **同じ原因（取り込み行が `state.allReferences` に混ざっている）で database 腕の数字が汚れる箇所が複数ある**ので、`state.allReferences` や候補一覧をそのまま数える処理を足すときは腕別に分けるかを必ず確認すること。`collectIdentification()`: 取り込み行は `source_file` を設定していないので、除外しないと `(unknown source)` として `Records identified from databases` と `Records screened` を水増しし、「* Import statistics were not recorded」の脚注まで出る。`countUnscreenedTiab()`: 取り込み行は**設計上TiAb票を一切持たない**ので、除外しないと全件「TiAb未判定」として数えられ実態のない警告が出る。論文用テキストの `sought`: 両腕の合算のままだと registry 行が同じフロー図内で**二重に数えられる**（`Reports sought for retrieval` と `Records excluded` の両方）。ただし**未決着の警告は逆に両腕の合算で出す**こと。database 腕だけを見ると registry 腕に pending / maybe / 未解消が残っていても「数値は最終値」と誤読させるため
    - **`identified − duplicates = screened` の縦の辻褄（Issue #145 チャンク2）**: `collectIdentification()` は state 依存でテストできなかったため、集計の核を `src/lib/prisma-identification.ts` の `computeIdentification()`（純関数）へ切り出した。書誌重複のうち取り込み時に自動スキップされなかった分（正規化タイトル一致など）は References に行として残り `duplicate_of` で論理削除されるため、`import_stats.duplicates`（自動スキップ分のみ、上記Configタブの節参照）だけでは重複除去数が過少になる。`computeIdentification()` は database 腕（`splitByIdentificationRoute()` で絞り込み後）の論理削除件数を `duplicatesTotal` へ合算することでこれを補う。判定（Decisions）が付いていたかどうかでは区別しない — 書誌重複はそもそもスクリーニング前に除くべきものだった、という整理。渡す `refs` は論理削除済みの行も含む全件（`getReferences()` 由来）が前提で、そうでない一覧（`getReferencesWithStatus()` 等）しか手元に無い呼び出し元は `refsMayOmitLogicallyDeleted: true` を渡すこと（渡さないと `duplicatesTotal` が論理削除件数の分だけ黙って過少になる）。`showManuscriptModal()` は集計のためだけに `getReferences()` を取り直しており、取得に失敗した場合は `duplicatesTotal: null` / `statsComplete: false` にして既存の「統計未記録ファイルがある」経路（`[n]` 表示・`manuscript_warnNoStats` 警告）へ合流させる（数字が黙って狂わないようにするため）
@@ -631,7 +631,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
     - 型・既定値・純粋関数は `src/lib/exclude-reasons.ts`、設定のパース／保存／プリセットは
       `src/lib/exclude-reason-config.ts`。表示・集計・裁定・AI判定は**必ず解決済みの理由リストを引数で受け取る**こと
       （`state.excludeReasonItems` / フルテキストページの `excludeReasonItems`）
-    - 編集UIはフルテキストタブのインラインエディタ（`src/sidepanel/features/fulltext-reason-editor.ts`、管理者のみ）
+    - 編集UIはフルテキストタブのインラインエディタ（`src/sidepanel/features/fulltext/reason-editor.ts`、管理者のみ）
     - `fulltext.html` の `<select>` に固定の `<option>` を書かないこと（設定と二重定義になる）。
       選択肢は `fulltext.ts` の `renderReasonOptions()` が実行時に描画する
   - **保存キー（`key`）は過去データの参照キー**。一度発番したら変えない。ラベルはいつ変えてもよい。
@@ -751,11 +751,11 @@ registration行から「その試験の結果論文（linked publication）」�
 - 各戦略の失敗（ネットワーク・非200・JSON不正）は例外を投げずその戦略だけスキップする。全滅時は空配列。出版年（`pubYear`/`pubdate`）が非数値の場合は `NaN` ではなく `undefined` にする（シートへ文字列 `"NaN"` を書かないため）
 - 統合順は戦略の強い順（`ctgov_reference` → `pubmed_id` → `europepmc`）。`dedupePublicationCandidates()` は候補ごとにPMIDキーとDOIキーの**両方**を見て、どちらか一方でも既出なら重複として捨てる（esummaryでPMIDのみの候補へ後からDOIが補完されることがあるため、片方のキーだけでは同一論文を見逃す）。複数戦略で見つかった場合は先に見つかった側（＝より強い戦略）を残す。続けて `filterAlreadyImportedCandidates()` が既存References行のPMID/DOIと一致する候補を除外する
 - CTGov の `referencesModule` 由来PMIDは、`retrieveRegistrationSnapshot()`（フルテキスト取得）が既に `fetchCtgStudy()` で取得済みのものを `FulltextFetchOutcome` の任意フィールド `registryPmids`（`cached`/`linked` のみ。`none` には無い）に載せて渡す。**CTG APIをスナップショット取得と論文候補探索で2回叩かないための配線**
-- 呼び出し側は `src/sidepanel/features/fulltext-tab.ts` の一括検索（`handleBulkFetch`）・単発検索（`handleSingleFetch`）。`isRegistrationRecord(ref)` が true の行についてのみ探索する（email には `state.userEmail` を渡す）。UI文言・バッジ・完了サマリは変更していない
+- 呼び出し側は `src/sidepanel/features/fulltext/tab.ts` の一括検索（`handleBulkFetch`）・単発検索（`handleSingleFetch`）。`isRegistrationRecord(ref)` が true の行についてのみ探索する（email には `state.userEmail` を渡す）。UI文言・バッジ・完了サマリは変更していない
   - **一括検索は候補を`savePublicationCandidates()`へ即時保存しない**。registration行1件ごとに保存すると「ensure→全行読み取り→append」がそのまま行数倍のリクエストになり、Sheets APIの読み取りクォータ（ユーザーあたり毎分60読み取り）を容易に超える。既存の `pendingWrites`/`flush()`（fulltext_urlの5件ごとバッチ書き込み）と同じ流儀で `pendingCandidates` をため込み、`flush()` の中でまとめて `savePublicationCandidates()` を呼ぶ。URL書き込みと候補保存は互いに独立した try/catch を持ち、片方の失敗がもう片方を巻き込まない
   - `fulltext_url` の書き込み（`pendingWrites.push()` / `updateReferenceFulltextUrl()`）は、論文候補探索（最大3回のネットワーク往復）より**先に**行う。探索が遅くても本質的なURL保存が後回しにならないようにするため
   - 単発検索（`handleSingleFetch`）は1行だけなので `savePublicationCandidates()` を即時呼び出す（失敗は独立した try/catch で `console.warn` のみ）
-- **候補探索は取得状態（`fulltext_status`）から独立して何度でも再実行できる**（PR #122 レビュー指摘2、Issue #118 チャンク2）。`handleBulkFetch`（取得）の中でしか探索が走らない設計だと、registration行はスナップショット保存に成功した時点で `cached` になり二度と対象にならないため、PubMed等の一時障害やSheets書き込み失敗で候補が欠落するとUIから回復する手段が無くなる。対策として `fulltext-tab.ts` に `handleBulkSuggest()`（一括再探索）を独立ルーチンとして追加した:
+- **候補探索は取得状態（`fulltext_status`）から独立して何度でも再実行できる**（PR #122 レビュー指摘2、Issue #118 チャンク2）。`handleBulkFetch`（取得）の中でしか探索が走らない設計だと、registration行はスナップショット保存に成功した時点で `cached` になり二度と対象にならないため、PubMed等の一時障害やSheets書き込み失敗で候補が欠落するとUIから回復する手段が無くなる。対策として `features/fulltext/tab.ts` に `handleBulkSuggest()`（一括再探索）を独立ルーチンとして追加した:
   - 対象は `getVisibleFulltextCandidateList()` のうち `isRegistrationRecord(ref)` が true の行**全部**。`fulltext_status` は一切見ない（`cached`/`retrieved`/`unavailable`/`not_retrieved` のいずれでも対象）
   - **「候補行が既にあるか」で探索済みを推測する実装にはしていない**（未探索／候補0件／探索失敗を区別できず、候補0件の登録が永久に対象へ残り押すたびに外部APIを叩き続けることになるため）。代わりにユーザーが押したときだけ走る明示的な導線にし、`savePublicationCandidates()` の `filterNewCandidates()`（同一 `ref_id` かつ同一PMID/DOIの候補を除外）による冪等性を根拠に「何度再実行しても Publication_Candidates に重複行が増えない＝安全に繰り返せる」としている
   - NCTのときだけ `fetchCtgStudy()` を1回呼ぶ（取得時の `outcome.registryPmids` が手元に無い独立経路のため自前で取得する。既存の「取得と探索でCTG APIを2回叩かない」配線＝`retrieveRegistrationSnapshot()` → `outcome.registryPmids` は変更していない）。失敗時（`null`）は `ctgPmids: []` で続行する
@@ -787,7 +787,7 @@ registration行から「その試験の結果論文（linked publication）」�
 
 - **タブ欠落時の自動作成・列欠落時の末尾追記は `ensurePublicationCandidatesSheet()` が担う。`ensureLlmRunsSheet()` と完全に同じ ensure パターン**（ヘッダー欠落は末尾へ追記、タブ欠落は `addSheet` → ヘッダー append、それ以外の例外は再送出）
 - **列は末尾追記のみ**の規約（References/Decisions/LLM_Executions と同趣旨）。新しい列は必ず配列の末尾に足し、`src/demo/seed.ts` の `PUBLICATION_CANDIDATES_HEADERS` ミラーも必ず追従させること（`tests/publication-candidates-headers.test.ts` がドリフトを検出する）
-- ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3で実装済み（`src/lib/publication-import.ts` / `src/lib/publication-candidate-panel.ts` / `src/sidepanel/features/fulltext-publication-candidates.ts`。下記「論文候補の取り込み（Referencesへの追加）」参照）
+- ステータス更新（`imported` / `dismissed`）・候補のReferencesへの取り込みはチャンク3で実装済み（`src/lib/publication-import.ts` / `src/lib/publication-candidate-panel.ts` / `src/sidepanel/features/fulltext/publication-candidates.ts`。下記「論文候補の取り込み（Referencesへの追加）」参照）
 
 ### 書誌重複の検出とレビュー（Duplicate_Candidates タブ）
 
@@ -819,7 +819,7 @@ registration行から「その試験の結果論文（linked publication）」�
 - **純関数層とUI層の分離**: 計算ロジックは `src/lib/duplicate-review.ts`（`resolveSurvivor()` / `diffReferenceFields()` / `scanReferencesForDuplicatePairs()` / `isAutoApplicableCandidate()` / `isPairAlreadySettled()` / `arePairRefsMutuallyDeleted()` / `chooseMutualDeletionSurvivor()` / `chooseKeptRefId()` / `planBulkApply()`。テストは `tests/duplicate-review.test.ts`）に置き、DOM/state に依存するUIは `src/sidepanel/features/duplicate-review.ts` に分離した。`fulltext-consensus.ts` / `prisma-identification.ts` と同じ方針
 - **論理削除済みの相手を辿り直す**: `partitionIncomingReferences()` が既存インデックスに論理削除済みの行も含めている帰結として、候補の相手が論理削除済みの行になることがある。`resolveSurvivor()` が `duplicate_of` を辿って「残っている側」を返す。循環・参照先欠落・深さ上限（100 hops）は `broken` として返し、UIは壊れたペアを黙って隠さず「左を残す」「右を残す」だけ無効化して「別々の文献」は残す（後者は `Duplicate_Candidates` タブしか触らないため安全に実行でき、これが無いと壊れたペアがアプリ内から永久に片付けられなくなる。`deleteReferencesBySourceFile()` は行を物理削除するため、この状態は実際に作れる）
 - **書き込み順序は `setDuplicateOf()` → `updateDuplicateCandidateStatus()` で固定**。逆にすると、候補は決着済みなのに References の行が生きている＝重複除去が黙って失われる状態を作りうる。この順序なら後者が失敗しても行は正しく除外済みで、次回 `isPairAlreadySettled()` が survivor の収束として検出できる。後者だけ失敗したときは「除外は適用したが候補の記録更新に失敗した」旨を事実どおり表示する
-- **適用の直前に読み直す**: References・Duplicate_Candidates・Decisions をボタン押下時点で再取得し、`isPairAlreadySettled()` が true なら書き込まずスキップして「他のレビュアーが処理済み」と表示する（`fulltext-publication-candidates.ts` の `handleImportCandidate()` と同じ理由の前例に倣う）。警告に使う判定件数も再取得したものを使う（描画時点の値を使うと、モーダルを開いたまま他のレビュアーが判定を付けた場合に警告が出ない）。加えて、`setDuplicateOf()` 呼び出し直前に**残す側（keepRefId）が fresh なデータで既に論理削除されていないか**も見る。既に削除済みなら書き込まない（「消された行を指す duplicate_of」を新たに作ってしまうため。Issue #147 外部レビュー指摘）
+- **適用の直前に読み直す**: References・Duplicate_Candidates・Decisions をボタン押下時点で再取得し、`isPairAlreadySettled()` が true なら書き込まずスキップして「他のレビュアーが処理済み」と表示する（`features/fulltext/publication-candidates.ts` の `handleImportCandidate()` と同じ理由の前例に倣う）。警告に使う判定件数も再取得したものを使う（描画時点の値を使うと、モーダルを開いたまま他のレビュアーが判定を付けた場合に警告が出ない）。加えて、`setDuplicateOf()` 呼び出し直前に**残す側（keepRefId）が fresh なデータで既に論理削除されていないか**も見る。既に削除済みなら書き込まない（「消された行を指す duplicate_of」を新たに作ってしまうため。Issue #147 外部レビュー指摘）
 - **同時更新はロック機構で防がず、書き込み後の再検証と決定的修復で収束させる**（Issue #147 外部レビュー指摘）: Google Sheets の values API には条件付き更新（CAS）が無く、クライアント間の真の排他制御・書き込みの直列化は実装できない。2人のレビュアーが同じ組を同時に開き、一方が「左を残す」、他方が「右を残す」を選ぶと、両者とも `suggested` を読んだ後に書き込めてしまい、`duplicate_of[A]=B` と `duplicate_of[B]=A` が並ぶ（相互削除）。`isLogicallyDeleted()` が両方 true になり、その文献がレビューから丸ごと消える。
   - **`isPairAlreadySettled()` は `arePairRefsMutuallyDeleted()` を `status` の短絡より前に見る**。相互削除を `merged`/`dismissed` 扱いで覆い隠すと、二度と修復のきっかけが無くなるため。`resolveSurvivor()` の `broken` 全般（物理削除・循環等）は対象にしない（`dismissed` 済みの無関係な組まで毎回蒸し返してしまうため）。相互に指し合っている状態だけに絞って検出し、既存の broken 表示経路にそのまま乗せて人に見せる
   - `applyPairDecision()` は `setDuplicateOf()` 成功直後に References を読み直し、`arePairRefsMutuallyDeleted()` が true なら `chooseMutualDeletionSurvivor()`（ref_id の辞書順のみで決める。競合した両クライアントが同じ答えを計算できることが唯一の要件）で生存者を決め、生存者の `duplicate_of` を空に戻しつつ相手側を生存者へ書き直す。修復したこと・修復自体が失敗したことは両方トーストで知らせる（黙って直さない）
@@ -840,9 +840,9 @@ registration行から「その試験の結果論文（linked publication）」�
 
 ### 論文候補の取り込み（Referencesへの追加）
 
-候補（`Publication_Candidates` の1行）をReferencesへ実際に取り込む処理（レジストリ連携フェーズ1チャンク3、Issue #118 実装内容7・8）。**References に行が追加される経路は、`src/sidepanel/features/fulltext-publication-candidates.ts` の「取り込む」ボタン（`handleImportCandidate()`）だけ。** 一括検索・再探索・自動処理からは1行も追加しない（探索パス側の制約は上記「試験登録レコードの論文候補探索」参照）。
+候補（`Publication_Candidates` の1行）をReferencesへ実際に取り込む処理（レジストリ連携フェーズ1チャンク3、Issue #118 実装内容7・8）。**References に行が追加される経路は、`src/sidepanel/features/fulltext/publication-candidates.ts` の「取り込む」ボタン（`handleImportCandidate()`）だけ。** 一括検索・再探索・自動処理からは1行も追加しない（探索パス側の制約は上記「試験登録レコードの論文候補探索」参照）。
 
-- 行の組み立ては `src/lib/publication-import.ts` の `buildImportedPublicationReference()`（UI非依存の純関数。`crypto.randomUUID()`/`new Date()` は呼ばず、呼び出し側から `refId`/`importedAt` を注入する）が担う。`record_type='article'`（確定値）、`related_ref_id`＝発見元registration行の `ref_id`、`source`＝`Registry linkage (試験ID)` 形式（試験IDは registrationRef から `extractTrialId()` で取る。取れない場合は `buildRegistrySnapshotHtml()` の「(不明)」表記に合わせて `Registry linkage (不明)` とする）、`dedupe_key` は `import-helpers.ts` の `generateDedupeKey()` をそのまま使う（重複実装しない）。`url` は `src/lib/external-record-url.ts` の `buildDoiUrl()`/`buildPubmedUrl()` で組み立てる（doi優先→pmid→どちらも無ければ空文字。`fulltext-tab.ts` の `recordPageUrl()` と同じ規則を再利用しており、あちらもこの2関数を呼ぶ薄いラッパーに切り出し済み）。`screening_set` は発見元registration行の `screening_set` を担当割り振りの状態で分岐せず無条件でコピーする（空でコピーすると担当割り振り済みプロジェクトで `getReferenceAssignmentSet()` が `'unassigned'` と解決し、非管理者の `state.references` から取り込み行が丸ごと落ちるため。PR #124 レビュー指摘1）
+- 行の組み立ては `src/lib/publication-import.ts` の `buildImportedPublicationReference()`（UI非依存の純関数。`crypto.randomUUID()`/`new Date()` は呼ばず、呼び出し側から `refId`/`importedAt` を注入する）が担う。`record_type='article'`（確定値）、`related_ref_id`＝発見元registration行の `ref_id`、`source`＝`Registry linkage (試験ID)` 形式（試験IDは registrationRef から `extractTrialId()` で取る。取れない場合は `buildRegistrySnapshotHtml()` の「(不明)」表記に合わせて `Registry linkage (不明)` とする）、`dedupe_key` は `import-helpers.ts` の `generateDedupeKey()` をそのまま使う（重複実装しない）。`url` は `src/lib/external-record-url.ts` の `buildDoiUrl()`/`buildPubmedUrl()` で組み立てる（doi優先→pmid→どちらも無ければ空文字。`features/fulltext/tab.ts` の `recordPageUrl()` と同じ規則を再利用しており、あちらもこの2関数を呼ぶ薄いラッパーに切り出し済み）。`screening_set` は発見元registration行の `screening_set` を担当割り振りの状態で分岐せず無条件でコピーする（空でコピーすると担当割り振り済みプロジェクトで `getReferenceAssignmentSet()` が `'unassigned'` と解決し、非管理者の `state.references` から取り込み行が丸ごと落ちるため。PR #124 レビュー指摘1）
   - **この `screening_set` コピーの帰結（ユーザーが明示的に選んだ設計）**: 取り込んだ論文行は発見元registration行と**同じ担当グループのTiAbスクリーニングキューに未判定として並ぶ**。`src/lib/team-progress.ts` の `computeTeamProgress()` は `refs.filter((r) => assigned.has(refSetOf(r)))` で各メンバーの `tiabTotal`（TiAb分母）を数えるため、**そのグループの担当者のTiAb分母が取り込み件数だけ増え**、誰かが実際にTiAb判定するまで未消化のまま残る。検討した代替案は「`screening_set` を空（`unassigned`）のままにし、代わりに `related_ref_id` 非空の行を担当フィルタの対象外にする」というものだった。`unassigned` は既に「誰の担当セットでもない＝進捗の分母にも入らない」と定義されている（`src/sidepanel/features/assignment.ts` の `describeSetReviewers()` 参照）ためTiAb分母は動かないが、担当フィルタの意味論に例外（「`unassigned` だが表示だけはされる」）を持ち込むことになる。**前者（無条件コピー）を採用したのはユーザーの明示的な選択であり、「取り込んだ論文も人がTiAb判定すべき対象である」という判断に基づく。** `fulltext_set` を `resolveImportedFulltextSet()` でコピーしている既存実装（次の箇条書き）とも対称的な設計
 - 取り込み後、担当割り振りが `configured` のときだけ registration行の `fulltext_set` を新規行へコピーする。コピーすべき値の判定は `src/lib/publication-import.ts` の `resolveImportedFulltextSet()`（純関数）に切り出してあり、実際の書き込み（`updateReferenceFulltextSets()`）は呼び出し側が行う
 - `handleImportCandidate()` の実行順序:
@@ -850,15 +850,15 @@ registration行から「その試験の結果論文（linked publication）」�
   2. `crypto.randomUUID()`/`new Date().toISOString()` を呼び出し側で用意し `buildImportedPublicationReference()` へ注入 → `addReferences()` で1行追加
   3. `resolveImportedFulltextSet()` が非空を返すときだけ `updateReferenceFulltextSets()` で新規行の `fulltext_set` を書く（空文字を書きに行く無駄なリクエストは出さない）
   4. `updatePublicationCandidateStatus()`（`publication-candidates.ts`）で候補を `imported`/`decided_by`/`imported_ref_id` に更新
-  5. `reloadReferences()`（`fulltext-ai.ts`）で state を更新
+  5. `reloadReferences()`（`features/fulltext/ai.ts`）で state を更新
   6. 新規行に対して単発OA検索を自動起動する（`fetchSingleFulltextForRef()`。`handleSingleFetch()` からボタン要素前提の見た目更新を切り離して独立させた関数）。この関数は内部の catch で例外を握りつぶし正常returnするため、呼び出し側は戻り値（`Promise<boolean>`。成功=true）で失敗を検出する。取り込みフローからは `{ reloadCandidates: false, suppressErrorToast: true }` を渡し、内部の `fulltext_sheetSaveError` トーストを止めて、失敗を7の完了トーストへ一本化する（PR #124 レビュー指摘3。ボタン起点の `handleSingleFetch()` は options を渡さないため従来どおり内部トーストが出る）
-  7. 候補キャッシュ（`fulltext-tab.ts` のモジュールローカルキャッシュ）を再読込・再描画する
-- **部分失敗への備え**: 手順2（`addReferences`）が成功した直後に、候補ID→新規`ref_id`の対応を `fulltext-publication-candidates.ts` のモジュールローカルMap（`importedRefIdByCandidateId`）へ記録する。その後3〜6のいずれかが失敗して候補が `status='suggested'` のまま残っても、同じ候補へ再度「取り込む」を押されたときはこの記録を最優先で見て、`addReferences()` を呼び直さず（＝Referencesへの二重追加を避け）記録済みの `ref_id` で残りのステップだけをやり直す。4（ステータス更新）に成功すればこの記録は不要になり削除する。この記録が無い場合（例: ブラウザ再起動でモジュール状態が失われた）でも、1の重複チェックが References 上の同一PMID/DOIを検出するため二重追加そのものは常に防がれるが、その場合候補は `dismissed` として決着する（誰がいつ取り込んだ行か特定できず `imported_ref_id` を安全に紐付けられないため。行自体は失われない）
+  7. 候補キャッシュ（`features/fulltext/tab.ts` のモジュールローカルキャッシュ）を再読込・再描画する
+- **部分失敗への備え**: 手順2（`addReferences`）が成功した直後に、候補ID→新規`ref_id`の対応を `features/fulltext/publication-candidates.ts` のモジュールローカルMap（`importedRefIdByCandidateId`）へ記録する。その後3〜6のいずれかが失敗して候補が `status='suggested'` のまま残っても、同じ候補へ再度「取り込む」を押されたときはこの記録を最優先で見て、`addReferences()` を呼び直さず（＝Referencesへの二重追加を避け）記録済みの `ref_id` で残りのステップだけをやり直す。4（ステータス更新）に成功すればこの記録は不要になり削除する。この記録が無い場合（例: ブラウザ再起動でモジュール状態が失われた）でも、1の重複チェックが References 上の同一PMID/DOIを検出するため二重追加そのものは常に防がれるが、その場合候補は `dismissed` として決着する（誰がいつ取り込んだ行か特定できず `imported_ref_id` を安全に紐付けられないため。行自体は失われない）
 - **「ステータス更新(4)は成功したが fulltext_set 更新(3)が失敗した」場合には復旧導線が無い。** 候補は `imported` になりパネル・バッジから消えるため、UIから「担当グループが未設定のまま」に気付いて再操作する手段が構造的に無い。実害は `fulltext_set` が空のままになることに限られる（`related_ref_id` が非空のため、フルテキスト候補一覧・共有分母には引き続き載る＝候補自体を見失うわけではない。次の箇条書き参照）。管理者が手動で担当割り振りを再生成するか、シートを直接編集するしかない
 - 完了トーストの「もう一度『取り込む』を押すと再試行できます」という案内は、それが実際に成り立つ場合（手順4のステータス更新自体が失敗して候補が `suggested` のまま残っている）だけに出す。手順4が成功して候補がパネルから消えるケースでは別の文言（再試行を促さない）を出す（`pubCandidate_importPartialRetryable` / `pubCandidate_importPartialNoRetry`）。多段階処理の完了メッセージを作るときは、それぞれの失敗パターンで案内の内容が実際に成り立つかを個別に確認すること（この教訓は「取り込む」経路だけでなく「対象外」経路にも及ぶ。下記 `handleDismissCandidate()` 参照。PR #124 レビュー指摘6ではこの教訓が「対象外」側に反映されておらず「取り込む」側だけ直っていた）
 - 「対象外」ボタン（`handleDismissCandidate()`）は `updatePublicationCandidateStatus()` を `status='dismissed'` で呼ぶだけで References には一切触れないが、2点のガードを持つ:
   - **`importedRefIdByCandidateId` に記録がある候補は対象外にできない**（PR #124 レビュー指摘5）。上記「部分失敗への備え」の状態（`addReferences()` は成功したが手順4のステータス更新が失敗し候補が `suggested` のまま）でこのガードが無いまま「対象外」を押すと、`imported_ref_id` が空のまま `status='dismissed'` が書かれ、既に作られたReferences行を指す候補が消える。その行はPublication_Candidatesから辿れなくなる一方、`related_ref_id` は非空のためフルテキスト候補一覧・共有分母には載り続け孤児化する。記録があればシートへ書き込まずに中断し `pubCandidate_dismissBlockedAlreadyAdded` トーストで「取り込む」を押し直すよう促す
-  - **ステータス更新と `reloadPublicationCandidates()` を別tryに分ける**（PR #124 レビュー指摘6）。1つのtryで包むと、書き込み自体は成功したのに再読込だけ失敗したケースでも `pubCandidate_dismissError`（「対象外への更新に失敗しました」）が出て事実と異なる報告になる。ステータス更新が成功したかを別フラグで持ち、再読込のみ失敗したときは `pubCandidate_dismissReloadFailed`（「対象外にしました（一覧の再読込に失敗しました）」）を出す。**この再読込失敗トーストの発火経路は後続ターンで実際に到達可能になった**: `fulltext-tab.ts` の `loadPublicationCandidates()` は当初、内部で自分のエラーを `console.warn` するだけで再送出しない実装だった（`createAsyncCoalescer` の factory 自身がtry/catchで握りつぶすため）ため呼び出し元から失敗を検出できなかったが、`Promise<void>` → `Promise<boolean>`（成功/読み込み不要=true、Sheets読み込み失敗=false）へ改め、`suppressErrorToast?: boolean`（既定false）オプションを追加した。既定では失敗時に自前で `fulltext_candidateLoadError` トーストを出すが、`handleDismissCandidate()` は `{ suppressErrorToast: true }` を渡してこれを止め、戻り値が `false` のときだけ `pubCandidate_dismissReloadFailed` を出す（try/catchによる検出から戻り値による検出へ変更）。`deps.reloadPublicationCandidates` の型もこれに合わせて `(options?: { suppressErrorToast?: boolean }) => Promise<boolean>` にした
+  - **ステータス更新と `reloadPublicationCandidates()` を別tryに分ける**（PR #124 レビュー指摘6）。1つのtryで包むと、書き込み自体は成功したのに再読込だけ失敗したケースでも `pubCandidate_dismissError`（「対象外への更新に失敗しました」）が出て事実と異なる報告になる。ステータス更新が成功したかを別フラグで持ち、再読込のみ失敗したときは `pubCandidate_dismissReloadFailed`（「対象外にしました（一覧の再読込に失敗しました）」）を出す。**この再読込失敗トーストの発火経路は後続ターンで実際に到達可能になった**: `features/fulltext/tab.ts` の `loadPublicationCandidates()` は当初、内部で自分のエラーを `console.warn` するだけで再送出しない実装だった（`createAsyncCoalescer` の factory 自身がtry/catchで握りつぶすため）ため呼び出し元から失敗を検出できなかったが、`Promise<void>` → `Promise<boolean>`（成功/読み込み不要=true、Sheets読み込み失敗=false）へ改め、`suppressErrorToast?: boolean`（既定false）オプションを追加した。既定では失敗時に自前で `fulltext_candidateLoadError` トーストを出すが、`handleDismissCandidate()` は `{ suppressErrorToast: true }` を渡してこれを止め、戻り値が `false` のときだけ `pubCandidate_dismissReloadFailed` を出す（try/catchによる検出から戻り値による検出へ変更）。`deps.reloadPublicationCandidates` の型もこれに合わせて `(options?: { suppressErrorToast?: boolean }) => Promise<boolean>` にした
 - **`related_ref_id` が非空の行は無条件でフルテキスト候補になる**（実装内容9）。取り込んだ論文行はTiAb票を一切持たない（通常のTiAbスクリーニングを経ないため）ので、`fulltext_set`・プールルール・TiAb Include票のいずれで判定してもフルテキスト候補プールから落ちてしまう。`src/lib/fulltext-candidates.ts` の `isFulltextCandidateRef()` / `isProjectFulltextCandidateRef()` / `isSharedFulltextPoolMember()` はいずれも、`related_ref_id` が非空なら（poolRule評価より先に）無条件で候補として扱う分岐を持つ。`isSharedFulltextPoolMember()` はIssue本文が名指ししていない（他の2関数のみ名指し）が、「全員で一致すべき分母」という要件と矛盾しないため（`related_ref_id` の非空はユーザー非依存の属性）同じ扱いにした
   - **落とし穴（実際に踏んだ）**: 上記3関数の引数型は `ref: Pick<Reference, 'fulltext_set' | 'related_ref_id'>` のように `Reference` を絞り込んだ型を取る。チーム進捗集計用の `src/lib/team-progress.ts` の `TeamProgressRef`（`Reference` をさらに絞り込んだ最小形）が最初 `related_ref_id` を持っておらず、`src/sidepanel/features/team-progress.ts` 側で `ReferenceWithStatus` から `TeamProgressRef` を組み立てる2箇所が `related_ref_id` を運んでいなかった。`Pick<Reference, ...>` はoptional同士だと構造的に適合してしまうため、`related_ref_id` を落とした絞り込み型を渡してもtypecheckは通ってしまい（コンパイラはフィールドが無いことを検出できない）、`isSharedFulltextPoolMember()` の分岐は本番で一度も発火しなかった。詳細・一般化した教訓は下記「テスト・作業ツリーの落とし穴」参照
 
@@ -1235,7 +1235,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
   - 認証トークンは呼び出し側から渡す。`drive-shared-drive.ts` が互換窓口 `sheets-api.ts` 経由で `getAuthToken`（実体は `sheets/transport.ts`）を import すると循環参照になるため
 - 適用先は `src/lib/drive-api.ts` の13箇所と **`src/lib/drive-recent-files.ts` の1箇所**（`getRecentSpreadsheets` の `files.list`）と **`src/lib/drive-permissions.ts` の4箇所**（permissions の list/create/delete、`isUserAdmin` の capabilities）。特に `getRecentSpreadsheets` は `files.list` なので、欠けると**共有ドライブ上のスプレッドシートが一覧から黙って消える**
 - **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は `tests/drive-shared-drive.test.ts` で検出する。実際に飛ぶ URL を見張るテストに加え、**`drive-api.ts` / `drive-permissions.ts` / `drive-recent-files.ts` のソースに `fetch(` の直呼びが残っていないことを機械的に検査**している（新しい経路が `driveFetch` を通さずに増えた瞬間に落ちる）
-- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext-drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
+- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext/drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
 - **共有ドライブ上のPDF → マイドライブの fulltext フォルダへの `files.copy` は未測定**（測ったのは逆向き）。事前にブロックせず、失敗したら copy 本体のエラーをそのまま見せる形にしている
 - **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。全経路にパラメータが付いて初めて 404 が未付与を意味する。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
 
@@ -1250,7 +1250,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 #### 読めなくなった PDF の復旧（対策 C'）
 
-上記の帰結として、フォルダ単位での一括付与は成立しない。代わりに **Picker の複数選択で1セッションにまとめて再付与する**（`fulltext-regrant.ts`）。Picker の一覧表示は `drive.file` ではなく**ユーザー自身の Drive 権限**を使うため、fulltext フォルダに Drive 共有さえされていれば、共同研究者にも他人がアップロードした PDF が見えて選択できる（＝ Drive 共有は付与経路ではないが、Picker で選ぶための前提にはなる）。
+上記の帰結として、フォルダ単位での一括付与は成立しない。代わりに **Picker の複数選択で1セッションにまとめて再付与する**（`features/fulltext/regrant.ts`）。Picker の一覧表示は `drive.file` ではなく**ユーザー自身の Drive 権限**を使うため、fulltext フォルダに Drive 共有さえされていれば、共同研究者にも他人がアップロードした PDF が見えて選択できる（＝ Drive 共有は付与経路ではないが、Picker で選ぶための前提にはなる）。
 
 - 検知は `listAccessibleFileIdsInFolder()` と References の `cached` 行の突き合わせ（`fulltext-access.ts`）
 - Picker ページ側は `mode=regrant`。選択ファイルの一覧ではなく**件数だけ**を返す（数百件選択時に URL フラグメントが肥大するのを避けるため。付与は「選択」を押した時点でサーバー側に確定しており、一覧を受け取る必要が無い）
@@ -1317,7 +1317,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 **リンク共有（`type: 'anyone'`）の検出と警告**: 実プロジェクトでは共有ボタンを使わず、Google側で手動の「リンクを知っている全員が編集可」運用がされていたことがあった。リンク共有はURLが漏れれば第三者が判定データを閲覧・改ざん（reader権限なら閲覧・流出）できるため、`mergePermissionsForDisplay` は `type==='anyone'` の権限を通常のユーザー一覧から分離し、`linkShare`（`{ role: 'writer' | 'reader' }`）として返す。`loadSharedUsers` はこれを共有リストの先頭に警告バナーとして表示する（writer=赤系、reader=黄系）。**警告文言には必ず「先に全メンバーを個別共有へ追加してから、Driveの共有設定を『制限付き』に変更する」という順番を明記する**。この順番を書かないと、警告に従ってリンク共有を先に解除した瞬間に、リンク経由でアクセスしていた現役メンバーが締め出されてしまうため。
 
-**セットアップチェックリストへの反映（管理者向け2項目）**: 共有リストの警告は管理者がその画面を開かないと気づけないため、フルテキストタブ先頭の「セットアップチェックリスト」（`src/lib/fulltext-checklist-state.ts` / `src/sidepanel/features/fulltext-checklist.ts`）にも管理者専用の2項目を追加している（非管理者には出さない）。
+**セットアップチェックリストへの反映（管理者向け2項目）**: 共有リストの警告は管理者がその画面を開かないと気づけないため、フルテキストタブ先頭の「セットアップチェックリスト」（`src/lib/fulltext-checklist-state.ts` / `src/sidepanel/features/fulltext/checklist.ts`）にも管理者専用の2項目を追加している（非管理者には出さない）。
 
 - **リンク共有の検出**: 上記 `mergePermissionsForDisplay` の `linkShare` をそのまま再利用し、判定ロジックを二重化しない。writer=error（赤）、reader=warn（黄）。アクションはスプレッドシートのURLを `platform().openExternal()` で開く「Driveで共有設定を開く」ボタン
 - **フォルダ共有のズレ検出**: フォルダの実際の権限一覧（`getFilePermissions(projectFolderId)`）に、「本来レビューに参加するはずのメンバー」が見当たらない場合に警告する。**このメンバー一覧の出所がブラインドセーフの要**: Decisions の `reviewer_id` から集めてはいけない（Blind中は他人の human 票がクライアントに配られないため、集計すると人によって missing の結果が変わってしまう）。代わりに全員に同じ値が見える Config 由来の割り振り設定（TiAb: `state.assignmentConfig.reviewerMap` ＋ フルテキスト: `state.fulltextAssignment.reviewerMap`）の和集合を使う。フォルダ権限が読めない（drive.file未付与で403等）場合は「異常」ではなく「アプリからは判定できない」状態なので、項目ごと黙って非表示にする（エラー表示にしない。上記の縮退方針と同じ）
@@ -1369,6 +1369,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **遅延読み込みの入口には、本体を読む前に判定できるガードを置くこと。** 件数や設定で「そもそも機能を使えない」と分かる条件は、`import()` の前に判定する。判定に必要な定数が重い依存を持つモジュールにあるなら、定数だけを依存の無いモジュールへ切り出す（`lib/ml/cmh-defaults.ts`・`lib/pdf-constants.ts` がその形）。切り出し元からの再エクスポートは、既存の import 経路が実在するときだけ残す（`lib/ml/cmh.ts` の `CMH_DEFAULTS`、`lib/ml/stopping-rules.ts` の `canUseCmhStopping`）。ガードを本体側に残したままだと、使えないと分かっている機能のチャンクと Web Worker を読み込んでから戻ることになる（PR #178 レビュー指摘）。
 - **重い依存を持つモジュールから、軽い定数を再エクスポートしないこと。** 消費者が消えた再エクスポートは、後からその経路で import した瞬間に重い依存（例: pdfjs の 376KB）を初期バンドルへ引き戻す罠になる。使われなくなった再エクスポートは消す。
 - LLM機能の入口は `src/sidepanel/features/llm/lazy.ts`。入口以外の `features/llm/**` を外部から静的 import すると本体が初期バンドルへ戻るため禁止する。専用DOM参照も本体側の `features/llm/dom.ts` に置く。
+- フルテキストタブの入口は `src/sidepanel/features/fulltext/lazy.ts`。入口以外の `features/fulltext/**` を外部から静的 import すると本体が初期バンドルへ戻るため禁止する。専用DOM参照も本体側の `features/fulltext/dom.ts` に置く（プロジェクト読み込み時に必ず実行される担当セット選択の初期化は遅延化の対象外のため `features/fulltext-assignment-selection.ts` に分離した）。
 - 初期バンドル量の回帰は `npm run check:bundle` が検出する（上の「開発規約」節）。ただし**チャンク間の重複は初期バンドル量に現れない**ので、この検査では捕まらない。分割を足したら生成チャンクの一覧とサイズを目視すること。
 
 ### 性能計測
@@ -1462,7 +1463,7 @@ npm run check:bundle
 
 ### 過去のレビュー指摘をコメントで参照するときの書き方
 
-**「なぜこうなっているか」をコメントに残すときは、必ず PR 番号か Issue 番号でアンカーすること**（`PR #122 レビュー指摘2`、`Issue #118 チャンク2`）。既存コードもこの形になっている（`src/sidepanel/features/fulltext-ai.ts` の `PR #102 レビュー指摘`、`tests/ensure-headers-drive-columns.test.ts` の `PR #121 レビュー指摘対応`）。
+**「なぜこうなっているか」をコメントに残すときは、必ず PR 番号か Issue 番号でアンカーすること**（`PR #122 レビュー指摘2`、`Issue #118 チャンク2`）。既存コードもこの形になっている（`src/sidepanel/features/fulltext/ai.ts` の `PR #102 レビュー指摘`、`tests/ensure-headers-drive-columns.test.ts` の `PR #121 レビュー指摘対応`）。
 
 - **裸の通し番号（`修正2`・`指摘2b` など）を書かないこと。** レビュー依頼やタスク分解の中だけで通じる番号は、マージされた後のコードでは何も指さない。読み手は元のやり取りを持っていないので復元もできない
 - **この漏れは「指示の側が項目に番号を振ったとき」に起きる。** 実例: PR #122 のレビュー対応で、指示文の `修正1`〜`修正3` という通し番号がそのままコメントとテスト見出しへ写り、7ファイル分を差し戻して書き直した。番号付きの指示を受けて実装するときは、コメントに落とす前に PR/Issue 番号へ言い換えること
@@ -1479,7 +1480,7 @@ npm run check:bundle
 - **lint は型の緩さを検出しない。** `.eslintrc.cjs` は `@typescript-eslint/no-explicit-any` も `no-unused-vars` も有効にしていないため、`any` や未使用変数は CI を素通りする。`src/lib/` の既存コードが `any` を使っていないのは規約であって強制ではないので、レビュー側で見ること。
 - **References の読み取り範囲は `A:X` のような終端列直書きにしない。** Issue #118 チャンク1で `References!A:X` を4箇所（`getReferences` / `updateReferenceColumnByRefId` / `getFulltextPageData` の2箇所）直書きしていたのを、`REFERENCES_LAST_COLUMN`（`columnLetter(REFERENCES_HEADERS.length)`、Decisionsの`DECISIONS_LAST_COLUMN`と同じ流儀）から導出する形に直した。直書きのままだと末尾に列を足しても新列が読み取り範囲外になり、書き込んでも永久に空として読まれる。`ensureHeaders()` 内のヘッダー行範囲（`A1:${REFERENCES_LAST_COLUMN}1` での読み取り・書き込み）も同じ理由で `A1:Z1` 直書きから導出に揃えた（26列がちょうどZ列なのは偶然で、次に列を1本足すと読み取り打ち切り＋書き込み時の列数不一致エラーの両方が起きるところだった）。ただし `References!T:X`（fulltext系5列専用の部分範囲）や `References!A1:X1`（W/X列単体の検証用、`ensureFulltextDriveColumnsOnce()` 内）のように、意味的に「References全体」ではない固定範囲は対象外＝変更不要。
 - **`Pick<Reference, ...>` のように `Reference` を絞り込んだ型は、絞り込んだフィールドが全て optional だと構造的部分型のせいで typecheck をすり抜ける。** 絞り込み型Aが「実際に必要なフィールドの一部だけ持つ、より狭い絞り込み型B」を要求する関数に、Bより広いはずのAの値を渡しても、Aに欠けているフィールドがBの型定義上 optional なら、コンパイラは「無い」ことを検出できずコンパイルが通る。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`src/lib/team-progress.ts` の `TeamProgressRef` が `related_ref_id` を持たないまま `fulltext-candidates.ts` の関数へ渡され、`isSharedFulltextPoolMember()` の分岐が本番で一度も発火しなかった。詳細は「論文候補の取り込み」節参照）。**`Reference` を絞り込んだ型を新設・変更するときは、型チェックだけで安心せず、配線の全経路（絞り込み型を組み立てている全箇所）が本当に必要なフィールドを運んでいるか目視確認すること。** 純関数のユニットテストも、引数へ絞り込んだオブジェクトリテラルを直接手書きして渡す形だと、配線側の欠落を再現できず検出できない（配線の境界＝実際に絞り込み型を組み立てている関数の入出力でテストすること）。PR #124 レビュー指摘7でこの教訓を実際に適用した: `ReferenceWithStatus` → `TeamProgressRef` の変換を `src/lib/team-progress.ts` の `toTeamProgressRef()` という小さな純関数へ切り出し（呼び出し元だった `initTeamProgress()` / `buildFooter()` の2箇所の重複実装を統一）、`tests/team-progress.test.ts` にこの関数自体の入出力を検証するテストを追加して、配線の境界へ実際に移した。
-- **真偽値フラグ（`if (loading) return;`）による非同期処理の二重起動防止は、その処理の完了を `await` して待つ呼び出し元がいると成り立たない。** 進行中の呼び出しを「捨てる」だけで、待っている側には何も返せないため、`await` 側は実際には何も起きていないのに「完了した」と思い込んで先へ進んでしまう。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`fulltext-tab.ts` の `loadPublicationCandidates()` を、一括検索/再探索の完了時は fire-and-forget（`void`）で呼ぶ一方、候補の取り込み完了後は `await` して待っていたため、前者が進行中に後者が呼ばれると空振りしていた）。fire-and-forget と `await` の呼び出しが混在する非同期処理には、進行中の Promise をそのまま返して合流させるヘルパー（`src/lib/async-coalesce.ts` の `createAsyncCoalescer()`）を使うこと。
+- **真偽値フラグ（`if (loading) return;`）による非同期処理の二重起動防止は、その処理の完了を `await` して待つ呼び出し元がいると成り立たない。** 進行中の呼び出しを「捨てる」だけで、待っている側には何も返せないため、`await` 側は実際には何も起きていないのに「完了した」と思い込んで先へ進んでしまう。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`features/fulltext/tab.ts` の `loadPublicationCandidates()` を、一括検索/再探索の完了時は fire-and-forget（`void`）で呼ぶ一方、候補の取り込み完了後は `await` して待っていたため、前者が進行中に後者が呼ばれると空振りしていた）。fire-and-forget と `await` の呼び出しが混在する非同期処理には、進行中の Promise をそのまま返して合流させるヘルパー（`src/lib/async-coalesce.ts` の `createAsyncCoalescer()`）を使うこと。
 - **ブリーフが名指しした1箇所だけを直すと、同じルーティング判断を行う別の呼び出し元が直り漏れることがある。** レジストリ連携フェーズ1チャンク3で、`showPdfForRef()` の分岐だけを直す指示だったが、`showCachedPdf()` の全呼び出し元を grep すると `handleResolve()`（初回自動検索）にも同じ分岐判断のコピーがあり、そこを直さないと「registration行の初回表示だけ直っていない」状態になっていた。**ある関数の呼び出し条件を変更・追加するときは、対象関数の全呼び出し元を一度 grep し、同じ判断ロジックが他の場所に重複していないか確認すること。**
 
 ### ローカル実験環境

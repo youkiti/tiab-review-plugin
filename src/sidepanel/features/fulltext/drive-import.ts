@@ -24,21 +24,22 @@
  *    完了画面で明示チェックさせ、ゴミ箱送り（30日間復元可）にする
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { showToast } from '../ui/feedback';
-import { showModal, hideModal } from '../ui/modal';
-import { getFulltextCandidateList } from './screening/filters';
-import { buildPdfPickerUrl } from '../../lib/picker-url';
-import { parsePdfPickerRedirect, validatePickedFiles, MAX_PICKED_FILES } from '../../lib/drive-picker-result';
-import { isUserCancelledAuthError } from '../../lib/drive-regrant-picker';
-import type { PickedDriveFile } from '../../lib/drive-picker-result';
-import { resolveMappingSuggestion } from '../../lib/drive-import-suggestion';
-import type { MappingSuggestionTarget } from '../../lib/drive-import-suggestion';
-import { resolveImportAction, shouldBackfillDriveColumns } from '../../lib/drive-import-action';
-import type { ImportedCopyMatch, SheetFulltextState, ImportAction } from '../../lib/drive-import-action';
-import { classifyDriveImportState } from '../../lib/drive-import-classify';
+import { dom } from './dom';
+import { dom as sharedDom } from '../../dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { showToast } from '../../ui/feedback';
+import { showModal, hideModal } from '../../ui/modal';
+import { getFulltextCandidateList } from '../screening/filters';
+import { buildPdfPickerUrl } from '../../../lib/picker-url';
+import { parsePdfPickerRedirect, validatePickedFiles, MAX_PICKED_FILES } from '../../../lib/drive-picker-result';
+import { isUserCancelledAuthError } from '../../../lib/drive-regrant-picker';
+import type { PickedDriveFile } from '../../../lib/drive-picker-result';
+import { resolveMappingSuggestion } from '../../../lib/drive-import-suggestion';
+import type { MappingSuggestionTarget } from '../../../lib/drive-import-suggestion';
+import { resolveImportAction, shouldBackfillDriveColumns } from '../../../lib/drive-import-action';
+import type { ImportedCopyMatch, SheetFulltextState, ImportAction } from '../../../lib/drive-import-action';
+import { classifyDriveImportState } from '../../../lib/drive-import-classify';
 import {
     ensureFulltextFolder,
     getDriveFileMetadata,
@@ -47,20 +48,20 @@ import {
     deleteDriveFile,
     buildPdfFileName,
     describeDriveAccessError,
-} from '../../lib/drive-api';
-import type { DriveFileMetadata, DriveFileInfo } from '../../lib/drive-api';
+} from '../../../lib/drive-api';
+import type { DriveFileMetadata, DriveFileInfo } from '../../../lib/drive-api';
 import {
     getProjectDriveFolderId,
     getReferenceFulltextState,
     getFulltextClaimsSnapshot,
     updateReferenceFulltextUrl,
-} from '../../lib/sheets-api';
-import type { FulltextClaimsSnapshot } from '../../lib/sheets-api';
-import type { ReferenceWithStatus } from '../../lib/types';
+} from '../../../lib/sheets-api';
+import type { FulltextClaimsSnapshot } from '../../../lib/sheets-api';
+import type { ReferenceWithStatus } from '../../../lib/types';
 
 const MAX_SIZE_WARN_BYTES = 50 * 1024 * 1024; // 50MB
 
-// フルテキストタブ全体を再描画するためのコールバック（fulltext-tab.ts から注入）
+// フルテキストタブ全体を再描画するためのコールバック（fulltext/tab.ts から注入）
 let _rerenderTab: (() => void) | null = null;
 export function setFulltextDriveImportDeps(deps: { rerenderTab: () => void }): void {
     _rerenderTab = deps.rerenderTab;
@@ -78,7 +79,7 @@ function releaseImportGuard(): void {
 
 /** 実行ループ中はモーダルの閉じるボタン(X)を無効化し、誤操作での中断を防ぐ */
 function setModalCloseEnabled(enabled: boolean): void {
-    dom.modalCloseBtn.disabled = !enabled;
+    sharedDom.modalCloseBtn.disabled = !enabled;
 }
 
 function setDriveImportStatus(msg: string | null): void {

@@ -7,72 +7,76 @@
  *  - 各文献のフルテキストページ（新規タブ）への導線
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { escapeHtml } from '../utils/text';
-import { getFulltextCandidateList, getVisibleFulltextCandidateList } from './screening/filters';
-import { handleKeyToggle } from './screening/actions';
-import { explainEmptyFulltextCandidates } from '../../lib/fulltext-empty-reason';
-import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './fulltext-results';
-import { setupFulltextAiListeners } from './fulltext-ai';
+import { dom } from './dom';
+import { dom as sharedDom } from '../../dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { escapeHtml } from '../../utils/text';
+import { getFulltextCandidateList, getVisibleFulltextCandidateList } from '../screening/filters';
+import { handleKeyToggle } from '../screening/actions';
+import { explainEmptyFulltextCandidates } from '../../../lib/fulltext-empty-reason';
+import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './results';
+import { setupFulltextAiListeners } from './ai';
 import {
     renderFulltextAssignmentRow,
     setupFulltextAssignmentListeners,
     setFulltextAssignmentDeps,
-} from './fulltext-assignment-ui';
-import { renderTeamProgress } from './team-progress';
-import { switchToTab } from './llm/lazy';
-import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
-import { mountReasonEditor } from './fulltext-reason-editor';
-import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';
-import type { FulltextFetchOutcome } from '../../lib/fulltext-retriever';
+} from './assignment-ui';
+import { renderTeamProgress } from '../team-progress';
+import { mountRuleEditor } from '../../../lib/fulltext-rule-editor';
+import { mountReasonEditor } from './reason-editor';
+import { retrieveAndCacheFulltext } from '../../../lib/fulltext-retriever';
+import type { FulltextFetchOutcome } from '../../../lib/fulltext-retriever';
 import {
     ensureFulltextFolder,
     uploadPdfToDrive,
     buildPdfFileName,
     describeDriveAccessError,
-} from '../../lib/drive-api';
+} from '../../../lib/drive-api';
 import {
     saveFulltextPoolRule,
     updateReferenceFulltextUrl,
     updateReferenceFulltextUrls,
     savePublicationCandidates,
     getPublicationCandidates,
-} from '../../lib/sheets-api';
+} from '../../../lib/sheets-api';
 import {
     isRegistrationRecord,
     extractTrialId,
     parseRegistryFieldsFromAbstract,
     extractSecondaryTrialIds,
-} from '../../lib/registry-record';
-import { discoverPublicationCandidates } from '../../lib/publication-suggest';
-import type { PublicationCandidateDraft } from '../../lib/publication-suggest';
-import { fetchCtgStudy } from '../../lib/registry-api';
+} from '../../../lib/registry-record';
+import { discoverPublicationCandidates } from '../../../lib/publication-suggest';
+import type { PublicationCandidateDraft } from '../../../lib/publication-suggest';
+import { fetchCtgStudy } from '../../../lib/registry-api';
 import {
     discoverCandidatesForRerun,
     flushCandidateBuffer,
     nextCandidateFlushThreshold,
-} from '../../lib/publication-candidate-rerun';
-import { createAsyncCoalescer } from '../../lib/async-coalesce';
+} from '../../../lib/publication-candidate-rerun';
+import { createAsyncCoalescer } from '../../../lib/async-coalesce';
 import {
     selectSuggestedPublicationCandidates,
     countSuggestedPublicationCandidatesByRef,
-} from '../../lib/publication-candidate-panel';
-import { buildDoiUrl, buildPubmedUrl } from '../../lib/external-record-url';
+} from '../../../lib/publication-candidate-panel';
+import { buildDoiUrl, buildPubmedUrl } from '../../../lib/external-record-url';
 import {
     decoratePublicationCandidateCard,
     setPublicationCandidatesDeps,
-} from './fulltext-publication-candidates';
+} from './publication-candidates';
 import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
-} from './fulltext-drive-import';
-import { setupFulltextRegrantListeners } from './fulltext-regrant';
-import { renderFulltextChecklist, setupFulltextChecklistListeners } from './fulltext-checklist';
-import { setFulltextPoolRule as syncSetFulltextPoolRule } from '../store/compat';
-import { showToast } from '../ui/feedback';
-import type { ReferenceWithStatus, Decision, FulltextStatus, PublicationCandidate } from '../../lib/types';
+} from './drive-import';
+import { setupFulltextRegrantListeners } from './regrant';
+import { renderFulltextChecklist, setupFulltextChecklistListeners } from './checklist';
+import { setFulltextPoolRule as syncSetFulltextPoolRule, changeTab } from '../../store/compat';
+import { hideToast, showToast } from '../../ui/feedback';
+import type { ReferenceWithStatus, Decision, FulltextStatus, PublicationCandidate } from '../../../lib/types';
+
+// features/fulltext/lazy.ts が本体ロード後に委譲する（manuscript.ts の論文用テキスト生成が
+// 結果ビューの判定者選択を読むため。詳細は results.ts の getEnabledJudgesSnapshot() 参照）。
+export { getEnabledJudgesSnapshot } from './results';
 
 const STATUS_META: Record<string, { icon: string; cls: string }> = {
     include: { icon: '✓', cls: 'include' },
@@ -101,8 +105,8 @@ let publicationCandidates: PublicationCandidate[] = [];
  * 【なぜ真偽値フラグの二重起動防止ではだめか】単純な `if (loading) return;` だと、
  * 進行中の呼び出しを「捨てる」だけで待っている呼び出し元には何も返せない。
  * fire-and-forget（`void loadPublicationCandidates()`。handleBulkFetch/handleBulkSuggest の
- * 完了時、activateFulltextTab()）で呼ぶ分には問題にならないが、
- * fulltext-publication-candidates.ts の handleImportCandidate は
+ * 完了時、initializeFulltextSection()）で呼ぶ分には問題にならないが、
+ * fulltext/publication-candidates.ts の handleImportCandidate は
  * `await deps.reloadPublicationCandidates()` と**待って**からトースト表示・パネル更新へ進む。
  * 一括検索/再探索の完了直後の読み込みが飛んでいる最中に「取り込む」を押すと、
  * 待っている側の loadPublicationCandidates() 呼び出しが（真偽値ガードのせいで）即座に
@@ -137,7 +141,7 @@ const coalescedFetchPublicationCandidates = createAsyncCoalescer(async (): Promi
  * `state.allReferences`（担当フィルタ・セット絞り込みの影響を受けない全件）に registration行が
  * 1件でもあるかで判定する。以前は `getVisibleFulltextCandidateList().some(isRegistrationRecord)`
  * を使っていたが、これは担当フィルタ＋セットのチェックボックス絞り込みが効いた「表示中」の一覧
- * だった（PR #124 レビュー指摘）。セットのチェックボックスハンドラ（fulltext-assignment-ui.ts）は
+ * だった（PR #124 レビュー指摘）。セットのチェックボックスハンドラ（fulltext/assignment-ui.ts）は
  * `_rerenderTab()` を呼ぶだけで再読込しないため、registration行を含まないグループに絞った状態で
  * タブを開くと `hasRegistrationRows` が false になって候補が空になり、その後チェックを広げても
  * 再読込がかからないため候補が戻らない不具合を実際に踏んだ。`state.allReferences` を使えば
@@ -158,7 +162,7 @@ const coalescedFetchPublicationCandidates = createAsyncCoalescer(async (): Promi
  *   fire-and-forget（`void loadPublicationCandidates()`）の呼び出し元は戻り値を無視してよい
  *   （throw しないため unhandled rejection は起きない）。
  *
- * 呼び出しタイミング: activateFulltextTab()、および handleBulkFetch / handleBulkSuggest /
+ * 呼び出しタイミング: initializeFulltextSection()、および handleBulkFetch / handleBulkSuggest /
  * fetchSingleFulltextForRef（単発OA検索。ボタン起点の handleSingleFetch と、候補取り込み後の
  * 自動起動の両方で共有）の完了後。
  */
@@ -181,10 +185,15 @@ async function loadPublicationCandidates(
 }
 
 /**
- * フルテキストタブを開く
+ * フルテキストタブ本体の初期化（タブ切替後に呼ぶ）
+ *
+ * タブへのStore切替（changeTab('fulltext')）と読み込み中表示は features/fulltext/lazy.ts が
+ * 本体チャンクの読込前後で行う（llm/index.ts の initializeLlmSection(isCurrent) と同じ形）。
+ * ここでは切替後の描画・候補読み込みのみを担う。isCurrent はタブ離脱・プロジェクト切替後の
+ * 応答破棄に使う（既定は常にtrueを返す関数。lazy.ts を介さない直接呼び出し・テスト用）。
  */
-export function activateFulltextTab(): void {
-    switchToTab('fulltext');
+export function initializeFulltextSection(isCurrent: () => boolean = () => true): void {
+    if (!isCurrent()) return;
     renderFulltextTab();
     void loadPublicationCandidates();
 }
@@ -405,7 +414,7 @@ function buildEmptyState(): HTMLElement {
                 btn.className = 'fulltext-action-btn fulltext-action-btn--primary';
                 btn.textContent = t('fulltext_emptyUnblockBtn');
                 btn.addEventListener('click', () => {
-                    dom.keyToggleInput.checked = true;
+                    sharedDom.keyToggleInput.checked = true;
                     void handleKeyToggle().then(() => {
                         dom.fulltextKeyToggle.checked = state.isKeyOpened;
                         renderFulltextTab();
@@ -561,9 +570,9 @@ function openRuleEditor(): void {
         isAdmin: state.isAdmin,
         assignedCandidateCount: state.references.filter(r => (r.fulltext_set || '').trim() !== '').length,
         onOpenKey: async () => {
-            // handleBlindToggle (fulltext-results.ts) と同じ委譲パターン:
-            // handleKeyToggle は dom.keyToggleInput.checked を正とする
-            dom.keyToggleInput.checked = true;
+            // handleBlindToggle (fulltext/results.ts) と同じ委譲パターン:
+            // handleKeyToggle は sharedDom.keyToggleInput.checked を正とする
+            sharedDom.keyToggleInput.checked = true;
             await handleKeyToggle();
             dom.fulltextKeyToggle.checked = state.isKeyOpened;
             renderFulltextTab();
@@ -630,7 +639,7 @@ function collectReasonUsage(): Map<string, number> {
  * 拒否されても PMC / Europe PMC など既存 host_permissions 内のPDFは保存できる。
  *
  * **ユーザージェスチャの無い文脈から呼ばれうる。** 例えば取り込みフロー
- * （`fulltext-publication-candidates.ts` の `handleImportCandidate()` から呼ばれる
+ * （`fulltext/publication-candidates.ts` の `handleImportCandidate()` から呼ばれる
  * `fetchSingleFulltextForRef()`）は `addReferences` → `updateReferenceFulltextSets` →
  * `updatePublicationCandidateStatus` → `reloadReferences` の4本のネットワーク往復を
  * await した後にこの関数へ到達するため、押下時点のユーザージェスチャは既に失効している。
@@ -1027,7 +1036,7 @@ async function handleSingleFetch(ref: ReferenceWithStatus, btn: HTMLButtonElemen
  * 変えていない（このボタン起点の呼び出し元は options を渡さないため常に既定値のまま動く）。
  *
  * @param options.reloadCandidates 完了後に loadPublicationCandidates() を呼ぶか（既定 true）。
- *   取り込みフロー（fulltext-publication-candidates.ts の handleImportCandidate）は
+ *   取り込みフロー（fulltext/publication-candidates.ts の handleImportCandidate）は
  *   このOA検索の後で自分自身も候補キャッシュを再読込するため、二重読込を避けるために
  *   false を渡す。それ以外（ボタン起点の単発検索）は既定どおり true のままでよい
  *   （このOA検索対象は record_type='article' の行のため、そもそも新規候補が
@@ -1146,11 +1155,16 @@ async function handleUploadChange(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * イベントリスナーを設定（sidepanel.ts から呼ぶ）
+ * イベントリスナーを設定（features/fulltext/lazy.ts の本体読込成功時に一度だけ呼ぶ）
+ *
+ * タブボタン（共有 dom.ts の tabFulltextBtn）のクリック登録は sidepanel.ts と lazy.ts が担う
+ * （llm/index.ts の setupLlmEventListeners と同じ理由。タブ切替は本体ロード前に必要なため）。
  */
 export function setupFulltextTabListeners(): void {
-    dom.tabFulltextBtn?.addEventListener('click', () => activateFulltextTab());
-    dom.fulltextBackBtn?.addEventListener('click', () => switchToTab('screening'));
+    dom.fulltextBackBtn?.addEventListener('click', () => {
+        hideToast();
+        changeTab('screening');
+    });
     setFulltextResultsDeps({ rerenderTab: renderFulltextTab });
     setupFulltextResultsListeners();
     setupFulltextAiListeners();

@@ -95,7 +95,7 @@
     },
     {
       "file": "src/lib/llm-processor.ts",
-      "lines": 972
+      "lines": 967
     },
     {
       "file": "src/lib/sheets/llm-history.ts",
@@ -106,28 +106,20 @@
       "lines": 1058
     },
     {
-      "file": "src/sidepanel/features/fulltext-ai.ts",
+      "file": "src/sidepanel/features/fulltext/ai.ts",
       "lines": 846
     },
     {
-      "file": "src/sidepanel/features/fulltext-assignment-ui.ts",
-      "lines": 808
+      "file": "src/sidepanel/features/fulltext/drive-import.ts",
+      "lines": 1105
     },
     {
-      "file": "src/sidepanel/features/fulltext-drive-import.ts",
-      "lines": 1104
-    },
-    {
-      "file": "src/sidepanel/features/fulltext-results.ts",
-      "lines": 899
-    },
-    {
-      "file": "src/sidepanel/features/fulltext-tab.ts",
-      "lines": 1180
+      "file": "src/sidepanel/features/fulltext/tab.ts",
+      "lines": 1194
     },
     {
       "file": "src/sidepanel/features/llm/batch.ts",
-      "lines": 1386
+      "lines": 1390
     },
     {
       "file": "src/sidepanel/sidepanel.html",

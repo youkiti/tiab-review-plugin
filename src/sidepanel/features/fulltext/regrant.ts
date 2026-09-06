@@ -1,12 +1,12 @@
 /**
- * fulltext-regrant.ts - 他のメンバーがアップロードしたPDFの読み取り権限を復旧する
+ * fulltext/regrant.ts - 他のメンバーがアップロードしたPDFの読み取り権限を復旧する
  *
  * 背景（Issue #60 / 実測で確定済み。詳細は AGENTS.md 参照）: drive.file は
  * 「アプリ×ユーザー×ファイル」単位でしか付与されないため、共同研究者がアップロードした
  * PDFは他のメンバーから読めない（オーナーでも同じ）。Drive の共有では付与されず、
  * 付与経路は (1) アプリが作成 (2) ユーザーがPickerで選択 (3) Driveの「アプリで開く」の3つだけ。
  *
- * 本モジュールは fulltext-drive-import.ts と同じ骨格（多重実行ガード・モーダル・
+ * 本モジュールは fulltext/drive-import.ts と同じ骨格（多重実行ガード・モーダル・
  * releaseGuard を onClose に一本化する形）を踏襲するが、コピー・シート書き込み・
  * 対応付けUIが無いぶん大幅に単純である:
  *  ① 検知: listAccessibleFileIdsInFolder（files.list の真値）と cached 文献を突き合わせ、
@@ -26,27 +26,27 @@
  * 変更した（2026-08-08）。上記2点の理由は変わらないため、ここは引き続き生読みを使う。
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { showToast } from '../ui/feedback';
-import { showModal, hideModal } from '../ui/modal';
-import { runRegrantPickerFlow } from '../../lib/drive-regrant-picker';
+import { dom } from './dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { showToast } from '../../ui/feedback';
+import { showModal, hideModal } from '../../ui/modal';
+import { runRegrantPickerFlow } from '../../../lib/drive-regrant-picker';
 import {
     listAccessibleFileIdsInFolder,
     describeDriveAccessError,
-} from '../../lib/drive-api';
-import { getFulltextDriveFolderId } from '../../lib/sheets-api';
-import { collectCachedFulltextRefs, selectUnreadableRefs } from '../../lib/fulltext-access';
-import type { CachedFulltextRef } from '../../lib/fulltext-access';
-import type { FulltextRegrantKnownResult } from '../../lib/fulltext-checklist-state';
+} from '../../../lib/drive-api';
+import { getFulltextDriveFolderId } from '../../../lib/sheets-api';
+import { collectCachedFulltextRefs, selectUnreadableRefs } from '../../../lib/fulltext-access';
+import type { CachedFulltextRef } from '../../../lib/fulltext-access';
+import type { FulltextRegrantKnownResult } from '../../../lib/fulltext-checklist-state';
 
 // モーダルが開いている間（結果表示が終わるまで）は解除しない多重実行ガード。
 // モーダルを開けた後は onClose（Close/X いずれも hideModal() 経由で発火する）に解除を委ねる。
 let regrantInProgress = false;
 
 // ---------------------------------------------------------------------------
-// チェックリスト（fulltext-checklist.ts）向けの結果通知口
+// チェックリスト（fulltext/checklist.ts）向けの結果通知口
 // ---------------------------------------------------------------------------
 // 本モジュールはチェックリスト側の状態やストレージ形式を知らない（一方向の疎結合を保つ）。
 // チェック結果（読めないPDFの件数）が確定するたびに登録済みリスナーへ通知するだけにし、

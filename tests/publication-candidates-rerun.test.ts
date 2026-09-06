@@ -13,7 +13,7 @@ import type { FulltextStatus } from '../src/lib/types';
 // Issue #118 チャンク2、PR #122 レビュー指摘2: 「候補探索が取得状態から独立して再実行できない」の修正の
 // 回帰テスト。UI（dom/state）に依存しない純粋部分（src/lib/publication-candidate-rerun.ts）と、
 // 対象行選定に使う isRegistrationRecord() の fulltext_status 非依存性を検証する。
-// fulltext-tab.ts の handleBulkSuggest() 自体はdom/state依存のためここではテストしない
+// features/fulltext/tab.ts の handleBulkSuggest() 自体はdom/state依存のためここではテストしない
 // （このリポジトリの既存の流儀。tests/drive-import-suggestion.test.ts 等も同様に切り出した
 // 純粋部分だけをテストしている）。
 

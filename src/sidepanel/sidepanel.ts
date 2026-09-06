@@ -3,7 +3,8 @@
  *
  * 共有配線は bootstrap.ts の bootstrapCommon() に集約している。
  * このファイルは拡張専用機能（LLM / ML / フルテキスト / インポート・エクスポート /
- * 論文用テキスト）の依存注入と配線のみを担う。LLM本体はAIタブ初回選択時に読み込む。
+ * 論文用テキスト）の依存注入と配線のみを担う。LLM本体はAIタブ初回選択時、
+ * フルテキスト本体はフルテキストタブ初回選択時に読み込む。
  */
 
 // プラットフォームアダプタを最初に注入する（他モジュールが platform() を呼ぶため）
@@ -27,7 +28,7 @@ import {
     activateMlTab, handleMlKeydown, handleMlSearchInput,
     addMlKeyword, renderMlSection, reportMlLoadError,
 } from './features/ml/lazy';
-import { setupFulltextTabListeners, activateFulltextTab } from './features/fulltext-tab';
+import * as fulltext from './features/fulltext/lazy';
 import { initModal } from './ui/modal';
 import { wireCollapsibleCards } from './ui/collapsible';
 import { toggleExportMenu, closeExportMenu } from './store/compat';
@@ -105,10 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
 
     // ========== フルテキストタブ ==========
-    setupFulltextTabListeners();
+    // 本体は features/fulltext/lazy.ts が初回タブ選択時に読み込む。ここではタブボタンの
+    // クリック登録のみ行う（LLMタブと同じ形。fulltext.setupFulltextTabListeners() はno-op）。
+    fulltext.setupFulltextTabListeners();
+    dom.tabFulltextBtn?.addEventListener('click', () => fulltext.activateFulltextTab());
     // TiAb完了バナーの「全文タブへ進む」ボタンから遷移できるように登録
-    // （render.tsからfulltext-tab.tsを直接importすると循環依存になるため依存注入で渡す）
-    screeningRender.setFulltextTabNavigator(activateFulltextTab);
+    // （render.tsからfeatures/fulltext/**を直接importすると循環依存になるため依存注入で渡す）
+    screeningRender.setFulltextTabNavigator(fulltext.activateFulltextTab);
 
     // ========== ML ==========
     wireCollapsibleCards(dom.mlSection);

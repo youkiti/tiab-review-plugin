@@ -17,14 +17,14 @@
  *   allFulltextDecisions が空になり、票から導くと同じPDFを何度も課金してしまうため）
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { escapeHtml } from '../utils/text';
-import { showToast } from '../ui/feedback';
-import { getVisibleFulltextCandidateList, getProjectFulltextCandidateList } from './screening/filters';
-import { getAssignedSetsForUser, getReferenceAssignmentSet } from './assignment';
-import { setReferences as syncSetReferences } from '../store/compat';
+import { dom } from './dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { escapeHtml } from '../../utils/text';
+import { showToast } from '../../ui/feedback';
+import { getVisibleFulltextCandidateList, getProjectFulltextCandidateList } from '../screening/filters';
+import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment';
+import { setReferences as syncSetReferences } from '../../store/compat';
 import {
     loadProjectSnapshot,
     selectReferencesWithStatus,
@@ -37,21 +37,21 @@ import {
     saveLlmExecution,
     updateLlmExecution,
     getLlmExecutions,
-} from '../../lib/sheets-api';
-import { setLlmConfig as syncSetLlmConfig } from '../store/compat';
+} from '../../../lib/sheets-api';
+import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
 import {
     extractDriveFileId,
     downloadDriveFile,
     describeDriveAccessError,
     DriveAccessDeniedError,
-} from '../../lib/drive-api';
-import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
-import { normalizeExcludeReasonKey } from '../../lib/exclude-reasons';
-import { generateLlmReviewerId } from '../../lib/llm-reviewer-id';
-import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
-import { getEffectiveApiKey } from '../../lib/storage';
-import { getClientVersion } from '../../lib/client-version';
-import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../lib/prompt-templates';
+} from '../../../lib/drive-api';
+import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../../lib/gemini-fulltext';
+import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
+import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
+import { getModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
+import { getEffectiveApiKey } from '../../../lib/storage';
+import { getClientVersion } from '../../../lib/client-version';
+import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
 import {
     DEFAULT_FULLTEXT_AI_SCOPE,
     collectAiJudgedRefIds,
@@ -59,7 +59,7 @@ import {
     parseFulltextAiScope,
     selectFulltextAiTargets,
     type FulltextAiScope,
-} from '../../lib/fulltext-ai-target';
+} from '../../../lib/fulltext-ai-target';
 import {
     classifyFulltextAiFailure,
     summarizeFailures,
@@ -68,20 +68,20 @@ import {
     PdfReadError,
     LlmCallError,
     type FulltextAiFailureKind,
-} from '../../lib/fulltext-ai-failures';
+} from '../../../lib/fulltext-ai-failures';
 import {
     deriveRounds,
     mergeRoundsWithExecutions,
     type AiRoundWithExecution,
-} from '../../lib/fulltext-ai-rounds';
-import type { LlmConfig } from '../../lib/types';
+} from '../../../lib/fulltext-ai-rounds';
+import type { LlmConfig } from '../../../lib/types';
 import type {
     ReferenceWithStatus,
     Decision,
     FulltextLlmDecisionNote,
     FulltextJudgeOutput,
     LlmExecution,
-} from '../../lib/types';
+} from '../../../lib/types';
 
 // バッチ実行の中断フラグ
 let aiAbort: { cancelled: boolean } | null = null;
@@ -696,7 +696,7 @@ async function judgeOne(
     // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
     // Issue #155: チャンク読込失敗は検出失敗のcatchに入れず、AI判定の失敗として伝播する。
-    const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../lib/pdf-image-only');
+    const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../../lib/pdf-image-only');
     let imageOnly: boolean | undefined;
     try {
         imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
@@ -783,7 +783,7 @@ function normalizeDecision(output: FulltextJudgeOutput): 'include' | 'exclude' |
 
 /**
  * 参照を再読込して state を更新する（refreshReferencesAfterBatch と同じロジック）。
- * fulltext-results.ts の裁定票保存後の再読込からも呼ばれる（同じ処理を書き起こさず、この経路を共有する）。
+ * fulltext/results.ts の裁定票保存後の再読込からも呼ばれる（同じ処理を書き起こさず、この経路を共有する）。
  */
 export async function reloadReferences(spreadsheetId: string): Promise<void> {
     try {

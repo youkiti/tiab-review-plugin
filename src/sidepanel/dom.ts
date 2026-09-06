@@ -1,6 +1,7 @@
 /**
  * DOM要素の型付きレジストリ
- * 共有DOM要素への型安全なアクセスを提供。LLM専用要素は features/llm/dom.ts に置く。
+ * 共有DOM要素への型安全なアクセスを提供。LLM専用要素は features/llm/dom.ts、
+ * フルテキストタブ専用要素は features/fulltext/dom.ts に置く。
  */
 
 // ヘルパー関数: 要素取得（nullの場合はエラー）
@@ -177,69 +178,8 @@ const domElements = {
     get headerTabs() { return querySelector<HTMLElement>('.header-tabs'); },
 
     // ========== Fulltext Section ==========
+    // タブ内の専用DOM参照は features/fulltext/dom.ts に置く（初期バンドルから外すため）。
     get fulltextSection() { return getElement<HTMLElement>('fulltext-section'); },
-    get fulltextBackBtn() { return getElement<HTMLButtonElement>('fulltext-back-btn'); },
-    // セットアップチェックリスト（fulltext-checklist.ts）
-    get fulltextChecklistHost() { return getElement<HTMLElement>('fulltext-checklist'); },
-    get fulltextProgressLine() { return getElement<HTMLElement>('fulltext-progress-line'); },
-    get fulltextRuleLine() { return getElement<HTMLElement>('fulltext-rule-line'); },
-    get fulltextRuleEditBtn() { return getElement<HTMLButtonElement>('fulltext-rule-edit-btn'); },
-    get fulltextRuleEditorDiv() { return getElement<HTMLElement>('fulltext-rule-editor'); },
-    get fulltextReasonLine() { return getElement<HTMLElement>('fulltext-reason-line'); },
-    get fulltextReasonEditBtn() { return getElement<HTMLButtonElement>('fulltext-reason-edit-btn'); },
-    get fulltextReasonEditorDiv() { return getElement<HTMLElement>('fulltext-reason-editor'); },
-    get fulltextAssignmentLine() { return getElement<HTMLElement>('fulltext-assignment-line'); },
-    get fulltextAssignmentEditBtn() { return getElement<HTMLButtonElement>('fulltext-assignment-edit-btn'); },
-    get fulltextAssignmentSets() { return getElement<HTMLElement>('fulltext-assignment-sets'); },
-    get fulltextAssignmentSetListDiv() { return getElement<HTMLElement>('fulltext-assignment-set-list'); },
-    get fulltextObtainedLine() { return getElement<HTMLElement>('fulltext-obtained-line'); },
-    get fulltextStatusBarFill() { return getElement<HTMLElement>('fulltext-status-bar-fill'); },
-    get fulltextStatusBreakdown() { return getElement<HTMLElement>('fulltext-status-breakdown'); },
-    get fulltextFetchBtn() { return getElement<HTMLButtonElement>('fulltext-fetch-btn'); },
-    get fulltextSuggestBtn() { return getElement<HTMLButtonElement>('fulltext-suggest-btn'); },
-    get fulltextFetchCancelBtn() { return getElement<HTMLButtonElement>('fulltext-fetch-cancel-btn'); },
-    get fulltextRetryCheckbox() { return getElement<HTMLInputElement>('fulltext-retry-checkbox'); },
-    get fulltextFetchStatus() { return getElement<HTMLElement>('fulltext-fetch-status'); },
-    get fulltextViewFilter() { return getElement<HTMLSelectElement>('fulltext-view-filter'); },
-    get fulltextUploadInput() { return getElement<HTMLInputElement>('fulltext-upload-input'); },
-    // Driveへ直接置かれたPDFの取り込み（fulltext-drive-import.ts）
-    get fulltextImportDriveBtn() { return getElement<HTMLButtonElement>('fulltext-import-drive-btn'); },
-    get fulltextImportDriveStatus() { return getElement<HTMLElement>('fulltext-import-drive-status'); },
-    // 読み取り権限の再付与（fulltext-regrant.ts）
-    get fulltextRegrantBtn() { return getElement<HTMLButtonElement>('fulltext-regrant-btn'); },
-    get fulltextRegrantStatus() { return getElement<HTMLElement>('fulltext-regrant-status'); },
-    get fulltextListDiv() { return getElement<HTMLElement>('fulltext-list'); },
-    // 結果ビュー（ビュー切替・判定者選択・PRISMA・エクスポート）
-    get fulltextBlindRow() { return getElement<HTMLElement>('fulltext-blind-row'); },
-    get fulltextKeyToggle() { return getElement<HTMLInputElement>('fulltext-key-toggle'); },
-    get fulltextModeListBtn() { return getElement<HTMLButtonElement>('fulltext-mode-list'); },
-    get fulltextModeAiBtn() { return getElement<HTMLButtonElement>('fulltext-mode-ai'); },
-    get fulltextModeResultsBtn() { return getElement<HTMLButtonElement>('fulltext-mode-results'); },
-    // AI判定（フルテキスト一括Gemini判定）
-    get fulltextAiDiv() { return getElement<HTMLElement>('fulltext-ai'); },
-    get fulltextAiScopeProjectRadio() { return getElement<HTMLInputElement>('fulltext-ai-scope-project'); },
-    get fulltextAiScopeAssignedRadio() { return getElement<HTMLInputElement>('fulltext-ai-scope-assigned'); },
-    get fulltextAiModelSelect() { return getElement<HTMLSelectElement>('fulltext-ai-model'); },
-    get fulltextAiPromptInput() { return getElement<HTMLTextAreaElement>('fulltext-ai-prompt'); },
-    get fulltextAiTargetDiv() { return getElement<HTMLElement>('fulltext-ai-target'); },
-    get fulltextAiStartBtn() { return getElement<HTMLButtonElement>('fulltext-ai-start-btn'); },
-    get fulltextAiStopBtn() { return getElement<HTMLButtonElement>('fulltext-ai-stop-btn'); },
-    get fulltextAiProgressDiv() { return getElement<HTMLElement>('fulltext-ai-progress'); },
-    get fulltextAiProgressFill() { return getElement<HTMLElement>('fulltext-ai-progress-fill'); },
-    get fulltextAiProgressText() { return getElement<HTMLElement>('fulltext-ai-progress-text'); },
-    get fulltextAiLogDiv() { return getElement<HTMLElement>('fulltext-ai-log'); },
-    get fulltextAiRoundsDiv() { return getElement<HTMLElement>('fulltext-ai-rounds'); },
-    get fulltextResultsDiv() { return getElement<HTMLElement>('fulltext-results'); },
-    get fulltextJudgeList() { return getElement<HTMLElement>('fulltext-judge-list'); },
-    get fulltextJudgeHint() { return getElement<HTMLElement>('fulltext-judge-hint'); },
-    get fulltextPrismaDiv() { return getElement<HTMLElement>('fulltext-prisma'); },
-    // 不一致の解消（キー開封後のみ表示。fulltext-results.ts の renderConflicts が描画）
-    get fulltextConflictsDiv() { return getElement<HTMLElement>('fulltext-conflicts'); },
-    get fulltextConflictsSummaryDiv() { return getElement<HTMLElement>('fulltext-conflicts-summary'); },
-    get fulltextConflictsListDiv() { return getElement<HTMLElement>('fulltext-conflicts-list'); },
-    get fulltextResultsListDiv() { return getElement<HTMLElement>('fulltext-results-list'); },
-    get fulltextExportCsvBtn() { return getElement<HTMLButtonElement>('fulltext-export-csv-btn'); },
-    get fulltextExportRisBtn() { return getElement<HTMLButtonElement>('fulltext-export-ris-btn'); },
     get fulltextManuscriptBtn() { return getElement<HTMLButtonElement>('fulltext-manuscript-btn'); },
     get startBatchBtn() { return getElement<HTMLButtonElement>('start-batch-btn'); },
     get stopBatchBtn() { return getElement<HTMLButtonElement>('stop-batch-btn'); },

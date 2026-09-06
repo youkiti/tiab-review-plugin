@@ -45,7 +45,7 @@ function sortReviewerKeys(keys: string[]): string[] {
  * - 全 ref の allDecisions を走査し computeReviewerKey でキー化する（空キーは無視）。
  * - enabledReviewers に含まれるキーだけを採用する。
  * - ただし積が空になった場合は全キーにフォールバックする
- *   （fulltext-results.ts の effectiveJudges() と同じ安全弁。最小1人を保証する）。
+ *   （lib/fulltext-results-summary.ts の effectiveFulltextJudges() と同じ安全弁。最小1人を保証する）。
  */
 export function collectReviewerKeys(
     refs: ReferenceWithStatus[],
@@ -204,7 +204,7 @@ export function summarizeTeamDecision(
  * その場合は人間可読な reason(s) フィールドだけを取り出す。
  * パース失敗時・reason(s) が取り出せない場合は生テキストにフォールバックする。
  *
- * （`fulltext-results.ts` から移設。フルテキスト側の挙動（`reason` 単数）は変えていない）
+ * （`features/fulltext/results.ts` から移設。フルテキスト側の挙動（`reason` 単数）は変えていない）
  */
 export function voteNoteText(judge: string, note: string | undefined): string {
     if (!note) return '';
