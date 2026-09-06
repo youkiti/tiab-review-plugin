@@ -1,3 +1,4 @@
+import { saveStoppingRuleToStorage } from './stopping-storage';
 import { state } from '../../state';
 import { dom } from '../../dom';
 
@@ -21,16 +22,6 @@ import {
 } from '../../store/compat';
 
 // ========== ストレージ関数 ==========
-
-/**
- * 停止基準の設定をブラウザに保存（プロジェクトごと）
- */
-export async function saveStoppingRuleToStorage(threshold: number): Promise<void> {
-    const key = `mlStoppingRule_${state.spreadsheetId}`;
-    await chrome.storage.local.set({
-        [key]: { confirmed: true, threshold }
-    });
-}
 
 /**
  * 停止基準の設定をブラウザから読み込み（プロジェクトごと）

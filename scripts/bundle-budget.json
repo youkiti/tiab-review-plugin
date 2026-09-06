@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "entries": {
+    "sidepanel/sidepanel": {
+      "measuredBytes": 957344,
+      "maxBytes": 966918
+    },
+    "app": {
+      "measuredBytes": 405792,
+      "maxBytes": 409850
+    }
+  }
+}

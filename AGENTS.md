@@ -16,6 +16,20 @@
 10. **ドキュメントの同期**: 機能や仕様を変更した際は、コードの修正だけでなく、関連するドキュメント（README、API仕様書、主要なコメント等）も必ず同期して更新すること。
 11. **作業中断時のロールバック**: エラーや中断によりタスクを終了する場合、ユーザーの明示的な指示がない限り、修正途中の不安定な状態を残さず、作業開始前のクリーンな状態に復元すること。
 
+### 参照先索引
+
+既存規則の本文は以下の節に保持する。機能別仕様書への移動は Issue #157 の後続PRで扱う。
+
+| 重要条件 | 本文の節名・参照先 |
+| --- | --- |
+| Blind の可視性 | 「フルテキスト判定画面（PDFウィンドウ）の「他レビュアーの判定」」「運用ルール」 |
+| 列の末尾追加・ヘッダー導出 | 「スプレッドシート構造」の References / LLM_Executions タブ、「テスト・作業ツリーの落とし穴」のヘッダーミラー・References読み取り範囲 |
+| 判定保存・履歴の追記専用契約 | 「スプレッドシート構造」の Decisions タブ、「判定保存フロー」「κ（Cohen's kappa）の算出手順」 |
+| OAuth・認証の変更禁止事項 | 「OAuth スコープ」「OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）」「Web版（ブラウザ版）」 |
+| オフライン同期 | 「オフライン同期の方針」 |
+| テスト・作業ツリー | 「テスト・作業ツリーの落とし穴」「`.env` が無い環境（git worktree 等）で production ビルドを検証する」 |
+| 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
+
 ## プロジェクト概要
 
 **TiAb Review Plugin** は、Systematic Review における文献スクリーニングを効率化するChrome拡張機能です。
@@ -890,6 +904,10 @@ tiab-review-plugin/
 ├── .agent/
 │   └── AGENTS.md
 ├── scripts/                   # データ分析・ユーティリティスクリプト (Python)
+│   ├── check-structure.mjs     # 依存方向・循環・800行超の回帰検査
+│   ├── structure-baseline.json # 既存の構造上の改善対象
+│   ├── check-bundle-budget.mjs # 初期JS量の予算検査
+│   ├── bundle-budget.json     # 実測値と上限（実測の101%）
 │   ├── analyze_llm_datasets.py
 │   ├── fetch_openalex_testdata.py
 │   └── ...
@@ -1304,6 +1322,16 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 5. 開発中は `npm run watch` でホットリロード
 6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
 
+### 開発規約（依存方向・ファイル規模・CI 回帰条件）
+
+- 依存方向は「画面 → 処理の調整 → ドメイン純関数 / 保存API → platform」。画面と調整は `src/sidepanel/`（`store/` を含む）、`src/fulltext/`、`src/popup/`、`src/webapp/`、`src/background/`、`src/demo/`。ドメイン・保存APIは `src/lib/`（`sheets/`・`ml/`・`providers/` を含む）、環境差分は `src/platform/` に置く。小さい処理まで機械的にファイル化せず、変更理由とテスト境界が共通のものをまとめる。
+- lib / platform からUIをimportしない。platform → lib は導入時の実測0件なので禁止する。platform → demo の既存1辺のみ `scripts/structure-baseline.json` に記録し、新しい参照は許容しない。現状0件の方向はESLintでも検出する。
+- 型・既定値モジュールからUI・通信をimportしない。`scripts/check-structure.mjs` の `FOUNDATION_MODULES` は `lib/types.ts`、`lib/sheets/schema.ts`、`lib/sheets/config-schema.ts`、`lib/ml/types.ts`、`lib/ml/cmh-defaults.ts`、`platform/types.ts` を検査する。型・既定値の配置や通信APIを増やしたら、この一覧と通信先の判定も追従させる。
+- 新規ファイルは200〜500行が目安。TS / CSS / HTML の800行超は設計レビューの通知対象で、基準値にない超過をCIで失敗させる。既存の大規模ファイルは改善対象として行数と増減を表示し、増加だけでは失敗させない。行数制限のためにコメントを削らない。
+- `npm run check:structure` は相対import・再export・型import・文字列リテラルの動的importを正規表現で抽出し、Tarjanの強連結成分で循環を検出する。外部パッケージ、宣言ファイル、バックアップは対象外。既存循環は辺まで基準値に記録し、同じ循環グループ内の新しい辺も回帰とする。TypeScriptの完全な構文解析ではないため、計算式の動的import等は別途レビューする。
+- `npm run check:bundle` は同条件のproductionビルドでサイドパネルとWeb版appの初期JS量（.map除外）を検査する。`scripts/bundle-budget.json` の上限は実測値の101%を整数切り上げ。上限超過は失敗、上限より3%以上小さければ更新可能と表示する。時間の閾値はばらつきが大きいためCIに入れない。通信回数は `tests/project-load-request-counts.test.ts` で固定する。
+- 基準値更新は `node scripts/check-structure.mjs --update-baseline`。予算更新は `npm run bench:bundle` 後の `node scripts/check-bundle-budget.mjs --update-budget`（`--stats <JSONパス>` で既存統計も利用可能）。基準値・予算の更新は意図的な設計変更として、コミットに理由を書く。単に検査を通すために更新しない。改善の検出は通知のみで失敗にしない。
+
 ### 性能計測
 
 実行方法は `scripts/bench/README.md` を見ること（Playwright での実測時間計測 `npm run bench` と、
@@ -1384,11 +1412,13 @@ npx http-server docs/app -p 8080   # または python -m http.server 8080 -d doc
 
 `http://localhost:8080` を開く。**`127.0.0.1` は不可**（OAuth クライアントの承認済み JavaScript 生成元に `https://youkiti.github.io` と `http://localhost:8080` を登録しているため）。
 
-**CI ゲート**: `.github/workflows/build-check.yml` が PR ごとに次の5つを実行し、どれかが落ちるとマージ不可になる。ローカルでも同じ5つを通してから PR を出すこと。CI には `.env` が無いため、`npm run dev` / `npm run dev:web` の2ステップだけ `ALLOW_NO_AUTH=1` を指定してビルド疎通確認に限定している（`.env` があるローカルでは不要）。
+**CI ゲート**: `.github/workflows/build-check.yml` は PR ごとに独立した4ジョブを実行し、すべての成功をマージ条件とする。`quality`（typecheck / lint / test / check:structure）、`build-extension`（拡張production）、`build-web`（Web production）、`bundle-budget`（check:bundle）。各ジョブで `.nvmrc` のNodeとnpmキャッシュを使い、依存を `npm ci` でインストールする。PR更新時は同じrefの古い検査をキャンセルする。devビルド疎通確認をproduction検証へ置き換え、minifyと環境変数チェックも通す。ローカルでも以下を通してから PR を出すこと。認証値は検証用プレースホルダーを使い、成果物は配布・アップロードしない。並列化の効果はNode準備・依存インストールを含むCIの実測で確認する。Web自動デプロイ（`deploy-web.yml`）と拡張リリースのsource map除外は維持する。
 
 ```bash
-npm run typecheck && npm run lint && npm run test
-ALLOW_NO_AUTH=1 npm run dev && ALLOW_NO_AUTH=1 npm run dev:web
+npm run typecheck && npm run lint && npm test && npm run check:structure
+WEBAUTH_CLIENT_ID=placeholder npm run build
+WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=000000000000 npm run build:web
+npm run check:bundle
 ```
 
 ### 過去のレビュー指摘をコメントで参照するときの書き方

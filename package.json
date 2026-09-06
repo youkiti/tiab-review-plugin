@@ -28,7 +28,9 @@
         "video:assemble": "node video/scripts/assemble.mjs",
         "docs:screenshots": "node scripts/doc-screenshots/capture.mjs",
         "bench": "node scripts/bench/run.mjs",
-        "bench:bundle": "node scripts/bench/bundle-stats.mjs"
+        "bench:bundle": "node scripts/bench/bundle-stats.mjs",
+        "check:structure": "node scripts/check-structure.mjs",
+        "check:bundle": "npm run bench:bundle && node scripts/check-bundle-budget.mjs"
     },
     "devDependencies": {
         "@types/chrome": "^0.0.260",
