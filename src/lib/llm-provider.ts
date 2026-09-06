@@ -101,11 +101,11 @@ export async function convertCriteriaWithProvider(
     options?: ConvertCriteriaOptions
 ): Promise<ConvertCriteriaResult> {
     if (providerId === 'openrouter') {
-        const { convertCriteriaViaOpenRouter } = await import('./providers/openrouter');
+        const { convertCriteriaViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');
         return convertCriteriaViaOpenRouter(params, options);
     }
     if (providerId === 'openai') {
-        const { convertCriteriaViaOpenAi } = await import('./providers/openai');
+        const { convertCriteriaViaOpenAi } = await import(/* webpackChunkName: "llm-feature" */ './providers/openai');
         return convertCriteriaViaOpenAi(params, options);
     }
     const { convertCriteria } = await import('./gemini-api');
@@ -134,11 +134,11 @@ export async function screenWithProvider(
     params: LlmScreenParams
 ): Promise<LlmScreenResult> {
     if (providerId === 'openrouter') {
-        const { screenViaOpenRouter } = await import('./providers/openrouter');
+        const { screenViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');
         return screenViaOpenRouter(params);
     }
     if (providerId === 'openai') {
-        const { screenViaOpenAi } = await import('./providers/openai');
+        const { screenViaOpenAi } = await import(/* webpackChunkName: "llm-feature" */ './providers/openai');
         return screenViaOpenAi(params);
     }
     // Gemini はデフォルト

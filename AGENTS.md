@@ -1350,6 +1350,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - **重複は `npm run bench:bundle` の出力（`.tmp/bench/bundle-stats-*.json` の `modules`）で検出できる。** 同じモジュールが複数チャンクに現れていたら統合の候補。生成物側で DOM の id 文字列（例 `ml-include-keywords-list`）を複数チャンクから grep するのも早い。関数名は minify で消えるので目印に使わないこと。
 - **遅延読み込みの入口には、本体を読む前に判定できるガードを置くこと。** 件数や設定で「そもそも機能を使えない」と分かる条件は、`import()` の前に判定する。判定に必要な定数が重い依存を持つモジュールにあるなら、定数だけを依存の無いモジュールへ切り出す（`lib/ml/cmh-defaults.ts`・`lib/pdf-constants.ts` がその形）。切り出し元からの再エクスポートは、既存の import 経路が実在するときだけ残す（`lib/ml/cmh.ts` の `CMH_DEFAULTS`、`lib/ml/stopping-rules.ts` の `canUseCmhStopping`）。ガードを本体側に残したままだと、使えないと分かっている機能のチャンクと Web Worker を読み込んでから戻ることになる（PR #178 レビュー指摘）。
 - **重い依存を持つモジュールから、軽い定数を再エクスポートしないこと。** 消費者が消えた再エクスポートは、後からその経路で import した瞬間に重い依存（例: pdfjs の 376KB）を初期バンドルへ引き戻す罠になる。使われなくなった再エクスポートは消す。
+- LLM機能の入口は `src/sidepanel/features/llm/lazy.ts`。入口以外の `features/llm/**` を外部から静的 import すると本体が初期バンドルへ戻るため禁止する。専用DOM参照も本体側の `features/llm/dom.ts` に置く。
 - 初期バンドル量の回帰は `npm run check:bundle` が検出する（上の「開発規約」節）。ただし**チャンク間の重複は初期バンドル量に現れない**ので、この検査では捕まらない。分割を足したら生成チャンクの一覧とサイズを目視すること。
 
 ### 性能計測

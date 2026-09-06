@@ -2,7 +2,7 @@
  * LLM基準最適化モジュール
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
 import { state } from '../../state';
 import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';

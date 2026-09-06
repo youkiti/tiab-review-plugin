@@ -3,7 +3,9 @@
  * LLMタブのイベントリスナー設定と初期化
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
+import { dom as sharedDom } from '../../dom';
+import { wireCollapsibleCards } from '../../ui/collapsible';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
 import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG, getAllAvailableModels } from '../../../lib/gemini-api';
@@ -119,13 +121,15 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
  *
  * 戻り値: 現在選択中のモデルがフィルタで消えた等で別モデルに切り替わった場合 true。
  */
-export async function populateModelSelect(): Promise<boolean> {
+export async function populateModelSelect(isCurrent: () => boolean = () => true): Promise<boolean> {
     const select = dom.llmModelSelect;
     const previousValue = select.value;
     select.innerHTML = '';
 
     const configured = await getConfiguredProviders();
+    if (!isCurrent()) return false;
     const allModels = await getAllAvailableModels();
+    if (!isCurrent()) return false;
 
     const groups: Record<LlmProviderId, HTMLOptGroupElement> = {
         gemini: document.createElement('optgroup'),
@@ -200,9 +204,7 @@ export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
  * LLMイベントリスナーを設定
  */
 export function setupLlmEventListeners() {
-    // タブ切り替え: sidepanel.ts で一元管理するため削除
-    // dom.tabScreeningBtn?.addEventListener('click', () => switchToTab('screening'));
-    // dom.tabLlmBtn?.addEventListener('click', () => switchToTab('llm'));
+    // タブ切り替えは sidepanel.ts と lazy.ts が担当する。
 
     // LLM戻るボタン
     dom.llmBackBtn?.addEventListener('click', handleLlmBack);
@@ -274,54 +276,35 @@ export function setupLlmEventListeners() {
     dom.recoverOrphansBtn?.addEventListener('click', handleRecoverOrphans);
 
     // 折りたたみセクション
-    document.querySelectorAll('.llm-card.collapsible .collapsible-header').forEach(header => {
-        header.addEventListener('click', (e) => {
-            // ヘルプアイコンのクリックでは折りたたまない
-            if ((e.target as HTMLElement)?.closest('.help-icon')) {
-                return;
-            }
-            const card = header.closest('.llm-card.collapsible');
-            card?.classList.toggle('collapsed');
-        });
-    });
-}
-
-/**
- * タブを切り替え
- * 注意: renderLayoutでStore経由でセクション表示が制御されるため、
- * ここではStore更新とLLM初期化のみ行う
- */
-export function switchToTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') {
-    hideToast();
-    // Store経由で両方に同期（renderLayoutで表示が更新される）
-    syncChangeTab(tab);
-
-    // LLMタブの場合は初期化を行う
-    if (tab === 'llm') {
-        initializeLlmSection();
-    }
+    wireCollapsibleCards(sharedDom.llmSection);
 }
 
 /**
  * LLMセクションを初期化
  */
-export async function initializeLlmSection() {
+export async function initializeLlmSection(isCurrent: () => boolean = () => true) {
+    const spreadsheetId = state.spreadsheetId;
     try {
         // 先にAPIキーの状態を確認 (Gemini / OpenRouter / OpenAI)。モデル選択肢は鍵有無に依存するため。
         await loadApiKeyStatus();
+        if (!isCurrent()) return;
         await loadOpenRouterApiKeyStatus();
+        if (!isCurrent()) return;
         await loadOpenAiApiKeyStatus();
+        if (!isCurrent()) return;
 
         // OpenRouter カスタムモデル一覧を読み込み（モデルセレクト構築前に必要）
         await loadCustomModelsList();
+        if (!isCurrent()) return;
 
         // モデル選択オプションを動的に生成（鍵が設定済みの provider のみ + 登録カスタムモデル）
-        await populateModelSelect();
+        await populateModelSelect(isCurrent);
+        if (!isCurrent()) return;
 
         // LLM設定を読み込み
-        const spreadsheetId = state.spreadsheetId;
         if (spreadsheetId) {
             const llmConfig = await getLlmConfig(spreadsheetId);
+            if (!isCurrent()) return;
             // Store経由で両方に同期
             syncSetLlmConfig(llmConfig);
 
@@ -358,13 +341,15 @@ export async function initializeLlmSection() {
             }
 
             // 実行履歴を読み込み（Run/Batch のキャッシュもここで更新される）
-            await loadExecutionHistory();
+            await loadExecutionHistory(isCurrent);
+            if (!isCurrent()) return;
 
             // バッチ対象件数を更新（Run 単位で数えるため履歴の読み込み後に行う）
-            await updateBatchTargetCount();
+            await updateBatchTargetCount(isCurrent);
+            if (!isCurrent()) return;
         }
     } catch (error) {
-        console.error('[initializeLlmSection] Error:', error);
+        if (isCurrent()) throw error;
     }
 }
 
@@ -372,7 +357,8 @@ export async function initializeLlmSection() {
  * LLM戻るボタン
  */
 export function handleLlmBack() {
-    switchToTab('screening');
+    hideToast();
+    syncChangeTab('screening');
     if (_handleBack) {
         _handleBack();
     }

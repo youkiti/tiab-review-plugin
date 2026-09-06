@@ -1,5 +1,5 @@
-/** ML機能のロードを共有し、成功だけをキャッシュする。DOMには依存しない。 */
-export function createMlFeatureLoader<T>(importer: () => Promise<T>): () => Promise<T> {
+/** 機能のロードを共有し、成功だけをキャッシュする。DOMには依存しない。 */
+export function createLazyFeatureLoader<T>(importer: () => Promise<T>): () => Promise<T> {
     let cached: Promise<T> | null = null;
     return () => {
         if (!cached) {

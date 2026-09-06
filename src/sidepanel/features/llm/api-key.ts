@@ -2,7 +2,7 @@
  * LLM APIキー管理モジュール
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
 import {
     getGeminiApiKey,
     saveGeminiApiKey,
