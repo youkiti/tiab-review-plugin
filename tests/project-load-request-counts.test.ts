@@ -71,7 +71,9 @@ function installMock(keyOpened = true, legacy = false) {
             ['fulltext_ai_active_round', ' llm:ft-1 '],
         ],
         LLM_Executions: [executionHeaders, row(executionHeaders, {
-            execution_id: 'batch-1', execution_type: 'batch_screening',
+            // 実データと同じく execution_id と判定の reviewer_id は同一
+            // （generateLlmReviewerId() の値がどちらにも入る。Issue #153）
+            execution_id: 'llm:batch-1', execution_type: 'batch_screening',
             timestamp: '2026-01-01T00:00:00Z', model: 'test-model',
             status: 'confirmed', is_active: 'true', run_id: legacy ? '' : 'run-1',
         })],
@@ -147,12 +149,13 @@ for (const keyOpened of [false, true]) {
             batchGet: 1, LLM_Executions: 1, LLM_Runs: 1, Duplicate_Candidates: 1,
         });
         assert.equal(mock.writes.length, 0, '移行不要なら書き込みはゼロ');
-        assert.deepEqual(await getActiveBatchIdsForActiveRun('project', snapshot.llmExecutions!, snapshot.llmRuns!), new Set(['batch-1']));
-        assert.deepEqual(snapshot.activeBatchIds, new Set(['batch-1']));
+        assert.deepEqual(await getActiveBatchIdsForActiveRun('project', snapshot.llmExecutions!, snapshot.llmRuns!), new Set(['llm:batch-1']));
+        assert.deepEqual(snapshot.activeBatchIds, new Set(['llm:batch-1']));
         assert.equal(snapshot.assignmentConfig.status, 'configured');
         assert.equal(snapshot.duplicateCandidates?.length, 0);
         const reviewers = refs[0].allDecisions?.map(d => d.reviewer_id) ?? [];
         assert.equal(reviewers.includes('other'), keyOpened, 'Blindでは他者票を出さない');
+        assert.ok(reviewers.includes('llm:batch-1'), '採用 Batch の LLM 判定は Blind でも開封後でも allDecisions に入る');
         assert.equal(mock.counts.LLM_Runs, 1, '下流の採用Run解決は再取得しない');
     });
 }
@@ -309,7 +312,7 @@ test('旧形式移行は一度だけ書き込み、共有した履歴で採用Ba
     assert.equal(mock.counts.LLM_Runs, before.LLM_Runs);
     assert.equal(mock.counts.LLM_Executions, before.LLM_Executions);
     assert.equal(mock.writes.length, 2, '下流へ渡した履歴では移行を再実行しない');
-    assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['batch-1']));
+    assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['llm:batch-1']));
 });
 
 test('Runs取得失敗でも独立して読めたExecutionsは保持する', async () => {
@@ -380,7 +383,6 @@ test('Blind の再読込は batchGet 1 回', async () => {
 
 test('キー開封の切替は Config が切替前でも履歴込み 3 回で開封後の合成になる', async () => {
     const mock = installMock(false);
-    mock.tables.LLM_Executions[1][executionHeaders.indexOf('execution_id')] = 'llm:batch-1';
     const snapshot = await loadProjectSnapshot('project', 'self', { duplicateCandidates: false });
     const refs = selectReferencesWithStatus(snapshot, 'self', true);
     assert.deepEqual(mock.counts, { batchGet: 1, LLM_Executions: 1, LLM_Runs: 1 });
