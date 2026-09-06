@@ -212,6 +212,9 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
         // 独立した2キー（本体キーと ::ml キー）へ適用するため、片方が既にその状態でも
         // toggleReviewer だと意図せず反転してしまう。
         case 'data/addReviewer': {
+            if (state.data.enabledReviewers.has(action.reviewerId)) {
+                return state; // 既に有効
+            }
             const newEnabled = new Set(state.data.enabledReviewers);
             newEnabled.add(action.reviewerId);
             return {
@@ -221,6 +224,9 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
         }
 
         case 'data/removeReviewer': {
+            if (!state.data.enabledReviewers.has(action.reviewerId)) {
+                return state; // 既に無効
+            }
             const newEnabled = new Set(state.data.enabledReviewers);
             newEnabled.delete(action.reviewerId);
             return {

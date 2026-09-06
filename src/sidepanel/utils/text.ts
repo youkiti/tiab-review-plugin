@@ -38,7 +38,7 @@ function buildSmartPattern(keyword: string): string {
 /**
  * スマートな正規表現作成（英単語は完全一致、それ以外は部分一致）
  *
- * 用途はハイライト表示専用（render/helpers.ts の highlightText など、マッチ箇所を
+ * 用途はハイライト表示専用（features/screening/render.ts の highlightText など、マッチ箇所を
  * 全置換する処理）。全置換には String.replace の g フラグが必須なため gi のまま変えないこと。
  *
  * 【絞り込み・件数判定にこの関数を使い回さないこと】g 付き正規表現は
