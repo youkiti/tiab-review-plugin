@@ -232,7 +232,12 @@ export function renderAiHighlightToggle() {
         // チェックボックスの状態を同期
         dom.aiHighlightCheckbox.checked = state.showAiHighlights;
     } else {
-        updateSettings('showAiHighlights', false);
+        // Store への書き込みは値が変わる場合だけに限定する（PR #176 レビュー指摘）。
+        // 無条件に呼ぶと settings/patch が値不変でも新しい state を生成して購読者へ通知してしまい、
+        // AI判定の無いプロジェクトで本関数が呼ばれるたび renderLayout 等が無駄に再実行される。
+        if (state.showAiHighlights) {
+            updateSettings('showAiHighlights', false);
+        }
         dom.aiHighlightCheckbox.checked = false;
         container.classList.add('hidden');
     }
