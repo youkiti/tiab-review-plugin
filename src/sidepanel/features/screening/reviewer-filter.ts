@@ -6,6 +6,7 @@
 import { t } from '../../../lib/i18n';
 import { dom } from '../../dom';
 import { state } from '../../state';
+import { updateSettings } from '../../store/compat';
 import { getReviewerLabel, isActiveConfirmedLlmDecision, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 
@@ -165,7 +166,7 @@ export function renderReviewerFilter() {
             input.addEventListener('change', (e) => {
                 e.stopPropagation();
                 const prev = state.aiDecisionFilter[reviewerId] ?? { include: true, exclude: true, maybe: true };
-                state.setAiDecisionFilter({
+                updateSettings('aiDecisionFilter', {
                     ...state.aiDecisionFilter,
                     [reviewerId]: { ...prev, [kind]: input.checked }
                 });
@@ -231,7 +232,7 @@ export function renderAiHighlightToggle() {
         // チェックボックスの状態を同期
         dom.aiHighlightCheckbox.checked = state.showAiHighlights;
     } else {
-        state.setShowAiHighlights(false);
+        updateSettings('showAiHighlights', false);
         dom.aiHighlightCheckbox.checked = false;
         container.classList.add('hidden');
     }
@@ -246,7 +247,7 @@ export function initAiHighlightListener() {
     if (!checkbox) return;
 
     checkbox.addEventListener('change', () => {
-        state.setShowAiHighlights(checkbox.checked);
+        updateSettings('showAiHighlights', checkbox.checked);
         if (_renderCurrentReference) _renderCurrentReference();
     });
 }

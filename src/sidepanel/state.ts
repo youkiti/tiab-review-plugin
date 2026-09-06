@@ -3,6 +3,8 @@
  * getter/setter パターンで副作用を制御し、状態変更の影響範囲を限定
  */
 
+import { getState } from './store';
+
 import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { ReviewCriteria } from '../lib/review-criteria';
@@ -76,13 +78,6 @@ let _selectedAssignmentSets: Set<string> = new Set();
 // フルテキスト担当セットフィルター（TiAb の _selectedAssignmentSets と対称）
 let _selectedFulltextSets: Set<string> = new Set();
 
-// ユーザー設定
-let _autoNavigateAfterDecision = true;
-let _showRecordCountBelow = true;
-let _termFilterUseAnd = true;
-let _abstractSubsectionBreakEnabled = false;
-let _abstractSubsectionHeadings: string[] = [];
-
 // タームフィルター
 let _activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];
 
@@ -106,13 +101,10 @@ let _llmTargetRefIds: Set<string> = new Set();
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
 let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
-let _showAiHighlights = true; // AIのEvidenceをハイライトするかどうか（デフォルトON）
 // 合議モード（-human-consensus）。ONの間の判定は client_version に -human-consensus サフィックスを付けて
 // 保存する。合議はブラインド中に成立しないため、isKeyOpened===true のときだけUIに出す（handleKeyToggle の
 // CLOSE 経路で false に戻す）。既定は false（従来どおりの -human）。
 let _consensusMode = false;
-let _aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }> = {}; // AI判定の表示フィルター（AIレビュアーID別）
-let _treatMlAsManual = true; // ML判定を手動判定と同一視するか
 
 import { createInitialMlState, MlState } from '../lib/ml/types';
 let _mlState: MlState = createInitialMlState();
@@ -259,20 +251,15 @@ export const state = {
     removeSelectedFulltextSet(setId: string) { _selectedFulltextSets.delete(setId); },
 
     // ----- User Settings -----
-    get autoNavigateAfterDecision() { return _autoNavigateAfterDecision; },
-    setAutoNavigateAfterDecision(value: boolean) { _autoNavigateAfterDecision = value; },
+    get autoNavigateAfterDecision() { return getState().ui.settings.autoNavigateAfterDecision; },
 
-    get showRecordCountBelow() { return _showRecordCountBelow; },
-    setShowRecordCountBelow(value: boolean) { _showRecordCountBelow = value; },
+    get showRecordCountBelow() { return getState().ui.settings.showRecordCountBelow; },
 
-    get termFilterUseAnd() { return _termFilterUseAnd; },
-    setTermFilterUseAnd(value: boolean) { _termFilterUseAnd = value; },
+    get termFilterUseAnd() { return getState().ui.settings.termFilterUseAnd; },
 
-    get abstractSubsectionBreakEnabled() { return _abstractSubsectionBreakEnabled; },
-    setAbstractSubsectionBreakEnabled(value: boolean) { _abstractSubsectionBreakEnabled = value; },
+    get abstractSubsectionBreakEnabled() { return getState().ui.settings.abstractSubsectionBreakEnabled; },
 
-    get abstractSubsectionHeadings() { return _abstractSubsectionHeadings; },
-    setAbstractSubsectionHeadings(value: string[]) { _abstractSubsectionHeadings = value; },
+    get abstractSubsectionHeadings() { return getState().ui.settings.abstractSubsectionHeadings; },
 
     // ----- Term Filters -----
     get activeTermFilters() { return _activeTermFilters; },
@@ -341,17 +328,14 @@ export const state = {
     get availableReviewers() { return _availableReviewers; },
     setAvailableReviewers(reviewers: Set<string>) { _availableReviewers = reviewers; },
 
-    get showAiHighlights() { return _showAiHighlights; },
-    setShowAiHighlights(show: boolean) { _showAiHighlights = show; },
+    get showAiHighlights() { return getState().ui.settings.showAiHighlights; },
 
     get consensusMode() { return _consensusMode; },
     setConsensusMode(value: boolean) { _consensusMode = value; },
 
-    get aiDecisionFilter() { return _aiDecisionFilter; },
-    setAiDecisionFilter(filter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>) { _aiDecisionFilter = filter; },
+    get aiDecisionFilter() { return getState().ui.settings.aiDecisionFilter; },
 
-    get treatMlAsManual() { return _treatMlAsManual; },
-    setTreatMlAsManual(value: boolean) { _treatMlAsManual = value; },
+    get treatMlAsManual() { return getState().ui.settings.treatMlAsManual; },
 
     // ----- ML State -----
     get mlState() { return _mlState; },

@@ -553,6 +553,14 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
    - **同じ原因（取り込み行が `state.allReferences` に混ざっている）で database 腕の数字が汚れる箇所が複数ある**ので、`state.allReferences` や候補一覧をそのまま数える処理を足すときは腕別に分けるかを必ず確認すること。`collectIdentification()`: 取り込み行は `source_file` を設定していないので、除外しないと `(unknown source)` として `Records identified from databases` と `Records screened` を水増しし、「* Import statistics were not recorded」の脚注まで出る。`countUnscreenedTiab()`: 取り込み行は**設計上TiAb票を一切持たない**ので、除外しないと全件「TiAb未判定」として数えられ実態のない警告が出る。論文用テキストの `sought`: 両腕の合算のままだと registry 行が同じフロー図内で**二重に数えられる**（`Reports sought for retrieval` と `Records excluded` の両方）。ただし**未決着の警告は逆に両腕の合算で出す**こと。database 腕だけを見ると registry 腕に pending / maybe / 未解消が残っていても「数値は最終値」と誤読させるため
    - **`identified − duplicates = screened` の縦の辻褄（Issue #145 チャンク2）**: `collectIdentification()` は state 依存でテストできなかったため、集計の核を `src/lib/prisma-identification.ts` の `computeIdentification()`（純関数）へ切り出した。書誌重複のうち取り込み時に自動スキップされなかった分（正規化タイトル一致など）は References に行として残り `duplicate_of` で論理削除されるため、`import_stats.duplicates`（自動スキップ分のみ、上記Configタブの節参照）だけでは重複除去数が過少になる。`computeIdentification()` は database 腕（`splitByIdentificationRoute()` で絞り込み後）の論理削除件数を `duplicatesTotal` へ合算することでこれを補う。判定（Decisions）が付いていたかどうかでは区別しない — 書誌重複はそもそもスクリーニング前に除くべきものだった、という整理。渡す `refs` は論理削除済みの行も含む全件（`getReferences()` 由来）が前提で、そうでない一覧（`getReferencesWithStatus()` 等）しか手元に無い呼び出し元は `refsMayOmitLogicallyDeleted: true` を渡すこと（渡さないと `duplicatesTotal` が論理削除件数の分だけ黙って過少になる）。`showManuscriptModal()` は集計のためだけに `getReferences()` を取り直しており、取得に失敗した場合は `duplicatesTotal: null` / `statsComplete: false` にして既存の「統計未記録ファイルがある」経路（`[n]` 表示・`manuscript_warnNoStats` 警告）へ合流させる（数字が黙って狂わないようにするため）
 
+### 個人の表示設定（Issue #154）
+
+- `src/lib/user-settings.ts` が `UserSettings` の定義・既定値・ストレージ値の検証の唯一の場所。設定を追加するときは **型 → `DEFAULT_USER_SETTINGS` → `USER_SETTINGS_STORAGE_KEYS` → `parseUserSettings` → 画面の対応付け** の順に更新し、パースと保存の往復テストを追加する。既定値を `state.ts`・reducer・設定画面へコピーしない。
+- 保存対象は従来の6キー（自動遷移、件数、検索AND/OR、MLの手動扱い、抄録見出しの有効化・見出し配列）。既存キー・保存形式を維持し、未知のキーは読み飛ばし、保存時は部分更新する。抄録見出しは文字列配列を検証して空行を除き、空配列は有効とする。`DEFAULT_ABSTRACT_SUBSECTION_HEADINGS` は同モジュールで定義し、`features/settings.ts` から再exportする。
+- `UserSettings` は既存の `ui.settings` の表示状態も包含する。`showAiHighlights` とレビュアー別の `aiDecisionFilter` はセッション内だけの表示状態で、従来どおり永続化しない。保存・読み込みの対象は `USER_SETTINGS_STORAGE_KEYS` のみであり、この2項目の変更はストレージの往復では復元しない。
+- 所有者・更新先は `Store.ui.settings` のみ。`state.ts` の設定プロパティはStoreを読むgetterだけとし、setterやcompatの双方向同期を追加しない。更新は `settings/patch`（または既存の設定アクション）で行い、画面イベントはStore更新 → 保存 → 関連描画の順を維持する。
+- 共通の `bootstrapCommon()` は依存注入・イベント配線より先にStoreを初期化する。`store/index.ts`・reducer・selectorは旧 `state.ts` に依存しないため、読み取りアダプタはStoreを直接参照する。新しい依存を追加するときもこの方向を守る。
+
 ### TiAb 表示位置の記憶と復元（Issue #140）
 
 - 保存: `renderReferenceDetails`（`src/sidepanel/features/screening/render.ts`）がキー開封中かつ履歴ビューでないときに `{filter, refId, index}` を `tiab_last_position`（`Record<spreadsheetId, ScreeningPosition>`、`chrome.storage` ローカル）へ保存する。同一内容の連続保存は書き込みをスキップする

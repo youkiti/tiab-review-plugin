@@ -9,6 +9,7 @@ import type {
     Decision,
     LlmConfig,
 } from '../../lib/types';
+import type { UserSettings } from '../../lib/user-settings';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
@@ -97,16 +98,7 @@ export interface AppState {
         };
 
         // ユーザー設定
-        settings: {
-            autoNavigateAfterDecision: boolean;
-            showRecordCountBelow: boolean;
-            termFilterUseAnd: boolean;
-            treatMlAsManual: boolean;
-            showAiHighlights: boolean;
-            aiDecisionFilter: Record<string, { include: boolean; exclude: boolean; maybe?: boolean }>;
-            abstractSubsectionBreakEnabled: boolean;
-            abstractSubsectionHeadings: string[];
-        };
+        settings: UserSettings;
 
         // トースト/フィードバック
         toast: { message: string; duration: number } | null;
@@ -180,6 +172,7 @@ export type Action =
     | { type: 'ui/hideToast' }
 
     // 設定
+    | { type: 'settings/patch'; patch: Partial<UserSettings> }
     | { type: 'settings/setAutoNavigate'; value: boolean }
     | { type: 'settings/setShowRecordCountBelow'; value: boolean }
     | { type: 'settings/setTermFilterUseAnd'; value: boolean }

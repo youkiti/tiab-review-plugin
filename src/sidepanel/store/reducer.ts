@@ -3,6 +3,7 @@
  * すべての状態変更はここを通る
  */
 
+import { parseUserSettings } from '../../lib/user-settings';
 import type { AppState, Action } from './types';
 import { getFilteredReferences } from './selectors';
 import { createInitialMlState } from '../../lib/ml/types';
@@ -56,16 +57,7 @@ export const initialState: AppState = {
             shareInputOpen: false,
             settingsOpen: false,
         },
-        settings: {
-            autoNavigateAfterDecision: true,
-            showRecordCountBelow: true,
-            termFilterUseAnd: true,
-            treatMlAsManual: true,
-            showAiHighlights: true,
-            aiDecisionFilter: {},
-            abstractSubsectionBreakEnabled: false,
-            abstractSubsectionHeadings: [],
-        },
+        settings: parseUserSettings({}),
         toast: null,
     },
 };
@@ -620,6 +612,15 @@ export function reducer(state: AppState, action: Action): AppState {
             };
 
         // ========== 設定 ==========
+        case 'settings/patch':
+            return {
+                ...state,
+                ui: {
+                    ...state.ui,
+                    settings: { ...state.ui.settings, ...action.patch },
+                },
+            };
+
         case 'settings/setAutoNavigate':
             return {
                 ...state,
