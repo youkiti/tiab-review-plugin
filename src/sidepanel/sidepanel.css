@@ -61,3 +61,23 @@
     padding: 24px;
     text-align: center;
 }
+
+/* Issue #155: フルテキストタブ読込中は既存DOMを保持したまま操作欄を隠す。 */
+#fulltext-section[aria-busy="true"] > :not(.fulltext-feature-status) {
+    display: none;
+}
+
+.fulltext-feature-status {
+    padding: 24px;
+    text-align: center;
+}
+
+/* PR #182 で入った同種の欠落を塞ぐ: AIタブ読込中も既存DOMを保持したまま操作欄を隠す。 */
+#llm-section[aria-busy="true"] > :not(.llm-feature-status) {
+    display: none;
+}
+
+.llm-feature-status {
+    padding: 24px;
+    text-align: center;
+}

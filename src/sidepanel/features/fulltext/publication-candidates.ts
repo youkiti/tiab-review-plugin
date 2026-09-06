@@ -5,48 +5,48 @@
  * 展開する。候補1件ごとにタイトル・ジャーナル/年・発見戦略・PubMed/DOIリンク・
  * 「取り込む」「対象外」ボタンを出す。
  *
- * 候補データの読み込み・モジュールローカルキャッシュの保持は fulltext-tab.ts の責務
+ * 候補データの読み込み・モジュールローカルキャッシュの保持は fulltext/tab.ts の責務
  * （このタブ限定の関心事のため state には足さない）。このモジュールは
  * 「既に選別・整形済みの候補配列」を受け取ってDOMを組み立てるだけで、キャッシュ自体は持たない。
  *
- * fulltext-tab.ts との依存はどちらの向きにも直接import しない。fulltext-results.ts /
- * fulltext-assignment-ui.ts / fulltext-drive-import.ts と同じ「setXxxDeps」注入パターンで
+ * fulltext/tab.ts との依存はどちらの向きにも直接import しない。fulltext/results.ts /
+ * fulltext/assignment-ui.ts / fulltext/drive-import.ts と同じ「setXxxDeps」注入パターンで
  * 循環importを避ける。
  *
  * 【原則（Issue #118 の決定事項）】References に行が追加される経路は「取り込む」ボタンの
  * 明示操作だけ。ここ以外（一括検索・再探索・自動処理）からは1行も追加しない。
  */
 
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { escapeHtml } from '../utils/text';
-import { showToast } from '../ui/feedback';
-import { isSafeHttpUrl } from '../../lib/registry-record';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { escapeHtml } from '../../utils/text';
+import { showToast } from '../../ui/feedback';
+import { isSafeHttpUrl } from '../../../lib/registry-record';
 import {
     isPublicationCandidateAlreadyImported,
     publicationCandidateStrategyLabelKey,
-} from '../../lib/publication-candidate-panel';
-import { buildDoiUrl, buildPubmedUrl } from '../../lib/external-record-url';
-import { buildImportedPublicationReference, resolveImportedFulltextSet } from '../../lib/publication-import';
+} from '../../../lib/publication-candidate-panel';
+import { buildDoiUrl, buildPubmedUrl } from '../../../lib/external-record-url';
+import { buildImportedPublicationReference, resolveImportedFulltextSet } from '../../../lib/publication-import';
 import {
     addReferences,
     updateReferenceFulltextSets,
     updatePublicationCandidateStatus,
-} from '../../lib/sheets-api';
-import { reloadReferences } from './fulltext-ai';
-import type { PublicationCandidate, ReferenceWithStatus } from '../../lib/types';
+} from '../../../lib/sheets-api';
+import { reloadReferences } from './ai';
+import type { PublicationCandidate, ReferenceWithStatus } from '../../../lib/types';
 
 // ---------------------------------------------------------------------------
-// fulltext-tab.ts への依存注入（循環import回避。setFulltextResultsDeps 等と同じ流儀）
+// fulltext/tab.ts への依存注入（循環import回避。setFulltextResultsDeps 等と同じ流儀）
 // ---------------------------------------------------------------------------
 
 export interface PublicationCandidatesDeps {
     /**
-     * 候補キャッシュ（fulltext-tab.ts の publicationCandidates）を再取得し、
+     * 候補キャッシュ（fulltext/tab.ts の publicationCandidates）を再取得し、
      * 完了後に renderFulltextTab() を呼び直す。取り込み・対象外化の後に呼ぶ。
      *
      * 戻り値は成功（または読み込み不要で早期return）したら true、Sheets読み込みが失敗したら
-     * false（PR #124 レビュー指摘6のフォローアップ）。fulltext-tab.ts の
+     * false（PR #124 レビュー指摘6のフォローアップ）。fulltext/tab.ts の
      * loadPublicationCandidates() は内部で自分のエラーを console.warn するだけで再送出しない
      * 実装だったため、以前はここが呼び出し元から見て「常に成功したように見える」関数だった。
      * 戻り値で失敗を検出できるようにしたことで、handleDismissCandidate() の
@@ -58,7 +58,7 @@ export interface PublicationCandidatesDeps {
      */
     reloadPublicationCandidates: (options?: { suppressErrorToast?: boolean }) => Promise<boolean>;
     /**
-     * 単発OA検索の中核処理（fulltext-tab.ts の fetchSingleFulltextForRef）。
+     * 単発OA検索の中核処理（fulltext/tab.ts の fetchSingleFulltextForRef）。
      * ボタン要素を必要としない形に切り出したもの（既存の handleSingleFetch の見た目更新は
      * 呼び出し元が担う）。取り込み直後の自動起動に使う（Issue #118 実装内容7）。
      *
@@ -109,7 +109,7 @@ const importedRefIdByCandidateId = new Map<string, string>();
 
 /**
  * 既に組み立て済みの `.fulltext-card` へ論文候補バッジを追加し、カード＋パネルをまとめた
- * ラッパー要素を返す。呼び出し側（fulltext-tab.ts の buildCard()）は
+ * ラッパー要素を返す。呼び出し側（fulltext/tab.ts の buildCard()）は
  * `candidates.length > 0`（かつ isRegistrationRecord(ref)）のときだけ呼ぶ前提
  * （このモジュール自身はどちらの再判定もしない）。
  *

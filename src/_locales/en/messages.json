@@ -329,6 +329,15 @@
   "nav_tabFulltextBadgeTitle": {
     "message": "$1 full-text candidates"
   },
+  "fulltext_featureLoading": {
+    "message": "Loading full-text features…"
+  },
+  "fulltext_featureLoadFailed": {
+    "message": "Failed to load full-text features. Select the Full-text tab again to retry."
+  },
+  "fulltext_activationFailed": {
+    "message": "Failed to activate the Full-text tab: $1"
+  },
   "fulltext_progressLine": {
     "message": "Full-text decided: $1 / $2"
   },

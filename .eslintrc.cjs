@@ -70,7 +70,7 @@ module.exports = {
         "src/sidepanel/sidepanel.ts",
         "src/sidepanel/features/llm/**",
         "src/sidepanel/features/ml/**",
-        "src/sidepanel/features/fulltext-*.ts",
+        "src/sidepanel/features/fulltext/**",
         "src/sidepanel/features/import-export.ts",
         "src/sidepanel/features/manuscript.ts",
       ],

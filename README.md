@@ -146,6 +146,7 @@ npm run watch
 | --- | --- |
 | 新しい画面機能・処理の調整 | `src/sidepanel/features/`（フルテキスト画面は `src/fulltext/`、Web専用は `src/webapp/`） |
 | LLM機能 | `src/sidepanel/features/llm/`。外部からは軽い入口 `lazy.ts` のみ参照（AIタブ初回選択時に本体を読み込む） |
+| フルテキストタブ機能 | `src/sidepanel/features/fulltext/`。外部からは軽い入口 `lazy.ts` のみ参照（フルテキストタブ初回選択時に本体を読み込む。担当セット選択の初期化のみプロジェクト読み込み時に必須のため `features/fulltext-assignment-selection.ts` に分離） |
 | ドメイン純関数・保存 API | `src/lib/` / `src/lib/sheets/` |
 | ブラウザ間の platform 差分 | `src/platform/` |
 | 設定の既定値 | 該当機能のモジュール。シート設定は `src/lib/sheets/config-schema.ts`、ML停止基準は `src/lib/ml/cmh-defaults.ts`、列定義は `src/lib/sheets/schema.ts` |

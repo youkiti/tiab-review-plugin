@@ -26,7 +26,7 @@ import { platform } from '../../platform';
 import { getReviewerKey } from './screening/reviewer-utils';
 import { getFilteredReferences } from './screening/filters';
 import { initializeAssignmentState, renderAssignmentFilters, renderAssignmentManager, maybeShowAssignmentWizard } from './assignment';
-import { initializeFulltextAssignmentSelection } from './fulltext-assignment-ui';
+import { initializeFulltextAssignmentSelection } from './fulltext-assignment-selection';
 import { initTeamProgress } from './team-progress';
 import { primeDuplicateReviewSection } from './duplicate-review';
 import { getQueuedDecisions } from '../utils/offline-queue';

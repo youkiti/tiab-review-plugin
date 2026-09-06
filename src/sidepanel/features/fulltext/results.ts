@@ -13,34 +13,45 @@
  *  - キー未開封: ref.myFulltextDecision（自分の判定のみ）にフォールバック
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { escapeHtml } from '../utils/text';
-import { escapeCSVField } from '../utils/csv';
-import { getProjectFulltextCandidateList } from './screening/filters';
-import { getReviewerLabel } from './screening/reviewer-utils';
-import { voteNoteText } from './screening/decision-summary';
-import { handleKeyToggle } from './screening/actions';
-import { showToast } from '../ui/feedback';
-import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './fulltext-ai';
-import { excludeReasonLabel } from '../../lib/exclude-reasons';
-import { getClientVersion } from '../../lib/client-version';
-import { saveDecision } from '../../lib/sheets-api';
-import { identificationRouteOf, splitByIdentificationRoute } from '../../lib/identification-route';
+import { dom } from './dom';
+import { dom as sharedDom } from '../../dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { escapeHtml } from '../../utils/text';
+import { escapeCSVField } from '../../utils/csv';
+import { getProjectFulltextCandidateList } from '../screening/filters';
+import { getReviewerLabel } from '../screening/reviewer-utils';
+import { voteNoteText } from '../screening/decision-summary';
+import { handleKeyToggle } from '../screening/actions';
+import { showToast } from '../../ui/feedback';
+import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './ai';
+import { excludeReasonLabel } from '../../../lib/exclude-reasons';
+import { getClientVersion } from '../../../lib/client-version';
+import { saveDecision } from '../../../lib/sheets-api';
+import { identificationRouteOf, splitByIdentificationRoute } from '../../../lib/identification-route';
 import {
     computeFulltextConsensus,
     isAdjudicationKey,
     adjudicationReviewerId,
-} from '../../lib/fulltext-consensus';
-import type { ConsensusDecision, FulltextVote, FulltextConsensusResult } from '../../lib/fulltext-consensus';
+} from '../../../lib/fulltext-consensus';
+import type { ConsensusDecision, FulltextVote, FulltextConsensusResult } from '../../../lib/fulltext-consensus';
+import {
+    fulltextRetrievalStatus as retrievalStatus,
+    judgeDecisionMap,
+    collectFulltextJudges,
+    effectiveFulltextJudges,
+    buildFulltextVotesForConsensus as buildVotesForConsensus,
+    getFulltextConsensus,
+    summarizeFulltextCandidates as summarize,
+    getFulltextResultsSummaryByRoute as libGetFulltextResultsSummaryByRoute,
+} from '../../../lib/fulltext-results-summary';
+import type { FulltextResultsSummary } from '../../../lib/fulltext-results-summary';
 import type {
     ReferenceWithStatus,
     Decision,
-    FulltextStatus,
     FulltextAdjudicationNote,
     FulltextAdjudicationVoteSnapshot,
-} from '../../lib/types';
+} from '../../../lib/types';
 
 const DECISION_ICON: Record<ConsensusDecision, string> = {
     include: '✓',
@@ -56,7 +67,7 @@ let resultsMode = false; // currentMode === 'results' のキャッシュ（既�
 // 選択中の判定者キー（null = 既定で全員）。空集合は「全解除」状態として保持しない（最小1人）。
 let enabledJudges: Set<string> | null = null;
 
-// キー開閉後にフルテキストタブ全体を再描画するためのコールバック（fulltext-tab から注入）
+// キー開閉後にフルテキストタブ全体を再描画するためのコールバック（fulltext/tab.ts から注入）
 let _rerenderTab: (() => void) | null = null;
 export function setFulltextResultsDeps(deps: { rerenderTab: () => void }): void {
     _rerenderTab = deps.rerenderTab;
@@ -66,94 +77,39 @@ export function isFulltextResultsMode(): boolean {
     return resultsMode;
 }
 
+/**
+ * 結果ビューの判定者チェックボックス選択の現在値（未訪問・全解除は null）を返す。
+ * features/manuscript.ts（初期バンドル）は本体未ロード時 null しか読めないため、
+ * features/fulltext/lazy.ts 経由の委譲（本体ロード済みならこの値、未ロードなら null）で
+ * 論文用テキスト生成の集計に反映する（フルテキストタブ未訪問時は従来どおり全員集計になる）。
+ */
+export function getEnabledJudgesSnapshot(): Set<string> | null {
+    return enabledJudges ? new Set(enabledJudges) : null;
+}
+
 function reasonLabel(reason: string): string {
     if (!reason) return '(理由未記入)';
     return excludeReasonLabel(reason, state.excludeReasonItems);
 }
 
-/** 入手状態（未記録は not_retrieved 扱い） */
-function retrievalStatus(ref: ReferenceWithStatus): FulltextStatus {
-    return ref.fulltext_status ?? 'not_retrieved';
-}
-
-function isObtained(ref: ReferenceWithStatus): boolean {
-    const s = retrievalStatus(ref);
-    return (s === 'cached' || s === 'retrieved') && !!ref.fulltext_url;
-}
-
 /**
- * 文献ごとに「判定者キー → 最新のフルテキスト判定」をマップ化する。
- * キー開封後は allFulltextDecisions、未開封時は myFulltextDecision のみ。
- */
-function judgeDecisionMap(ref: ReferenceWithStatus): Map<string, Decision> {
-    const list: Decision[] =
-        ref.allFulltextDecisions && ref.allFulltextDecisions.length > 0
-            ? ref.allFulltextDecisions
-            : ref.myFulltextDecision
-                ? [ref.myFulltextDecision]
-                : [];
-    const map = new Map<string, Decision>();
-    for (const d of list) {
-        const key = (d.reviewer_id || '').trim();
-        if (!key) continue;
-        const existing = map.get(key);
-        if (!existing || (d.decided_at || '') > (existing.decided_at || '')) {
-            map.set(key, d);
-        }
-    }
-    return map;
-}
-
-/**
- * 全候補から判定者キーを収集（ヒトを先、AI(llm:)を後ろにソート）。
- * 裁定票（adjudication:）は判定者選択（チェックボックス）の対象から除外する。
- * ここでチェックを外せてしまうと、選択判定者に依存する合議計算から裁定票そのものが
- * 消えてしまい、裁定が無効化されてしまうため。
+ * 判定者選択・除外理由リストは module-local な `enabledJudges`（チェックボックス選択）と
+ * `state` に依存するため、`src/lib/fulltext-results-summary.ts` の純関数へ `state` の
+ * 該当フィールドを渡す薄いラッパーとしてここに置く（judgeDecisionMap・
+ * buildFulltextVotesForConsensus 等の純粋計算そのものはlib側にある）。
  */
 function collectJudges(candidates: ReferenceWithStatus[]): string[] {
-    const set = new Set<string>();
-    for (const r of candidates) {
-        for (const key of judgeDecisionMap(r).keys()) {
-            if (isAdjudicationKey(key)) continue;
-            set.add(key);
-        }
-    }
-    if (set.size === 0 && state.userEmail) set.add(state.userEmail);
-    return [...set].sort((a, b) => {
-        const al = a.startsWith('llm:') ? 1 : 0;
-        const bl = b.startsWith('llm:') ? 1 : 0;
-        if (al !== bl) return al - bl;
-        return a.localeCompare(b);
-    });
+    return collectFulltextJudges(candidates, state.userEmail);
 }
 
 /** 有効な判定者集合（全候補の判定者と enabledJudges の積。空なら全員にフォールバック） */
 function effectiveJudges(allJudges: string[]): Set<string> {
-    if (!enabledJudges) return new Set(allJudges);
-    const eff = new Set(allJudges.filter(j => enabledJudges!.has(j)));
-    if (eff.size === 0) return new Set(allJudges); // 安全弁（最小1人）
-    return eff;
-}
-
-/**
- * ある文献について、合議計算（src/lib/fulltext-consensus.ts）に渡す票配列を組み立てる。
- * - 通常の判定者票: judges（チェックボックスで選択中の判定者集合）に含まれるものだけを渡す
- * - 裁定票（adjudication:）: judges の選択に関わらず常に含める
- *   （判定者選択のチェックボックスに出ないため、外して無効化される心配がない）
- */
-function buildVotesForConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextVote[] {
-    const map = judgeDecisionMap(ref);
-    const votes: FulltextVote[] = [];
-    for (const [key, d] of map) {
-        if (!isAdjudicationKey(key) && !judges.has(key)) continue;
-        votes.push({ judge: key, decision: d.decision, reason: d.reason, note: d.note, decidedAt: d.decided_at });
-    }
-    return votes;
+    return effectiveFulltextJudges(allJudges, enabledJudges);
 }
 
 /** 選択判定者＋裁定票から合議結果を計算する（表示・エクスポート双方の唯一の入口） */
 function getConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextConsensusResult {
-    return computeFulltextConsensus(buildVotesForConsensus(ref, judges), state.excludeReasonItems);
+    return getFulltextConsensus(ref, judges, state.excludeReasonItems);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,68 +182,6 @@ function handleJudgeToggle(allJudges: string[], key: string, checked: boolean): 
 }
 
 /**
- * フルテキスト相の集計サマリ（結果ビューのPRISMA表示・論文用テキスト生成で共用）
- *
- * conflict と reasonConflict は意図的に別枠で持つ（決してマージしないこと）。
- * `conflict` は論文原稿の "Disagreements between screeners (n = …)" にそのまま使われる数値であり、
- * SR の報告慣行では screener 間の disagreement は組入/除外などの「判定」不一致を指す。
- * ここに理由だけの相違（reasonConflict）を混ぜると、論文で報告する数字の意味が変わってしまう。
- */
-export interface FulltextResultsSummary {
-    sought: number;        // 候補（Reports sought for retrieval）
-    obtained: number;      // 入手済（Reports assessed for eligibility）
-    notRetrieved: number;  // 未入手
-    include: number;
-    exclude: number;
-    maybe: number;
-    pending: number;
-    conflict: number;       // 判定不一致のみ（裁定済みも含む生の件数）
-    reasonConflict: number; // 理由不一致のみ（裁定済みも含む生の件数）。conflict とは合算しない
-    unresolved: number;     // うち未解消（(conflict||reasonConflict) && !adjudicated）
-    reasons: Array<{ reason: string; count: number }>;  // 除外理由（件数降順、生キー）
-    judges: string[];      // 集計に使った判定者キー
-}
-
-function summarize(candidates: ReferenceWithStatus[], judges: Set<string>): FulltextResultsSummary {
-    const obtained = candidates.filter(isObtained).length;
-
-    let inc = 0, exc = 0, maybe = 0, pend = 0, conflict = 0, reasonConflict = 0, unresolved = 0;
-    const reasonCounts = new Map<string, number>();
-    for (const r of candidates) {
-        const c = getConsensus(r, judges);
-        if (c.conflict) conflict++;
-        if (c.reasonConflict) reasonConflict++;
-        if (c.unresolved) unresolved++;
-        switch (c.decision) {
-            case 'include': inc++; break;
-            case 'exclude':
-                exc++;
-                reasonCounts.set(c.primaryReason, (reasonCounts.get(c.primaryReason) ?? 0) + 1);
-                break;
-            case 'maybe': maybe++; break;
-            default: pend++;
-        }
-    }
-
-    return {
-        sought: candidates.length,
-        obtained,
-        notRetrieved: candidates.length - obtained,
-        include: inc,
-        exclude: exc,
-        maybe,
-        pending: pend,
-        conflict,
-        reasonConflict,
-        unresolved,
-        reasons: [...reasonCounts.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .map(([reason, count]) => ({ reason, count })),
-        judges: [...judges],
-    };
-}
-
-/**
  * 現在の判定者選択に基づくフルテキスト相サマリを返す（論文用テキスト生成で使用）。
  *
  * database 腕（データベース検索由来）だけを集計する。Registry linkage 行
@@ -301,18 +195,22 @@ export function getFulltextResultsSummary(): FulltextResultsSummary {
 /**
  * フルテキスト相サマリを同定経路（database / registryLinkage）別に分けて返す。
  * PRISMA の「other methods」腕（レジストリ連携由来）の集計に使う（Issue #120）。
+ *
+ * 集計の純粋計算は src/lib/fulltext-results-summary.ts（getFulltextResultsSummaryByRoute）へ
+ * 切り出した（Issue #155（#150 工程4）。features/manuscript.ts が初期バンドルのまま同じ集計を
+ * 呼べるようにするため）。ここでは module-local な判定者選択（enabledJudges）と state を
+ * 渡すだけの薄いラッパー。
  */
 export function getFulltextResultsSummaryByRoute(): {
     database: FulltextResultsSummary;
     registryLinkage: FulltextResultsSummary;
 } {
     const candidates = getProjectFulltextCandidateList();
-    const judges = effectiveJudges(collectJudges(candidates));
-    const { database, registryLinkage } = splitByIdentificationRoute(candidates);
-    return {
-        database: summarize(database, judges),
-        registryLinkage: summarize(registryLinkage, judges),
-    };
+    return libGetFulltextResultsSummaryByRoute(candidates, {
+        enabledJudges,
+        excludeReasonItems: state.excludeReasonItems,
+        userEmail: state.userEmail,
+    });
 }
 
 function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): void {
@@ -320,7 +218,7 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
     // registryLinkage が0件のときは database === candidates なので、以下の出力は現行と
     // 1文字も変わらない。
     const { database, registryLinkage } = splitByIdentificationRoute(candidates);
-    const s = summarize(database, judges);
+    const s = summarize(database, judges, state.excludeReasonItems);
     const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, unresolved } = s;
 
     const lines: string[] = [];
@@ -348,7 +246,7 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
     // other methods腕（Registry linkage）: 該当0件なら何も追加しない
     // （registryLinkage.length === 0 のとき rl.sought は必ず0になる）。
     if (registryLinkage.length > 0) {
-        const rl = summarize(registryLinkage, judges);
+        const rl = summarize(registryLinkage, judges, state.excludeReasonItems);
         if (rl.sought > 0) {
             lines.push(`<div class="fulltext-prisma-title">${escapeHtml(t('fulltext_prismaOtherMethodsTitle'))}</div>`);
             lines.push('<div class="fulltext-prisma-grid">');
@@ -698,7 +596,7 @@ async function handleAdjudicate(
     try {
         await saveDecision(state.spreadsheetId, decisionObj);
         showToast(t('fulltext_conflictAdjudicateSaved'), 3000);
-        // 既存の参照再読込パターン（fulltext-ai.ts の reloadReferences）を再利用して state を更新し、
+        // 既存の参照再読込パターン（fulltext/ai.ts の reloadReferences）を再利用して state を更新し、
         // 合議表示（結果一覧・PRISMA・この不一致解消セクション自体）を最新化する
         await reloadFulltextReferences(state.spreadsheetId);
         renderFulltextResults();
@@ -845,7 +743,7 @@ function handleExportRis(): void {
 
 /** 候補リスト / AI判定 / 判定後レビュー の表示を切り替える */
 function applyModeVisibility(): void {
-    const section = dom.fulltextSection;
+    const section = sharedDom.fulltextSection;
     const retrieval = section.querySelector('.fulltext-retrieval');
     const filterRow = section.querySelector('.fulltext-filter-row');
     const isList = currentMode === 'list';
@@ -875,12 +773,12 @@ export function setFulltextMode(mode: FulltextViewMode): void {
 /**
  * ブラインド解除トグル。
  * 既存の screening 用 handleKeyToggle を再利用し、全タブ共有の isKeyOpened を更新する。
- * （handleKeyToggle は screening 側のチェックボックス dom.keyToggleInput を正とするため、
+ * （handleKeyToggle は screening 側のチェックボックス sharedDom.keyToggleInput を正とするため、
  *  先にその状態を合わせてから呼び、完了後に実状態へ同期する）
  */
 async function handleBlindToggle(): Promise<void> {
     const open = dom.fulltextKeyToggle.checked;
-    dom.keyToggleInput.checked = open;
+    sharedDom.keyToggleInput.checked = open;
     await handleKeyToggle();
     // handleKeyToggle はキャンセル/失敗時に元状態へ戻すため、実状態へ同期
     dom.fulltextKeyToggle.checked = state.isKeyOpened;

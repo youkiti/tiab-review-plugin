@@ -11,23 +11,23 @@
  * デフォルト（status 'none'）は従来どおり全員が全候補を判定する。
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { showLoading, showToast } from '../ui/feedback';
-import { hideModal, showModal } from '../ui/modal';
-import { platform } from '../../platform';
+import { dom } from './dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { showLoading, showToast } from '../../ui/feedback';
+import { hideModal, showModal } from '../../ui/modal';
+import { platform } from '../../../platform';
 import {
     getSpreadsheetPermissions,
     saveFulltextAssignmentConfig,
     updateReferenceFulltextSets,
-} from '../../lib/sheets-api';
+} from '../../../lib/sheets-api';
 import {
     setFulltextAssignment as syncSetFulltextAssignment,
     setSelectedFulltextSets as storeSetSelectedFulltextSets,
     addSelectedFulltextSet as storeAddSelectedFulltextSet,
     removeSelectedFulltextSet as storeRemoveSelectedFulltextSet,
-} from '../store/compat';
+} from '../../store/compat';
 import {
     createDefaultFulltextAssignment,
     buildFulltextSetAssignments,
@@ -37,15 +37,12 @@ import {
     getFulltextSetLabel,
     normalizeFulltextReviewerMap,
     initialSelectedFulltextSets,
-    normalizeStoredFulltextSets,
     canSeeFulltextRef,
-} from '../../lib/fulltext-assignment';
-import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
-import { getFulltextPoolList } from './screening/filters';
-import type { ReferenceWithStatus } from '../../lib/types';
-
-// selectedFulltextSets の永続化キー。値は { [spreadsheetId]: string[] }（プロジェクトごとに保持）
-const STORAGE_KEY = 'selectedFulltextSets';
+} from '../../../lib/fulltext-assignment';
+import type { FulltextAssignmentConfig } from '../../../lib/fulltext-assignment';
+import { getFulltextPoolList } from '../screening/filters';
+import { FULLTEXT_ASSIGNMENT_STORAGE_KEY as STORAGE_KEY } from '../fulltext-assignment-selection';
+import type { ReferenceWithStatus } from '../../../lib/types';
 
 let _rerenderTab: (() => void) | null = null;
 let _wizardOpen = false;
@@ -250,28 +247,8 @@ async function persistSelectedFulltextSets(): Promise<void> {
 }
 
 /**
- * 担当セットフィルタの選択状態を初期化する（保存値の読み込み＋正規化、無ければ初期選択）。
- * project.ts の loadDataAndShowScreening から、state.fulltextAssignment 設定後に呼ぶ。
- */
-export async function initializeFulltextAssignmentSelection(spreadsheetId: string, userEmail: string): Promise<void> {
-    const config = state.fulltextAssignment;
-    let selected = initialSelectedFulltextSets(config, userEmail);
-    try {
-        const stored = await platform().storageGet([STORAGE_KEY]);
-        const map = stored[STORAGE_KEY] as Record<string, string[]> | undefined;
-        const storedForProject = map?.[spreadsheetId];
-        if (storedForProject) {
-            selected = normalizeStoredFulltextSets(storedForProject, config, userEmail);
-        }
-    } catch (error) {
-        console.warn('[ftAssign] 選択状態の読み込みに失敗:', error);
-    }
-    storeSetSelectedFulltextSets(selected);
-}
-
-/**
  * 担当外グループを表示中/担当グループが選択から外れている状態を、担当グループだけの選択に戻す。
- * チェックリスト項目2の修復ボタン（fulltext-checklist.ts）から呼ぶ。
+ * チェックリスト項目2の修復ボタン（fulltext/checklist.ts）から呼ぶ。
  */
 export async function resetFulltextSetSelectionToMine(): Promise<void> {
     storeSetSelectedFulltextSets(initialSelectedFulltextSets(state.fulltextAssignment, state.userEmail));

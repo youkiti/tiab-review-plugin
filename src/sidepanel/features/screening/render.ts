@@ -25,8 +25,8 @@ import { perfSpanSync } from '../../../lib/perf';
 let _navigate: ((dir: number) => void) | null = null;
 
 // TiAb完了バナーの「全文タブへ進む」ボタンから呼ぶ遷移関数。
-// fulltext-tab.ts は screening/filters.ts に依存しており、かつ拡張専用（Web版には無い）機能のため、
-// ここから直接importせず setRenderDependencies と同じ依存注入パターンで回避する。
+// features/fulltext/** は screening/filters.ts に依存しており、かつ拡張専用（Web版には無い）
+// 機能のため、ここから直接importせず setRenderDependencies と同じ依存注入パターンで回避する。
 // 未登録（Web版など fulltext capability が無い場合）はボタンクリックが何もしない。
 let _navigateToFulltextTab: (() => void) | null = null;
 
