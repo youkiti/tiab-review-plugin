@@ -6,7 +6,7 @@
  */
 
 import { StoppingRule, CmhStoppingRule, ConsecutiveStoppingRule, isCmhStoppingRule } from './types';
-import { calculateCmhStopping, CMH_DEFAULTS } from './cmh';
+import { calculateCmhStopping } from './cmh';
 
 // ========================================
 // 旧方式（連続除外）の関数群
@@ -201,15 +201,9 @@ export function calculateThresholdFromPercent(
     return Math.max(1, Math.round(totalRecords * (percent / 100)));
 }
 
-/**
- * CMH 停止基準が有効かどうかを判定
- * 
- * @param totalRecords - 総レコード数
- * @returns true なら CMH 停止基準を使用可能
- */
-export function canUseCmhStopping(totalRecords: number): boolean {
-    return totalRecords >= CMH_DEFAULTS.minRecords;
-}
+// canUseCmhStopping は jstat 非依存の cmh-defaults.ts へ分離。互換のため再エクスポートする
+// （CMH_DEFAULTS を cmh.ts から re-export しているのと同じ流儀・同じ理由）。
+export { canUseCmhStopping } from './cmh-defaults';
 
 /**
  * プリセット閾値オプション（旧方式用）

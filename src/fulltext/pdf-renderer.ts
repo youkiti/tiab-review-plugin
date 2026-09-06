@@ -16,7 +16,7 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
-import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-image-only';
+import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-constants';
 import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
 
 // worker / リソースは webpack の CopyPlugin で dist 直下へ配置する。

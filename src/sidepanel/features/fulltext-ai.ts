@@ -47,7 +47,6 @@ import {
 } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
 import { normalizeExcludeReasonKey } from '../../lib/exclude-reasons';
-import { detectImageOnlyPdf } from '../../lib/pdf-image-only';
 import { generateLlmReviewerId } from '../../lib/llm-processor';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../lib/storage';
@@ -696,6 +695,8 @@ async function judgeOne(
 
     // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
+    // Issue #155: チャンク読込失敗は検出失敗のcatchに入れず、AI判定の失敗として伝播する。
+    const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../lib/pdf-image-only');
     let imageOnly: boolean | undefined;
     try {
         imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
