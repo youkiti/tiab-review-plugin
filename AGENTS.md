@@ -29,6 +29,7 @@
 | オフライン同期 | 「オフライン同期の方針」 |
 | テスト・作業ツリー | 「テスト・作業ツリーの落とし穴」「`.env` が無い環境（git worktree 等）で production ビルドを検証する」 |
 | 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
+| 遅延読み込み・チャンク分割 | 「遅延読み込み（動的 import）でチャンクを分けるときの規約」 |
 
 ## プロジェクト概要
 
@@ -1339,6 +1340,17 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - `npm run check:structure` は相対import・再export・型import・文字列リテラルの動的importを正規表現で抽出し、Tarjanの強連結成分で循環を検出する。外部パッケージ、宣言ファイル、バックアップは対象外。既存循環は辺まで基準値に記録し、同じ循環グループ内の新しい辺も回帰とする。TypeScriptの完全な構文解析ではないため、計算式の動的import等は別途レビューする。
 - `npm run check:bundle` は同条件のproductionビルドでサイドパネルとWeb版appの初期JS量（.map除外）を検査する。`scripts/bundle-budget.json` の上限は実測値の101%を整数切り上げ。上限超過は失敗、上限より3%以上小さければ更新可能と表示する。時間の閾値はばらつきが大きいためCIに入れない。通信回数は `tests/project-load-request-counts.test.ts` で固定する。
 - 基準値更新は `node scripts/check-structure.mjs --update-baseline`。予算更新は `npm run bench:bundle` 後の `node scripts/check-bundle-budget.mjs --update-budget`（`--stats <JSONパス>` で既存統計も利用可能）。基準値・予算の更新は意図的な設計変更として、コミットに理由を書く。単に検査を通すために更新しない。改善の検出は通知のみで失敗にしない。
+
+### 遅延読み込み（動的 import）でチャンクを分けるときの規約
+
+`webpack.config.js` は拡張版・Web版のどちらも `optimization: { splitChunks: false }` で、**共有チャンクを一切作らない**。この前提が、遅延読み込みの分け方に制約を課す。
+
+- **静的 import で繋がっているモジュール同士を、別々の `webpackChunkName` で動的 import しないこと。** 共有チャンクが無いので、依存先のコードは各チャンクへ**丸ごと複製される**。片方は完全な無駄になり、フェッチ回数も増える。実例（PR #178 レビュー指摘）: `features/ml/lazy.ts` が `./actions` と `./render` を別名で動的 import していたが、`actions.ts` は `./render` を静的 import しているため `chunks/ml-render.js`（58,655 バイト）の中身は `chunks/ml-actions.js`（87,523 バイト）に丸ごと含まれていた。両方を同じ `webpackChunkName: "ml-feature"` に揃えて 86,983 バイトの1チャンクにしたところ、**59,195 バイトとフェッチ1回が消えた**。
+- **一緒に読み込むものは同じチャンク名にする。** 分けてよいのは、片方だけを読む経路が実在するときだけ。判断に迷ったら1本にまとめる。
+- **重複は `npm run bench:bundle` の出力（`.tmp/bench/bundle-stats-*.json` の `modules`）で検出できる。** 同じモジュールが複数チャンクに現れていたら統合の候補。生成物側で DOM の id 文字列（例 `ml-include-keywords-list`）を複数チャンクから grep するのも早い。関数名は minify で消えるので目印に使わないこと。
+- **遅延読み込みの入口には、本体を読む前に判定できるガードを置くこと。** 件数や設定で「そもそも機能を使えない」と分かる条件は、`import()` の前に判定する。判定に必要な定数が重い依存を持つモジュールにあるなら、定数だけを依存の無いモジュールへ切り出す（`lib/ml/cmh-defaults.ts`・`lib/pdf-constants.ts` がその形）。切り出し元からの再エクスポートは、既存の import 経路が実在するときだけ残す（`lib/ml/cmh.ts` の `CMH_DEFAULTS`、`lib/ml/stopping-rules.ts` の `canUseCmhStopping`）。ガードを本体側に残したままだと、使えないと分かっている機能のチャンクと Web Worker を読み込んでから戻ることになる（PR #178 レビュー指摘）。
+- **重い依存を持つモジュールから、軽い定数を再エクスポートしないこと。** 消費者が消えた再エクスポートは、後からその経路で import した瞬間に重い依存（例: pdfjs の 376KB）を初期バンドルへ引き戻す罠になる。使われなくなった再エクスポートは消す。
+- 初期バンドル量の回帰は `npm run check:bundle` が検出する（上の「開発規約」節）。ただし**チャンク間の重複は初期バンドル量に現れない**ので、この検査では捕まらない。分割を足したら生成チャンクの一覧とサイズを目視すること。
 
 ### 性能計測
 
