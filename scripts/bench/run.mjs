@@ -18,6 +18,9 @@
 // オプション（すべて省略可）:
 //   --size <n>        合成文献数（?benchSize=）。複数指定可（--size 1000 --size 10000）。
 //                      サイズごとに1回ずつシナリオ1〜7を計測する。既定 [1000]
+//   --pdf <id>         シナリオ8（PDF表示・根拠ジャンプ）で使うPDFフィクスチャ（?benchPdf=）。
+//                       demo|20p|57p。複数指定可（--pdf 20p --pdf 57p）。PDFごとに1回ずつ
+//                       シナリオ8を実行する。既定 [demo]
 //   --key-opened       ?benchKeyOpened=1（キー開封後の条件）。既定 off（Blind）
 //   --net-delay <ms>   ?netDelay=（通信の人工遅延）。既定 0
 //   --repeat <n>       判定・前後移動の反復回数。既定 100
@@ -37,8 +40,8 @@
 // データ契約（親Issue #150）: 認証情報・文献本文・レビュアーのメールは一切収集・出力しない。
 // デモの固定メール（demo-reviewer@example.com 等）も出力に書かない。performance.measure() の
 // detail は件数などの数値のみのはずだが、出力前に sanitizeDetailValue() で文字列値を必ず落とす。
-// 実データは一切使わず、合成データ（src/demo/bench-fixtures.ts）とデモの固定PDF
-// （video/fixtures/demo-paper.pdf）のみを使う。
+// 実データは一切使わず、合成データ（src/demo/bench-fixtures.ts）とデモビルド同梱のPDFフィクスチャ
+// （video/fixtures/、出所表示は video/fixtures/NOTICE.md）のみを使う。
 
 import { mkdirSync, mkdtempSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -71,6 +74,17 @@ const PDF_SCENARIO_REF_ID = 'bench-ref-000031';
 // シナリオ8（PDF表示と根拠ジャンプ）の反復回数。ブリーフの固定値（--repeat の対象外）。
 const PDF_SCENARIO_ITERATIONS = 5;
 
+// ?benchPdf= で選べるPDFフィクスチャの pageCount・ファイル名。
+// 出典: DEMO_PDF_FIXTURES (src/demo/constants.ts)。scripts/ 配下は webpack を通さない素の
+// Node ESM のためその TypeScript 定数を直接 import できず、ここでは値を複製している
+// （DEMO_SPREADSHEET_ID 等と同じ理由）。値がズレたら summary.md のページ数表記が食い違うので
+// 気づける。driveFileId は run.mjs 側では使わないため複製しない。
+const BENCH_PDF_FIXTURES = {
+    demo: { pageCount: 4, fileName: 'demo-paper.pdf' },
+    '20p': { pageCount: 20, fileName: 'bench-paper-20p.pdf' },
+    '57p': { pageCount: 57, fileName: 'bench-paper-57p.pdf' },
+};
+
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 // ============================================================
@@ -85,6 +99,8 @@ function printHelp() {
 
 オプション（すべて省略可。既定値は括弧内）:
   --size <n>          合成文献数（?benchSize=）。複数指定可。サイズごとに1回ずつ計測する（既定 1000）
+  --pdf <id>          シナリオ8で使うPDFフィクスチャ（?benchPdf=）。demo|20p|57p。複数指定可。
+                      PDFごとに1回ずつシナリオ8を計測する（既定 demo）
   --key-opened        ?benchKeyOpened=1（キー開封後の条件）。指定なしは Blind（既定 off）
   --net-delay <ms>    ?netDelay=（通信の人工遅延）（既定 0）
   --repeat <n>        判定・前後移動の反復回数（既定 100）
@@ -99,6 +115,7 @@ function printHelp() {
 function parseArgs(argv) {
     const options = {
         sizes: [],
+        pdfs: [],
         keyOpened: false,
         netDelayMs: 0,
         repeat: 100,
@@ -122,6 +139,14 @@ function parseArgs(argv) {
                     throw new Error(`--size には正の数値を指定してください: ${value}`);
                 }
                 options.sizes.push(Math.floor(n));
+                break;
+            }
+            case '--pdf': {
+                const value = argv[++i];
+                if (!Object.prototype.hasOwnProperty.call(BENCH_PDF_FIXTURES, value)) {
+                    throw new Error(`--pdf には demo|20p|57p のいずれかを指定してください: ${value}`);
+                }
+                options.pdfs.push(value);
                 break;
             }
             case '--key-opened':
@@ -168,6 +193,7 @@ function parseArgs(argv) {
         }
     }
     if (options.sizes.length === 0) options.sizes.push(1000);
+    if (options.pdfs.length === 0) options.pdfs.push('demo');
     return options;
 }
 
@@ -312,6 +338,7 @@ function collectEnvMeta(options, userAgent) {
         buildMode: options.devBuild ? 'development' : 'production',
         runOptions: {
             sizes: options.sizes,
+            pdfs: options.pdfs,
             keyOpened: options.keyOpened,
             netDelayMs: options.netDelayMs,
             repeat: options.repeat,
@@ -558,7 +585,7 @@ async function scenarioOfflineQueue(page) {
 // シナリオ8（PDF表示と根拠ジャンプ。ベンチプロファイル、--size のうち最小のサイズを使う）
 // ============================================================
 
-async function scenarioPdf(context, extId, netDelayMs, benchSize) {
+async function scenarioPdf(context, extId, netDelayMs, benchSize, pdfId) {
     const page = await context.newPage();
     attachConsoleCapture(page);
     const netDelayQuery = netDelayMs > 0 ? `&netDelay=${netDelayMs}` : '';
@@ -580,10 +607,10 @@ async function scenarioPdf(context, extId, netDelayMs, benchSize) {
             // fulltext.html は自身の URL クエリから resolveDemoProfile()/resolveBenchOptions()
             // 経由で独立に seedDemoStore() を呼び直す（src/demo/fulltext-entry.ts）ため、
             // サイドパネルで既に seed 済みのプロファイルとは無関係に、ここで明示的に
-            // demoProfile=bench・benchSize= を指定する必要がある（既定デモプロファイルには
-            // フルテキストAI判定の根拠が無いため tiab:pdf.evidenceJump を計測できない。
-            // Issue #151（#150 工程0）チャンク3b）。
-            const query = `perf=1&ref_id=${PDF_SCENARIO_REF_ID}&demoProfile=bench&benchSize=${benchSize}${netDelayQuery}`;
+            // demoProfile=bench・benchSize=・benchPdf= を指定する必要がある（既定デモプロファイル
+            // には フルテキストAI判定の根拠が無いため tiab:pdf.evidenceJump を計測できない。
+            // Issue #151（#150 工程0）チャンク3b。benchPdf= は Issue #156（#150 工程5）着手前の準備）。
+            const query = `perf=1&ref_id=${PDF_SCENARIO_REF_ID}&demoProfile=bench&benchSize=${benchSize}&benchPdf=${pdfId}${netDelayQuery}`;
             await page.goto(`chrome-extension://${extId}/fulltext/fulltext.html?${query}`);
             await page.waitForFunction(
                 () => performance.getEntriesByType('measure').some((m) => m.name === 'tiab:pdf.allPages'),
@@ -608,14 +635,15 @@ async function scenarioPdf(context, extId, netDelayMs, benchSize) {
     }
 
     if (!evidenceJumpTried) {
+        const fixtureFileName = BENCH_PDF_FIXTURES[pdfId]?.fileName ?? pdfId;
         skipped.push({
-            scenario: 'pdf.evidenceJump',
-            reason: `${PDF_SCENARIO_REF_ID}（ベンチプロファイル, benchSize=${benchSize}）の根拠カード` +
-                '（.ft-annotation-card）が描画されず、根拠ジャンプの実UI操作を実行できなかった。' +
+            scenario: `pdf.evidenceJump (pdf=${pdfId})`,
+            reason: `${PDF_SCENARIO_REF_ID}（ベンチプロファイル, benchSize=${benchSize}, benchPdf=${pdfId}）` +
+                'の根拠カード（.ft-annotation-card）が描画されず、根拠ジャンプの実UI操作を実行できなかった。' +
                 'tiab:pdf.evidenceJump は0件のまま出力される。考えられる原因: (1) このsizeでは' +
                 'PDF_SCENARIO_REF_ID が通常論文行の範囲に入らない（src/demo/bench-fixtures.ts の' +
                 'FULLTEXT_CACHED_INDEX のガード参照）、(2) evidence の quote が' +
-                'video/fixtures/demo-paper.pdf のテキストと一致せずハイライトが解決できない、' +
+                `video/fixtures/${fixtureFileName} のテキストと一致せずハイライトが解決できない、` +
                 '(3) Config.fulltext_ai_active_round がフルテキストAI判定の reviewer_id と' +
                 '一致していない、のいずれか。',
         });
@@ -685,6 +713,7 @@ function buildSummaryMarkdown(report) {
     lines.push('## 実行条件');
     lines.push('');
     lines.push(`- サイズ: ${report.meta.runOptions.sizes.join(', ')}`);
+    lines.push(`- PDF: ${report.meta.runOptions.pdfs.join(', ')}`);
     lines.push(`- keyOpened: ${report.meta.runOptions.keyOpened}`);
     lines.push(`- netDelay: ${report.meta.runOptions.netDelayMs}ms`);
     lines.push(`- repeat: ${report.meta.runOptions.repeat}`);
@@ -726,19 +755,20 @@ function buildSummaryMarkdown(report) {
         }
     }
 
-    const pdfHeading = report.fulltextPdf
-        ? `## PDF表示と根拠ジャンプ（ベンチプロファイル, ref_id=${report.fulltextPdf.refId}, benchSize=${report.fulltextPdf.benchSize}）`
-        : '## PDF表示と根拠ジャンプ（ベンチプロファイル）';
-    lines.push(pdfHeading);
+    lines.push('## PDF表示と根拠ジャンプ（ベンチプロファイル）');
     lines.push('');
-    if (report.fulltextPdf) {
-        lines.push('| measure | count | median(ms) | p95(ms) | min(ms) | max(ms) |');
-        lines.push('|---|---|---|---|---|---|');
-        lines.push(measureTableRows(report.fulltextPdf.aggregated) || '(measureなし)');
-        lines.push('');
-    } else {
+    if (report.fulltextPdf.length === 0) {
         lines.push('(実行できませんでした。下記「スキップ/失敗したシナリオ」参照)');
         lines.push('');
+    } else {
+        for (const pdfReport of report.fulltextPdf) {
+            lines.push(`### benchPdf=${pdfReport.pdfId}（${pdfReport.pageCount}ページ, ref_id=${pdfReport.refId}, benchSize=${pdfReport.benchSize}）`);
+            lines.push('');
+            lines.push('| measure | count | median(ms) | p95(ms) | min(ms) | max(ms) |');
+            lines.push('|---|---|---|---|---|---|');
+            lines.push(measureTableRows(pdfReport.aggregated) || '(measureなし)');
+            lines.push('');
+        }
     }
 
     lines.push('## スキップ/失敗したシナリオ');
@@ -798,7 +828,9 @@ async function main() {
     const report = {
         meta: null,
         sizes: [],
-        fulltextPdf: null,
+        // PDFフィクスチャごとの結果を区別できるよう配列にする（Issue #156（#150 工程5）着手前の
+        // 準備。各要素は pdfId・pageCount に加え従来の aggregated/raw/netSnapshots 等を持つ）。
+        fulltextPdf: [],
         skipped: [],
         consoleMessages,
     };
@@ -870,33 +902,40 @@ async function main() {
             report.sizes.push(sizeReport);
         }
 
-        contextRef.label = 'pdf';
         // シナリオ8はベンチプロファイル・「--size のうち最小のサイズ」で実行する
         // （Issue #151（#150 工程0）チャンク3b。PDF_SCENARIO_REF_ID のコメント参照）。
+        // --pdf で複数指定された場合は、指定された各PDFについて1回ずつ実行する
+        // （Issue #156（#150 工程5）着手前の準備）。
         const pdfBenchSize = Math.min(...options.sizes);
-        try {
-            console.log(`\n[bench] シナリオ実行: pdf（ベンチプロファイル, benchSize=${pdfBenchSize}）`);
-            const pdfResult = await scenarioPdf(context, extId, options.netDelayMs, pdfBenchSize);
-            report.fulltextPdf = {
-                aggregated: aggregateByName(pdfResult.measures),
-                raw: pdfResult.measures.map((m) => ({
-                    name: m.name,
-                    durationMs: m.duration,
-                    detail: sanitizeDetailValue(m.detail ?? null),
-                })),
-                netSnapshots: pdfResult.netSnapshots,
-                iterations: PDF_SCENARIO_ITERATIONS,
-                benchSize: pdfBenchSize,
-                refId: PDF_SCENARIO_REF_ID,
-            };
-            for (const s of pdfResult.skipped) {
-                report.skipped.push(s);
-                console.log(`[bench] 部分的にスキップ: ${s.scenario}: ${s.reason.split('\n')[0]}`);
+        for (const pdfId of options.pdfs) {
+            contextRef.label = `pdf:${pdfId}`;
+            try {
+                console.log(`\n[bench] シナリオ実行: pdf（ベンチプロファイル, benchSize=${pdfBenchSize}, benchPdf=${pdfId}）`);
+                const pdfResult = await scenarioPdf(context, extId, options.netDelayMs, pdfBenchSize, pdfId);
+                report.fulltextPdf.push({
+                    pdfId,
+                    // 出典: DEMO_PDF_FIXTURES (src/demo/constants.ts)。BENCH_PDF_FIXTURES の複製元。
+                    pageCount: BENCH_PDF_FIXTURES[pdfId].pageCount,
+                    aggregated: aggregateByName(pdfResult.measures),
+                    raw: pdfResult.measures.map((m) => ({
+                        name: m.name,
+                        durationMs: m.duration,
+                        detail: sanitizeDetailValue(m.detail ?? null),
+                    })),
+                    netSnapshots: pdfResult.netSnapshots,
+                    iterations: PDF_SCENARIO_ITERATIONS,
+                    benchSize: pdfBenchSize,
+                    refId: PDF_SCENARIO_REF_ID,
+                });
+                for (const s of pdfResult.skipped) {
+                    report.skipped.push(s);
+                    console.log(`[bench] 部分的にスキップ: ${s.scenario}: ${s.reason.split('\n')[0]}`);
+                }
+            } catch (err) {
+                const reason = err && err.stack ? String(err.stack) : String(err);
+                console.error(`[bench] シナリオ失敗: pdf (pdf=${pdfId})\n${reason}`);
+                report.skipped.push({ scenario: `pdf (pdf=${pdfId})`, reason });
             }
-        } catch (err) {
-            const reason = err && err.stack ? String(err.stack) : String(err);
-            console.error(`[bench] シナリオ失敗: pdf\n${reason}`);
-            report.skipped.push({ scenario: 'pdf', reason });
         }
     } catch (fatalErr) {
         exitCode = 1;

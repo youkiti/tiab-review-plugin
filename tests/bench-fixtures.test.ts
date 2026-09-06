@@ -7,6 +7,12 @@ import {
     BENCH_FULLTEXT_CACHED_REF_ID,
 } from '../src/demo/bench-fixtures';
 import { isHumanDecision, isLlmDecision } from '../src/lib/client-version';
+import {
+    DEMO_PDF_FIXTURES,
+    DEMO_FULLTEXT_DRIVE_FILE_ID,
+    DEMO_FULLTEXT_PDF_RESOURCE_PATH,
+    type DemoPdfFixtureId,
+} from '../src/demo/constants';
 
 /**
  * buildBenchDecisionSeeds(size) が追加する「フルテキストAI判定（根拠ジャンプ計測用、
@@ -189,4 +195,72 @@ test('根拠ジャンプ計測用フィクスチャ: フルテキスト取得済
     const note: { type?: string; evidence?: unknown } = JSON.parse(fulltextAiSeeds[0].note ?? '');
     assert.equal(note.type, 'llm_fulltext', 'noteがFulltextLlmDecisionNote(type=llm_fulltext)としてパースできない');
     assert.ok(Array.isArray(note.evidence) && note.evidence.length > 0, 'evidenceが1件も無い');
+});
+
+// ---------------------------------------------------------------------------
+// Issue #156（#150 工程5）着手前の準備: ?benchPdf= で選べるPDFフィクスチャ（DEMO_PDF_FIXTURES）。
+// PDFバイナリそのものは開かない。テスト対象は「識別子 → Drive ID・evidence」の組み立てロジック。
+// ---------------------------------------------------------------------------
+
+test('DEMO_PDF_FIXTURES: "demo" エントリは DEMO_FULLTEXT_DRIVE_FILE_ID / DEMO_FULLTEXT_PDF_RESOURCE_PATH と一致する', () => {
+    assert.equal(DEMO_PDF_FIXTURES.demo.driveFileId, DEMO_FULLTEXT_DRIVE_FILE_ID);
+    assert.equal(DEMO_PDF_FIXTURES.demo.resourcePath, DEMO_FULLTEXT_PDF_RESOURCE_PATH);
+});
+
+test('DEMO_PDF_FIXTURES: driveFileId・resourcePath がそれぞれ3件とも重複しない', () => {
+    const fixtures = Object.values(DEMO_PDF_FIXTURES);
+    assert.equal(new Set(fixtures.map((f) => f.driveFileId)).size, fixtures.length, 'driveFileId が重複している');
+    assert.equal(new Set(fixtures.map((f) => f.resourcePath)).size, fixtures.length, 'resourcePath が重複している');
+});
+
+test('buildBenchReferences: pdf 引数でフルテキスト取得済み行の Drive ID が切り替わる（省略時は demo）', () => {
+    for (const pdf of ['20p', '57p'] as DemoPdfFixtureId[]) {
+        const refs = buildBenchReferences(1000, pdf);
+        const cachedRefs = refs.filter((ref) => ref.ref_id === BENCH_FULLTEXT_CACHED_REF_ID);
+        assert.equal(cachedRefs.length, 1, `pdf=${pdf}: フルテキスト取得済み行がちょうど1件ではない`);
+        const expectedDriveFileId = DEMO_PDF_FIXTURES[pdf].driveFileId;
+        assert.equal(cachedRefs[0].fulltext_drive_copy_id, expectedDriveFileId, `pdf=${pdf}: fulltext_drive_copy_id`);
+        assert.ok(cachedRefs[0].fulltext_url?.includes(expectedDriveFileId), `pdf=${pdf}: fulltext_url に driveFileId が含まれない`);
+    }
+
+    const defaultRefs = buildBenchReferences(1000);
+    const defaultCachedRefs = defaultRefs.filter((ref) => ref.ref_id === BENCH_FULLTEXT_CACHED_REF_ID);
+    assert.equal(defaultCachedRefs[0].fulltext_drive_copy_id, DEMO_PDF_FIXTURES.demo.driveFileId, '引数省略時は demo の driveFileId になる');
+});
+
+/** BENCH_FULLTEXT_CACHED_REF_ID 宛のフルテキストAI判定の note を JSON.parse し、evidence の page 一覧を返す。 */
+function fulltextAiEvidencePages(size: number, pdf?: DemoPdfFixtureId): number[] {
+    const seeds = pdf === undefined ? buildBenchDecisionSeeds(size) : buildBenchDecisionSeeds(size, pdf);
+    const fulltextAiSeeds = seeds.filter((s) =>
+        s.refId === BENCH_FULLTEXT_CACHED_REF_ID
+        && s.screeningPhase === 'fulltext'
+        && isLlmDecision(s.clientVersion));
+    assert.equal(fulltextAiSeeds.length, 1, `pdf=${pdf ?? '(省略)'}: フルテキストAI判定がちょうど1件ではない`);
+    const note: { evidence?: { page: number }[] } = JSON.parse(fulltextAiSeeds[0].note ?? '');
+    assert.ok(Array.isArray(note.evidence));
+    return (note.evidence ?? []).map((e) => e.page);
+}
+
+test('buildBenchDecisionSeeds: pdf 引数でフルテキストAI判定の根拠(evidence)のpageが切り替わる（省略時は demo）', () => {
+    assert.deepEqual(fulltextAiEvidencePages(1000, '20p'), [1, 9, 16]);
+    assert.deepEqual(fulltextAiEvidencePages(1000, '57p'), [1, 22, 53]);
+    assert.deepEqual(fulltextAiEvidencePages(1000), [1, 2, 3]);
+});
+
+test('buildBenchDecisionSeeds: フルテキストAI判定のevidenceのpageは、そのPDFのpageCount以内である（3プロファイルすべて）', () => {
+    const profiles: DemoPdfFixtureId[] = ['demo', '20p', '57p'];
+    for (const pdf of profiles) {
+        const pages = fulltextAiEvidencePages(1000, pdf);
+        const pageCount = DEMO_PDF_FIXTURES[pdf].pageCount;
+        for (const page of pages) {
+            assert.ok(page <= pageCount, `pdf=${pdf}: page=${page} が pageCount=${pageCount} を超えている`);
+        }
+    }
+});
+
+test('決定論: buildBenchReferences(1000, pdf) / buildBenchDecisionSeeds(1000, pdf) は pdf を指定しても2回呼べば同じ結果になる', () => {
+    for (const pdf of ['20p', '57p'] as DemoPdfFixtureId[]) {
+        assert.deepEqual(buildBenchReferences(1000, pdf), buildBenchReferences(1000, pdf));
+        assert.deepEqual(buildBenchDecisionSeeds(1000, pdf), buildBenchDecisionSeeds(1000, pdf));
+    }
 });

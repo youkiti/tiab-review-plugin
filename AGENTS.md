@@ -1377,6 +1377,10 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 バンドル統計 `npm run bench:bundle` の2本）。計測結果は既定で `.tmp/bench/`（`.gitignore` 済み）へ
 出る。計測用ビルド（プレースホルダー環境変数・隔離した出力先）は配布しないこと。
 
+PDFフィクスチャはデモビルド限定で3本同梱している（`demo`/`20p`/`57p`、`?benchPdf=` または
+`npm run bench -- --pdf` で選択）。追加2本（20ページ・57ページ）は外部のCC BY 4.0論文で、出所表示は
+`video/fixtures/NOTICE.md` にある。
+
 ### `.env` が無い環境（git worktree 等）で production ビルドを検証する
 
 `git worktree` で切ったツリーには `.env` が無いため、production ビルドは fail-fast で落ちる。**`ALLOW_NO_AUTH=1` は dev ビルドしか救わない**（`webpack.config.js` の production 側の throw は、コード中の注記どおりこの変数の影響を受けない）。そのため「`npm run dev` は通ったが `npm run build` / `npm run build:web` は未検証」のまま PR を出すことになりやすい。

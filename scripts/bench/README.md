@@ -16,8 +16,24 @@
 **同一入力で再実行できる形**でベースラインを出力するスクリプトです。
 
 **実データは一切使いません。** 文献・判定はすべて合成データ（`src/demo/bench-fixtures.ts`）で、
-PDFもデモ同梱の固定フィクスチャ（`video/fixtures/demo-paper.pdf`）です。認証情報・実アカウント・
-実ネットワークも使いません（デモモードは全 fetch をモックで横取りします）。
+PDFもデモビルド同梱の固定フィクスチャです。認証情報・実アカウント・実ネットワークも使いません
+（デモモードは全 fetch をモックで横取りします）。
+
+### PDFフィクスチャ
+
+`?benchPdf=`（`--pdf`）で選べるPDFは3本あります。既定は `demo`（4ページ）で、`--pdf` を指定
+しない既存の呼び出しの挙動は変わりません。
+
+| 識別子 | ファイル | ページ数 | 出典 | ライセンス |
+| --- | --- | --- | --- | --- |
+| `demo` | `video/fixtures/demo-paper.pdf` | 4 | このリポジトリで生成した架空の論文（生成元 `video/fixtures/demo-paper.html`） | （このリポジトリのMITライセンスに従う） |
+| `20p` | `video/fixtures/bench-paper-20p.pdf` | 20 | Marra F, Yip M, Cragg JJ, Vadlamudi NK. "Systematic review and meta-analysis of recombinant herpes zoster vaccine in immunocompromised populations." PLoS ONE 19(11): e0313889 (2024). doi:10.1371/journal.pone.0313889 | CC BY 4.0 |
+| `57p` | `video/fixtures/bench-paper-57p.pdf` | 57 | Siedentop B, Kachalov VN, Witzany C, Egger M, Kouyos RD, Bonhoeffer S. "The effect of combining antibiotics on resistance: A systematic review and meta-analysis." eLife 2024;13:RP93740. doi:10.7554/eLife.93740 | CC BY 4.0 |
+
+`20p` / `57p` は公開済みのCC BY 4.0論文をそのまま同梱したもので、**このプロジェクトの研究データ
+ではありません**。20ページ以上のPDFフィクスチャが要る計測（Issue #156（#150 工程5））のために
+追加しました。出所表示（著者・掲載誌・DOI・ライセンス・取得日）は `video/fixtures/NOTICE.md` に
+まとめています。デモビルド限定で同梱し、`dist/`（拡張機能の配布物）には含めません。
 
 ### 前提
 
@@ -45,6 +61,9 @@ npm run bench -- --skip-build --repeat 20
 
 # キー開封後（非ブラインド）の条件で、通信に200msの人工遅延を入れる
 npm run bench -- --key-opened --net-delay 200
+
+# シナリオ8（PDF表示・根拠ジャンプ）を20ページ・57ページのPDFで計測（Issue #156（#150 工程5））
+npm run bench -- --pdf 20p --pdf 57p
 ```
 
 #### オプション一覧
@@ -52,6 +71,7 @@ npm run bench -- --key-opened --net-delay 200
 | オプション | 既定値 | 意味 |
 | --- | --- | --- |
 | `--size <n>` | 1000 | 合成文献数（`?benchSize=`）。複数指定可（`--size 1000 --size 10000`）。サイズごとに1回ずつシナリオ1〜7を計測する |
+| `--pdf <id>` | demo | シナリオ8で使うPDFフィクスチャ（`?benchPdf=`）。`demo`\|`20p`\|`57p`。複数指定可（`--pdf 20p --pdf 57p`）。PDFごとに1回ずつシナリオ8を計測する |
 | `--key-opened` | off | `?benchKeyOpened=1`（キー開封後の条件）。off なら Blind |
 | `--net-delay <ms>` | 0 | `?netDelay=`（通信の人工遅延） |
 | `--repeat <n>` | 100 | 判定・前後移動の反復回数（親issueが「100回以上」を求めている） |
@@ -82,10 +102,11 @@ npm run bench -- --key-opened --net-delay 200
    `fulltext.html` を開き、`tiab:pdf.firstPage` / `tiab:pdf.allPages` / `tiab:pdf.highlight` /
    `tiab:pdf.evidenceJump` を5回分収集する。使う ref_id はコード側の定数
    `PDF_SCENARIO_REF_ID`（出典: `BENCH_FULLTEXT_CACHED_REF_ID`, `src/demo/bench-fixtures.ts`）で、
-   この文献1件だけ `fulltext_status='cached'` とフルテキストAI判定（根拠3件、
-   `video/fixtures/demo-paper.pdf` に実在する文字列をquoteにしたもの）がseedされている
-   （既定デモプロファイルの `demo-ref-001` にはAI判定根拠が無いため使わない。
-   Issue #151（#150 工程0）チャンク3b）。
+   この文献1件だけ `fulltext_status='cached'` とフルテキストAI判定（根拠3件、`--pdf` で選んだ
+   PDFフィクスチャに実在する文字列をquoteにしたもの）がseedされている（既定デモプロファイルの
+   `demo-ref-001` にはAI判定根拠が無いため使わない。Issue #151（#150 工程0）チャンク3b）。
+   `--pdf` で複数指定した場合はPDFごとに1回ずつ実行し、出力の `fulltextPdf` は各PDFの結果
+   （`pdfId`・`pageCount` を含む）を並べた配列になる（Issue #156（#150 工程5）着手前の準備）。
 
 シナリオ2・3では、`performance.measure` が拾えない「クリックしてから画面が更新されるまで」の
 実時間も別途 `runner:decision.click2frame` / `runner:navigate.click2frame` として計測します。
@@ -108,9 +129,10 @@ Node↔ブラウザのIPC往復は計測に含めません（page.evaluate() 内
 
 - `bench-<ISO日時>.json` — 環境メタ＋全シナリオの集計＋生の measure 一覧
   - `meta`: コミットSHA・ブランチ・作業ツリーの汚れ・Node/Chromeバージョン・OS・CPU・総RAM・
-    ビルドモード・実行オプション（size/keyOpened/netDelay/repeat）
+    ビルドモード・実行オプション（size/pdf/keyOpened/netDelay/repeat）
   - `sizes[]`: サイズごとの `scenarios`（各シナリオの `aggregated`/`net`/`raw` 等）
-  - `fulltextPdf`: シナリオ8の集計
+  - `fulltextPdf[]`: シナリオ8の集計。`--pdf` で指定したPDFごとに1要素（`pdfId`・`pageCount`・
+    `aggregated`/`raw`/`netSnapshots` 等）
   - `skipped[]`: 実行できなかった（または失敗した）シナリオとその理由
   - `consoleMessages[]`: 実行中に出たコンソールエラー・警告・pageerror
 - `summary.md` — 上記を人が読める表にまとめた日本語のサマリ

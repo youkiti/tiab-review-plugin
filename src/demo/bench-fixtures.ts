@@ -31,7 +31,8 @@ import {
     DEMO_USER_EMAIL,
     DEMO_COLLEAGUE_EMAIL,
     DEMO_HUMAN_CLIENT_VERSION,
-    DEMO_FULLTEXT_DRIVE_FILE_ID,
+    DEMO_PDF_FIXTURES,
+    type DemoPdfFixtureId,
 } from './constants';
 
 // ---------------------------------------------------------------------------
@@ -324,13 +325,14 @@ const FULLTEXT_CACHED_INDEX =
 /** PDF表示・根拠ジャンプ計測の対象にする ref_id（上記コメント参照）。 */
 export const BENCH_FULLTEXT_CACHED_REF_ID = benchRefId(FULLTEXT_CACHED_INDEX);
 
-/**
- * フルテキストAI判定の根拠(evidence)。video/fixtures/demo-paper.pdf（生成元:
- * video/fixtures/demo-paper.html）に実在する文字列をそのまま抜粋する。
- * pdfRenderer.highlight()（src/fulltext/pdf-text-match.ts の findQuoteItems()）は
- * 空白圧縮・小文字化した部分一致でマッチするため、改行や句読点の位置は多少ずれても良いが、
- * 単語そのものは fixture のHTML本文と一致させる必要がある。
- */
+// ---------------------------------------------------------------------------
+// フルテキストAI判定の根拠(evidence)。?benchPdf= で選んだPDFフィクスチャごとに、そのPDFの
+// 本文に実在する文字列をそのまま抜粋する。pdfRenderer.highlight()（src/fulltext/pdf-text-match.ts
+// の findQuoteItems()）は空白圧縮・小文字化した部分一致でマッチするため、改行や句読点の位置は
+// 多少ずれても良いが、単語そのものはPDF本文と一致させる必要がある。
+// ---------------------------------------------------------------------------
+
+/** 'demo' 用（video/fixtures/demo-paper.pdf、生成元: video/fixtures/demo-paper.html）。 */
 const BENCH_FULLTEXT_LLM_EVIDENCE: FulltextEvidence[] = [
     {
         // Abstract 中の一文（demo-paper.html 1ページ目、最初の page-break より前）
@@ -351,8 +353,57 @@ const BENCH_FULLTEXT_LLM_EVIDENCE: FulltextEvidence[] = [
     },
 ];
 
+/** '20p' 用（video/fixtures/bench-paper-20p.pdf、20ページ。出典・ライセンスは video/fixtures/NOTICE.md）。 */
+const BENCH_FULLTEXT_LLM_EVIDENCE_20P: FulltextEvidence[] = [
+    {
+        // Abstract の結論部分（1ページ目）
+        quote: 'Seven RCTs were included. Compared to placebo, RZV reduced the incidence of herpes zoster across all ages by 81%',
+        page: 1,
+        polarity: 'include',
+    },
+    {
+        // Results中、安全性アウトカムに関する記述（9ページ目）
+        quote: 'There was no statistical difference between RZV and placebo with regard to unsolicited 30-day adverse events',
+        page: 9,
+    },
+    {
+        // Discussion の結語部分（16ページ目）
+        quote: 'The non-live-virus recombinant zoster vaccine is efficacious, immunogenic and safe for immunocompromised persons 18 years of age and older as a 2-dose schedule',
+        page: 16,
+        polarity: 'exclude',
+    },
+];
+
+/** '57p' 用（video/fixtures/bench-paper-57p.pdf、57ページ。出典・ライセンスは video/fixtures/NOTICE.md）。 */
+const BENCH_FULLTEXT_LLM_EVIDENCE_57P: FulltextEvidence[] = [
+    {
+        // Methods、検索式に関する記述（1ページ目）
+        quote: 'We searched CENTRAL, EMBASE, and PubMed for (quasi)-randomised controlled trials (RCTs) published from database inception to 24 November 2022',
+        page: 1,
+        polarity: 'include',
+    },
+    {
+        // Methods、バイアスリスク評価に関する記述（22ページ目）
+        quote: 'To assess the risk of bias for our two main outcomes we used the RoB 2 tool',
+        page: 22,
+    },
+    {
+        // Discussion、先行研究との比較に関する記述（53ページ目）
+        quote: 'In our meta-analysis we excluded some studies that were included in previous meta-analyses focusing on resistance development',
+        page: 53,
+        polarity: 'exclude',
+    },
+];
+
+/** PDFフィクスチャの識別子 → evidence 配列。buildBenchFulltextLlmNote() が pdf 引数で引く。 */
+const BENCH_FULLTEXT_LLM_EVIDENCE_BY_PDF: Record<DemoPdfFixtureId, FulltextEvidence[]> = {
+    demo: BENCH_FULLTEXT_LLM_EVIDENCE,
+    '20p': BENCH_FULLTEXT_LLM_EVIDENCE_20P,
+    '57p': BENCH_FULLTEXT_LLM_EVIDENCE_57P,
+};
+
 /** BENCH_FULLTEXT_CACHED_REF_ID に付与するフルテキストAI判定の note（Decisions.note のJSON）。 */
-function buildBenchFulltextLlmNote(executionId: string): FulltextLlmDecisionNote {
+function buildBenchFulltextLlmNote(executionId: string, pdf: DemoPdfFixtureId): FulltextLlmDecisionNote {
     return {
         type: 'llm_fulltext',
         execution_id: executionId,
@@ -360,7 +411,7 @@ function buildBenchFulltextLlmNote(executionId: string): FulltextLlmDecisionNote
         requested_model: BENCH_LLM_MODEL,
         include_probability: 0.72,
         reason: 'Bench fixture fulltext screening note for evidence-jump measurement (Issue #151 チャンク3b).',
-        evidence: BENCH_FULLTEXT_LLM_EVIDENCE,
+        evidence: BENCH_FULLTEXT_LLM_EVIDENCE_BY_PDF[pdf],
         prompt_version: 'bench-fixture-fulltext-v1',
     };
 }
@@ -426,7 +477,7 @@ function buildImportedPublicationReferenceBench(index: number, registrationIndex
     };
 }
 
-function buildNormalArticleReference(index: number): Reference {
+function buildNormalArticleReference(index: number, pdf: DemoPdfFixtureId): Reference {
     const plan = planFor(index);
     const refIdValue = benchRefId(index);
     const pmidValue = `7${String(index).padStart(7, '0')}`;
@@ -455,10 +506,12 @@ function buildNormalArticleReference(index: number): Reference {
     if (index === FULLTEXT_CACHED_INDEX) {
         // PDF先頭ページ・根拠ジャンプ計測用（Issue #151（#150 工程0）チャンク3b）。
         // src/demo/seed.ts の buildRealDemoReferences() が demo-ref-001 に対して行っているのと
-        // 同じ組み立て（fulltext_status='cached' ＋ Drive URL・コピーID）。
+        // 同じ組み立て（fulltext_status='cached' ＋ Drive URL・コピーID）。ID は ?benchPdf= で
+        // 選んだPDFフィクスチャ（既定 'demo'）のものを使う（Issue #156（#150 工程5）着手前の準備）。
+        const driveFileId = DEMO_PDF_FIXTURES[pdf].driveFileId;
         built.fulltext_status = 'cached';
-        built.fulltext_url = `https://drive.google.com/file/d/${DEMO_FULLTEXT_DRIVE_FILE_ID}/view`;
-        built.fulltext_drive_copy_id = DEMO_FULLTEXT_DRIVE_FILE_ID;
+        built.fulltext_url = `https://drive.google.com/file/d/${driveFileId}/view`;
+        built.fulltext_drive_copy_id = driveFileId;
     }
     return built;
 }
@@ -484,7 +537,11 @@ function applyDuplicateFlags(refs: Reference[], partition: BenchPartition): void
     }
 }
 
-export function buildBenchReferences(size: number): Reference[] {
+/**
+ * @param pdf フルテキスト取得済み行（BENCH_FULLTEXT_CACHED_REF_ID）に付与する Drive ID の
+ *   元になるPDFフィクスチャ（省略時は 'demo'。既存の呼び出し・既存のベンチ結果の互換を壊さない）。
+ */
+export function buildBenchReferences(size: number, pdf: DemoPdfFixtureId = 'demo'): Reference[] {
     const partition = computePartition(size);
     const { n, registrationCount, importedPubCount } = partition;
     if (n === 0) return [];
@@ -496,7 +553,7 @@ export function buildBenchReferences(size: number): Reference[] {
         } else if (i <= registrationCount + importedPubCount) {
             refs.push(buildImportedPublicationReferenceBench(i, i - registrationCount));
         } else {
-            refs.push(buildNormalArticleReference(i));
+            refs.push(buildNormalArticleReference(i, pdf));
         }
     }
 
@@ -608,7 +665,11 @@ export function buildBenchLlmRound(size: number): BenchLlmRound {
     return { run, execution };
 }
 
-export function buildBenchDecisionSeeds(size: number): BenchDecisionSeed[] {
+/**
+ * @param pdf フルテキストAI判定の根拠(evidence)に使うPDFフィクスチャ（省略時は 'demo'。
+ *   既存の呼び出し・既存のベンチ結果の互換を壊さない）。
+ */
+export function buildBenchDecisionSeeds(size: number, pdf: DemoPdfFixtureId = 'demo'): BenchDecisionSeed[] {
     const n = Math.max(0, Math.floor(size));
     if (n === 0) return [];
 
@@ -726,7 +787,7 @@ export function buildBenchDecisionSeeds(size: number): BenchDecisionSeed[] {
             decidedAt: isoFromOffsetSeconds(FULLTEXT_CACHED_INDEX * 7 + 900000),
             clientVersion: BENCH_LLM_CLIENT_VERSION,
             screeningPhase: 'fulltext',
-            note: JSON.stringify(buildBenchFulltextLlmNote(llmRound.execution.execution_id)),
+            note: JSON.stringify(buildBenchFulltextLlmNote(llmRound.execution.execution_id, pdf)),
         });
     }
 

@@ -20,6 +20,8 @@
 // resolveBenchOptions() も同じ理由で完全同期解決にしている（chrome.storage.local を
 // 読む非同期フォールバックを追加しないこと）。
 
+import { DEMO_PDF_FIXTURES, type DemoPdfFixtureId } from './constants';
+
 export type DemoProfile = 'default' | 'ml' | 'bench';
 
 /**
@@ -44,16 +46,21 @@ export interface BenchOptions {
     size: number;
     /** true: Config に key_opened=true を入れる（非ブラインド） / false: Blind（既定） */
     keyOpened: boolean;
+    /** フルテキスト計測に使うPDFフィクスチャ（既定 'demo'）。Issue #156（#150 工程5）着手前の準備 */
+    pdf: DemoPdfFixtureId;
 }
 
 /**
- * bench プロファイル用オプションを ?benchSize= / ?benchKeyOpened= から同期的に解決する。
+ * bench プロファイル用オプションを ?benchSize= / ?benchKeyOpened= / ?benchPdf= から
+ * 同期的に解決する。
  * - benchSize: 数値として解釈できない値・0以下は既定値（1000）へフォールバックする。
  *   上限は50000で、超えた場合は50000に丸め、丸めたことを console.warn で1行出す。
  * - benchKeyOpened: '1' のときだけ true（既定 false = Blind）。
+ * - benchPdf: DEMO_PDF_FIXTURES のキー（'demo'/'20p'/'57p'）と一致するときだけその値、
+ *   それ以外（未指定・不正値）は既定の 'demo'（既存の呼び出し・既存のベンチ結果の互換を壊さない）。
  */
 export function resolveBenchOptions(): BenchOptions {
-    if (typeof location === 'undefined') return { size: DEFAULT_BENCH_SIZE, keyOpened: false };
+    if (typeof location === 'undefined') return { size: DEFAULT_BENCH_SIZE, keyOpened: false, pdf: 'demo' };
     const params = new URLSearchParams(location.search);
 
     const rawSize = params.get('benchSize');
@@ -72,5 +79,13 @@ export function resolveBenchOptions(): BenchOptions {
 
     const keyOpened = params.get('benchKeyOpened') === '1';
 
-    return { size, keyOpened };
+    const rawPdf = params.get('benchPdf');
+    // `in` 演算子は Object.prototype の継承プロパティ（'constructor'・'toString' 等）にも
+    // true を返すため使わない（?benchPdf=constructor が「有効な値」として通ってしまい、
+    // DEMO_PDF_FIXTURES['constructor'] が Object コンストラクタ関数を返すバグになる）。
+    const pdf: DemoPdfFixtureId = rawPdf !== null && Object.prototype.hasOwnProperty.call(DEMO_PDF_FIXTURES, rawPdf)
+        ? (rawPdf as DemoPdfFixtureId)
+        : 'demo';
+
+    return { size, keyOpened, pdf };
 }
