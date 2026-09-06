@@ -4,6 +4,7 @@
 // 切り出した。通信・platform・DOM に依存しない。
 // Config タブの読み書きに使う型・既定値・変換を置く。
 
+import { DEFAULT_ASSIGNMENT_CONFIG } from '../assignment-set';
 import type { AssignmentConfig, ImportStatsMap, LlmConfig } from '../types';
 import { MODEL_ID_MIGRATIONS } from '../model-migrations';
 import { parseLlmTargetMode, parseTargetRefIds, serializeTargetRefIds } from '../llm-target-selection';
@@ -46,13 +47,6 @@ export const PRESET_SR = {
 const DEFAULT_INCLUDE_KEYWORDS = PRESET_RCT.include;
 
 const DEFAULT_EXCLUDE_KEYWORDS = PRESET_RCT.exclude;
-
-const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
-    status: 'none',
-    calibrationSize: 50,
-    groupCount: 4,
-    reviewerMap: {},
-};
 
 /**
  * ハイライトキーワードの型

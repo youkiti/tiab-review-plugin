@@ -1,6 +1,7 @@
 /**
  * インポート/エクスポート機能モジュール
  */
+import { addSourceFile as storeAddSourceFile, addSelectedSourceFile as storeAddSelectedSourceFile } from '../store/compat';
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast, showLoading } from '../ui/feedback';
@@ -140,8 +141,8 @@ export async function handleRISImport(e: Event) {
 
         // 状態を更新
         dom.importStatus.textContent = t('import_updating');
-        state.addSourceFile(file.name);
-        state.addSelectedSourceFile(file.name); // 新規ファイルを選択状態にする
+        storeAddSourceFile(file.name);
+        storeAddSelectedSourceFile(file.name); // 新規ファイルを選択状態にする
         if (_loadDataAndShowScreening) {
             await _loadDataAndShowScreening();
         } else if (_renderCurrentReference) {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getFilteredReferences, getFilterCounts } from '../src/sidepanel/store/selectors';
+import { DEFAULT_ASSIGNMENT_CONFIG } from '../src/lib/assignment-set';
 import type { AppState } from '../src/sidepanel/store/types';
 import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
@@ -51,6 +52,10 @@ function makeState(params: {
             fulltextPoolRule: params.fulltextPoolRule ?? null,
             fulltextAssignment: params.fulltextAssignment
                 ?? { status: 'none', groupCount: 2, reviewerMap: {} },
+            assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
+            assignmentSets: new Set<string>(),
+            selectedAssignmentSets: new Set<string>(),
+            selectedFulltextSets: new Set<string>(),
             sourceFiles: new Set(),
             selectedSourceFiles: new Set(),
             availableReviewers: new Set(),

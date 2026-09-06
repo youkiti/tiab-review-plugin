@@ -1,11 +1,11 @@
 /**
  * アプリケーション状態の集約管理
- * getter/setter パターンで副作用を制御し、状態変更の影響範囲を限定
+ * 設定・絞り込み・現在文献はStoreを読むgetterのみ。未移行領域は従来のsetterを維持する。
  */
 
 import { getState } from './store';
 
-import type { ReferenceWithStatus, DecisionStatus, LlmConfig, Decision, AssignmentConfig, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
+import type { ReferenceWithStatus, LlmConfig, Decision, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { HighlightKeywords } from '../lib/sheets-api';
 import type { ReviewCriteria } from '../lib/review-criteria';
 import type { ExcludeReasonConfig } from '../lib/exclude-reason-config';
@@ -20,21 +20,11 @@ import { DEFAULT_LLM_TARGET_MODE } from '../lib/llm-target-selection';
 
 // ========== Private State Variables ==========
 
-const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
-    status: 'none',
-    calibrationSize: 50,
-    groupCount: 4,
-    reviewerMap: {},
-};
-
 // 基本状態
-let _references: ReferenceWithStatus[] = [];
 // 担当割り振りで絞り込む前の全文献。
-// _references は非管理者だと自分の担当分だけになるため、
+// Storeの references は非管理者だと自分の担当分だけになるため、
 // 「どのセットが何件で誰の担当か」をレビュアー全員に同じ数字で見せる用途にはこちらを使う。
 let _allReferences: ReferenceWithStatus[] = [];
-let _currentIndex = 0;
-let _currentFilter: DecisionStatus | 'all' | 'fulltext_candidates' = 'pending';
 let _reviewHistoryRefIds: string[] = [];
 let _reviewHistoryCursor = -1;
 let _reviewHistoryReturnRefId: string | null = null;
@@ -48,7 +38,6 @@ let _userEmail = '';
 
 // キーワード・権限
 let _highlightKeywords: HighlightKeywords = { include: [], exclude: [] };
-let _isKeyOpened = false;
 let _isAdmin = false;
 
 // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
@@ -56,10 +45,6 @@ let _fulltextPoolRule: FulltextPoolRule | null = null;
 
 // フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none'）
 let _fulltextAssignment: FulltextAssignmentConfig = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
-
-// ソースファイルフィルター
-let _sourceFiles: Set<string> = new Set();
-let _selectedSourceFiles: Set<string> = new Set();
 
 // インポート統計（Configシート import_stats、PRISMA自動記入用）
 let _importStats: ImportStatsMap = {};
@@ -69,17 +54,6 @@ let _reviewCriteria: ReviewCriteria | null = null;
 
 // フルテキスト除外理由リスト（Configシート fulltext_exclude_reasons、未設定は null = 既定の7区分）
 let _excludeReasonConfig: ExcludeReasonConfig | null = null;
-
-// 担当セットフィルター
-let _assignmentConfig: AssignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
-let _assignmentSets: Set<string> = new Set();
-let _selectedAssignmentSets: Set<string> = new Set();
-
-// フルテキスト担当セットフィルター（TiAb の _selectedAssignmentSets と対称）
-let _selectedFulltextSets: Set<string> = new Set();
-
-// タームフィルター
-let _activeTermFilters: { term: string; type: 'include' | 'exclude' }[] = [];
 
 // LLM関連
 let _currentTab: 'screening' | 'llm' | 'ml' | 'fulltext' = 'screening';
@@ -113,18 +87,17 @@ let _mlState: MlState = createInitialMlState();
 
 export const state = {
     // ----- References -----
-    get references() { return _references; },
-    setReferences(refs: ReferenceWithStatus[]) { _references = refs; },
+    get references() { return getState().data.references; },
 
     /** 担当割り振りで絞り込む前の全文献（未設定時は references と同じ内容） */
-    get allReferences() { return _allReferences.length > 0 ? _allReferences : _references; },
+    get allReferences() { return _allReferences.length > 0 ? _allReferences : getState().data.references; },
     setAllReferences(refs: ReferenceWithStatus[]) { _allReferences = refs; },
 
-    get currentIndex() { return _currentIndex; },
-    setCurrentIndex(idx: number) { _currentIndex = idx; },
+    get currentIndex() { return getState().ui.screening.currentIndex; },
 
-    get currentFilter() { return _currentFilter; },
-    setCurrentFilter(filter: DecisionStatus | 'all' | 'fulltext_candidates') { _currentFilter = filter; },
+    get currentFilter() { return getState().ui.screening.currentFilter; },
+
+    get searchQuery() { return getState().ui.screening.searchQuery; },
 
     // ----- Review History -----
     get reviewHistoryRefIds() { return _reviewHistoryRefIds; },
@@ -192,8 +165,7 @@ export const state = {
         _highlightKeywords.exclude = _highlightKeywords.exclude.filter(w => w !== word);
     },
 
-    get isKeyOpened() { return _isKeyOpened; },
-    setIsKeyOpened(opened: boolean) { _isKeyOpened = opened; },
+    get isKeyOpened() { return getState().ui.screening.isKeyOpened; },
 
     get isAdmin() { return _isAdmin; },
     setIsAdmin(admin: boolean) { _isAdmin = admin; },
@@ -205,15 +177,9 @@ export const state = {
     setFulltextAssignment(config: FulltextAssignmentConfig) { _fulltextAssignment = config; },
 
     // ----- Source File Filters -----
-    get sourceFiles() { return _sourceFiles; },
-    setSourceFiles(files: Set<string>) { _sourceFiles = files; },
-    clearSourceFiles() { _sourceFiles.clear(); },
-    addSourceFile(file: string) { _sourceFiles.add(file); },
+    get sourceFiles() { return getState().data.sourceFiles; },
 
-    get selectedSourceFiles() { return _selectedSourceFiles; },
-    setSelectedSourceFiles(files: Set<string>) { _selectedSourceFiles = files; },
-    addSelectedSourceFile(file: string) { _selectedSourceFiles.add(file); },
-    removeSelectedSourceFile(file: string) { _selectedSourceFiles.delete(file); },
+    get selectedSourceFiles() { return getState().data.selectedSourceFiles; },
 
     // ----- Import Stats (PRISMA自動記入用) -----
     get importStats() { return _importStats; },
@@ -230,25 +196,14 @@ export const state = {
     get excludeReasonItems(): readonly ExcludeReasonItem[] { return resolveExcludeReasonItems(_excludeReasonConfig); },
 
     // ----- Assignment Filters -----
-    get assignmentConfig() { return _assignmentConfig; },
-    setAssignmentConfig(config: AssignmentConfig) { _assignmentConfig = config; },
-    resetAssignmentConfig() { _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG }; },
+    get assignmentConfig() { return getState().data.assignmentConfig; },
 
-    get assignmentSets() { return _assignmentSets; },
-    setAssignmentSets(sets: Set<string>) { _assignmentSets = sets; },
-    clearAssignmentSets() { _assignmentSets.clear(); },
-    addAssignmentSet(setId: string) { _assignmentSets.add(setId); },
+    get assignmentSets() { return getState().data.assignmentSets; },
 
-    get selectedAssignmentSets() { return _selectedAssignmentSets; },
-    setSelectedAssignmentSets(sets: Set<string>) { _selectedAssignmentSets = sets; },
-    addSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.add(setId); },
-    removeSelectedAssignmentSet(setId: string) { _selectedAssignmentSets.delete(setId); },
+    get selectedAssignmentSets() { return getState().data.selectedAssignmentSets; },
 
     // ----- Fulltext Assignment Filters -----
-    get selectedFulltextSets() { return _selectedFulltextSets; },
-    setSelectedFulltextSets(sets: Set<string>) { _selectedFulltextSets = sets; },
-    addSelectedFulltextSet(setId: string) { _selectedFulltextSets.add(setId); },
-    removeSelectedFulltextSet(setId: string) { _selectedFulltextSets.delete(setId); },
+    get selectedFulltextSets() { return getState().data.selectedFulltextSets; },
 
     // ----- User Settings -----
     get autoNavigateAfterDecision() { return getState().ui.settings.autoNavigateAfterDecision; },
@@ -262,19 +217,7 @@ export const state = {
     get abstractSubsectionHeadings() { return getState().ui.settings.abstractSubsectionHeadings; },
 
     // ----- Term Filters -----
-    get activeTermFilters() { return _activeTermFilters; },
-    setActiveTermFilters(filters: { term: string; type: 'include' | 'exclude' }[]) {
-        _activeTermFilters = filters;
-    },
-    addTermFilter(filter: { term: string; type: 'include' | 'exclude' }) {
-        _activeTermFilters.push(filter);
-    },
-    removeTermFilter(term: string, type: string) {
-        _activeTermFilters = _activeTermFilters.filter(
-            f => !(f.term === term && f.type === type)
-        );
-    },
-    clearTermFilters() { _activeTermFilters = []; },
+    get activeTermFilters() { return getState().ui.screening.activeTermFilters; },
 
     // ----- LLM State -----
     get currentTab() { return _currentTab; },
@@ -345,27 +288,16 @@ export const state = {
     resetForLogout() {
         _spreadsheetId = '';
         _userEmail = '';
-        _references = [];
         _allReferences = [];
-        _isKeyOpened = false;
         _isAdmin = false;
         _fulltextPoolRule = null;
         _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
-        _currentIndex = 0;
-        _currentFilter = 'pending';
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;
         _reviewHistoryReturnRefId = null;
-        _sourceFiles.clear();
-        _selectedSourceFiles.clear();
         _importStats = {};
         _reviewCriteria = null;
         _excludeReasonConfig = null;
-        _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
-        _assignmentSets.clear();
-        _selectedAssignmentSets.clear();
-        _selectedFulltextSets.clear();
-        _activeTermFilters = [];
         _currentTab = 'screening';
         _llmConfig = { ...DEFAULT_LLM_CONFIG };
         _batchAbortController = null;
@@ -387,24 +319,15 @@ export const state = {
 
     resetForBack() {
         _spreadsheetId = '';
-        _references = [];
         _allReferences = [];
         _fulltextPoolRule = null;
         _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
-        _currentIndex = 0;
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;
         _reviewHistoryReturnRefId = null;
-        _sourceFiles.clear();
-        _selectedSourceFiles.clear();
         _importStats = {};
         _reviewCriteria = null;
         _excludeReasonConfig = null;
-        _assignmentConfig = { ...DEFAULT_ASSIGNMENT_CONFIG };
-        _assignmentSets.clear();
-        _selectedAssignmentSets.clear();
-        _selectedFulltextSets.clear();
-        _activeTermFilters = [];
         _enabledReviewers.clear();
         _availableReviewers.clear();
         _llmTargetMode = DEFAULT_LLM_TARGET_MODE;

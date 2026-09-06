@@ -22,7 +22,12 @@ import {
     saveFulltextAssignmentConfig,
     updateReferenceFulltextSets,
 } from '../../lib/sheets-api';
-import { setFulltextAssignment as syncSetFulltextAssignment } from '../store/compat';
+import {
+    setFulltextAssignment as syncSetFulltextAssignment,
+    setSelectedFulltextSets as storeSetSelectedFulltextSets,
+    addSelectedFulltextSet as storeAddSelectedFulltextSet,
+    removeSelectedFulltextSet as storeRemoveSelectedFulltextSet,
+} from '../store/compat';
 import {
     createDefaultFulltextAssignment,
     buildFulltextSetAssignments,
@@ -179,9 +184,9 @@ function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): vo
         checkbox.disabled = !canFilter;
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) {
-                state.addSelectedFulltextSet(row.setId);
+                storeAddSelectedFulltextSet(row.setId);
             } else {
-                state.removeSelectedFulltextSet(row.setId);
+                storeRemoveSelectedFulltextSet(row.setId);
             }
             void persistSelectedFulltextSets();
             if (_rerenderTab) _rerenderTab();
@@ -261,7 +266,7 @@ export async function initializeFulltextAssignmentSelection(spreadsheetId: strin
     } catch (error) {
         console.warn('[ftAssign] 選択状態の読み込みに失敗:', error);
     }
-    state.setSelectedFulltextSets(selected);
+    storeSetSelectedFulltextSets(selected);
 }
 
 /**
@@ -269,7 +274,7 @@ export async function initializeFulltextAssignmentSelection(spreadsheetId: strin
  * チェックリスト項目2の修復ボタン（fulltext-checklist.ts）から呼ぶ。
  */
 export async function resetFulltextSetSelectionToMine(): Promise<void> {
-    state.setSelectedFulltextSets(initialSelectedFulltextSets(state.fulltextAssignment, state.userEmail));
+    storeSetSelectedFulltextSets(initialSelectedFulltextSets(state.fulltextAssignment, state.userEmail));
     await persistSelectedFulltextSets();
     if (_rerenderTab) _rerenderTab();
 }
@@ -700,7 +705,7 @@ async function handleCreate(
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
         // 新しい設定に基づく初期選択へ戻す
-        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        storeSetSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
         void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_created', [String(pool.length), String(groupCount)]), 3000);
@@ -731,7 +736,7 @@ async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
         // 新しい設定に基づく初期選択へ戻す
-        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        storeSetSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
         void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_mapSaved'), 3000);
@@ -793,7 +798,7 @@ async function handleReset(): Promise<void> {
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
         // 新しい設定に基づく初期選択へ戻す（status='none' なら initialSelectedFulltextSets は空集合を返す）
-        state.setSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
+        storeSetSelectedFulltextSets(initialSelectedFulltextSets(nextConfig, state.userEmail));
         void persistSelectedFulltextSets();
         hideModal();
         showToast(t('ftAssign_resetDone'), 3000);

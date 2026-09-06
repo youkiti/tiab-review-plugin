@@ -1,18 +1,19 @@
+import { DEFAULT_ASSIGNMENT_CONFIG, resolveReferenceAssignmentSet } from '../../lib/assignment-set';
 import type { AssignmentConfig, ReferenceWithStatus } from '../../lib/types';
 import { getAssignmentConfig, saveAssignmentConfig, updateReferenceScreeningSets } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 import { dom } from '../dom';
 import { state } from '../state';
 import { showLoading, showToast } from '../ui/feedback';
-import { setCurrentIndex as syncSetCurrentIndex } from '../store/compat';
+import {
+    setCurrentIndex as syncSetCurrentIndex,
+    setAssignmentConfig as storeSetAssignmentConfig,
+    setAssignmentSets as storeSetAssignmentSets,
+    setSelectedAssignmentSets as storeSetSelectedAssignmentSets,
+    addSelectedAssignmentSet as storeAddSelectedAssignmentSet,
+    removeSelectedAssignmentSet as storeRemoveSelectedAssignmentSet,
+} from '../store/compat';
 import { hideModal, showModal } from '../ui/modal';
-
-const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
-    status: 'none',
-    calibrationSize: 50,
-    groupCount: 4,
-    reviewerMap: {},
-};
 
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
@@ -50,14 +51,7 @@ export function createDefaultAssignmentConfig(): AssignmentConfig {
 }
 
 export function getReferenceAssignmentSet(ref: ReferenceWithStatus): string {
-    const normalized = (ref.screening_set || '').trim();
-    if (normalized) {
-        return normalized;
-    }
-    if (state.assignmentConfig.status === 'configured') {
-        return 'unassigned';
-    }
-    return '';
+    return resolveReferenceAssignmentSet(ref, state.assignmentConfig);
 }
 
 export function getAssignedSetsForUser(config: AssignmentConfig, userEmail: string): Set<string> {
@@ -133,23 +127,23 @@ export function initializeAssignmentState(
         reviewerMap: normalizeReviewerMap(config.reviewerMap || {}),
     };
 
-    state.setAssignmentConfig(normalizedConfig);
+    storeSetAssignmentConfig(normalizedConfig);
 
     const availableSets = getAvailableAssignmentSets(refs, normalizedConfig);
-    state.setAssignmentSets(availableSets);
+    storeSetAssignmentSets(availableSets);
 
     if (isAdmin) {
-        state.setSelectedAssignmentSets(new Set(availableSets));
+        storeSetSelectedAssignmentSets(new Set(availableSets));
         return refs;
     }
 
     if (normalizedConfig.status !== 'configured') {
-        state.setSelectedAssignmentSets(new Set());
+        storeSetSelectedAssignmentSets(new Set());
         return refs;
     }
 
     const assignedSets = getAssignedSetsForUser(normalizedConfig, userEmail);
-    state.setSelectedAssignmentSets(new Set(assignedSets));
+    storeSetSelectedAssignmentSets(new Set(assignedSets));
 
     const visibleRefs = refs.filter((ref) => assignedSets.has(getReferenceAssignmentSet(ref)));
 
@@ -162,7 +156,7 @@ export function initializeAssignmentState(
 
 export async function loadAssignmentConfig(spreadsheetId: string): Promise<AssignmentConfig> {
     const config = await getAssignmentConfig(spreadsheetId);
-    state.setAssignmentConfig(config);
+    storeSetAssignmentConfig(config);
     return config;
 }
 
@@ -232,9 +226,9 @@ export function renderAssignmentFilters() {
         checkbox.disabled = !canFilter;
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) {
-                state.addSelectedAssignmentSet(setId);
+                storeAddSelectedAssignmentSet(setId);
             } else {
-                state.removeSelectedAssignmentSet(setId);
+                storeRemoveSelectedAssignmentSet(setId);
             }
             syncSetCurrentIndex(0);
             if (_renderCurrentReference) {
@@ -360,7 +354,7 @@ export async function handleAssignmentSaveMap() {
             reviewerMap,
         };
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
-        state.setAssignmentConfig(nextConfig);
+        storeSetAssignmentConfig(nextConfig);
         showToast(t('assignment_settingsMapSaved'));
     } catch (error) {
         console.error('Assignment map save error:', error);
@@ -385,7 +379,7 @@ export async function handleAssignmentResetClick() {
     try {
         showLoading(true);
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
-        state.setAssignmentConfig(nextConfig);
+        storeSetAssignmentConfig(nextConfig);
         renderAssignmentManager();
         await maybeShowAssignmentWizard('settings');
     } catch (error) {
@@ -606,7 +600,7 @@ async function dismissAssignmentWizard() {
             dismissedAt: new Date().toISOString(),
         };
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
-        state.setAssignmentConfig(nextConfig);
+        storeSetAssignmentConfig(nextConfig);
         renderAssignmentManager();
         hideModal();
         showToast(t('assignment_dismissed'));
@@ -670,7 +664,7 @@ async function saveAssignmentWizard(
 
         await updateReferenceScreeningSets(state.spreadsheetId, assignments);
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
-        state.setAssignmentConfig(nextConfig);
+        storeSetAssignmentConfig(nextConfig);
         hideModal();
         const toastKey = isReshuffle ? 'assignment_reshuffled' : 'assignment_configured';
         showToast(t(toastKey, [String(calibrationSize), String(groupCount)]), 3000);
