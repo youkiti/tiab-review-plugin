@@ -47,6 +47,8 @@ import {
  * このあと拡張専用の配線を各エントリで追加してよい（DI は後勝ちで上書きされる）。
  */
 export function bootstrapCommon(): void {
+    // Issue #154: 設定の読み取りアダプタを使う依存注入・イベント配線より先に初期化する。
+    initializeStore();
     // ========== 依存注入（共有分。循環依存回避のため） ==========
     auth.setAuthDependencies({
         loadRecentSheets: project.loadRecentSheets,
@@ -255,8 +257,7 @@ export function bootstrapCommon(): void {
     // Header title click (go back to project selection)
     document.getElementById('header-title')?.addEventListener('click', project.handleBack);
 
-    // ========== Store初期化（Phase 2） ==========
-    initializeStore();
+    // ========== Store描画購読 ==========
     subscribe((appState) => {
         renderLayout(appState);
         renderTemporaryUI(appState);
