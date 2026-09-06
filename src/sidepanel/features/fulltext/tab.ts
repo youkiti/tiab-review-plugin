@@ -189,8 +189,15 @@ async function loadPublicationCandidates(
  *
  * タブへのStore切替（changeTab('fulltext')）と読み込み中表示は features/fulltext/lazy.ts が
  * 本体チャンクの読込前後で行う（llm/index.ts の initializeLlmSection(isCurrent) と同じ形）。
- * ここでは切替後の描画・候補読み込みのみを担う。isCurrent はタブ離脱・プロジェクト切替後の
- * 応答破棄に使う（既定は常にtrueを返す関数。lazy.ts を介さない直接呼び出し・テスト用）。
+ * ここでは切替後の描画・候補読み込みのみを担う。isCurrent は、本体チャンクの読込中にタブを
+ * 離れた／プロジェクトが切り替わった場合に初期化そのものを取りやめる入口ガード（既定は常に
+ * trueを返す関数。lazy.ts を介さない直接呼び出し・テスト用）。
+ *
+ * 限界: この入口ガードを通過した後、loadPublicationCandidates() 以降の非同期応答は
+ * isCurrent の対象外。取得中にプロジェクトが切り替わると旧プロジェクトの結果が
+ * モジュールローカルの publicationCandidates を上書きし、トーストも新プロジェクトの画面に
+ * 出うる。team-progress.ts の fetchDecisions()（取得後にプロジェクトの切替を検知して破棄する
+ * 既存の作法）に揃える対応が別途必要。
  */
 export function initializeFulltextSection(isCurrent: () => boolean = () => true): void {
     if (!isCurrent()) return;
