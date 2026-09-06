@@ -584,6 +584,14 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - `getScreeningCounts(refs)` は呼び出し側の対象配列、`getFilterCounts(state)` はソースファイル絞り込み後の配列を数える。対象範囲の違いを維持し、手動判定・全文候補・判定票収集のヘルパーのみ共有する。
 - 検索入力は `screening/setSearch` で更新し表示位置を0へ戻す。描画から dispatch しない。同じ表示位置、または既に位置0で同じ検索・ステータスを設定する場合は reducer が元の state を返す。
 
+### state.ts の残り領域をStore所有に一本化（Issue #154 工程3）
+
+- `spreadsheetId`・`userEmail`・`highlightKeywords`（キーワード追加/削除含む）・`isAdmin`・`fulltextPoolRule`・`fulltextAssignment`・`availableReviewers`・`enabledReviewers`（追加/削除含む）・`currentTab` の9領域もStoreが唯一の更新先になった。`state.ts` は getter のみで、更新は `store/compat.ts` の dispatch 専用ラッパー（キーワードは `addIncludeKeyword`/`removeIncludeKeyword`/`addExcludeKeyword`/`removeExcludeKeyword`、レビュアーは `addEnabledReviewer`/`removeEnabledReviewer`）を通す。
+- レビュアーの追加/削除は既存の `data/toggleReviewer` ではなく新設の `data/addReviewer`/`data/removeReviewer` を使う。混在レビュアー（人手＋ML）のチェックボックス切替は本体キーと `::ml` キーへ同じ enabled 値を独立に適用するため、現在の集合への反転（toggle）だと意図せず反転する。
+- `state.ts` の `resetForLogout()`/`resetForBack()` からはこれら9領域の再初期化を外し、初期化経路は Store の `reset/logout`・`reset/back`（`store/reducer.ts`）だけになった。`highlightKeywords`・`availableReviewers`・`enabledReviewers` は `reset/logout` で initialState に戻る一方、legacyの `resetForLogout()` は保持していたが、`loadDataAndShowScreening()`（`features/project.ts`）がプロジェクト読み込み時に必ず `syncSetKeywords`/`syncSetAvailableReviewers`/`syncSetEnabledReviewers` で再設定するため実害はない。
+- 双方向同期（compatが legacy setter と dispatch の両方を呼ぶ）が残るのは LLM/ML バッチ領域（`llmConfig`・`mlState`・`activeLlmExecutionIds`・`currentBatchDecisions`・`failedRefIds`）だけ（Issue #154 工程3 の後続PRで扱う）。
+- 呼び出し元が0件だった `src/sidepanel/render/index.ts`（`renderApp()` と再export のみ）は削除した。Store購読の実入口は `bootstrap.ts`（`renderLayout`/`renderTemporaryUI` を直接購読）。
+
 ### TiAb 表示位置の記憶と復元（Issue #140）
 
 - 保存: `renderReferenceDetails`（`src/sidepanel/features/screening/render.ts`）がキー開封中かつ履歴ビューでないときに `{filter, refId, index}` を `tiab_last_position`（`Record<spreadsheetId, ScreeningPosition>`、`chrome.storage` ローカル）へ保存する。同一内容の連続保存は書き込みをスキップする

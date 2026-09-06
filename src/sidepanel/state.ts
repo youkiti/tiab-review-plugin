@@ -1,19 +1,17 @@
 /**
  * アプリケーション状態の集約管理
- * 設定・絞り込み・現在文献はStoreを読むgetterのみ。未移行領域は従来のsetterを維持する。
+ * 設定・絞り込み・現在文献・spreadsheetId/userEmail/highlightKeywords/isAdmin/
+ * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab は
+ * Storeを読むgetterのみ。双方向同期が残るのはLLM/MLバッチ領域のみ（AGENTS.md参照）。
  */
 
 import { getState } from './store';
 
 import type { ReferenceWithStatus, LlmConfig, Decision, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
-import type { HighlightKeywords } from '../lib/sheets-api';
 import type { ReviewCriteria } from '../lib/review-criteria';
 import type { ExcludeReasonConfig } from '../lib/exclude-reason-config';
 import { resolveExcludeReasonItems } from '../lib/exclude-reason-config';
 import type { ExcludeReasonItem } from '../lib/exclude-reasons';
-import type { FulltextPoolRule } from '../lib/fulltext-pool';
-import type { FulltextAssignmentConfig } from '../lib/fulltext-assignment';
-import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../lib/fulltext-assignment';
 import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 import type { LlmTargetMode } from '../lib/llm-target-selection';
 import { DEFAULT_LLM_TARGET_MODE } from '../lib/llm-target-selection';
@@ -32,20 +30,6 @@ let _reviewHistoryReturnRefId: string | null = null;
 // 別文献にメモが流出して保存される事故（"幽霊pending判定"）を防ぐためのガード。
 let _lastRenderedRefId: string | null = null;
 
-
-let _spreadsheetId = '';
-let _userEmail = '';
-
-// キーワード・権限
-let _highlightKeywords: HighlightKeywords = { include: [], exclude: [] };
-let _isAdmin = false;
-
-// フルテキスト候補ルール（Configシート共有設定、未設定はnull）
-let _fulltextPoolRule: FulltextPoolRule | null = null;
-
-// フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none'）
-let _fulltextAssignment: FulltextAssignmentConfig = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
-
 // インポート統計（Configシート import_stats、PRISMA自動記入用）
 let _importStats: ImportStatsMap = {};
 
@@ -56,7 +40,6 @@ let _reviewCriteria: ReviewCriteria | null = null;
 let _excludeReasonConfig: ExcludeReasonConfig | null = null;
 
 // LLM関連
-let _currentTab: 'screening' | 'llm' | 'ml' | 'fulltext' = 'screening';
 let _llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
 let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
@@ -73,8 +56,6 @@ let _llmTargetMode: LlmTargetMode = DEFAULT_LLM_TARGET_MODE;
 // selection モード時に対象とする ref_id 集合
 let _llmTargetRefIds: Set<string> = new Set();
 let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
-let _enabledReviewers: Set<string> = new Set(); // 表示対象のレビュアーID
-let _availableReviewers: Set<string> = new Set(); // 利用可能な全レビュアーID
 // 合議モード（-human-consensus）。ONの間の判定は client_version に -human-consensus サフィックスを付けて
 // 保存する。合議はブラインド中に成立しないため、isKeyOpened===true のときだけUIに出す（handleKeyToggle の
 // CLOSE 経路で false に戻す）。既定は false（従来どおりの -human）。
@@ -139,42 +120,20 @@ export const state = {
     setLastRenderedRefId(refId: string | null) { _lastRenderedRefId = refId; },
 
     // ----- Spreadsheet/User -----
-    get spreadsheetId() { return _spreadsheetId; },
-    setSpreadsheetId(id: string) { _spreadsheetId = id; },
+    get spreadsheetId() { return getState().data.spreadsheetId; },
 
-    get userEmail() { return _userEmail; },
-    setUserEmail(email: string) { _userEmail = email; },
+    get userEmail() { return getState().data.userEmail; },
 
     // ----- Keywords/Permissions -----
-    get highlightKeywords() { return _highlightKeywords; },
-    setHighlightKeywords(keywords: HighlightKeywords) { _highlightKeywords = keywords; },
-    addIncludeKeyword(word: string) {
-        if (!_highlightKeywords.include.includes(word)) {
-            _highlightKeywords.include.push(word);
-        }
-    },
-    removeIncludeKeyword(word: string) {
-        _highlightKeywords.include = _highlightKeywords.include.filter(w => w !== word);
-    },
-    addExcludeKeyword(word: string) {
-        if (!_highlightKeywords.exclude.includes(word)) {
-            _highlightKeywords.exclude.push(word);
-        }
-    },
-    removeExcludeKeyword(word: string) {
-        _highlightKeywords.exclude = _highlightKeywords.exclude.filter(w => w !== word);
-    },
+    get highlightKeywords() { return getState().data.highlightKeywords; },
 
     get isKeyOpened() { return getState().ui.screening.isKeyOpened; },
 
-    get isAdmin() { return _isAdmin; },
-    setIsAdmin(admin: boolean) { _isAdmin = admin; },
+    get isAdmin() { return getState().data.isAdmin; },
 
-    get fulltextPoolRule() { return _fulltextPoolRule; },
-    setFulltextPoolRule(rule: FulltextPoolRule | null) { _fulltextPoolRule = rule; },
+    get fulltextPoolRule() { return getState().data.fulltextPoolRule; },
 
-    get fulltextAssignment() { return _fulltextAssignment; },
-    setFulltextAssignment(config: FulltextAssignmentConfig) { _fulltextAssignment = config; },
+    get fulltextAssignment() { return getState().data.fulltextAssignment; },
 
     // ----- Source File Filters -----
     get sourceFiles() { return getState().data.sourceFiles; },
@@ -220,8 +179,7 @@ export const state = {
     get activeTermFilters() { return getState().ui.screening.activeTermFilters; },
 
     // ----- LLM State -----
-    get currentTab() { return _currentTab; },
-    setCurrentTab(tab: 'screening' | 'llm' | 'ml' | 'fulltext') { _currentTab = tab; },
+    get currentTab() { return getState().ui.currentTab; },
 
     get llmConfig() { return _llmConfig; },
     setLlmConfig(config: LlmConfig) { _llmConfig = config; },
@@ -263,13 +221,9 @@ export const state = {
     clearFailedRefIds() { _failedRefIds = []; },
 
     // ----- Reviewer Filtering -----
-    get enabledReviewers() { return _enabledReviewers; },
-    setEnabledReviewers(reviewers: Set<string>) { _enabledReviewers = reviewers; },
-    addEnabledReviewer(id: string) { _enabledReviewers.add(id); },
-    removeEnabledReviewer(id: string) { _enabledReviewers.delete(id); },
+    get enabledReviewers() { return getState().data.enabledReviewers; },
 
-    get availableReviewers() { return _availableReviewers; },
-    setAvailableReviewers(reviewers: Set<string>) { _availableReviewers = reviewers; },
+    get availableReviewers() { return getState().data.availableReviewers; },
 
     get showAiHighlights() { return getState().ui.settings.showAiHighlights; },
 
@@ -286,19 +240,13 @@ export const state = {
 
     // ----- Reset Functions -----
     resetForLogout() {
-        _spreadsheetId = '';
-        _userEmail = '';
         _allReferences = [];
-        _isAdmin = false;
-        _fulltextPoolRule = null;
-        _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;
         _reviewHistoryReturnRefId = null;
         _importStats = {};
         _reviewCriteria = null;
         _excludeReasonConfig = null;
-        _currentTab = 'screening';
         _llmConfig = { ...DEFAULT_LLM_CONFIG };
         _batchAbortController = null;
         _currentExecutionId = '';
@@ -318,18 +266,13 @@ export const state = {
     },
 
     resetForBack() {
-        _spreadsheetId = '';
         _allReferences = [];
-        _fulltextPoolRule = null;
-        _fulltextAssignment = { ...DEFAULT_FULLTEXT_ASSIGNMENT };
         _reviewHistoryRefIds = [];
         _reviewHistoryCursor = -1;
         _reviewHistoryReturnRefId = null;
         _importStats = {};
         _reviewCriteria = null;
         _excludeReasonConfig = null;
-        _enabledReviewers.clear();
-        _availableReviewers.clear();
         _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
         _llmTargetRefIds = new Set();
         _mlState = createInitialMlState();  // ML状態もリセット
