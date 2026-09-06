@@ -108,6 +108,18 @@ npm run bench -- --pdf 20p --pdf 57p
    `--pdf` で複数指定した場合はPDFごとに1回ずつ実行し、出力の `fulltextPdf` は各PDFの結果
    （`pdfId`・`pageCount` を含む）を並べた配列になる（Issue #156（#150 工程5）着手前の準備）。
 
+   **`tiab:pdf.allPages` の定義変更（Issue #156（#150 工程5）PR2）**: `PdfRenderer` を表示範囲
+   中心の描画（ページ枠は全ページ分・canvas と DOM テキストレイヤーは表示範囲 ± 1ページのみ実体化）
+   へ組み替えたため、`tiab:pdf.allPages` の**中身の意味が変わっている**。`loadPdf()` 全体を計測する
+   という定義自体は変わらないが、従来の「全ページ canvas 描画完了」ではなく
+   **「全ページのテキスト索引完成 ＋ 初期表示ぶん（1ページ目 ± 1ページ）の canvas 描画完了」**を
+   指す。ページ数に対してほぼ一定時間になるはずで、PR2以前（#151）に採取したベースラインとは
+   直接比較できない。`tiab:pdf.firstPage`（読み込み開始 → 先頭ページ描画完了）の意味は変えていない。
+   新たに `tiab:pdf.textIndex`（全ページのテキスト索引構築だけの時間）を追加した。また
+   `tiab:pdf.allPages` の `detail` に、計測終了時点で実体化していた canvas 枚数 `canvasCount` と
+   合計バイト数 `canvasBytes`（各 canvas の `width * height * 4` の合計）を足した（`pageCount` は
+   従来どおり残す）。
+
 シナリオ2・3では、`performance.measure` が拾えない「クリックしてから画面が更新されるまで」の
 実時間も別途 `runner:decision.click2frame` / `runner:navigate.click2frame` として計測します。
 クリック直前から計測を始め、`requestAnimationFrame` のコールバック内で

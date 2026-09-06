@@ -12,9 +12,27 @@
 // MV3 制約への対応:
 //   - worker は拡張同梱の `pdf.worker.min.mjs` をローカル参照（remote script 禁止のため）。
 //   - cMap / standard_fonts も拡張同梱物を参照する。
+//
+// Issue #156（#150 工程5）PR2: 表示範囲中心の描画への組み替え。
+//   ページ数に比例して canvas 描画時間・メモリが増え続けていた問題への対応。
+//   - ページ枠（寸法プレースホルダー）は loadPdf() 時点で全ページ分作る。スクロール全体の高さが
+//     最初から確定するのが要点（`.ft-page` は CSS で background:#fff のため、未描画ページも
+//     正しい寸法の白紙ページとして見える）。
+//   - canvas と DOM テキストレイヤーは「表示中のページ ± PAGE_MATERIALIZE_WINDOW ページ」だけ実体化する。
+//     判定（実体化すべき集合・差分）は pdf-page-window.ts の純粋関数に切り出し、単体テストで境界を
+//     押さえている（本ファイルは DOM/pdf.js 依存のため node --test から検証できない）。
+//   - テキスト索引（quote検索用の rawText/charItemIndex/itemRects）は描画と切り離し、全ページぶん
+//     バックグラウンドで先に作り切ってから loadPdf() の Promise を解決する。実測でテキスト抽出自体は
+//     全体の3.5%程度（支配的なのは canvas 描画とDOM構築）のため、索引を全ページ先読みしても
+//     コストは小さい。これにより highlight() 等の既存APIを同期のまま一切変えずに済む
+//     （索引を遅延させると、evidence-controller.ts の同期呼び出し・根拠カード一覧まで非同期化が
+//     波及してしまうため）。
+//   - ハイライト矩形（.ft-highlight-layer の中身）は canvas と違って安価なので、実体化していない
+//     ページにも従来どおり全ページぶん描画したままにする。
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
+import { computeTargetPages, diffMaterialization, sumCanvasBytes } from './pdf-page-window';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
 import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-constants';
 import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
@@ -27,6 +45,14 @@ const STANDARD_FONT_URL = chrome.runtime.getURL('standard_fonts/');
 // 描画スケールの上限（高すぎるとメモリを圧迫するため）。
 const MAX_RENDER_SCALE = 2.0;
 
+// 実体化（canvas + DOM テキストレイヤー）対象の前後ウィンドウ幅。可視ページの前後この枚数まで
+// 実体化する。値を大きくするほど先読みが効く代わりにメモリ・描画コストが増える。
+const PAGE_MATERIALIZE_WINDOW = 1;
+
+// IntersectionObserver のマージン。可視になる前に実体化を開始できるよう、ビューポート相当の
+// 余白を前後に持たせる（root: null のため、祖先のスクロールによるクリップも考慮される）。
+const INTERSECTION_ROOT_MARGIN = '100% 0px';
+
 // ai_evidence: polarity（組入/除外）を伏せた中立表示。ブラインド中のAI evidence に使う。
 export type HighlightCategory = 'include_evidence' | 'exclude_evidence' | 'data_point' | 'ai_evidence';
 
@@ -36,8 +62,14 @@ interface PageInfo {
     widthPx: number;
     heightPx: number;
     pageDiv: HTMLElement;
+    // 実体化されている間だけ非null。解放時に DOM から外して null に戻す。
+    canvasEl: HTMLCanvasElement | null;
+    textLayerEl: HTMLElement;
     highlightLayer: HTMLElement;
+    // 実体化中の RenderTask（キャンセル用）。実体化していない間・render完了後は null。
+    renderTask: { cancel: () => void; promise: Promise<void> } | null;
     // テキストマッチ用: 抽出テキストと、各文字がどのテキストアイテムに属するかの対応
+    // （バックグラウンドの索引構築が終わるまでは空のまま。loadPdf() の解決前に全ページ分埋まる）
     rawText: string;
     charItemIndex: number[];
     itemRects: Rect[]; // テキストアイテムごとの矩形（CSSピクセル）
@@ -75,6 +107,15 @@ export interface HighlightResult {
     page?: number;
 }
 
+/** tiab:pdf.allPages の detail（perfSpan の fn 完了後に読まれるため破壊的更新で埋める）。値は数値のみ。 */
+interface AllPagesDetail {
+    pageCount?: number;
+    /** loadPdf() 解決時点で実体化されていた canvas 枚数 */
+    canvasCount?: number;
+    /** 同時点の canvas 合計バイト数（各 width * height * 4 の合計） */
+    canvasBytes?: number;
+}
+
 /**
  * PDF.js による全文ビューア。
  * 1インスタンス = 1つのコンテナ。loadPdf を呼ぶたびに前の描画を破棄して描き直す。
@@ -84,6 +125,15 @@ export class PdfRenderer {
     private pdfDoc: any = null;
     private pages: PageInfo[] = [];
     private renderToken = 0;
+
+    private observer: IntersectionObserver | null = null;
+    // 現在ビューポート（＋マージン）に交差しているページ番号。observer のコールバックが増減させる。
+    private visiblePages = new Set<number>();
+    // 現在 canvas / DOM テキストレイヤーを実体化しているページ番号。
+    private materializedPages = new Set<number>();
+    // ページ番号ごとの「実体化が進行中の promise」。同じページに対する materializePage() の
+    // 二重起動を防ぐ（理由は materializePage() のコメント参照）。完了したら自分でエントリを消す。
+    private materializePromises = new Map<number, Promise<void>>();
 
     /**
      * PDF上のハイライト矩形クリック時に呼ばれるコールバック（引数はハイライトid）。
@@ -98,7 +148,15 @@ export class PdfRenderer {
     /** 現在の描画を破棄し、リソースを解放する */
     destroy(): void {
         this.renderToken++;
+        this.teardownObserver();
+        this.cancelAllRenderTasks();
         this.pages = [];
+        this.materializedPages = new Set();
+        this.visiblePages = new Set();
+        // 進行中の materializePage() 呼び出し自体は止められないが、Map から切り離しておくことで
+        // 次の loadPdf() がこのページ番号を再利用しても古い promise を誤って使い回さないようにする
+        // （古い呼び出しは token チェックで自然に無害化される。ページ実体化のコメント参照）。
+        this.materializePromises = new Map();
         if (this.pdfDoc) {
             try { this.pdfDoc.destroy(); } catch { /* noop */ }
             this.pdfDoc = null;
@@ -115,19 +173,32 @@ export class PdfRenderer {
         // ページ数は fn の完了後にしか確定しないため、呼び出し時点では値の決まっていない
         // detail オブジェクトを渡し、fn 側がそれを書き換える（perfSpan は fn の完了後に detail を
         // 読むため、この破壊的更新が計測へ反映される）。
-        const allPagesDetail: { pageCount?: number } = {};
+        // Issue #156（#150 工程5）PR2: 中身の意味が「全ページ canvas 描画完了」から
+        // 「全ページ索引完成＋初期表示ぶんの描画完了」に変わっている（scripts/bench/README.md 参照）。
+        const allPagesDetail: AllPagesDetail = {};
         return perfSpan('tiab:pdf.allPages', () => this.loadPdfCore(data, allPagesDetail), allPagesDetail);
     }
 
     /**
      * loadPdf() の実処理（perfSpan で tiab:pdf.allPages を包むために private 関数へ切り出している）。
-     * ループ構造・token チェックによる早期終了・戻り値の形は元の実装と同一。
-     * 1ページ目の renderPage() 完了時点でだけ tiab:pdf.firstPage を追加で計測する。
+     * 1) 全ページのページ枠（寸法プレースホルダー）を作る（canvas はまだ作らない）。
+     * 2) 1ページ目を実体化 → tiab:pdf.firstPage を計測。
+     * 3) IntersectionObserver をセットアップし、以後は表示範囲 ± ウィンドウ幅を自動で実体化/解放する。
+     * 4) バックグラウンドで全ページの索引（quote検索用）を構築 → tiab:pdf.textIndex を計測。
+     * 5) 索引が揃った時点で isImageOnly / totalTextLength を確定し、canvas 枚数・バイト数を
+     *    detail に足して返す。
      */
-    private async loadPdfCore(data: ArrayBuffer | Uint8Array, allPagesDetail: { pageCount?: number }): Promise<LoadedPdf> {
+    private async loadPdfCore(data: ArrayBuffer | Uint8Array, allPagesDetail: AllPagesDetail): Promise<LoadedPdf> {
         const token = ++this.renderToken;
         // 前の描画を破棄（destroy だと token を進めて自分を stale 化してしまうため手動で）
+        this.teardownObserver();
+        this.cancelAllRenderTasks();
         this.pages = [];
+        this.materializedPages = new Set();
+        this.visiblePages = new Set();
+        // 古い文献の in-flight materialize と新しい文献のページ番号がMapキー上で衝突しないよう
+        // 切り離す（destroy() と同じ理由。古い呼び出しは token チェックで自然に無害化される）。
+        this.materializePromises = new Map();
         if (this.pdfDoc) {
             try { this.pdfDoc.destroy(); } catch { /* noop */ }
             this.pdfDoc = null;
@@ -150,22 +221,62 @@ export class PdfRenderer {
         this.pdfDoc = pdf;
 
         const fitScale = this.computeFitScale();
-        let totalTextLength = 0;
+        const stale = { numPages: 0, isImageOnly: false, totalTextLength: 0 };
+
+        // tiab:pdf.firstPage は「読み込み開始 → 先頭ページ描画完了」の意味を変えない（ブリーフの
+        // 明示要件）。このPRで手順1として新設した「全ページぶんの pdf.getPage(n)」も、先頭ページが
+        // 画面に出るまでの実時間には実際に含まれる（1ページ目の枠を作るのも手順1のループの中）ため、
+        // 起点は手順1より前（computeFitScale() の直後）に置く。ここを手順1の後に置くと、このPRが
+        // 新たに臨界パスへ足した「全ページ分の getPage(n)」の分だけ計測から消え、実際には速くなって
+        // いないのに数値だけ改善したように見えてしまう。
         const firstPageStart = perfNow();
 
+        // 1) 全ページのページ枠を作る。スクロール全体の高さが最初から確定する。
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
-            if (token !== this.renderToken) break;
-            const info = await this.renderPage(page, n, fitScale, token);
-            if (n === 1) perfMeasureFrom('tiab:pdf.firstPage', firstPageStart);
-            if (token !== this.renderToken) break;
-            if (info) {
-                this.pages.push(info);
-                totalTextLength += info.rawText.replace(/\s/g, '').length;
-            }
+            if (token !== this.renderToken) return stale;
+            this.pages.push(this.createPageFrame(page, n, fitScale));
         }
 
+        // 2) 1ページ目の canvas / DOM テキストレイヤーを実体化する。
+        if (pdf.numPages > 0) {
+            this.materializedPages.add(1);
+            await this.materializePage(1, token);
+            perfMeasureFrom('tiab:pdf.firstPage', firstPageStart);
+        }
+        if (token !== this.renderToken) return stale;
+
+        // 3) 表示範囲のページを継続的に実体化/解放する。
+        this.setupObserver();
+
+        // 4) バックグラウンドで全ページの索引を構築する（highlight() を同期のまま保つための前提。
+        //    実測でテキスト抽出自体は全体の3.5%程度のため、全ページ先読みしてもコストは小さい）。
+        const textIndexStart = perfNow();
+        let totalTextLength = 0;
+        for (const info of this.pages) {
+            const page = await pdf.getPage(info.pageNumber);
+            if (token !== this.renderToken) return stale;
+            const viewport = page.getViewport({ scale: info.scale });
+            const textContent = await page.getTextContent();
+            if (token !== this.renderToken) return stale;
+            const { rawText, charItemIndex, itemRects } = buildTextIndex(textContent.items, viewport);
+            info.rawText = rawText;
+            info.charItemIndex = charItemIndex;
+            info.itemRects = itemRects;
+            totalTextLength += rawText.replace(/\s/g, '').length;
+        }
+        perfMeasureFrom('tiab:pdf.textIndex', textIndexStart);
+
+        // 5) この時点の実体化状況を計測に足す。
         allPagesDetail.pageCount = pdf.numPages;
+        allPagesDetail.canvasCount = this.materializedPages.size;
+        allPagesDetail.canvasBytes = sumCanvasBytes(
+            [...this.materializedPages]
+                .map(n => this.pages[n - 1]?.canvasEl)
+                .filter((c): c is HTMLCanvasElement => !!c)
+                .map(c => ({ width: c.width, height: c.height }))
+        );
+
         return {
             numPages: pdf.numPages,
             isImageOnly: totalTextLength < SCANNED_TEXT_THRESHOLD,
@@ -180,8 +291,11 @@ export class PdfRenderer {
         return avail;
     }
 
-    /** 1ページを描画し、テキスト/ハイライトレイヤーを構築する */
-    private async renderPage(page: any, pageNumber: number, availWidth: number, token: number): Promise<PageInfo | null> {
+    /**
+     * 1ページ分の「枠」を作る（寸法プレースホルダー + 空のテキスト/ハイライトレイヤー）。
+     * canvas はここでは作らない（実体化は materializePage() が担う）。
+     */
+    private createPageFrame(page: any, pageNumber: number, availWidth: number): PageInfo {
         const unscaled = page.getViewport({ scale: 1 });
         // コンテナ幅にフィット（左右パディング分を差し引く）。上限スケールでメモリを抑える。
         const fit = Math.min((availWidth - 24) / unscaled.width, MAX_RENDER_SCALE);
@@ -197,7 +311,75 @@ export class PdfRenderer {
         // 未設定だと calc が無効化されテキストレイヤーがずれるため、viewport の scale を渡す。
         pageDiv.style.setProperty('--scale-factor', String(scale));
 
-        // --- canvas（描画） ---
+        // --- text layer（選択可能・透明。実体化されるまで空） ---
+        const textLayer = document.createElement('div');
+        textLayer.className = 'ft-text-layer';
+
+        // --- highlight layer（矩形オーバーレイ。canvas と違って安価なので常に全ページぶん描く） ---
+        const highlightLayer = document.createElement('div');
+        highlightLayer.className = 'ft-highlight-layer';
+
+        pageDiv.appendChild(textLayer);
+        pageDiv.appendChild(highlightLayer);
+        this.container.appendChild(pageDiv);
+
+        return {
+            pageNumber,
+            scale,
+            widthPx: viewport.width,
+            heightPx: viewport.height,
+            pageDiv,
+            canvasEl: null,
+            textLayerEl: textLayer,
+            highlightLayer,
+            renderTask: null,
+            rawText: '',
+            charItemIndex: [],
+            itemRects: [],
+        };
+    }
+
+    /**
+     * 指定ページを実体化する（canvas を作って render() → DOM テキストレイヤーを構築）。
+     * 同じページ番号に対する呼び出しは1本にまとめる（materializePromises で進行中の promise を
+     * 共有する）。理由: applyWindow() は IntersectionObserver の発火のたびに独立して
+     * materialize/release を判断するため、対策なしだと次の順序で二重起動しうる:
+     *   1. ページNの実体化を開始（getPage(N) 待ち。この時点では canvasEl も renderTask もまだ無い）
+     *   2. スクロールでNが解放対象になる → releasePage(N)（renderTask が無いためキャンセルする
+     *      ものが無く、進行中の1.の呼び出しには何も起きない）
+     *   3. さらにNが実体化対象に戻る → materializePage(N) がもう一度呼ばれる
+     * ここで1.と3.を別々に走らせてしまうと、両方が canvas を作って pageDiv.insertBefore() し、
+     * 最後に代入した方だけが info.canvasEl に残る。先に代入されていた canvas は DOM に残ったまま
+     * releasePage()/sumCanvasBytes() のどちらからも見えなくなる（info.canvasEl 経由でしか
+     * 参照していないため）。ページ単位で進行中の promise を共有し、二重起動そのものを防ぐ。
+     */
+    private materializePage(pageNumber: number, token: number): Promise<void> {
+        const existing = this.materializePromises.get(pageNumber);
+        if (existing) return existing;
+        const promise = this.materializePageImpl(pageNumber, token).finally(() => {
+            this.materializePromises.delete(pageNumber);
+        });
+        this.materializePromises.set(pageNumber, promise);
+        return promise;
+    }
+
+    /**
+     * materializePage() の実処理。実体化中に「もう不要になった」（token が進んだ、または
+     * materializedPages から外れた）場合は、各 await の直後で中断し、途中まで作った canvas を
+     * 後始末する。
+     */
+    private async materializePageImpl(pageNumber: number, token: number): Promise<void> {
+        const info = this.pages[pageNumber - 1];
+        if (!info || info.canvasEl) return;
+        const stillWanted = () => token === this.renderToken && this.materializedPages.has(pageNumber);
+
+        const page = await this.pdfDoc.getPage(pageNumber);
+        // await の直後: 待っている間に解放された／別経路で既に canvas が付いた場合はここで打ち切る
+        // （materializePromises による単一化が効いていれば info.canvasEl は基本的に null のはずだが、
+        // 万一の漏れに対する最終防衛として明示的に確認する）。
+        if (!stillWanted() || info.canvasEl) return;
+
+        const viewport = page.getViewport({ scale: info.scale });
         const canvas = document.createElement('canvas');
         canvas.className = 'ft-page-canvas';
         const outputScale = window.devicePixelRatio || 1;
@@ -206,56 +388,131 @@ export class PdfRenderer {
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
         const ctx = canvas.getContext('2d');
-        pageDiv.appendChild(canvas);
+        // canvas は常にページの先頭（テキスト/ハイライトレイヤーの下）に挿入する。
+        info.pageDiv.insertBefore(canvas, info.pageDiv.firstChild);
+        info.canvasEl = canvas;
 
-        // --- text layer（選択可能・透明） ---
-        const textLayer = document.createElement('div');
-        textLayer.className = 'ft-text-layer';
-
-        // --- highlight layer（矩形オーバーレイ） ---
-        const highlightLayer = document.createElement('div');
-        highlightLayer.className = 'ft-highlight-layer';
-
-        pageDiv.appendChild(textLayer);
-        pageDiv.appendChild(highlightLayer);
-        this.container.appendChild(pageDiv);
-
-        // 描画
         if (ctx) {
             const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-            await page.render({ canvasContext: ctx, viewport, transform }).promise;
+            const renderTask = page.render({ canvasContext: ctx, viewport, transform });
+            info.renderTask = renderTask;
+            try {
+                await renderTask.promise;
+            } catch (err) {
+                info.renderTask = null;
+                if (isCancelledRenderError(err)) return;
+                throw err;
+            }
+            info.renderTask = null;
         }
-        if (token !== this.renderToken) return null;
-
-        // テキスト抽出 + テキストレイヤー構築
-        const textContent = await page.getTextContent();
-        if (token !== this.renderToken) return null;
+        if (!stillWanted()) { this.detachCanvas(info); return; }
 
         try {
+            const textContent = await page.getTextContent();
+            if (!stillWanted()) { this.detachCanvas(info); return; }
             const tl = new pdfjsLib.TextLayer({
                 textContentSource: textContent,
-                container: textLayer,
+                container: info.textLayerEl,
                 viewport,
             });
             await tl.render();
         } catch (err) {
-            console.warn(`[pdf-renderer] text layer render failed (page ${pageNumber}):`, err);
+            if (!isCancelledRenderError(err)) {
+                console.warn(`[pdf-renderer] text layer render failed (page ${pageNumber}):`, err);
+            }
         }
+    }
 
-        // マッチ用の生テキスト・文字→アイテム対応・アイテム矩形を構築
-        const { rawText, charItemIndex, itemRects } = buildTextIndex(textContent.items, viewport);
+    /** 実体化済みの canvas を DOM から外し、幅・高さを0にして解放する。テキストレイヤーの中身も空にする。 */
+    private detachCanvas(info: PageInfo): void {
+        if (info.canvasEl) {
+            info.canvasEl.remove();
+            info.canvasEl.width = 0;
+            info.canvasEl.height = 0;
+            info.canvasEl = null;
+        }
+        info.textLayerEl.innerHTML = '';
+    }
 
-        return {
-            pageNumber,
-            scale,
-            widthPx: viewport.width,
-            heightPx: viewport.height,
-            pageDiv,
-            highlightLayer,
-            rawText,
-            charItemIndex,
-            itemRects,
-        };
+    /**
+     * 指定ページを解放する（= detachCanvas）。実体化中なら RenderTask をキャンセルする。
+     * `.ft-page` の寸法・`--scale-factor`・ハイライトレイヤーの中身は残す
+     * （スクロール位置とハイライトを壊さないため）。
+     */
+    private releasePage(pageNumber: number): void {
+        const info = this.pages[pageNumber - 1];
+        if (!info) return;
+        if (info.renderTask) {
+            try { info.renderTask.cancel(); } catch { /* noop */ }
+            info.renderTask = null;
+        }
+        this.detachCanvas(info);
+    }
+
+    /** 全ページの RenderTask をキャンセルする（新しい loadPdf() 開始時・destroy() 時に呼ぶ）。 */
+    private cancelAllRenderTasks(): void {
+        for (const info of this.pages) {
+            if (info.renderTask) {
+                try { info.renderTask.cancel(); } catch { /* noop */ }
+                info.renderTask = null;
+            }
+        }
+    }
+
+    /**
+     * IntersectionObserver をセットアップし、以後は表示範囲 ± PAGE_MATERIALIZE_WINDOW を
+     * 自動で実体化/解放する。root: null なので、祖先のスクロールによるクリップも考慮される
+     * （スクロール要素を自前で探す必要がない）。
+     */
+    private setupObserver(): void {
+        this.teardownObserver();
+        const token = this.renderToken;
+        this.observer = new IntersectionObserver(entries => {
+            for (const entry of entries) {
+                const pageNumber = Number((entry.target as HTMLElement).dataset.page);
+                if (!pageNumber) continue;
+                if (entry.isIntersecting) this.visiblePages.add(pageNumber);
+                else this.visiblePages.delete(pageNumber);
+            }
+            this.applyWindow(token);
+        }, { root: null, rootMargin: INTERSECTION_ROOT_MARGIN });
+        for (const info of this.pages) this.observer.observe(info.pageDiv);
+    }
+
+    private teardownObserver(): void {
+        this.observer?.disconnect();
+        this.observer = null;
+    }
+
+    /** 現在の可視ページ集合から実体化すべき集合を求め、差分ぶんだけ実体化/解放する。 */
+    private applyWindow(token: number): void {
+        if (token !== this.renderToken) return;
+        const target = computeTargetPages([...this.visiblePages], PAGE_MATERIALIZE_WINDOW, this.pages.length);
+        const { toMaterialize, toRelease } = diffMaterialization(this.materializedPages, target);
+        for (const n of toRelease) {
+            this.materializedPages.delete(n);
+            this.releasePage(n);
+        }
+        for (const n of toMaterialize) {
+            this.materializedPages.add(n);
+            void this.materializePage(n, token).catch(err => {
+                if (!isCancelledRenderError(err)) {
+                    console.warn(`[pdf-renderer] materialize failed (page ${n}):`, err);
+                }
+            });
+        }
+    }
+
+    /** 指定ページがまだ実体化されていなければ実体化を開始する（投げっぱなし）。 */
+    private ensureMaterialized(pageNumber: number): void {
+        if (this.materializedPages.has(pageNumber)) return;
+        const token = this.renderToken;
+        this.materializedPages.add(pageNumber);
+        void this.materializePage(pageNumber, token).catch(err => {
+            if (!isCancelledRenderError(err)) {
+                console.warn(`[pdf-renderer] materialize failed (page ${pageNumber}):`, err);
+            }
+        });
     }
 
     /** 全ハイライトを消す */
@@ -302,12 +559,16 @@ export class PdfRenderer {
     /** 指定ページ（1始まり）の先頭が見えるようスクロールする */
     scrollToPage(pageNumber: number): void {
         const page = this.pages.find(p => p.pageNumber === pageNumber);
+        if (page) this.ensureMaterialized(pageNumber);
         page?.pageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /** 特定ハイライト（id）の位置へスクロールする */
     scrollToHighlight(id: string): void {
-        const el = this.container.querySelector(`.ft-highlight[data-hl-id="${cssEscape(id)}"]`);
+        const el = this.container.querySelector(`.ft-highlight[data-hl-id="${cssEscape(id)}"]`) as HTMLElement | null;
+        const pageDiv = el?.closest('.ft-page') as HTMLElement | null;
+        const pageNumber = pageDiv?.dataset.page ? Number(pageDiv.dataset.page) : undefined;
+        if (pageNumber) this.ensureMaterialized(pageNumber);
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -419,4 +680,9 @@ function computeItemRect(item: any, viewport: any): Rect {
 function cssEscape(s: string): string {
     if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(s);
     return s.replace(/["\\]/g, '\\$&');
+}
+
+/** RenderTask.cancel() 後に render() の promise が reject する例外かどうか（握りつぶす対象）。 */
+function isCancelledRenderError(err: unknown): boolean {
+    return !!err && typeof err === 'object' && (err as { name?: unknown }).name === 'RenderingCancelledException';
 }
