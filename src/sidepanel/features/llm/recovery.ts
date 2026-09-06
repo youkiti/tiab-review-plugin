@@ -17,7 +17,7 @@
  * 3. 履歴UIを再読込
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
 import { state } from '../../state';
 import {
     getDecisions,

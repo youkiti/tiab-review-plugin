@@ -3,7 +3,7 @@
  *
  * 共有配線は bootstrap.ts の bootstrapCommon() に集約している。
  * このファイルは拡張専用機能（LLM / ML / フルテキスト / インポート・エクスポート /
- * 論文用テキスト）の依存注入と配線のみを担う。
+ * 論文用テキスト）の依存注入と配線のみを担う。LLM本体はAIタブ初回選択時に読み込む。
  */
 
 // プラットフォームアダプタを最初に注入する（他モジュールが platform() を呼ぶため）
@@ -20,7 +20,7 @@ import * as project from './features/project';
 import * as settings from './features/settings';
 import * as importExport from './features/import-export';
 import { showManuscriptModal } from './features/manuscript';
-import * as llm from './features/llm';
+import * as llm from './features/llm/lazy';
 import * as screeningRender from './features/screening/render';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import {
@@ -29,6 +29,7 @@ import {
 } from './features/ml/lazy';
 import { setupFulltextTabListeners, activateFulltextTab } from './features/fulltext-tab';
 import { initModal } from './ui/modal';
+import { wireCollapsibleCards } from './ui/collapsible';
 import { toggleExportMenu, closeExportMenu } from './store/compat';
 import { isImeComposing } from '../lib/ime-composition';
 
@@ -110,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     screeningRender.setFulltextTabNavigator(activateFulltextTab);
 
     // ========== ML ==========
+    wireCollapsibleCards(dom.mlSection);
     initModal();
     document.addEventListener('keydown', handleMlKeydown);
     document.getElementById('ml-search-input')?.addEventListener('input', handleMlSearchInput);

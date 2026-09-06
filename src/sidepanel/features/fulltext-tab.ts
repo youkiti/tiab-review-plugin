@@ -22,7 +22,7 @@ import {
     setFulltextAssignmentDeps,
 } from './fulltext-assignment-ui';
 import { renderTeamProgress } from './team-progress';
-import { switchToTab } from './llm';
+import { switchToTab } from './llm/lazy';
 import { mountRuleEditor } from '../../lib/fulltext-rule-editor';
 import { mountReasonEditor } from './fulltext-reason-editor';
 import { retrieveAndCacheFulltext } from '../../lib/fulltext-retriever';

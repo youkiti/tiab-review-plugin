@@ -47,7 +47,7 @@ import {
 } from '../../lib/drive-api';
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../lib/gemini-fulltext';
 import { normalizeExcludeReasonKey } from '../../lib/exclude-reasons';
-import { generateLlmReviewerId } from '../../lib/llm-processor';
+import { generateLlmReviewerId } from '../../lib/llm-reviewer-id';
 import { getModelConfig, AVAILABLE_MODELS } from '../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../lib/storage';
 import { getClientVersion } from '../../lib/client-version';

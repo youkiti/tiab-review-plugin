@@ -20,19 +20,14 @@ import { resolveProviderId, screenWithProvider } from './llm-provider';
 import type { LlmProviderId, LlmScreenParams, LlmScreenResult } from './llm-provider';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
+import { generateLlmReviewerId } from './llm-reviewer-id';
 
 /**
  * 進捗コールバック型
  */
 export type ProgressCallback = (progress: LlmBatchProgress) => void;
 
-/**
- * LLM判定用のreviewer_idを生成
- * 形式: llm:{model}@{timestamp}
- */
-export function generateLlmReviewerId(model: string, timestamp: Date): string {
-    return `llm:${model}@${timestamp.toISOString()}`;
-}
+export { generateLlmReviewerId } from './llm-reviewer-id';
 
 /**
  * reviewer_idがLLM判定かどうかを判定

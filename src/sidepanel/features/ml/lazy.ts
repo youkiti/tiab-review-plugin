@@ -1,4 +1,4 @@
-import { createMlFeatureLoader } from '../../../lib/ml-lazy-loader';
+import { createLazyFeatureLoader } from '../../../lib/lazy-feature-loader';
 import { t } from '../../../lib/i18n';
 import { canUseCmhStopping, CMH_DEFAULTS } from '../../../lib/ml/cmh-defaults';
 import { state } from '../../state';
@@ -6,6 +6,7 @@ import { dom } from '../../dom';
 import { subscribe } from '../../store';
 import { changeTab } from '../../store/compat';
 import { showToast } from '../../ui/feedback';
+import { reportFeatureLoadError } from '../../ui/lazy-feature-feedback';
 
 type MlFeatureModule = typeof import('./actions') & typeof import('./render');
 let feature: MlFeatureModule | undefined;
@@ -13,7 +14,7 @@ let feature: MlFeatureModule | undefined;
 // Issue #155: actions と render は splitChunks:false 下では中身が重複するため、同じ
 // webpackChunkName で1チャンクに統合する。両方揃ってから一度だけ配線し、失敗したimportは
 // 次回再試行する。
-export const loadMlFeature: () => Promise<MlFeatureModule> = createMlFeatureLoader(async () => {
+export const loadMlFeature: () => Promise<MlFeatureModule> = createLazyFeatureLoader(async () => {
     const [actions, render] = await Promise.all([
         import(/* webpackChunkName: "ml-feature" */ './actions'),
         import(/* webpackChunkName: "ml-feature" */ './render'),
@@ -87,14 +88,7 @@ export function activateMlTab(): Promise<boolean> {
 
 /** チャンク読込失敗か、それ以外（Worker初期化失敗・拡張コンテキスト無効化時のstorageアクセス失敗など）かで文言を分ける。 */
 export function reportMlLoadError(error: unknown): void {
-    const isChunkLoadError = error instanceof Error
-        && (error.name === 'ChunkLoadError' || /Loading chunk/i.test(error.message));
-    if (isChunkLoadError) {
-        showToast(t('ml_featureLoadFailed'), 5000);
-        return;
-    }
-    const message = error instanceof Error ? error.message : String(error);
-    showToast(t('ml_activationFailed', [message]), 5000);
+    reportFeatureLoadError(error, 'ml');
 }
 
 function delegate(action: (loaded: MlFeatureModule) => void): void {

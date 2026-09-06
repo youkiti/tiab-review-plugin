@@ -3,7 +3,7 @@
  * バッチ処理実行、閾値調整、実行履歴管理
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
 import { state } from '../../state';
 import type { LlmBatchProgress, Decision, BatchProfile, LlmRun } from '../../../lib/types';
 import { BATCH_PROFILES, getBatchProfile } from '../../../lib/types';
@@ -211,8 +211,9 @@ async function refreshReferencesAfterBatch(spreadsheetId: string): Promise<void>
  * 対象は「これから実行する Run でまだ判定していない文献」。
  * 設定（モデル・プロンプト・基準）を変えると別 Run になるため、対象は全文献に戻る。
  */
-export async function updateBatchTargetCount() {
+export async function updateBatchTargetCount(isCurrent: () => boolean = () => true) {
     const { run, judgedBatchIds } = await resolveTargetRun();
+    if (!isCurrent()) return;
     const isSelectionMode = state.llmTargetMode === 'selection';
 
     const baseRefs = getBatchBaseRefs();
@@ -1267,7 +1268,7 @@ type HistoryItem =
  * - prompt_generation など Run に紐付かない実行は従来形式の単独カード
  * - すべての項目を最新活動順に並べ、上位 10 件を表示
  */
-export async function loadExecutionHistory() {
+export async function loadExecutionHistory(isCurrent: () => boolean = () => true) {
     const spreadsheetId = state.spreadsheetId;
 
     try {
@@ -1275,6 +1276,8 @@ export async function loadExecutionHistory() {
             getLlmExecutions(spreadsheetId),
             getLlmRuns(spreadsheetId),
         ]);
+
+        if (!isCurrent() || state.spreadsheetId !== spreadsheetId) return;
 
         // バッチ対象件数を Sheets 再読み込みなしに Run 単位で計算できるようキャッシュしておく
         state.setLlmRunsAndExecutions(runs, executions);
@@ -1368,6 +1371,7 @@ export async function loadExecutionHistory() {
             }
         }
     } catch (error) {
+        if (!isCurrent() || state.spreadsheetId !== spreadsheetId) return;
         console.error('[loadExecutionHistory] Error:', error);
         // クォータ超過などで読み込み失敗 → プレースホルダではなくエラー表示＋再試行ボタン
         const message = (error as Error).message ?? '';

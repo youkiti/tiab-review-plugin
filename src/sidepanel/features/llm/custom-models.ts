@@ -8,7 +8,7 @@
  * モデルセレクトの再構築は呼び出し側 (index.ts) のコールバックで行う。
  */
 
-import { dom } from '../../dom';
+import { dom } from './dom';
 import { t } from '../../../lib/i18n';
 import {
     addCustomOpenRouterModel,
