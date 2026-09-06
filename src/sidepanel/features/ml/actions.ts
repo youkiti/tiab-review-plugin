@@ -126,23 +126,7 @@ async function saveMlDecisionWithQueue(decision: Decision) {
 export async function activateMlTab(isCurrent: () => boolean = () => true): Promise<boolean> {
     console.log('activateMlTab called');
 
-    const { canUseCmhStopping } = await import('../../../lib/ml/stopping-rules');
-    const { CMH_DEFAULTS } = await import('../../../lib/ml/cmh');
     if (!isCurrent()) return false;
-
-    console.log('CMH_DEFAULTS:', CMH_DEFAULTS);
-
-    // レコード数が最小要件を満たさない場合はブロック
-    const totalRecords = state.references.length;
-    console.log('Total records:', totalRecords);
-    console.log('Can use CMH stopping:', canUseCmhStopping(totalRecords));
-
-    if (!canUseCmhStopping(totalRecords)) {
-        const message = t('ml_minRecordsError', [String(CMH_DEFAULTS.minRecords), String(totalRecords)]);
-        console.log('Showing toast:', message);
-        showToast(message, 5000);
-        return false;
-    }
 
     hideToast();
 

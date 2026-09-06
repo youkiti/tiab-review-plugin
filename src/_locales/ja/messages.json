@@ -2150,6 +2150,9 @@
   "ml_featureLoadFailed": {
     "message": "ML機能の起動に失敗しました。MLタブを選び直して再試行してください。"
   },
+  "ml_activationFailed": {
+    "message": "MLタブの起動に失敗しました: $1"
+  },
   "ml_title": {
     "message": "🎯 MLスクリーニング"
   },

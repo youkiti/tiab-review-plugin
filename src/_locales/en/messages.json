@@ -2150,6 +2150,9 @@
   "ml_featureLoadFailed": {
     "message": "Could not start ML features. Select the ML tab again to retry."
   },
+  "ml_activationFailed": {
+    "message": "Failed to activate the ML tab: $1"
+  },
   "ml_title": {
     "message": "🎯 ML Screening"
   },

@@ -1,5 +1,6 @@
 import { createMlFeatureLoader } from '../../../lib/ml-lazy-loader';
 import { t } from '../../../lib/i18n';
+import { canUseCmhStopping, CMH_DEFAULTS } from '../../../lib/ml/cmh-defaults';
 import { state } from '../../state';
 import { dom } from '../../dom';
 import { subscribe } from '../../store';
@@ -9,11 +10,13 @@ import { showToast } from '../../ui/feedback';
 type MlFeatureModule = typeof import('./actions') & typeof import('./render');
 let feature: MlFeatureModule | undefined;
 
-// Issue #155: 両チャンクが揃ってから一度だけ配線する。失敗したimportは次回再試行する。
+// Issue #155: actions と render は splitChunks:false 下では中身が重複するため、同じ
+// webpackChunkName で1チャンクに統合する。両方揃ってから一度だけ配線し、失敗したimportは
+// 次回再試行する。
 export const loadMlFeature: () => Promise<MlFeatureModule> = createMlFeatureLoader(async () => {
     const [actions, render] = await Promise.all([
-        import(/* webpackChunkName: "ml-actions" */ './actions'),
-        import(/* webpackChunkName: "ml-render" */ './render'),
+        import(/* webpackChunkName: "ml-feature" */ './actions'),
+        import(/* webpackChunkName: "ml-feature" */ './render'),
     ]);
     actions.initMlHandlers();
     feature = { ...actions, ...render };
@@ -41,6 +44,13 @@ let activation: { promise: Promise<boolean>; isCurrent: () => boolean } | undefi
 /** 初回タブ操作を受け取り、連打は合流、離脱した操作は完了しても画面を戻さない。 */
 export function activateMlTab(): Promise<boolean> {
     if (activation?.isCurrent()) return activation.promise;
+    // Issue #155: 件数ガードはチャンク・Workerの読込より前に判定する。ここで弾けば
+    // タブも変えず、空の「ML機能を読み込んでいます…」表示も出さない。
+    const totalRecords = state.references.length;
+    if (!canUseCmhStopping(totalRecords)) {
+        showToast(t('ml_minRecordsError', [String(CMH_DEFAULTS.minRecords), String(totalRecords)]), 5000);
+        return Promise.resolve(false);
+    }
     const previousTab = state.currentTab;
     const spreadsheetId = state.spreadsheetId;
     let cancelled = false;
@@ -75,8 +85,16 @@ export function activateMlTab(): Promise<boolean> {
     return promise;
 }
 
-export function reportMlLoadError(): void {
-    showToast(t('ml_featureLoadFailed'), 5000);
+/** チャンク読込失敗か、それ以外（Worker初期化失敗・拡張コンテキスト無効化時のstorageアクセス失敗など）かで文言を分ける。 */
+export function reportMlLoadError(error: unknown): void {
+    const isChunkLoadError = error instanceof Error
+        && (error.name === 'ChunkLoadError' || /Loading chunk/i.test(error.message));
+    if (isChunkLoadError) {
+        showToast(t('ml_featureLoadFailed'), 5000);
+        return;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    showToast(t('ml_activationFailed', [message]), 5000);
 }
 
 function delegate(action: (loaded: MlFeatureModule) => void): void {

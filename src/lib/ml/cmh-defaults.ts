@@ -13,3 +13,13 @@ export const CMH_DEFAULTS = {
     updateInterval: 15,
     auditSampleSize: 200,
 } as const;
+
+/**
+ * CMH 停止基準が有効かどうかを判定
+ *
+ * @param totalRecords - 総レコード数
+ * @returns true なら CMH 停止基準を使用可能
+ */
+export function canUseCmhStopping(totalRecords: number): boolean {
+    return totalRecords >= CMH_DEFAULTS.minRecords;
+}

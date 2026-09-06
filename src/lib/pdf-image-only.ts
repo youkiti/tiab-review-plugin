@@ -9,8 +9,6 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { SCANNED_TEXT_THRESHOLD } from './pdf-constants';
 
-export { SCANNED_TEXT_THRESHOLD } from './pdf-constants';
-
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
 
 /**

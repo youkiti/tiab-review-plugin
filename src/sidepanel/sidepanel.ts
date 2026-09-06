@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error activating ML tab:', error);
-            reportMlLoadError();
+            reportMlLoadError(error);
         }
     });
 });
