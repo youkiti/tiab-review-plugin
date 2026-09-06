@@ -9,7 +9,13 @@ import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './se
 import { t } from '../../../lib/i18n';
 
 // Store互換レイヤー（Phase 5）
-import { setMlState as syncSetMlState } from '../../store/compat';
+import {
+    setMlState as syncSetMlState,
+    addIncludeKeyword as syncAddIncludeKeyword,
+    removeIncludeKeyword as syncRemoveIncludeKeyword,
+    addExcludeKeyword as syncAddExcludeKeyword,
+    removeExcludeKeyword as syncRemoveExcludeKeyword,
+} from '../../store/compat';
 
 const elements = {
     section: () => document.getElementById('ml-section'),
@@ -166,9 +172,9 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[], cont
         span.querySelector('.remove-keyword')?.addEventListener('click', (e) => {
             e.stopPropagation();
             if (type === 'include') {
-                state.removeIncludeKeyword(word);
+                syncRemoveIncludeKeyword(word);
             } else {
-                state.removeExcludeKeyword(word);
+                syncRemoveExcludeKeyword(word);
             }
             renderMlKeywords();
             renderMlReference(); // ハイライト即時反映
@@ -313,9 +319,9 @@ export function addMlKeyword(type: 'include' | 'exclude') {
 
     // 追加
     if (type === 'include') {
-        state.addIncludeKeyword(word);
+        syncAddIncludeKeyword(word);
     } else {
-        state.addExcludeKeyword(word);
+        syncAddExcludeKeyword(word);
     }
 
     input.value = '';

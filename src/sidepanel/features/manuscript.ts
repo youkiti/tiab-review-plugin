@@ -17,8 +17,9 @@ import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
 import { getProjectFulltextCandidateList } from './screening/filters';
-import { getFulltextResultsSummaryByRoute } from './fulltext-results';
-import type { FulltextResultsSummary } from './fulltext-results';
+import { getFulltextResultsSummaryByRoute } from '../../lib/fulltext-results-summary';
+import type { FulltextResultsSummary } from '../../lib/fulltext-results-summary';
+import { getFulltextEnabledJudges } from './fulltext/lazy';
 import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../lib/identification-route';
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
@@ -453,7 +454,16 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     const sought = splitByIdentificationRoute(getProjectFulltextCandidateList()).database.length;
     // database腕とother methods腕（Registry linkage由来）を分けて集計する（Issue #120）。
     // tiab相ではフルテキスト評価自体が未実施のため、従来どおり summary は null のままにする。
-    const summaryByRoute = phase === 'fulltext' ? getFulltextResultsSummaryByRoute() : null;
+    // 判定者選択（enabledJudges）は結果ビュー（features/fulltext/results.ts、Issue #155（#150 工程4）で
+    // 遅延読み込みチャンクへ移動）の現在値を lazy.ts 経由で読む。本体が未ロードなら null（全員集計）
+    // になり、フルテキストタブを一度も開いていない場合の従来の既定値と一致する。
+    const summaryByRoute = phase === 'fulltext'
+        ? getFulltextResultsSummaryByRoute(getProjectFulltextCandidateList(), {
+            enabledJudges: getFulltextEnabledJudges(),
+            excludeReasonItems: state.excludeReasonItems,
+            userEmail: state.userEmail,
+        })
+        : null;
     const summary = summaryByRoute ? summaryByRoute.database : null;
     const registryLinkage = summaryByRoute ? summaryByRoute.registryLinkage : null;
 

@@ -5,8 +5,6 @@
 
 import type { AppState } from '../store/types';
 import { dom } from '../dom';
-import { t } from '../../lib/i18n';
-import { describeRule } from '../../lib/fulltext-pool';
 
 /**
  * レイアウト描画
@@ -84,40 +82,5 @@ export function renderTemporaryUI(state: AppState): void {
         dom.toast.classList.add('show');
     } else {
         dom.toast.classList.remove('show');
-    }
-}
-
-/**
- * フィルター件数の更新（セレクトボックスのオプションテキスト）
- */
-export function renderFilterOptions(counts: {
-    pending: number;
-    all: number;
-    include: number;
-    exclude: number;
-    maybe: number;
-    conflict: number;
-    fulltextCandidates: number;
-}, state: AppState): void {
-    const rule = state.data.fulltextPoolRule;
-    const basis = rule
-        ? describeRule(rule)
-        : state.data.isAdmin
-            ? t('filter_fulltextBasisAny')
-            : t('filter_fulltextBasisSelf');
-
-    // option の value をキーにラベルを割り当てる（optgroup の並び順に依存しない）
-    const labels: Record<string, string> = {
-        pending: t('filter_pendingCount', String(counts.pending)),
-        all: t('filter_allCount', String(counts.all)),
-        include: t('filter_includeCount', String(counts.include)),
-        exclude: t('filter_excludeCount', String(counts.exclude)),
-        maybe: t('filter_maybeCount', String(counts.maybe)),
-        conflict: t('filter_conflictCount', String(counts.conflict)),
-        fulltext_candidates: t('filter_fulltextCountAnnotated', [basis, String(counts.fulltextCandidates)]),
-    };
-    for (const opt of Array.from(dom.statusFilter.options)) {
-        const label = labels[opt.value];
-        if (label !== undefined) opt.textContent = label;
     }
 }

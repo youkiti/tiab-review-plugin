@@ -329,6 +329,15 @@
   "nav_tabFulltextBadgeTitle": {
     "message": "全文候補 $1 件"
   },
+  "fulltext_featureLoading": {
+    "message": "フルテキスト機能を読み込んでいます…"
+  },
+  "fulltext_featureLoadFailed": {
+    "message": "フルテキスト機能の起動に失敗しました。フルテキストタブを選び直して再試行してください。"
+  },
+  "fulltext_activationFailed": {
+    "message": "フルテキストタブの起動に失敗しました: $1"
+  },
   "fulltext_progressLine": {
     "message": "フルテキスト判定済み: $1 / $2件"
   },

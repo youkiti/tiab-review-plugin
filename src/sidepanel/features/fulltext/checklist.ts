@@ -1,5 +1,5 @@
 /**
- * fulltext-checklist.ts - フルテキストタブ先頭のセットアップチェックリスト
+ * fulltext/checklist.ts - フルテキストタブ先頭のセットアップチェックリスト
  *
  * 背景: フルテキストスクリーニング開始時に各レビュアーがつまずく点が3つある
  * （実際に研究チームで発生）:
@@ -12,16 +12,16 @@
  *
  * 判定ロジック自体は ../../lib/fulltext-checklist-state.ts（純粋関数、DOM/i18n非依存）に
  * 集約し、本モジュールは以下だけを担う:
- *  - PDF読み取り権限チェック結果の取得（fulltext-regrant.ts の onRegrantResult 購読）と
+ *  - PDF読み取り権限チェック結果の取得（fulltext/regrant.ts の onRegrantResult 購読）と
  *    プロジェクトごとの永続化（chrome.storage.local）
  *  - チェックリストの描画とイベント配線
  */
 
-import { dom } from '../dom';
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { platform } from '../../platform';
-import { getFulltextSetLabel } from '../../lib/fulltext-assignment';
+import { dom } from './dom';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { platform } from '../../../platform';
+import { getFulltextSetLabel } from '../../../lib/fulltext-assignment';
 import {
     computeFulltextChecklistState,
     regrantResultKey,
@@ -31,13 +31,13 @@ import {
     type FulltextChecklistProgressState,
     type FulltextChecklistRegrantState,
     type FulltextRegrantKnownResult,
-} from '../../lib/fulltext-checklist-state';
-import { onRegrantResult, triggerFulltextRegrantCheck } from './fulltext-regrant';
-import { resetFulltextSetSelectionToMine } from './fulltext-assignment-ui';
-import type { ReferenceWithStatus } from '../../lib/types';
-import { getFilePermissions, getProjectDriveFolderId, getSpreadsheetPermissions, type SpreadsheetPermission } from '../../lib/sheets-api';
-import { mergePermissionsForDisplay } from '../../lib/share-permissions';
-import { buildSpreadsheetUrl } from '../../lib/share-invite';
+} from '../../../lib/fulltext-checklist-state';
+import { onRegrantResult, triggerFulltextRegrantCheck } from './regrant';
+import { resetFulltextSetSelectionToMine } from './assignment-ui';
+import type { ReferenceWithStatus } from '../../../lib/types';
+import { getFilePermissions, getProjectDriveFolderId, getSpreadsheetPermissions, type SpreadsheetPermission } from '../../../lib/sheets-api';
+import { mergePermissionsForDisplay } from '../../../lib/share-permissions';
+import { buildSpreadsheetUrl } from '../../../lib/share-invite';
 
 // 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
 // （プロジェクト × アカウントごとに保持）。
@@ -266,7 +266,7 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
         manualOpenOverride = null;
     }
 
-    // regrant（読み取り権限確認）機能は fulltext-regrant.ts 自体には capability 分岐が無く、
+    // regrant（読み取り権限確認）機能は fulltext/regrant.ts 自体には capability 分岐が無く、
     // フルテキストタブ全体が capabilities.fulltext で出し分けられていることに乗っかっている
     // （bootstrap.ts が caps.fulltext=false でタブボタンごと隠す）。ここでも同じフラグを使う。
     const regrantAvailable = platform().capabilities.fulltext;

@@ -9,6 +9,8 @@ import { state } from '../../state';
 import {
     updateSettings,
     setCurrentIndex as storeSetCurrentIndex,
+    addEnabledReviewer as syncAddEnabledReviewer,
+    removeEnabledReviewer as syncRemoveEnabledReviewer,
 } from '../../store/compat';
 import { getReviewerLabel, isActiveConfirmedLlmDecision, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
@@ -206,9 +208,9 @@ export function renderReviewerFilter() {
  */
 export function handleReviewerToggle(reviewerId: string, enabled: boolean) {
     if (enabled) {
-        state.addEnabledReviewer(reviewerId);
+        syncAddEnabledReviewer(reviewerId);
     } else {
-        state.removeEnabledReviewer(reviewerId);
+        syncRemoveEnabledReviewer(reviewerId);
     }
 
     // 現在の表示を更新

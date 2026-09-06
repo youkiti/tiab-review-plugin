@@ -1,12 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_USER_SETTINGS, parseUserSettings } from '../src/lib/user-settings';
+import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../src/lib/fulltext-assignment';
 import { createStore, initializeStore, initialState } from '../src/sidepanel/store';
 import { state } from '../src/sidepanel/state';
-import {
-    initializeFromLegacy, legacyToAppState, syncToLegacyState, updateSettings,
-    updateAbstractSubsectionHeadings,
-} from '../src/sidepanel/store/compat';
+import { updateSettings, updateAbstractSubsectionHeadings } from '../src/sidepanel/store/compat';
+import * as compat from '../src/sidepanel/store/compat';
 
 test('Storeの初期設定は共通の既定値から導出する', () => {
     assert.deepEqual(initialState.ui.settings, DEFAULT_USER_SETTINGS);
@@ -56,18 +55,39 @@ test('旧stateの設定は読み取り専用でStoreの更新を直ちに参照�
     }
 });
 
-test('互換同期でStore所有の設定を上書きしない', () => {
+test('互換レイヤーの双方向同期はLLM/MLバッチ領域だけに限定される', () => {
     const store = initializeStore();
     try {
+        // Issue #154 工程3 で legacyToAppState/syncToLegacyState/initializeFromLegacy を削除した。
+        // 双方向同期（legacy setterとdispatchの両方を呼ぶ）が残るのはLLM/MLバッチ領域だけであることを固定する。
+        for (const name of ['legacyToAppState', 'syncToLegacyState', 'initializeFromLegacy']) {
+            assert.equal(name in compat, false);
+        }
+
         updateSettings('autoNavigateAfterDecision', false);
         updateSettings('showAiHighlights', false);
         const settings = store.getState().ui.settings;
-        assert.equal('settings' in legacyToAppState().ui, false);
-        syncToLegacyState(initialState);
-        initializeFromLegacy();
+
+        // Store所有になった9領域のcompatラッパーはStoreのみを更新し、設定を上書きしない。
+        compat.setSpreadsheetId('sheet-1');
+        compat.setUserEmail('user@example.test');
+        compat.setKeywords({ include: ['a'], exclude: [] });
+        compat.setIsAdmin(true);
+        compat.setFulltextPoolRule(null);
+        compat.setFulltextAssignment({ ...DEFAULT_FULLTEXT_ASSIGNMENT });
+        compat.setAvailableReviewers(new Set(['user@example.test']));
+        compat.setEnabledReviewers(new Set(['user@example.test']));
+        compat.changeTab('llm');
         assert.equal(store.getState().ui.settings, settings);
         assert.equal(state.autoNavigateAfterDecision, false);
         assert.equal(state.showAiHighlights, false);
+
+        // compatラッパーはStoreを更新し、state.Xのgetterで直ちに同じ値が読める。
+        assert.equal(state.spreadsheetId, 'sheet-1');
+        assert.equal(state.userEmail, 'user@example.test');
+        assert.deepEqual(state.highlightKeywords, { include: ['a'], exclude: [] });
+        assert.equal(state.isAdmin, true);
+        assert.equal(state.currentTab, 'llm');
     } finally {
         initializeStore();
     }

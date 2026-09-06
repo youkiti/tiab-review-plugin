@@ -1,6 +1,9 @@
 /**
  * 互換レイヤー: 既存state.tsとの橋渡し
- * 設定・絞り込み・現在文献・referencesはStoreが所有し、未移行領域のみ双方向同期する。
+ * 設定・絞り込み・現在文献・references・spreadsheetId/userEmail/highlightKeywords/isAdmin/
+ * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTabはStoreが所有し、
+ * 双方向同期が残るのはLLM/MLバッチ領域（llmConfig・mlState・activeLlmExecutionIds・
+ * currentBatchDecisions・failedRefIds）のみ。
  */
 
 import { state as legacyState } from '../state';
@@ -13,78 +16,6 @@ import type { HighlightKeywords } from '../../lib/sheets-api';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
 
-/**
- * 既存stateから未移行のAppState領域へ変換する（設定・絞り込み・現在文献・referencesは含めない）。
- */
-export function legacyToAppState(): {
-    data: Omit<AppState['data'], 'references' | 'sourceFiles' | 'selectedSourceFiles'
-        | 'assignmentConfig' | 'assignmentSets' | 'selectedAssignmentSets' | 'selectedFulltextSets'>;
-    ui: Omit<AppState['ui'], 'settings' | 'screening'>;
-} {
-    return {
-        data: {
-            spreadsheetId: legacyState.spreadsheetId,
-            userEmail: legacyState.userEmail,
-            highlightKeywords: legacyState.highlightKeywords,
-            llmConfig: legacyState.llmConfig,
-            mlState: legacyState.mlState,
-            recentSheets: [], // 既存stateにはない
-            isAdmin: legacyState.isAdmin,
-            fulltextPoolRule: legacyState.fulltextPoolRule,
-            fulltextAssignment: legacyState.fulltextAssignment,
-            availableReviewers: legacyState.availableReviewers,
-            enabledReviewers: legacyState.enabledReviewers,
-            activeLlmExecutionIds: legacyState.activeLlmExecutionIds,
-            currentBatchDecisions: legacyState.currentBatchDecisions,
-            failedRefIds: legacyState.failedRefIds,
-        },
-        ui: {
-            view: 'screening', // 既存stateにはviewがないため、デフォルト値
-            currentTab: legacyState.currentTab,
-            ml: {
-                currentIndex: legacyState.mlState.currentIndex,
-                searchQuery: '',
-            },
-            llm: {
-                batchRunning: legacyState.batchAbortController !== null,
-                currentExecutionId: legacyState.currentExecutionId,
-            },
-            flags: {
-                loading: false,
-                exportMenuOpen: false,
-                shareInputOpen: false,
-                settingsOpen: false,
-            },
-            toast: null,
-        },
-    };
-}
-
-/**
- * AppStateから既存stateへ同期
- * 注意: 一部のプロパティは既存stateの構造と異なるため、
- * 互換性のために変換が必要
- */
-export function syncToLegacyState(appState: AppState): void {
-    // データ層
-    legacyState.setSpreadsheetId(appState.data.spreadsheetId);
-    legacyState.setUserEmail(appState.data.userEmail);
-    legacyState.setHighlightKeywords(appState.data.highlightKeywords);
-    legacyState.setLlmConfig(appState.data.llmConfig);
-    legacyState.setMlState(appState.data.mlState);
-    legacyState.setIsAdmin(appState.data.isAdmin);
-    legacyState.setFulltextPoolRule(appState.data.fulltextPoolRule);
-    legacyState.setFulltextAssignment(appState.data.fulltextAssignment);
-    legacyState.setAvailableReviewers(appState.data.availableReviewers);
-    legacyState.setEnabledReviewers(appState.data.enabledReviewers);
-    legacyState.setActiveLlmExecutionIds(appState.data.activeLlmExecutionIds);
-    legacyState.setCurrentBatchDecisions(appState.data.currentBatchDecisions);
-    legacyState.setFailedRefIds(appState.data.failedRefIds);
-
-    // UI層
-    legacyState.setCurrentTab(appState.ui.currentTab);
-}
-
 // ========== ラッパー関数: 移行済み領域はdispatchのみ ==========
 
 /**
@@ -95,27 +26,52 @@ export function setReferences(refs: ReferenceWithStatus[]): void {
 }
 
 /**
- * SpreadsheetId を設定（両方に同期）
+ * SpreadsheetId を設定（Storeのみ）
  */
 export function setSpreadsheetId(id: string): void {
-    legacyState.setSpreadsheetId(id);
     dispatch({ type: 'data/setSpreadsheetId', id });
 }
 
 /**
- * UserEmail を設定（両方に同期）
+ * UserEmail を設定（Storeのみ）
  */
 export function setUserEmail(email: string): void {
-    legacyState.setUserEmail(email);
     dispatch({ type: 'data/setUserEmail', email });
 }
 
 /**
- * Keywords を設定（両方に同期）
+ * Keywords を設定（Storeのみ）
  */
 export function setKeywords(keywords: HighlightKeywords): void {
-    legacyState.setHighlightKeywords(keywords);
     dispatch({ type: 'data/setKeywords', keywords });
+}
+
+/**
+ * ハイライトキーワード（含める語）を追加（Storeのみ、重複は追加しない）
+ */
+export function addIncludeKeyword(word: string): void {
+    dispatch({ type: 'data/addKeyword', keywordType: 'include', word });
+}
+
+/**
+ * ハイライトキーワード（含める語）を削除（Storeのみ）
+ */
+export function removeIncludeKeyword(word: string): void {
+    dispatch({ type: 'data/removeKeyword', keywordType: 'include', word });
+}
+
+/**
+ * ハイライトキーワード（除外する語）を追加（Storeのみ、重複は追加しない）
+ */
+export function addExcludeKeyword(word: string): void {
+    dispatch({ type: 'data/addKeyword', keywordType: 'exclude', word });
+}
+
+/**
+ * ハイライトキーワード（除外する語）を削除（Storeのみ）
+ */
+export function removeExcludeKeyword(word: string): void {
+    dispatch({ type: 'data/removeKeyword', keywordType: 'exclude', word });
 }
 
 /**
@@ -182,10 +138,9 @@ export function changeView(view: AppState['ui']['view']): void {
 }
 
 /**
- * Tab を変更（両方に同期）
+ * Tab を変更（Storeのみ）
  */
 export function changeTab(tab: AppState['ui']['currentTab']): void {
-    legacyState.setCurrentTab(tab);
     dispatch({ type: 'tab/change', tab });
 }
 
@@ -210,28 +165,6 @@ export function resetForLogout(): void {
 export function resetForBack(): void {
     legacyState.resetForBack();
     dispatch({ type: 'reset/back' });
-}
-
-// ========== 初期同期 ==========
-
-/**
- * 既存stateの値で新storeを初期化
- */
-export function initializeFromLegacy(): void {
-    const appState = legacyToAppState();
-
-    // 各値をdispatchで設定
-    dispatch({ type: 'data/setSpreadsheetId', id: appState.data.spreadsheetId });
-    dispatch({ type: 'data/setUserEmail', email: appState.data.userEmail });
-    dispatch({ type: 'data/setKeywords', keywords: appState.data.highlightKeywords });
-    dispatch({ type: 'data/setLlmConfig', config: appState.data.llmConfig });
-    dispatch({ type: 'data/setMlState', mlState: appState.data.mlState });
-    dispatch({ type: 'data/setIsAdmin', isAdmin: appState.data.isAdmin });
-    dispatch({ type: 'data/setAvailableReviewers', reviewers: appState.data.availableReviewers });
-    dispatch({ type: 'data/setEnabledReviewers', reviewers: appState.data.enabledReviewers });
-
-    // UI
-    dispatch({ type: 'tab/change', tab: appState.ui.currentTab });
 }
 
 // ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
@@ -272,26 +205,23 @@ export function closeSettingsView(): void {
 }
 
 /**
- * Admin状態を設定（両方に同期）
+ * Admin状態を設定（Storeのみ）
  */
 export function setIsAdmin(isAdmin: boolean): void {
-    legacyState.setIsAdmin(isAdmin);
     dispatch({ type: 'data/setIsAdmin', isAdmin });
 }
 
 /**
- * フルテキスト候補ルールを設定（両方に同期）
+ * フルテキスト候補ルールを設定（Storeのみ）
  */
 export function setFulltextPoolRule(rule: FulltextPoolRule | null): void {
-    legacyState.setFulltextPoolRule(rule);
     dispatch({ type: 'data/setFulltextPoolRule', rule });
 }
 
 /**
- * フルテキスト担当割り振りを設定（両方に同期）
+ * フルテキスト担当割り振りを設定（Storeのみ）
  */
 export function setFulltextAssignment(config: FulltextAssignmentConfig): void {
-    legacyState.setFulltextAssignment(config);
     dispatch({ type: 'data/setFulltextAssignment', config });
 }
 
@@ -310,19 +240,33 @@ export function setSelectedSourceFiles(files: Set<string>): void {
 }
 
 /**
- * 利用可能なレビュアーを設定（両方に同期）
+ * 利用可能なレビュアーを設定（Storeのみ）
  */
 export function setAvailableReviewers(reviewers: Set<string>): void {
-    legacyState.setAvailableReviewers(reviewers);
     dispatch({ type: 'data/setAvailableReviewers', reviewers });
 }
 
 /**
- * 有効なレビュアーを設定（両方に同期）
+ * 有効なレビュアーを設定（Storeのみ）
  */
 export function setEnabledReviewers(reviewers: Set<string>): void {
-    legacyState.setEnabledReviewers(reviewers);
     dispatch({ type: 'data/setEnabledReviewers', reviewers });
+}
+
+/**
+ * レビュアーを有効化（Storeのみ）。混在レビュアー（人手＋ML）のチェックボックス切替では
+ * 本体キーと ::ml キーへ同じ enabled 値を独立に適用するため、toggleReviewer ではなく
+ * 明示的な追加/削除アクションを使う。
+ */
+export function addEnabledReviewer(id: string): void {
+    dispatch({ type: 'data/addReviewer', reviewerId: id });
+}
+
+/**
+ * レビュアーを無効化（Storeのみ）
+ */
+export function removeEnabledReviewer(id: string): void {
+    dispatch({ type: 'data/removeReviewer', reviewerId: id });
 }
 
 /**

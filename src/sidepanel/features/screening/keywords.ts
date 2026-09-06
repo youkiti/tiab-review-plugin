@@ -8,6 +8,13 @@ import { state } from '../../state';
 import { updateConfigKeywords, PRESET_RCT, PRESET_SR } from '../../../lib/sheets-api';
 import { showToast, updateSaveStatus } from '../../ui/feedback';
 import { addTermFilter } from './filters';
+import {
+    addIncludeKeyword as syncAddIncludeKeyword,
+    removeIncludeKeyword as syncRemoveIncludeKeyword,
+    addExcludeKeyword as syncAddExcludeKeyword,
+    removeExcludeKeyword as syncRemoveExcludeKeyword,
+    setKeywords as syncSetKeywords,
+} from '../../store/compat';
 
 // 外部レンダリング関数への参照（循環依存回避）
 let _renderCurrentReference: (() => void) | null = null;
@@ -79,9 +86,9 @@ export async function addKeyword(type: 'include' | 'exclude') {
 
     // 追加
     if (type === 'include') {
-        state.addIncludeKeyword(word);
+        syncAddIncludeKeyword(word);
     } else {
-        state.addExcludeKeyword(word);
+        syncAddExcludeKeyword(word);
     }
 
     input.value = '';
@@ -97,9 +104,9 @@ export async function addKeyword(type: 'include' | 'exclude') {
  */
 export async function removeKeyword(type: 'include' | 'exclude', word: string) {
     if (type === 'include') {
-        state.removeIncludeKeyword(word);
+        syncRemoveIncludeKeyword(word);
     } else {
-        state.removeExcludeKeyword(word);
+        syncRemoveExcludeKeyword(word);
     }
     renderKeywords();
     if (_renderCurrentReference) _renderCurrentReference(); // ハイライト即時反映
@@ -119,7 +126,7 @@ export async function applyPreset(type: 'RCT' | 'SR') {
     const preset = type === 'RCT' ? PRESET_RCT : PRESET_SR;
 
     // 値渡しでコピー
-    state.setHighlightKeywords({
+    syncSetKeywords({
         include: [...preset.include],
         exclude: [...preset.exclude]
     });

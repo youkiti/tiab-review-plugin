@@ -14,10 +14,10 @@
  *  - 編集は管理者のみ（理由がレビュー中に勝手に変わると判定の一貫性が壊れるため）。
  */
 
-import { state } from '../state';
-import { t } from '../../lib/i18n';
-import { showToast } from '../ui/feedback';
-import { saveExcludeReasonConfig } from '../../lib/sheets-api';
+import { state } from '../../state';
+import { t } from '../../../lib/i18n';
+import { showToast } from '../../ui/feedback';
+import { saveExcludeReasonConfig } from '../../../lib/sheets-api';
 import {
     EXCLUDE_REASON_PRESETS,
     MAX_EXCLUDE_REASON_ITEMS,
@@ -25,8 +25,8 @@ import {
     nextExcludeReasonKey,
     validateExcludeReasonItems,
     type ExcludeReasonConfig,
-} from '../../lib/exclude-reason-config';
-import { MAX_REASON_HOTKEYS, type ExcludeReasonItem } from '../../lib/exclude-reasons';
+} from '../../../lib/exclude-reason-config';
+import { MAX_REASON_HOTKEYS, type ExcludeReasonItem } from '../../../lib/exclude-reasons';
 
 export interface ReasonEditorOptions {
     container: HTMLElement;
@@ -53,7 +53,7 @@ function render(options: ReasonEditorOptions): void {
     const { container, isAdmin } = options;
     // className は触らない（sidepanel.html の class="fulltext-reason-editor hidden" を
     // 上書きすると fulltext-tab.css の .fulltext-reason-editor ブロックが死ぬ。
-    // hidden の付け外しは呼び出し側 fulltext-tab.ts の classList に任せる。
+    // hidden の付け外しは呼び出し側 fulltext/tab.ts の classList に任せる。
     // 兄弟コンポーネント fulltext-rule-editor.ts の mountRuleEditor に倣う）。
     container.innerHTML = '';
 
