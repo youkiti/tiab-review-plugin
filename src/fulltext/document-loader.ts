@@ -39,6 +39,7 @@ import {
     hideSavePdfButton,
 } from './document-view';
 import { session, isStale } from './session';
+import { getPdfPrefetch, discardPdfPrefetchEntry } from './pdf-prefetch';
 import { showFeedback, appendTextWithBreaks } from './page-helpers';
 import { renderAiCardsFallback, focusAnnotationCard, applyHighlightsForCurrentRef } from './evidence-controller';
 
@@ -84,29 +85,6 @@ export async function showPdfForRef(ref: Reference, token: number): Promise<void
             // 未取得 → 表示時に自動でOA/レジストリを検索する
             await handleResolve(token);
             break;
-    }
-}
-
-/**
- * 現在地から先の候補PDF（最大2件）をメモリに先読みする。
- * 先読みは Drive 保存済み(cached)PDFのみ対象。現在地から離れた古い先読みは破棄してメモリを節約する。
- */
-export function prefetchNeighbors(): void {
-    if (session.currentCandidateIndex < 0) return;
-    const keep = new Set<string>();
-    if (session.currentRef) keep.add(session.currentRef.ref_id);
-    for (let d = 1; d <= 2; d++) {
-        const ref = session.fulltextCandidates[session.currentCandidateIndex + d];
-        if (!ref || ref.fulltext_status !== 'cached' || !ref.fulltext_url) continue;
-        const fileId = extractDriveFileId(ref.fulltext_url);
-        if (!fileId) continue;
-        keep.add(ref.ref_id);
-        if (!session.pdfPrefetch.has(ref.ref_id)) {
-            session.pdfPrefetch.set(ref.ref_id, downloadDriveFile(fileId).catch(() => null));
-        }
-    }
-    for (const key of [...session.pdfPrefetch.keys()]) {
-        if (!keep.has(key)) session.pdfPrefetch.delete(key);
     }
 }
 
@@ -291,8 +269,10 @@ export async function showCachedPdf(url: string, token?: number): Promise<void> 
     setUrlLabel(url, 'cached');
 
     // 先読み済みなら即利用。無ければその場で取得。
+    // getPdfPrefetch() がファイルID照合を行うため、PDFが差し替わっていれば古い先読み結果は
+    // 使われず（miss扱い）、下の downloadDriveFile() 経路で取り直される。
     const refId = session.currentRef?.ref_id;
-    const prefetched = refId ? session.pdfPrefetch.get(refId) : undefined;
+    const prefetched = refId ? getPdfPrefetch(refId, fileId) : undefined;
 
     let blob: Blob | null = null;
     try {
@@ -444,7 +424,7 @@ async function handlePdfRegrantClick(btn: HTMLButtonElement, url: string, refId?
 async function retryCachedPdf(url: string, refId?: string): Promise<void> {
     // 押している間に別の文献へ移っていたら、その文献の表示を壊さないよう何もしない
     if (refId && session.currentRef?.ref_id !== refId) return;
-    if (refId) session.pdfPrefetch.delete(refId);
+    if (refId) discardPdfPrefetchEntry(refId);
     await showCachedPdf(url, ++session.loadToken);
 }
 

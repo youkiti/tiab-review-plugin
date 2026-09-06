@@ -51,8 +51,10 @@ export const session = {
     // 担当セットのチェックボックス絞り込み適用前の候補数（renderProgress の空理由判定用）
     candidateCountBeforeSetFilter: 0,
     currentCandidateIndex: -1,
-    // 先読みしたPDF（ref_id → Blob取得Promise）。隣接候補を事前取得し遷移を高速化する。
-    pdfPrefetch: new Map<string, Promise<Blob | null>>(),
+    // 先読みしたPDF（ref_id → 先読みエントリ）。隣接候補を事前取得し遷移を高速化する。
+    // エントリの中身・ライフサイクル管理（ファイルID照合・中止・バイト上限・同時実行数上限）は
+    // pdf-prefetch.ts に集約する（このモジュールは状態の保持のみを持つ）。
+    pdfPrefetch: new Map<string, PdfPrefetchEntry>(),
     // ページ内遷移トークン。非同期PDF取得中に別の文献へ移った場合の遅延描画（取り違え）を防ぐ。
     loadToken: 0,
     // キー状態変更（blind:key-changed）に伴う再取得の取り違え防止用トークン。
@@ -116,4 +118,24 @@ export interface HighlightListItem {
     page: number;
     resolved: boolean;
     via: 'text' | 'bbox' | 'none';
+}
+
+/**
+ * PDF先読み（プリフェッチ）1件分の状態。
+ * ref_id → このエントリ、で session.pdfPrefetch に積む（Issue #156 PR3）。
+ */
+export interface PdfPrefetchEntry {
+    /** 先読みを開始した時点の Drive ファイルID。取り出し側はこれと現在のURLのファイルIDを
+     *  照合し、不一致なら「PDFが差し替わった（再アップロード等）」とみなしてミス扱いにする。 */
+    fileId: string;
+    /** 進行中のダウンロードを中止するための AbortController。既に解決済みのエントリに対して
+     *  abort() を呼んでも何も起きない（無害）ため、呼び出し側は解決済みかどうかを
+     *  気にせず呼んでよい。 */
+    controller: AbortController;
+    /** ダウンロード結果を返す Promise。失敗（型付きエラー・abort含む）は null に丸めて解決し、
+     *  reject はしない（呼び出し側の「先読み失敗→その場で再取得」フォールバックを保つため）。 */
+    promise: Promise<Blob | null>;
+    /** 解決済みのバイト数（Blob.size。失敗時は0）。Promise解決前は undefined で、
+     *  バイト上限の集計対象から外れる（解決するまでサイズが分からないため）。 */
+    bytes?: number;
 }

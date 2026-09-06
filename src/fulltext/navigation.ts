@@ -20,7 +20,8 @@ import {
 } from './decision-controller';
 import { clearAiHighlights, jumpToEvidence } from './evidence-controller';
 import { renderBiblio, renderContextPanel, isCriteriaModalOpen, toggleCriteriaModal, closeCriteriaModal } from './page-panels';
-import { prefetchNeighbors, showPdfForRef } from './document-loader';
+import { showPdfForRef } from './document-loader';
+import { prefetchNeighbors } from './pdf-prefetch';
 import { showFeedback } from './page-helpers';
 
 /**

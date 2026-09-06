@@ -274,6 +274,15 @@ export function extractDriveFileId(url: string): string | null {
 }
 
 /**
+ * `fetch()` の AbortSignal による中断（AbortError）かどうかを判定する。
+ * ブラウザ・Node(undici) いずれの実装でも、中断時は name が 'AbortError' の
+ * DOMException（またはそれに準じるError）を投げる規約になっている。
+ */
+function isAbortError(err: unknown): boolean {
+    return err instanceof Error && err.name === 'AbortError';
+}
+
+/**
  * Drive ファイルの実体（PDFバイト）をダウンロードする。
  * drive.file スコープのため、本拡張で保存したファイル以外は 403/404 になりうる。
  *
@@ -283,8 +292,13 @@ export function extractDriveFileId(url: string): string | null {
  * ステータスの解釈は classifyDriveApiStatus() に委ね、ここで 401/403/404 を再実装しないこと。
  * 例外は 403 のみ: レート制限（isDriveRateLimitBody()）かどうかを本文で補助的に見て
  * transient-error 側へ倒す（「403は常にinaccessible」という4分類自体は変えない）。
+ *
+ * `signal` を渡すと、呼び出し側（先読みキャッシュ等）から進行中のダウンロードを中止できる。
+ * **abort による中断だけは上記の型付きエラーに化けさせない**（AbortError のまま投げる）。
+ * abort は呼び出し側が意図的に起こしたものであり、「一時エラーだから再試行を案内する」
+ * 判断材料にしてはならないため（Issue #156 PR3）。
  */
-export async function downloadDriveFile(fileId: string): Promise<Blob> {
+export async function downloadDriveFile(fileId: string, signal?: AbortSignal): Promise<Blob> {
     let token: string;
     try {
         token = await getAuthToken();
@@ -299,11 +313,15 @@ export async function downloadDriveFile(fileId: string): Promise<Blob> {
     try {
         resp = await driveFetch(
             `${DRIVE_API_BASE}/files/${encodeURIComponent(fileId)}?alt=media`,
-            {},
+            { signal },
             { token }
         );
     } catch (err) {
-        // ネットワーク例外。権限の問題と区別が付かないまま「未付与」と案内しないよう一時エラーへ倒す。
+        // abort は呼び出し側の意図的な中断。一時エラー（時間をおいて再試行）の材料にしないよう
+        // 型付きエラーへ変換せずそのまま投げる。
+        if (isAbortError(err)) throw err;
+        // それ以外のネットワーク例外。権限の問題と区別が付かないまま「未付与」と案内しないよう
+        // 一時エラーへ倒す。
         throw new DriveTransientError(fileId, `Drive API request failed: ${(err as Error).message}`);
     }
 
