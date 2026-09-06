@@ -1,7 +1,7 @@
 // publication-suggest.ts
 // Issue #118「レジストリ連携フェーズ1」チャンク2 パスB: 試験登録レコード（registration行）から
 // 「その試験の結果論文（linked publication）」の候補を発見する。UI 非依存。
-// 発見した候補の永続化（Publication_Candidates タブへの保存）は src/lib/sheets-api.ts の
+// 発見した候補の永続化（Publication_Candidates タブへの保存）は src/lib/sheets/publication-candidates.ts の
 // savePublicationCandidates() が担う。候補の表示・取り込み・References への行追加は
 // このパスの対象外（チャンク3）。**References に行を追加する経路をこのファイルに作らないこと。**
 
@@ -10,7 +10,7 @@ import type { PublicationCandidate, PublicationCandidateStrategy } from './types
 /**
  * discoverPublicationCandidates() が発見した、まだ Publication_Candidates タブへ
  * 保存する前の候補。保存後の PublicationCandidate（candidate_id/status/suggested_at 等が
- * 確定した行）とは別の型にしている（sheets-api.ts の savePublicationCandidates() が
+ * 確定した行）とは別の型にしている（sheets/publication-candidates.ts の savePublicationCandidates() が
  * それらのフィールドを確定させる）。
  */
 export interface PublicationCandidateDraft {
@@ -134,7 +134,7 @@ export function filterAlreadyImportedCandidates(
 /**
  * Publication_Candidates タブへ既に記録済みの候補（同一 ref_id かつ 同一 PMID または DOI）を
  * 除外する。一括検索を2回流しても Publication_Candidates に重複行が積まれないようにするための
- * フィルタ（src/lib/sheets-api.ts の savePublicationCandidates() が保存直前に使う）。
+ * フィルタ（src/lib/sheets/publication-candidates.ts の savePublicationCandidates() が保存直前に使う）。
  */
 export function filterNewCandidates(
     existing: PublicationCandidate[],

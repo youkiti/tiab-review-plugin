@@ -56,7 +56,7 @@ export interface DriveFileMetadata {
 // プロジェクトの Drive フォルダ/ファイルを GET すると 403/404 になりうるが、これは
 // 「見えない」のであって「無い」わけではない。ここを区別せずに握り潰すと、
 // 誤ってフォルダを作り直し・他人のスプレッドシートを移動してしまう（Issue #60）。
-// sheets-api.ts の SheetsAccessDeniedError と同じ考え方を Drive 側にも適用する。
+// sheets/transport.ts の SheetsAccessDeniedError と同じ考え方を Drive 側にも適用する。
 // ---------------------------------------------------------------------------
 
 /**
@@ -65,7 +65,7 @@ export interface DriveFileMetadata {
  * 一時的な問題ではないため、フォルダの作り直しや移動には絶対に使ってはならない。
  * デフォルトメッセージはログ/デバッグ用の中立的な英語文字列とし、UIへ出す文言は
  * describeDriveAccessError() 経由で messages.json（ja/en）から取得する
- * （sheets-api.ts の SheetsAccessDeniedError と同じ方針。2箇所に文言を持たせて drift させない）。
+ * （sheets/transport.ts の SheetsAccessDeniedError と同じ方針。2箇所に文言を持たせて drift させない）。
  */
 export class DriveAccessDeniedError extends Error {
     constructor(

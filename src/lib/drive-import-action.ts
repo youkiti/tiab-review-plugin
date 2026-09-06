@@ -28,7 +28,7 @@ export interface ImportedCopyMatch {
 
 /**
  * 対象Referenceの現在のシート状態（fulltext_status / fulltext_url / Drive取り込みクレーム）。
- * データ層（sheets-api.ts の ReferenceFulltextRowState）と同じ形。
+ * データ層（sheets/references.ts の ReferenceFulltextRowState）と同じ形。
  */
 export interface SheetFulltextState {
     status: FulltextStatus;

@@ -2,7 +2,7 @@
  * ブラインド中に判定を表示してよいかどうかの述語。
  *
  * 純関数のみで構成する（`chrome` API や DOM を import しないこと）。
- * `src/lib/sheets-api.ts` の `filterDecisionsForBlind()` と
+ * `src/lib/sheets/decisions.ts` の `filterDecisionsForBlind()` と
  * `src/fulltext/fulltext.ts`（PDF判定画面）の両方から同じポリシーで判定できるよう、
  * ここへ一元化する（ポリシーの定義が2か所に分かれるのを避けるため）。
  */

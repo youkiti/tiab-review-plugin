@@ -46,7 +46,7 @@ let failureMode: DemoNetFailureMode = 'none';
 
 /**
  * 応答バイト数を計測用に一時的に運ぶための内部専用ヘッダー名。
- * 実際の呼び出し元（sheets-api.ts 等）へ返す直前に必ず finalizeDemoResponse() で
+ * 実際の呼び出し元（src/lib/sheets/transport.ts 等）へ返す直前に必ず finalizeDemoResponse() で
  * 取り除く（呼び出し元からは今までどおり見えない）。
  * Response.clone().arrayBuffer() で読む案もあったが、それだと計測のためだけに
  * 追加の Promise を挟むことになり、応答本文の構築元（jsonResponse 等）で同期的に
@@ -67,7 +67,7 @@ function jsonResponse(status: number, body: unknown): Response {
 
 /**
  * 実APIの「シートが存在しない」エラーメッセージ文言に合わせて 400 を返す。
- * sheets-api.ts 側がこの文言（"Unable to parse range"）を見てシート作成の
+ * src/lib/sheets/ 側（transport.ts の isSheetMissingError() と各タブの ensure）がこの文言（"Unable to parse range"）を見てシート作成の
  * 再試行フローに分岐するため、文言を変えないこと。
  */
 function notFoundRange(range: string): Response {

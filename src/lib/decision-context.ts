@@ -8,7 +8,7 @@
 // decision-summary.ts と同じ方針: `../sidepanel/state` / DOM には依存しない（テストのため）。
 // 呼び出し側（actions.ts / fulltext.ts）が state・DOM から値を集めて引数として渡すこと。
 
-/** AI evidence の表示レベル（フルテキスト画面。sheets-api.ts の FulltextEvidenceDisplay と同じ値） */
+/** AI evidence の表示レベル（フルテキスト画面。sheets/config-schema.ts の FulltextEvidenceDisplay と同じ値） */
 export type DecisionContextAiEvidenceLevel = 'none' | 'neutral' | 'full';
 
 /**

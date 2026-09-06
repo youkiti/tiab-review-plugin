@@ -36,7 +36,7 @@ export type AiEvidenceEmptyReason =
  *
  * hasAnyFulltextAiDecision / hasAdoptedRoundDecision は「プロジェクト全体で1件でもあるか」で、
  * 表示中の文献に限定しないこと（限定すると ② と ⑤ が区別できない）。
- * なおブラインド中でも LLM 判定はクライアントへ配られる（sheets-api の filterDecisionsForBlind）
+ * なおブラインド中でも LLM 判定はクライアントへ配られる（sheets/decisions.ts の filterDecisionsForBlind）
  * ため、この2つのフラグはブラインド状態に関わらず正しく求められる。
  */
 export function explainEmptyAiEvidence(input: {

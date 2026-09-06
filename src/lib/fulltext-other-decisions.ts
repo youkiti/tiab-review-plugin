@@ -11,7 +11,7 @@ import { isAdjudicationKey, adjudicationEmail } from './fulltext-consensus';
 /**
  * ある文献に対する「自分以外」のフルテキスト判定を、判定者ごとに最新1件へ畳み込んで返す。
  *
- * - `keyOpened === false`（Blind中）は常に空配列。sheets-api の filterDecisionsForBlind() が
+ * - `keyOpened === false`（Blind中）は常に空配列。sheets/decisions.ts の filterDecisionsForBlind() が
  *   他レビュアーの票をそもそもクライアントへ渡さないが、UI側でも同じ線引きを持たせる（多層防御）。
  * - AI票（`llm:`）は判定パネル上部のAI判定サマリで別に出しているため除外する。
  * - 通常の判定者は reviewer_id ごとに最新1件。
