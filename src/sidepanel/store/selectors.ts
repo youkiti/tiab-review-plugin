@@ -10,15 +10,15 @@ import { parseSearchQuery, applyTextFilters } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { canSeeFulltextRef } from '../../lib/fulltext-assignment';
 import { isFulltextCandidateRef } from '../../lib/fulltext-candidates';
-import { detectConflictWithSettings, hasEffectiveConflict } from '../render/helpers';
+import { hasEffectiveConflict } from '../render/helpers';
+import { resolveReferenceAssignmentSet } from '../../lib/assignment-set';
 import { t } from '../../lib/i18n';
 
 // ========== フィルタリング関連 ==========
 
 /**
  * 自分の手動判定ステータスを取得
- * client_version === '0.1.0' の判定のみを手動判定として扱う
- * ただし treatMlAsManual が true の場合は ML判定(0.7.0-ml)も手動判定として扱う
+ * human判定（旧形式も含む）と、treatMlAsManualが有効な場合の確認済みML判定を扱う。
  */
 export function getMyManualDecisionStatus(
     ref: ReferenceWithStatus,
@@ -49,7 +49,7 @@ export function getMyManualDecisionStatus(
 /**
  * 文献の全判定を集める（allDecisions + myDecision、重複排除）
  */
-function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
+export function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
     const list = [...(ref.allDecisions ?? [])];
     if (ref.myDecision && !list.some(d => d.decision_id === ref.myDecision!.decision_id)) {
         list.push(ref.myDecision);
@@ -59,10 +59,10 @@ function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
 
 /**
  * フルテキスト候補のうち自分の担当分か（担当割り振り適用後）
- * features/screening/filters.ts の isMyFulltextCandidate と同じ規則
+ * スクリーニングと件数集計で共有する判定
  * （フルテキスト候補判定そのものは fulltext-candidates.ts の isFulltextCandidateRef に委譲）
  */
-function isMyFulltextCandidate(ref: ReferenceWithStatus, data: AppState['data']): boolean {
+export function isMyFulltextCandidate(ref: ReferenceWithStatus, data: AppState['data']): boolean {
     return isFulltextCandidateRef({
         ref,
         decisions: collectRefDecisions(ref),
@@ -98,6 +98,13 @@ export function getFilteredReferences(state: AppState): ReferenceWithStatus[] {
     if (data.selectedSourceFiles.size > 0 && data.selectedSourceFiles.size < data.sourceFiles.size) {
         filtered = filtered.filter(r =>
             r.source_file && data.selectedSourceFiles.has(r.source_file)
+        );
+    }
+
+    // 担当セットフィルター（全選択時は絞らず、未選択時は空にする）
+    if (data.assignmentSets.size > 0 && data.selectedAssignmentSets.size < data.assignmentSets.size) {
+        filtered = filtered.filter(r =>
+            data.selectedAssignmentSets.has(resolveReferenceAssignmentSet(r, data.assignmentConfig))
         );
     }
 

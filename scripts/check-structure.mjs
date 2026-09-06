@@ -8,7 +8,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const UI = /^src\/(sidepanel|fulltext|popup|webapp|background|demo)\//;
 // 型・既定値の置き場所を増やす場合、この一覧にも追加する。
 export const FOUNDATION_MODULES = new Set([
-    'src/lib/types.ts', 'src/lib/sheets/schema.ts', 'src/lib/sheets/config-schema.ts',
+    'src/lib/types.ts', 'src/lib/assignment-set.ts', 'src/lib/sheets/schema.ts', 'src/lib/sheets/config-schema.ts',
     'src/lib/ml/types.ts', 'src/lib/ml/cmh-defaults.ts', 'src/platform/types.ts',
 ]);
 const COMMUNICATION = /^src\/(platform\/|lib\/(sheets-api\.ts$|sheets\/(?!schema\.ts$|config-schema\.ts$|codecs\.ts$)|providers\/|.*(?:-api|-provider|-processor)\.ts$|storage\.ts$|ml\/worker-client\.ts$))/;

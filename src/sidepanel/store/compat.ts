@@ -1,25 +1,28 @@
 /**
  * 互換レイヤー: 既存state.tsとの橋渡し
- * 段階的移行のため、両方のstateを同期する
+ * 設定・絞り込み・現在文献・referencesはStoreが所有し、未移行領域のみ双方向同期する。
  */
 
 import { state as legacyState } from '../state';
-import { getStore, dispatch, getState } from './index';
+import { dispatch } from './index';
 import type { UserSettings } from '../../lib/user-settings';
-import type { AppState, Action, View, Tab } from './types';
-import type { ReferenceWithStatus, Decision, LlmConfig, DecisionStatus } from '../../lib/types';
+import type { AppState } from './types';
+import type { ReferenceWithStatus, LlmConfig, AssignmentConfig } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../../lib/fulltext-assignment';
 
 /**
- * 既存stateから未移行のAppState領域へ変換する（設定はStoreが所有するため含めない）。
+ * 既存stateから未移行のAppState領域へ変換する（設定・絞り込み・現在文献・referencesは含めない）。
  */
-export function legacyToAppState(): Omit<AppState, 'ui'> & { ui: Omit<AppState['ui'], 'settings'> } {
+export function legacyToAppState(): {
+    data: Omit<AppState['data'], 'references' | 'sourceFiles' | 'selectedSourceFiles'
+        | 'assignmentConfig' | 'assignmentSets' | 'selectedAssignmentSets' | 'selectedFulltextSets'>;
+    ui: Omit<AppState['ui'], 'settings' | 'screening'>;
+} {
     return {
         data: {
-            references: legacyState.references,
             spreadsheetId: legacyState.spreadsheetId,
             userEmail: legacyState.userEmail,
             highlightKeywords: legacyState.highlightKeywords,
@@ -29,8 +32,6 @@ export function legacyToAppState(): Omit<AppState, 'ui'> & { ui: Omit<AppState['
             isAdmin: legacyState.isAdmin,
             fulltextPoolRule: legacyState.fulltextPoolRule,
             fulltextAssignment: legacyState.fulltextAssignment,
-            sourceFiles: legacyState.sourceFiles,
-            selectedSourceFiles: legacyState.selectedSourceFiles,
             availableReviewers: legacyState.availableReviewers,
             enabledReviewers: legacyState.enabledReviewers,
             activeLlmExecutionIds: legacyState.activeLlmExecutionIds,
@@ -40,13 +41,6 @@ export function legacyToAppState(): Omit<AppState, 'ui'> & { ui: Omit<AppState['
         ui: {
             view: 'screening', // 既存stateにはviewがないため、デフォルト値
             currentTab: legacyState.currentTab,
-            screening: {
-                currentIndex: legacyState.currentIndex,
-                currentFilter: legacyState.currentFilter,
-                searchQuery: '', // DOMから取得すべき
-                isKeyOpened: legacyState.isKeyOpened,
-                activeTermFilters: legacyState.activeTermFilters,
-            },
             ml: {
                 currentIndex: legacyState.mlState.currentIndex,
                 searchQuery: '',
@@ -73,7 +67,6 @@ export function legacyToAppState(): Omit<AppState, 'ui'> & { ui: Omit<AppState['
  */
 export function syncToLegacyState(appState: AppState): void {
     // データ層
-    legacyState.setReferences(appState.data.references);
     legacyState.setSpreadsheetId(appState.data.spreadsheetId);
     legacyState.setUserEmail(appState.data.userEmail);
     legacyState.setHighlightKeywords(appState.data.highlightKeywords);
@@ -82,8 +75,6 @@ export function syncToLegacyState(appState: AppState): void {
     legacyState.setIsAdmin(appState.data.isAdmin);
     legacyState.setFulltextPoolRule(appState.data.fulltextPoolRule);
     legacyState.setFulltextAssignment(appState.data.fulltextAssignment);
-    legacyState.setSourceFiles(appState.data.sourceFiles);
-    legacyState.setSelectedSourceFiles(appState.data.selectedSourceFiles);
     legacyState.setAvailableReviewers(appState.data.availableReviewers);
     legacyState.setEnabledReviewers(appState.data.enabledReviewers);
     legacyState.setActiveLlmExecutionIds(appState.data.activeLlmExecutionIds);
@@ -92,19 +83,14 @@ export function syncToLegacyState(appState: AppState): void {
 
     // UI層
     legacyState.setCurrentTab(appState.ui.currentTab);
-    legacyState.setCurrentIndex(appState.ui.screening.currentIndex);
-    legacyState.setCurrentFilter(appState.ui.screening.currentFilter);
-    legacyState.setIsKeyOpened(appState.ui.screening.isKeyOpened);
-    legacyState.setActiveTermFilters(appState.ui.screening.activeTermFilters);
 }
 
-// ========== ラッパー関数: 両方のstateに同期 ==========
+// ========== ラッパー関数: 移行済み領域はdispatchのみ ==========
 
 /**
- * References を設定（両方に同期）
+ * References を設定（Storeのみ）
  */
 export function setReferences(refs: ReferenceWithStatus[]): void {
-    legacyState.setReferences(refs);
     dispatch({ type: 'data/setReferences', refs });
 }
 
@@ -149,26 +135,23 @@ export function setMlState(mlState: MlState): void {
 }
 
 /**
- * CurrentIndex を設定（両方に同期）
+ * CurrentIndex を設定（Storeのみ）
  */
 export function setCurrentIndex(index: number): void {
-    legacyState.setCurrentIndex(index);
     dispatch({ type: 'screening/setIndex', index });
 }
 
 /**
- * CurrentFilter を設定（両方に同期）
+ * CurrentFilter を設定（Storeのみ）
  */
 export function setCurrentFilter(filter: AppState['ui']['screening']['currentFilter']): void {
-    legacyState.setCurrentFilter(filter);
     dispatch({ type: 'screening/setFilter', filter });
 }
 
 /**
- * IsKeyOpened を設定（両方に同期）
+ * IsKeyOpened を設定（Storeのみ）
  */
 export function setIsKeyOpened(opened: boolean): void {
-    legacyState.setIsKeyOpened(opened);
     dispatch({ type: 'screening/setKeyOpened', opened });
 }
 
@@ -207,13 +190,10 @@ export function changeTab(tab: AppState['ui']['currentTab']): void {
 }
 
 /**
- * ナビゲーション（両方に同期）
+ * ナビゲーション（Storeのみ）
  */
 export function navigate(direction: 1 | -1): void {
-    // 新storeで計算してから既存stateに同期
     dispatch({ type: 'screening/navigate', direction });
-    const newState = getState();
-    legacyState.setCurrentIndex(newState.ui.screening.currentIndex);
 }
 
 /**
@@ -241,23 +221,17 @@ export function initializeFromLegacy(): void {
     const appState = legacyToAppState();
 
     // 各値をdispatchで設定
-    dispatch({ type: 'data/setReferences', refs: appState.data.references });
     dispatch({ type: 'data/setSpreadsheetId', id: appState.data.spreadsheetId });
     dispatch({ type: 'data/setUserEmail', email: appState.data.userEmail });
     dispatch({ type: 'data/setKeywords', keywords: appState.data.highlightKeywords });
     dispatch({ type: 'data/setLlmConfig', config: appState.data.llmConfig });
     dispatch({ type: 'data/setMlState', mlState: appState.data.mlState });
     dispatch({ type: 'data/setIsAdmin', isAdmin: appState.data.isAdmin });
-    dispatch({ type: 'data/setSourceFiles', files: appState.data.sourceFiles });
-    dispatch({ type: 'data/setSelectedSourceFiles', files: appState.data.selectedSourceFiles });
     dispatch({ type: 'data/setAvailableReviewers', reviewers: appState.data.availableReviewers });
     dispatch({ type: 'data/setEnabledReviewers', reviewers: appState.data.enabledReviewers });
 
     // UI
     dispatch({ type: 'tab/change', tab: appState.ui.currentTab });
-    dispatch({ type: 'screening/setIndex', index: appState.ui.screening.currentIndex });
-    dispatch({ type: 'screening/setFilter', filter: appState.ui.screening.currentFilter });
-    dispatch({ type: 'screening/setKeyOpened', opened: appState.ui.screening.isKeyOpened });
 }
 
 // ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
@@ -322,18 +296,16 @@ export function setFulltextAssignment(config: FulltextAssignmentConfig): void {
 }
 
 /**
- * ソースファイルを設定（両方に同期）
+ * ソースファイルを設定（Storeのみ）
  */
 export function setSourceFiles(files: Set<string>): void {
-    legacyState.setSourceFiles(files);
     dispatch({ type: 'data/setSourceFiles', files });
 }
 
 /**
- * 選択中のソースファイルを設定（両方に同期）
+ * 選択中のソースファイルを設定（Storeのみ）
  */
 export function setSelectedSourceFiles(files: Set<string>): void {
-    legacyState.setSelectedSourceFiles(files);
     dispatch({ type: 'data/setSelectedSourceFiles', files });
 }
 
@@ -372,18 +344,16 @@ export function setSearchQuery(query: string): void {
 }
 
 /**
- * タームフィルターを追加（両方に同期）
+ * タームフィルターを追加（Storeのみ）
  */
 export function addTermFilter(term: string, type: 'include' | 'exclude'): void {
-    legacyState.addTermFilter({ term, type });
     dispatch({ type: 'screening/addTermFilter', filter: { term, type } });
 }
 
 /**
- * タームフィルターを削除（両方に同期）
+ * タームフィルターを削除（Storeのみ）
  */
 export function removeTermFilter(term: string, type: string): void {
-    legacyState.removeTermFilter(term, type);
     dispatch({ type: 'screening/removeTermFilter', term, termType: type });
 }
 
@@ -402,27 +372,23 @@ export function updateAbstractSubsectionHeadings(headings: string[]): void {
 }
 
 /**
- * ソースファイルを選択に追加（両方に同期）
+ * ソースファイルを選択に追加（Storeのみ）
  */
 export function addSelectedSourceFile(file: string): void {
-    legacyState.addSelectedSourceFile(file);
     dispatch({ type: 'data/addSelectedSourceFile', file });
 }
 
 /**
- * ソースファイルを選択から削除（両方に同期）
+ * ソースファイルを選択から削除（Storeのみ）
  */
 export function removeSelectedSourceFile(file: string): void {
-    legacyState.removeSelectedSourceFile(file);
     dispatch({ type: 'data/removeSelectedSourceFile', file });
 }
 
 /**
- * ソースファイル自体を削除（両方に同期）
+ * ソースファイル自体を削除（Storeのみ）
  */
 export function deleteSourceFile(file: string): void {
-    legacyState.sourceFiles.delete(file);
-    legacyState.selectedSourceFiles.delete(file);
     dispatch({ type: 'data/deleteSourceFile', file });
 }
 
@@ -461,4 +427,73 @@ export function closeShareInput(): void {
  */
 export function closeAllMenus(): void {
     dispatch({ type: 'ui/closeAllMenus' });
+}
+
+// 担当セット・ソースファイルの更新（Storeのみ）
+export function setAssignmentConfig(config: AssignmentConfig): void {
+    dispatch({ type: 'data/setAssignmentConfig', config });
+}
+
+export function setAssignmentSets(sets: Set<string>): void {
+    dispatch({ type: 'data/setAssignmentSets', sets });
+}
+
+export function addAssignmentSet(setId: string): void {
+    dispatch({ type: 'data/addAssignmentSet', setId });
+}
+
+export function removeAssignmentSet(setId: string): void {
+    dispatch({ type: 'data/removeAssignmentSet', setId });
+}
+
+export function clearAssignmentSets(): void {
+    dispatch({ type: 'data/clearAssignmentSets' });
+}
+
+export function setSelectedAssignmentSets(sets: Set<string>): void {
+    dispatch({ type: 'data/setSelectedAssignmentSets', sets });
+}
+
+export function addSelectedAssignmentSet(setId: string): void {
+    dispatch({ type: 'data/addSelectedAssignmentSet', setId });
+}
+
+export function removeSelectedAssignmentSet(setId: string): void {
+    dispatch({ type: 'data/removeSelectedAssignmentSet', setId });
+}
+
+export function clearSelectedAssignmentSets(): void {
+    dispatch({ type: 'data/clearSelectedAssignmentSets' });
+}
+
+export function setSelectedFulltextSets(sets: Set<string>): void {
+    dispatch({ type: 'data/setSelectedFulltextSets', sets });
+}
+
+export function addSelectedFulltextSet(setId: string): void {
+    dispatch({ type: 'data/addSelectedFulltextSet', setId });
+}
+
+export function removeSelectedFulltextSet(setId: string): void {
+    dispatch({ type: 'data/removeSelectedFulltextSet', setId });
+}
+
+export function clearSelectedFulltextSets(): void {
+    dispatch({ type: 'data/clearSelectedFulltextSets' });
+}
+
+export function resetAssignmentConfig(): void {
+    dispatch({ type: 'data/resetAssignmentConfig' });
+}
+
+export function addSourceFile(file: string): void {
+    dispatch({ type: 'data/addSourceFile', file });
+}
+
+export function clearSourceFiles(): void {
+    dispatch({ type: 'data/clearSourceFiles' });
+}
+
+export function clearTermFilters(): void {
+    dispatch({ type: 'screening/clearTermFilters' });
 }

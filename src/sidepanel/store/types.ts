@@ -5,6 +5,7 @@
 
 import type {
     ReferenceWithStatus,
+    AssignmentConfig,
     DecisionStatus,
     Decision,
     LlmConfig,
@@ -53,6 +54,11 @@ export interface AppState {
         // ソースファイル
         sourceFiles: Set<string>;
         selectedSourceFiles: Set<string>;
+        // 担当セットの設定と選択
+        assignmentConfig: AssignmentConfig;
+        assignmentSets: Set<string>;
+        selectedAssignmentSets: Set<string>;
+        selectedFulltextSets: Set<string>;
         // レビュアー
         availableReviewers: Set<string>;
         enabledReviewers: Set<string>;
@@ -138,6 +144,23 @@ export type Action =
     | { type: 'data/setCurrentBatchDecisions'; decisions: Decision[] }
     | { type: 'data/addActiveLlmExecutionId'; id: string }
     | { type: 'data/clearActiveLlmExecutionIds' }
+
+    | { type: 'data/setAssignmentConfig'; config: AssignmentConfig }
+    | { type: 'data/resetAssignmentConfig' }
+    | { type: 'data/addSourceFile'; file: string }
+    | { type: 'data/clearSourceFiles' }
+    | { type: 'data/setAssignmentSets'; sets: Set<string> }
+    | { type: 'data/addAssignmentSet'; setId: string }
+    | { type: 'data/removeAssignmentSet'; setId: string }
+    | { type: 'data/clearAssignmentSets' }
+    | { type: 'data/setSelectedAssignmentSets'; sets: Set<string> }
+    | { type: 'data/addSelectedAssignmentSet'; setId: string }
+    | { type: 'data/removeSelectedAssignmentSet'; setId: string }
+    | { type: 'data/clearSelectedAssignmentSets' }
+    | { type: 'data/setSelectedFulltextSets'; sets: Set<string> }
+    | { type: 'data/addSelectedFulltextSet'; setId: string }
+    | { type: 'data/removeSelectedFulltextSet'; setId: string }
+    | { type: 'data/clearSelectedFulltextSets' }
 
     // スクリーニングUI
     | { type: 'screening/navigate'; direction: 1 | -1 }

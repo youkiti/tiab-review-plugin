@@ -1,18 +1,23 @@
 /**
  * スクリーニングフィルタリングモジュール
- * 文献のフィルタリングロジック
+ * Storeのselectorへの計測付き窓口と、フィルターUI・用途別集計。
  */
 
 import { t } from '../../../lib/i18n';
 import { state } from '../../state';
 import { dom } from '../../dom';
-import type { ReferenceWithStatus, DecisionStatus, Decision } from '../../../lib/types';
-import { applyTextFilters } from '../../utils/search';
+import type { ReferenceWithStatus, DecisionStatus } from '../../../lib/types';
+import { getState } from '../../store';
+import {
+    getFilteredReferences as selectFilteredReferences,
+    getMyManualDecisionStatus as selectMyManualDecisionStatus,
+    isMyFulltextCandidate as selectMyFulltextCandidate,
+    collectRefDecisions,
+} from '../../store/selectors';
 import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/sheets-api';
 import { showToast, showLoading } from '../../ui/feedback';
-import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 import { describeRule } from '../../../lib/fulltext-pool';
-import { canSeeFulltextRef, matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
+import { matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
 import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../lib/fulltext-candidates';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
@@ -21,14 +26,13 @@ import { perfSpanSync } from '../../../lib/perf';
 
 // Store互換レイヤー（Phase 3）
 import {
-    setCurrentIndex as syncSetCurrentIndex,
+    setSearchQuery as syncSetSearchQuery,
     setCurrentFilter as syncSetCurrentFilter,
     addTermFilter as syncAddTermFilter,
     removeTermFilter as syncRemoveTermFilter,
     addSelectedSourceFile as syncAddSelectedSourceFile,
     removeSelectedSourceFile as syncRemoveSelectedSourceFile,
     deleteSourceFile as syncDeleteSourceFile,
-    setReferences as syncSetReferences,
 } from '../../store/compat';
 
 // 外部描画関数への参照（循環依存回避）
@@ -41,17 +45,6 @@ export function setFilterDependencies(deps: {
 }) {
     _renderCurrentReference = deps.renderCurrentReference;
     _loadDataAndShowScreening = deps.loadDataAndShowScreening;
-}
-
-/**
- * 文献の全判定を集める（allDecisions + myDecision、重複排除）
- */
-function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
-    const list = [...(r.allDecisions ?? [])];
-    if (r.myDecision && !list.some(d => d.decision_id === r.myDecision!.decision_id)) {
-        list.push(r.myDecision);
-    }
-    return list;
 }
 
 /**
@@ -73,8 +66,7 @@ function isFulltextCandidate(r: ReferenceWithStatus): boolean {
  * （担当割り振り未設定なら全候補、管理者は常に全候補、未割り当て文献は全員に表示）
  */
 function isMyFulltextCandidate(r: ReferenceWithStatus): boolean {
-    return isFulltextCandidate(r)
-        && canSeeFulltextRef(r, state.fulltextAssignment, state.userEmail, state.isAdmin);
+    return selectMyFulltextCandidate(r, getState().data);
 }
 
 /**
@@ -122,113 +114,15 @@ export function getProjectFulltextCandidateList(): ReferenceWithStatus[] {
     );
 }
 
-/**
- * 自分の手動判定ステータスを取得
- * client_version === '0.1.0' の判定のみを手動判定として扱う
- */
-/**
- * 自分の手動判定ステータスを取得
- * client_version === '0.1.0' の判定のみを手動判定として扱う
- * ただし treatMlAsManual が true の場合は ML判定(0.7.0-ml)も手動判定として扱う
- */
+/** 自分の手動判定ステータスはStoreのselectorへ委譲する。 */
 export function getMyManualDecisionStatus(r: ReferenceWithStatus): DecisionStatus {
-    const userEmail = state.userEmail;
-
-    // 判定が自分の手動（またはML許可時のML）かどうか
-    const isMyManual = (d: Decision) => {
-        if (d.reviewer_id !== userEmail) return false;
-
-        if (isHumanDecision(d.client_version)) return true;
-
-        if (state.treatMlAsManual && isConfirmedMlDecision(d.client_version)) {
-            return true;
-        }
-
-        return false;
-    };
-
-    // allDecisionsから自分の手動判定を探す
-    // 複数の判定がある場合（0.1.0と0.7.0-mlが混在など）、最新を優先すべきだが
-    // 配列順序は保証されていない。decided_atでソートするか、
-    // あるいは単純に見つかったものを返すか。
-    // 通常、一人のユーザーが複数判定を持つことはシステム上稀（上書きされるため）。
-    // コンフリクト時のみ複数持つ可能性がある。
-
-    // ここでは find で最初に見つかったものを返す（既存ロジック準拠）
-    const myManualDecision = r.allDecisions?.find(isMyManual);
-
-    if (myManualDecision) {
-        return myManualDecision.decision as DecisionStatus;
-    }
-
-    // myDecisionも確認
-    if (r.myDecision && isMyManual(r.myDecision)) {
-        return r.myDecision.decision as DecisionStatus;
-    }
-
-    return 'pending';
+    return selectMyManualDecisionStatus(r, state.userEmail, state.treatMlAsManual);
 }
 
-/**
- * フィルタリング済み文献リストを取得
- */
+/** フィルタリング済み文献リストを取得する計測付き窓口。 */
 export function getFilteredReferences(): ReferenceWithStatus[] {
-    // Issue #151（#150 工程0）: tiab:screening.filter として計測（絞り込み対象の件数を detail に）。
-    return perfSpanSync('tiab:screening.filter', () => getFilteredReferencesImpl(), { inputCount: state.references.length });
-}
-
-function getFilteredReferencesImpl(): ReferenceWithStatus[] {
-    let filtered = state.references;
-
-    // ステータスフィルター
-    if (state.currentFilter === 'fulltext_candidates') {
-        filtered = filtered.filter(isMyFulltextCandidate);
-    } else if (state.currentFilter === 'conflict') {
-        // 不一致は enabledReviewers を反映して動的に計算
-        filtered = filtered.filter((r) =>
-            hasEffectiveConflict(r, state.enabledReviewers, state.isKeyOpened, state.treatMlAsManual)
-        );
-    } else if (state.currentFilter !== 'all') {
-        // pending, include, exclude, maybe は自分の手動判定(0.1.0)でフィルタリング
-        filtered = filtered.filter((r) => getMyManualDecisionStatus(r) === state.currentFilter);
-    }
-
-    // ソースファイルフィルター
-    if (state.selectedSourceFiles.size > 0 && state.selectedSourceFiles.size < state.sourceFiles.size) {
-        filtered = filtered.filter(r => r.source_file && state.selectedSourceFiles.has(r.source_file));
-    }
-
-    // 担当セットフィルター
-    if (state.assignmentSets.size > 0 && state.selectedAssignmentSets.size < state.assignmentSets.size) {
-        filtered = filtered.filter((r) => state.selectedAssignmentSets.has(getReferenceAssignmentSet(r)));
-    }
-
-    // 検索・タームフィルターは二重実装を避けて applyTextFilters() に集約している
-    // （Issue #152（#150 工程1））。
-    filtered = applyTextFilters(filtered, dom.searchInput.value, state.activeTermFilters, state.termFilterUseAnd);
-
-    // 判定フィルター (Blind off時のみ、レビュアーごとに独立して適用)
-    if (state.isKeyOpened) {
-        for (const [reviewerId, filter] of Object.entries(state.aiDecisionFilter)) {
-            // 無効化されたレビュアーはフィルター対象外
-            if (!state.enabledReviewers.has(reviewerId)) continue;
-
-            const allowed = new Set<string>();
-            if (filter.include) allowed.add('include');
-            if (filter.exclude) allowed.add('exclude');
-            if (filter.maybe ?? true) allowed.add('maybe');
-            // 全ON or 全OFF はこのレビュアーのフィルターを適用しない
-            if (allowed.size === 3 || allowed.size === 0) continue;
-
-            filtered = filtered.filter(r => {
-                const decision = r.allDecisions?.find(d => d.reviewer_id === reviewerId);
-                if (!decision) return false; // 該当レビュアーの判定が無いレコードは非表示
-                return allowed.has(decision.decision);
-            });
-        }
-    }
-
-    return filtered;
+    // Issue #151: selector統合後も同じ計測名と入力件数を維持する。
+    return perfSpanSync('tiab:screening.filter', () => selectFilteredReferences(getState()), { inputCount: state.references.length });
 }
 
 /**
@@ -384,7 +278,7 @@ export function renderSourceFilters() {
         checkbox.checked = state.selectedSourceFiles.has(file);
         checkbox.addEventListener('change', () => {
             state.resetReviewHistoryNavigation();
-            // Store経由で両方に同期
+            // Storeを更新
             if (checkbox.checked) {
                 syncAddSelectedSourceFile(file);
             } else {
@@ -461,7 +355,7 @@ export function renderSourceFilters() {
  */
 export function handleStatusFilterChange() {
     state.resetReviewHistoryNavigation();
-    // Store経由で両方に同期（currentFilterとcurrentIndex）
+    // Storeを更新（currentFilterとcurrentIndex）
     syncSetCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
     // 注意: syncSetCurrentFilterはcurrentIndexを0にリセットするので、別途呼び出し不要
     if (_renderCurrentReference) _renderCurrentReference();
@@ -472,8 +366,8 @@ export function handleStatusFilterChange() {
  */
 export function handleSearchInput() {
     state.resetReviewHistoryNavigation();
-    // Store経由でインデックスをリセット
-    syncSetCurrentIndex(0);
+    // 検索文字列の更新と表示位置のリセットを1回のdispatchで行う。
+    syncSetSearchQuery(dom.searchInput.value);
     if (_renderCurrentReference) _renderCurrentReference();
 }
 
@@ -488,7 +382,7 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
     if (exists) return;
 
     state.resetReviewHistoryNavigation();
-    // Store経由で両方に同期（addTermFilterはcurrentIndexを0にリセット）
+    // Storeを更新（addTermFilterはcurrentIndexを0にリセット）
     syncAddTermFilter(term, type);
     renderActiveTermFilters();
     if (_renderCurrentReference) _renderCurrentReference();
@@ -499,7 +393,7 @@ export function addTermFilter(term: string, type: 'include' | 'exclude') {
  */
 export function removeTermFilter(term: string, type: string) {
     state.resetReviewHistoryNavigation();
-    // Store経由で両方に同期（removeTermFilterはcurrentIndexを0にリセット）
+    // Storeを更新（removeTermFilterはcurrentIndexを0にリセット）
     syncRemoveTermFilter(term, type);
     renderActiveTermFilters();
     if (_renderCurrentReference) _renderCurrentReference();

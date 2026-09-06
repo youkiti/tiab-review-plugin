@@ -6,7 +6,10 @@
 import { t } from '../../../lib/i18n';
 import { dom } from '../../dom';
 import { state } from '../../state';
-import { updateSettings } from '../../store/compat';
+import {
+    updateSettings,
+    setCurrentIndex as storeSetCurrentIndex,
+} from '../../store/compat';
 import { getReviewerLabel, isActiveConfirmedLlmDecision, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
 
@@ -170,7 +173,7 @@ export function renderReviewerFilter() {
                     ...state.aiDecisionFilter,
                     [reviewerId]: { ...prev, [kind]: input.checked }
                 });
-                state.setCurrentIndex(0);
+                storeSetCurrentIndex(0);
                 if (_renderCurrentReference) _renderCurrentReference();
             });
 

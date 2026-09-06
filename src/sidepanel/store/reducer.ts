@@ -3,6 +3,8 @@
  * すべての状態変更はここを通る
  */
 
+import { reduceData } from './reducers/data';
+import { DEFAULT_ASSIGNMENT_CONFIG } from '../../lib/assignment-set';
 import { parseUserSettings } from '../../lib/user-settings';
 import type { AppState, Action } from './types';
 import { getFilteredReferences } from './selectors';
@@ -25,6 +27,10 @@ export const initialState: AppState = {
         isAdmin: false,
         fulltextPoolRule: null,
         fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
+        assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
+        assignmentSets: new Set(),
+        selectedAssignmentSets: new Set(),
+        selectedFulltextSets: new Set(),
         sourceFiles: new Set(),
         selectedSourceFiles: new Set(),
         availableReviewers: new Set(),
@@ -66,6 +72,9 @@ export const initialState: AppState = {
  * Reducer関数
  */
 export function reducer(state: AppState, action: Action): AppState {
+    const dataState = reduceData(state, action);
+    if (dataState) return dataState;
+
     switch (action.type) {
         // ========== 画面遷移 ==========
         case 'view/change':
@@ -99,236 +108,6 @@ export function reducer(state: AppState, action: Action): AppState {
                 },
             };
 
-        // ========== データ操作 ==========
-        case 'data/setReferences':
-            return {
-                ...state,
-                data: { ...state.data, references: action.refs },
-            };
-
-        case 'data/updateReference': {
-            const refs = state.data.references.map(r =>
-                r.ref_id === action.refId ? { ...r, ...action.updates } : r
-            );
-            return {
-                ...state,
-                data: { ...state.data, references: refs },
-            };
-        }
-
-        case 'data/setSpreadsheetId':
-            return {
-                ...state,
-                data: { ...state.data, spreadsheetId: action.id },
-            };
-
-        case 'data/setUserEmail':
-            return {
-                ...state,
-                data: { ...state.data, userEmail: action.email },
-            };
-
-        case 'data/setKeywords':
-            return {
-                ...state,
-                data: { ...state.data, highlightKeywords: action.keywords },
-            };
-
-        case 'data/addKeyword': {
-            const keywords = state.data.highlightKeywords;
-            const list = keywords[action.keywordType];
-            if (list.includes(action.word)) {
-                return state; // 既に存在する
-            }
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    highlightKeywords: {
-                        ...keywords,
-                        [action.keywordType]: [...list, action.word],
-                    },
-                },
-            };
-        }
-
-        case 'data/removeKeyword': {
-            const keywords = state.data.highlightKeywords;
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    highlightKeywords: {
-                        ...keywords,
-                        [action.keywordType]: keywords[action.keywordType].filter(w => w !== action.word),
-                    },
-                },
-            };
-        }
-
-        case 'data/setLlmConfig':
-            return {
-                ...state,
-                data: { ...state.data, llmConfig: action.config },
-            };
-
-        case 'data/setMlState':
-            return {
-                ...state,
-                data: { ...state.data, mlState: action.mlState },
-            };
-
-        case 'data/setRecentSheets':
-            return {
-                ...state,
-                data: { ...state.data, recentSheets: action.sheets },
-            };
-
-        case 'data/setIsAdmin':
-            return {
-                ...state,
-                data: { ...state.data, isAdmin: action.isAdmin },
-            };
-
-        case 'data/setFulltextPoolRule':
-            return {
-                ...state,
-                data: { ...state.data, fulltextPoolRule: action.rule },
-            };
-
-        case 'data/setFulltextAssignment':
-            return {
-                ...state,
-                data: { ...state.data, fulltextAssignment: action.config },
-            };
-
-        case 'data/setSourceFiles':
-            return {
-                ...state,
-                data: { ...state.data, sourceFiles: action.files },
-            };
-
-        case 'data/setSelectedSourceFiles':
-            return {
-                ...state,
-                data: { ...state.data, selectedSourceFiles: action.files },
-            };
-
-        case 'data/toggleSourceFile': {
-            const newSelected = new Set(state.data.selectedSourceFiles);
-            if (newSelected.has(action.file)) {
-                newSelected.delete(action.file);
-            } else {
-                newSelected.add(action.file);
-            }
-            return {
-                ...state,
-                data: { ...state.data, selectedSourceFiles: newSelected },
-                // ソースファイル切替時はインデックスリセット
-                ui: {
-                    ...state.ui,
-                    screening: { ...state.ui.screening, currentIndex: 0 },
-                },
-            };
-        }
-
-        case 'data/addSelectedSourceFile': {
-            const newSelected = new Set(state.data.selectedSourceFiles);
-            newSelected.add(action.file);
-            return {
-                ...state,
-                data: { ...state.data, selectedSourceFiles: newSelected },
-                ui: {
-                    ...state.ui,
-                    screening: { ...state.ui.screening, currentIndex: 0 },
-                },
-            };
-        }
-
-        case 'data/removeSelectedSourceFile': {
-            const newSelected = new Set(state.data.selectedSourceFiles);
-            newSelected.delete(action.file);
-            return {
-                ...state,
-                data: { ...state.data, selectedSourceFiles: newSelected },
-                ui: {
-                    ...state.ui,
-                    screening: { ...state.ui.screening, currentIndex: 0 },
-                },
-            };
-        }
-
-        case 'data/deleteSourceFile': {
-            const newSourceFiles = new Set(state.data.sourceFiles);
-            newSourceFiles.delete(action.file);
-            const newSelectedSourceFiles = new Set(state.data.selectedSourceFiles);
-            newSelectedSourceFiles.delete(action.file);
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    sourceFiles: newSourceFiles,
-                    selectedSourceFiles: newSelectedSourceFiles,
-                },
-                ui: {
-                    ...state.ui,
-                    screening: { ...state.ui.screening, currentIndex: 0 },
-                },
-            };
-        }
-
-        case 'data/setAvailableReviewers':
-            return {
-                ...state,
-                data: { ...state.data, availableReviewers: action.reviewers },
-            };
-
-        case 'data/setEnabledReviewers':
-            return {
-                ...state,
-                data: { ...state.data, enabledReviewers: action.reviewers },
-            };
-
-        case 'data/toggleReviewer': {
-            const newEnabled = new Set(state.data.enabledReviewers);
-            if (newEnabled.has(action.reviewerId)) {
-                newEnabled.delete(action.reviewerId);
-            } else {
-                newEnabled.add(action.reviewerId);
-            }
-            return {
-                ...state,
-                data: { ...state.data, enabledReviewers: newEnabled },
-            };
-        }
-
-        case 'data/setFailedRefIds':
-            return {
-                ...state,
-                data: { ...state.data, failedRefIds: action.ids },
-            };
-
-        case 'data/setCurrentBatchDecisions':
-            return {
-                ...state,
-                data: { ...state.data, currentBatchDecisions: action.decisions },
-            };
-
-        case 'data/addActiveLlmExecutionId': {
-            const newIds = new Set(state.data.activeLlmExecutionIds);
-            newIds.add(action.id);
-            return {
-                ...state,
-                data: { ...state.data, activeLlmExecutionIds: newIds },
-            };
-        }
-
-        case 'data/clearActiveLlmExecutionIds':
-            return {
-                ...state,
-                data: { ...state.data, activeLlmExecutionIds: new Set() },
-            };
-
         // ========== スクリーニングUI ==========
         case 'screening/navigate': {
             const filtered = getFilteredReferences(state);
@@ -349,6 +128,7 @@ export function reducer(state: AppState, action: Action): AppState {
         }
 
         case 'screening/setIndex':
+            if (state.ui.screening.currentIndex === action.index) return state;
             return {
                 ...state,
                 ui: {
@@ -358,6 +138,7 @@ export function reducer(state: AppState, action: Action): AppState {
             };
 
         case 'screening/setFilter':
+            if (state.ui.screening.currentFilter === action.filter && state.ui.screening.currentIndex === 0) return state;
             return {
                 ...state,
                 ui: {
@@ -371,6 +152,7 @@ export function reducer(state: AppState, action: Action): AppState {
             };
 
         case 'screening/setSearch':
+            if (state.ui.screening.searchQuery === action.query && state.ui.screening.currentIndex === 0) return state;
             return {
                 ...state,
                 ui: {
@@ -713,6 +495,10 @@ export function reducer(state: AppState, action: Action): AppState {
                     references: [],
                     fulltextPoolRule: null,
                     fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
+                    assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
+                    assignmentSets: new Set(),
+                    selectedAssignmentSets: new Set(),
+                    selectedFulltextSets: new Set(),
                     sourceFiles: new Set(),
                     selectedSourceFiles: new Set(),
                     enabledReviewers: new Set(),

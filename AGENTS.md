@@ -576,6 +576,14 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - 所有者・更新先は `Store.ui.settings` のみ。`state.ts` の設定プロパティはStoreを読むgetterだけとし、setterやcompatの双方向同期を追加しない。更新は `settings/patch`（または既存の設定アクション）で行い、画面イベントはStore更新 → 保存 → 関連描画の順を維持する。
 - 共通の `bootstrapCommon()` は依存注入・イベント配線より先にStoreを初期化する。`store/index.ts`・reducer・selectorは旧 `state.ts` に依存しないため、読み取りアダプタはStoreを直接参照する。新しい依存を追加するときもこの方向を守る。
 
+### スクリーニングの絞り込み状態と現在文献（Issue #154）
+
+- `ui.screening` の表示位置・ステータス・検索文字列・ターム・キー開封状態と、`data` の文献一覧・ソースファイル選択・担当設定・担当セット選択（TiAb / フルテキスト）は Store が唯一の更新先。`state.ts` の該当プロパティは getter のみで、更新は `store/compat.ts` の dispatch 専用ラッパーを通す。これらは互換レイヤーの双方向同期対象に戻さない。
+- 絞り込みの実装は `store/selectors.ts` の `getFilteredReferences(state)` に集約する。ステータス → ソースファイル → 担当セット → 検索・ターム → キー開封時の判定フィルターの順に適用する。`features/screening/filters.ts` は既存の計測を残した薄い窓口。
+- 担当設定の既定値と、空の `screening_set` を設定済みの場合だけ `unassigned` とみなす判定は `lib/assignment-set.ts` に置く。selector から features を import しない。
+- `getScreeningCounts(refs)` は呼び出し側の対象配列、`getFilterCounts(state)` はソースファイル絞り込み後の配列を数える。対象範囲の違いを維持し、手動判定・全文候補・判定票収集のヘルパーのみ共有する。
+- 検索入力は `screening/setSearch` で更新し表示位置を0へ戻す。描画から dispatch しない。同じ表示位置、または既に位置0で同じ検索・ステータスを設定する場合は reducer が元の state を返す。
+
 ### TiAb 表示位置の記憶と復元（Issue #140）
 
 - 保存: `renderReferenceDetails`（`src/sidepanel/features/screening/render.ts`）がキー開封中かつ履歴ビューでないときに `{filter, refId, index}` を `tiab_last_position`（`Record<spreadsheetId, ScreeningPosition>`、`chrome.storage` ローカル）へ保存する。同一内容の連続保存は書き込みをスキップする
@@ -1345,7 +1353,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 - 依存方向は「画面 → 処理の調整 → ドメイン純関数 / 保存API → platform」。画面と調整は `src/sidepanel/`（`store/` を含む）、`src/fulltext/`、`src/popup/`、`src/webapp/`、`src/background/`、`src/demo/`。ドメイン・保存APIは `src/lib/`（`sheets/`・`ml/`・`providers/` を含む）、環境差分は `src/platform/` に置く。小さい処理まで機械的にファイル化せず、変更理由とテスト境界が共通のものをまとめる。
 - lib / platform からUIをimportしない。platform → lib は導入時の実測0件なので禁止する。platform → demo の既存1辺のみ `scripts/structure-baseline.json` に記録し、新しい参照は許容しない。現状0件の方向はESLintでも検出する。
-- 型・既定値モジュールからUI・通信をimportしない。`scripts/check-structure.mjs` の `FOUNDATION_MODULES` は `lib/types.ts`、`lib/sheets/schema.ts`、`lib/sheets/config-schema.ts`、`lib/ml/types.ts`、`lib/ml/cmh-defaults.ts`、`platform/types.ts` を検査する。型・既定値の配置や通信APIを増やしたら、この一覧と通信先の判定も追従させる。
+- 型・既定値モジュールからUI・通信をimportしない。`scripts/check-structure.mjs` の `FOUNDATION_MODULES` は `lib/types.ts`、`lib/assignment-set.ts`、`lib/sheets/schema.ts`、`lib/sheets/config-schema.ts`、`lib/ml/types.ts`、`lib/ml/cmh-defaults.ts`、`platform/types.ts` を検査する。型・既定値の配置や通信APIを増やしたら、この一覧と通信先の判定も追従させる。
 - 新規ファイルは200〜500行が目安。TS / CSS / HTML の800行超は設計レビューの通知対象で、基準値にない超過をCIで失敗させる。既存の大規模ファイルは改善対象として行数と増減を表示し、増加だけでは失敗させない。行数制限のためにコメントを削らない。
 - `npm run check:structure` は相対import・再export・型import・文字列リテラルの動的importを正規表現で抽出し、Tarjanの強連結成分で循環を検出する。外部パッケージ、宣言ファイル、バックアップは対象外。既存循環は辺まで基準値に記録し、同じ循環グループ内の新しい辺も回帰とする。TypeScriptの完全な構文解析ではないため、計算式の動的import等は別途レビューする。
 - `npm run check:bundle` は同条件のproductionビルドでサイドパネルとWeb版appの初期JS量（.map除外）を検査する。`scripts/bundle-budget.json` の上限は実測値の101%を整数切り上げ。上限超過は失敗、上限より3%以上小さければ更新可能と表示する。時間の閾値はばらつきが大きいためCIに入れない。通信回数は `tests/project-load-request-counts.test.ts` で固定する。

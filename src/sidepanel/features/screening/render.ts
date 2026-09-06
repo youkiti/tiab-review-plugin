@@ -195,12 +195,16 @@ export function renderCurrentReference() {
 }
 
 function renderCurrentReferenceImpl() {
+    // Storeの検索状態を表示する。ログアウト後に入力欄だけ古い値が残るのを防ぐ。
+    if (dom.searchInput.value !== state.searchQuery) {
+        dom.searchInput.value = state.searchQuery;
+    }
     const filtered = getFilteredReferences();
     const historyRef = getCurrentHistoryReference();
     const ref = historyRef || filtered[state.currentIndex];
 
     // 検索結果件数の更新
-    const searchTerm = dom.searchInput.value.trim();
+    const searchTerm = state.searchQuery.trim();
     if (searchTerm) {
         dom.searchResultCount.classList.remove('hidden');
         if (filtered.length === 0) {
@@ -309,7 +313,7 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
     }
 
     // 基本情報表示
-    const searchKeyword = dom.searchInput.value.trim();
+    const searchKeyword = state.searchQuery.trim();
     dom.refTitle.innerHTML = highlightText(ref.title, searchKeyword, evidenceList);
     dom.refAuthors.textContent = ref.authors || '';
     dom.refYear.textContent = ref.year?.toString() || '';
