@@ -15,14 +15,9 @@ import {
     getRecentSpreadsheets,
     getLocalRecentSheets,
     rememberLocalRecentSheet,
-    getReferencesWithStatus,
-    getReferencesWithAllDecisions,
-    getReferences,
-    getDecisions,
-    getDuplicateCandidates,
-    getProjectLoadConfig,
-    getLlmHistory,
     isUserAdmin,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
     forceReauth,
     ensureHeaders,
 } from '../../lib/sheets-api';
@@ -503,46 +498,20 @@ async function loadDataAndShowScreeningImpl() {
         showLoading(true);
         state.clearReviewHistory();
 
-        // 管理者権限とキーオープン状態を確認
-        // 履歴の取得・旧形式移行は一度にまとめ、移行後のRuns/Executionsを下流へ渡す。
-        // Configの共有設定・担当割り振り・全文AI採用ラウンドも1リクエストから導出する。
-        // 併せて References（論理削除を含む全件）・Decisions（全レビュアー分）・
-        // Duplicate_Candidates も同じタイミングで並列に1回だけ取得し、下流
-        // （getReferencesWithStatus/AllDecisions・team-progress・duplicate-review の初回描画）
-        // へ引数で配る（Issue #153 工程2 チャンク2: プロジェクト読み込み1回あたりの重複取得解消）。
-        // 取得内容の共有はこのロード内だけに閉じ、次のロードでは必ず読み直す
-        // （モジュールスコープへ保持しない。長寿命キャッシュにしない）。
-        // tiab:project.fetch.meta: 設定・割り振り・AI履歴・References/Decisions/重複候補の取得（通信待ち）。
+        // 取得は loadProjectSnapshot() に集約する。本体3タブは batchGet 1リクエスト、
+        // 履歴・重複候補は並列に取得する（Issue #153）。共有はこのロード内だけに限定する。
         // Duplicate_Candidates の取得だけは失敗を握りつぶす（null）: 重複レビューは補助機能であり、
         // 従来もその取得失敗（loadPendingCount() 内の try/catch）でスクリーニング画面自体の表示を
-        // 止めていなかった。References/Decisions/Config/履歴の取得失敗は従来どおりここで
-        // 素通しし、画面表示自体を失敗させる（catch していないので画面必須データの欠落を隠さない）。
-        const [adminStatus, config, history, allReferencesRaw, decisionsDataRaw, duplicateCandidatesRaw] = await perfSpan(
+        // 止めていなかった。
+        const [adminStatus, snapshot] = await perfSpan(
             'tiab:project.fetch.meta',
             () => Promise.all([
                 isUserAdmin(spreadsheetId, userEmail),
-                getProjectLoadConfig(spreadsheetId),
-                getLlmHistory(spreadsheetId),
-                getReferences(spreadsheetId),
-                getDecisions(spreadsheetId),
-                getDuplicateCandidates(spreadsheetId).catch((error) => {
-                    console.warn('[loadDataAndShowScreening] Duplicate_Candidates の取得に失敗:', error);
-                    return null;
-                }),
+                loadProjectSnapshot(spreadsheetId, userEmail),
             ])
         );
-        const { configBundle, assignmentConfig, fulltextAiActiveRound } = config;
-        const { llmExecutions, llmRuns } = history;
+        const { configBundle, assignmentConfig } = snapshot;
         const keyOpenedStatus = configBundle.keyOpened;
-
-        // getReferencesWithStatus/AllDecisions() は allReferencesRaw/decisionsDataRaw の要素を
-        // in-place で正規化する（reviewer_id 空欄の補完・ref_id の trim。sheets-api.ts の
-        // ReferencesAndDecisionsLoaded 参照）。initTeamProgress/primeDuplicateReviewSection は
-        // 正規化前の状態で件数判定したいため、getReferencesWith* を呼ぶ前にシャローコピーを
-        // 取っておく（呼んだ後にコピーしても書き換わった後の値をコピーするだけで意味が無い。
-        // PR #161 レビュー指摘対応）。
-        const decisionsDataForPanels = decisionsDataRaw.map((r) => ({ ...r, decision: { ...r.decision } }));
-        const allReferencesForPanels = allReferencesRaw.map((r) => ({ ...r }));
 
         // Store経由で両方に同期
         syncSetIsAdmin(adminStatus);
@@ -555,38 +524,16 @@ async function loadDataAndShowScreeningImpl() {
         state.setExcludeReasonConfig(configBundle.excludeReasonConfig);
 
         // active な Run 配下の全 Batch IDs を「LLM 判定として有効」としてキャッシュ
-        const activeRun = llmRuns
-            .filter(r => r.is_active && r.status === 'confirmed')
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        const activeBatchIds = activeRun
-            ? new Set(
-                llmExecutions
-                    .filter(e => e.execution_type === 'batch_screening' && e.run_id === activeRun.run_id)
-                    .map(e => e.execution_id)
-              )
-            : new Set<string>();
-        syncSetActiveLlmExecutionIds(activeBatchIds);
+        syncSetActiveLlmExecutionIds(snapshot.activeBatchIds);
 
-        // tiab:project.fetch.refs: References/Decisions/LLM履歴は全て上のtiab:project.fetch.metaで
-        // loaded 済みのため通信は発生しない。ここで測っているのは取得済みデータのマージ（CPU、
-        // getReferencesWithStatus/AllDecisions() 内の正規化・突き合わせ処理）（PR #161 レビュー
-        // 指摘対応。スパン名は bench 側が名前で拾っているため変更しない）。取得件数は fn 内で
-        // 確定するため、呼び出し時点では値の決まっていない detail オブジェクトを渡し、fn がそれを
-        // 書き換える（perfSpan は fn の完了後に detail を読むため、この破壊的更新が計測へ反映される）。
+        // tiab:project.fetch.refs は取得済みデータの正規化・突き合わせ（CPU）を計測する。
+        // PR #161 レビュー指摘対応: スパン名は bench 側が名前で拾っているため変更しない。
+        // 件数は fn 内で確定し、perfSpan が完了後に読む detail へ反映する。
         const fetchRefsDetail: { count?: number } = {};
         const fetchedRefs = await perfSpan(
             'tiab:project.fetch.refs',
             async () => {
-                // References・Decisions は上のtiab:project.fetch.metaで取得済みのものを渡し、
-                // ここでの再取得（内部GET）を省略する（loaded.allReferences/decisionsData）。
-                const result = keyOpenedStatus
-                    ? await getReferencesWithAllDecisions(spreadsheetId, userEmail, {
-                        llmExecutions, llmRuns, fulltextAiActiveRound,
-                        allReferences: allReferencesRaw, decisionsData: decisionsDataRaw,
-                    })
-                    : await getReferencesWithStatus(spreadsheetId, userEmail, {
-                        allReferences: allReferencesRaw, decisionsData: decisionsDataRaw,
-                    });
+                const result = selectReferencesWithStatus(snapshot, userEmail);
                 fetchRefsDetail.count = result.length;
                 return result;
             },
@@ -623,22 +570,18 @@ async function loadDataAndShowScreeningImpl() {
             state.setAllReferences(refs);
 
             // チーム進捗: 割り振り前の全文献を分母計算に使う。
-            // Decisions は上のtiab:project.fetch.metaで取得済みのものを渡し、
-            // team-progress 自身の getDecisions() 再取得を省略する（Issue #153 工程2 チャンク2）。
-            // decisionsDataForPanels は getReferencesWithStatus/AllDecisions() による
-            // in-place 正規化を受けていないコピー（PR #161 レビュー指摘対応。上のコメント参照）。
-            initTeamProgress(refs, decisionsDataForPanels);
+            // 合成は入力を書き換えないため、取得時の判定をそのまま共有する（Issue #153）。
+            initTeamProgress(refs, snapshot.decisionsData);
 
             // 重複候補レビューの独立セクションも、同じタイミングで取得済みの
             // References（論理削除を含む全件）・Duplicate_Candidates で未確認件数を温めておく。
             // 後続の _renderSourceFilters()（内部で renderDuplicateReviewSection() を呼ぶ）が
             // 自前の再取得をしないようにする（Issue #153 工程2 チャンク2）。
-            // Duplicate_Candidates の取得に失敗していた場合（duplicateCandidatesRaw === null）は
+            // Duplicate_Candidates の取得に失敗していた場合（snapshot.duplicateCandidates === null）は
             // 温めず、_renderSourceFilters() 側の renderDuplicateReviewSection() が
             // 従来どおり loadPendingCount() で再取得・エラー表示するのに任せる。
-            // allReferencesForPanels も同じ理由で正規化前のコピーを渡す（PR #161 レビュー指摘対応）。
-            if (duplicateCandidatesRaw !== null) {
-                primeDuplicateReviewSection(spreadsheetId, allReferencesForPanels, duplicateCandidatesRaw);
+            if (snapshot.duplicateCandidates !== null) {
+                primeDuplicateReviewSection(spreadsheetId, snapshot.allReferences, snapshot.duplicateCandidates);
             }
 
             // MLの状態をリセット（前のプロジェクトのデータをクリア）

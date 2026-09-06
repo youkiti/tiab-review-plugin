@@ -90,9 +90,9 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 **References を読む経路を新設・変更するときの規則（Issue #145 チャンク2、PR #146 レビュー指摘）**: References の行を返す経路は、論理削除済み行（`duplicate_of` 非空）を含めるかどうかで2種類に分かれる。新しい取得経路を足すときは、必ずどちら側かを判断すること。
 
 - **全件返す（論理削除済みも含む）**: `getReferences()`。重複レビューUIの `resolveSurvivor()`（論理削除済みの相手から残っている側を辿り直す）・`isPairAlreadySettled()`（survivor の収束・相互削除の判定）が論理削除済みの行を必要とするため、意図的にフィルタしない（Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは実装されていない）
-- **論理削除行を除外する**: `getReferencesWithStatus()`（TiAb盲検）・`getReferencesWithAllDecisions()`（キー開封後）・`getFulltextPageData()`（フルテキスト画面。Config タブ欠落時のフォールバック経路を含む2つの return 経路の両方で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
+- **論理削除行を除外する**: `getReferencesWithStatus()`（TiAb盲検）・`getReferencesWithAllDecisions()`（キー開封後）・`getFulltextPageData()`（`src/lib/sheets/project-snapshot.ts` の取得窓口。フルテキスト画面。Config タブ欠落時も同じ合成経路で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
 
-**`getReferences()` の呼び出し元を grep するだけでは経路の洗い出しに不十分**: `getFulltextPageData()` は `getReferences()` を経由せず、シート値から `Reference[]` へ変換する内部関数 `parseReferenceValues()` を直接呼んでいる。そのため「除外漏れが無いか」を確認するときは `getReferences(` ではなく `parseReferenceValues` で grep すること。PR #146 のレビューでこの漏れが実際に見つかった（フルテキスト画面だけ論理削除済み文献が残っていた）。
+**`getReferences()` の呼び出し元を grep するだけでは経路の洗い出しに不十分**: `getFulltextPageData()` は `getReferences()` を経由せず、`src/lib/sheets/project-snapshot.ts` の `loadProjectSnapshot()` がシート値から `Reference[]` へ変換する内部関数 `parseReferenceValues()` を呼んでいる。TiAb の合成は `src/lib/reference-status.ts` の `mergeReferencesWithStatus()` / `mergeReferencesWithAllDecisions()` が担う。そのため「除外漏れが無いか」を確認するときは `getReferences(` ではなく `parseReferenceValues` で grep すること。PR #146 のレビューでこの漏れが実際に見つかった（フルテキスト画面だけ論理削除済み文献が残っていた）。
 
 #### Decisions タブ（追記専用の判定ログ。最新行が有効）
 
@@ -244,7 +244,7 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 
 | 列 | 算出元 | 「判定1件のみ」の扱い |
 |---|---|---|
-| `status`（既存・互換維持のため変更しない） | `sheets/decisions.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
+| `status`（既存・互換維持のため変更しない） | `decision-aggregate.ts` の `detectConflict()` | 1人しか判定していなくても `conflict` になる旧定義 |
 | `team_status`（新設） | `decision-summary.ts` の `summarizeTeamDecision()` | 2人以上で判定が割れた場合だけ `conflict`。分母（`n_expected`）に満たなければ `incomplete` |
 
 `team_status` の値:
@@ -861,7 +861,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **同期順序**: `decided_at` の昇順で送信し、失敗時は次回再試行
 - **冪等性**: ML自動判定・LLM判定は既存行への upsert のため再送しても重複しない。human判定・ML手動確認判定は追記専用のため、内容が直前の保存と完全一致する場合のみ保存側のスナップショットキャッシュ（60秒TTL、詳細は `decisionContentCache`）で重複追記を防げる。それを超える間隔での再送（長時間オフライン後のflushなど、サーバ側の書き込み成功をクライアントが確認できずに再試行するケース）は重複行を生みうる既知のトレードオフ
 - **flush の直列化**: `src/sidepanel/utils/offline-queue.ts` の `flushDecisionQueue` は queueKey（spreadsheetId::userEmail）ごとにコールセーサーで直列化する。flush 中に新たに `enqueueDecision` された項目は、書き戻し時にキューを再読込してから送信済み分だけを取り除く実装のため消えない。合流した呼び出しは同じ結果（最後の失敗 `lastError` を含む）を受け取るため、対話的flushとバックグラウンドflushが合流しても失敗種別がどちらの呼び出し元にも届く（PR #138 レビュー指摘対応）
-- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう。読み込み時のマージは、キー開封後は `detectConflict`（`sheets/decisions.ts`。互換窓口 `sheets-api.ts` からも `export` 済み）で不一致状態（`hasConflict`/`status`）も再計算する（PR #138 レビュー指摘対応）
+- **読み込み時の反映**: `loadDataAndShowScreening`（`src/sidepanel/features/project.ts`）はサーバから取得した文献一覧に、`getQueuedDecisions` で読んだ未送信キューを `src/lib/queued-decisions-merge.ts` の `mergeQueuedDecisions`（純関数）で重ねてから画面へ渡す。オフラインキュー退避中の判定はサーバ側（Decisionsタブ）にまだ書き込まれていないため、これをしないと再読み込みのたびに「未評価」に戻って見えてしまう。読み込み時のマージは、キー開封後は `detectConflict`（`decision-aggregate.ts`。互換窓口 `sheets-api.ts` からも `export` 済み）で不一致状態（`hasConflict`/`status`）も再計算する（PR #138 レビュー指摘対応）
 - **未送信バッジ**: `src/sidepanel/features/unsent-queue.ts` がツールバーの未送信件数バッジ（クリックで送信。認証切れなら対話的な再ログインを挟んで1回だけ再試行）と、判定保存の共通ロジック（`saveDecisionOrQueue`）を提供する。TiAb判定・ML確認判定の両方（`screening/actions.ts` / `ml/actions.ts`）がここへ委譲する
 - **保存失敗の分類**: `src/lib/save-failure.ts` の `classifySaveFailure` が保存失敗を `'auth'`（ログイン切れ、再ログインで直る可能性がある）/ `'offline'` / `'other'`（権限不足等、再ログインでは直らない）に分類する。判定クリック直後の保存失敗が `'auth'` の場合はキューへ積む前にその場で再ログインを試し、成功すれば1回だけ保存を再試行する
 - **2026-09 事故の要約**: Web版（GIS認証、トークンはメモリ上で1時間のみ）でログイン切れ後の判定保存が軒並みオフラインキューへ退避される一方、ユーザーはそれに気づかず判定を続け、退避先のブラウザプロファイルで264件が滞留した。加えて、この滞留を解消しようとした複数回の flush が並走し、60秒TTLのスナップショットキャッシュを超える間隔で同一判定が再送されたことで、197件が重複追記（393行）された。上記の直列化・画面反映・バッジ・分類はこの事故の再発防止として追加したもの

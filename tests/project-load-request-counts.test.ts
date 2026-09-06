@@ -4,8 +4,8 @@ import {
     clearLlmSheetEnsureMemo, ensureLlmExecutionsSheet, ensureLlmRunsSheet,
     getLlmHistory, getProjectLoadConfig, getProjectConfigBundle, getAssignmentConfig,
     getFulltextAiActiveRound, parseAssignmentConfig, parseFulltextAiActiveRound,
-    getReferencesWithAllDecisions, getReferencesWithStatus, getActiveBatchIdsForActiveRun,
-    getReferences, getDecisions, getDuplicateCandidates, isUserAdmin,
+    getReferencesWithAllDecisions, getActiveBatchIdsForActiveRun,
+    loadProjectSnapshot, selectReferencesWithStatus, getFulltextPageData, isUserAdmin,
     getSpreadsheetInfo, getUserEmail, ensureHeaders, validateSpreadsheetFormat,
     REFERENCES_HEADERS, DUPLICATE_CANDIDATES_HEADERS,
 } from '../src/lib/sheets-api';
@@ -87,6 +87,14 @@ function installMock(keyOpened = true, legacy = false) {
     const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status });
     globalThis.fetch = async (input, init) => {
         const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+        if (url.pathname.endsWith('/values:batchGet')) {
+            counts.batchGet = (counts.batchGet ?? 0) + 1;
+            const ranges = url.searchParams.getAll('ranges');
+            const names = ranges.map(range => range.split('!')[0]);
+            const failure = names.map(name => failures.get(name)).find(Boolean);
+            if (failure) return json({ error: { message: failure } }, 400);
+            return json({ valueRanges: names.map(name => ({ values: tables[name] })) });
+        }
         // Duplicate_Candidates はシート名のみ（範囲指定なし）で読むため、range部分（!以降）は
         // 無いことがある（PR #161 レビュー指摘対応）。
         const match = decodeURIComponent(url.pathname).match(/\/values\/([^!]+?)(?:!(.+))?$/);
@@ -114,7 +122,7 @@ function installMock(keyOpened = true, legacy = false) {
 }
 
 for (const keyOpened of [false, true]) {
-    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 履歴各1回・Config1回・References/Decisions各2回・Duplicate_Candidates1回`, async () => {
+    test(`プロジェクト読み込み（${keyOpened ? 'キー開封後' : 'Blind'}）: 本体3タブbatchGet1回・接続ヘッダー各1回・履歴各1回・重複候補1回（計10回）`, async () => {
         const mock = installMock(keyOpened);
         // 接続前後のAPI列: 認証、project.tsの接続時フォーマット検証・メタ情報取得。
         // validateSpreadsheetFormat() が返す referencesHeader を ensureHeaders() へ渡し、
@@ -126,35 +134,23 @@ for (const keyOpened of [false, true]) {
         const validation = await validateSpreadsheetFormat('project');
         await ensureHeaders('project', validation.referencesHeader);
 
-        // References（論理削除を含む全件）・Decisions（全レビュアー分）・Duplicate_Candidates を
-        // 設定・割り振り・AI履歴の取得と同じタイミングで1回だけ取得し、下流
-        // （getReferencesWithStatus/AllDecisions・team-progress・duplicate-review の初回描画）へ
-        // 引数で配る（Issue #153 工程2 チャンク2: プロジェクト読み込み1回あたりの重複取得解消）。
-        const [, config, history, allReferences, decisionsData, duplicateCandidates] = await Promise.all([
-            isUserAdmin('project', user), getProjectLoadConfig('project'), getLlmHistory('project'),
-            getReferences('project'),
-            getDecisions('project'),
-            getDuplicateCandidates('project'),
+        const [, snapshot] = await Promise.all([
+            isUserAdmin('project', user), loadProjectSnapshot('project', user),
         ]);
-        const loaded = {
-            ...history, fulltextAiActiveRound: config.fulltextAiActiveRound,
-            allReferences, decisionsData,
-        };
-        const refs = keyOpened
-            ? await getReferencesWithAllDecisions('project', user, loaded)
-            : await getReferencesWithStatus('project', user, loaded);
+        const refs = selectReferencesWithStatus(snapshot, user);
         // 画面表示後: team-progress・duplicate-reviewの初回描画は上で取得済みの
         // allReferences/decisionsData/duplicateCandidates をそのまま使う
         // （initTeamProgress の preloadedDecisions・primeDuplicateReviewSection 引数）ため、
         // ここで追加のGETは発生しない。
         assert.deepEqual(mock.counts, {
-            oauth2: 1, metadata: 1, References: 2, Decisions: 2, drive: 2,
-            Config: 1, LLM_Executions: 1, LLM_Runs: 1, Duplicate_Candidates: 1,
+            oauth2: 1, metadata: 1, References: 1, Decisions: 1, drive: 2,
+            batchGet: 1, LLM_Executions: 1, LLM_Runs: 1, Duplicate_Candidates: 1,
         });
         assert.equal(mock.writes.length, 0, '移行不要なら書き込みはゼロ');
-        assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['batch-1']));
-        assert.equal(config.assignmentConfig.status, 'configured');
-        assert.equal(duplicateCandidates.length, 0);
+        assert.deepEqual(await getActiveBatchIdsForActiveRun('project', snapshot.llmExecutions!, snapshot.llmRuns!), new Set(['batch-1']));
+        assert.deepEqual(snapshot.activeBatchIds, new Set(['batch-1']));
+        assert.equal(snapshot.assignmentConfig.status, 'configured');
+        assert.equal(snapshot.duplicateCandidates?.length, 0);
         const reviewers = refs[0].allDecisions?.map(d => d.reviewer_id) ?? [];
         assert.equal(reviewers.includes('other'), keyOpened, 'Blindでは他者票を出さない');
         assert.equal(mock.counts.LLM_Runs, 1, '下流の採用Run解決は再取得しない');
@@ -322,4 +318,54 @@ test('Runs取得失敗でも独立して読めたExecutionsは保持する', asy
     const history = await getLlmHistory('project');
     assert.equal(history.llmRuns.length, 0);
     assert.equal(history.llmExecutions.length, 1);
+});
+
+test('snapshotの省略指定では履歴と重複候補を取得しない', async () => {
+    const mock = installMock(false);
+    const snapshot = await loadProjectSnapshot('project', 'self', { history: false, duplicateCandidates: false });
+    assert.equal(snapshot.llmRuns, null);
+    assert.equal(snapshot.llmExecutions, null);
+    assert.equal(snapshot.duplicateCandidates, null);
+    assert.deepEqual(snapshot.activeBatchIds, new Set());
+    assert.deepEqual(mock.counts, { batchGet: 1 });
+});
+
+test('snapshotはConfig欠落時だけ本体2タブで再試行して既定値を返す', async () => {
+    const mock = installMock();
+    mock.failures.set('Config', 'Unable to parse range');
+    const snapshot = await loadProjectSnapshot('project', 'self');
+    assert.equal(mock.counts.batchGet, 2);
+    assert.deepEqual(snapshot.configBundle, await getProjectConfigBundle('project'));
+    assert.equal(snapshot.assignmentConfig.status, parseAssignmentConfig([]).status);
+    assert.equal(snapshot.fulltextAiActiveRound, null);
+});
+
+test('キー開封後の合成には取得済み履歴が必要', async () => {
+    installMock(true);
+    const snapshot = await loadProjectSnapshot('project', 'self', { history: false });
+    assert.throws(() => selectReferencesWithStatus(snapshot, 'self'), /履歴/);
+});
+
+for (const opened of [false, true]) {
+    test(`全文ページは${opened ? 'キー開封後だけ他者票を返す' : 'Blind中に他者票を返さない'}`, async () => {
+        const mock = installMock(opened);
+        const data = await getFulltextPageData('project', 'self');
+        assert.equal(data.decisions.some(d => d.decision.reviewer_id === 'other'), opened);
+        assert.deepEqual(mock.counts, { batchGet: 1 });
+    });
+}
+
+test('snapshotはConfig欠落以外の本体取得エラーを隠さない', async () => {
+    const mock = installMock();
+    mock.failures.set('References', 'temporary failure');
+    await assert.rejects(loadProjectSnapshot('project', 'self'), /temporary failure/);
+    assert.equal(mock.counts.batchGet, 1);
+});
+
+test('snapshotは重複候補の取得失敗だけをnullとして返す', async () => {
+    const mock = installMock();
+    mock.failures.set('Duplicate_Candidates', 'temporary failure');
+    const snapshot = await loadProjectSnapshot('project', 'self');
+    assert.equal(snapshot.duplicateCandidates, null);
+    assert.equal(snapshot.references.length, 1);
 });

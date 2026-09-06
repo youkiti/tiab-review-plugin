@@ -748,16 +748,34 @@ export async function findRunByConfigHash(
     return pickRunByConfigHash(runs, configHash);
 }
 
+/** is_active かつ confirmed の Run のうち created_at が最新のもの */
+export function selectActiveLlmRun(runs: LlmRun[]): LlmRun | null {
+    const candidates = runs
+        .filter(r => r.is_active && r.status === 'confirmed')
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return candidates[0] ?? null;
+}
+
+/** 指定 Run 配下の batch_screening の execution_id 集合 */
+function selectBatchIdsForRun(runId: string, executions: LlmExecution[]): Set<string> {
+    return new Set(executions
+        .filter(b => b.execution_type === 'batch_screening' && b.run_id === runId)
+        .map(b => b.execution_id));
+}
+
+/** active Run 配下の batch_screening の execution_id 集合。active Run が無ければ空 */
+export function selectActiveBatchIds(runs: LlmRun[], executions: LlmExecution[]): Set<string> {
+    const activeRun = selectActiveLlmRun(runs);
+    return activeRun ? selectBatchIdsForRun(activeRun.run_id, executions) : new Set();
+}
+
 /**
  * 現在の active Run（is_active=true かつ confirmed）を1件返す。
  * 複数候補があれば created_at が新しい方を採用。
  */
 export async function getActiveLlmRun(spreadsheetId: string, loadedRuns?: LlmRun[]): Promise<LlmRun | null> {
     const runs = loadedRuns ?? await getLlmRuns(spreadsheetId);
-    const candidates = runs
-        .filter(r => r.is_active && r.status === 'confirmed')
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return candidates[0] ?? null;
+    return selectActiveLlmRun(runs);
 }
 
 /**
@@ -785,11 +803,7 @@ export async function getBatchIdsForRun(
     batches?: LlmExecution[]
 ): Promise<Set<string>> {
     const all = batches ?? await getLlmExecutions(spreadsheetId);
-    return new Set(
-        all
-            .filter(b => b.execution_type === 'batch_screening' && b.run_id === runId)
-            .map(b => b.execution_id)
-    );
+    return selectBatchIdsForRun(runId, all);
 }
 
 /**
@@ -822,9 +836,10 @@ export async function getActiveBatchIdsForActiveRun(
     batches?: LlmExecution[],
     runs?: LlmRun[]
 ): Promise<Set<string>> {
-    const activeRun = await getActiveLlmRun(spreadsheetId, runs);
-    if (!activeRun) return new Set();
-    return getBatchIdsForRun(spreadsheetId, activeRun.run_id, batches);
+    const loadedRuns = runs ?? await getLlmRuns(spreadsheetId);
+    if (!selectActiveLlmRun(loadedRuns)) return new Set();
+    const loadedBatches = batches ?? await getLlmExecutions(spreadsheetId);
+    return selectActiveBatchIds(loadedRuns, loadedBatches);
 }
 
 /**

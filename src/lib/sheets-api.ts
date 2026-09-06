@@ -1,9 +1,7 @@
 // Google Sheets API ラッパー
 
-import type { Reference, Decision, ReferenceWithStatus, DecisionStatus, LlmExecution, LlmRun } from './types';
 import { platform } from '../platform';
 import { AUDIT_LOG_HEADERS, buildAuditEventRow } from './audit-log';
-import { isLogicallyDeleted } from './duplicate-detect';
 import type { AuditLogEvent } from './audit-log';
 
 import {
@@ -12,8 +10,6 @@ import {
     isSheetsAccessDeniedStatus,
     readSheetsErrorMessage,
     getAuthToken,
-    getSheetValues,
-    getSheetValuesBatch,
     appendRows,
     getSheetIdByName,
     addSheet,
@@ -27,27 +23,13 @@ import {
     DUPLICATE_CANDIDATES_HEADERS,
     REFERENCES_HEADERS,
     DECISIONS_HEADERS,
-    DECISIONS_LAST_COLUMN,
-    REFERENCES_LAST_COLUMN,
     validateReferencesManagedHeaders,
 } from './sheets/schema';
-import { parseReferenceValues, parseDecisionValues } from './sheets/codecs';
-import { getReferences } from './sheets/references';
 import {
-    getDecisions,
     getDecisionsRaw,
-    detectConflict,
-    buildMyFulltextDecisionMap,
-    buildAllFulltextDecisionsMap,
-    collapseToLatestDecisions,
-    primeDecisionRowCache,
-    filterDecisionsForBlind,
     invalidateDecisionRowCache,
 } from './sheets/decisions';
-import type { ProjectConfigBundle } from './sheets/config-schema';
-import { DEFAULT_CONFIG_BUNDLE, parseConfigBundle } from './sheets/config-schema';
 import { getFulltextAiActiveRound, setFulltextAiActiveRound } from './sheets/config';
-import { getLlmExecutions, getActiveBatchIdsForActiveRun } from './sheets/llm-history';
 export {
     SheetsAccessDeniedError,
     isSheetsAccessDeniedStatus,
@@ -56,16 +38,12 @@ export {
     PUBLICATION_CANDIDATES_HEADERS,
     DUPLICATE_CANDIDATES_HEADERS,
     validateReferencesManagedHeaders,
-    getReferences,
-    getDecisions,
-    detectConflict,
     invalidateDecisionRowCache,
-    getLlmExecutions,
-    getActiveBatchIdsForActiveRun,
 };
 export { isQuotaExceededError } from './sheets/transport';
 export type { ReferencesHeaderConflict, ReferencesManagedHeadersCheck } from './sheets/schema';
 export {
+    getReferences,
     ensureHeaders,
     invalidateFulltextDriveColumnsMemo,
     validateSpreadsheetFormat,
@@ -82,6 +60,8 @@ export {
 } from './sheets/references';
 export type { ReferenceFulltextRowState, FulltextSourceClaim, FulltextClaimsSnapshot } from './sheets/references';
 export {
+    detectConflict,
+    getDecisions,
     saveDecision,
     appendDecisions,
     getDecisionsByReviewerId,
@@ -122,6 +102,8 @@ export {
     updateLlmConfig,
 } from './sheets/config';
 export {
+    getActiveBatchIdsForActiveRun,
+    getLlmExecutions,
     clearLlmSheetEnsureMemo,
     ensureLlmExecutionsSheet,
     ensureLlmRunsSheet,
@@ -167,6 +149,19 @@ export {
 } from './drive-permissions';
 export type { SpreadsheetPermission, AddPermissionOptions } from './drive-permissions';
 
+
+export {
+    getReferencesWithStatus,
+    getReferencesWithAllDecisions,
+    getFulltextPageData,
+    loadProjectSnapshot,
+    selectReferencesWithStatus,
+} from './sheets/project-snapshot';
+export type {
+    ReferencesAndDecisionsLoaded,
+    ProjectSnapshot,
+    ProjectSnapshotParts,
+} from './sheets/project-snapshot';
 
 /**
  * ユーザーのメールアドレスを取得（OAuth userinfo APIを使用）
@@ -267,334 +262,6 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
     const data = await response.json();
     return { title: data.properties.title };
 }
-
-/**
- * 【渡した配列の要素は in-place で書き換えられる】（PR #161 レビュー指摘対応）。
- * getReferencesWithStatus() / getReferencesWithAllDecisions() は allReferences の各要素の
- * ref_id、decisionsData の各要素の decision.reviewer_id（空欄→reviewerEmail の補完）・
- * decision.ref_id を trim して直接書き換える（正規化ロジック自体はこの対応で変更していない）。
- * 呼び出し側がこの配列を同じ呼び出しの中で他の関数（team-progress・duplicate-review等）へも
- * 配る場合は、getReferencesWith* を呼ぶ前にシャローコピーを渡すこと。同じ参照を渡すと、
- * 正規化前を期待する側が正規化後（reviewer_id 補完済み）のデータを受け取ってしまう。
- */
-export interface ReferencesAndDecisionsLoaded {
-    /** 論理削除済み行を含む全件（getReferences() と同じ契約）。未指定ならここで取得する。 */
-    allReferences?: Reference[];
-    /** getDecisions() と同じ契約（畳み込み済み・全レビュアー分）。未指定ならここで取得する。 */
-    decisionsData?: { decision: Decision; rowIndex: number }[];
-}
-
-/**
- * 文献一覧に判定状態をマージ（キーオープン前）
- *
- * 【論理削除された行（重複）をここで除外する】isLogicallyDeleted() が true の行
- * （duplicate_of 非空）を戻り値から取り除く（Issue #145 チャンク2）。この関数の呼び出し元は
- * TiAb スクリーニング・エクスポート・ML/LLM判定対象取得など複数箇所にまたがるが、判断ロジックを
- * 各呼び出し元へ分散させず、共通のこの一箇所で外すことで全呼び出し元に一度に効かせる
- * （同じ判断のコピーが呼び出し元ごとに散ると、片方だけ直して漏れる事故につながるため）。
- * 除外なしで全件（論理削除済みの行も含む）が必要な場合は getReferences() を使うこと
- * （重複レビューUIの resolveSurvivor() / isPairAlreadySettled() が判定に論理削除済みの
- * 行を必要とするため。Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは
- * 実装されていない）。
- */
-export async function getReferencesWithStatus(
-    spreadsheetId: string,
-    reviewerEmail: string,
-    loaded?: ReferencesAndDecisionsLoaded
-): Promise<ReferenceWithStatus[]> {
-    console.log('[getReferencesWithStatus] Loading with reviewerEmail:', reviewerEmail);
-
-    const [allReferences, decisionsData] = await Promise.all([
-        loaded?.allReferences ?? getReferences(spreadsheetId),
-        loaded?.decisionsData ?? getDecisions(spreadsheetId),
-    ]);
-    const references = allReferences.filter((ref) => !isLogicallyDeleted(ref));
-
-    console.log('[getReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
-
-    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
-    const tiabDecisionsData = decisionsData.filter(
-        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
-    );
-
-    const normalizedReviewerEmail = (reviewerEmail || '').trim();
-    references.forEach((ref) => {
-        const refId = (ref.ref_id || '').trim();
-        if (refId && refId !== ref.ref_id) {
-            ref.ref_id = refId;
-        }
-    });
-
-    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
-
-    // 自分の判定をマップ化
-    const myDecisions = new Map<string, Decision>();
-    // Blind ONでもAI Evidenceハイライトに必要なLLM判定だけ保持する
-    const llmDecisionsMap = new Map<string, Decision[]>();
-    tiabDecisionsData.forEach(({ decision }) => {
-        // console.log('[getReferencesWithStatus] Decision reviewer_id:', decision.reviewer_id);
-        const reviewerId = (decision.reviewer_id || '').trim();
-        const refId = (decision.ref_id || '').trim();
-        if (!refId) return;
-        if (reviewerId && reviewerId !== decision.reviewer_id) {
-            decision.reviewer_id = reviewerId;
-        } else if (!reviewerId && normalizedReviewerEmail) {
-            decision.reviewer_id = normalizedReviewerEmail;
-        }
-        if (refId !== decision.ref_id) {
-            decision.ref_id = refId;
-        }
-        if (decision.reviewer_id === normalizedReviewerEmail) {
-            myDecisions.set(decision.ref_id, decision);
-        }
-        if (decision.reviewer_id.startsWith('llm:')) {
-            if (!llmDecisionsMap.has(decision.ref_id)) {
-                llmDecisionsMap.set(decision.ref_id, []);
-            }
-            llmDecisionsMap.get(decision.ref_id)!.push(decision);
-        }
-    });
-
-    console.log('[getReferencesWithStatus] My decisions count:', myDecisions.size);
-
-    return references.map(ref => {
-        const refId = (ref.ref_id || '').trim();
-        if (refId && refId !== ref.ref_id) {
-            ref.ref_id = refId;
-        }
-        const myDecision = myDecisions.get(ref.ref_id);
-        // decision='pending' の場合も未判定として扱う
-        const status: DecisionStatus = (myDecision && myDecision.decision !== 'pending') ? myDecision.decision : 'pending';
-        const llmDecisions = llmDecisionsMap.get(ref.ref_id) || [];
-        return {
-            ...ref,
-            myDecision,
-            status,
-            allDecisions: llmDecisions,
-            llmBatchIds: llmDecisions.map(d => d.reviewer_id),
-            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
-        };
-    });
-}
-
-/**
- * 文献一覧に全判定状態をマージ（キーオープン後）
- *
- * 論理削除された行（重複）をここでも除外する。理由は getReferencesWithStatus() の JSDoc を参照
- * （Issue #145 チャンク2）。除外しないと、盲検中は消えていた重複がキー開封の瞬間に復活して見える。
- */
-export async function getReferencesWithAllDecisions(
-    spreadsheetId: string,
-    reviewerEmail: string,
-    loaded?: ReferencesAndDecisionsLoaded & {
-        llmExecutions?: LlmExecution[]; llmRuns?: LlmRun[]; fulltextAiActiveRound?: string | null;
-    }
-): Promise<ReferenceWithStatus[]> {
-    console.log('[getReferencesWithAllDecisions] Loading with reviewerEmail:', reviewerEmail);
-
-    const [allReferences, decisionsData, llmExecutions, activeFulltextAiRound] = await Promise.all([
-        loaded?.allReferences ?? getReferences(spreadsheetId),
-        loaded?.decisionsData ?? getDecisions(spreadsheetId),
-        loaded?.llmExecutions ?? getLlmExecutions(spreadsheetId),
-        loaded?.fulltextAiActiveRound !== undefined
-            ? loaded.fulltextAiActiveRound : getFulltextAiActiveRound(spreadsheetId),
-    ]);
-    const references = allReferences.filter((ref) => !isLogicallyDeleted(ref));
-
-    console.log('[getReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
-
-    // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
-    const tiabDecisionsData = decisionsData.filter(
-        ({ decision }) => (decision.screening_phase ?? 'tiab') === 'tiab'
-    );
-
-    const normalizedReviewerEmail = (reviewerEmail || '').trim();
-    references.forEach((ref) => {
-        const refId = (ref.ref_id || '').trim();
-        if (refId && refId !== ref.ref_id) {
-            ref.ref_id = refId;
-        }
-    });
-
-    const myFulltextDecisions = buildMyFulltextDecisionMap(decisionsData, normalizedReviewerEmail);
-
-    // デバッグ: ref_idのサンプルを表示
-    if (decisionsData.length > 0) {
-        console.log('[getReferencesWithAllDecisions] Sample decision ref_ids:', decisionsData.slice(0, 3).map(d => d.decision.ref_id));
-    }
-    if (references.length > 0) {
-        console.log('[getReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
-    }
-
-    // 有効な LLM 判定 = active Run 配下の Batch IDs に含まれる reviewer_id のもの
-    // Run/Batch 分離後、active 状態は LLM_Runs.is_active が正となる
-    const activeBatchIds = await getActiveBatchIdsForActiveRun(spreadsheetId, llmExecutions, loaded?.llmRuns);
-    const validLlmExecutionIds = activeBatchIds;
-
-    // 全レビュアー（+採用ラウンドのAI）のフルテキスト判定マップ（結果集計用）
-    const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, activeFulltextAiRound);
-
-    console.log('[getReferencesWithAllDecisions] llmExecutions:', llmExecutions.map(e => ({
-        id: e.execution_id,
-        status: e.status,
-        is_active: e.is_active,
-        run_id: e.run_id,
-    })));
-    console.log('[getReferencesWithAllDecisions] activeBatchIds:', Array.from(validLlmExecutionIds));
-
-    // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
-    const allDecisionsMap = new Map<string, Decision[]>();
-    // バッチ対象を Run 単位で決めるため、status/active を問わず
-    // 「どの LLM バッチがこの文献を判定したか」を別途記録する
-    const llmBatchIdsByRefId = new Map<string, string[]>();
-    let skippedLlm = 0;
-    let addedDecisions = 0;
-    let addedHuman = 0;
-    let addedLlm = 0;
-    tiabDecisionsData.forEach(({ decision }) => {
-        const refId = (decision.ref_id || '').trim();
-        if (!refId) return;
-        const reviewerIdRaw = (decision.reviewer_id || '').trim();
-        const reviewerId = reviewerIdRaw || normalizedReviewerEmail;
-        if (reviewerId && reviewerId !== decision.reviewer_id) {
-            decision.reviewer_id = reviewerId;
-        }
-        if (refId !== decision.ref_id) {
-            decision.ref_id = refId;
-        }
-
-        if (decision.reviewer_id.startsWith('llm:')) {
-            const ids = llmBatchIdsByRefId.get(decision.ref_id) ?? [];
-            ids.push(decision.reviewer_id);
-            llmBatchIdsByRefId.set(decision.ref_id, ids);
-        }
-
-        // LLMの判定かつ、有効な実行IDに含まれていない場合はスキップ
-        if (decision.reviewer_id.startsWith('llm:') && !validLlmExecutionIds.has(decision.reviewer_id)) {
-            skippedLlm++;
-            return;
-        }
-
-        if (!allDecisionsMap.has(decision.ref_id)) {
-            allDecisionsMap.set(decision.ref_id, []);
-        }
-        allDecisionsMap.get(decision.ref_id)!.push(decision);
-        addedDecisions++;
-
-        // デバッグ: reviewer_idの種類ごとにカウント
-        if (decision.reviewer_id.startsWith('llm:')) {
-            addedLlm++;
-        } else {
-            addedHuman++;
-        }
-    });
-
-    console.log('[getReferencesWithAllDecisions] allDecisionsMap size:', allDecisionsMap.size, 'addedDecisions:', addedDecisions, 'skippedLlm:', skippedLlm);
-    console.log('[getReferencesWithAllDecisions] addedHuman:', addedHuman, 'addedLlm:', addedLlm);
-
-    // デバッグ: ref_idのマッチング状況
-    const refIdsInDecisions = new Set(Array.from(allDecisionsMap.keys()));
-    const refIdsInReferences = new Set(references.map(r => r.ref_id));
-    const matchedRefIds = [...refIdsInDecisions].filter(id => refIdsInReferences.has(id));
-    const unmatchedDecisionRefIds = [...refIdsInDecisions].filter(id => !refIdsInReferences.has(id));
-    console.log('[getReferencesWithAllDecisions] ref_id matching: matched=', matchedRefIds.length, 'unmatched decisions=', unmatchedDecisionRefIds.length);
-    if (unmatchedDecisionRefIds.length > 0) {
-        console.log('[getReferencesWithAllDecisions] Sample unmatched decision ref_ids:', unmatchedDecisionRefIds.slice(0, 3));
-    }
-
-    return references.map(ref => {
-        const refId = (ref.ref_id || '').trim();
-        if (refId && refId !== ref.ref_id) {
-            ref.ref_id = refId;
-        }
-        const allDecisions = allDecisionsMap.get(ref.ref_id) || [];
-        const myDecision = normalizedReviewerEmail
-            ? allDecisions.find(d => d.reviewer_id === normalizedReviewerEmail)
-            : undefined;
-
-        // 不一致検出
-        const hasConflict = detectConflict(allDecisions);
-
-        // ステータス決定
-        let status: DecisionStatus;
-        if (hasConflict) {
-            status = 'conflict';
-        } else if (myDecision && myDecision.decision !== 'pending') {
-            // decision='pending' の場合も未判定として扱う
-            status = myDecision.decision;
-        } else {
-            status = 'pending';
-        }
-
-        return {
-            ...ref,
-            myDecision,
-            status,
-            allDecisions,
-            hasConflict,
-            llmBatchIds: llmBatchIdsByRefId.get(ref.ref_id) ?? [],
-            myFulltextDecision: myFulltextDecisions.get(ref.ref_id),
-            allFulltextDecisions: allFulltextDecisionsMap.get(ref.ref_id) || [],
-        };
-    });
-}
-
-
-/**
- * フルテキストページの初期データをまとめて取得（1リクエスト）
- * References / Decisions / Config を values:batchGet で取得する。
- * 追記専用化により Decisions には同一キーの履歴行が複数残りうるため、返す前に
- * 各キーの最新1行へ畳み込む（下流のUI・集計を getDecisions() と同じ挙動に保つため）。
- *
- * keyOpened=false（Blind中）のときは、返す decisions を filterDecisionsForBlind() で
- * 自分の判定＋LLM判定に絞り込む（サイドパネルの Blind ロードと同じポリシー）。
- * primeDecisionRowCache() は絞り込み前の全件で温める（行番号キャッシュの整合性のため）。
- *
- * 論理削除された行（重複）は references から除外する。理由は getReferencesWithStatus() の
- * JSDoc を参照（Issue #145 チャンク2 / PR #146 レビュー指摘）。Config タブが無い旧シート向けの
- * フォールバック経路（catch 節側）でも同様に除外する。
- */
-export async function getFulltextPageData(spreadsheetId: string, userEmail: string): Promise<{
-    references: Reference[];
-    decisions: { decision: Decision; rowIndex: number }[];
-    config: ProjectConfigBundle;
-}> {
-    try {
-        const [refValues, decValues, configValues] = await getSheetValuesBatch(spreadsheetId, [
-            `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
-            `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
-            `${CONFIG_SHEET}!A:B`,
-        ]);
-        const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
-        // ここでも Decisions を rowIndex 付きで全件取得しているため、行番号キャッシュを温める
-        primeDecisionRowCache(spreadsheetId, decisions);
-        const config = parseConfigBundle(configValues);
-        return {
-            references: parseReferenceValues(refValues).filter((ref) => !isLogicallyDeleted(ref)),
-            decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
-            config,
-        };
-    } catch (error) {
-        // Config タブがない旧シートでは batchGet 全体が失敗するため、Config 抜きで再試行
-        if ((error as Error).message.includes('Unable to parse range')) {
-            console.log('[getFulltextPageData] Config sheet missing, falling back:', error);
-            const [refValues, decValues] = await getSheetValuesBatch(spreadsheetId, [
-                `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`,
-                `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`,
-            ]);
-            const decisions = collapseToLatestDecisions(parseDecisionValues(decValues));
-            primeDecisionRowCache(spreadsheetId, decisions);
-            const config = { ...DEFAULT_CONFIG_BUNDLE };
-            return {
-                references: parseReferenceValues(refValues).filter((ref) => !isLogicallyDeleted(ref)),
-                decisions: filterDecisionsForBlind(decisions, config.keyOpened, userEmail),
-                config,
-            };
-        }
-        throw error;
-    }
-}
-
 
 /**
  * key開閉などの監査イベントを Audit_Log タブへ1行追記する（AGENTS.md「Audit_Log タブ」参照）。
