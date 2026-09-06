@@ -324,6 +324,20 @@ body {
     display: block;
 }
 
+/* プレースホルダー状態（Issue #156）: 表示範囲に入るまで canvas を描画しない。
+   寸法は確定済みなのでレイアウトは崩れない。ページ番号を薄く出すだけに留める。 */
+.ft-page[data-render-state="placeholder"]::after {
+    content: attr(data-page);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 0, 0, 0.15);
+    font-size: 13px;
+    pointer-events: none;
+}
+
 /* 選択可能な透明テキストレイヤー（PDF.js TextLayer が span を敷く） */
 .ft-text-layer {
     position: absolute;

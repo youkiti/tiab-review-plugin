@@ -87,6 +87,18 @@ npm run bench -- --key-opened --net-delay 200
    （既定デモプロファイルの `demo-ref-001` にはAI判定根拠が無いため使わない。
    Issue #151（#150 工程0）チャンク3b）。
 
+**Issue #156（#150 工程5）での意味の変化**: `pdf-renderer.ts` を表示範囲中心の描画に
+変えたことで、`tiab:pdf.firstPage` は「先頭ページの canvas + テキストレイヤー描画」完了の
+計測のまま変わらないが、`tiab:pdf.allPages` は「全ページのプレースホルダー構築＋テキスト索引
+構築＋先頭ページの描画」完了の計測に変わった（以前はページ数分の canvas 描画をすべて含んで
+いたが、今は canvas 描画は先頭ページ1枚だけで、残りはテキスト抽出のみ）。索引構築自体は
+ページ数に比例して増えるため `tiab:pdf.allPages` は引き続きページ数の影響を受けるが、
+canvas 描画（`page.render()`）より軽いテキスト抽出だけなので、同じページ数でも旧実装より
+小さい値になるはずである。デモ同梱の `video/fixtures/demo-paper.pdf` は4ページしかないため、
+この差は数値上ほとんど見えない。長いPDFで「canvas 数がページ数に比例して増え続けない」ことを
+確認するには、次項の `make-multipage-pdf.mjs` で生成したPDFに差し替えて `.ft-page-canvas` の
+DOM要素数を数えること（タイミング数値だけでは検証できない）。
+
 シナリオ2・3では、`performance.measure` が拾えない「クリックしてから画面が更新されるまで」の
 実時間も別途 `runner:decision.click2frame` / `runner:navigate.click2frame` として計測します。
 クリック直前から計測を始め、`requestAnimationFrame` のコールバック内で
@@ -176,6 +188,34 @@ npm run bench:bundle -- --out <dir>   # 既定 .tmp/bench
 
 **出力先について**: `dist/` と `docs/app/`（配布物）には一切書き込みません。実行後に
 `git status --porcelain` が汚れていないことを確認してください。
+
+## `make-multipage-pdf.mjs`（検証用の複数ページPDF生成、Issue #156（#150 工程5））
+
+デモ同梱の固定フィクスチャ `video/fixtures/demo-paper.pdf` は4ページしかなく、表示範囲中心の
+PDF描画（`src/fulltext/pdf-renderer.ts`）が長いPDFで実際に効いているか（canvas数がページ数に
+比例して増え続けないか）を目視・実測できない。このスクリプトは外部パッケージに依存せず、
+各ページに Helvetica のテキストだけを置いた有効な PDF 1.4 ファイルを、xref テーブルの
+バイトオフセットを自前で計算して直接組み立てる。
+
+```bash
+node scripts/bench/make-multipage-pdf.mjs --pages 40 --out .tmp/bench/multipage-40.pdf
+```
+
+- `--pages <n>`: 生成するページ数（既定 40）
+- `--out <path>`: 出力先（既定 `.tmp/bench/multipage-<n>.pdf`）
+
+**使い方**: `npm run build:demo:prod` 済みの `dist-demo/fixtures/demo-paper.pdf` を、生成した
+PDFで**ローカルでのみ**上書きしてから `npm run bench -- --skip-build` 等で `scenarioPdf` を
+実行すると、長いPDFでの `.ft-page` / `.ft-page-canvas` の数や `tiab:pdf.firstPage` /
+`tiab:pdf.allPages` を実測できる。ただし `tiab:pdf.evidenceJump` は、フルテキストAI判定の
+quote が `video/fixtures/demo-paper.pdf` の実テキストに紐づいているため、差し替えたPDFの
+テキストとは一致せず `skipped` になる（既知の制約。根拠ジャンプの実測には元のフィクスチャの
+ままにする必要がある）。
+
+**PDFバイナリはコミット対象にしない。** 既定の出力先 `.tmp/bench/` は `.gitignore` 済み。
+`dist-demo/fixtures/demo-paper.pdf` を上書きした場合も、検証が終わったら
+`npm run build:demo:prod` を再実行するか元のファイルへ戻し、`dist-demo/` 自体をコミットしない
+（既存の運用と同じ。「出力先について」の各節参照）。
 
 ### PDF・MLの遅延読み込み（Issue #155）
 
