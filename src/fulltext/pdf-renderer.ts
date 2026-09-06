@@ -77,6 +77,14 @@ interface PageInfo {
     canvas: HTMLCanvasElement | null;
     /** 進行中の page.render() タスク（cancel() 用に保持。完了/キャンセル後は null に戻す） */
     renderTask: { promise: Promise<void>; cancel: () => void } | null;
+    /**
+     * 進行中の TextLayer 描画タスク（cancel() 用に保持。完了/中断後は null に戻す）。
+     * renderTask と同じ流儀で保持する。保持しないと releasePageByNumber() が
+     * textLayerEl.innerHTML を空にした後でも render() が span を追記し続けてしまい、
+     * 解放済み（canvasの無い白紙）ページの上に選択可能テキストだけが残る
+     * （PR #185 レビュー指摘。Issue #156）。
+     */
+    textLayerTask: { cancel: () => void } | null;
     /** pdf.js の PDFPageProxy（描画・再描画のたびに render()/getTextContent() を呼ぶため保持） */
     pdfPage: any;
     /** pdf.js の PageViewport（描画のたびに再計算しないよう保持） */
@@ -118,6 +126,16 @@ export interface HighlightResult {
 /** page.render() のキャンセルによる中断（解放/破棄時に想定内で発生する）かどうか。 */
 function isRenderCancelled(err: unknown): boolean {
     return err instanceof pdfjsLib.RenderingCancelledException;
+}
+
+/**
+ * TextLayer.cancel() による中断（解放/破棄時に想定内で発生する）かどうか。
+ * pdf.js は cancel() 呼び出し時、render() が返す Promise を AbortException で reject する
+ * （PR #185 レビュー指摘。Issue #156）。isRenderCancelled() と同様、想定内の中断として
+ * 呼び出し側で黙って無視するために使う。
+ */
+function isAbortException(err: unknown): boolean {
+    return err instanceof pdfjsLib.AbortException;
 }
 
 /**
@@ -302,6 +320,7 @@ export class PdfRenderer {
             renderGeneration: 0,
             canvas: null,
             renderTask: null,
+            textLayerTask: null,
             pdfPage,
             viewport,
         };
@@ -332,12 +351,23 @@ export class PdfRenderer {
         }
     }
 
-    /** 進行中の page.render() タスクを全ページ分キャンセルする（destroy() / 再ロード時に呼ぶ）。 */
+    /**
+     * 進行中の page.render() / TextLayer 描画タスクを全ページ分キャンセルする
+     * （destroy() / 再ロード時に呼ぶ）。この直後に呼び出し元が pdfDoc.destroy() するため、
+     * pdf.js 側のページリソース（オペレータリスト・フォント/画像オブジェクト）の解放は
+     * ここでは行わない。WorkerTransport.destroy() がキャッシュ済みの全ページに対して
+     * page._destroy() を呼び、cleanup() より強く（force: true でオペレータリストを中断し
+     * objs を clear する）まとめて解放するため（PR #185 レビュー指摘。Issue #156）。
+     */
     private cancelAllRenderTasks(): void {
         for (const p of this.pages) {
             if (p.renderTask) {
                 try { p.renderTask.cancel(); } catch { /* noop */ }
                 p.renderTask = null;
+            }
+            if (p.textLayerTask) {
+                try { p.textLayerTask.cancel(); } catch { /* noop */ }
+                p.textLayerTask = null;
             }
         }
     }
@@ -443,9 +473,18 @@ export class PdfRenderer {
                 container: page.textLayerEl,
                 viewport: page.viewport,
             });
-            await tl.render();
+            // 解放時に cancel() で中断できるよう保持する（PR #185 レビュー指摘。Issue #156）。
+            page.textLayerTask = tl;
+            try {
+                await tl.render();
+            } finally {
+                if (page.textLayerTask === tl) page.textLayerTask = null;
+            }
             if (token !== this.renderToken || page.renderGeneration !== generation || page.renderState !== 'rendering') return;
         } catch (err) {
+            // cancel() による想定内の中断（解放/破棄）は isRenderCancelled() と同様に無視する。
+            // 無視しないと解放のたびに警告が出る（PR #185 レビュー指摘。Issue #156）。
+            if (isAbortException(err)) return;
             console.warn(`[pdf-renderer] text layer render failed (page ${page.pageNumber}):`, err);
         }
     }
@@ -461,6 +500,22 @@ export class PdfRenderer {
         if (page.renderTask) {
             try { page.renderTask.cancel(); } catch { /* noop */ }
             page.renderTask = null;
+        }
+        // pdf.js 側が保持するこのページのリソース（オペレータリスト・フォント/画像オブジェクト）を
+        // 解放する（PR #185 レビュー指摘。Issue #156）。上の renderTask.cancel() は完了コールバックを
+        // 同期的に呼び、その中でレンダータスクの登録も同期的に外れるため、同一同期ブロックの
+        // 直後で呼んでも cleanup() 側が「まだ描画中」と誤判定することはない。cleanup() は
+        // best-effort で、描画中やオペレータリストがワーカーから流れ切っていない場合は何もせず
+        // false を返すだけなので、戻り値は見ず再試行もしない。cleanup() 後もページは再利用でき
+        // （次の render()/getTextContent() がワーカーから読み直す）、ハイライト用のテキスト索引
+        // （rawText / charItemIndex / itemRects）は PageInfo 側が保持しているため影響を受けない。
+        try { page.pdfPage.cleanup(); } catch { /* noop */ }
+        if (page.textLayerTask) {
+            // 進行中の TextLayer 描画を中断する（PR #185 レビュー指摘。Issue #156）。中断しないと、
+            // すぐ下の textLayerEl.innerHTML = '' の後でも render() が span を追記し続け、解放済み
+            // （canvasの無い白紙）ページの上に選択可能テキストだけが残ってしまう。
+            try { page.textLayerTask.cancel(); } catch { /* noop */ }
+            page.textLayerTask = null;
         }
         if (page.canvas) {
             page.canvas.remove();
