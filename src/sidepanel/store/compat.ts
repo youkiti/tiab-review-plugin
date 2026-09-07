@@ -1,16 +1,18 @@
 /**
  * 互換レイヤー: 既存state.tsとの橋渡し
  * 設定・絞り込み・現在文献・references・spreadsheetId/userEmail/highlightKeywords/isAdmin/
- * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTabはStoreが所有し、
- * 双方向同期が残るのはLLM/MLバッチ領域（llmConfig・mlState・activeLlmExecutionIds・
- * currentBatchDecisions・failedRefIds）のみ。
+ * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab/
+ * llmConfig/mlState/activeLlmExecutionIds/currentBatchDecisions/failedRefIdsはStoreが所有し、
+ * legacyState.への呼び出しはresetForLogout/resetForBackの2つだけ。state.ts側に残る
+ * batchAbortController・currentExecutionId・llmRuns/llmExecutions・forceNewLlmRun・
+ * llmTargetMode/llmTargetRefIds・consensusModeはStoreに未移行のlegacy専有状態（Issue #154 工程3対象外）。
  */
 
 import { state as legacyState } from '../state';
 import { dispatch } from './index';
 import type { UserSettings } from '../../lib/user-settings';
 import type { AppState } from './types';
-import type { ReferenceWithStatus, LlmConfig, AssignmentConfig } from '../../lib/types';
+import type { ReferenceWithStatus, LlmConfig, AssignmentConfig, Decision } from '../../lib/types';
 import type { MlState } from '../../lib/ml/types';
 import type { HighlightKeywords } from '../../lib/sheets-api';
 import type { FulltextPoolRule } from '../../lib/fulltext-pool';
@@ -75,18 +77,16 @@ export function removeExcludeKeyword(word: string): void {
 }
 
 /**
- * LlmConfig を設定（両方に同期）
+ * LlmConfig を設定（Storeのみ）
  */
 export function setLlmConfig(config: LlmConfig): void {
-    legacyState.setLlmConfig(config);
     dispatch({ type: 'data/setLlmConfig', config });
 }
 
 /**
- * MlState を設定（両方に同期）
+ * MlState を設定（Storeのみ）
  */
 export function setMlState(mlState: MlState): void {
-    legacyState.setMlState(mlState);
     dispatch({ type: 'data/setMlState', mlState });
 }
 
@@ -112,7 +112,7 @@ export function setIsKeyOpened(opened: boolean): void {
 }
 
 /**
- * Loading を設定（両方に同期）
+ * Loading を設定（Store経由で更新）
  */
 export function setLoading(loading: boolean): void {
     // 既存stateにはloadingがないため、新storeのみ
@@ -120,7 +120,7 @@ export function setLoading(loading: boolean): void {
 }
 
 /**
- * Toast を表示（両方に同期）
+ * Toast を表示（Store経由で更新）
  */
 export function showToast(message: string, duration?: number): void {
     dispatch({ type: 'ui/showToast', message, duration });
@@ -270,14 +270,36 @@ export function removeEnabledReviewer(id: string): void {
 }
 
 /**
- * アクティブなLLM実行IDを設定（両方に同期）
+ * アクティブなLLM実行IDを設定（Storeのみ）
  */
 export function setActiveLlmExecutionIds(ids: Set<string>): void {
-    legacyState.setActiveLlmExecutionIds(ids);
     dispatch({ type: 'data/clearActiveLlmExecutionIds' });
     ids.forEach((id) => {
         dispatch({ type: 'data/addActiveLlmExecutionId', id });
     });
+}
+
+/**
+ * 現在のバッチ判定結果を設定（Storeのみ）
+ */
+export function setCurrentBatchDecisions(decisions: Decision[]): void {
+    dispatch({ type: 'data/setCurrentBatchDecisions', decisions });
+}
+
+/**
+ * リトライ対象の失敗ref_idリストを設定（Storeのみ）
+ */
+export function setFailedRefIds(ids: string[]): void {
+    dispatch({ type: 'data/setFailedRefIds', ids });
+}
+
+/**
+ * リトライ対象の失敗ref_idリストをクリア（Storeのみ）。activeLlmExecutionIdsと違い
+ * 1件ずつ追加するAPIが無く常に配列全体を差し替えるため、専用アクションを新設せず
+ * setFailedRefIdsに空配列を渡す。
+ */
+export function clearFailedRefIds(): void {
+    dispatch({ type: 'data/setFailedRefIds', ids: [] });
 }
 
 /**

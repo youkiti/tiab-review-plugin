@@ -47,6 +47,9 @@ import { t } from '../../../lib/i18n';
 import {
     setActiveLlmExecutionIds as syncSetActiveLlmExecutionIds,
     setReferences as syncSetReferences,
+    setCurrentBatchDecisions as syncSetCurrentBatchDecisions,
+    setFailedRefIds as syncSetFailedRefIds,
+    clearFailedRefIds as syncClearFailedRefIds,
 } from '../../store/compat';
 import { getAssignedSetsForUser, getReferenceAssignmentSet } from '../assignment';
 import {
@@ -106,7 +109,7 @@ async function prepareThresholdAdjustment(executionId: string, threshold: number
     }
 
     state.setCurrentExecutionId(executionId);
-    state.setCurrentBatchDecisions(allDecisions);
+    syncSetCurrentBatchDecisions(allDecisions);
 
     dom.thresholdSlider.value = threshold.toFixed(2);
     dom.thresholdValueDisplay.textContent = threshold.toFixed(2);
@@ -399,7 +402,7 @@ export async function handleStartBatch() {
     // AbortControllerを作成
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
-    state.setCurrentBatchDecisions([]);
+    syncSetCurrentBatchDecisions([]);
 
     // 中断・エラー時にも finally で履歴行を実件数で更新するため、
     // try 開始前に execution_id を保持する変数を用意しておく
@@ -503,7 +506,7 @@ export async function handleStartBatch() {
             onSaveBatch: async (decisions) => {
                 await appendDecisions(spreadsheetId, decisions);
                 const currentDecisions = state.currentBatchDecisions;
-                state.setCurrentBatchDecisions([...currentDecisions, ...decisions]);
+                syncSetCurrentBatchDecisions([...currentDecisions, ...decisions]);
             },
             // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
             applyThreshold: runThreshold ?? undefined,
@@ -511,7 +514,7 @@ export async function handleStartBatch() {
         batchResult = result;
 
         // 失敗したref_idを保存
-        state.setFailedRefIds(result.failedRefIds);
+        syncSetFailedRefIds(result.failedRefIds);
 
         // 失敗があればリトライボタンを表示
         if (result.failedRefIds.length > 0) {
@@ -645,7 +648,7 @@ export async function handleRetryFailed() {
 
     // リトライボタンを非表示にしてから再処理
     dom.retryFailedBtn.classList.add('hidden');
-    state.clearFailedRefIds();
+    syncClearFailedRefIds();
 
     // 通常のバッチ処理と同様に処理
     const apiKey = await getEffectiveApiKey();
@@ -686,12 +689,12 @@ export async function handleRetryFailed() {
             onSaveBatch: async (decisions) => {
                 await appendDecisions(spreadsheetId, decisions);
                 const currentDecisions = state.currentBatchDecisions;
-                state.setCurrentBatchDecisions([...currentDecisions, ...decisions]);
+                syncSetCurrentBatchDecisions([...currentDecisions, ...decisions]);
             },
         });
 
         // リトライ結果を更新
-        state.setFailedRefIds(result.failedRefIds);
+        syncSetFailedRefIds(result.failedRefIds);
 
         if (result.failedRefIds.length > 0) {
             dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));

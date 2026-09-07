@@ -269,7 +269,7 @@ export function showStoppingSettingsDialog() {
     saveBtn.className = 'btn btn-primary btn-small';
     saveBtn.textContent = t('common_save');
     saveBtn.onclick = () => {
-        // Save to state - Store経由で両方に同期
+        // Save to state - Store経由で更新
         const newRule = createStoppingRule(currentThreshold);
         syncSetMlState({
             ...state.mlState,

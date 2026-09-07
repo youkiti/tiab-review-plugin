@@ -305,7 +305,7 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
         if (spreadsheetId) {
             const llmConfig = await getLlmConfig(spreadsheetId);
             if (!isCurrent()) return;
-            // Store経由で両方に同期
+            // Store経由で更新
             syncSetLlmConfig(llmConfig);
 
             // AI一括判定の対象選択（担当セット・個別選択）を復元

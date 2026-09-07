@@ -83,7 +83,7 @@ export function initMlHandlers() {
     // Subscribe to Worker updates
     mlClient.subscribe((newState) => {
         const currentState = state.mlState;
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...currentState,
             status: newState.status,
@@ -121,7 +121,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
 
     hideToast();
 
-    // Store経由で両方に同期
+    // Store経由で更新
     syncChangeTab('ml');
     renderMlSection();
 
@@ -137,7 +137,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
                 // 設定をブラウザに保存
                 await saveStoppingRuleToStorage(threshold);
 
-                // 停止基準を設定（Store経由で両方に同期）
+                // 停止基準を設定（Store経由で更新）
                 syncSetMlState({
                     ...state.mlState,
                     stoppingRule: createStoppingRule(threshold)
@@ -149,7 +149,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
         } else {
             // 2回目以降: 保存された設定を使用
             if (!state.mlState.stoppingRule) {
-                // Store経由で両方に同期
+                // Store経由で更新
                 syncSetMlState({
                     ...state.mlState,
                     stoppingRule: createStoppingRule(savedRule.threshold)
@@ -199,7 +199,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
     if (state.mlState.stoppingRule) {
         // Pass decision ('include' | 'exclude') directly as expected by updateStoppingProgress
         const newRule = updateStoppingProgress(state.mlState.stoppingRule, decision);
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...state.mlState,
             stoppingRule: newRule
@@ -209,7 +209,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         if (isStoppingReached(newRule)) {
             showStoppingReachedDialog(
                 (addCount) => {
-                    // Extend threshold or screened count（Store経由で両方に同期）
+                    // Extend threshold or screened count（Store経由で更新）
                     if (isCmhStoppingRule(newRule)) {
                         // CMH: canStop をリセット
                         const extendedRule = { ...newRule, canStop: false };
@@ -268,7 +268,7 @@ function handleMlForward() {
 function moveToPrevious() {
     const filteredRanking = getCurrentMlFilteredRanking();
     if (filteredRanking.length === 0) {
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...state.mlState,
             currentIndex: 0
@@ -280,7 +280,7 @@ function moveToPrevious() {
     const currentIndex = state.mlState.currentIndex;
     const newIndex = Math.max(0, currentIndex - 1);
 
-    // Store経由で両方に同期
+    // Store経由で更新
     syncSetMlState({
         ...state.mlState,
         currentIndex: newIndex
@@ -327,7 +327,7 @@ function findFirstUnlabeledIndex(filteredRanking: string[]): number {
 function moveToNextUnlabeled() {
     const filteredRanking = getCurrentMlFilteredRanking();
     if (filteredRanking.length === 0) {
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...state.mlState,
             currentIndex: 0
@@ -352,7 +352,7 @@ function moveToNextUnlabeled() {
     }
 
     if (foundIndex !== -1) {
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...state.mlState,
             currentIndex: foundIndex
@@ -360,7 +360,7 @@ function moveToNextUnlabeled() {
     } else {
         // All labeled?
         // Keep index at end or show finished?
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetMlState({
             ...state.mlState,
             currentIndex: filteredRanking.length

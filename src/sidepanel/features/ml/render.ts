@@ -98,7 +98,7 @@ function renderMlReference() {
     if (index >= filteredRanking.length) {
         index = 0;
         if (state.mlState.currentIndex !== 0) {
-            // Store経由で両方に同期
+            // Store経由で更新
             syncSetMlState({ ...state.mlState, currentIndex: 0 });
         }
     }
@@ -189,7 +189,7 @@ function renderKeywordList(type: 'include' | 'exclude', keywords: string[], cont
  */
 export function handleMlSearchInput() {
     // 検索時は先頭へ戻して再描画
-    // Store経由で両方に同期
+    // Store経由で更新
     syncSetMlState({ ...state.mlState, currentIndex: 0 });
     renderMlReference();
 }

@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_USER_SETTINGS, parseUserSettings } from '../src/lib/user-settings';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../src/lib/fulltext-assignment';
+import { DEFAULT_LLM_CONFIG } from '../src/lib/sheets-api';
+import { createInitialMlState } from '../src/lib/ml/types';
 import { createStore, initializeStore, initialState } from '../src/sidepanel/store';
 import { state } from '../src/sidepanel/state';
 import { updateSettings, updateAbstractSubsectionHeadings } from '../src/sidepanel/store/compat';
@@ -55,11 +57,13 @@ test('旧stateの設定は読み取り専用でStoreの更新を直ちに参照�
     }
 });
 
-test('互換レイヤーの双方向同期はLLM/MLバッチ領域だけに限定される', () => {
+test('互換レイヤーの双方向同期はresetForLogout/resetForBackだけに限定される', () => {
     const store = initializeStore();
     try {
         // Issue #154 工程3 で legacyToAppState/syncToLegacyState/initializeFromLegacy を削除した。
-        // 双方向同期（legacy setterとdispatchの両方を呼ぶ）が残るのはLLM/MLバッチ領域だけであることを固定する。
+        // LLM/MLバッチ領域（llmConfig・mlState・activeLlmExecutionIds・currentBatchDecisions・
+        // failedRefIds）もStore所有に一本化し、双方向同期（legacy setterとdispatchの両方を呼ぶ）は
+        // 一つも残っていないことを固定する。
         for (const name of ['legacyToAppState', 'syncToLegacyState', 'initializeFromLegacy']) {
             assert.equal(name in compat, false);
         }
@@ -68,7 +72,7 @@ test('互換レイヤーの双方向同期はLLM/MLバッチ領域だけに限�
         updateSettings('showAiHighlights', false);
         const settings = store.getState().ui.settings;
 
-        // Store所有になった9領域のcompatラッパーはStoreのみを更新し、設定を上書きしない。
+        // Store所有になった領域のcompatラッパーはStoreのみを更新し、設定を上書きしない。
         compat.setSpreadsheetId('sheet-1');
         compat.setUserEmail('user@example.test');
         compat.setKeywords({ include: ['a'], exclude: [] });
@@ -88,6 +92,103 @@ test('互換レイヤーの双方向同期はLLM/MLバッチ領域だけに限�
         assert.deepEqual(state.highlightKeywords, { include: ['a'], exclude: [] });
         assert.equal(state.isAdmin, true);
         assert.equal(state.currentTab, 'llm');
+    } finally {
+        initializeStore();
+    }
+});
+
+test('LLM/MLバッチ領域はlegacy setterを持たずcompat経由でStoreだけを更新する', () => {
+    const store = initializeStore();
+    try {
+        // Issue #154 工程3 で LLM/ML バッチ領域を Store 所有へ移した。5領域とも state.ts 側に legacy setter が無いことを固定する。
+        for (const name of [
+            'setLlmConfig', 'setMlState', 'setActiveLlmExecutionIds',
+            'setCurrentBatchDecisions', 'setFailedRefIds', 'clearFailedRefIds',
+        ]) {
+            assert.equal(name in state, false);
+        }
+        for (const name of ['llmConfig', 'mlState', 'activeLlmExecutionIds', 'currentBatchDecisions', 'failedRefIds'] as const) {
+            const descriptor = Object.getOwnPropertyDescriptor(state, name);
+            assert.equal(typeof descriptor?.get, 'function');
+            assert.equal(descriptor?.set, undefined);
+        }
+
+        const settings = store.getState().ui.settings;
+        const llmConfig = { ...DEFAULT_LLM_CONFIG, llm_enabled: true };
+        const mlState = { ...createInitialMlState(), status: 'ready' as const, currentIndex: 3 };
+        const decision = {
+            decision_id: 'd1', ref_id: 'r1', reviewer_id: 'llm:test',
+            decision: 'include' as const, decided_at: '2026-01-01T00:00:00.000Z',
+        };
+
+        // compatラッパーはStoreだけを更新し、設定など他領域を上書きしない。
+        compat.setLlmConfig(llmConfig);
+        compat.setMlState(mlState);
+        compat.setActiveLlmExecutionIds(new Set(['exec-1', 'exec-2']));
+        compat.setCurrentBatchDecisions([decision]);
+        compat.setFailedRefIds(['r-failed']);
+        assert.equal(store.getState().ui.settings, settings);
+
+        // compatラッパーはStoreを更新し、state.Xのgetterで直ちに同じ値が読める。
+        assert.deepEqual(state.llmConfig, llmConfig);
+        assert.deepEqual(state.mlState, mlState);
+        assert.deepEqual(state.activeLlmExecutionIds, new Set(['exec-1', 'exec-2']));
+        assert.deepEqual(state.currentBatchDecisions, [decision]);
+        assert.deepEqual(state.failedRefIds, ['r-failed']);
+
+        compat.clearFailedRefIds();
+        assert.deepEqual(state.failedRefIds, []);
+    } finally {
+        initializeStore();
+    }
+});
+
+test('reset/back後はLLM/MLバッチ領域のうちmlStateだけが初期化される', () => {
+    const store = initializeStore();
+    try {
+        const llmConfig = { ...DEFAULT_LLM_CONFIG, llm_enabled: true };
+        compat.setLlmConfig(llmConfig);
+        compat.setMlState({ ...createInitialMlState(), status: 'ready' as const, currentIndex: 5 });
+        compat.setActiveLlmExecutionIds(new Set(['exec-1']));
+        compat.setCurrentBatchDecisions([{
+            decision_id: 'd1', ref_id: 'r1', reviewer_id: 'llm:test',
+            decision: 'include' as const, decided_at: '2026-01-01T00:00:00.000Z',
+        }]);
+        compat.setFailedRefIds(['r-failed']);
+
+        store.dispatch({ type: 'reset/back' });
+
+        // mlStateはreset/backで明示的に初期化される（他プロジェクトのML状態を持ち越さないため）。
+        assert.deepEqual(state.mlState, createInitialMlState());
+        // 残り4領域はreset/backでは戻らない（次のプロジェクト読み込みで上書きされる想定）。
+        assert.deepEqual(state.llmConfig, llmConfig);
+        assert.deepEqual(state.activeLlmExecutionIds, new Set(['exec-1']));
+        assert.equal(state.currentBatchDecisions.length, 1);
+        assert.deepEqual(state.failedRefIds, ['r-failed']);
+    } finally {
+        initializeStore();
+    }
+});
+
+test('reset/logout後はLLM/MLバッチ領域が全て既定値に戻る', () => {
+    const store = initializeStore();
+    try {
+        compat.setLlmConfig({ ...DEFAULT_LLM_CONFIG, llm_enabled: true });
+        compat.setMlState({ ...createInitialMlState(), status: 'ready' as const, currentIndex: 5 });
+        compat.setActiveLlmExecutionIds(new Set(['exec-1']));
+        compat.setCurrentBatchDecisions([{
+            decision_id: 'd1', ref_id: 'r1', reviewer_id: 'llm:test',
+            decision: 'include' as const, decided_at: '2026-01-01T00:00:00.000Z',
+        }]);
+        compat.setFailedRefIds(['r-failed']);
+
+        store.dispatch({ type: 'reset/logout' });
+
+        assert.deepEqual(state.llmConfig, DEFAULT_LLM_CONFIG);
+        assert.deepEqual(state.mlState, createInitialMlState());
+        assert.deepEqual(state.activeLlmExecutionIds, new Set());
+        assert.deepEqual(state.currentBatchDecisions, []);
+        assert.deepEqual(state.failedRefIds, []);
     } finally {
         initializeStore();
     }

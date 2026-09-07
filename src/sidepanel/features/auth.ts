@@ -125,7 +125,7 @@ export async function showProjectSection() {
     // ユーザー情報を取得
     try {
         const userEmail = await getUserEmail();
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetUserEmail(userEmail);
         // トークン失効後の再認可ポップアップで、複数 Google アカウントログイン中でも
         // アカウント選択を省略できるようにする（Web版のみ実装。拡張版は no-op）

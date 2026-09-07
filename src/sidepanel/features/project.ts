@@ -251,7 +251,7 @@ async function connectToSpreadsheet(resolvedId: string): Promise<void> {
 
         showStatus(t('project_connectSuccess', info.title), 'success');
 
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetSpreadsheetId(resolvedId);
 
         // 設定を保存
@@ -458,7 +458,7 @@ export async function handleCreateNew() {
 
         showStatus(t('project_createSuccess', title), 'success');
 
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetSpreadsheetId(newId);
 
         // 設定を保存
@@ -523,7 +523,7 @@ async function loadDataAndShowScreeningImpl() {
         const { configBundle, assignmentConfig } = snapshot;
         const keyOpenedStatus = configBundle.keyOpened;
 
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetIsAdmin(adminStatus);
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(configBundle.keywords);

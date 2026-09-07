@@ -1,18 +1,18 @@
 /**
  * アプリケーション状態の集約管理
  * 設定・絞り込み・現在文献・spreadsheetId/userEmail/highlightKeywords/isAdmin/
- * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab は
- * Storeを読むgetterのみ。双方向同期が残るのはLLM/MLバッチ領域のみ（AGENTS.md参照）。
+ * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab/
+ * llmConfig/mlState/activeLlmExecutionIds/currentBatchDecisions/failedRefIds は
+ * Storeを読むgetterのみ（AGENTS.md参照）。
  */
 
 import { getState } from './store';
 
-import type { ReferenceWithStatus, LlmConfig, Decision, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
+import type { ReferenceWithStatus, ImportStatsMap, LlmRun, LlmExecution } from '../lib/types';
 import type { ReviewCriteria } from '../lib/review-criteria';
 import type { ExcludeReasonConfig } from '../lib/exclude-reason-config';
 import { resolveExcludeReasonItems } from '../lib/exclude-reason-config';
 import type { ExcludeReasonItem } from '../lib/exclude-reasons';
-import { DEFAULT_LLM_CONFIG } from '../lib/sheets-api';
 import type { LlmTargetMode } from '../lib/llm-target-selection';
 import { DEFAULT_LLM_TARGET_MODE } from '../lib/llm-target-selection';
 
@@ -40,11 +40,8 @@ let _reviewCriteria: ReviewCriteria | null = null;
 let _excludeReasonConfig: ExcludeReasonConfig | null = null;
 
 // LLM関連
-let _llmConfig: LlmConfig = { ...DEFAULT_LLM_CONFIG };
 let _batchAbortController: AbortController | null = null;
 let _currentExecutionId = '';
-let _currentBatchDecisions: Decision[] = [];
-let _activeLlmExecutionIds: Set<string> = new Set();
 // Run/Batch の一覧キャッシュ。バッチ対象件数を Run 単位で計算する際、
 // UI 操作のたびに Sheets を読むとクォータを消費するため loadExecutionHistory の取得結果を保持する
 let _llmRuns: LlmRun[] = [];
@@ -55,14 +52,10 @@ let _forceNewLlmRun = false;
 let _llmTargetMode: LlmTargetMode = DEFAULT_LLM_TARGET_MODE;
 // selection モード時に対象とする ref_id 集合
 let _llmTargetRefIds: Set<string> = new Set();
-let _failedRefIds: string[] = [];  // リトライ対象の失敗ref_id
 // 合議モード（-human-consensus）。ONの間の判定は client_version に -human-consensus サフィックスを付けて
 // 保存する。合議はブラインド中に成立しないため、isKeyOpened===true のときだけUIに出す（handleKeyToggle の
 // CLOSE 経路で false に戻す）。既定は false（従来どおりの -human）。
 let _consensusMode = false;
-
-import { createInitialMlState, MlState } from '../lib/ml/types';
-let _mlState: MlState = createInitialMlState();
 
 // ========== State Object with Getters/Setters ==========
 
@@ -181,8 +174,7 @@ export const state = {
     // ----- LLM State -----
     get currentTab() { return getState().ui.currentTab; },
 
-    get llmConfig() { return _llmConfig; },
-    setLlmConfig(config: LlmConfig) { _llmConfig = config; },
+    get llmConfig() { return getState().data.llmConfig; },
 
     get batchAbortController() { return _batchAbortController; },
     setBatchAbortController(controller: AbortController | null) {
@@ -192,13 +184,9 @@ export const state = {
     get currentExecutionId() { return _currentExecutionId; },
     setCurrentExecutionId(id: string) { _currentExecutionId = id; },
 
-    get currentBatchDecisions() { return _currentBatchDecisions; },
-    setCurrentBatchDecisions(decisions: Decision[]) { _currentBatchDecisions = decisions; },
+    get currentBatchDecisions() { return getState().data.currentBatchDecisions; },
 
-    get activeLlmExecutionIds() { return _activeLlmExecutionIds; },
-    setActiveLlmExecutionIds(ids: Set<string>) { _activeLlmExecutionIds = ids; },
-    addActiveLlmExecutionId(id: string) { _activeLlmExecutionIds.add(id); },
-    clearActiveLlmExecutionIds() { _activeLlmExecutionIds.clear(); },
+    get activeLlmExecutionIds() { return getState().data.activeLlmExecutionIds; },
 
     get llmRuns() { return _llmRuns; },
     get llmExecutions() { return _llmExecutions; },
@@ -216,9 +204,7 @@ export const state = {
     get llmTargetRefIds() { return _llmTargetRefIds; },
     setLlmTargetRefIds(refIds: Set<string>) { _llmTargetRefIds = refIds; },
 
-    get failedRefIds() { return _failedRefIds; },
-    setFailedRefIds(ids: string[]) { _failedRefIds = ids; },
-    clearFailedRefIds() { _failedRefIds = []; },
+    get failedRefIds() { return getState().data.failedRefIds; },
 
     // ----- Reviewer Filtering -----
     get enabledReviewers() { return getState().data.enabledReviewers; },
@@ -235,8 +221,7 @@ export const state = {
     get treatMlAsManual() { return getState().ui.settings.treatMlAsManual; },
 
     // ----- ML State -----
-    get mlState() { return _mlState; },
-    setMlState(newState: MlState) { _mlState = newState; },
+    get mlState() { return getState().data.mlState; },
 
     // ----- Reset Functions -----
     resetForLogout() {
@@ -247,18 +232,13 @@ export const state = {
         _importStats = {};
         _reviewCriteria = null;
         _excludeReasonConfig = null;
-        _llmConfig = { ...DEFAULT_LLM_CONFIG };
         _batchAbortController = null;
         _currentExecutionId = '';
-        _currentBatchDecisions = [];
-        _activeLlmExecutionIds.clear();
         _llmRuns = [];
         _llmExecutions = [];
         _forceNewLlmRun = false;
         _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
         _llmTargetRefIds = new Set();
-        _failedRefIds = [];
-        _mlState = createInitialMlState();
         // 合議はブラインド中に成立しないため、ログアウト時も必ず解除する（次に開くプロジェクトへ
         // 持ち越して -human-consensus が誤って保存される事故の防止。handleKeyToggle のCLOSE経路と
         // 同じ理由）
@@ -275,7 +255,6 @@ export const state = {
         _excludeReasonConfig = null;
         _llmTargetMode = DEFAULT_LLM_TARGET_MODE;
         _llmTargetRefIds = new Set();
-        _mlState = createInitialMlState();  // ML状態もリセット
         // 合議はブラインド中に成立しないため、プロジェクト切替（Back）でも必ず解除する。
         // 落とし忘れると、次に接続したブラインドプロジェクトで合議トグルが非表示のまま
         // -human-consensus として判定が保存され続ける（合議前κの切り出しが壊れる）
