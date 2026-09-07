@@ -13,30 +13,22 @@ import { t } from '../../../lib/i18n';
 import { showSettings } from '../settings';
 import { hideToast, showToast } from '../../ui/feedback';
 import {
-    loadApiKeyStatus,
-    toggleApiKeyVisibility,
-    handleApiKeyAutoSave,
+    loadAllProviderStatus,
     handleSavePreferenceChange,
     handleTierChange,
-    loadOpenRouterApiKeyStatus,
-    toggleOpenRouterApiKeyVisibility,
-    handleOpenRouterApiKeyAutoSave,
-    handleOpenRouterSavePreferenceChange,
-    loadOpenAiApiKeyStatus,
-    toggleOpenAiApiKeyVisibility,
-    handleOpenAiApiKeyAutoSave,
-    handleOpenAiSavePreferenceChange,
-    refreshApiKeyCardEmphasis,
+    refreshProviderEmphasis,
+    wireProviderRows,
     setOnApiKeyChanged,
 } from './api-key';
 import {
     handleTestSaveCustomModel,
     loadCustomModelsList,
     setOnCustomModelsChanged,
+    refreshCustomModelSectionVisibility,
+    wireCustomModelToggle,
 } from './custom-models';
 import {
     resolveProviderId,
-    filterModelsByConfiguredProviders,
     type LlmProviderId,
 } from '../../../lib/llm-provider';
 import {
@@ -114,20 +106,17 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
  * モデル選択のオプションを動的に生成
  *
  * ビルトイン AVAILABLE_MODELS + ユーザー登録カスタム OpenRouter モデルを合成 (getAllAvailableModels) し、
- * 設定済み API キーを持つ provider のモデルのみを表示する。
- * 全 provider 未設定の場合はセレクト自体を隠してヒントを表示する。
+ * API キーの設定状態にかかわらず全プロバイダのモデルを表示する。
  *
  * カスタムモデルは OpenRouter optgroup 末尾に「(カスタム)」バッジ付きで並ぶ。
  *
- * 戻り値: 現在選択中のモデルがフィルタで消えた等で別モデルに切り替わった場合 true。
+ * 戻り値: 現在選択中のカスタムモデルが削除された等で別モデルに切り替わった場合 true。
  */
 export async function populateModelSelect(isCurrent: () => boolean = () => true): Promise<boolean> {
     const select = dom.llmModelSelect;
     const previousValue = select.value;
     select.innerHTML = '';
 
-    const configured = await getConfiguredProviders();
-    if (!isCurrent()) return false;
     const allModels = await getAllAvailableModels();
     if (!isCurrent()) return false;
 
@@ -140,8 +129,7 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
     groups.openrouter.label = 'OpenRouter';
     groups.openai.label = 'OpenAI';
 
-    const visibleModels = filterModelsByConfiguredProviders(allModels, configured);
-    for (const model of visibleModels) {
+    for (const model of allModels) {
         const option = document.createElement('option');
         option.value = model.id;
         const baseLabel = model.nameKey ? t(model.nameKey) : model.name;
@@ -162,8 +150,6 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
     if (groups.openai.childElementCount > 0) select.appendChild(groups.openai);
 
     const hasAnyOption = select.options.length > 0;
-    dom.llmNoModelHint.classList.toggle('hidden', hasAnyOption);
-    select.classList.toggle('hidden', !hasAnyOption);
 
     // 以前の選択値をできるだけ維持。消えた場合は最初のオプションへフォールバック。
     let switched = false;
@@ -180,13 +166,24 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
 }
 
 /**
- * モデル選択変更時：該当 provider の API キーカードを強調表示
+ * 選択中モデルに必要なキーの案内とプロバイダ行を更新
  */
-function handleModelSelectChange(): void {
+export async function refreshModelKeyNote(): Promise<void> {
     const modelId = dom.llmModelSelect.value;
     if (!modelId) return;
-    const providerId = resolveProviderId(modelId, AVAILABLE_MODELS);
-    refreshApiKeyCardEmphasis(providerId);
+    const configured = await getConfiguredProviders();
+    if (dom.llmModelSelect.value !== modelId) return;
+    const provider = resolveProviderId(modelId, AVAILABLE_MODELS);
+    const names: Record<LlmProviderId, string> = { gemini: 'Gemini', openrouter: 'OpenRouter', openai: 'OpenAI' };
+    const ready = configured.has(provider);
+    dom.llmModelKeyNote.className = ready ? 'model-key-note ok' : 'model-key-note warn';
+    dom.llmModelKeyNote.textContent = t(ready ? 'llm_modelKeyReady' : 'llm_modelKeyMissing', names[provider]);
+    refreshProviderEmphasis(provider, configured);
+    refreshCustomModelSectionVisibility(configured.has('openrouter'));
+}
+
+function handleModelSelectChange(): void {
+    void refreshModelKeyNote();
 }
 
 // handleBackへの参照（循環依存回避のため関数として渡す）
@@ -214,40 +211,26 @@ export function setupLlmEventListeners() {
 
     // API キー変更時にモデル選択肢を再構築
     setOnApiKeyChanged(async () => {
-        const switched = await populateModelSelect();
-        if (switched) {
-            handleModelSelectChange();
-        }
+        await populateModelSelect();
+        await refreshModelKeyNote();
     });
 
     // カスタムモデル追加/削除時にもモデル選択肢を再構築
     setOnCustomModelsChanged(async () => {
-        const switched = await populateModelSelect();
-        if (switched) {
-            handleModelSelectChange();
-        }
+        await populateModelSelect();
+        await refreshModelKeyNote();
     });
 
-    // APIキー関連 (Gemini)
-    dom.toggleApiKeyVisibilityBtn?.addEventListener('click', toggleApiKeyVisibility);
-    dom.geminiApiKeyInput?.addEventListener('change', handleApiKeyAutoSave);
+    // APIキー関連
+    wireProviderRows();
     dom.saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
     dom.tierSelect?.addEventListener('change', handleTierChange);
 
-    // APIキー関連 (OpenRouter)
-    dom.toggleOpenRouterApiKeyVisibilityBtn?.addEventListener('click', toggleOpenRouterApiKeyVisibility);
-    dom.openRouterApiKeyInput?.addEventListener('change', handleOpenRouterApiKeyAutoSave);
-    dom.saveOpenRouterApiKeyCheckbox?.addEventListener('change', handleOpenRouterSavePreferenceChange);
-
-    // APIキー関連 (OpenAI)
-    dom.toggleOpenAiApiKeyVisibilityBtn?.addEventListener('click', toggleOpenAiApiKeyVisibility);
-    dom.openAiApiKeyInput?.addEventListener('change', handleOpenAiApiKeyAutoSave);
-    dom.saveOpenAiApiKeyCheckbox?.addEventListener('change', handleOpenAiSavePreferenceChange);
-
     // OpenRouter カスタムモデル
+    wireCustomModelToggle();
     dom.testSaveCustomModelBtn?.addEventListener('click', handleTestSaveCustomModel);
 
-    // モデル選択: 選択 provider に応じて該当 API キーカードを強調
+    // モデル選択: 選択 provider に応じて該当プロバイダ行と注記を更新
     dom.llmModelSelect?.addEventListener('change', handleModelSelectChange);
     // モデル・プロンプトを変えると別 Run になり対象件数も変わるので再計算する
     dom.llmModelSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
@@ -285,19 +268,15 @@ export function setupLlmEventListeners() {
 export async function initializeLlmSection(isCurrent: () => boolean = () => true) {
     const spreadsheetId = state.spreadsheetId;
     try {
-        // 先にAPIキーの状態を確認 (Gemini / OpenRouter / OpenAI)。モデル選択肢は鍵有無に依存するため。
-        await loadApiKeyStatus();
-        if (!isCurrent()) return;
-        await loadOpenRouterApiKeyStatus();
-        if (!isCurrent()) return;
-        await loadOpenAiApiKeyStatus();
+        // APIキーの状態と共通の保存設定を読み込む。
+        await loadAllProviderStatus();
         if (!isCurrent()) return;
 
         // OpenRouter カスタムモデル一覧を読み込み（モデルセレクト構築前に必要）
         await loadCustomModelsList();
         if (!isCurrent()) return;
 
-        // モデル選択オプションを動的に生成（鍵が設定済みの provider のみ + 登録カスタムモデル）
+        // モデル選択オプションを動的に生成（全プロバイダ + 登録カスタムモデル）
         await populateModelSelect(isCurrent);
         if (!isCurrent()) return;
 
@@ -312,7 +291,7 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
             state.setLlmTargetMode(llmConfig.llm_target_mode);
             state.setLlmTargetRefIds(new Set(parseTargetRefIds(llmConfig.llm_target_ref_ids)));
 
-            // UI更新: 保存済みモデルが鍵未設定で除外されている場合は先頭にフォールバック
+            // UI更新: 保存済みカスタムモデルが削除されている場合は先頭にフォールバック
             const savedModel = llmConfig.llm_model;
             const isSavedModelAvailable =
                 Array.from(dom.llmModelSelect.options).some(o => o.value === savedModel);
@@ -322,7 +301,8 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
                 dom.llmModelSelect.value = dom.llmModelSelect.options[0].value;
                 showToast(t('llm_modelFallbackToast'), 4000);
             }
-            handleModelSelectChange();
+            await refreshModelKeyNote();
+            if (!isCurrent()) return;
             dom.llmLanguageSelect.value = llmConfig.llm_output_language;
             dom.protocolTextInput.value = llmConfig.llm_protocol_text;
             updateImportReviewCriteriaVisibility();
@@ -347,6 +327,8 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
             // バッチ対象件数を更新（Run 単位で数えるため履歴の読み込み後に行う）
             await updateBatchTargetCount(isCurrent);
             if (!isCurrent()) return;
+        } else {
+            await refreshModelKeyNote();
         }
     } catch (error) {
         if (isCurrent()) throw error;

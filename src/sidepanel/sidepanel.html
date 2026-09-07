@@ -421,156 +421,141 @@
                 <button id="llm-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
             </div>
 
-            <!-- APIキー設定 (Gemini) -->
-            <div id="api-key-card" class="llm-card collapsible">
-                <h4 class="collapsible-header">
-                    <span data-i18n="llm_apiKeyTitle"></span>
-                    <span class="help-icon" data-i18n-tooltip="llm_tip_apiKey" tabindex="0">?</span>
-                    <span id="api-key-summary" class="card-summary"></span>
-                    <span class="collapse-icon">▼</span>
+            <!-- 使うモデル -->
+            <div id="llm-model-card" class="llm-card">
+                <h4 class="card-title">
+                    <span id="llm-model-title" data-i18n="llm_modelCardTitle"></span>
+                    <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
                 </h4>
-                <div class="collapsible-content">
-                    <div class="api-key-input-group">
-                        <input type="password" id="gemini-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
-                        <button id="toggle-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
-                    </div>
-                    <div class="api-key-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="save-api-key-checkbox" checked>
-                            <span data-i18n="llm_apiKeySaveToDevice"></span>
-                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
-                        </label>
-                    </div>
-                    <div id="api-key-status" class="api-key-status"></div>
-                    <div id="tier-section" class="tier-section hidden">
-                        <div class="setting-row">
-                            <label data-i18n="llm_tierLabel"></label>
-                            <span class="help-icon" data-i18n-tooltip="llm_tip_tier" tabindex="0">?</span>
-                            <select id="tier-select" class="hidden">
-                                <option value="free" data-i18n="llm_tierFree"></option>
-                                <option value="tier1" data-i18n="llm_tierTier1"></option>
-                                <option value="tier2" data-i18n="llm_tierTier2"></option>
-                                <option value="tier3" data-i18n="llm_tierTier3"></option>
-                            </select>
+                <div class="model-select-row">
+                    <select id="llm-model-select" aria-labelledby="llm-model-title">
+                        <!-- populateModelSelect() で動的に置換される。これは JS 実行前のフォールバック -->
+                        <optgroup label="Gemini">
+                            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
+                            <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                        </optgroup>
+                        <optgroup label="OpenRouter">
+                            <option value="qwen/qwen3-235b-a22b-2507">Qwen3 235B Instruct</option>
+                            <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+                        </optgroup>
+                    </select>
+                    <a id="llm-benchmark-link"
+                       href="https://github.com/youkiti/tiab-review-plugin#llmスクリーニング精度ベンチマーク"
+                       target="_blank" rel="noopener noreferrer" data-i18n="llm_benchmarkLinkLabel"></a>
+                </div>
+                <p id="llm-model-key-note" class="model-key-note" aria-live="polite"></p>
+            </div>
+
+            <!-- APIキー -->
+            <div id="llm-providers-card" class="llm-card">
+                <h4 class="card-title"><span data-i18n="llm_apiKeysCardTitle"></span></h4>
+                <div class="provider-rows">
+                    <div id="provider-row-gemini" class="provider-row" data-provider="gemini">
+                        <button type="button" class="provider-row-head" aria-expanded="false" aria-controls="provider-body-gemini">
+                            <span id="provider-name-gemini" class="provider-name">Gemini</span>
+                            <span class="provider-caption" data-i18n="llm_providerCaptionGemini"></span>
+                            <span id="provider-chip-gemini" class="provider-chip"></span>
+                            <span class="provider-chevron" aria-hidden="true">▶</span>
+                        </button>
+                        <div id="provider-body-gemini" class="provider-row-body">
+                            <div class="api-key-input-group">
+                                <input type="password" id="gemini-api-key" data-i18n-placeholder="llm_apiKeyPlaceholderGemini" class="api-key-input" autocomplete="off" aria-labelledby="provider-name-gemini">
+                                <button id="toggle-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                                <button id="verify-gemini-api-key-btn" class="btn btn-primary btn-small" data-i18n="llm_apiKeyVerifyBtn"></button>
+                            </div>
+                            <p class="help-text provider-hint" data-i18n-html="llm_providerHintGemini"></p>
+                            <div id="api-key-status" class="api-key-status" aria-live="polite"></div>
+                            <div id="tier-section" class="tier-section hidden">
+                                <div class="setting-row">
+                                    <label data-i18n="llm_tierLabel"></label>
+                                    <span class="help-icon" data-i18n-tooltip="llm_tip_tier" tabindex="0">?</span>
+                                    <select id="tier-select" class="hidden">
+                                        <option value="free" data-i18n="llm_tierFree"></option>
+                                        <option value="tier1" data-i18n="llm_tierTier1"></option>
+                                        <option value="tier2" data-i18n="llm_tierTier2"></option>
+                                        <option value="tier3" data-i18n="llm_tierTier3"></option>
+                                    </select>
+                                </div>
+                                <div class="setting-row setting-row-secondary">
+                                    <a id="tier-check-link" href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer" data-i18n="llm_tierCheckLink"></a>
+                                </div>
+                            </div>
                         </div>
-                        <div class="setting-row setting-row-secondary">
-                            <a id="tier-check-link" href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer" data-i18n="llm_tierCheckLink"></a>
+                    </div>
+                    <div id="provider-row-openrouter" class="provider-row" data-provider="openrouter">
+                        <button type="button" class="provider-row-head" aria-expanded="false" aria-controls="provider-body-openrouter">
+                            <span id="provider-name-openrouter" class="provider-name">OpenRouter</span>
+                            <span class="provider-caption" data-i18n="llm_providerCaptionOpenRouter"></span>
+                            <span id="provider-chip-openrouter" class="provider-chip"></span>
+                            <span class="provider-chevron" aria-hidden="true">▶</span>
+                        </button>
+                        <div id="provider-body-openrouter" class="provider-row-body">
+                            <div class="api-key-input-group">
+                                <input type="password" id="openrouter-api-key" data-i18n-placeholder="llm_apiKeyPlaceholderOpenRouter" class="api-key-input" autocomplete="off" aria-labelledby="provider-name-openrouter">
+                                <button id="toggle-openrouter-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                                <button id="verify-openrouter-api-key-btn" class="btn btn-primary btn-small" data-i18n="llm_apiKeyVerifyBtn"></button>
+                            </div>
+                            <p class="help-text provider-hint" data-i18n-html="llm_providerHintOpenRouter"></p>
+                            <div id="openrouter-api-key-status" class="api-key-status" aria-live="polite"></div>
+                            <div id="openrouter-custom-model-section" class="custom-model-section hidden">
+                                <ul id="custom-models-list" class="custom-models-list"></ul>
+                                <p id="custom-models-empty" class="help-text hidden" data-i18n="llm_customModelListEmpty"></p>
+                                <a href="#" id="custom-model-toggle" class="custom-model-toggle" aria-expanded="false" aria-controls="custom-model-form" data-i18n="llm_customModelToggle"></a>
+                                <div id="custom-model-form" class="custom-model-form hidden">
+                                    <p class="help-text" data-i18n-html="llm_customModelDescription"></p>
+                                    <div class="custom-model-input-row">
+                                        <label for="custom-model-id-input" data-i18n="llm_customModelIdLabel"></label>
+                                        <input type="text" id="custom-model-id-input"
+                                               data-i18n-placeholder="llm_customModelIdPlaceholder"
+                                               class="custom-model-input" autocomplete="off" spellcheck="false">
+                                    </div>
+                                    <div class="custom-model-input-row">
+                                        <label for="custom-model-label-input" data-i18n="llm_customModelLabelLabel"></label>
+                                        <input type="text" id="custom-model-label-input"
+                                               data-i18n-placeholder="llm_customModelLabelPlaceholder"
+                                               class="custom-model-input" autocomplete="off">
+                                    </div>
+                                    <button id="test-save-custom-model-btn" class="btn btn-primary"
+                                            data-i18n="llm_customModelTestSaveBtn"></button>
+                                    <div id="custom-model-status" class="api-key-status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="provider-row-openai" class="provider-row" data-provider="openai">
+                        <button type="button" class="provider-row-head" aria-expanded="false" aria-controls="provider-body-openai">
+                            <span id="provider-name-openai" class="provider-name">OpenAI</span>
+                            <span class="provider-caption" data-i18n="llm_providerCaptionOpenAi"></span>
+                            <span id="provider-chip-openai" class="provider-chip"></span>
+                            <span class="provider-chevron" aria-hidden="true">▶</span>
+                        </button>
+                        <div id="provider-body-openai" class="provider-row-body">
+                            <div class="api-key-input-group">
+                                <input type="password" id="openai-api-key" data-i18n-placeholder="llm_apiKeyPlaceholderOpenAi" class="api-key-input" autocomplete="off" aria-labelledby="provider-name-openai">
+                                <button id="toggle-openai-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                                <button id="verify-openai-api-key-btn" class="btn btn-primary btn-small" data-i18n="llm_apiKeyVerifyBtn"></button>
+                            </div>
+                            <p class="help-text provider-hint" data-i18n-html="llm_providerHintOpenAi"></p>
+                            <div id="openai-api-key-status" class="api-key-status" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- APIキー設定 (OpenRouter) -->
-            <div id="openrouter-api-key-card" class="llm-card collapsible">
-                <h4 class="collapsible-header">
-                    <span data-i18n="llm_openRouterApiKeyTitle"></span>
-                    <span class="help-icon" data-i18n-tooltip="llm_tip_openRouterApiKey" tabindex="0">?</span>
-                    <span id="openrouter-api-key-summary" class="card-summary"></span>
-                    <span class="collapse-icon">▼</span>
-                </h4>
-                <div class="collapsible-content">
-                    <div class="api-key-input-group">
-                        <input type="password" id="openrouter-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
-                        <button id="toggle-openrouter-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
-                    </div>
-                    <div class="api-key-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="save-openrouter-api-key-checkbox" checked>
-                            <span data-i18n="llm_apiKeySaveToDevice"></span>
-                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
-                        </label>
-                    </div>
-                    <div id="openrouter-api-key-status" class="api-key-status"></div>
-                </div>
-            </div>
-
-            <!-- APIキー設定 (OpenAI) -->
-            <div id="openai-api-key-card" class="llm-card collapsible">
-                <h4 class="collapsible-header">
-                    <span data-i18n="llm_openAiApiKeyTitle"></span>
-                    <span class="help-icon" data-i18n-tooltip="llm_tip_openAiApiKey" tabindex="0">?</span>
-                    <span id="openai-api-key-summary" class="card-summary"></span>
-                    <span class="collapse-icon">▼</span>
-                </h4>
-                <div class="collapsible-content">
-                    <div class="api-key-input-group">
-                        <input type="password" id="openai-api-key" data-i18n-placeholder="llm_apiKeyPlaceholder" class="api-key-input">
-                        <button id="toggle-openai-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
-                    </div>
-                    <div class="api-key-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="save-openai-api-key-checkbox" checked>
-                            <span data-i18n="llm_apiKeySaveToDevice"></span>
-                            <span class="help-icon" data-i18n-tooltip="llm_tip_apiKeySave" tabindex="0">?</span>
-                        </label>
-                    </div>
-                    <div id="openai-api-key-status" class="api-key-status"></div>
-                </div>
-            </div>
-
-            <!-- OpenRouter カスタムモデル -->
-            <div id="openrouter-custom-model-card" class="llm-card collapsible collapsed">
-                <h4 class="collapsible-header">
-                    <span data-i18n="llm_customModelTitle"></span>
-                    <span class="help-icon" data-i18n-tooltip="llm_tip_customModel" tabindex="0">?</span>
-                    <span class="collapse-icon">▼</span>
-                </h4>
-                <div class="collapsible-content">
-                    <p class="help-text" data-i18n-html="llm_customModelDescription"></p>
-                    <div class="custom-model-input-row">
-                        <label for="custom-model-id-input" data-i18n="llm_customModelIdLabel"></label>
-                        <input type="text" id="custom-model-id-input"
-                               data-i18n-placeholder="llm_customModelIdPlaceholder"
-                               class="custom-model-input" autocomplete="off" spellcheck="false">
-                    </div>
-                    <div class="custom-model-input-row">
-                        <label for="custom-model-label-input" data-i18n="llm_customModelLabelLabel"></label>
-                        <input type="text" id="custom-model-label-input"
-                               data-i18n-placeholder="llm_customModelLabelPlaceholder"
-                               class="custom-model-input" autocomplete="off">
-                    </div>
-                    <button id="test-save-custom-model-btn" class="btn btn-primary"
-                            data-i18n="llm_customModelTestSaveBtn"></button>
-                    <div id="custom-model-status" class="api-key-status"></div>
-                    <div class="custom-models-list-section">
-                        <h5 data-i18n="llm_customModelListTitle"></h5>
-                        <ul id="custom-models-list" class="custom-models-list"></ul>
-                        <p id="custom-models-empty" class="help-text hidden"
-                           data-i18n="llm_customModelListEmpty"></p>
-                    </div>
-                </div>
+                <label class="checkbox-label save-key-line">
+                    <input type="checkbox" id="save-api-key-checkbox">
+                    <span>
+                        <span data-i18n="llm_apiKeySaveToDevice"></span>
+                        <span class="save-key-hint" data-i18n="llm_apiKeySaveToDeviceHint"></span>
+                    </span>
+                </label>
             </div>
 
             <!-- 詳細設定 -->
-            <div class="llm-card collapsible">
+            <div class="llm-card collapsible collapsed">
                 <h4 class="collapsible-header">
                     <span data-i18n="llm_detailSettings"></span>
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
-                    <div class="setting-row">
-                        <label data-i18n="llm_modelLabel"></label>
-                        <span class="help-icon" data-i18n-tooltip="llm_tip_model" tabindex="0">?</span>
-                        <select id="llm-model-select">
-                            <!-- populateModelSelect() で動的に置換される。これは JS 実行前のフォールバック -->
-                            <optgroup label="Gemini">
-                                <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
-                                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-                            </optgroup>
-                            <optgroup label="OpenRouter">
-                                <option value="qwen/qwen3-235b-a22b-2507">Qwen3 235B Instruct</option>
-                                <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <p id="llm-no-model-hint" class="help-text hidden" data-i18n="llm_noProviderConfigured"></p>
-                    <div class="setting-row setting-row-secondary">
-                        <a id="llm-benchmark-link"
-                           href="https://github.com/youkiti/tiab-review-plugin#llmスクリーニング精度ベンチマーク"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           data-i18n="llm_benchmarkLinkLabel">📊 最新のベンチマーク結果を見る</a>
-                    </div>
                     <div class="setting-row">
                         <label data-i18n="llm_outputLanguage"></label>
                         <span class="help-icon" data-i18n-tooltip="llm_tip_outputLanguage" tabindex="0">?</span>
