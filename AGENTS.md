@@ -1085,6 +1085,19 @@ async function saveDecision(decision: Decision): Promise<void> {
 }
 ```
 
+**保存の直列化（Issue #154）**: `saveDecision()` はスケジューリングをキー単位（`spreadsheetId` +
+`ref_id` + `reviewer_id` + `screening_phase`）で直列化している。追記専用経路（human判定・ML手動確認判定）は
+`getDecisions()` を一切呼ばないため、他キーを巻き添えにするキャッシュ丸ごと差し替え
+（`primeDecisionRowCache`）が発生せず、異なる文献への保存は並行して走れる（保存内容キャッシュへの書き込みは
+自キーへの上書きが基本で、未構築時・別スプレッドシート時のみオブジェクトごと作り直すが、JSがシングルスレッド
+であることから並行しても安全。詳細は `decisions.ts` の `scheduleKeyedSave` 直上のコメント参照）。
+一方 upsert経路（ML自動判定・LLM判定）は cold時に `getDecisions()` が行番号キャッシュ／保存内容キャッシュを
+丸ごと差し替えるため、全キーをまたぐグローバル直列のまま（先行する全ての保存の完了を待ってから走り、以後の
+保存——既にキー別チェーンを持っているキーへの保存を含む——はそれを待つ）にしている。この「既存キーの追い越し
+防止」を担うのが `scheduleGlobalSave` の `saveChainsByKey.clear()` で、単なる後始末ではなく正しさに直結する
+（詳細は `decisions.ts` の同関数のコメント参照）。経路の判定は保存をスケジュールする時点で行い、実行時の
+`hit`/`absent`/`cold` 判定では分岐させない（キュー待ち中に TTL が切れて判定がずれるため）。
+
 ### 運用フロー要約
 
 - **保存**: human判定・ML手動確認判定は既存行を探さず常に `append`。ML自動判定・LLM判定は同一 `ref_id` + `reviewer_id` + `screening_phase` の既存行があれば `update`、なければ `append`
