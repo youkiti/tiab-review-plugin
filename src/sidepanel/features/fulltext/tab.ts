@@ -54,7 +54,7 @@ import {
     flushCandidateBuffer,
     nextCandidateFlushThreshold,
 } from '../../../lib/publication-candidate-rerun';
-import { createAsyncCoalescer } from '../../../lib/async-coalesce';
+import { createPublicationCandidatesLoader } from './candidates-loader';
 import {
     selectSuggestedPublicationCandidates,
     countSuggestedPublicationCandidatesByRef,
@@ -100,38 +100,22 @@ let publicationCandidates: PublicationCandidate[] = [];
 
 /**
  * Sheets からの実読み込み本体（registration行が1件以上ある場合のみ呼ばれる）を
- * createAsyncCoalescer() で1本化したもの。
+ * candidates-loader.ts の createPublicationCandidatesLoader() へ配線したもの。
  *
- * 【なぜ真偽値フラグの二重起動防止ではだめか】単純な `if (loading) return;` だと、
- * 進行中の呼び出しを「捨てる」だけで待っている呼び出し元には何も返せない。
- * fire-and-forget（`void loadPublicationCandidates()`。handleBulkFetch/handleBulkSuggest の
- * 完了時、initializeFulltextSection()）で呼ぶ分には問題にならないが、
- * fulltext/publication-candidates.ts の handleImportCandidate は
- * `await deps.reloadPublicationCandidates()` と**待って**からトースト表示・パネル更新へ進む。
- * 一括検索/再探索の完了直後の読み込みが飛んでいる最中に「取り込む」を押すと、
- * 待っている側の loadPublicationCandidates() 呼び出しが（真偽値ガードのせいで）即座に
- * 空振りし、取り込み済みの候補が suggested のままパネル・バッジに残り続ける不具合を
- * 実際に踏んだ。createAsyncCoalescer() は進行中の Promise をそのまま返す（合流）ため、
- * fire-and-forget側の挙動を変えずに、await する側も本当の完了まで待てるようにする。
- *
- * 【戻り値と合流セマンティクス】成功したら true、Sheets読み込みが失敗したら false を返す
- * （PR #124 レビュー指摘。以前は console.warn するだけで失敗を握りつぶし、呼び出し元が
- * 一切検出できなかった）。トースト表示はここでは行わない（呼び出し元の loadPublicationCandidates()
- * が suppressErrorToast の値に応じて出す）。合流した複数の呼び出し元は同じ boolean 結果を
+ * 【なぜ真偽値フラグの二重起動防止ではだめか、なぜプロジェクト単位で合流を分けるか、
+ * stale のとき何が起きるか】は candidates-loader.ts の createPublicationCandidatesLoader()
+ * の JSDoc を参照（DOM・state に依存しない形へ切り出し、node のテストから直接検証している）。
+ * トースト表示はここでは行わない（呼び出し元の loadPublicationCandidates() が
+ * suppressErrorToast の値に応じて出す）。合流した複数の呼び出し元は同じ boolean 結果を
  * 共有するが、それぞれ自分の suppressErrorToast で独立にトースト要否を判断するため、
  * 「合流していてもトースト表示は呼び出し元ごとに変わりうる」（詳細は loadPublicationCandidates
  * 側のコメント参照）。
  */
-const coalescedFetchPublicationCandidates = createAsyncCoalescer(async (): Promise<boolean> => {
-    try {
-        publicationCandidates = await getPublicationCandidates(state.spreadsheetId);
-        return true;
-    } catch (err) {
-        console.warn('[fulltext-tab] 論文候補の読み込みに失敗:', err);
-        return false;
-    } finally {
-        renderFulltextTab();
-    }
+const loadCandidatesForProject = createPublicationCandidatesLoader({
+    fetchCandidates: getPublicationCandidates,
+    getCurrentSpreadsheetId: () => state.spreadsheetId,
+    applyCandidates: candidates => { publicationCandidates = candidates; },
+    render: () => renderFulltextTab(),
 });
 
 /**
@@ -151,7 +135,7 @@ const coalescedFetchPublicationCandidates = createAsyncCoalescer(async (): Promi
  *
  * この早期returnパスは Sheets API を一切呼ばず await を挟まないため、実行中に他の呼び出しが
  * 割り込む余地が構造的に無い（JSはシングルスレッドで、await の無い同期区間は割り込まれない）。
- * よって coalescedFetchPublicationCandidates() の合流対象に含める必要はない
+ * よって loadCandidatesForProject() の合流対象に含める必要はない
  * （合流が必要なのは Sheets への実読み込みが進行中の間に他の呼び出しが来るケースだけ）。
  * この経路は「読み込む必要が無かった」だけで失敗ではないため true を返す。
  *
@@ -177,7 +161,7 @@ async function loadPublicationCandidates(
         return true;
     }
 
-    const ok = await coalescedFetchPublicationCandidates();
+    const ok = await loadCandidatesForProject(state.spreadsheetId);
     if (!ok && !suppressErrorToast) {
         showToast(t('fulltext_candidateLoadError'), 5000);
     }
@@ -193,11 +177,12 @@ async function loadPublicationCandidates(
  * 離れた／プロジェクトが切り替わった場合に初期化そのものを取りやめる入口ガード（既定は常に
  * trueを返す関数。lazy.ts を介さない直接呼び出し・テスト用）。
  *
- * 限界: この入口ガードを通過した後、loadPublicationCandidates() 以降の非同期応答は
- * isCurrent の対象外。取得中にプロジェクトが切り替わると旧プロジェクトの結果が
- * モジュールローカルの publicationCandidates を上書きし、トーストも新プロジェクトの画面に
- * 出うる。team-progress.ts の fetchDecisions()（取得後にプロジェクトの切替を検知して破棄する
- * 既存の作法）に揃える対応が別途必要。
+ * この入口ガードを通過した後、loadPublicationCandidates() 以降の非同期応答は isCurrent の
+ * 対象外だが、代わりに loadCandidatesForProject()（candidates-loader.ts）が
+ * team-progress.ts の fetchDecisions() と同じ作法でプロジェクトの切替を検知する。取得完了時に
+ * `state.spreadsheetId` が渡した spreadsheetId と一致しなければ旧プロジェクトの結果を
+ * 破棄し、モジュールローカルの publicationCandidates を上書きしない・トーストも出さない
+ * （Issue #188。詳細は createPublicationCandidatesLoader() の JSDoc参照）。
  */
 export function initializeFulltextSection(isCurrent: () => boolean = () => true): void {
     if (!isCurrent()) return;
