@@ -52,27 +52,39 @@ export async function getAuthToken(interactive = false): Promise<string> {
     return platform().getAuthToken(interactive);
 }
 
+const defaultQuotaRetrySleep = (delayMs: number): Promise<void> =>
+    new Promise(resolve => setTimeout(resolve, delayMs));
+let quotaRetrySleep = defaultQuotaRetrySleep;
+
+/** テスト専用の待機差し替え。本番コードから呼ばないこと。引数省略で既定の待機へ戻す。 */
+export function setQuotaRetrySleepForTest(sleep = defaultQuotaRetrySleep): void {
+    quotaRetrySleep = sleep;
+}
+
 /**
- * クォータ超過 (429) 用の指数バックオフリトライ。
- * 初回 1s → 2s → 4s → 8s → 16s → 32s（最大）で 5 回までリトライする (AGENTS.md 準拠)。
- * 429 以外のエラーは即座に throw する。
+ * 読み取り・書き込み共通のクォータ超過 (429) 用指数バックオフリトライ。
+ * 待機は 1s → 2s → 4s → 8s → 16s の最大5回。遅延の更新上限は32s。
+ * 429 以外、およびリトライ上限の Response はそのまま返し、エラー処理は呼び出し元に任せる。
  */
-export async function fetchGetWithQuotaRetry(url: string, token: string, label: string): Promise<Response> {
+export async function fetchWithQuotaRetry(
+    url: string,
+    init: RequestInit,
+    label: string,
+    caller: string
+): Promise<Response> {
     const maxRetries = 5;
     let delayMs = 1000;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
+        const response = await fetch(url, init);
         if (response.status !== 429 || attempt === maxRetries) {
             return response;
         }
-        console.warn(`[getSheetValues] 429 quota exceeded for ${label}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        console.warn(`[${caller}] 429 quota exceeded for ${label}, retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`);
+        await quotaRetrySleep(delayMs);
         delayMs = Math.min(delayMs * 2, 32000);
     }
     // ループ終端は到達不能（return か throw のいずれか）
-    throw new Error('fetchGetWithQuotaRetry: unreachable');
+    throw new Error('fetchWithQuotaRetry: unreachable');
 }
 
 export async function fetchSheetValuesWithRetry(
@@ -80,10 +92,11 @@ export async function fetchSheetValuesWithRetry(
     range: string,
     token: string
 ): Promise<Response> {
-    return fetchGetWithQuotaRetry(
+    return fetchWithQuotaRetry(
         `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-        token,
-        range
+        { headers: { 'Authorization': `Bearer ${token}` } },
+        range,
+        'getSheetValues'
     );
 }
 
@@ -118,7 +131,12 @@ export async function getSheetValuesBatch(spreadsheetId: string, ranges: string[
     const params = ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&');
     const url = `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGet?${params}`;
 
-    const response = await fetchGetWithQuotaRetry(url, token, ranges.join(', '));
+    const response = await fetchWithQuotaRetry(
+        url,
+        { headers: { 'Authorization': `Bearer ${token}` } },
+        ranges.join(', '),
+        'getSheetValues'
+    );
 
     if (!response.ok) {
         const message = await readSheetsErrorMessage(response);
@@ -155,6 +173,11 @@ export function parseFirstRowIndexFromUpdatedRange(updatedRange: string | undefi
  * 戻り値の firstRowIndex は追記した最初の行のシート行番号（1始まり）。
  * Decisions への保存で「読み取りなしで新規行の行番号をキャッシュへ登録する」ために使う。
  * 既存の呼び出し元の大半は戻り値を使わない（await するだけ）ため、そのまま動作する。
+ * Issue #194: 追記も429時はリトライする。429はクォータ判定による受理前の拒否であり、
+ * 追記済みで429が返る可能性は低く、重複行は生まれにくい。
+ * 万一Decisionsに重複しても、追記専用契約に沿って collapseToLatestDecisions() が
+ * 同一 (ref_id, reviewer_id, screening_phase) の最新1行へ畳み込むため、表示・集計は壊れない。
+ * 即時失敗でユーザーの判定が失われるより、まれな重複行の方が害が小さいと判断する。
  */
 export async function appendRows(
     spreadsheetId: string,
@@ -163,7 +186,7 @@ export async function appendRows(
 ): Promise<{ firstRowIndex: number | null }> {
     const token = await getAuthToken();
 
-    const response = await fetch(
+    const response = await fetchWithQuotaRetry(
         `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
         {
             method: 'POST',
@@ -174,7 +197,9 @@ export async function appendRows(
             body: JSON.stringify({
                 values: rows.map(row => row.map(v => v ?? '')),
             }),
-        }
+        },
+        sheetName,
+        'appendRows'
     );
 
     if (!response.ok) {
@@ -193,7 +218,7 @@ export async function appendRows(
 export async function updateRange(spreadsheetId: string, range: string, values: (string | number | undefined)[][]): Promise<void> {
     const token = await getAuthToken();
 
-    const response = await fetch(
+    const response = await fetchWithQuotaRetry(
         `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
         {
             method: 'PUT',
@@ -204,7 +229,9 @@ export async function updateRange(spreadsheetId: string, range: string, values: 
             body: JSON.stringify({
                 values: values.map(row => row.map(v => v ?? '')),
             }),
-        }
+        },
+        range,
+        'updateRange'
     );
 
     if (!response.ok) {
@@ -218,11 +245,13 @@ export async function updateRange(spreadsheetId: string, range: string, values: 
  */
 export async function getSheetIdByName(spreadsheetId: string, sheetName: string): Promise<number | null> {
     const token = await getAuthToken();
-    const response = await fetch(
+    const response = await fetchWithQuotaRetry(
         `${SHEETS_API_BASE}/${spreadsheetId}?fields=sheets.properties`,
         {
             headers: { 'Authorization': `Bearer ${token}` }
-        }
+        },
+        sheetName,
+        'getSheetIdByName'
     );
 
     if (!response.ok) return null;
@@ -237,7 +266,7 @@ export async function batchUpdateRanges(
     updates: Array<{ range: string; values: string[][] }>
 ): Promise<void> {
     const token = await getAuthToken();
-    const response = await fetch(
+    const response = await fetchWithQuotaRetry(
         `${SHEETS_API_BASE}/${spreadsheetId}/values:batchUpdate`,
         {
             method: 'POST',
@@ -249,7 +278,9 @@ export async function batchUpdateRanges(
                 valueInputOption: 'USER_ENTERED',
                 data: updates,
             }),
-        }
+        },
+        updates.map(update => update.range).join(', '),
+        'batchUpdateRanges'
     );
 
     if (!response.ok) {
@@ -260,7 +291,7 @@ export async function batchUpdateRanges(
 
 export async function addSheet(spreadsheetId: string, title: string): Promise<void> {
     const token = await getAuthToken();
-    const response = await fetch(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+    const response = await fetchWithQuotaRetry(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -277,7 +308,7 @@ export async function addSheet(spreadsheetId: string, title: string): Promise<vo
                 }
             ]
         })
-    });
+    }, title, 'addSheet');
 
     if (!response.ok) {
         const error = await response.json();
