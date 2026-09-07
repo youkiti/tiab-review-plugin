@@ -5,7 +5,7 @@
 // 指定コンテナ内に描画する。永続化は onSave コールバックで呼び出し側が行う。
 //
 // クラス名は fulltext.css の ft-rule-* を踏襲する（サイドパネル側は
-// fulltext-tab.css に同名クラスのスタイルを持つ）。
+// fulltext-tab-setup.css に同名クラスのスタイルを持つ）。
 
 import { t } from './i18n';
 import {

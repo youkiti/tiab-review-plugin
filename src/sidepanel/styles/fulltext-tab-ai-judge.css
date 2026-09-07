@@ -1,0 +1,282 @@
+/**
+ * fulltext-tab-ai-judge.css - フルテキストタブ: AI判定タブ・AI判定の判定ラウンド（採用・削除）
+ * (Issue #191: fulltext-tab.css 分割)
+ */
+
+/* ===== AI判定タブ ===== */
+.fulltext-ai {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 2px;
+}
+
+.fulltext-ai-intro {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    background: #eef6fb;
+    border: 1px solid #d4e6f1;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.fulltext-ai-row,
+.fulltext-ai-prompt-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-scope-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.fulltext-ai-scope-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #34495e;
+    cursor: pointer;
+}
+
+.fulltext-ai-scope-note {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+}
+
+.fulltext-ai-model {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.fulltext-ai-prompt {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.fulltext-ai-target {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+}
+
+.fulltext-ai-target-main { font-weight: 600; color: #2471a3; }
+.fulltext-ai-target-sub  { font-size: 11px; color: #888; }
+
+.fulltext-ai-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.fulltext-ai-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e8eef2;
+    overflow: hidden;
+}
+
+.fulltext-ai-progress-fill {
+    height: 100%;
+    width: 0;
+    background: #3498db;
+    transition: width 0.2s ease;
+}
+
+.fulltext-ai-progress-text {
+    font-size: 12px;
+    color: #555;
+}
+
+.fulltext-ai-log {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    background: #fbfcfd;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.fulltext-ai-log:empty { display: none; }
+
+.fulltext-ai-log-line { line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fulltext-ai-log-line.log-ok   { color: #1e8449; }
+.fulltext-ai-log-line.log-err  { color: #c0392b; white-space: normal; }
+.fulltext-ai-log-line.log-warn { color: #b9770e; }
+.fulltext-ai-log-line.log-done { color: #2471a3; font-weight: 600; }
+
+/* ===== AI判定: 判定ラウンド（採用・削除） ===== */
+.fulltext-ai-rounds-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.fulltext-ai-rounds-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.fulltext-ai-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-ai-rounds-empty {
+    font-size: 11px;
+    color: #999;
+    padding: 4px 2px;
+}
+
+/* ラウンド取得に失敗（「まだ無い」との区別が付くよう赤系で明示） */
+.fulltext-ai-rounds-error {
+    font-size: 11px;
+    color: #c0392b;
+    padding: 4px 2px;
+}
+
+/* ラウンドはあるが未採用（全文閲覧ウィンドウにハイライトが出ない状態）の注意 */
+.fulltext-ai-rounds-notice {
+    font-size: 11px;
+    line-height: 1.4;
+    color: #8a6d3b;
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.fulltext-ai-round-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-row.active {
+    border-color: #16a085;
+    background: #effaf6;
+}
+
+.fulltext-ai-round-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fulltext-ai-round-title {
+    font-size: 12px;
+    color: #2c3e50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fulltext-ai-round-counts {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-executed-by {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed {
+    font-size: 11px;
+    color: #888;
+}
+
+.fulltext-ai-round-processed.incomplete {
+    color: #c0392b;
+    font-weight: 600;
+}
+
+.fulltext-ai-round-none {
+    font-size: 12px;
+    color: #777;
+}
+
+.fulltext-ai-round-delete {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid #e0b4b0;
+    border-radius: 8px;
+    background: #fff;
+    color: #c0392b;
+    cursor: pointer;
+}
+
+.fulltext-ai-round-delete:hover {
+    background: #fdedec;
+}
+
+.fulltext-ai-round-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.fulltext-ai-round-failed {
+    font-size: 11px;
+    color: #c0392b;
+    white-space: normal;
+}
+
+.fulltext-ai-round-row.zero-success {
+    background: #fbfbfb;
+}
+
+.fulltext-ai-round-zero-notice {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+}
+

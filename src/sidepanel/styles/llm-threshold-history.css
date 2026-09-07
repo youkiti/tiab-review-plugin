@@ -1,0 +1,189 @@
+/**
+ * llm-threshold-history.css - LLM処理タブ: 閾値プレビュー・分布チャート・実行履歴
+ * (Issue #191: llm.css 分割)
+ */
+
+/* 閾値プレビュー */
+.threshold-preview {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.preview-item {
+    flex: 1;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.preview-item.include {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.preview-item.exclude {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* 分布チャート */
+.distribution-chart {
+    margin: 12px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.distribution-bar-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.distribution-label {
+    width: 60px;
+    color: #666;
+}
+
+.distribution-bar-wrapper {
+    flex: 1;
+    height: 16px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 8px;
+}
+
+.distribution-bar {
+    height: 100%;
+    background: #1a73e8;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.distribution-count {
+    width: 50px;
+    text-align: right;
+    color: #333;
+}
+
+.threshold-note {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin-top: 8px;
+}
+
+/* 実行履歴 */
+.execution-history {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.execution-history .placeholder-text {
+    color: #999;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.execution-history-error {
+    padding: 12px;
+    background: #fff4f4;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.execution-history-error .error-text {
+    color: #842029;
+    font-size: 13px;
+    margin: 0;
+}
+
+.execution-item {
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.execution-item:last-child {
+    margin-bottom: 0;
+}
+
+.execution-item .execution-date {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.execution-item .execution-stats {
+    color: #666;
+}
+
+.execution-adjust-btn {
+    margin-top: 8px;
+}
+
+.execution-item .execution-type {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+/* 実行履歴のステータス表示 */
+.execution-item.pending {
+    border-left: 3px solid #fbbc04;
+}
+
+.execution-item.confirmed {
+    border-left: 3px solid #34a853;
+}
+
+.execution-status {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+.execution-status.pending {
+    background: #fff8e1;
+    color: #f57c00;
+}
+
+.execution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.execution-active-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #666;
+    cursor: pointer;
+}
+
+.execution-active-checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+

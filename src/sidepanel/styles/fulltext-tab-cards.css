@@ -1,0 +1,251 @@
+/**
+ * fulltext-tab-cards.css - フルテキストタブ: Drive取り込みボタン/ステータス行・カード（入手状態バッジ+アクション）・論文候補パネル
+ * (Issue #191: fulltext-tab.css 分割)
+ */
+
+/* ---------- Driveへ直接置かれたPDFの取り込み（ボタン・ステータス行） ---------- */
+
+.fulltext-drive-import {
+    margin: 10px 0;
+    padding-top: 10px;
+    border-top: 1px dashed #d5d8dc;
+}
+
+.fulltext-drive-import-status {
+    font-size: 12px;
+    color: #2c6fbb;
+    margin-top: 6px;
+    white-space: pre-line;
+}
+
+.fulltext-progress-line {
+    font-size: 14px;
+    font-weight: 600;
+    color: #117a65;
+}
+
+.fulltext-rule-line {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+}
+
+.fulltext-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fulltext-empty {
+    font-size: 13px;
+    color: #999;
+    padding: 16px 8px;
+    text-align: center;
+}
+
+.fulltext-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    background: #fff;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.fulltext-card:hover {
+    background: #f8f9fa;
+    border-color: #16a085;
+}
+
+.fulltext-card.status-include { border-left: 4px solid #2ecc71; }
+.fulltext-card.status-exclude { border-left: 4px solid #e74c3c; }
+.fulltext-card.status-maybe   { border-left: 4px solid #f39c12; }
+.fulltext-card.status-pending { border-left: 4px solid #d5d8dc; }
+
+.fulltext-card-status {
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.fulltext-card-status.include { color: #2ecc71; }
+.fulltext-card-status.exclude { color: #e74c3c; }
+.fulltext-card-status.maybe   { color: #f39c12; }
+.fulltext-card-status.pending { color: #b2babb; }
+
+.fulltext-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fulltext-card-title {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.fulltext-card-meta {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fulltext-card-open {
+    flex-shrink: 0;
+    color: #16a085;
+    font-size: 14px;
+}
+
+/* ---------- カード: 入手状態バッジ + アクション ---------- */
+
+.fulltext-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+.fulltext-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.fulltext-badge.badge-cached {
+    background: #d5f5e3;
+    color: #1e8449;
+}
+
+.fulltext-badge.badge-linked {
+    background: #d6eaf8;
+    color: #2471a3;
+}
+
+.fulltext-badge.badge-missing {
+    background: #eaecee;
+    color: #707b7c;
+}
+
+.fulltext-badge.badge-unavailable {
+    background: #fadbd8;
+    color: #c0392b;
+}
+
+.fulltext-action-btn {
+    font-size: 10px;
+    padding: 1px 8px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.fulltext-action-btn:hover {
+    background: #f0f3f4;
+    border-color: #16a085;
+    color: #16a085;
+}
+
+/* 全文/PDFを開く等の主導線は塗りつぶしで目立たせる */
+.fulltext-action-btn--primary {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+    font-weight: 600;
+}
+
+.fulltext-action-btn--primary:hover {
+    background: #128f76;
+    border-color: #128f76;
+    color: #fff;
+}
+
+.fulltext-action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ---------- 論文候補パネル（fulltext-publication-candidates.ts、Issue #118 チャンク3b） ---------- */
+
+/* バッジクリックで開くパネルをカード直下に置くためのラッパー（.fulltext-list の直接の子はこちら） */
+.fulltext-card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fulltext-badge.badge-pubcandidate {
+    background: #eafaf1;
+    color: #16a085;
+    border: 1px solid #a8e6cf;
+    cursor: pointer;
+}
+
+.fulltext-badge.badge-pubcandidate:hover {
+    background: #d5f5e3;
+}
+
+.pub-candidate-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 26px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #a8e6cf;
+    border-radius: 6px;
+}
+
+.pub-candidate-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.pub-candidate-row:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.pub-candidate-title {
+    font-size: 12px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.pub-candidate-meta {
+    font-size: 11px;
+    color: #999;
+}
+
+.pub-candidate-strategy {
+    font-size: 10px;
+    color: #16a085;
+}
+
+.pub-candidate-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+

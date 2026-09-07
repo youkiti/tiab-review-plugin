@@ -19,8 +19,8 @@ function loadDecisionsCss(): string {
     return readFileSync(join(process.cwd(), 'src', 'sidepanel', 'styles', 'decisions.css'), 'utf8');
 }
 
-function loadFulltextTabCss(): string {
-    return readFileSync(join(process.cwd(), 'src', 'sidepanel', 'styles', 'fulltext-tab.css'), 'utf8');
+function loadFulltextConflictCss(): string {
+    return readFileSync(join(process.cwd(), 'src', 'sidepanel', 'styles', 'fulltext-tab-conflict.css'), 'utf8');
 }
 
 /** セレクタ直後の宣言ブロック（`{ ... }`）を取り出す */
@@ -47,7 +47,7 @@ test('.decision-item .note は行全体を占有する', () => {
 });
 
 test('フルテキストの不一致ビューのメモも改行を保持し、行から溢れない', () => {
-    const body = ruleBodyOf(loadFulltextTabCss(), '.fulltext-conflict-vote-note {');
+    const body = ruleBodyOf(loadFulltextConflictCss(), '.fulltext-conflict-vote-note {');
     assert.match(body, /white-space:\s*pre-wrap/);
     assert.match(body, /overflow-wrap:\s*anywhere/);
 });

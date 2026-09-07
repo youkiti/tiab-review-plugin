@@ -198,8 +198,8 @@ test('選択モードでは実行上限を無視し、150件中120件選択し�
     const refs = Array.from({ length: 150 }, (_, i) => ref(`ref-${i}`));
     const selected = new Set(refs.slice(0, 120).map(r => r.ref_id));
 
-    // 選択モードでは batch.ts 側が実行上限セレクトの値を無視して BATCH_MAX_COUNT_ALL を渡す
-    // （src/sidepanel/features/llm/batch.ts の handleStartBatch 参照）。ここではその呼び出しを再現する
+    // 選択モードでは batch/run.ts 側が実行上限セレクトの値を無視して BATCH_MAX_COUNT_ALL を渡す
+    // （src/sidepanel/features/llm/batch/run.ts の handleStartBatch 参照）。ここではその呼び出しを再現する
     const targets = selectBatchTargetsByJudgedRefIds(
         resolveSelectedRefs(refs, selected),
         BATCH_MAX_COUNT_ALL,

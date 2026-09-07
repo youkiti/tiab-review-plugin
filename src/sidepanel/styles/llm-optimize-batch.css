@@ -1,0 +1,194 @@
+/**
+ * llm-optimize-batch.css - LLM処理タブ: 最適化結果表示・バッチ情報・バッチ実行モード・バッチ進捗・閾値調整セクション
+ * (Issue #191: llm.css 分割)
+ */
+
+/* 最適化結果表示 */
+.optimized-criteria-display {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+    min-height: 100px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.optimized-criteria-display .placeholder-text {
+    color: #999;
+    font-style: italic;
+}
+
+.optimized-criteria-display .criteria-field {
+    margin-bottom: 8px;
+}
+
+.optimized-criteria-display .criteria-field strong {
+    color: #1a73e8;
+}
+
+/* 最適化ステータス */
+.optimize-status {
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.optimize-status.loading {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.optimize-status.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.optimize-status.error {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* バッチ情報 */
+.batch-info {
+    font-size: 13px;
+    color: #666;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+/* バッチ実行モード（続きから / 新規にやり直す） */
+.batch-run-mode {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-left: 3px solid #cbd2d9;
+    border-radius: 6px;
+}
+
+/* 新規Runモード中は「いつもと違う実行になる」ことを色で示す */
+.batch-run-mode.restart-active {
+    background: #fff8e1;
+    border-left-color: #f9a825;
+    color: #7a5b00;
+}
+
+.batch-run-mode button {
+    flex-shrink: 0;
+}
+
+/* バッチ進捗 */
+.batch-progress {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.progress-text {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #1a73e8;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-stats {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+
+/* 閾値調整セクション */
+.complete-message {
+    background: #e6f4ea;
+    color: #1e7e34;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.threshold-control {
+    margin-bottom: 16px;
+}
+
+.threshold-control label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.threshold-control input[type="range"] {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #e0e0e0;
+    border-radius: 4px;
+    outline: none;
+}
+
+.threshold-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #1a73e8;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-control input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #1a73e8;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.threshold-help {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+    margin: 8px 0 0;
+}
+

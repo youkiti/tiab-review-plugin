@@ -1,0 +1,262 @@
+/**
+ * fulltext-tab-results.css - フルテキストタブ: 結果ビュー・PRISMA集計・結果エクスポート・結果テーブル
+ * (Issue #191: fulltext-tab.css 分割)
+ */
+
+/* ---------- ④ 結果ビュー ---------- */
+
+.fulltext-viewmode-row {
+    display: flex;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.fulltext-mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f4f6f6;
+    color: #555;
+    cursor: pointer;
+}
+
+.fulltext-mode-btn.active {
+    background: #16a085;
+    border-color: #16a085;
+    color: #fff;
+    font-weight: 600;
+}
+
+.fulltext-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fulltext-blind-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fbfcfc;
+}
+
+.fulltext-blind-row .toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.fulltext-blind-note {
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.fulltext-results-judges {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fbfcfc;
+}
+
+.fulltext-results-judges-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.fulltext-judge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+}
+
+.fulltext-judge-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.fulltext-judge-item .reviewer-llm {
+    color: #2471a3;
+}
+
+.fulltext-judge-hint {
+    font-size: 12px;
+    color: #b9770e;
+    margin-top: 6px;
+}
+
+/* PRISMA 集計 */
+.fulltext-prisma-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #117a65;
+    margin-bottom: 6px;
+}
+
+.fulltext-prisma-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.fulltext-prisma-cell {
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: #f4f6f6;
+    color: #333;
+}
+
+.fulltext-prisma-cell.include { background: #eafaf1; color: #1e8449; }
+.fulltext-prisma-cell.exclude { background: #fdedec; color: #b03a2e; }
+.fulltext-prisma-cell.maybe   { background: #fef9e7; color: #b9770e; }
+.fulltext-prisma-cell.pending { background: #f2f4f4; color: #7f8c8d; }
+.fulltext-prisma-cell.conflict { background: #f5eef8; color: #8e44ad; font-weight: 600; }
+
+.fulltext-prisma-reasons-head {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-top: 8px;
+}
+
+.fulltext-prisma-reasons {
+    list-style: disc;
+    margin: 4px 0 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: #555;
+}
+
+/* 結果エクスポート */
+.fulltext-results-export {
+    display: flex;
+    gap: 8px;
+}
+
+/* 結果テーブル */
+.fulltext-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fulltext-result-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fff;
+}
+
+.fulltext-result-row.consensus-include { border-left: 4px solid #2ecc71; }
+.fulltext-result-row.consensus-exclude { border-left: 4px solid #e74c3c; }
+.fulltext-result-row.consensus-maybe   { border-left: 4px solid #f39c12; }
+.fulltext-result-row.consensus-pending { border-left: 4px solid #d5dbdb; }
+
+.fulltext-result-clickable { cursor: pointer; transition: background 0.12s; }
+.fulltext-result-clickable:hover { background: #f5faff; }
+
+.fulltext-result-consensus {
+    font-size: 16px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.fulltext-result-consensus.include { color: #2ecc71; }
+.fulltext-result-consensus.exclude { color: #e74c3c; }
+.fulltext-result-consensus.maybe   { color: #f39c12; }
+.fulltext-result-consensus.pending { color: #b2babb; }
+
+.fulltext-result-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.fulltext-result-title {
+    font-size: 13px;
+    color: #2c3e50;
+    line-height: 1.3;
+}
+
+.fulltext-result-meta {
+    font-size: 11px;
+    color: #7f8c8d;
+}
+
+.fulltext-result-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.fulltext-result-conflict {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8e44ad;
+    background: #f5eef8;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.fulltext-result-reason {
+    font-size: 11px;
+    color: #b03a2e;
+}
+
+.fulltext-result-chips {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+}
+
+.fulltext-judge-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 11px;
+    background: #f2f4f4;
+}
+
+.fulltext-judge-chip.chip-include { color: #1e8449; background: #eafaf1; }
+.fulltext-judge-chip.chip-exclude { color: #b03a2e; background: #fdedec; }
+.fulltext-judge-chip.chip-maybe   { color: #b9770e; background: #fef9e7; }
+.fulltext-judge-chip.chip-pending { color: #aab7b8; background: #f2f4f4; }
+
+.fulltext-result-reason-conflict {
+    font-size: 11px;
+    font-weight: 600;
+    color: #b9770e;
+    background: #fef5e7;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.fulltext-result-adjudicated {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e8449;
+    background: #d5f5e3;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+

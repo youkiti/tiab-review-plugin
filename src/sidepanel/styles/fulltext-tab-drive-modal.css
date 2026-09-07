@@ -1,0 +1,215 @@
+/**
+ * fulltext-tab-drive-modal.css - フルテキストタブ: Drive取り込みの対応付けモーダル
+ * (Issue #191: fulltext-tab.css 分割)
+ */
+
+/* ===== Driveへ直接置かれたPDFの取り込み: 対応付けモーダル ===== */
+
+.modal-content:has(.ft-import-modal) {
+    max-width: 480px;
+}
+
+.ft-import-intro {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    margin: 0 0 10px;
+}
+
+.ft-import-duplicate-warning {
+    font-size: 12px;
+    color: #b03a2e;
+    background: #fdedec;
+    border: 1px solid #f5c6c0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-bottom: 10px;
+}
+
+.ft-import-row-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ft-import-row {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fff;
+}
+
+.ft-import-row--duplicate {
+    border-color: #e0b4b0;
+    background: #fdf6f5;
+}
+
+.ft-import-row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ft-import-row-name {
+    font-size: 12px;
+    color: #2c3e50;
+    word-break: break-word;
+}
+
+.ft-import-row-size {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #999;
+}
+
+.ft-import-row-warning {
+    font-size: 11px;
+    color: #b9770e;
+    margin-top: 4px;
+}
+
+.ft-import-row-notice {
+    font-size: 11px;
+    color: #2471a3;
+    margin-top: 4px;
+}
+
+.ft-import-row-link {
+    font-size: 11px;
+    color: #2471a3;
+    margin-left: 8px;
+}
+
+.ft-import-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-top: 4px;
+}
+
+.ft-import-badge--done {
+    background: #d5f5e3;
+    color: #1e8449;
+}
+
+.ft-import-badge--blocked {
+    background: #eaecee;
+    color: #707b7c;
+}
+
+/* コンボボックス（インクリメンタル検索付きReference選択） */
+.ft-import-combo {
+    position: relative;
+    margin-top: 6px;
+}
+
+.ft-import-combo-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.ft-import-combo-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin-top: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ft-import-combo-option {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+}
+
+.ft-import-combo-option:hover {
+    background: #f1f3f4;
+}
+
+.ft-import-combo-option--skip {
+    color: #999;
+    border-bottom: 1px solid #eee;
+}
+
+.ft-import-combo-empty {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: #999;
+}
+
+/* 実行中の進捗 */
+.ft-import-progress {
+    font-size: 13px;
+    color: #2c6fbb;
+    padding: 12px 0;
+    text-align: center;
+}
+
+/* 結果表示 */
+.ft-import-summary {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 10px;
+}
+
+.ft-import-result-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+
+.ft-import-result-row--success { border-left: 4px solid #2ecc71; }
+.ft-import-result-row--skipped-cached { border-left: 4px solid #f39c12; }
+.ft-import-result-row--error { border-left: 4px solid #e74c3c; }
+
+.ft-import-result-msg {
+    color: #555;
+}
+
+/* クリーンアップ（元ファイルのゴミ箱移動） */
+.ft-import-cleanup {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #d5d8dc;
+}
+
+.ft-import-cleanup-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 6px;
+}
+
+.ft-import-cleanup-intro {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    margin: 0 0 8px;
+}
+
+.ft-import-cleanup-note {
+    font-size: 11px;
+    color: #999;
+    margin: 8px 0;
+}
+

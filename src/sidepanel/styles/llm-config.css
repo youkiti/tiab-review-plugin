@@ -1,0 +1,249 @@
+/**
+ * llm-config.css - LLM処理タブ: ツールバー・カード・折りたたみカード・APIキー入力・設定行・Tierセクション・基準セクション
+ * (Issue #191: llm.css 分割)
+ */
+
+/* LLMツールバー */
+.llm-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.llm-title {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* LLMカード */
+.llm-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.llm-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 12px 0;
+}
+
+/* 折りたたみカード */
+.llm-card.collapsible .collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.llm-card.collapsible .collapsible-content {
+    margin-top: 12px;
+}
+
+.llm-card.collapsible.collapsed .collapsible-content {
+    display: none;
+}
+
+.llm-card.collapsible.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.collapse-icon {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+/* 確定済みカード */
+.llm-card.confirmed {
+    background: #e6f4ea;
+    border-color: #34a853;
+}
+
+.llm-card.confirmed h4 {
+    color: #1e7e34;
+}
+
+/* 選択中モデルの provider に応じて該当 API キーカードを強調する。
+   confirmed と独立に効くようボーダーを強める。 */
+.llm-card.emphasized {
+    border-width: 2px;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
+/* 折りたたみカードのサマリー表示 */
+.card-summary {
+    font-size: 12px;
+    font-weight: normal;
+    color: #1e7e34;
+    margin-left: 8px;
+    flex: 1;
+}
+
+.llm-card:not(.confirmed) .card-summary {
+    color: #666;
+}
+
+/* APIキー入力 */
+.api-key-input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.api-key-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.api-key-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+.api-key-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.api-key-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.api-key-status.success {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.api-key-status.error {
+    background: #fce8e6;
+    color: #c62828;
+}
+
+/* 設定行 */
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.setting-row label {
+    font-size: 13px;
+    color: #666;
+    white-space: nowrap;
+}
+
+.setting-row select {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.setting-row select:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+/* セカンダリ行 (ヘルプリンク等) */
+.setting-row-secondary {
+    margin-top: -4px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+    justify-content: flex-start;
+}
+
+.setting-row-secondary a,
+#llm-benchmark-link {
+    font-size: 12px;
+    color: #1a73e8;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.setting-row-secondary a:hover,
+#llm-benchmark-link:hover {
+    text-decoration: underline;
+}
+
+/* Tier セクション */
+.tier-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+/* 基準セクション */
+.criteria-section {
+    margin-bottom: 12px;
+}
+
+.criteria-section label {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+/* ヘルプアイコンを伴うラベル行用 */
+.criteria-section > label + .help-icon {
+    margin-bottom: 6px;
+}
+
+/* プロトコル欄の上に置く「抄録レビューの基準をコピー」ボタン。
+   ラベル行と入力欄のあいだに独立した行として並べる */
+.protocol-import-btn {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.criteria-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.criteria-section textarea:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
