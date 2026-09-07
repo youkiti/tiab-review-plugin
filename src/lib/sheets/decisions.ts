@@ -233,24 +233,103 @@ export function invalidateDecisionRowCache(): void {
 }
 
 /**
- * saveDecision の直列化用 Promise チェーン。
- * 同一文献への保存が並行すると、両方が「既存行なし」と誤判定して重複行が2行できてしまう
- * （連打時に実際に発生していたバグ）。モジュールスコープの Promise チェーンで直列化して防ぐ。
- * 前段が失敗しても後続の保存を止めないよう、チェーン自体は常に resolve させておく。
+ * saveDecision の直列化用スケジューラ（Issue #154）。
+ *
+ * 同一キー（同じ ref_id + reviewer_id + screening_phase）への保存が並行すると、
+ * 両方が「既存行なし」と誤判定して重複行が2行できてしまう（連打時に実際に発生していた
+ * バグ）。これはキー単位の競合であって、別々の文献（別キー）への保存同士は競合しない。
+ * そこで saveDecisionInner の2経路を次のように扱う:
+ *
+ * - 追記専用経路（human判定 / ML手動確認判定）: getDecisions() を一切呼ばないため、
+ *   primeDecisionRowCache() による「他キーを巻き添えにするキャッシュ丸ごと差し替え」が
+ *   発生しない。rememberDecisionContent() は該当キーへの上書きに加え、キャッシュ未構築時
+ *   （初回）や別 spreadsheetId のときはオブジェクトごと作り直すが、それでも並行実行は安全
+ *   ————JSはシングルスレッドでこの関数の中身は同期実行されるため、別キーの追記が同時に
+ *   走っても先に来た方が新しいキャッシュを作り、後から来た方（同一 spreadsheetId である
+ *   限り）はその Map へ自分のキーを足すだけで、既存エントリが失われる経路は無い。作り直しが
+ *   起きるのは「キャッシュが無い」か「別プロジェクト」のときだけで、後者ならそもそも作り
+ *   直しが正しい。したがってキー単位の直列化で十分に安全 → saveChainsByKey。
+ * - upsert経路（ML自動判定・LLM判定）: cold時に getDecisions() を呼び、内部の
+ *   primeDecisionRowCache() が decisionRowCache / decisionContentCache を丸ごと
+ *   差し替える。この読み取り中に別キーの追記が完了して rememberDecisionContent() /
+ *   registerDecisionRowInCache() が書き込むと、その後の prime が読み取り開始前の
+ *   スナップショットで上書きしてその記録を消してしまう（結果、次に同じキーを保存した
+ *   ときに重複行が積まれる = チェーンが防いでいたはずのバグがキー跨ぎで再発する）。
+ *   このためupsert経路は全キーをまたぐグローバル直列のままにする → globalSaveChain。
+ *
+ * どちらの経路も、前段が失敗しても後続の保存を止めないよう、チェーンへ格納する Promise は
+ * 常に resolve させる（呼び出し元へは元の run をそのまま返すので失敗は伝わる）。
  */
-let saveDecisionChain: Promise<void> = Promise.resolve();
+const saveChainsByKey = new Map<string, Promise<void>>();
+let globalSaveChain: Promise<void> = Promise.resolve();
+
+/** キー単位の直列化チェーンへ乗せる（追記専用経路用）。 */
+function scheduleKeyedSave(key: string, task: () => Promise<void>): Promise<void> {
+    // 直前のチェーンが未登録なら globalSaveChain を初期値にする。これにより、
+    // 直前に走った upsert 保存（グローバル直列）の完了を待ってから新規キーの保存が
+    // 始まることが保証される（upsert 側の prime による巻き戻しを踏まない）。
+    const prev = saveChainsByKey.get(key) ?? globalSaveChain;
+    const run = prev.then(task, task);
+    const tail = run.catch(() => { /* 前段の失敗で後続を止めない */ });
+    saveChainsByKey.set(key, tail);
+    // 決着後、自分が最後尾のときだけ削除する。これは saveChainsByKey の無限成長を
+    // 防ぐためだけの後始末であり、正しさには関わらない（正しさを担うのは
+    // scheduleGlobalSave 側の clear() — そちらのコメント参照。役割が異なる）。
+    // JS はシングルスレッドなので、削除前に新しい保存が同期的に map を読みに来た場合は
+    // 決着済みの tail に繋がるだけ、削除後に来た場合は前段が既に決着済みなのでどちらでも
+    // 正しい（offline-queue.ts のコールセーサーのように「消さず使い回す」必要はない。
+    // あちらは非同期の隙間で誤って2本目のコールセーサーを作ってしまう問題への対処だが、
+    // ここでの delete は tail.then の中の同期的な identity チェックなので、その隙間が無い）。
+    void tail.then(() => {
+        if (saveChainsByKey.get(key) === tail) {
+            saveChainsByKey.delete(key);
+        }
+    });
+    return run;
+}
+
+/** 全キーをまたぐグローバルチェーンへ乗せる（upsert経路用）。 */
+function scheduleGlobalSave(task: () => Promise<void>): Promise<void> {
+    // 進行中の全ての保存（グローバル本体＋現在キューされている全キー）の完了を待ってから走る。
+    const pending = Promise.allSettled([globalSaveChain, ...saveChainsByKey.values()]);
+    const run = pending.then(task, task);
+    globalSaveChain = run.catch(() => { /* 前段の失敗で後続を止めない */ });
+    // この clear() は正しさに直結する（単なる後始末ではない）。
+    // 消さずに残すと、既にキー別チェーンを持っているキー K への「次の」保存が
+    // saveChainsByKey.get(K)（＝まだ決着していない古い tail）に繋がってしまい、
+    // 「K の直前の保存」の完了だけを待って、今スケジュールしたこのグローバル保存 G を
+    // 追い越して走ってしまう（G は pending 構築時点の tail 集合を待つだけで、K への
+    // 新しい保存の登場までは待ってくれない）。結果、G と K への追記が並行し、
+    // primeDecisionRowCache() による丸ごと差し替えがその追記の記録を消しうる
+    // （このスケジューラ全体が防ごうとしている競合そのもの）。
+    // clear() しておけば、以後 K への新規保存は saveChainsByKey.get(K) が undefined になり
+    // globalSaveChain（＝この G の tail）から始まるため、G の完了を正しく待つ。
+    // 既に走り出している（＝ pending に取り込み済みの）キー単位の保存は自分の prev を
+    // 掴んでいるので、ここで clear しても実行順には影響しない。
+    saveChainsByKey.clear();
+    return run;
+}
 
 /**
  * 判定を保存する。
  * - human判定 / ML手動確認判定: 常に追記（append-only）。判定変更の履歴を行として残し、
  *   後日 Cohen's kappa を合議前後で算出できるようにするため、既存行の検索・更新は行わない。
+ *   スケジューリングはキー単位（異なる文献への保存は並行して走る）。
  * - それ以外（ML自動判定・LLM判定）: 従来どおりの upsert（行番号キャッシュがヒットする限り
  *   読み取りリクエストを発行しない。キャッシュが無効な場合のみ全件読み取ってから判定する）。
+ *   スケジューリングは全キーをまたぐグローバル直列のまま。
+ *
+ * 経路の判定はここ（スケジュール時点）で行う。saveDecisionInner 内の getCachedDecisionRow()
+ * の hit/absent/cold 判定でスケジュールを分岐させてはならない — キューで待っている間に
+ * TTL が切れて cold に変わりうるため、スケジュール時点と実行時点の判定がずれてしまう。
  */
 export async function saveDecision(spreadsheetId: string, decision: Decision): Promise<void> {
-    const run = saveDecisionChain.then(() => saveDecisionInner(spreadsheetId, decision));
-    saveDecisionChain = run.catch(() => { /* 前段の失敗で後続を止めない */ });
-    return run;
+    const task = () => saveDecisionInner(spreadsheetId, decision);
+    if (isHumanDecision(decision.client_version) || isConfirmedMlDecision(decision.client_version)) {
+        const key = `${spreadsheetId} ${decisionRowKey(decision.ref_id, decision.reviewer_id, decision.screening_phase)}`;
+        return scheduleKeyedSave(key, task);
+    }
+    return scheduleGlobalSave(task);
 }
 
 async function saveDecisionInner(spreadsheetId: string, decision: Decision): Promise<void> {
