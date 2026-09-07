@@ -317,7 +317,7 @@ export async function showCachedPdf(url: string, token?: number): Promise<void> 
 // 「読めない」を無言の空ペインにせず、原因（未付与 / 認証切れ / 一時エラー）に応じた
 // 案内と復旧導線を出す。主導線は再付与（Picker）で、これは drive.file が
 // 「アプリ×ユーザー×ファイル」単位でしか付与されず、Picker での選択以外に
-// 付与経路が無いため（AGENTS.md「drive.file の 403/404 は『無い』ではなく
+// 付与経路が無いため（src/platform/AGENTS.md「drive.file の 403/404 は『無い』ではなく
 // 『このユーザーに未付与』」参照）。
 // ---------------------------------------------------------------------------
 

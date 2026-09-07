@@ -118,7 +118,7 @@ export interface ValidatedFile {
  * ことまでで、**共有ドライブ上のPDFをマイドライブの fulltext フォルダへ `files.copy` する経路は
  * 直接は測定していない**（測定したのは逆向き＝マイドライブ→共有ドライブ）。ここで事前に弾くより、
  * 失敗したら copy 本体のエラーがそのまま出る方が実態に合うと判断している。
- * 詳細は AGENTS.md「共有ドライブ（Shared drives）で実測して確定した挙動」。
+ * 詳細は src/platform/AGENTS.md「共有ドライブ（Shared drives）で実測して確定した挙動」。
  */
 function classifyBlockedReason(meta: DriveFileMetadata): string | null {
     if (meta.trashed) return t('fulltext_importErrorTrashed');

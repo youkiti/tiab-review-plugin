@@ -266,7 +266,7 @@ export async function getSpreadsheetInfo(spreadsheetId: string): Promise<{ title
 }
 
 /**
- * key開閉などの監査イベントを Audit_Log タブへ1行追記する（AGENTS.md「Audit_Log タブ」参照）。
+ * key開閉などの監査イベントを Audit_Log タブへ1行追記する（src/lib/sheets/AGENTS.md「Audit_Log タブ」参照）。
  * タブが無いプロジェクトでは addSheet → [ヘッダ行, 本体行] を1回の append でまとめて書き込む
  * （trySaveConfigValue と同じ「Config タブ欠落時の自動作成」パターンを踏襲）。
  * ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗（かつベストエフォートで

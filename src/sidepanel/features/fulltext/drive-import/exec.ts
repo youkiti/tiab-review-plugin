@@ -5,7 +5,7 @@
  * 本ファイルは対応付けモーダル（mapping-modal.ts）で確定した対応付けから、実際に files.copy と
  * シート更新を行う。中断・再開の契約（シート上のクレームと Drive の appProperties の二段構え、
  * 非連続レンジでの書き込み、共有ドライブ対応）はこのファイルの importOneFile /
- * backfillDriveColumnsIfEmpty に集約されている（AGENTS.md「Drive直接取り込みの
+ * backfillDriveColumnsIfEmpty に集約されている（src/platform/AGENTS.md「Drive直接取り込みの
  * 『取り込み済み』判定は二段構え」節・変更禁止。分割時もこの2関数は行の移動以外を加えていない）。
  */
 

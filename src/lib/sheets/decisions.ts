@@ -484,7 +484,7 @@ export async function updateDecisionsBatch(
             decision.screening_phase || '',
             // range が A:L（context_json列まで）に追従済みなのに values が11要素のままだと、
             // Sheets はレンジより短い values をそのまま受け付けてしまい L列（context_json）が
-            // 上書きされず古い値が残る（AGENTS.md「context_json は human 判定の保存時のみ設定する」
+            // 上書きされず古い値が残る（src/lib/sheets/AGENTS.md「context_json は human 判定の保存時のみ設定する」
             // という不変条件が崩れる）。saveDecisionInner の row 配列と同じ列順で揃えること。
             decision.context_json || '',
         ]],

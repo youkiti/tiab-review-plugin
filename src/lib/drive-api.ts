@@ -585,7 +585,7 @@ export async function ensureFulltextFolder(spreadsheetId: string): Promise<strin
             // inaccessible（403/404）は共同研究者にとって正常な状態であり、異常ではない。
             // drive.file は「アプリ×ユーザー×ファイル」単位でしか付与されず、所有権や
             // Drive の共有では付与されないため、PDFをアップロードした本人以外がこの
-            // フォルダを files.get すると常に404になる（AGENTS.md「drive.file の403/404は
+            // フォルダを files.get すると常に404になる（src/platform/AGENTS.md「drive.file の403/404は
             // 『無い』ではなく『このユーザーに未付与』」参照）。
             //
             // 実測で確定済み（2026-08-08, scripts/drive-file-probe/。自己所有・他人所有＋
