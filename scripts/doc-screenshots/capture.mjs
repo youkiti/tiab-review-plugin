@@ -92,7 +92,7 @@ async function main() {
 
     /** collapsible カードが畳まれていれば開く */
     const expandCard = async (card) => {
-        const collapsed = await card.evaluate((el) => el.classList.contains('collapsed'));
+        const collapsed = await card.evaluate((el) => el.classList.contains('collapsible') && el.classList.contains('collapsed'));
         if (collapsed) {
             await card.locator('.collapsible-header').click();
             await sleep(300);
@@ -125,7 +125,7 @@ async function main() {
 
         // --- AIタブへ ---
         await page.locator('#tab-llm').click();
-        const apiKeyCard = page.locator('#api-key-card');
+        const apiKeyCard = page.locator('#llm-providers-card');
         await apiKeyCard.waitFor({ state: 'visible', timeout: 10000 });
         await sleep(500);
 
@@ -133,20 +133,22 @@ async function main() {
         await shot('01-ai-tab-overview', page);
 
         // 02: APIキーカード（未入力）
-        await expandCard(apiKeyCard);
+        const geminiHead = page.locator('#provider-row-gemini .provider-row-head');
+        if (await geminiHead.getAttribute('aria-expanded') === 'false') await geminiHead.click();
+        await apiKeyCard.scrollIntoViewIfNeeded();
         await shot('02-api-key-card-empty', apiKeyCard);
 
         // 03: キー入力後（検証OK + プラン表示）
         await page.locator('#gemini-api-key').fill(DEMO_API_KEY);
-        await page.locator('#gemini-api-key').dispatchEvent('change');
+        await page.locator('#verify-gemini-api-key-btn').click();
         await page.locator('#api-key-status').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
         await sleep(1200);
         await shot('03-api-key-card-verified', apiKeyCard);
 
-        // 04: 詳細設定（モデル選択）
-        const detailCard = page.locator('.llm-card.collapsible', { has: page.locator('#llm-model-select') });
-        await expandCard(detailCard);
-        await shot('04-model-select', detailCard);
+        // 04: 使うモデル
+        const modelCard = page.locator('#llm-model-card');
+        await modelCard.scrollIntoViewIfNeeded();
+        await shot('04-model-select', modelCard);
 
         // --- 一括実行 ---
         await page.locator('#start-batch-btn').scrollIntoViewIfNeeded();

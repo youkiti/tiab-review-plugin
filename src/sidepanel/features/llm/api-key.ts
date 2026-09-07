@@ -5,6 +5,7 @@
 import { dom } from './dom';
 import {
     getGeminiApiKey,
+    getSessionApiKey,
     saveGeminiApiKey,
     removeGeminiApiKey,
     hasGeminiApiKey,
@@ -18,6 +19,7 @@ import {
     saveManualTier,
     // OpenRouter
     getOpenRouterApiKey,
+    getSessionOpenRouterApiKey,
     saveOpenRouterApiKey,
     removeOpenRouterApiKey,
     hasOpenRouterApiKey,
@@ -26,6 +28,7 @@ import {
     setOpenRouterApiKeySavePreference,
     // OpenAI
     getOpenAiApiKey,
+    getSessionOpenAiApiKey,
     saveOpenAiApiKey,
     removeOpenAiApiKey,
     hasOpenAiApiKey,
@@ -38,7 +41,9 @@ import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
 import { testOpenAiApiKey } from '../../../lib/providers/openai';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
-import type { ManualTier } from '../../../lib/types';
+import type { ApiTier, ManualTier } from '../../../lib/types';
+import type { LlmProviderId } from '../../../lib/llm-provider';
+import { isImeComposing } from '../../../lib/ime-composition';
 
 /**
  * API キー変更時にモデル選択肢を再構築するためのコールバック。
@@ -97,83 +102,31 @@ export async function handleTierChange(): Promise<void> {
     }
 }
 
-/**
- * APIキーの状態を読み込み
- */
-export async function loadApiKeyStatus() {
-    const hasKey = await hasGeminiApiKey();
-    const savePreference = await getApiKeySavePreference();
-
-    dom.saveApiKeyCheckbox.checked = savePreference;
-
-    if (hasKey) {
-        const key = await getGeminiApiKey();
-        if (key) {
-            dom.geminiApiKeyInput.value = key;
-            dom.apiKeyStatus.textContent = t('llm_apiKeySet');
-            dom.apiKeyStatus.className = 'api-key-status success';
-
-            // 保存済みの場合：確定状態のスタイルを適用し、折りたたむ
-            dom.apiKeyCard.classList.add('confirmed', 'collapsed');
-            dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
-        }
-    } else {
-        dom.apiKeyStatus.textContent = '';
-        dom.apiKeyStatus.className = 'api-key-status';
-
-        // 未設定の場合：確定状態を解除し、展開
-        dom.apiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.apiKeySummary.textContent = '';
-    }
-
-    await refreshTierSelector();
+interface KeyTestResult {
+    isValid: boolean;
+    tier?: ApiTier;
+    availableModels?: string[];
 }
 
-/**
- * APIキー表示/非表示切り替え
- */
-export function toggleApiKeyVisibility() {
-    if (dom.geminiApiKeyInput.type === 'password') {
-        dom.geminiApiKeyInput.type = 'text';
-        dom.toggleApiKeyVisibilityBtn.textContent = '🙈';
-    } else {
-        dom.geminiApiKeyInput.type = 'password';
-        dom.toggleApiKeyVisibilityBtn.textContent = '👁';
-    }
+interface ProviderKeyAdapter {
+    input: () => HTMLInputElement;
+    toggleBtn: () => HTMLButtonElement;
+    status: () => HTMLElement;
+    hasKey: () => Promise<boolean>;
+    getKey: () => Promise<string | null>;
+    getSessionKey: () => string | null;
+    saveKey: (key: string) => Promise<void>;
+    removeKey: () => Promise<void>;
+    setSessionKey: (key: string) => void;
+    getSavePreference: () => Promise<boolean>;
+    setSavePreference: (value: boolean) => Promise<void>;
+    test: (key: string) => Promise<KeyTestResult>;
+    afterValid?: (result: KeyTestResult, shouldSave: boolean) => Promise<void>;
+    afterClear?: () => Promise<void>;
 }
 
-/**
- * APIキー入力時の自動保存（チェックボックスがONの場合）
- */
-export async function handleApiKeyAutoSave() {
-    const apiKey = dom.geminiApiKeyInput.value.trim();
-    if (!apiKey) {
-        dom.apiKeyStatus.textContent = '';
-        dom.apiKeyStatus.className = 'api-key-status';
-
-        // 未入力になった場合：確定状態を解除し、キー情報をクリア
-        dom.apiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.apiKeySummary.textContent = '';
-
-        await removeGeminiApiKey();
-        setSessionApiKey('');
-        await clearApiTier();
-        await refreshTierSelector();
-        await notifyApiKeyChanged();
-        return;
-    }
-
-    dom.apiKeyStatus.textContent = t('llm_apiKeyVerifying');
-    dom.apiKeyStatus.className = 'api-key-status';
-
-    // APIキーを検証（tier検出含む）
-    const result = await testApiKeyWithTier(apiKey);
-    if (!result.isValid) {
-        dom.apiKeyStatus.textContent = t('llm_apiKeyInvalid');
-        dom.apiKeyStatus.className = 'api-key-status error';
-        return;
-    }
-
+async function afterValidGemini(result: KeyTestResult, shouldSave: boolean): Promise<void> {
+    if (!result.tier) return;
     // 手動 tier の初期化:
     // 自動判定の結果はあくまで「初期値の提案」。保存済みの手動設定がある場合は上書きせず、
     // 既存ユーザーの設定を維持する。未設定のときだけ初期値を入れる:
@@ -184,27 +137,11 @@ export async function handleApiKeyAutoSave() {
         await saveManualTier(result.tier === 'paid' ? 'tier1' : 'free');
     }
 
-    // 保存設定に応じて保存
-    const shouldSave = dom.saveApiKeyCheckbox.checked;
     if (shouldSave) {
-        await saveGeminiApiKey(apiKey);
-        await setApiKeySavePreference(true);
         await saveApiTier(result.tier);
-        dom.apiKeyStatus.textContent = t('llm_apiKeySaved');
-
-        // 保存済みの場合：確定状態のスタイルを適用
-        dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
     } else {
-        setSessionApiKey(apiKey);
         setSessionApiTier(result.tier);
-        dom.apiKeyStatus.textContent = t('llm_apiKeySessionOnly');
-
-        // セッション限りの場合：確定スタイルは適用するが、展開したまま
-        dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = t('llm_apiKeySummarySession');
     }
-    dom.apiKeyStatus.className = 'api-key-status success';
 
     // トーストは「検出結果」ではなく「実際に適用される手動設定」に合わせて出す。
     // existingManual が設定済みなら、上の初期化では上書きしていない（＝それがそのまま適用される）ので、
@@ -227,280 +164,207 @@ export async function handleApiKeyAutoSave() {
             showToast(t('llm_tierUnknownManualKeptWarning', t(TIER_LABEL_KEYS[existingManual])), 5000);
         }
     }
-    console.log(`[handleApiKeyAutoSave] Detected tier: ${result.tier}. Available models: ${result.availableModels.join(', ')}`);
-
     await refreshTierSelector();
-    await notifyApiKeyChanged();
+}
+
+const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai'];
+const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
+    gemini: {
+        input: () => dom.geminiApiKeyInput,
+        toggleBtn: () => dom.toggleApiKeyVisibilityBtn,
+        status: () => dom.apiKeyStatus,
+        hasKey: hasGeminiApiKey,
+        getKey: getGeminiApiKey,
+        getSessionKey: getSessionApiKey,
+        saveKey: saveGeminiApiKey,
+        removeKey: removeGeminiApiKey,
+        setSessionKey: setSessionApiKey,
+        getSavePreference: getApiKeySavePreference,
+        setSavePreference: setApiKeySavePreference,
+        test: testApiKeyWithTier,
+        afterValid: afterValidGemini,
+        afterClear: async () => {
+            await clearApiTier();
+            await refreshTierSelector();
+        },
+    },
+    openrouter: {
+        input: () => dom.openRouterApiKeyInput,
+        toggleBtn: () => dom.toggleOpenRouterApiKeyVisibilityBtn,
+        status: () => dom.openRouterApiKeyStatus,
+        hasKey: hasOpenRouterApiKey,
+        getKey: getOpenRouterApiKey,
+        getSessionKey: getSessionOpenRouterApiKey,
+        saveKey: saveOpenRouterApiKey,
+        removeKey: removeOpenRouterApiKey,
+        setSessionKey: setSessionOpenRouterApiKey,
+        getSavePreference: getOpenRouterApiKeySavePreference,
+        setSavePreference: setOpenRouterApiKeySavePreference,
+        test: testOpenRouterApiKey,
+    },
+    openai: {
+        input: () => dom.openAiApiKeyInput,
+        toggleBtn: () => dom.toggleOpenAiApiKeyVisibilityBtn,
+        status: () => dom.openAiApiKeyStatus,
+        hasKey: hasOpenAiApiKey,
+        getKey: getOpenAiApiKey,
+        getSessionKey: getSessionOpenAiApiKey,
+        saveKey: saveOpenAiApiKey,
+        removeKey: removeOpenAiApiKey,
+        setSessionKey: setSessionOpenAiApiKey,
+        getSavePreference: getOpenAiApiKeySavePreference,
+        setSavePreference: setOpenAiApiKeySavePreference,
+        test: testOpenAiApiKey,
+    },
+};
+
+const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false };
+const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null };
+const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false };
+
+export function setProviderRowOpen(provider: LlmProviderId, open: boolean): void {
+    dom.providerRow(provider).classList.toggle('open', open);
+    dom.providerHead(provider).setAttribute('aria-expanded', String(open));
+}
+
+function updateProviderChip(provider: LlmProviderId, configured: boolean, needed = false): void {
+    const chip = dom.providerChip(provider);
+    chip.className = 'provider-chip' + (configured ? ' ok' : needed ? ' need' : '');
+    chip.textContent = t(configured
+        ? sessionOnly[provider] ? 'llm_apiKeySummarySession' : 'llm_apiKeySummarySet'
+        : needed ? 'llm_providerChipNeeded' : 'llm_providerChipUnset');
+}
+
+export function refreshProviderEmphasis(selected: LlmProviderId, configured: Set<LlmProviderId>): void {
+    for (const provider of providers) {
+        dom.providerRow(provider).classList.toggle('emphasized', provider === selected);
+        updateProviderChip(provider, configured.has(provider), provider === selected);
+    }
+    if (!configured.has(selected)) setProviderRowOpen(selected, true);
+}
+
+export async function loadAllProviderStatus(): Promise<void> {
+    const preferences = await Promise.all(providers.map(provider => adapters[provider].getSavePreference()));
+    dom.saveApiKeyCheckbox.checked = preferences.some(Boolean);
+    for (const provider of providers) {
+        const adapter = adapters[provider];
+        const savedKey = await adapter.hasKey() ? await adapter.getKey() : null;
+        const sessionKey = adapter.getSessionKey();
+        const key = sessionKey || savedKey;
+        adapter.input().value = key || '';
+        lastValidKeys[provider] = key || null;
+        sessionOnly[provider] = !!sessionKey && sessionKey !== savedKey;
+        adapter.status().textContent = key ? t(sessionOnly[provider] ? 'llm_apiKeySessionOnly' : 'llm_apiKeySet') : '';
+        adapter.status().className = key ? 'api-key-status success' : 'api-key-status';
+        updateProviderChip(provider, !!key);
+        setProviderRowOpen(provider, false);
+    }
+    await refreshTierSelector();
+}
+
+export function toggleProviderKeyVisibility(provider: LlmProviderId): void {
+    const adapter = adapters[provider];
+    const show = adapter.input().type === 'password';
+    adapter.input().type = show ? 'text' : 'password';
+    adapter.toggleBtn().textContent = show ? '🙈' : '👁';
+}
+
+export async function verifyProviderKey(provider: LlmProviderId): Promise<void> {
+    const adapter = adapters[provider];
+    const apiKey = adapter.input().value.trim();
+    if (inFlight[provider] || (apiKey && lastValidKeys[provider] === apiKey)) return;
+
+    inFlight[provider] = true;
+    dom.verifyApiKeyBtn(provider).disabled = true;
+    try {
+        if (!apiKey) {
+            await adapter.removeKey();
+            adapter.setSessionKey('');
+            lastValidKeys[provider] = null;
+            sessionOnly[provider] = false;
+            adapter.status().textContent = '';
+            adapter.status().className = 'api-key-status';
+            await adapter.afterClear?.();
+            await notifyApiKeyChanged();
+            return;
+        }
+
+        adapter.status().textContent = t('llm_apiKeyVerifying');
+        adapter.status().className = 'api-key-status';
+        const result = await adapter.test(apiKey);
+        // 検証中に入力が変わった場合、古い値は保存しない。
+        if (adapter.input().value.trim() !== apiKey) return;
+        if (!result.isValid) {
+            adapter.status().textContent = t('llm_apiKeyInvalid');
+            adapter.status().className = 'api-key-status error';
+            return;
+        }
+
+        const shouldSave = dom.saveApiKeyCheckbox.checked;
+        await adapter.setSavePreference(shouldSave);
+        if (shouldSave) {
+            await adapter.saveKey(apiKey);
+            adapter.setSessionKey('');
+        } else {
+            await adapter.removeKey();
+            adapter.setSessionKey(apiKey);
+        }
+        await adapter.afterValid?.(result, shouldSave);
+        lastValidKeys[provider] = apiKey;
+        sessionOnly[provider] = !shouldSave;
+        adapter.status().textContent = t(shouldSave ? 'llm_apiKeySaved' : 'llm_apiKeySessionOnly');
+        adapter.status().className = 'api-key-status success';
+        await notifyApiKeyChanged();
+    } catch {
+        adapter.status().textContent = t('llm_apiKeyInvalid');
+        adapter.status().className = 'api-key-status error';
+    } finally {
+        inFlight[provider] = false;
+        dom.verifyApiKeyBtn(provider).disabled = false;
+        if (adapter.input().value.trim() !== apiKey) {
+            await verifyProviderKey(provider);
+        }
+    }
 }
 
 /**
- * 保存設定チェックボックスの変更処理
+ * 保存設定の切替は検証済みのキーにだけ適用する。
+ * 未検証の入力を保存すると無効なキーが設定済み扱いになるため。
  */
-export async function handleSavePreferenceChange() {
+export async function handleSavePreferenceChange(): Promise<void> {
     const shouldSave = dom.saveApiKeyCheckbox.checked;
-    await setApiKeySavePreference(shouldSave);
-
-    const apiKey = dom.geminiApiKeyInput.value.trim();
-    if (!apiKey) return;
-
-    if (shouldSave) {
-        // 現在のAPIキーを保存
-        await saveGeminiApiKey(apiKey);
-        dom.apiKeyStatus.textContent = t('llm_apiKeySaved');
-        dom.apiKeyStatus.className = 'api-key-status success';
-
-        // 確定状態のスタイルを適用
-        dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = t('llm_apiKeySummarySet');
-    } else {
-        // 保存済みキーを削除してセッションキーに切り替え
-        await removeGeminiApiKey();
-        setSessionApiKey(apiKey);
-        dom.apiKeyStatus.textContent = t('llm_apiKeySessionChanged');
-        dom.apiKeyStatus.className = 'api-key-status success';
-
-        // セッション限りの場合：確定スタイルを適用
-        dom.apiKeyCard.classList.add('confirmed');
-        dom.apiKeySummary.textContent = t('llm_apiKeySummarySession');
-    }
-
-    await notifyApiKeyChanged();
-}
-
-// ========== OpenRouter API キー ==========
-// Gemini と同形のフローだが、tier 概念がない分シンプル。
-
-/**
- * OpenRouter APIキーの状態を読み込み
- */
-export async function loadOpenRouterApiKeyStatus() {
-    const hasKey = await hasOpenRouterApiKey();
-    const savePreference = await getOpenRouterApiKeySavePreference();
-
-    dom.saveOpenRouterApiKeyCheckbox.checked = savePreference;
-
-    if (hasKey) {
-        const key = await getOpenRouterApiKey();
-        if (key) {
-            dom.openRouterApiKeyInput.value = key;
-            dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySet');
-            dom.openRouterApiKeyStatus.className = 'api-key-status success';
-            dom.openRouterApiKeyCard.classList.add('confirmed', 'collapsed');
-            dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
+    for (const provider of providers) {
+        const adapter = adapters[provider];
+        await adapter.setSavePreference(shouldSave);
+        const apiKey = adapter.input().value.trim();
+        if (!apiKey || inFlight[provider] || lastValidKeys[provider] !== apiKey) continue;
+        if (shouldSave) {
+            await adapter.saveKey(apiKey);
+            adapter.setSessionKey('');
+        } else {
+            await adapter.removeKey();
+            adapter.setSessionKey(apiKey);
         }
-    } else {
-        dom.openRouterApiKeyStatus.textContent = '';
-        dom.openRouterApiKeyStatus.className = 'api-key-status';
-        dom.openRouterApiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.openRouterApiKeySummary.textContent = '';
+        sessionOnly[provider] = !shouldSave;
+        adapter.status().textContent = t(shouldSave ? 'llm_apiKeySaved' : 'llm_apiKeySessionChanged');
+        adapter.status().className = 'api-key-status success';
     }
-}
-
-/**
- * OpenRouter APIキー表示/非表示切り替え
- */
-export function toggleOpenRouterApiKeyVisibility() {
-    if (dom.openRouterApiKeyInput.type === 'password') {
-        dom.openRouterApiKeyInput.type = 'text';
-        dom.toggleOpenRouterApiKeyVisibilityBtn.textContent = '🙈';
-    } else {
-        dom.openRouterApiKeyInput.type = 'password';
-        dom.toggleOpenRouterApiKeyVisibilityBtn.textContent = '👁';
-    }
-}
-
-/**
- * OpenRouter APIキー入力時の自動保存
- */
-export async function handleOpenRouterApiKeyAutoSave() {
-    const apiKey = dom.openRouterApiKeyInput.value.trim();
-    if (!apiKey) {
-        dom.openRouterApiKeyStatus.textContent = '';
-        dom.openRouterApiKeyStatus.className = 'api-key-status';
-        dom.openRouterApiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.openRouterApiKeySummary.textContent = '';
-
-        await removeOpenRouterApiKey();
-        setSessionOpenRouterApiKey('');
-        await notifyApiKeyChanged();
-        return;
-    }
-
-    dom.openRouterApiKeyStatus.textContent = t('llm_apiKeyVerifying');
-    dom.openRouterApiKeyStatus.className = 'api-key-status';
-
-    const result = await testOpenRouterApiKey(apiKey);
-    if (!result.isValid) {
-        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeyInvalid');
-        dom.openRouterApiKeyStatus.className = 'api-key-status error';
-        return;
-    }
-
-    const shouldSave = dom.saveOpenRouterApiKeyCheckbox.checked;
-    if (shouldSave) {
-        await saveOpenRouterApiKey(apiKey);
-        await setOpenRouterApiKeySavePreference(true);
-        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySaved');
-        dom.openRouterApiKeyCard.classList.add('confirmed');
-        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
-    } else {
-        setSessionOpenRouterApiKey(apiKey);
-        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySessionOnly');
-        dom.openRouterApiKeyCard.classList.add('confirmed');
-        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySession');
-    }
-    dom.openRouterApiKeyStatus.className = 'api-key-status success';
     await notifyApiKeyChanged();
 }
 
-/**
- * OpenRouter 保存設定チェックボックスの変更処理
- */
-export async function handleOpenRouterSavePreferenceChange() {
-    const shouldSave = dom.saveOpenRouterApiKeyCheckbox.checked;
-    await setOpenRouterApiKeySavePreference(shouldSave);
-
-    const apiKey = dom.openRouterApiKeyInput.value.trim();
-    if (!apiKey) return;
-
-    if (shouldSave) {
-        await saveOpenRouterApiKey(apiKey);
-        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySaved');
-        dom.openRouterApiKeyStatus.className = 'api-key-status success';
-        dom.openRouterApiKeyCard.classList.add('confirmed');
-        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySet');
-    } else {
-        await removeOpenRouterApiKey();
-        setSessionOpenRouterApiKey(apiKey);
-        dom.openRouterApiKeyStatus.textContent = t('llm_apiKeySessionChanged');
-        dom.openRouterApiKeyStatus.className = 'api-key-status success';
-        dom.openRouterApiKeyCard.classList.add('confirmed');
-        dom.openRouterApiKeySummary.textContent = t('llm_apiKeySummarySession');
+export function wireProviderRows(): void {
+    for (const provider of providers) {
+        const adapter = adapters[provider];
+        dom.providerHead(provider).addEventListener('click', () => {
+            setProviderRowOpen(provider, !dom.providerRow(provider).classList.contains('open'));
+        });
+        dom.verifyApiKeyBtn(provider).addEventListener('click', () => { void verifyProviderKey(provider); });
+        adapter.input().addEventListener('change', () => { void verifyProviderKey(provider); });
+        adapter.input().addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || isImeComposing(event)) return;
+            event.preventDefault();
+            void verifyProviderKey(provider);
+        });
+        adapter.toggleBtn().addEventListener('click', () => toggleProviderKeyVisibility(provider));
     }
-
-    await notifyApiKeyChanged();
-}
-
-// ========== OpenAI API キー ==========
-// OpenRouter と同形のフローだが、tier 概念がない分シンプル。
-
-/**
- * OpenAI APIキーの状態を読み込み
- */
-export async function loadOpenAiApiKeyStatus() {
-    const hasKey = await hasOpenAiApiKey();
-    const savePreference = await getOpenAiApiKeySavePreference();
-
-    dom.saveOpenAiApiKeyCheckbox.checked = savePreference;
-
-    if (hasKey) {
-        const key = await getOpenAiApiKey();
-        if (key) {
-            dom.openAiApiKeyInput.value = key;
-            dom.openAiApiKeyStatus.textContent = t('llm_apiKeySet');
-            dom.openAiApiKeyStatus.className = 'api-key-status success';
-            dom.openAiApiKeyCard.classList.add('confirmed', 'collapsed');
-            dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
-        }
-    } else {
-        dom.openAiApiKeyStatus.textContent = '';
-        dom.openAiApiKeyStatus.className = 'api-key-status';
-        dom.openAiApiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.openAiApiKeySummary.textContent = '';
-    }
-}
-
-/**
- * OpenAI APIキー表示/非表示切り替え
- */
-export function toggleOpenAiApiKeyVisibility() {
-    if (dom.openAiApiKeyInput.type === 'password') {
-        dom.openAiApiKeyInput.type = 'text';
-        dom.toggleOpenAiApiKeyVisibilityBtn.textContent = '🙈';
-    } else {
-        dom.openAiApiKeyInput.type = 'password';
-        dom.toggleOpenAiApiKeyVisibilityBtn.textContent = '👁';
-    }
-}
-
-/**
- * OpenAI APIキー入力時の自動保存
- */
-export async function handleOpenAiApiKeyAutoSave() {
-    const apiKey = dom.openAiApiKeyInput.value.trim();
-    if (!apiKey) {
-        dom.openAiApiKeyStatus.textContent = '';
-        dom.openAiApiKeyStatus.className = 'api-key-status';
-        dom.openAiApiKeyCard.classList.remove('confirmed', 'collapsed');
-        dom.openAiApiKeySummary.textContent = '';
-
-        await removeOpenAiApiKey();
-        setSessionOpenAiApiKey('');
-        await notifyApiKeyChanged();
-        return;
-    }
-
-    dom.openAiApiKeyStatus.textContent = t('llm_apiKeyVerifying');
-    dom.openAiApiKeyStatus.className = 'api-key-status';
-
-    const result = await testOpenAiApiKey(apiKey);
-    if (!result.isValid) {
-        dom.openAiApiKeyStatus.textContent = t('llm_apiKeyInvalid');
-        dom.openAiApiKeyStatus.className = 'api-key-status error';
-        return;
-    }
-
-    const shouldSave = dom.saveOpenAiApiKeyCheckbox.checked;
-    if (shouldSave) {
-        await saveOpenAiApiKey(apiKey);
-        await setOpenAiApiKeySavePreference(true);
-        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySaved');
-        dom.openAiApiKeyCard.classList.add('confirmed');
-        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
-    } else {
-        setSessionOpenAiApiKey(apiKey);
-        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySessionOnly');
-        dom.openAiApiKeyCard.classList.add('confirmed');
-        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySession');
-    }
-    dom.openAiApiKeyStatus.className = 'api-key-status success';
-    await notifyApiKeyChanged();
-}
-
-/**
- * OpenAI 保存設定チェックボックスの変更処理
- */
-export async function handleOpenAiSavePreferenceChange() {
-    const shouldSave = dom.saveOpenAiApiKeyCheckbox.checked;
-    await setOpenAiApiKeySavePreference(shouldSave);
-
-    const apiKey = dom.openAiApiKeyInput.value.trim();
-    if (!apiKey) return;
-
-    if (shouldSave) {
-        await saveOpenAiApiKey(apiKey);
-        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySaved');
-        dom.openAiApiKeyStatus.className = 'api-key-status success';
-        dom.openAiApiKeyCard.classList.add('confirmed');
-        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySet');
-    } else {
-        await removeOpenAiApiKey();
-        setSessionOpenAiApiKey(apiKey);
-        dom.openAiApiKeyStatus.textContent = t('llm_apiKeySessionChanged');
-        dom.openAiApiKeyStatus.className = 'api-key-status success';
-        dom.openAiApiKeyCard.classList.add('confirmed');
-        dom.openAiApiKeySummary.textContent = t('llm_apiKeySummarySession');
-    }
-
-    await notifyApiKeyChanged();
-}
-
-/**
- * 選択中モデルの provider に応じて API キーカードの強調表示を切り替える。
- * 該当カードを強調し、他の2つの強調を解除する。
- */
-export function refreshApiKeyCardEmphasis(providerId: 'gemini' | 'openrouter' | 'openai'): void {
-    dom.apiKeyCard.classList.toggle('emphasized', providerId === 'gemini');
-    dom.openRouterApiKeyCard.classList.toggle('emphasized', providerId === 'openrouter');
-    dom.openAiApiKeyCard.classList.toggle('emphasized', providerId === 'openai');
 }

@@ -1,36 +1,36 @@
 /** AIタブ内の専用DOM参照。初期バンドルからは読み込まない。 */
 import { getElement } from '../../dom';
+import type { LlmProviderId } from '../../../lib/llm-provider';
 
 export const dom = {
+    get providerRow() { return (provider: LlmProviderId) => getElement<HTMLElement>(`provider-row-${provider}`); },
+    get providerChip() { return (provider: LlmProviderId) => getElement<HTMLElement>(`provider-chip-${provider}`); },
+    get providerHead() { return (provider: LlmProviderId) => dom.providerRow(provider).querySelector<HTMLButtonElement>('.provider-row-head')!; },
+    get verifyApiKeyBtn() { return (provider: LlmProviderId) => getElement<HTMLButtonElement>(`verify-${provider}-api-key-btn`); },
+    get llmModelKeyNote() { return getElement<HTMLElement>('llm-model-key-note'); },
+    get openRouterCustomModelSection() { return getElement<HTMLElement>('openrouter-custom-model-section'); },
+    get customModelToggle() { return getElement<HTMLAnchorElement>('custom-model-toggle'); },
+    get customModelForm() { return getElement<HTMLElement>('custom-model-form'); },
     get llmBackBtn() { return getElement<HTMLButtonElement>('llm-back-btn'); },
     get llmSettingsBtn() { return getElement<HTMLButtonElement>('llm-settings-btn'); },
 
     // LLM APIキー (Gemini)
-    get apiKeyCard() { return getElement<HTMLElement>('api-key-card'); },
-    get apiKeySummary() { return getElement<HTMLElement>('api-key-summary'); },
     get geminiApiKeyInput() { return getElement<HTMLInputElement>('gemini-api-key'); },
     get toggleApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-api-key-visibility'); },
     get saveApiKeyCheckbox() { return getElement<HTMLInputElement>('save-api-key-checkbox'); },
     get apiKeyStatus() { return getElement<HTMLElement>('api-key-status'); },
 
     // LLM APIキー (OpenRouter)
-    get openRouterApiKeyCard() { return getElement<HTMLElement>('openrouter-api-key-card'); },
-    get openRouterApiKeySummary() { return getElement<HTMLElement>('openrouter-api-key-summary'); },
     get openRouterApiKeyInput() { return getElement<HTMLInputElement>('openrouter-api-key'); },
     get toggleOpenRouterApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openrouter-api-key-visibility'); },
-    get saveOpenRouterApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openrouter-api-key-checkbox'); },
     get openRouterApiKeyStatus() { return getElement<HTMLElement>('openrouter-api-key-status'); },
 
     // LLM APIキー (OpenAI)
-    get openAiApiKeyCard() { return getElement<HTMLElement>('openai-api-key-card'); },
-    get openAiApiKeySummary() { return getElement<HTMLElement>('openai-api-key-summary'); },
     get openAiApiKeyInput() { return getElement<HTMLInputElement>('openai-api-key'); },
     get toggleOpenAiApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openai-api-key-visibility'); },
-    get saveOpenAiApiKeyCheckbox() { return getElement<HTMLInputElement>('save-openai-api-key-checkbox'); },
     get openAiApiKeyStatus() { return getElement<HTMLElement>('openai-api-key-status'); },
 
     // LLM カスタムモデル (OpenRouter)
-    get openRouterCustomModelCard() { return getElement<HTMLElement>('openrouter-custom-model-card'); },
     get customModelIdInput() { return getElement<HTMLInputElement>('custom-model-id-input'); },
     get customModelLabelInput() { return getElement<HTMLInputElement>('custom-model-label-input'); },
     get testSaveCustomModelBtn() { return getElement<HTMLButtonElement>('test-save-custom-model-btn'); },
@@ -43,7 +43,6 @@ export const dom = {
 
     // LLM 設定
     get llmModelSelect() { return getElement<HTMLSelectElement>('llm-model-select'); },
-    get llmNoModelHint() { return getElement<HTMLElement>('llm-no-model-hint'); },
     get llmLanguageSelect() { return getElement<HTMLSelectElement>('llm-language-select'); },
     get protocolTextInput() { return getElement<HTMLTextAreaElement>('protocol-text-input'); },
     get importReviewCriteriaBtn() { return getElement<HTMLButtonElement>('import-review-criteria-btn'); },

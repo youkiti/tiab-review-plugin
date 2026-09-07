@@ -72,26 +72,6 @@
     color: #1e7e34;
 }
 
-/* 選択中モデルの provider に応じて該当 API キーカードを強調する。
-   confirmed と独立に効くようボーダーを強める。 */
-.llm-card.emphasized {
-    border-width: 2px;
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
-}
-
-/* 折りたたみカードのサマリー表示 */
-.card-summary {
-    font-size: 12px;
-    font-weight: normal;
-    color: #1e7e34;
-    margin-left: 8px;
-    flex: 1;
-}
-
-.llm-card:not(.confirmed) .card-summary {
-    color: #666;
-}
-
 /* APIキー入力 */
 .api-key-input-group {
     display: flex;
@@ -101,6 +81,7 @@
 
 .api-key-input {
     flex: 1;
+    min-width: 0;
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
@@ -111,13 +92,6 @@
 .api-key-input:focus {
     outline: none;
     border-color: #1a73e8;
-}
-
-.api-key-options {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
 }
 
 .checkbox-label {
@@ -165,7 +139,8 @@
     white-space: nowrap;
 }
 
-.setting-row select {
+.setting-row select,
+.model-select-row select {
     flex: 1;
     padding: 6px 10px;
     border: 1px solid #ddd;
@@ -174,7 +149,8 @@
     background: #fff;
 }
 
-.setting-row select:focus {
+.setting-row select:focus,
+.model-select-row select:focus {
     outline: none;
     border-color: #1a73e8;
 }
@@ -247,3 +223,157 @@
     border-color: #1a73e8;
 }
 
+
+
+/* モデル選択とプロバイダ行 */
+#llm-section > .llm-card {
+    max-width: 680px;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.model-select-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* 260px を切るならベンチマークリンクを次の行へ送る（サイドパネル幅では常に折り返す） */
+.model-select-row select {
+    flex: 1 0 260px;
+    min-width: 0;
+}
+
+/* 共通の .btn-primary は width: 100% なので、入力欄と同じ行に置くときだけ幅を内容に合わせる */
+.api-key-input-group .btn-primary {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.model-key-note {
+    font-size: 12px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    margin-top: 8px;
+}
+
+.model-key-note.warn {
+    background: #fff4e0;
+    color: #b26a00;
+}
+
+.model-key-note.ok {
+    background: #e6f4ea;
+    color: #1e7e34;
+}
+
+.provider-rows {
+    border-top: 1px solid #e0e0e0;
+}
+
+.provider-row {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.provider-row-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.provider-name {
+    font-weight: 600;
+    min-width: 88px;
+}
+
+.provider-caption {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: #666;
+}
+
+.provider-chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #c9ccd1;
+    color: #666;
+    white-space: nowrap;
+}
+
+.provider-chip.ok {
+    background: #e6f4ea;
+    border-color: #34a853;
+    color: #1e7e34;
+}
+
+.provider-chip.need {
+    background: #fff4e0;
+    border-color: transparent;
+    color: #b26a00;
+}
+
+.provider-chevron {
+    font-size: 11px;
+    color: #9a9ea6;
+    transition: transform .15s;
+}
+
+.provider-row.open .provider-chevron {
+    transform: rotate(90deg);
+}
+
+.provider-row-body {
+    display: none;
+    padding-bottom: 12px;
+}
+
+.provider-row.open .provider-row-body {
+    display: block;
+}
+
+.provider-row.emphasized {
+    border-left: 3px solid #1a73e8;
+    background: rgba(26, 115, 232, .08);
+    margin-left: -16px;
+    padding-left: 13px;
+    margin-right: -16px;
+    padding-right: 16px;
+}
+
+.save-key-line {
+    align-items: flex-start;
+    margin-top: 12px;
+}
+
+.save-key-hint {
+    display: block;
+    font-size: 12px;
+    color: #666;
+}
+
+.custom-model-section {
+    margin-top: 10px;
+}
+
+.custom-model-toggle {
+    font-size: 13px;
+}

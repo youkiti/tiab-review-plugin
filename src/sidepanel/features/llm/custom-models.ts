@@ -32,6 +32,22 @@ export function setOnCustomModelsChanged(handler: CustomModelsChangedHandler): v
     onCustomModelsChanged = handler;
 }
 
+export function refreshCustomModelSectionVisibility(visible: boolean): void {
+    dom.openRouterCustomModelSection.classList.toggle('hidden', !visible);
+    if (!visible) {
+        dom.customModelForm.classList.add('hidden');
+        dom.customModelToggle.setAttribute('aria-expanded', 'false');
+    }
+}
+
+export function wireCustomModelToggle(): void {
+    dom.customModelToggle.addEventListener('click', event => {
+        event.preventDefault();
+        const hidden = dom.customModelForm.classList.toggle('hidden');
+        dom.customModelToggle.setAttribute('aria-expanded', String(!hidden));
+    });
+}
+
 async function notifyCustomModelsChanged(): Promise<void> {
     if (!onCustomModelsChanged) return;
     try {
