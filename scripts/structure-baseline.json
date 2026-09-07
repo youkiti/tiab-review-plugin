@@ -110,28 +110,12 @@
       "lines": 846
     },
     {
-      "file": "src/sidepanel/features/fulltext/drive-import.ts",
-      "lines": 1105
-    },
-    {
       "file": "src/sidepanel/features/fulltext/tab.ts",
-      "lines": 1194
-    },
-    {
-      "file": "src/sidepanel/features/llm/batch.ts",
-      "lines": 1390
+      "lines": 1186
     },
     {
       "file": "src/sidepanel/sidepanel.html",
       "lines": 1055
-    },
-    {
-      "file": "src/sidepanel/styles/fulltext-tab.css",
-      "lines": 1629
-    },
-    {
-      "file": "src/sidepanel/styles/llm.css",
-      "lines": 1057
     }
   ]
 }

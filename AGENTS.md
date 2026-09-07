@@ -138,7 +138,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 **Decisions を横断する処理は `screening_phase` を必ず見ること**: TiAb のAI判定もフルテキストAI判定も `reviewer_id` は同じ `llm:{model}@{timestamp}` 形式を使い、区別は `screening_phase`（`'tiab'` 省略可 / `'fulltext'`）だけでつく。`reviewer_id.startsWith('llm:')` のような前方一致だけで横断すると TiAb とフルテキストが混ざる。実際に既存コードが2箇所で踏んでいた（Issue #62 で修正済み）:
 
 - `findOrphanedExecutions`（`src/sidepanel/features/llm/recovery.ts`）が `screening_phase` を見ておらず、フルテキストAI判定のラウンドを TiAb の「孤立判定」として誤検出していた。復旧を実行すると `execution_type='batch_screening'` の偽の行が作られ、`migrateLegacyExecutionsToRuns` が Run に束ねて TiAb の active 判定に混ざりうる
-- `loadExecutionHistory`（`src/sidepanel/features/llm/batch.ts`）が `execution_type` を二値の三項演算子で扱っていたため、フルテキストの実行履歴が「判定基準生成」という誤ったラベルで TiAb の実行履歴一覧に混入していた
+- `loadExecutionHistory`（`src/sidepanel/features/llm/batch/history.ts`）が `execution_type` を二値の三項演算子で扱っていたため、フルテキストの実行履歴が「判定基準生成」という誤ったラベルで TiAb の実行履歴一覧に混入していた
 
 教訓: `execution_type` や `reviewer_id` を分岐に使うときは、二値前提の三項演算子ではなく明示的な除外／網羅を書くこと。
 
@@ -590,7 +590,7 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
 - レビュアーの追加/削除は既存の `data/toggleReviewer` ではなく新設の `data/addReviewer`/`data/removeReviewer` を使う。混在レビュアー（人手＋ML）のチェックボックス切替は本体キーと `::ml` キーへ同じ enabled 値を独立に適用するため、現在の集合への反転（toggle）だと意図せず反転する。
 - `state.ts` の `resetForLogout()`/`resetForBack()` からはこれら9領域の再初期化を外し、初期化経路は Store の `reset/logout`・`reset/back`（`store/reducer.ts`）だけになった。`highlightKeywords`・`availableReviewers`・`enabledReviewers` は `reset/logout` で initialState に戻る一方、legacyの `resetForLogout()` は保持していたが、`loadDataAndShowScreening()`（`features/project.ts`）がプロジェクト読み込み時に必ず `syncSetKeywords`/`syncSetAvailableReviewers`/`syncSetEnabledReviewers` で再設定するため実害はない。
 - 呼び出し元が0件だった `src/sidepanel/render/index.ts`（`renderApp()` と再export のみ）は削除した。Store購読の実入口は `bootstrap.ts`（`renderLayout`/`renderTemporaryUI` を直接購読）。
-- LLM/ML バッチ領域（`llmConfig`・`mlState`・`activeLlmExecutionIds`・`currentBatchDecisions`・`failedRefIds`）も同じやり方でStore所有に一本化した。`state.ts` は getter のみで、`store/compat.ts` の `setLlmConfig`/`setMlState`/`setActiveLlmExecutionIds` は dispatch専用に変わり、`features/llm/batch.ts` が直接呼んでいた `state.setCurrentBatchDecisions`/`setFailedRefIds`/`clearFailedRefIds` 用に同名の compat ラッパーを新設した。`clearFailedRefIds` は `activeLlmExecutionIds` の `data/clearActiveLlmExecutionIds` と違い1件ずつ追加するAPIが無く常に配列全体を差し替える領域なので、専用アクションを新設せず `data/setFailedRefIds` に空配列を渡す。これで **compat.ts に残る `legacyState.` 呼び出しは `resetForLogout`/`resetForBack` の2つだけ**になった。Store未移行のまま `state.ts` に残る legacy 専有領域は `batchAbortController`・`currentExecutionId`・`llmRuns`/`llmExecutions`・`forceNewLlmRun`・`llmTargetMode`/`llmTargetRefIds`・`consensusMode`（Issue #154 工程3 の対象外）。
+- LLM/ML バッチ領域（`llmConfig`・`mlState`・`activeLlmExecutionIds`・`currentBatchDecisions`・`failedRefIds`）も同じやり方でStore所有に一本化した。`state.ts` は getter のみで、`store/compat.ts` の `setLlmConfig`/`setMlState`/`setActiveLlmExecutionIds` は dispatch専用に変わり、`features/llm/batch/`（`run.ts`・`threshold.ts`）が直接呼んでいた `state.setCurrentBatchDecisions`/`setFailedRefIds`/`clearFailedRefIds` 用に同名の compat ラッパーを新設した。`clearFailedRefIds` は `activeLlmExecutionIds` の `data/clearActiveLlmExecutionIds` と違い1件ずつ追加するAPIが無く常に配列全体を差し替える領域なので、専用アクションを新設せず `data/setFailedRefIds` に空配列を渡す。これで **compat.ts に残る `legacyState.` 呼び出しは `resetForLogout`/`resetForBack` の2つだけ**になった。Store未移行のまま `state.ts` に残る legacy 専有領域は `batchAbortController`・`currentExecutionId`・`llmRuns`/`llmExecutions`・`forceNewLlmRun`・`llmTargetMode`/`llmTargetRefIds`・`consensusMode`（Issue #154 工程3 の対象外）。
 
 ### TiAb 表示位置の記憶と復元（Issue #140）
 
@@ -1257,7 +1257,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
   - 認証トークンは呼び出し側から渡す。`drive-shared-drive.ts` が互換窓口 `sheets-api.ts` 経由で `getAuthToken`（実体は `sheets/transport.ts`）を import すると循環参照になるため
 - 適用先は `src/lib/drive-api.ts` の13箇所と **`src/lib/drive-recent-files.ts` の1箇所**（`getRecentSpreadsheets` の `files.list`）と **`src/lib/drive-permissions.ts` の4箇所**（permissions の list/create/delete、`isUserAdmin` の capabilities）。特に `getRecentSpreadsheets` は `files.list` なので、欠けると**共有ドライブ上のスプレッドシートが一覧から黙って消える**
 - **パラメータが落ちても `files.list` 系のテストは緑のまま通る**（200 + 0件のため）。回帰は `tests/drive-shared-drive.test.ts` で検出する。実際に飛ぶ URL を見張るテストに加え、**`drive-api.ts` / `drive-permissions.ts` / `drive-recent-files.ts` のソースに `fetch(` の直呼びが残っていないことを機械的に検査**している（新しい経路が `driveFetch` を通さずに増えた瞬間に落ちる）
-- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext/drive-import.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
+- **`classifyBlockedReason()`（`src/sidepanel/features/fulltext/drive-import/validate.ts`）の共有ドライブブロックは撤去した。** `getDriveFileMetadata()` の `files.get` に `supportsAllDrives` が無かった間、`meta.driveId` を読む前に 404 で throw していたため到達不能な死んだコードだった（`fulltext_importErrorSharedDrive` は一度も表示されていない）。パラメータを付けた時点でこれが**生きたコードに変わり、実測では読めるはずの共有ドライブ上のPDFを新たに弾き始める**ため、パラメータ付与とセットで消す必要があった
 - **共有ドライブ上のPDF → マイドライブの fulltext フォルダへの `files.copy` は未測定**（測ったのは逆向き）。事前にブロックせず、失敗したら copy 本体のエラーをそのまま見せる形にしている
 - **共有ドライブ環境では「404 = 未付与」と断定してはならない**（パラメータ欠落でも同じ 404 になる）。全経路にパラメータが付いて初めて 404 が未付与を意味する。ユーザーへの復旧案内（再付与導線）はこの前提の上に設計すること
 
@@ -1377,6 +1377,7 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - lib / platform からUIをimportしない。platform → lib は導入時の実測0件なので禁止する。platform → demo の既存1辺のみ `scripts/structure-baseline.json` に記録し、新しい参照は許容しない。現状0件の方向はESLintでも検出する。
 - 型・既定値モジュールからUI・通信をimportしない。`scripts/check-structure.mjs` の `FOUNDATION_MODULES` は `lib/types.ts`、`lib/assignment-set.ts`、`lib/sheets/schema.ts`、`lib/sheets/config-schema.ts`、`lib/ml/types.ts`、`lib/ml/cmh-defaults.ts`、`platform/types.ts` を検査する。型・既定値の配置や通信APIを増やしたら、この一覧と通信先の判定も追従させる。
 - 新規ファイルは200〜500行が目安。TS / CSS / HTML の800行超は設計レビューの通知対象で、基準値にない超過をCIで失敗させる。既存の大規模ファイルは改善対象として行数と増減を表示し、増加だけでは失敗させない。行数制限のためにコメントを削らない。
+- 800行超のモジュールを機能単位へ分割するときは、**同名ディレクトリ＋`index.ts`（公開APIの再exportだけを持つ薄い入口）**にする。TypeScript も `scripts/check-structure.mjs` も `./batch` を `./batch/index.ts` へ解決するため、呼び出し側の `from './batch'` を書き換えずに済み、差分が分割そのものだけになる（Issue #191 で `features/llm/batch/`・`features/fulltext/drive-import/` に適用）。分割で相互参照が生まれたら、まず**呼び出し側から関数を引数で渡す**形にできないか試すこと。setter による注入（`setXxxDeps`）は未配線のとき静かに失敗する経路を作るので最後の手段にし、使う場合も未配線を握りつぶさず throw させる。
 - `npm run check:structure` は相対import・再export・型import・文字列リテラルの動的importを正規表現で抽出し、Tarjanの強連結成分で循環を検出する。外部パッケージ、宣言ファイル、バックアップは対象外。既存循環は辺まで基準値に記録し、同じ循環グループ内の新しい辺も回帰とする。TypeScriptの完全な構文解析ではないため、計算式の動的import等は別途レビューする。
 - `npm run check:bundle` は同条件のproductionビルドでサイドパネルとWeb版appの初期JS量（.map除外）を検査する。`scripts/bundle-budget.json` の上限は実測値の101%を整数切り上げ。上限超過は失敗、上限より3%以上小さければ更新可能と表示する。時間の閾値はばらつきが大きいためCIに入れない。通信回数は `tests/project-load-request-counts.test.ts` で固定する。
 - 基準値更新は `node scripts/check-structure.mjs --update-baseline`。予算更新は `npm run bench:bundle` 後の `node scripts/check-bundle-budget.mjs --update-budget`（`--stats <JSONパス>` で既存統計も利用可能）。基準値・予算の更新は意図的な設計変更として、コミットに理由を書く。単に検査を通すために更新しない。改善の検出は通知のみで失敗にしない。
@@ -1498,6 +1499,7 @@ npm run check:bundle
 
 ### テスト・作業ツリーの落とし穴
 
+- **CSS を分割・改名するときは、CSSの実ファイルを `readFileSync` で読むテストを探すこと。** `tests/decision-item-note-layout.test.ts` は `src/sidepanel/styles/decisions.css` と `fulltext-tab-conflict.css` をリポジトリルート基準で直接読み、`.decision-item .note` や `.fulltext-conflict-vote-note` の宣言を正規表現で検査している（レイアウト崩れはCSSでしか担保できないため）。Issue #191 の CSS 分割で `fulltext-tab.css` を改名した際、**typecheck も lint も構造検査も素通りし、`npm test` の `ENOENT` で初めて気づいた**。CSSのファイル名を変えたら `grep -rn "\.css" tests/` を必ず通すこと。
 - **`tests/tsconfig.json` の `types` は明示列挙**（`node` / `chrome` / `google.accounts`）。新しい ambient 型に依存するテストを足すと `Cannot find namespace` で `npm run test` が落ちるので、型の追加もセットで行うこと。`include` も明示列挙だが、テストから import したモジュールは推移的に取り込まれるため、通常は `types` 側だけが問題になる。
 - **`.gitignore` の `node_modules/` は末尾スラッシュ付きでディレクトリにしかマッチしない。** `git worktree` を作って `node_modules` をシンボリックリンクで共有すると untracked のまま残り、`git add -A` でコミットへ混入する。worktree で作業するときは変更ファイルをパス指定でステージすること。
 - **`npm run test` は `scripts/run-tests.mjs` 経由で、毎回 `.tmp/tests` を全消去してから現在 `tests/` に存在する `*.test.ts` だけを `node --test` に渡す**（Issue #162）。以前は `.tmp/tests/tests/*.test.js` を glob で拾っていたため、削除済みブランチのテストがコンパイル済みのまま残っていると件数が水増しされた（実例: `auth-pkce.test.js` が残って 392 件と表示されたが、真値は 379 件だった）。ラッパーは実行したテストファイル数を `N / N テストファイルを実行` と出すので、`tests/*.test.ts` の数と一致することを確認できる。対象を絞るときは `npm test -- doi fulltext-pool` のようにファイル名の部分一致で指定する（コンパイルは全件行う）。

@@ -52,7 +52,7 @@ export function mountReasonEditor(options: ReasonEditorOptions): void {
 function render(options: ReasonEditorOptions): void {
     const { container, isAdmin } = options;
     // className は触らない（sidepanel.html の class="fulltext-reason-editor hidden" を
-    // 上書きすると fulltext-tab.css の .fulltext-reason-editor ブロックが死ぬ。
+    // 上書きすると fulltext-tab-regrant.css の .fulltext-reason-editor ブロックが死ぬ。
     // hidden の付け外しは呼び出し側 fulltext/tab.ts の classList に任せる。
     // 兄弟コンポーネント fulltext-rule-editor.ts の mountRuleEditor に倣う）。
     container.innerHTML = '';

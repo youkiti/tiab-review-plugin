@@ -38,14 +38,44 @@
 /* 設定画面 */
 @import url('./styles/settings.css');
 
-/* LLM処理タブ */
-@import url('./styles/llm.css');
+/* LLM処理タブ: ツールバー・カード・APIキー入力・設定行・Tier・基準セクション */
+@import url('./styles/llm-config.css');
+
+/* LLM処理タブ: 最適化結果表示・バッチ情報/実行モード/進捗・閾値調整セクション */
+@import url('./styles/llm-optimize-batch.css');
+
+/* LLM処理タブ: 閾値プレビュー・分布チャート・実行履歴 */
+@import url('./styles/llm-threshold-history.css');
+
+/* LLM処理タブ: Runカード・プロンプト表示モーダル */
+@import url('./styles/llm-run-card.css');
+
+/* LLM処理タブ: OpenRouterカスタムモデル・対象選択・対象選択モーダル */
+@import url('./styles/llm-model-target.css');
 
 /* ML処理タブ */
 @import url('./styles/ml.css');
 
-/* フルテキストタブ */
-@import url('./styles/fulltext-tab.css');
+/* フルテキストタブ: 候補ルール・セットアップチェックリスト・入手状況/フィルタ */
+@import url('./styles/fulltext-tab-setup.css');
+
+/* フルテキストタブ: Drive取り込みボタン・カード・論文候補パネル */
+@import url('./styles/fulltext-tab-cards.css');
+
+/* フルテキストタブ: 結果ビュー・PRISMA集計・結果エクスポート・結果テーブル */
+@import url('./styles/fulltext-tab-results.css');
+
+/* フルテキストタブ: 不一致の解消・除外理由の優先順位 */
+@import url('./styles/fulltext-tab-conflict.css');
+
+/* フルテキストタブ: AI判定タブ・判定ラウンド */
+@import url('./styles/fulltext-tab-ai-judge.css');
+
+/* フルテキストタブ: Drive取り込みの対応付けモーダル */
+@import url('./styles/fulltext-tab-drive-modal.css');
+
+/* フルテキストタブ: 読み取り権限の再付与・除外理由エディタ */
+@import url('./styles/fulltext-tab-regrant.css');
 
 /* チーム進捗パネル */
 @import url('./styles/team-progress.css');

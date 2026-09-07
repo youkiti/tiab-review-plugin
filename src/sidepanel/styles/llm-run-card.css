@@ -1,0 +1,171 @@
+/**
+ * llm-run-card.css - LLM処理タブ: Run/Batch 分離後の Run カード・プロンプト表示モーダル
+ * (Issue #191: llm.css 分割)
+ */
+
+/* Run/Batch 分離後の Run カード（PR3） */
+.run-card {
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.run-card.pending {
+    border-left: 3px solid #fbbc04;
+}
+
+.run-card.confirmed {
+    border-left: 3px solid #34a853;
+}
+
+.run-card .run-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.run-card .run-date-range {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.run-card .run-model {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 8px;
+    background: #eef3ff;
+    color: #3949ab;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+}
+
+.run-card .run-stats {
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.run-card .run-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e0f7fa;
+    color: #006064;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-right: 6px;
+}
+
+.run-card .run-batches-toggle {
+    background: none;
+    border: none;
+    color: #1a73e8;
+    cursor: pointer;
+    padding: 4px 0;
+    font-size: 11px;
+    text-align: left;
+    margin-top: 4px;
+}
+
+.run-card .run-batches-toggle:hover {
+    text-decoration: underline;
+}
+
+.run-card .run-batches-detail {
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: #ffffff;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #555;
+}
+
+.run-card .run-batches-detail.hidden {
+    display: none;
+}
+
+.run-card .run-batch-row {
+    padding: 3px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.run-card .run-batch-row:last-child {
+    border-bottom: none;
+}
+
+.run-card .run-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+/* プロンプト表示モーダル */
+.modal-content:has(.run-prompt-modal) {
+    max-width: 600px;
+}
+
+.run-prompt-modal .run-prompt-section {
+    margin-bottom: 16px;
+}
+
+.run-prompt-modal .run-prompt-section:last-child {
+    margin-bottom: 0;
+}
+
+.run-prompt-modal h4 {
+    margin: 0 0 6px 0;
+    font-size: 12px;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.run-prompt-modal .run-prompt-criteria-template {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #fff3e0;
+    color: #e65100;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin-bottom: 6px;
+}
+
+.run-prompt-modal .run-prompt-criteria-fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 12px;
+    margin: 0;
+    font-size: 12px;
+}
+
+.run-prompt-modal .run-prompt-criteria-fields dt {
+    color: #5f6368;
+    font-weight: 500;
+}
+
+.run-prompt-modal .run-prompt-criteria-fields dd {
+    margin: 0;
+    color: #202124;
+    word-break: break-word;
+}
+
+.run-prompt-modal .run-prompt-text {
+    margin: 0;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #202124;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
