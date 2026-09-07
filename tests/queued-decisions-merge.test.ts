@@ -6,7 +6,7 @@ import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 // mergeQueuedDecisions のユニットテスト。
 // 2026-09 Web版ログイン切れによるキュー滞留・重複追記の事故対応の一環で追加。
 // allDecisions のマージは keyOpened===true のときだけ行う
-// （getReferencesWithStatus は Blind 中でも allDecisions に LLM 判定だけの配列を入れて返すため、
+// （mergeReferencesWithStatus は Blind 中でも allDecisions に LLM 判定だけの配列を入れて返すため、
 // keyOpened===false のときに無条件で自分の human 判定を差し込むと Blind 中の
 // AI Evidenceハイライトに人間の判定が混入してしまう）。
 
@@ -87,7 +87,7 @@ test('decision=pending（メモのみ保存）のキュー項目は status を p
 
 // PR #138 レビュー指摘（キー開封後のマージで hasConflict/status を再計算していなかった問題）:
 // keyOpened===true かつ allDecisions が配列のときは、更新後の allDecisions を
-// detectConflict()（sheets/decisions.ts、getReferencesWithAllDecisions と同じ関数）へ渡して
+// detectConflict()（decision-aggregate.ts、mergeReferencesWithAllDecisions と同じ関数）へ渡して
 // hasConflict と status を作り直す。以下3ケースはブリーフが指定した規則そのものを検証する。
 
 test('他者includeとの不一致(conflict)へ自分のキュー票includeが重なると不一致が解消する', () => {

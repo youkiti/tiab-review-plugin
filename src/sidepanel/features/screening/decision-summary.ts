@@ -72,7 +72,7 @@ export function collectReviewerKeys(
  *   （フォールバック済みの実効レビュアー集合を呼び出し側から渡すこと）。
  * - 同一キーに複数判定がある場合（Decisions は追記専用）は decided_at が最大のものを採用する。
  * - 採用した最新判定の decision が 'pending' または空文字の場合は、未判定として map に入れない
- *   （sheets/project-snapshot.ts の getReferencesWithAllDecisions と同じ扱い）。
+ *   （reference-status.ts の mergeReferencesWithAllDecisions と同じ扱い）。
  */
 export function buildReviewerDecisionMap(
     ref: ReferenceWithStatus,

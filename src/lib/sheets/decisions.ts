@@ -328,7 +328,7 @@ async function saveDecisionInner(spreadsheetId: string, decision: Decision): Pro
 
 /**
  * Blind中（keyOpened=false）の全文閲覧ウィンドウ向けに Decisions を絞り込む。
- * サイドパネルの Blind ロード（getReferencesWithStatus）と同じポリシー:
+ * サイドパネルの Blind ロード（mergeReferencesWithStatus）と同じポリシー:
  * 自分の判定（reviewer_id が userEmail と一致）＋ LLM判定（reviewer_id が 'llm:' で始まる）のみ返す。
  * 他レビュアーの人間票・ML票はBlind中は一切クライアントへ渡さない。
  */

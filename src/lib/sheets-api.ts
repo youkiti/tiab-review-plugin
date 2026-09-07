@@ -153,14 +153,11 @@ export type { SpreadsheetPermission, AddPermissionOptions } from './drive-permis
 
 
 export {
-    getReferencesWithStatus,
-    getReferencesWithAllDecisions,
     getFulltextPageData,
     loadProjectSnapshot,
     selectReferencesWithStatus,
 } from './sheets/project-snapshot';
 export type {
-    ReferencesAndDecisionsLoaded,
     ProjectSnapshot,
     ProjectSnapshotParts,
 } from './sheets/project-snapshot';

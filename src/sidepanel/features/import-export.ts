@@ -220,7 +220,7 @@ export async function handleExportCSV() {
         const filename = `${projectTitle}_${filterLabel}_${dateStr}_${filtered.length}${t('export_countSuffix')}.csv`;
 
         // ブラインド中（isKeyOpened===false）は他レビュアーの判定がそもそも読み込まれておらず
-        // （project.ts の getReferencesWithStatus 分岐）、レビュアー別の列・decision_notes は出力しない
+        // （project.ts の mergeReferencesWithStatus 分岐）、レビュアー別の列・decision_notes は出力しない
         const isBlinded = !state.isKeyOpened;
 
         // レビュアー列の集合は getFilteredReferences() の結果ではなく state.references 全体から

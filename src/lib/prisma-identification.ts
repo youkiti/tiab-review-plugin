@@ -49,8 +49,8 @@ export interface IdentificationData {
  *
  * 【refsMayOmitLogicallyDeleted オプション（Issue #145 チャンク2）】
  * refs は本来「論理削除された行も含む全件」（getReferences() 由来）を渡す契約だが、呼び出し側が
- * それを取得できず、既に論理削除済みの行が除外された一覧（getReferencesWithStatus() /
- * getReferencesWithAllDecisions() 由来）へフォールバックすることがある。その場合、論理削除された
+ * それを取得できず、既に論理削除済みの行が除外された一覧（selectReferencesWithStatus() 由来）
+ * へフォールバックすることがある。その場合、論理削除された
  * 行はこの関数から見えず「単に存在しない」ため、duplicatesTotal は論理削除件数の分だけ静かに
  * 過少になる。数字が黙って狂うのはこの機能で最も避けたい失敗のため、refsMayOmitLogicallyDeleted:
  * true を渡すと、実際の集計結果によらず duplicatesTotal を null・statsComplete を false に強制する。

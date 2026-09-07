@@ -241,7 +241,7 @@ export async function validateSpreadsheetFormat(spreadsheetId: string): Promise<
  * （Issue #147 外部レビュー指摘。以前は「重複レビューUIの『やっぱり戻す』操作に必要」と
  * 書いていたが、個別の統合判断をユーザーが取り消す一般的なUIは実装されていない。実際に
  * duplicateOf: null を書くのは相互削除の自動修復と手動の「修復する」ボタンに限られる）。
- * 除外を反映してほしい呼び出し元（TiAb スクリーニング画面など）は getReferencesWithStatus() を使うこと。
+ * 除外を反映してほしい呼び出し元（TiAb スクリーニング画面など）は selectReferencesWithStatus() を使うこと。
  */
 export async function getReferences(spreadsheetId: string): Promise<Reference[]> {
     const values = await getSheetValues(spreadsheetId, `${REFERENCES_SHEET}!A:${REFERENCES_LAST_COLUMN}`);

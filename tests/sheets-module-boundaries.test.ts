@@ -150,8 +150,6 @@ test('facade: 移動前に export されていた名前が sheets-api.ts から�
         'invalidateFulltextDriveColumnsMemo',
         'validateSpreadsheetFormat',
         'getReferences',
-        'getReferencesWithStatus',
-        'getReferencesWithAllDecisions',
         'getFulltextPageData',
         'loadProjectSnapshot',
         'selectReferencesWithStatus',

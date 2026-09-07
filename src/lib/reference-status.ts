@@ -85,7 +85,7 @@ export function mergeReferencesWithStatus(
 /**
  * 文献一覧に全判定状態をマージ（キーオープン後）
  *
- * 論理削除された行（重複）をここでも除外する。理由は getReferencesWithStatus() の JSDoc を参照
+ * 論理削除された行（重複）をここでも除外する。理由は mergeReferencesWithStatus() の JSDoc を参照
  * （Issue #145 チャンク2）。除外しないと、盲検中は消えていた重複がキー開封の瞬間に復活して見える。
  */
 export function mergeReferencesWithAllDecisions(
