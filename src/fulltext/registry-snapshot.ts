@@ -21,6 +21,7 @@ import {
     hideSavePdfButton,
 } from './document-view';
 import { session, isStale } from './session';
+import { getPdfPrefetch, discardPdfPrefetchEntry } from './pdf-prefetch';
 import { showCachedPdf } from './document-loader';
 import { renderAiCardsFallback } from './evidence-controller';
 import { appendTextWithBreaks, showFeedback } from './page-helpers';
@@ -59,8 +60,10 @@ export async function showRegistrySnapshot(url: string, token?: number): Promise
     setUrlLabel(url, 'cached');
 
     // 先読み済みなら即利用。無ければその場で取得（showCachedPdf()と同じ流儀）。
+    // getPdfPrefetch() がファイルID照合を行うため、PDFが差し替わっていれば古い先読み結果は
+    // 使われない（showCachedPdf() と重複していた取り出しロジックをここへ一本化した）。
     const refId = session.currentRef?.ref_id;
-    const prefetched = refId ? session.pdfPrefetch.get(refId) : undefined;
+    const prefetched = refId ? getPdfPrefetch(refId, fileId) : undefined;
 
     let blob: Blob | null = null;
     try {
@@ -214,6 +217,6 @@ async function handleSnapshotRegrantClick(btn: HTMLButtonElement, url: string, r
 /** 同じ文献を表示したままスナップショットだけ読み直す（失敗した先読み結果は捨てる） */
 async function retryRegistrySnapshot(url: string, refId?: string): Promise<void> {
     if (refId && session.currentRef?.ref_id !== refId) return;
-    if (refId) session.pdfPrefetch.delete(refId);
+    if (refId) discardPdfPrefetchEntry(refId);
     await showRegistrySnapshot(url, ++session.loadToken);
 }

@@ -955,6 +955,7 @@ tiab-review-plugin/
 │   │   ├── fulltext.ts        # エントリポイント（初期化と依存の接続、URL param: ref_id）
 │   │   ├── session.ts         # ページ状態・世代・先読み・破棄対象リソースの保持
 │   │   ├── document-loader.ts # PDF取得・再付与・描画と表示経路の選択
+│   │   ├── pdf-prefetch.ts    # 隣接候補PDFの先読み（ファイルID照合・中止・バイト/同時実行数上限）
 │   │   ├── document-view.ts   # フレーム・ツールバー・取得状況・記事ページの表示
 │   │   ├── registry-snapshot.ts # 登録情報スナップショットの取得・復旧案内
 │   │   ├── pdf-upload.ts      # PDFアップロード・置換・削除・ドロップ操作

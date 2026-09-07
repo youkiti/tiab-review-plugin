@@ -29,10 +29,19 @@
 //     波及してしまうため）。
 //   - ハイライト矩形（.ft-highlight-layer の中身）は canvas と違って安価なので、実体化していない
 //     ページにも従来どおり全ページぶん描画したままにする。
+//
+// Issue #156（#150 工程5）PR3: 可視ページ集合そのものの上限と、未描画ページの表示。
+//   - PAGE_MATERIALIZE_WINDOW による絞り込みだけでは、同時に交差する可視ページ数自体には
+//     上限が無かった。applyWindow() で capTargetPagesByBytes()（pdf-page-window.ts）に通し、
+//     canvas合計バイト数（MAX_MATERIALIZED_CANVAS_BYTES）で安全弁をかける。
+//     ensureMaterialized()（根拠ジャンプ先の優先描画）には適用しない。
+//   - 未描画ページを無地の白紙のままにせず `.ft-page[data-render-state]` でページ番号を
+//     薄く表示する（createPageFrame() で 'placeholder'、描画完了で 'rendered'、
+//     detachCanvas() で 'placeholder' に戻す）。
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
-import { computeTargetPages, diffMaterialization, sumCanvasBytes } from './pdf-page-window';
+import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes } from './pdf-page-window';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
 import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-constants';
 import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
@@ -48,6 +57,32 @@ const MAX_RENDER_SCALE = 2.0;
 // 実体化（canvas + DOM テキストレイヤー）対象の前後ウィンドウ幅。可視ページの前後この枚数まで
 // 実体化する。値を大きくするほど先読みが効く代わりにメモリ・描画コストが増える。
 const PAGE_MATERIALIZE_WINDOW = 1;
+
+// 実体化対象の canvas 合計バイト数（推定）の上限（Issue #156（#150 工程5）PR3）。
+// PAGE_MATERIALIZE_WINDOW による「可視 ± 1」の絞り込みだけでは、可視ページ集合そのものの
+// 大きさ（ウィンドウが縦に長い・表示倍率が小さい等で同時に交差するページ数）には上限が無いため、
+// 安全弁として合計バイト数を縛る。
+//
+// createPageFrame() の式（fit = min((availWidth-24)/unscaledWidth, MAX_RENDER_SCALE)）と
+// A4（595x842pt）を仮定して見積もると、canvas 1枚・3枚合計（実体化ウィンドウの既定枚数）は
+// おおよそ次のとおり（幅700px・devicePixelRatio 2 は一般的なノートPC相当、幅1000px・dpr2は
+// 高解像度ディスプレイ相当）:
+//   320px/dpr1: 0.47MB/枚, 3枚で1.42MB（ベンチ実測 約465KB/枚・常時1.3MBと一致）
+//   700px/dpr1: 2.47MB/枚, 3枚で7.40MB
+//   700px/dpr2: 9.87MB/枚, 3枚で29.60MB
+//   1000px/dpr2: 20.57MB/枚, 3枚で61.70MB
+// 実画面では3枚（既定ウィンドウ）だけで最大60MB強に達しうるため、上限はこれを下回ってはならない。
+// 128MBはこの最悪ケースの2倍以上の余裕を持たせつつ、極端に多数のページが同時可視になった
+// 場合（例: 非常に小さい表示倍率で多数ページが一度に画面へ収まる）に際限なくメモリを
+// 食い続けることは防げる値として採用した。下記 MIN_MATERIALIZED_PAGES を置いているため、
+// 通常のウィンドウ幅ぶん（既定3枚）は、この上限を下回っていてもバイト数に関わらず必ず維持される
+// （上限値そのものの厳密さより、安全弁として機能することを優先する）。
+const MAX_MATERIALIZED_CANVAS_BYTES = 128 * 1024 * 1024;
+
+// バイト数に関わらず必ず実体化を維持する最小ページ数。PAGE_MATERIALIZE_WINDOW による
+// 既定のウィンドウ幅（可視1ページなら前後1ページずつの3枚）を、MAX_MATERIALIZED_CANVAS_BYTES の
+// 選び方に関わらず必ず確保するための下限（PR2 の「可視 ± 1」機能自体を壊さないため）。
+const MIN_MATERIALIZED_PAGES = PAGE_MATERIALIZE_WINDOW * 2 + 1;
 
 // IntersectionObserver のマージン。可視になる前に実体化を開始できるよう、ビューポート相当の
 // 余白を前後に持たせる（root: null のため、祖先のスクロールによるクリップも考慮される）。
@@ -292,6 +327,21 @@ export class PdfRenderer {
     }
 
     /**
+     * 指定ページを実体化した場合の canvas バイト数を見積もる（未実体化でも計算できる）。
+     * materializePageImpl() が実際に canvas を作るときの式（width/height に devicePixelRatio を
+     * 掛けて floor → width * height * 4）に合わせている。実体化済みページについても実際の
+     * canvas から取り直さず、この見積りで一貫させる（単純さのため）。
+     */
+    private estimateCanvasBytes(pageNumber: number): number {
+        const info = this.pages[pageNumber - 1];
+        if (!info) return 0;
+        const outputScale = window.devicePixelRatio || 1;
+        const width = Math.floor(info.widthPx * outputScale);
+        const height = Math.floor(info.heightPx * outputScale);
+        return width * height * 4;
+    }
+
+    /**
      * 1ページ分の「枠」を作る（寸法プレースホルダー + 空のテキスト/ハイライトレイヤー）。
      * canvas はここでは作らない（実体化は materializePage() が担う）。
      */
@@ -305,6 +355,9 @@ export class PdfRenderer {
         const pageDiv = document.createElement('div');
         pageDiv.className = 'ft-page';
         pageDiv.dataset.page = String(pageNumber);
+        // 未描画（白紙）状態。materializePageImpl() の描画完了で 'rendered' に、
+        // detachCanvas() での解放で 'placeholder' に戻す（CSSで薄いページ番号を出す）。
+        pageDiv.dataset.renderState = 'placeholder';
         pageDiv.style.width = `${Math.floor(viewport.width)}px`;
         pageDiv.style.height = `${Math.floor(viewport.height)}px`;
         // PDF.js 4.x の TextLayer は span 位置を calc(var(--scale-factor)*…) で出力する。
@@ -404,6 +457,10 @@ export class PdfRenderer {
                 throw err;
             }
             info.renderTask = null;
+            // 描画が実際に完了した時点でのみ 'rendered' にする（canvasをDOMに挿しただけの
+            // 時点ではまだピクセルが無いため 'placeholder' のまま。ctxが取れず描画自体を
+            // 行わなかった場合もここへは来ない）。
+            info.pageDiv.dataset.renderState = 'rendered';
         }
         if (!stillWanted()) { this.detachCanvas(info); return; }
 
@@ -432,6 +489,8 @@ export class PdfRenderer {
             info.canvasEl = null;
         }
         info.textLayerEl.innerHTML = '';
+        // 解放後はまた白紙になるため、描画完了前に中断した場合も含めて 'placeholder' に戻す。
+        info.pageDiv.dataset.renderState = 'placeholder';
     }
 
     /**
@@ -487,8 +546,19 @@ export class PdfRenderer {
     /** 現在の可視ページ集合から実体化すべき集合を求め、差分ぶんだけ実体化/解放する。 */
     private applyWindow(token: number): void {
         if (token !== this.renderToken) return;
-        const target = computeTargetPages([...this.visiblePages], PAGE_MATERIALIZE_WINDOW, this.pages.length);
-        const { toMaterialize, toRelease } = diffMaterialization(this.materializedPages, target);
+        const visible = [...this.visiblePages];
+        const target = computeTargetPages(visible, PAGE_MATERIALIZE_WINDOW, this.pages.length);
+        // 可視ページ集合そのものの大きさには上限が無いため、canvas合計バイト数の安全弁で絞り込む
+        // （IntersectionObserver 経由の実体化にのみ適用する。ensureMaterialized() 経由の
+        // 根拠ジャンプ先の優先描画には適用しない。理由は ensureMaterialized() のコメント参照）。
+        const capped = capTargetPagesByBytes(
+            target,
+            visible,
+            n => this.estimateCanvasBytes(n),
+            MAX_MATERIALIZED_CANVAS_BYTES,
+            MIN_MATERIALIZED_PAGES
+        );
+        const { toMaterialize, toRelease } = diffMaterialization(this.materializedPages, capped);
         for (const n of toRelease) {
             this.materializedPages.delete(n);
             this.releasePage(n);
@@ -503,7 +573,14 @@ export class PdfRenderer {
         }
     }
 
-    /** 指定ページがまだ実体化されていなければ実体化を開始する（投げっぱなし）。 */
+    /**
+     * 指定ページがまだ実体化されていなければ実体化を開始する（投げっぱなし）。
+     * scrollToHighlight() / scrollToPage()（根拠ジャンプ）からのみ呼ばれる経路で、
+     * applyWindow() の canvas合計バイト数の上限（MAX_MATERIALIZED_CANVAS_BYTES、
+     * capTargetPagesByBytes()）はここには適用しない。ジャンプ先ページは、既に上限に達して
+     * いる場合でも必ず描く必要があるため（Issue #156 の「根拠ジャンプ時は対象ページを
+     * 優先描画する」という要件）。
+     */
     private ensureMaterialized(pageNumber: number): void {
         if (this.materializedPages.has(pageNumber)) return;
         const token = this.renderToken;

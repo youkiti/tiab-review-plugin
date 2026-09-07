@@ -51,11 +51,22 @@ import { wireHighlightToggle, refreshEvidenceDisplay } from './evidence-controll
 import { wireCriteriaModal, maybeShowCriteriaNotice, renderContextPanel } from './page-panels';
 import { openLinkedInline, setDocumentLoaderDependencies } from './document-loader';
 import { showRegistrySnapshot } from './registry-snapshot';
+import { clearPdfPrefetch } from './pdf-prefetch';
 
 document.addEventListener('DOMContentLoaded', () => {
     initFulltextPage().catch(err => {
         showPlaceholder(`初期化エラー: ${(err as Error).message}`);
     });
+});
+
+// ページを離れる（タブを閉じる／別ページへ移動する）際の後片付け。
+// 先読み中のPDFダウンロードが残っていれば中止し、以後の追い出し処理を走らせず即座に空にする。
+// hideCanvasContainer()（表示中のPDF.js描画の破棄）はここには使えない: 文献切替のたびに
+// 何度も呼ばれる関数で、しかも showCachedPdf() 自身がプレースホルダ表示 → 先読みキャッシュ参照
+// の順で呼ぶため、そこで先読み全体を空にすると、参照する直前に自分で先読み結果を消してしまい
+// 先読みの効果が常に無効化される。ページ全体の後片付けはここ（pagehide）で行う。
+window.addEventListener('pagehide', () => {
+    clearPdfPrefetch();
 });
 
 async function initFulltextPage(): Promise<void> {
