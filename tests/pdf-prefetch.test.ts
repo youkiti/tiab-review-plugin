@@ -6,7 +6,7 @@
 // 共通ヘルパー getPdfPrefetch() 自体をテストすることで、showCachedPdf() /
 // showRegistrySnapshot() の2箇所の重複していた判断ロジックを一本化できていることを担保する）:
 //   1. ファイルID不一致でミスになり、古いエントリが中止・破棄されること
-//   2. 保持バイト数の上限を超えたら古いエントリから追い出されること
+//   2. 保持バイト数の上限を超えたら現在地から遠いエントリから追い出されること
 //   3. 同時進行リクエスト数の勘定から現在地自身を除くこと（速い連続移動での回帰防止）、
 //      および fileId が一致する隣接候補は再ダウンロードせずエントリを維持すること
 //      （同時実行数の上限そのものが実際に新規開始を拒否する場面は、唯一の呼び出し経路
@@ -171,13 +171,13 @@ test('getPdfPrefetch: ファイルIDが不一致ならミスとし、古いエ�
 // 2. 保持バイト数の上限での追い出し
 // ---------------------------------------------------------------------------
 
-test('保持バイト数の合計が上限を超えたら、古いエントリから追い出す', async () => {
+test('保持バイト数の合計が上限を超えたら、現在地から遠いエントリから追い出す', async () => {
     const stub = stubControllableFetch();
     session.currentRef = cachedRef('ref0', 'file0');
     session.fulltextCandidates = [
         session.currentRef,
-        cachedRef('ref1', 'fileA'), // d=1: 先に挿入される（古い）
-        cachedRef('ref2', 'fileB'), // d=2: 後に挿入される（新しい）
+        cachedRef('ref1', 'fileA'), // d=1: 現在地に近い
+        cachedRef('ref2', 'fileB'), // d=2: 現在地から遠い
     ];
     session.currentCandidateIndex = 0;
 
@@ -185,8 +185,9 @@ test('保持バイト数の合計が上限を超えたら、古いエントリ�
     await flushMicrotasks();
     assert.equal(session.pdfPrefetch.size, 2, '最大2件まで先読みされること');
 
-    // 20MB + 15MB = 35MB は上限(32MB)を超える。古い方(ref1)が先に解決した場合、
-    // 2件目(ref2)の解決時点で合計超過が判明し、挿入順で古いref1が追い出される。
+    // 20MB + 15MB = 35MB は上限(32MB)を超える。近い方(ref1, d=1)が先に解決した場合でも、
+    // 遠い方(ref2, d=2)の解決時点で合計超過が判明し、現在地から遠いref2が追い出される
+    // （次に開かれる確率が高いref1を残す）。
     const twentyMb = 20 * 1024 * 1024;
     const fifteenMb = 15 * 1024 * 1024;
     assert.ok(twentyMb + fifteenMb > MAX_PDF_PREFETCH_TOTAL_BYTES);
@@ -198,8 +199,42 @@ test('保持バイト数の合計が上限を超えたら、古いエントリ�
     stub.resolveByUrlIncluding('fileB', fifteenMb);
     await session.pdfPrefetch.get('ref2')!.promise;
 
-    assert.equal(session.pdfPrefetch.has('ref1'), false, '合計超過により、古いref1が追い出されること');
-    assert.equal(session.pdfPrefetch.has('ref2'), true, '新しいref2は残ること');
+    assert.equal(session.pdfPrefetch.has('ref1'), true, '現在地に近いref1(d=1)が残ること');
+    assert.equal(session.pdfPrefetch.has('ref2'), false, '現在地から遠いref2(d=2)が追い出されること');
+});
+
+test('保持バイト数の合計が上限を超えたら、解決順が逆でも現在地から遠いエントリが追い出される', async () => {
+    // 上のテストは「近い方(ref1)が先に解決」というたまたま挿入順と一致する順序でしか
+    // 検証できていない。ここでは解決順を逆にして（遠い方のref2を先に解決）、それでも
+    // 残るのは現在地に近いref1であることを検証する（挿入順基準の旧実装ではこの場合
+    // 逆にref2が残ってしまっていた）。
+    const stub = stubControllableFetch();
+    session.currentRef = cachedRef('ref0', 'file0');
+    session.fulltextCandidates = [
+        session.currentRef,
+        cachedRef('ref1', 'fileA'), // d=1: 現在地に近い
+        cachedRef('ref2', 'fileB'), // d=2: 現在地から遠い
+    ];
+    session.currentCandidateIndex = 0;
+
+    prefetchNeighbors();
+    await flushMicrotasks();
+    assert.equal(session.pdfPrefetch.size, 2, '最大2件まで先読みされること');
+
+    const twentyMb = 20 * 1024 * 1024;
+    const fifteenMb = 15 * 1024 * 1024;
+
+    // 遠い方(ref2, d=2)を先に解決する（挿入順とは逆の解決順）
+    stub.resolveByUrlIncluding('fileB', fifteenMb);
+    await session.pdfPrefetch.get('ref2')!.promise;
+    assert.equal(session.pdfPrefetch.has('ref2'), true, '単独では上限内なので、この時点ではまだ追い出されない');
+
+    // 近い方(ref1, d=1)を後に解決する
+    stub.resolveByUrlIncluding('fileA', twentyMb);
+    await session.pdfPrefetch.get('ref1')!.promise;
+
+    assert.equal(session.pdfPrefetch.has('ref1'), true, '解決順によらず、現在地に近いref1(d=1)が残ること');
+    assert.equal(session.pdfPrefetch.has('ref2'), false, '解決順によらず、現在地から遠いref2(d=2)が追い出されること');
 });
 
 test('単体で上限を超える巨大PDFは保持しない', async () => {

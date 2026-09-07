@@ -105,7 +105,7 @@ function totalResolvedPrefetchBytes(): number {
 }
 
 /**
- * バイト上限を超えていたら古いエントリから捨てる。
+ * バイト上限を超えていたら、現在地から遠いエントリから順に捨てる。
  * ダウンロードが解決するたび（startPrefetchEntry の .then）に呼ぶ。バイト数は解決後にしか
  * 分からないため、集計・追い出しは解決後にしか行えない。
  */
@@ -117,10 +117,32 @@ function enforcePrefetchBudget(): void {
             discardPdfPrefetchEntry(refId);
         }
     }
-    // 2. 残りの合計が上限を超えている間、挿入順（Mapの反復順）で最も古い「解決済み」エントリから
-    //    順に捨てる。未解決（bytes === undefined）のエントリはサイズが分からず合計に含めていない
-    //    ため、追い出し対象にもしない（ダウンロードが完了すれば改めてこの関数で判定される）。
-    for (const [refId, entry] of [...session.pdfPrefetch.entries()]) {
+    // 2. 残りの合計が上限を超えている間、現在地から遠いエントリから順に捨てる。
+    //    現在地に近いエントリほど次に開かれる確率が高く、そちらを先に捨てると「次へ」を
+    //    押した直後に再ダウンロードが発生して先読みの意味が無くなるため、近いエントリを
+    //    優先して残す（旧実装はMapの挿入順で捨てていた。挿入順は prefetchNeighbors() が
+    //    d=1,2 の順に同期挿入するため通常は近い順そのものであり、旧実装は上限に触れるたび
+    //    次に開かれる可能性が最も高いエントリを先に捨てていた。挿入順が距離順とずれるのは、
+    //    keep 集合に残ったエントリが prefetchNeighbors() の呼び出しをまたいでMap上の元の
+    //    位置を保ったまま残る場合（後方へジャンプした場合等）であり、ネットワークの応答順
+    //    ではない）。
+    //    未解決（bytes === undefined）のエントリはサイズが分からず合計に含めていないため、
+    //    追い出し対象にもしない（ダウンロードが完了すれば改めてこの関数で判定される）。
+    const distanceOf = (refId: string): number => {
+        // 距離を定義できない（現在地未確定）場合のみ、距離の代わりに0を返して全エントリを
+        // 同着扱いにする。この後の安定ソートにより、実質的に挿入順（従来の判定）へ戻る。
+        if (session.currentCandidateIndex < 0) return 0;
+        const index = session.fulltextCandidates.findIndex(ref => ref.ref_id === refId);
+        // 候補列から外れた古いエントリ（既に不要）は最遠扱いにし、最優先で捨てる。
+        if (index === -1) return Infinity;
+        return Math.abs(index - session.currentCandidateIndex);
+    };
+    // 追い出し候補の並び順は、走査を始める前に確定させる（走査中に順序が変わらないように
+    // するため）。Array.prototype.sort は安定ソートなので、距離が同じエントリ同士は
+    // Map の反復順（＝挿入順）のまま残り、古い方から先に捨てられる。
+    const evictionOrder = [...session.pdfPrefetch.entries()]
+        .sort((a, b) => distanceOf(b[0]) - distanceOf(a[0]));
+    for (const [refId, entry] of evictionOrder) {
         if (totalResolvedPrefetchBytes() <= MAX_PDF_PREFETCH_TOTAL_BYTES) return;
         if (entry.bytes === undefined) continue;
         discardPdfPrefetchEntry(refId);
