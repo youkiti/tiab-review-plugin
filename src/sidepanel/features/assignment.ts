@@ -17,6 +17,11 @@ import { hideModal, showModal } from '../ui/modal';
 
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
+// team-progress.ts はセット名の表示に getAssignmentSetLabel() をこのファイルから import している。
+// そのためこのファイルから team-progress.ts を直接 import すると循環になる（check:structure で検出される）。
+// renderTeamProgress の配線は setAssignmentDependencies() 経由の DI で受け取り、循環を避ける
+// （setAssignmentDependencies 自体は bootstrap.ts などのエントリ側で両方 import して橋渡しする）。
+let _renderTeamProgress: (() => void) | null = null;
 let _wizardOpen = false;
 // 割り振りの書き込みは複数リクエストに分かれるため、二重実行すると
 // 異なるシャッフル結果が混ざってシートが壊れる。実行中は再入を禁止する。
@@ -25,9 +30,11 @@ let _assignmentSaving = false;
 export function setAssignmentDependencies(deps: {
     loadDataAndShowScreening: () => Promise<void>;
     renderCurrentReference: () => void;
+    renderTeamProgress?: () => void;
 }) {
     _loadDataAndShowScreening = deps.loadDataAndShowScreening;
     _renderCurrentReference = deps.renderCurrentReference;
+    _renderTeamProgress = deps.renderTeamProgress ?? null;
 }
 
 function normalizeEmail(email: string): string {
@@ -233,6 +240,9 @@ export function renderAssignmentFilters() {
             syncSetCurrentIndex(0);
             if (_renderCurrentReference) {
                 _renderCurrentReference();
+            }
+            if (_renderTeamProgress) {
+                _renderTeamProgress();
             }
         });
 
