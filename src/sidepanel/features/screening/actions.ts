@@ -247,7 +247,7 @@ async function navigateImpl(direction: number) {
     }
 
     if (filtered.length > 0) {
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetCurrentIndex(newIndex);
         renderCurrentReference();
     }
@@ -520,7 +520,7 @@ export async function handleKeyToggle() {
             if (state.userEmail) {
                 reviewers.add(state.userEmail);
             }
-            // Store経由で両方に同期
+            // Store経由で更新
             syncSetAvailableReviewers(reviewers);
             syncSetEnabledReviewers(new Set(reviewers));
 

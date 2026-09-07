@@ -103,7 +103,7 @@ export async function handleOptimizeCriteria() {
         llmConfig.llm_criteria = result.criteria;
         llmConfig.llm_screening_prompt = result.screening_prompt;
         llmConfig.llm_protocol_text = protocolText;
-        // Store経由で両方に同期
+        // Store経由で更新
         syncSetLlmConfig(llmConfig);
 
         dom.optimizeStatusDiv.textContent = t('llm_optimizeComplete');
