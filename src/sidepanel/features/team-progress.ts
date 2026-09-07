@@ -16,12 +16,17 @@ import { getDecisions } from '../../lib/sheets-api';
 import { platform } from '../../platform';
 import {
     computeTeamProgress,
+    isTiabSetFilterActive,
+    isFulltextSetFilterActive,
     shortNameOf,
     percentOf,
     toTeamProgressRef,
     type TeamMemberProgress,
     type TeamProgressRef,
 } from '../../lib/team-progress';
+import { getAssignmentSetLabel } from './assignment';
+import { getAvailableFulltextSets, getFulltextSetLabel } from '../../lib/fulltext-assignment';
+import { isSharedFulltextPoolMember } from '../../lib/fulltext-candidates';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
 
 /** この日数以上判定がないメンバーに ⚠ を付ける */
@@ -59,6 +64,8 @@ function hasCurrentCache(): boolean {
 }
 // 展開状態はホストごとに保持（デフォルトは折りたたみ）
 const expanded: Record<HostKind, boolean> = { tiab: false, fulltext: false };
+// 担当セットの絞り込み反映トグル。ホストごとに独立、既定 ON、セッション内のみ（永続化しない）
+const setFilterEnabled: Record<HostKind, boolean> = { tiab: true, fulltext: true };
 // TiAb側はツールバー内のドロップダウン表示のため、外側クリックで閉じる
 let outsideClickListenerAdded = false;
 
@@ -223,6 +230,15 @@ function renderHost(kind: HostKind): void {
             poolRule: state.fulltextPoolRule,
             fulltextAssignment: state.fulltextAssignment,
             userEmail: state.userEmail,
+            // その画面の下にあるチェックボックスだけで絞る（TiAbホストはTiAbの選択のみ、
+            // フルテキストホストはフルテキストの選択のみを見る）。逆側のフェーズの絞り込みは
+            // 渡さない — 渡すと「開いただけの別タブの選択」で見えていた数字が消える事故になる
+            tiabSetFilter: (kind === 'tiab' && setFilterEnabled.tiab)
+                ? { availableSets: state.assignmentSets, selectedSets: state.selectedAssignmentSets }
+                : undefined,
+            fulltextSetFilter: (kind === 'fulltext' && setFilterEnabled.fulltext)
+                ? { selectedSets: state.selectedFulltextSets }
+                : undefined,
         })
         : null;
 
@@ -268,6 +284,8 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
     const body = document.createElement('div');
     body.className = 'team-progress-body';
 
+    body.appendChild(buildScopeFilterRow(kind));
+
     if (!members && isLoadingCurrent()) {
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'team-progress-loading';
@@ -289,6 +307,104 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
     return panel;
 }
 
+/**
+ * 担当セット絞り込みトグル + 対象セット名の表示行
+ * トグルは TiAb ホスト・フルテキストホストで独立（setFilterEnabled）。既定 ON
+ */
+function buildScopeFilterRow(kind: HostKind): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'team-progress-scope-row';
+
+    const label = document.createElement('label');
+    label.className = 'team-progress-scope-toggle';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = setFilterEnabled[kind];
+    checkbox.addEventListener('change', (e) => {
+        e.stopPropagation();
+        setFilterEnabled[kind] = checkbox.checked;
+        renderHost(kind);
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${t('teamProgress_scopeFilterLabel')}`));
+    row.appendChild(label);
+
+    if (setFilterEnabled[kind]) {
+        const scopeText = buildScopeLine(kind);
+        if (scopeText) {
+            const scopeSpan = document.createElement('span');
+            scopeSpan.className = 'team-progress-scope-line';
+            scopeSpan.textContent = scopeText;
+            row.appendChild(scopeSpan);
+        }
+    }
+
+    return row;
+}
+
+/**
+ * 「対象: グループ1, グループ3」のような絞り込み対象セット名の表示。
+ * そのホスト自身のフェーズの絞り込みが実際に効いているときだけ返す
+ * （TiAbホストはTiAb選択のみ、フルテキストホストはフルテキスト選択のみを見る。
+ * renderHost() が渡す tiabSetFilter/fulltextSetFilter と対応させている）。
+ * TiAb 側は getAssignmentSetLabel()（features/assignment.ts）、
+ * フルテキスト側は getFulltextSetLabel()（lib/fulltext-assignment.ts）でラベル化する。
+ */
+function buildScopeLine(kind: HostKind): string | null {
+    if (kind === 'tiab') {
+        const tiabActive = isTiabSetFilterActive(
+            state.assignmentConfig.status === 'configured',
+            state.assignmentSets,
+            state.selectedAssignmentSets
+        );
+        if (!tiabActive) return null;
+        const labels = Array.from(state.assignmentSets)
+            .filter((setId) => state.selectedAssignmentSets.has(setId))
+            .map((setId) => getAssignmentSetLabel(setId));
+        if (labels.length === 0) return null;
+        return t('teamProgress_scopeLabel', labels.join(', '));
+    }
+
+    const fulltextActive = isFulltextSetFilterActive(state.fulltextAssignment, state.selectedFulltextSets);
+    if (!fulltextActive) return null;
+    const labels = Array.from(getAvailableFulltextSets(state.fulltextAssignment, hasUnassignedFulltextPoolRefs()))
+        .filter((setId) => state.selectedFulltextSets.has(setId))
+        .map((setId) => getFulltextSetLabel(setId));
+    if (labels.length === 0) return null;
+    return t('teamProgress_scopeLabel', labels.join(', '));
+}
+
+/**
+ * 候補プールに「未割り当て」（fulltext_set 空だがプールルール/取り込み行で候補入り）の
+ * 文献が実在するか。対象セット名の表示（buildScopeLine）で、選択されていても実在しない
+ * 「未割り当て」ラベルを出さないようにするための判定。
+ * decisionsByRef は都度作り直す（呼び出しは絞り込み表示時のみで頻度が低いため、
+ * computeTeamProgress() 側の状態を持ち回して二重管理にするより単純さを優先している）。
+ */
+function hasUnassignedFulltextPoolRefs(): boolean {
+    if (!hasCurrentCache() || !cache) return false;
+    const decisionsByRef = new Map<string, Decision[]>();
+    for (const d of cache.decisions) {
+        const list = decisionsByRef.get(d.ref_id);
+        if (list) {
+            list.push(d);
+        } else {
+            decisionsByRef.set(d.ref_id, [d]);
+        }
+    }
+    return cache.baseRefs.some((r) => {
+        if ((r.fulltext_set || '').trim() !== '') return false;
+        return isSharedFulltextPoolMember({
+            ref: r,
+            decisions: decisionsByRef.get(r.ref_id) ?? [],
+            poolRule: state.fulltextPoolRule,
+            assignment: state.fulltextAssignment,
+        });
+    });
+}
+
 /** ヘッダーの要約（例: "自分 68% · tanaka 82% · sato 36%"） */
 function buildSummaryHtml(kind: HostKind, members: TeamMemberProgress[] | null): string {
     // members が null = 現在のプロジェクトのキャッシュがない状態。
@@ -299,9 +415,13 @@ function buildSummaryHtml(kind: HostKind, members: TeamMemberProgress[] | null):
 
     const parts = members.map((m) => {
         const name = m.isSelf ? t('teamProgress_you') : shortNameOf(m.email);
-        const pct = kind === 'fulltext' && m.fulltextTotal !== null
-            ? `${percentOf(m.fulltextDone ?? 0, m.fulltextTotal)}%`
-            : `${percentOf(m.tiabDone, m.tiabTotal)}%`;
+        const useFulltext = kind === 'fulltext' && m.fulltextTotal !== null;
+        const inScope = useFulltext ? m.fulltextInScope : m.tiabInScope;
+        const pct = !inScope
+            ? '—'
+            : useFulltext
+                ? `${percentOf(m.fulltextDone ?? 0, m.fulltextTotal as number)}%`
+                : `${percentOf(m.tiabDone, m.tiabTotal)}%`;
         const cls = m.isSelf ? 'team-progress-summary-self' : '';
         return `<span class="${cls}">${escapeHtml(name)} ${pct}</span>`;
     });
@@ -332,13 +452,19 @@ function buildTable(members: TeamMemberProgress[]): HTMLElement {
             ? `${shortNameOf(m.email)} (${t('teamProgress_you')})`
             : shortNameOf(m.email);
 
-        const fulltextCell = m.fulltextTotal !== null
-            ? buildCountCellHtml(m.fulltextDone ?? 0, m.fulltextTotal)
-            : `<span class="team-progress-muted" title="${escapeHtml(t('teamProgress_poolUnset'))}">—</span>`;
+        const tiabCell = m.tiabInScope
+            ? buildCountCellHtml(m.tiabDone, m.tiabTotal)
+            : `<span class="team-progress-muted" title="${escapeHtml(t('teamProgress_outOfScope'))}">—</span>`;
+
+        const fulltextCell = m.fulltextTotal === null
+            ? `<span class="team-progress-muted" title="${escapeHtml(t('teamProgress_poolUnset'))}">—</span>`
+            : m.fulltextInScope
+                ? buildCountCellHtml(m.fulltextDone ?? 0, m.fulltextTotal)
+                : `<span class="team-progress-muted" title="${escapeHtml(t('teamProgress_outOfScope'))}">—</span>`;
 
         tr.innerHTML = `
             <td class="team-progress-name" title="${escapeHtml(m.email)}">${escapeHtml(name)}</td>
-            <td>${buildCountCellHtml(m.tiabDone, m.tiabTotal)}</td>
+            <td>${tiabCell}</td>
             <td>${fulltextCell}</td>
             <td class="team-progress-last">${buildLastActivityHtml(m)}</td>
         `;

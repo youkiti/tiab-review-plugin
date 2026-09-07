@@ -42,6 +42,7 @@ import {
 import type { FulltextAssignmentConfig } from '../../../lib/fulltext-assignment';
 import { getFulltextPoolList } from '../screening/filters';
 import { FULLTEXT_ASSIGNMENT_STORAGE_KEY as STORAGE_KEY } from '../fulltext-assignment-selection';
+import { renderTeamProgress } from '../team-progress';
 import type { ReferenceWithStatus } from '../../../lib/types';
 
 let _rerenderTab: (() => void) | null = null;
@@ -187,6 +188,7 @@ function renderFulltextAssignmentBreakdown(config: FulltextAssignmentConfig): vo
             }
             void persistSelectedFulltextSets();
             if (_rerenderTab) _rerenderTab();
+            renderTeamProgress();
         });
 
         const label = document.createElement('label');

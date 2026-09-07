@@ -1590,6 +1590,15 @@
   "teamProgress_refreshing": {
     "message": "Refreshing…"
   },
+  "teamProgress_scopeFilterLabel": {
+    "message": "Limit to selected assignment sets"
+  },
+  "teamProgress_scopeLabel": {
+    "message": "Scope: $1"
+  },
+  "teamProgress_outOfScope": {
+    "message": "No references in the selected assignment sets"
+  },
   "reviewer_selfMl": {
     "message": "$1 (you/ML)"
   },

@@ -23,7 +23,7 @@ import * as screeningKeywords from './features/screening/keywords';
 import * as reviewerFilter from './features/screening/reviewer-filter';
 import * as reviewCriteria from './features/review-criteria';
 import { setDuplicateReviewDeps } from './features/duplicate-review';
-import { setupTeamProgressListeners } from './features/team-progress';
+import { setupTeamProgressListeners, renderTeamProgress } from './features/team-progress';
 import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
@@ -103,7 +103,8 @@ export function bootstrapCommon(): void {
 
     assignment.setAssignmentDependencies({
         loadDataAndShowScreening: project.loadDataAndShowScreening,
-        renderCurrentReference: screeningRender.renderCurrentReference
+        renderCurrentReference: screeningRender.renderCurrentReference,
+        renderTeamProgress
     });
 
     reviewerFilter.setReviewerFilterDependencies({

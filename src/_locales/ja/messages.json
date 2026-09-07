@@ -1590,6 +1590,15 @@
   "teamProgress_refreshing": {
     "message": "更新中…"
   },
+  "teamProgress_scopeFilterLabel": {
+    "message": "担当セットの絞り込みを反映"
+  },
+  "teamProgress_scopeLabel": {
+    "message": "対象: $1"
+  },
+  "teamProgress_outOfScope": {
+    "message": "選択中の担当セットに対象の文献がありません"
+  },
   "reviewer_selfMl": {
     "message": "$1 (自分/ML)"
   },

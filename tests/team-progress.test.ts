@@ -7,6 +7,7 @@ import {
     toTeamProgressRef,
     type TeamProgressRef,
 } from '../src/lib/team-progress';
+import { createDefaultFulltextAssignment } from '../src/lib/fulltext-assignment';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
 import type { Decision, AssignmentConfig, Reference } from '../src/lib/types';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
@@ -390,6 +391,175 @@ test('同一文献への複数判定行は1件として数える', () => {
         userEmail: 'alice@example.com',
     });
     assert.equal(result[0].tiabDone, 1);
+});
+
+// ---------------------------------------------------------------------------
+// 担当セットの絞り込み
+// ---------------------------------------------------------------------------
+
+test('TiAb絞り込み: 全セット選択時は絞り込み前と同じ数字になる', () => {
+    const refs = makeRefs(10, (i) => (i < 2 ? 'calibration' : i < 6 ? 'group-1' : 'group-2'));
+    const config: AssignmentConfig = {
+        status: 'configured',
+        calibrationSize: 2,
+        groupCount: 2,
+        reviewerMap: {
+            'group-1': ['alice@example.com'],
+            'group-2': ['bob@example.com'],
+        },
+    };
+    const decisions = [
+        makeDecision({ ref_id: 'ref1', reviewer_id: 'alice@example.com' }),
+        makeDecision({ ref_id: 'ref3', reviewer_id: 'alice@example.com' }),
+        makeDecision({ ref_id: 'ref7', reviewer_id: 'alice@example.com' }),
+    ];
+    const base = {
+        refs,
+        decisions,
+        assignmentConfig: config,
+        poolRule: null as null,
+        userEmail: 'alice@example.com',
+    };
+
+    const unfiltered = computeTeamProgress(base);
+    const allSets = new Set(['calibration', 'group-1', 'group-2']);
+    const filteredWithAll = computeTeamProgress({
+        ...base,
+        tiabSetFilter: { availableSets: allSets, selectedSets: new Set(allSets) },
+    });
+
+    assert.deepEqual(
+        filteredWithAll.map((m) => ({ email: m.email, tiabDone: m.tiabDone, tiabTotal: m.tiabTotal, tiabInScope: m.tiabInScope })),
+        unfiltered.map((m) => ({ email: m.email, tiabDone: m.tiabDone, tiabTotal: m.tiabTotal, tiabInScope: true }))
+    );
+});
+
+test('TiAb絞り込み: 一部セットのみ選択すると分母・分子がそのセット内に限定され、担当外メンバーは対象外になる', () => {
+    // ref1-2: calibration, ref3-6: group-1, ref7-10: group-2
+    const refs = makeRefs(10, (i) => (i < 2 ? 'calibration' : i < 6 ? 'group-1' : 'group-2'));
+    const config: AssignmentConfig = {
+        status: 'configured',
+        calibrationSize: 2,
+        groupCount: 2,
+        reviewerMap: {
+            'group-1': ['alice@example.com'],
+            'group-2': ['bob@example.com'],
+        },
+    };
+    const decisions = [
+        makeDecision({ ref_id: 'ref1', reviewer_id: 'alice@example.com' }), // calibration → 絞り込みで分母から外れる
+        makeDecision({ ref_id: 'ref3', reviewer_id: 'alice@example.com' }), // group-1 → 絞り込み後も分母・分子に残る
+    ];
+
+    const result = computeTeamProgress({
+        refs,
+        decisions,
+        assignmentConfig: config,
+        poolRule: null,
+        userEmail: 'alice@example.com',
+        tiabSetFilter: {
+            availableSets: new Set(['calibration', 'group-1', 'group-2']),
+            selectedSets: new Set(['group-1']),
+        },
+    });
+
+    // alice: 担当(calibration+group-1) ∩ 選択(group-1) = group-1の4件のみ
+    const alice = result.find((m) => m.email === 'alice@example.com')!;
+    assert.equal(alice.tiabTotal, 4, '選択中の group-1 のみに分母が限定される');
+    assert.equal(alice.tiabDone, 1, 'calibration(ref1)は絞り込みで外れ、group-1(ref3)のみ分子に残る');
+    assert.equal(alice.tiabInScope, true);
+
+    // bob: 担当(calibration+group-2) ∩ 選択(group-1) = 0件 → 対象外
+    const bob = result.find((m) => m.email === 'bob@example.com')!;
+    assert.equal(bob.tiabTotal, 0, '選択中のセットに担当文献が無いので分母は0');
+    assert.equal(bob.tiabInScope, false, '選択セットに対象文献が無いメンバーは対象外(false)になる');
+});
+
+test('フルテキスト絞り込み: 一部グループのみ選択すると分母・分子が限定され、担当外メンバーは対象外になる', () => {
+    const refs: TeamProgressRef[] = [
+        { ref_id: 'ref1', fulltext_set: 'ft-group-1' },
+        { ref_id: 'ref2', fulltext_set: 'ft-group-2' },
+        // 割り振り後にプールへ新規流入した未割り当て文献（fulltext_set 空）
+        { ref_id: 'ref3', fulltext_set: '' },
+    ];
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:carol@example.com'],
+        threshold: 1,
+    };
+    const ftAssignment = {
+        status: 'configured' as const,
+        groupCount: 2,
+        reviewerMap: {
+            'ft-group-1': ['alice@example.com'],
+            'ft-group-2': ['bob@example.com'],
+        },
+    };
+    const decisions = [
+        // carol の TiAb Include により ref3 がプールルールを満たす（未割り当て流入分）
+        makeDecision({ ref_id: 'ref3', reviewer_id: 'carol@example.com', decision: 'include' }),
+        makeDecision({ ref_id: 'ref1', reviewer_id: 'alice@example.com', screening_phase: 'fulltext' }),
+    ];
+
+    const result = computeTeamProgress({
+        refs,
+        decisions,
+        assignmentConfig: NO_ASSIGNMENT,
+        poolRule: rule,
+        fulltextAssignment: ftAssignment,
+        userEmail: 'alice@example.com',
+        fulltextSetFilter: { selectedSets: new Set(['ft-group-1']) },
+    });
+
+    // alice: 担当(ft-group-1+未割り当て) ∩ 選択(ft-group-1) = ref1のみ（ref3は未割り当てなので選択から外れる）
+    const alice = result.find((m) => m.email === 'alice@example.com')!;
+    assert.equal(alice.fulltextTotal, 1, '選択中の ft-group-1 のみに分母が限定される（未割り当てのref3は外れる）');
+    assert.equal(alice.fulltextDone, 1);
+    assert.equal(alice.fulltextInScope, true);
+
+    // bob: 担当(ft-group-2+未割り当て) ∩ 選択(ft-group-1) = 0件 → 対象外
+    const bob = result.find((m) => m.email === 'bob@example.com')!;
+    assert.equal(bob.fulltextTotal, 0, '選択中のグループに担当文献が無いので分母は0');
+    assert.equal(bob.fulltextInScope, false, '選択セットに対象文献が無いメンバーは対象外(false)になる');
+});
+
+test('フルテキスト絞り込み: 全グループ選択時は絞り込み前と同じ数字になる', () => {
+    const refs: TeamProgressRef[] = [
+        { ref_id: 'ref1', fulltext_set: 'ft-group-1' },
+        { ref_id: 'ref2', fulltext_set: 'ft-group-2' },
+    ];
+    const ftAssignment = createDefaultFulltextAssignment();
+    ftAssignment.status = 'configured';
+    ftAssignment.groupCount = 2;
+    ftAssignment.reviewerMap = {
+        'ft-group-1': ['alice@example.com'],
+        'ft-group-2': ['bob@example.com'],
+    };
+    const rule: FulltextPoolRule = {
+        version: 1,
+        voters: ['human:alice@example.com'],
+        threshold: 1,
+    };
+    const decisions: Decision[] = [];
+    const base = {
+        refs,
+        decisions,
+        assignmentConfig: NO_ASSIGNMENT,
+        poolRule: rule,
+        fulltextAssignment: ftAssignment,
+        userEmail: 'alice@example.com',
+    };
+
+    const unfiltered = computeTeamProgress(base);
+    const filteredWithAll = computeTeamProgress({
+        ...base,
+        fulltextSetFilter: { selectedSets: new Set(['ft-group-1', 'ft-group-2']) },
+    });
+
+    assert.deepEqual(
+        filteredWithAll.map((m) => ({ email: m.email, fulltextTotal: m.fulltextTotal, fulltextInScope: m.fulltextInScope })),
+        unfiltered.map((m) => ({ email: m.email, fulltextTotal: m.fulltextTotal, fulltextInScope: true }))
+    );
 });
 
 test('shortNameOf / percentOf', () => {

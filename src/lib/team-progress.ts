@@ -11,6 +11,18 @@
 //   （calibration + reviewerMap で割り当てられたセット）内の文献数。未設定なら全文献数。
 // - フルテキストの分母: 候補ルール（FulltextPoolRule）が設定済みの場合のみ、
 //   ルールで決まる共通候補プールの文献数。未設定時は分母が人によって異なるため非表示（null）。
+//
+// 担当セットの絞り込み:
+// - 画面下部の担当セットのチェックボックス選択を任意入力（tiabSetFilter / fulltextSetFilter）
+//   として受け取ると、上記の分母・分子をさらに選択セット内へ限定する。省略時は従来どおり
+//   絞り込まない（後方互換）。
+// - TiAb 側の発動条件は src/sidepanel/store/selectors.ts の getFilteredReferences() の
+//   担当セットフィルターと同じ規則（isTiabSetFilterActive）。
+// - フルテキスト側は matchesSelectedFulltextSets()（fulltext-assignment.ts）をそのまま
+//   再利用する（isFulltextSetFilterActive はその関数への薄いプローブで、同等の分岐を
+//   別の場所へ書き直さない）。
+// - 絞り込みが効いていて、そのメンバーが選択セット内に対象文献を1件も持たない場合は
+//   tiabInScope / fulltextInScope を false にする（0/0 と「対象外」を区別するため）。
 
 import type { Decision, AssignmentConfig, Reference } from './types';
 import { isMlAutoDecision } from './client-version';
@@ -19,6 +31,7 @@ import { getRefAssignmentSet } from './assignment-roster';
 import {
     createDefaultFulltextAssignment,
     getFulltextSetsForUser,
+    matchesSelectedFulltextSets,
     type FulltextAssignmentConfig,
 } from './fulltext-assignment';
 import { isSharedFulltextPoolMember } from './fulltext-candidates';
@@ -72,11 +85,33 @@ export interface TeamMemberProgress {
     isSelf: boolean;
     tiabDone: number;
     tiabTotal: number;
+    /**
+     * 担当セットの絞り込みが効いていて、かつこのメンバーが選択中のセットに
+     * 対象文献を1件も持たない場合は false（0/0 と「対象外」を区別するため）。
+     * 絞り込みが効いていないときは常に true。
+     */
+    tiabInScope: boolean;
     /** 候補ルール未設定時は null（分母が共有できないため表示しない） */
     fulltextDone: number | null;
     fulltextTotal: number | null;
+    /** tiabInScope と同じ考え方のフルテキスト版。絞り込みが効いていないときは常に true */
+    fulltextInScope: boolean;
     /** 最終判定日時（ISO 8601）。進捗対象の判定が1件もなければ null */
     lastDecidedAt: string | null;
+}
+
+/** TiAb 担当セットの絞り込み指定（省略時は絞り込まない） */
+export interface TiabSetFilterInput {
+    /** 存在しうる全セットID（state.assignmentSets 相当） */
+    availableSets: Set<string>;
+    /** チェックボックスで選択中のセットID（state.selectedAssignmentSets 相当） */
+    selectedSets: Set<string>;
+}
+
+/** フルテキスト担当セットの絞り込み指定（省略時は絞り込まない） */
+export interface FulltextSetFilterInput {
+    /** チェックボックスで選択中のセットID（state.selectedFulltextSets 相当） */
+    selectedSets: Set<string>;
 }
 
 export interface TeamProgressInput {
@@ -87,6 +122,10 @@ export interface TeamProgressInput {
     /** フルテキスト担当割り振り。省略時は未設定（全員が全候補）として扱う */
     fulltextAssignment?: FulltextAssignmentConfig;
     userEmail: string;
+    /** TiAb 担当セットの絞り込み。省略時は絞り込まない */
+    tiabSetFilter?: TiabSetFilterInput;
+    /** フルテキスト担当セットの絞り込み。省略時は絞り込まない */
+    fulltextSetFilter?: FulltextSetFilterInput;
 }
 
 function normalizeEmail(email: string): string {
@@ -126,14 +165,65 @@ function refSetOf(ref: TeamProgressRef): string {
 }
 
 /**
+ * TiAb 担当セットの絞り込みが実際に効くかどうか。
+ * src/sidepanel/store/selectors.ts の getFilteredReferences() の担当セットフィルター
+ * （コメント「担当セットフィルター（全選択時は絞らず、未選択時は空にする）」の直後）と
+ * 同じ規則: 「全セット数 > 0 かつ 選択数 < 全セット数」のときだけ絞る。
+ * computeTeamProgress() 本体と、対象セット名の表示要否を決める呼び出し側
+ * （src/sidepanel/features/team-progress.ts）の両方から使い、判定基準がずれないようにする。
+ */
+export function isTiabSetFilterActive(
+    assignmentConfigured: boolean,
+    availableSets: Set<string>,
+    selectedSets: Set<string>
+): boolean {
+    return assignmentConfigured && availableSets.size > 0 && selectedSets.size < availableSets.size;
+}
+
+/**
+ * フルテキスト担当セットの絞り込みが実際に効くかどうか。
+ * matchesSelectedFulltextSets() は「未設定 / 選択0件 / 全グループ選択」のときに
+ * 絞らない判定をすでに持っているため、その分岐をここで書き直さず、
+ * 存在しうる ft-group-1..N を順にプローブして matchesSelectedFulltextSets() 自身に
+ * 判定させることで再利用する（全グループが選択されていれば全プローブが true になり非絞込と判定）。
+ */
+export function isFulltextSetFilterActive(
+    fulltextAssignment: FulltextAssignmentConfig,
+    selectedSets: Set<string>
+): boolean {
+    for (let i = 1; i <= fulltextAssignment.groupCount; i += 1) {
+        if (!matchesSelectedFulltextSets({ fulltext_set: `ft-group-${i}` }, fulltextAssignment, selectedSets)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * チーム全員の進捗を集計する
  * 返り値は自分が先頭、以降はメールアドレス昇順
  */
 export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgress[] {
-    const { refs, decisions, assignmentConfig, poolRule, fulltextAssignment } = input;
+    const { refs, decisions, assignmentConfig, poolRule, fulltextAssignment, tiabSetFilter, fulltextSetFilter } = input;
     const userEmail = normalizeEmail(input.userEmail);
     const assignmentConfigured = assignmentConfig.status === 'configured';
     const ftAssignmentConfigured = fulltextAssignment?.status === 'configured';
+    const resolvedFulltextAssignment = fulltextAssignment ?? createDefaultFulltextAssignment();
+
+    // 絞り込みが実際に効くかどうかは1回だけ判定し、メンバーごとのループでは使い回す。
+    // tiabSelectedSets は「絞り込みが効いているときだけ選択セットを持つ」形にし、
+    // 効いていなければ null（tiabFilterActive はこの null 判定から導出する）。
+    // isTiabSetFilterActive(assignmentConfigured, ...) が真になるのは assignmentConfigured
+    // のときだけなので、下のメンバーごとのループでは「割り振り済みなら分母を絞る」の
+    // 1ブロックへ選択セットの条件をそのまま畳み込める（担当セット判定と選択セット判定を
+    // 別々に2回 refs を走査しなくてよい）。
+    const tiabSelectedSets: Set<string> | null = (tiabSetFilter
+        && isTiabSetFilterActive(assignmentConfigured, tiabSetFilter.availableSets, tiabSetFilter.selectedSets))
+        ? tiabSetFilter.selectedSets
+        : null;
+    const tiabFilterActive = tiabSelectedSets !== null;
+    const fulltextFilterActive = !!fulltextSetFilter
+        && isFulltextSetFilterActive(resolvedFulltextAssignment, fulltextSetFilter.selectedSets);
 
     // ---- メンバー発見: 割り振り設定（TiAb + フルテキスト） + 判定実績 + 自分 ----
     const members = new Set<string>();
@@ -214,14 +304,26 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
     // ---- メンバーごとに分母・分子を確定 ----
     const result: TeamMemberProgress[] = [];
     for (const email of members) {
-        // TiAb 分母: 担当セット内の文献（割り振り未設定なら全文献）
+        // TiAb 分母: 担当セット内の文献（割り振り未設定なら全文献）。
+        // 担当セットの絞り込みが効いている場合（tiabFilterActive）は、この1回の走査へ
+        // 選択中セットの条件も畳み込んで分母を限定する（tiabFilterActive は assignmentConfigured
+        // を含意するため、このブロックの外側に別扱いの分岐を作る必要はない）。
         let tiabRefIds: Set<string> | null = null;
         let tiabTotal = refs.length;
         if (assignmentConfigured) {
             const assigned = assignedSetsFor(assignmentConfig, email);
-            tiabRefIds = new Set(refs.filter((r) => assigned.has(refSetOf(r))).map((r) => r.ref_id));
+            tiabRefIds = new Set(
+                refs
+                    .filter((r) => {
+                        const setId = refSetOf(r);
+                        if (!assigned.has(setId)) return false;
+                        return !tiabSelectedSets || tiabSelectedSets.has(setId);
+                    })
+                    .map((r) => r.ref_id)
+            );
             tiabTotal = tiabRefIds.size;
         }
+        const tiabInScope = !tiabFilterActive || tiabTotal > 0;
 
         const tiabDoneSet = tiabDoneByMember.get(email) ?? new Set<string>();
         let tiabDone = 0;
@@ -234,6 +336,7 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
         // （未割り当て = 割り振り後の新規流入分。全員に表示される仕様に合わせて全員の分母に含める）
         let fulltextDone: number | null = null;
         let fulltextTotal: number | null = null;
+        let fulltextInScope = true;
         if (poolRefIds) {
             let memberPoolRefIds = poolRefIds;
             if (ftAssignmentConfigured && fulltextAssignment) {
@@ -248,7 +351,20 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
                         .map((r) => r.ref_id)
                 );
             }
+
+            // 担当セットの絞り込みが効いている場合は、さらに選択中のセットへ限定する
+            // （分岐は matchesSelectedFulltextSets() へ委譲し、ここでは書き直さない）
+            if (fulltextFilterActive) {
+                memberPoolRefIds = new Set(
+                    refs
+                        .filter((r) => memberPoolRefIds.has(r.ref_id)
+                            && matchesSelectedFulltextSets(r, resolvedFulltextAssignment, fulltextSetFilter!.selectedSets))
+                        .map((r) => r.ref_id)
+                );
+            }
+
             fulltextTotal = memberPoolRefIds.size;
+            fulltextInScope = !fulltextFilterActive || fulltextTotal > 0;
             fulltextDone = 0;
             for (const refId of fulltextDoneByMember.get(email) ?? new Set<string>()) {
                 if (memberPoolRefIds.has(refId)) fulltextDone++;
@@ -260,8 +376,10 @@ export function computeTeamProgress(input: TeamProgressInput): TeamMemberProgres
             isSelf: email === userEmail,
             tiabDone,
             tiabTotal,
+            tiabInScope,
             fulltextDone,
             fulltextTotal,
+            fulltextInScope,
             lastDecidedAt: lastDecidedByMember.get(email) || null,
         });
     }
