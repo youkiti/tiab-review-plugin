@@ -93,7 +93,7 @@ export interface Decision {
     /**
      * 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON文字列
      * （DecisionContextV1、`src/lib/decision-context.ts`）。human判定の保存時のみ設定する。
-     * 書くだけの列で、読み取り側の挙動は変えない（AGENTS.md「Decisions タブ」参照）。
+     * 書くだけの列で、読み取り側の挙動は変えない（src/lib/sheets/AGENTS.md「Decisions タブ」参照）。
      */
     context_json?: string;
 }

@@ -41,7 +41,7 @@ import { buildSpreadsheetUrl } from '../../../lib/share-invite';
 
 // 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
 // （プロジェクト × アカウントごとに保持）。
-// drive.file の可読性はユーザーごとに異なる（AGENTS.md参照）ため、spreadsheetId だけをキーに
+// drive.file の可読性はユーザーごとに異なる（src/platform/AGENTS.md参照）ため、spreadsheetId だけをキーに
 // すると、同一サイドパネルでアカウントを切り替えたときに前アカウントの確認結果が漏れてしまう。
 const STORAGE_KEY = 'fulltextRegrantCheckResults';
 
@@ -71,7 +71,7 @@ let lastRegrantResultKey = '';
 //
 // フォルダ・スプレッドシートの権限一覧はDrive APIの読み取りクォータ対象のため、
 // チェックリストの再描画（判定保存・フィルタ変更のたびに走る）のたびに叩くと
-// 429を踏む（AGENTS.mdの429対策の思想）。spreadsheetId単位でモジュール内キャッシュし、
+// 429を踏む（src/platform/AGENTS.mdの429対策の思想）。spreadsheetId単位でモジュール内キャッシュし、
 // プロジェクトが変わったときだけ取り直す。管理者以外は使わないため取得自体を行わない。
 // ---------------------------------------------------------------------------
 
@@ -146,7 +146,7 @@ async function loadPermissionsSnapshot(spreadsheetId: string): Promise<FulltextC
  *
  * Decisions の reviewer_id からは集めない。Blind中は他人の human 票がクライアントに
  * 配られないため、これを使うと人によって missingEmails の結果が変わってしまう
- * （ブラインドセーフの要。AGENTS.md 参照）。代わりに全員に同じ値が見える Config 由来の
+ * （ブラインドセーフの要。src/platform/AGENTS.md 参照）。代わりに全員に同じ値が見える Config 由来の
  * 割り振り設定（TiAb: state.assignmentConfig.reviewerMap ＋ フルテキスト:
  * state.fulltextAssignment.reviewerMap）の和集合を使う。
  */

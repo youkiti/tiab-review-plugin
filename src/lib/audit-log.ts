@@ -3,7 +3,7 @@
 // Decisions.context_json（src/lib/decision-context.ts）との役割分担:
 // context_json は「判定ごとの暴露状況」を判定行へ相乗りさせて記録するのに対し、
 // Audit_Log は判定と無関係な操作（key開閉など）を独立したイベント行として記録する。
-// 詳細は AGENTS.md「Audit_Log タブ」を参照。
+// 詳細は src/lib/sheets/AGENTS.md「Audit_Log タブ」を参照。
 //
 // ここでは行の組み立てのみを純粋関数として持つ（テストのため）。Sheets への書き込み・
 // タブ未作成時のリトライ・ベストエフォート方針（失敗を握りつぶす）は

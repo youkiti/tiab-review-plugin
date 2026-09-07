@@ -1,7 +1,7 @@
 // decision-context.ts - human判定の保存時に、判定の瞬間にAIの情報へどれだけ暴露されていたかを
 // 記録するための純粋関数群。
 //
-// Decisions タブの context_json 列（末尾追記。AGENTS.md「Decisions タブ」参照）に保存する
+// Decisions タブの context_json 列（末尾追記。src/lib/sheets/AGENTS.md「Decisions タブ」参照）に保存する
 // JSON文字列を組み立てる。将来「人間の判定はAIから独立していたか」を遡って検証するための、
 // 書くだけ・読み手（既存のUI・集計）の挙動は一切変えない列。
 //

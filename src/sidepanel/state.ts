@@ -3,7 +3,7 @@
  * 設定・絞り込み・現在文献・spreadsheetId/userEmail/highlightKeywords/isAdmin/
  * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab/
  * llmConfig/mlState/activeLlmExecutionIds/currentBatchDecisions/failedRefIds は
- * Storeを読むgetterのみ（AGENTS.md参照）。
+ * Storeを読むgetterのみ（src/sidepanel/AGENTS.md参照）。
  */
 
 import { getState } from './store';

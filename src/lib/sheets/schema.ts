@@ -93,7 +93,7 @@ export const REFERENCES_HEADERS = [
 // 互換性のため labels 列は残すが、機能としては使用しない
 // screening_phase: 'tiab' | 'fulltext' (省略時は 'tiab' 扱い)
 // context_json: 判定時点のAI暴露状況を記録するJSON（DecisionContextV1）。書くだけの列で
-// 読み取り側の挙動は変えない（AGENTS.md「Decisions タブ」参照）。新しい列は必ず末尾に追加すること
+// 読み取り側の挙動は変えない（src/lib/sheets/AGENTS.md「Decisions タブ」参照）。新しい列は必ず末尾に追加すること
 // （LLM_EXECUTIONS_HEADERS と同じ理由。saveDecisionInner 等が row 配列を位置ベースで組み立てるため）。
 export const DECISIONS_HEADERS = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason',

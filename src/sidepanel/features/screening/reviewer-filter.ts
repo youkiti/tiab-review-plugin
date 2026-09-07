@@ -265,7 +265,7 @@ export function initAiHighlightListener() {
 /**
  * 合議モードトグル・バッジの表示を更新する。
  * 合議はブラインド中に成立しないため、state.isKeyOpened===true のときだけトグルを表示する
- * （フルテキストの裁定UIと同じガード。AGENTS.md「フルテキストの不一致解消（裁定）」参照）。
+ * （フルテキストの裁定UIと同じガード。src/lib/sheets/AGENTS.md「フルテキストの不一致解消（裁定）」参照）。
  * バッジは「トグルが見えている and ON」のときだけ出す（押し忘れ防止の視覚的インジケータ）。
  */
 export function renderConsensusModeToggle() {

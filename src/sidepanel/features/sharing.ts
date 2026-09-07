@@ -127,7 +127,7 @@ async function resolveProjectOwnerEmail(folderId: string, spreadsheetId: string)
  * フォルダ共有がベストエフォートで失敗したときの案内モーダル。
  *
  * drive.file の制約上、フォルダに他メンバーがアップロードした子ファイルが1つでもあると
- * permissions.create は誰が実行しても（オーナーでも）403になる（AGENTS.md参照）。
+ * permissions.create は誰が実行しても（オーナーでも）403になる（src/platform/AGENTS.md参照）。
  * 事前検知はできないため、失敗したその場でユーザーへ手動共有の導線を出す。
  * スプレッドシート共有は既にこの時点で成功しているため、エラー扱い（トースト）にはしない。
  * 失敗時のAPIエラーメッセージはパースしない（英語文言依存は脆いため）。
@@ -184,7 +184,7 @@ async function showFolderShareFailureModal(folderId: string, email: string): Pro
  * 必ず持つため、ほぼ確実に成功する）、招待文つきの通知メールもこちらに載せる。
  * プロジェクトフォルダがあれば、フォルダ共有はベストエフォートで追加実行する
  * （drive.fileの制約上、他メンバーのアップロード後は誰が実行しても403になりうるため。
- * AGENTS.md参照）。フォルダ側が失敗しても招待全体は失敗にせず、案内モーダルを出す。
+ * src/platform/AGENTS.md参照）。フォルダ側が失敗しても招待全体は失敗にせず、案内モーダルを出す。
  */
 export async function handleShare() {
     const email = dom.shareEmailInput.value.trim();

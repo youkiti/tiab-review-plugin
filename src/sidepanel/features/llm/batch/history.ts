@@ -348,7 +348,7 @@ export async function loadExecutionHistory(isCurrent: () => boolean = () => true
                 batchesByRunId.set(exec.run_id, list);
             } else if (exec.execution_type === 'fulltext_batch_screening') {
                 // フルテキストAI判定の実行履歴は TiAb の Run/Batch モデルには載せない
-                // （AGENTS.md「フルテキストAI判定」参照）。TiAb の実行履歴一覧に混ぜると
+                // （src/sidepanel/AGENTS.md「フルテキストAI判定」参照）。TiAb の実行履歴一覧に混ぜると
                 // 「判定基準生成」という誤ったラベルで表示されてしまう（else 分岐が
                 // batch_screening 以外を全部「判定基準生成」扱いする二値三項のため）。
                 // フルテキストの実行履歴は AI判定タブのラウンド一覧（fulltext-ai.ts）で見せる。

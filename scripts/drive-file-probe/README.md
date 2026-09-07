@@ -32,7 +32,7 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
   未付与PDFのID）。
 - **`upload-to-ungranted-folder`**（`scenarios/upload-to-ungranted-folder.mjs`）: アプリに
   `drive.file` 未付与のフォルダを `parents` に指定して、ファイルを新規作成できるかを測定する
-  （AGENTS.md の「`drive.file` の 403/404 は『無い』ではなく『このユーザーに未付与』」セクションで
+  （src/platform/AGENTS.md の「`drive.file` の 403/404 は『無い』ではなく『このユーザーに未付与』」セクションで
   説明されている、共同研究者がフルテキストPDFをアップロードできない問題の直し方を実測してから
   決めるための実験）。必要な `--input`: `folderId`（未付与フォルダのID）。
 - **`copy-to-ungranted-folder`**（`scenarios/copy-to-ungranted-folder.mjs`）: アプリに

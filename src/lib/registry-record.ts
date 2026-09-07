@@ -73,7 +73,7 @@ export function parseRegistryFieldsFromAbstract(
     if (!abstract) return [];
 
     // 値そのものに ' | ' が含まれる自由記述フィールド（Brief Summary / Inclusion_Criteria 等）は
-    // ここで分割された後半部にコロンが無い断片になる。データを落とさない方針（AGENTS.md
+    // ここで分割された後半部にコロンが無い断片になる。データを落とさない方針（src/lib/AGENTS.md
     // インポート規約）に合わせ、そういう断片は捨てず直前フィールドの値へ ' | ' で連結し直し、
     // 分割前の原文を復元する。先頭要素がそもそも断片（直前フィールドが無い）場合は、
     // 値だけの行としてラベル空文字で積む（buildRegistrySnapshotHtml 側は空ラベルの行も
@@ -120,7 +120,7 @@ const SECONDARY_TRIAL_ID_PATTERN =
  * discoverPublicationCandidates() の3戦略（ctgov_reference/pubmed_id/europepmc）が
  * 自分の試験IDだけでは候補をほぼ発見できない（jRCT実測で取りこぼし86.0%）。副登録番号を
  * 第2の検索キーにすると取りこぼしが39.5%まで下がることが実測で確定している
- * （詳細・数値の根拠は AGENTS.md「試験登録レコードの論文候補探索」節・Issue #134参照）。
+ * （詳細・数値の根拠は src/lib/AGENTS.md「試験登録レコードの論文候補探索」節・Issue #134参照）。
  *
  * 入力は parseRegistryFieldsFromAbstract() の戻り値をそのまま渡せる形にしている。
  *

@@ -4,7 +4,7 @@
 // （実際に研究チームで発生）:
 //   1. 自分の担当グループへの絞り込み方が分からない
 //   2. 他メンバーがアップロードしたPDFが drive.file スコープの制約で読めない
-//      （「読み取り権限を確認」ボタンの存在に気づかない。詳細は AGENTS.md の
+//      （「読み取り権限を確認」ボタンの存在に気づかない。詳細は src/platform/AGENTS.md の
 //      「drive.file の403/404は『無い』ではなく『このユーザーに未付与』」参照）
 //   3. どこまで進んだか分からない
 // メール手順書なしで各自が自走できるように、既存の状態から自動判定する。
@@ -93,7 +93,7 @@ export interface FulltextChecklistProgressState {
 // 項目5: リンク共有の検出（管理者のみ）
 //
 // 実プロジェクトでは共有ボタンを使わず Google 側で手動の「リンクを知っている全員が
-// 編集可」運用がされていたことがあった（AGENTS.md「共有フロー」参照）。共有リストの
+// 編集可」運用がされていたことがあった（src/platform/AGENTS.md「共有フロー」参照）。共有リストの
 // 警告バナー（mergePermissionsForDisplay の linkShare）と同じ判定をチェックリストにも
 // 出し、管理者がフルテキストタブを開いた時点でも気づけるようにする。
 // ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ export interface FulltextChecklistInput {
 /**
  * PDF読み取り権限チェック結果の永続化・セッション記憶キー（アカウント間で共有されないように）。
  *
- * drive.file の可読性はユーザーごとに異なる（AGENTS.md の「drive.file の403/404は…」参照）ため、
+ * drive.file の可読性はユーザーごとに異なる（src/platform/AGENTS.md の「drive.file の403/404は…」参照）ため、
  * spreadsheetId だけをキーにすると、同一サイドパネルでアカウントを切り替えたときに
  * 前のアカウントの確認結果（freshness: 'session' の「権限OK」）が新しいアカウントにも
  * 引き継がれてしまう。userEmail を正規化して複合キーに含めることでアカウントごとに分離する。
@@ -313,7 +313,7 @@ function computeFolderShare(
 ): FulltextChecklistFolderShareState {
     // フォルダ権限が読めない（drive.file未付与で403等）場合、それは「異常」ではなく
     // 「アプリからは判定できない」状態なので、エラー表示にせず項目ごと非表示にする
-    // （AGENTS.mdの「読めないときは黙って出さない」縮退方針）。
+    // （src/platform/AGENTS.mdの「読めないときは黙って出さない」縮退方針）。
     if (!isAdmin || folderPermissionEmails === null || knownReviewerEmails.length === 0) {
         return { visible: false, kind: 'ok', missingEmails: [] };
     }

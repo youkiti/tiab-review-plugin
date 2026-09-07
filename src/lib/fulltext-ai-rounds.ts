@@ -50,7 +50,7 @@ export interface AiRoundWithExecution extends AiRound {
      * 対応する実行履歴が無ければ0。
      *
      * Decisions由来の r.total は使わない: ユーザーが個別に判定を消すとズレるため、
-     * その実行が何件処理したかの記録としては使えない（AGENTS.md「is_active を使わず
+     * その実行が何件処理したかの記録としては使えない（src/sidepanel/AGENTS.md「is_active を使わず
      * Config の fulltext_ai_active_round を正とする」のと同じ、値を1箇所にしか持たない方針）
      */
     processedCount: number;
@@ -61,7 +61,7 @@ export interface AiRoundWithExecution extends AiRound {
      * 「中断」と「途中で予期しないエラーが出て抜けた」を区別する手段はデータ上無いため、
      * この値は両者をまとめた中立な「未完了」判定として扱う。新しい列（例えば is_complete）は
      * 追加せず、既存の件数列から導出する（二重管理を避けるため。上記 processedCount のコメント
-     * および AGENTS.md 参照）
+     * および src/sidepanel/AGENTS.md 参照）
      */
     isIncomplete: boolean;
 }
