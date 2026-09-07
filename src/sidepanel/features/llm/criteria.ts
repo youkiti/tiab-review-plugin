@@ -98,13 +98,15 @@ export async function handleOptimizeCriteria() {
         // 結果を表示
         renderOptimizedCriteria(result.criteria, result.screening_prompt);
 
-        // 設定を更新
-        const llmConfig = state.llmConfig;
-        llmConfig.llm_criteria = result.criteria;
-        llmConfig.llm_screening_prompt = result.screening_prompt;
-        llmConfig.llm_protocol_text = protocolText;
-        // Store経由で更新
-        syncSetLlmConfig(llmConfig);
+        // 設定を Store 経由で更新する。state.llmConfig は Store が持つ実体をそのまま返すので、
+        // その場で書き換えると未ロード時に initialState の llmConfig を汚し、
+        // ログアウト後の初期値に前のプロジェクトの基準が残る。必ずコピーを渡す。
+        syncSetLlmConfig({
+            ...state.llmConfig,
+            llm_criteria: result.criteria,
+            llm_screening_prompt: result.screening_prompt,
+            llm_protocol_text: protocolText,
+        });
 
         dom.optimizeStatusDiv.textContent = t('llm_optimizeComplete');
         dom.optimizeStatusDiv.className = 'optimize-status success';
