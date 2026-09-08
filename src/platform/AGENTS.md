@@ -120,9 +120,9 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 - `setFileIds` は **`setParent` / `setEnableDrives` と併用できない**（Google公式ドキュメント: 併用すると後勝ちで上書きされる）。そのためfileIds指定時は owned/shared の2枚ビュー分割・`setEnableDrives`・`setParent` のいずれも使わない1枚ビューになる。ID で直接引くため所有者別に分ける意味も無い
 - `fileIds` パラメータ（`PICKER_FILE_IDS_PARAM` / `src/lib/picker-url.ts`）は `drives=1` と全く同じ理由でURLフラグメント側にゲートしてある。Pickerページは GitHub Pages 配信で拡張機能とロールアウトが独立しており、**拡張機能が明示的に渡したときだけ**新しい挙動になる。渡されなければ従来どおりフォルダ全体の初期表示のまま変わらない
-- fileId の個数上限は Google 側が文書化していないため、`REGRANT_PICKER_CHUNK_SIZE`（`src/lib/picker-url.ts`、既定50件）で `chunkRegrantFileIds()` により分割し、`runRegrantPickerChunks()`（`src/lib/drive-regrant-picker.ts`）がチャンクごとに Picker を開き直す。あるチャンクが `'granted'` 以外（キャンセル・パース失敗）で終わると、残りのチャンクは開かずに打ち切る（そうしないとユーザーがチャンク数だけキャンセルを押さないと抜けられない）。打ち切っても、そこまでの選択でサーバー側の付与は確定しているため呼び出し側は必ず再検知へ進む
+- fileId の個数上限は Google 側が文書化していないため、`REGRANT_PICKER_CHUNK_SIZE`（`src/lib/picker-url.ts`、既定100件）で `chunkRegrantFileIds()` により分割し、`runRegrantPickerChunks()`（`src/lib/drive-regrant-picker.ts`）がチャンクごとに Picker を開き直す。あるチャンクが `'granted'` 以外（キャンセル・パース失敗）で終わると、残りのチャンクは開かずに打ち切る（そうしないとユーザーがチャンク数だけキャンセルを押さないと抜けられない）。打ち切っても、そこまでの選択でサーバー側の付与は確定しているため呼び出し側は必ず再検知へ進む。100件という値は「表示件数の上限」ではなく、fileId個数の未文書化とURL長（100件で概ね3,800文字程度、200件だと概ね7,600文字程度でサーバー側の一般的なURL長制限の目安である8KB前後に近づく）から採った値。100件を超えたところは未測定
 - 単票の再付与（`src/fulltext/document-loader.ts` / `src/fulltext/registry-snapshot.ts` の「読み取り権限を復旧」）は fileIds を渡さない。従来どおりフォルダ表示のまま変わらない
-- **実機での Picker 動作（fileIds指定時に対象ファイルだけが実際に表示されるか等）はこの変更の時点では未確認。** テストは `npm test` のURL組み立て・分割ロジックの単体テストと `npm run typecheck` に留まる
+- **2026-09-09 に実機で確認済み。** 他人所有＋共有の実フォルダにある実在の PDF の fileId を、本番と同じ Web ビルド（`http://localhost:8080` で配信）へ渡し、実際の Google アカウントでログインして目視した。fileIds を20件渡すと20件、60件渡すと60件、100件渡すと100件がそのまま Picker に並んだ。**したがって「初期表示件数が概ね50件で頭打ちになる」のは `setParent` でフォルダを初期表示する経路の性質であり、`setFileIds` で fileIds を明示する経路には効かない。** 100件を超えたところは未測定のまま。あわせて Playwright で本番ビルドの `picker.js` を本物の Picker ライブラリに通し、fileIds 指定時は DocsView が1枚だけ addView され `setFileIds` / `setLabel` しか呼ばれないこと、fileIds 未指定時は従来どおり2枚ビュー（`setLabel` / `setEnableDrives` / `setMimeTypes` / `setParent`、2枚目に `setOwnedByMe(false)`）のままであること、`google.picker.DocsView.prototype.setFileIds` が実在すること（対照に置いた架空メソッド名は `undefined` になることも確認済み）、3シナリオとも `build()` が成功し pageerror が出ないことを確認済み
 
 #### 読めない PDF を「空のペイン」にしない（Issue #69）
 
