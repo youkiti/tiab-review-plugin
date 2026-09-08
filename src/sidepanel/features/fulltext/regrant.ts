@@ -31,7 +31,7 @@ import { state } from '../../state';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
 import { showModal, hideModal } from '../../ui/modal';
-import { runRegrantPickerFlow } from '../../../lib/drive-regrant-picker';
+import { runRegrantPickerChunks } from '../../../lib/drive-regrant-picker';
 import {
     listAccessibleFileIdsInFolder,
     describeDriveAccessError,
@@ -102,13 +102,27 @@ async function detectUnreadable(folderId: string): Promise<CachedFulltextRef[]> 
 }
 
 /**
- * Pickerを開く（起動と解析は UI 非依存の drive-regrant-picker.ts に委ねる）。
+ * 検知済みの読めないPDFの fileId だけを表示する Picker を開く（Issue #203）。
+ * fileId 件数が分割サイズを超える場合はチャンクごとに複数回開き直す
+ * （起動・チャンク分割・打ち切り判断は UI 非依存の drive-regrant-picker.ts に委ねる）。
  * 解析失敗だけはこの層でトースト表示する。
  * launchWebAuthFlow 自体の失敗（キャンセル以外。ネットワークエラー等）は投げる。
  */
-async function openRegrantPicker(folderId: string): Promise<void> {
-    const outcome = await runRegrantPickerFlow({ folderId, email: state.userEmail });
-    if (outcome.status === 'parse-error') showToast(t('fulltext_regrantParseError'), 5000);
+async function openRegrantPicker(folderId: string, unreadable: CachedFulltextRef[]): Promise<void> {
+    const outcome = await runRegrantPickerChunks({
+        folderId,
+        fileIds: unreadable.map(r => r.fileId),
+        email: state.userEmail,
+        onChunkStart: ({ index, total, remaining }) => {
+            // 1回で終わる普通のケース（total === 1）では既存の文言のまま数字を出さない
+            setRegrantStatus(
+                total <= 1
+                    ? t('fulltext_regrantOpeningPicker')
+                    : t('fulltext_regrantOpeningPickerChunk', [String(index + 1), String(total), String(remaining)])
+            );
+        },
+    });
+    if (outcome.stoppedBy === 'parse-error') showToast(t('fulltext_regrantParseError'), 5000);
 }
 
 // ---------------------------------------------------------------------------
@@ -197,12 +211,13 @@ async function handleRegrantClick(): Promise<void> {
             return;
         }
 
-        setRegrantStatus(t('fulltext_regrantOpeningPicker'));
+        // ステータス表示は openRegrantPicker 内の onChunkStart がチャンクごとに更新する
+        // （1回で終わる普通のケースは fulltext_regrantOpeningPicker のまま数字を出さない）。
         // 選択件数は表示に使わない。真値は再検知（下のdetectUnreadable）で取り直す
         // （runRegrantPickerFlow / picker.ts のコメント参照）。
         // キャンセル・パース失敗でもここで打ち切らず再検知へ進む（付与は既に起きている可能性があるため）。
         // launchWebAuthFlow自体が失敗した場合（キャンセル以外）はここで例外が飛び、catchへ抜ける。
-        await openRegrantPicker(folderId);
+        await openRegrantPicker(folderId, unreadable);
 
         setRegrantStatus(t('fulltext_regrantRechecking'));
         const afterUnreadable = await detectUnreadable(folderId);

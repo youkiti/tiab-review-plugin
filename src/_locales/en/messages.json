@@ -2922,6 +2922,9 @@
   "picker_sharedViewLabel": {
     "message": "Shared with me"
   },
+  "picker_regrantTargetsViewLabel": {
+    "message": "PDFs to restore"
+  },
   "picker_startBtn": {
     "message": "Open Google Picker"
   },
@@ -3146,6 +3149,9 @@
   },
   "fulltext_regrantOpeningPicker": {
     "message": "Opening Google Picker…"
+  },
+  "fulltext_regrantOpeningPickerChunk": {
+    "message": "Opening Google Picker… ($1 of $2, $3 remaining)"
   },
   "fulltext_regrantRechecking": {
     "message": "Rechecking…"

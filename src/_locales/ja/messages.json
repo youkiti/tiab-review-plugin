@@ -2922,6 +2922,9 @@
   "picker_sharedViewLabel": {
     "message": "共有アイテム"
   },
+  "picker_regrantTargetsViewLabel": {
+    "message": "復旧するPDF"
+  },
   "picker_startBtn": {
     "message": "Google Pickerを開く"
   },
@@ -3146,6 +3149,9 @@
   },
   "fulltext_regrantOpeningPicker": {
     "message": "Google Picker を開いています…"
+  },
+  "fulltext_regrantOpeningPickerChunk": {
+    "message": "Google Picker を開いています…（$1/$2 回目・残り $3 件）"
   },
   "fulltext_regrantRechecking": {
     "message": "再確認しています…"

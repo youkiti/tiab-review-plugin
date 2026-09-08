@@ -114,6 +114,16 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - 真値は必ず再度の `files.list` で取り直す。Picker の戻り値を「読めるようになった証拠」として扱わないこと
 - Picker の起動とリダイレクト解析は `src/lib/drive-regrant-picker.ts`（UI非依存）に置き、モーダル・トーストは呼び出し側（サイドパネル / フルテキストページ）に残す。`chrome.identity.launchWebAuthFlow` は拡張機能ページであれば動くため、サイドパネル以外からも起動できる
 
+**一括再付与の初期表示は fileId 直指定（Issue #203）**
+
+チェックリストの「まとめて権限を付与」「権限を確認する」から起動する一括再付与は、`setParent(フォルダ)` でフォルダ全体を初期表示するのではなく、`google.picker.DocsView.setFileIds()` で**検知済みの「読めないPDFのfileId」だけ**を表示する（`src/webapp/picker.ts` の `openRegrantPicker`）。フォルダ内のPDF数が Picker の初期表示件数（実測で概ね50件）を超えると、復旧したいファイルが一覧に出てこなかった（Issue #203 の報告事象）ための変更。
+
+- `setFileIds` は **`setParent` / `setEnableDrives` と併用できない**（Google公式ドキュメント: 併用すると後勝ちで上書きされる）。そのためfileIds指定時は owned/shared の2枚ビュー分割・`setEnableDrives`・`setParent` のいずれも使わない1枚ビューになる。ID で直接引くため所有者別に分ける意味も無い
+- `fileIds` パラメータ（`PICKER_FILE_IDS_PARAM` / `src/lib/picker-url.ts`）は `drives=1` と全く同じ理由でURLフラグメント側にゲートしてある。Pickerページは GitHub Pages 配信で拡張機能とロールアウトが独立しており、**拡張機能が明示的に渡したときだけ**新しい挙動になる。渡されなければ従来どおりフォルダ全体の初期表示のまま変わらない
+- fileId の個数上限は Google 側が文書化していないため、`REGRANT_PICKER_CHUNK_SIZE`（`src/lib/picker-url.ts`、既定100件）で `chunkRegrantFileIds()` により分割し、`runRegrantPickerChunks()`（`src/lib/drive-regrant-picker.ts`）がチャンクごとに Picker を開き直す。あるチャンクが `'granted'` 以外（キャンセル・パース失敗）で終わると、残りのチャンクは開かずに打ち切る（そうしないとユーザーがチャンク数だけキャンセルを押さないと抜けられない）。打ち切っても、そこまでの選択でサーバー側の付与は確定しているため呼び出し側は必ず再検知へ進む。100件という値は「表示件数の上限」ではなく、fileId個数の未文書化とURL長（100件で概ね3,800文字程度、200件だと概ね7,600文字程度でサーバー側の一般的なURL長制限の目安である8KB前後に近づく）から採った値。100件を超えたところは未測定
+- 単票の再付与（`src/fulltext/document-loader.ts` / `src/fulltext/registry-snapshot.ts` の「読み取り権限を復旧」）は fileIds を渡さない。従来どおりフォルダ表示のまま変わらない
+- **2026-09-09 に実機で確認済み。** 他人所有＋共有の実フォルダにある実在の PDF の fileId を、本番と同じ Web ビルド（`http://localhost:8080` で配信）へ渡し、実際の Google アカウントでログインして目視した。fileIds を20件渡すと20件、60件渡すと60件、100件渡すと100件がそのまま Picker に並んだ。**したがって「初期表示件数が概ね50件で頭打ちになる」のは `setParent` でフォルダを初期表示する経路の性質であり、`setFileIds` で fileIds を明示する経路には効かない。** 100件を超えたところは未測定のまま。あわせて Playwright で本番ビルドの `picker.js` を本物の Picker ライブラリに通し、fileIds 指定時は DocsView が1枚だけ addView され `setFileIds` / `setLabel` しか呼ばれないこと、fileIds 未指定時は従来どおり2枚ビュー（`setLabel` / `setEnableDrives` / `setMimeTypes` / `setParent`、2枚目に `setOwnedByMe(false)`）のままであること、`google.picker.DocsView.prototype.setFileIds` が実在すること（対照に置いた架空メソッド名は `undefined` になることも確認済み）、3シナリオとも `build()` が成功し pageerror が出ないことを確認済み
+
 #### 読めない PDF を「空のペイン」にしない（Issue #69）
 
 **Drive のプレビュー埋め込み（`https://drive.google.com/file/d/{id}/preview`）へフォールバックしてはならない。** Drive は `/preview` に対して `frame-ancestors https://drive.google.com` を返すため、`chrome-extension://` のページからは**構造的に埋め込めない**。`frame-ancestors` はリモート側が返すヘッダなので拡張機能側の CSP 設定では上書きできず、直しようがない。以前の `showCachedPdf()` はここへフォールバックしており、実際には無言で空のペインになるだけだった（エラー表示すら出ない）。

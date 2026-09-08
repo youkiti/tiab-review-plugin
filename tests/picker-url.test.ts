@@ -6,7 +6,11 @@ import {
     buildRegrantPickerUrl,
     isExtensionRedirectUri,
     isSharedDrivesRequested,
+    parseRegrantFileIds,
+    chunkRegrantFileIds,
+    REGRANT_PICKER_CHUNK_SIZE,
     PICKER_PAGE_URL,
+    PICKER_FILE_IDS_PARAM,
 } from '../src/lib/picker-url';
 
 test('buildPickerUrl uses URL fragment for fileId and email', () => {
@@ -69,6 +73,107 @@ test('buildRegrantPickerUrl omits email when not provided (folderId is always re
         url,
         'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2F&folderId=folder_2&drives=1'
     );
+});
+
+test('buildRegrantPickerUrl adds fileIds to the fragment when provided (Issue #203)', () => {
+    const url = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: ['a', 'b', 'c'],
+        baseUrl: 'https://example.test/picker.html',
+    });
+    assert.equal(
+        url,
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&fileIds=a%2Cb%2Cc&email=reviewer%40example.com&drives=1'
+    );
+});
+
+test('buildRegrantPickerUrl omits fileIds when not provided or empty (matches the pre-#203 URL exactly)', () => {
+    const withoutOption = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const withEmptyArray = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: [],
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const expected = 'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1';
+    assert.equal(withoutOption, expected);
+    assert.equal(withEmptyArray, expected);
+    assert.equal(withoutOption.includes('fileIds'), false);
+});
+
+test('buildRegrantPickerUrl fileIds round-trip through the fragment via parseRegrantFileIds (Issue #203)', () => {
+    // src/webapp/picker.ts の start() が本番でやっている経路（URLのフラグメント部分を
+    // new URLSearchParams() でパースし、PICKER_FILE_IDS_PARAM を取り出す）をそのままたどる。
+    // buildRegrantPickerUrl 側と parseRegrantFileIds 側が別々に固定されているだけでは、
+    // 区切り文字やエンコードの流儀が片方だけずれても両テストが緑のまま通ってしまうため、
+    // 「書いた側が読み側で正しく復元できる」ことをここで直接確認する。
+    const originalFileIds = ['1AbC_dEf-23', 'zYx9876_wv-U', 'file-id_3'];
+    const url = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: originalFileIds,
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const fragment = url.slice(url.indexOf('#') + 1);
+    const params = new URLSearchParams(fragment);
+    const roundTrippedFileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
+    assert.deepEqual(roundTrippedFileIds, originalFileIds);
+});
+
+test('parseRegrantFileIds splits on comma, trims whitespace, and drops entries with invalid characters', () => {
+    assert.deepEqual(parseRegrantFileIds('a,b,c'), ['a', 'b', 'c']);
+    assert.deepEqual(parseRegrantFileIds(' a , b ,c '), ['a', 'b', 'c']);
+    assert.deepEqual(parseRegrantFileIds('valid_id-1,invalid id,also/bad,ok2'), ['valid_id-1', 'ok2']);
+});
+
+test('parseRegrantFileIds returns an empty array for null/undefined/empty string', () => {
+    assert.deepEqual(parseRegrantFileIds(null), []);
+    assert.deepEqual(parseRegrantFileIds(undefined), []);
+    assert.deepEqual(parseRegrantFileIds(''), []);
+});
+
+test('chunkRegrantFileIds splits evenly-divisible input into equal chunks', () => {
+    const ids = Array.from({ length: 100 }, (_, i) => `id${i}`);
+    const chunks = chunkRegrantFileIds(ids, 50);
+    assert.equal(chunks.length, 2);
+    assert.equal(chunks[0].length, 50);
+    assert.equal(chunks[1].length, 50);
+});
+
+test('chunkRegrantFileIds puts the remainder into a final smaller chunk', () => {
+    const ids = Array.from({ length: 120 }, (_, i) => `id${i}`);
+    const chunks = chunkRegrantFileIds(ids, 50);
+    assert.equal(chunks.length, 3);
+    assert.equal(chunks[0].length, 50);
+    assert.equal(chunks[1].length, 50);
+    assert.equal(chunks[2].length, 20);
+});
+
+test('chunkRegrantFileIds returns an empty array for empty input (Picker never opens)', () => {
+    assert.deepEqual(chunkRegrantFileIds([]), []);
+});
+
+test('chunkRegrantFileIds treats a chunkSize below 1 as 1, never as an infinite loop', () => {
+    const ids = ['a', 'b', 'c'];
+    assert.deepEqual(chunkRegrantFileIds(ids, 0), [['a'], ['b'], ['c']]);
+    assert.deepEqual(chunkRegrantFileIds(ids, -5), [['a'], ['b'], ['c']]);
+});
+
+test('chunkRegrantFileIds defaults to REGRANT_PICKER_CHUNK_SIZE', () => {
+    const ids = Array.from({ length: REGRANT_PICKER_CHUNK_SIZE + 1 }, (_, i) => `id${i}`);
+    const chunks = chunkRegrantFileIds(ids);
+    assert.equal(chunks.length, 2);
+    assert.equal(chunks[0].length, REGRANT_PICKER_CHUNK_SIZE);
+    assert.equal(chunks[1].length, 1);
 });
 
 test('isSharedDrivesRequested enables shared drives only for the exact flag value', () => {

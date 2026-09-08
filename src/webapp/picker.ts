@@ -1,5 +1,11 @@
 import { getMessage } from '../platform/web/i18n';
-import { isExtensionRedirectUri, isSharedDrivesRequested, PICKER_DRIVES_PARAM } from '../lib/picker-url';
+import {
+    isExtensionRedirectUri,
+    isSharedDrivesRequested,
+    parseRegrantFileIds,
+    PICKER_DRIVES_PARAM,
+    PICKER_FILE_IDS_PARAM,
+} from '../lib/picker-url';
 
 declare const __WEB_OAUTH_CLIENT_ID__: string;
 declare const __PICKER_API_KEY__: string;
@@ -178,8 +184,23 @@ function openPdfPicker(token: string, folderId: string | null, redirectUri: stri
 }
 
 /**
- * 再付与モード用Picker: openPdfPicker とほぼ同じ見た目（DocsView(DOCS) を application/pdf に
- * 絞り込み、folderId を初期表示、複数選択可）だが、返す payload が決定的に違う。
+ * fileIds 指定モードの一括再付与用の1枚ビュー（Issue #203）。setFileIds は setParent /
+ * setEnableDrives と併用禁止（Google公式ドキュメント: 併用すると後勝ちで上書きされる）
+ * なので、setParent・setEnableDrives・setOwnedByMe はいずれも呼ばない。ID で直接引くため
+ * 所有者別に2枚へ分ける（buildDocsViews の owned/shared 分割）意味も無い。
+ * setMimeTypes も呼ばない: fileId で表示対象が既に確定しているのでMIMEによる絞り込みは
+ * 冗長であり、万一PDFが application/pdf 以外のMIMEで保存されていた場合に、
+ * 復旧したいファイルを取りこぼすだけになるため。
+ */
+function buildRegrantFileIdsView(fileIds: string[]): google.picker.DocsView {
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
+    view.setFileIds(fileIds.join(','));
+    view.setLabel(t('picker_regrantTargetsViewLabel'));
+    return view;
+}
+
+/**
+ * 再付与モード用Picker: 返す payload が openPdfPicker と決定的に違う。
  *
  * mode=pdf は選択ファイルの一覧を返すが、再付与は数百件を一度に選びうるため、一覧を
  * URLフラグメントに載せると巨大化してリダイレクト捕捉が壊れる恐れがある。しかも
@@ -188,21 +209,37 @@ function openPdfPicker(token: string, folderId: string | null, redirectUri: stri
  * 使うだけで、実際に読めるようになったかどうかの真値は再度の files.list で取り直す
  * （src/lib/fulltext-access.ts / listAccessibleFileIdsInFolder 参照）。
  *
- * フルテキスト用フォルダはプロジェクトのオーナーが所有し共同研究者に共有される運用のため、
- * openPdfPicker と同様に共有アイテムビューも addView する（Issue #75）。
+ * ビューは fileIds の有無で分岐する（Issue #203）:
+ * - fileIds が非空: buildRegrantFileIdsView の1枚だけ（setFileIds は setParent /
+ *   setEnableDrives と併用不可のため）
+ * - fileIds が空: 従来どおり folderId を初期表示にした DocsView を
+ *   buildDocsViews で owned/shared の2枚組み立てる（フルテキスト用フォルダは
+ *   プロジェクトのオーナーが所有し共同研究者に共有される運用のため。Issue #75）
+ *
+ * PickerBuilder 側（developerKey/appId/OAuthToken/複数選択/locale/callback）は
+ * どちらの分岐でも共通のため、ビューの配列だけを作り分けてから1本の組み立てに合流させる。
  */
-function openRegrantPicker(token: string, folderId: string | null, redirectUri: string, enableDrives: boolean): void {
-    const [ownedView, sharedView] = buildDocsViews(google.picker.ViewId.DOCS, (view) => {
-        view.setMimeTypes('application/pdf');
-        if (folderId) view.setParent(folderId);
-    }, enableDrives);
+function openRegrantPicker(
+    token: string,
+    folderId: string | null,
+    fileIds: string[],
+    redirectUri: string,
+    enableDrives: boolean,
+): void {
+    const views: google.picker.DocsView[] = fileIds.length > 0
+        ? [buildRegrantFileIdsView(fileIds)]
+        : buildDocsViews(google.picker.ViewId.DOCS, (view) => {
+            view.setMimeTypes('application/pdf');
+            if (folderId) view.setParent(folderId);
+        }, enableDrives);
+
     const locale = navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
-    const picker = new google.picker.PickerBuilder()
+    let builder = new google.picker.PickerBuilder()
         .setDeveloperKey(__PICKER_API_KEY__)
         .setAppId(__GCP_PROJECT_NUMBER__)
-        .setOAuthToken(token)
-        .addView(ownedView)
-        .addView(sharedView)
+        .setOAuthToken(token);
+    for (const view of views) builder = builder.addView(view);
+    const picker = builder
         .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         .setLocale(locale)
         .setCallback((data) => {
@@ -296,7 +333,8 @@ async function start(ignoreFileId = false): Promise<void> {
             // 上のfail-fastチェックを通過しているため、ここでは redirectUri は非nullかつ有効。
             openPdfPicker(token, params.get('folderId'), redirectUri!, enableDrives);
         } else if (isRegrantMode) {
-            openRegrantPicker(token, params.get('folderId'), redirectUri!, enableDrives);
+            const fileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
+            openRegrantPicker(token, params.get('folderId'), fileIds, redirectUri!, enableDrives);
         } else {
             openPicker(token, fileId, enableDrives);
         }
