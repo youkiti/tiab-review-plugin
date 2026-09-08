@@ -111,7 +111,16 @@ export async function runRegrantPickerChunks(options: {
     email?: string;
     /** 各チャンクのPickerを開く直前に呼ぶ。index は0始まり、remainingはこの回を含む未処理のfileId件数 */
     onChunkStart?: (progress: { index: number; total: number; remaining: number }) => void;
+    /**
+     * 1チャンク分のPickerを開く関数の差し替え口。既定は runRegrantPickerFlow。
+     * chrome.identity に依存する runRegrantPickerFlow を経由せずにループ制御（打ち切り判断・
+     * remaining計算・チャンクの分割と消費）だけを検証するテストのための依存注入（Issue #203）。
+     * 本番の呼び出し側（src/sidepanel/features/fulltext/regrant.ts）は指定しないため、
+     * これまでどおり実物の runRegrantPickerFlow がそのまま動く。
+     */
+    openPicker?: (args: { folderId: string; email?: string; fileIds: string[] }) => Promise<RegrantPickerOutcome>;
 }): Promise<RegrantPickerChunkedOutcome> {
+    const openPicker = options.openPicker ?? runRegrantPickerFlow;
     const chunks = chunkRegrantFileIds(options.fileIds);
     if (chunks.length === 0) return { total: 0, opened: 0, stoppedBy: 'completed' };
 
@@ -122,7 +131,7 @@ export async function runRegrantPickerChunks(options: {
         const remaining = options.fileIds.length - processed;
         options.onChunkStart?.({ index, total: chunks.length, remaining });
 
-        const outcome = await runRegrantPickerFlow({
+        const outcome = await openPicker({
             folderId: options.folderId,
             email: options.email,
             fileIds: chunk,

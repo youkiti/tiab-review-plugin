@@ -24,6 +24,8 @@
         "../src/lib/providers/openrouter.ts",
         "./**/*.ts",
         "../src/lib/picker-url.ts",
+        "../src/lib/drive-picker-result.ts",
+        "../src/lib/drive-regrant-picker.ts",
         "../src/lib/sheets-api.ts",
         "../src/background/auth-flow.ts",
         "../src/lib/fulltext-empty-reason.ts",
