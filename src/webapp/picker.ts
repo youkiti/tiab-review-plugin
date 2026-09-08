@@ -58,7 +58,7 @@ async function fetchUserEmail(token: string): Promise<string> {
     return data.email;
 }
 
-function requestToken(email: string | null): Promise<google.accounts.oauth2.TokenResponse> {
+function requestToken(email: string | null, prompt: 'consent' | 'select_account' = 'consent'): Promise<google.accounts.oauth2.TokenResponse> {
     return new Promise((resolve, reject) => {
         const client = google.accounts.oauth2.initTokenClient({
             client_id: __WEB_OAUTH_CLIENT_ID__,
@@ -68,7 +68,7 @@ function requestToken(email: string | null): Promise<google.accounts.oauth2.Toke
             callback: (resp) => resp.error ? reject(new Error(resp.error)) : resolve(resp),
             error_callback: (err) => reject(new Error(err.type)),
         });
-        client.requestAccessToken({ prompt: 'consent' });
+        client.requestAccessToken({ prompt });
     });
 }
 
@@ -294,7 +294,9 @@ function openPicker(token: string, fileId: string | null, enableDrives: boolean)
  * href での開き直しにすると email が落ちてアカウント照合が効かなくなるため、
  * 遷移せず同一ページ内で開き直す。
  */
-async function start(ignoreFileId = false): Promise<void> {
+async function start(ignoreFileId = false, forceAccountSelection = false): Promise<void> {
+    const switchAccountBtn = document.getElementById('switchAccountBtn')!;
+    switchAccountBtn.hidden = true;
     const params = hashParams();
     // mode が無い/pdf・regrant以外の場合は既存のスプレッドシート動作を一切変えない
     // （旧拡張が新ページを開く互換性のため）。
@@ -320,12 +322,13 @@ async function start(ignoreFileId = false): Promise<void> {
 
     try {
         await waitForGoogleApis();
-        const resp = await requestToken(expectedEmail);
+        const resp = await requestToken(expectedEmail, forceAccountSelection ? 'select_account' : 'consent');
         const token = resp.access_token;
         const actualEmail = await fetchUserEmail(token);
         if (expectedEmail && actualEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
-            google.accounts.oauth2.revoke(token, () => undefined);
-            setStatus(t('picker_wrongAccount', expectedEmail));
+            // revoke はプロジェクト全体の付与を取り消すため、アカウント選択ミスの復旧には使わない。
+            setStatus(t('picker_wrongAccount', [expectedEmail, actualEmail]));
+            switchAccountBtn.hidden = false;
             return;
         }
         await loadPicker();
@@ -358,6 +361,9 @@ function init(): void {
         ? t('picker_pdfShareHint')
         : t('picker_shareHint');
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
+    const switchAccountBtn = document.getElementById('switchAccountBtn')!;
+    switchAccountBtn.textContent = t('picker_switchAccountBtn');
+    switchAccountBtn.addEventListener('click', () => void start(false, true));
     const allSheetsLink = document.getElementById('allSheetsLink')!;
     if (isPdfMode || isRegrantMode) {
         // PDF/再付与モードには「fileId限定→全シートへ切替」の概念が無いため導線ごと隠す

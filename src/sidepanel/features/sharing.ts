@@ -13,6 +13,7 @@ import {
     DrivePermissionError,
     getFilePermissions,
     getProjectDriveFolderId,
+    getSpreadsheetInfo,
     getSpreadsheetPermissions,
     isUserAdmin,
     type SpreadsheetPermission,
@@ -205,7 +206,15 @@ export async function handleShare() {
         // 1. スプレッドシートを個別共有（招待文つき通知）。
         //    これが失敗したら（メールアドレス不正等の真のエラー）従来どおり
         //    share_addError トーストで終了し、フォルダ共有は試みない。
-        const message = state.spreadsheetId ? buildInviteMessage(state.spreadsheetId) : undefined;
+        let title: string | undefined;
+        if (state.spreadsheetId) {
+            try {
+                title = (await getSpreadsheetInfo(state.spreadsheetId)).title;
+            } catch {
+                // シート名が取得できなくても、タイトル無しの招待文で共有を続ける。
+            }
+        }
+        const message = state.spreadsheetId ? buildInviteMessage(state.spreadsheetId, title) : undefined;
         await addPermission(state.spreadsheetId, email, 'writer', message);
 
         // 2. フォルダがあればベストエフォートで共有する。通知メールは抑制する
@@ -249,7 +258,7 @@ export async function handleShare() {
  *
  * フォルダ共有しても共同研究者は「どこから入るか」が分かりづらいため、
  * インストール先・スプレッドシートURL・操作ガイドをまとめた定型文を生成して
- * クリップボードへコピーする。メール送信は行わない（OAuth不要）。
+ * クリップボードへコピーする。シート名の取得はベストエフォートとし、メール送信は行わない。
  */
 export async function copyInviteTemplate() {
     const spreadsheetId = state.spreadsheetId;
@@ -258,7 +267,13 @@ export async function copyInviteTemplate() {
         return;
     }
 
-    const text = buildInviteMessage(spreadsheetId);
+    let title: string | undefined;
+    try {
+        title = (await getSpreadsheetInfo(spreadsheetId)).title;
+    } catch {
+        // シート名が取得できなくても、タイトル無しの招待文でコピーを続ける。
+    }
+    const text = buildInviteMessage(spreadsheetId, title);
 
     try {
         await navigator.clipboard.writeText(text);
