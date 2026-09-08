@@ -15,7 +15,7 @@
  * （真値は `listAccessibleFileIdsInFolder` の再取得や、PDF の再ダウンロードで取り直す）。
  */
 
-import { buildRegrantPickerUrl } from './picker-url';
+import { buildRegrantPickerUrl, chunkRegrantFileIds } from './picker-url';
 import { parseRegrantPickerRedirect } from './drive-picker-result';
 
 export type RegrantPickerOutcome =
@@ -39,13 +39,23 @@ export function isUserCancelledAuthError(message: string): boolean {
  * fulltextフォルダを初期表示にした mode=regrant の Picker を開く。
  * キャンセル・解析失敗は戻り値で表現し、例外は投げない。
  * launchWebAuthFlow 自体の失敗（キャンセル以外。ネットワークエラー等）だけを投げる。
+ *
+ * fileIds（Issue #203）を渡すと、Pickerページ側は folderId 全体ではなく
+ * 「その fileIds だけ」を表示する（buildRegrantPickerUrl / src/webapp/picker.ts 参照）。
+ * 省略時・空配列のときは従来どおりフォルダ全体の初期表示のまま変わらない。
  */
 export async function runRegrantPickerFlow(options: {
     folderId: string;
     email?: string;
+    fileIds?: string[];
 }): Promise<RegrantPickerOutcome> {
     const redirectUri = chrome.identity.getRedirectURL('picker');
-    const url = buildRegrantPickerUrl({ email: options.email, redirectUri, folderId: options.folderId });
+    const url = buildRegrantPickerUrl({
+        email: options.email,
+        redirectUri,
+        folderId: options.folderId,
+        fileIds: options.fileIds,
+    });
 
     let redirectUrl: string | undefined;
     try {
@@ -67,4 +77,61 @@ export async function runRegrantPickerFlow(options: {
     if (parsed === null) return { status: 'parse-error' };
     if (parsed === 'cancelled') return { status: 'cancelled' };
     return { status: 'granted', granted: parsed.granted };
+}
+
+/** runRegrantPickerChunks の戻り値（Issue #203）。 */
+export interface RegrantPickerChunkedOutcome {
+    /** 分割後の総チャンク数 */
+    total: number;
+    /** 実際に開いた（＝ユーザーが「選択」を押した）チャンク数 */
+    opened: number;
+    /** ループを終わらせた理由。'completed' は全チャンクを開き切った */
+    stoppedBy: 'completed' | 'cancelled' | 'parse-error';
+}
+
+/**
+ * 「読めないPDFのfileIdだけ」を表示する mode=regrant の Picker を、fileIds を
+ * REGRANT_PICKER_CHUNK_SIZE 件ずつに分割してチャンクごとに開き直す（Issue #203）。
+ * UI非依存（このモジュール冒頭のコメントの原則どおり、state/dom/showToast/DOM APIに触れない）。
+ *
+ * 各チャンクの Picker が 'granted' 以外（'cancelled' / 'parse-error'）で閉じたら、
+ * その時点で残りのチャンクは開かずに打ち切る。打ち切らないと、ユーザーは
+ * チャンク数だけキャンセルを押さないとフローを抜けられなくなるため。
+ * ただし打ち切っても、そこまでの選択でサーバー側の付与は既に確定している
+ * （drive.file の付与はPickerで「選択」を押した時点で確定するため）。
+ * よって呼び出し側は stoppedBy の値に関わらず、必ず再検知（files.list の取り直し）へ
+ * 進むこと。
+ *
+ * launchWebAuthFlow 自体の失敗（キャンセル以外。ネットワークエラー等）は
+ * runRegrantPickerFlow がそのまま投げるため、ここでは catch せず呼び出し側へ伝播させる。
+ */
+export async function runRegrantPickerChunks(options: {
+    folderId: string;
+    fileIds: string[];
+    email?: string;
+    /** 各チャンクのPickerを開く直前に呼ぶ。index は0始まり、remainingはこの回を含む未処理のfileId件数 */
+    onChunkStart?: (progress: { index: number; total: number; remaining: number }) => void;
+}): Promise<RegrantPickerChunkedOutcome> {
+    const chunks = chunkRegrantFileIds(options.fileIds);
+    if (chunks.length === 0) return { total: 0, opened: 0, stoppedBy: 'completed' };
+
+    let processed = 0;
+    let opened = 0;
+    for (let index = 0; index < chunks.length; index++) {
+        const chunk = chunks[index];
+        const remaining = options.fileIds.length - processed;
+        options.onChunkStart?.({ index, total: chunks.length, remaining });
+
+        const outcome = await runRegrantPickerFlow({
+            folderId: options.folderId,
+            email: options.email,
+            fileIds: chunk,
+        });
+        if (outcome.status !== 'granted') {
+            return { total: chunks.length, opened, stoppedBy: outcome.status };
+        }
+        opened++;
+        processed += chunk.length;
+    }
+    return { total: chunks.length, opened, stoppedBy: 'completed' };
 }

@@ -114,6 +114,16 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - 真値は必ず再度の `files.list` で取り直す。Picker の戻り値を「読めるようになった証拠」として扱わないこと
 - Picker の起動とリダイレクト解析は `src/lib/drive-regrant-picker.ts`（UI非依存）に置き、モーダル・トーストは呼び出し側（サイドパネル / フルテキストページ）に残す。`chrome.identity.launchWebAuthFlow` は拡張機能ページであれば動くため、サイドパネル以外からも起動できる
 
+**一括再付与の初期表示は fileId 直指定（Issue #203）**
+
+チェックリストの「まとめて権限を付与」「権限を確認する」から起動する一括再付与は、`setParent(フォルダ)` でフォルダ全体を初期表示するのではなく、`google.picker.DocsView.setFileIds()` で**検知済みの「読めないPDFのfileId」だけ**を表示する（`src/webapp/picker.ts` の `openRegrantPicker`）。フォルダ内のPDF数が Picker の初期表示件数（実測で概ね50件）を超えると、復旧したいファイルが一覧に出てこなかった（Issue #203 の報告事象）ための変更。
+
+- `setFileIds` は **`setParent` / `setEnableDrives` と併用できない**（Google公式ドキュメント: 併用すると後勝ちで上書きされる）。そのためfileIds指定時は owned/shared の2枚ビュー分割・`setEnableDrives`・`setParent` のいずれも使わない1枚ビューになる。ID で直接引くため所有者別に分ける意味も無い
+- `fileIds` パラメータ（`PICKER_FILE_IDS_PARAM` / `src/lib/picker-url.ts`）は `drives=1` と全く同じ理由でURLフラグメント側にゲートしてある。Pickerページは GitHub Pages 配信で拡張機能とロールアウトが独立しており、**拡張機能が明示的に渡したときだけ**新しい挙動になる。渡されなければ従来どおりフォルダ全体の初期表示のまま変わらない
+- fileId の個数上限は Google 側が文書化していないため、`REGRANT_PICKER_CHUNK_SIZE`（`src/lib/picker-url.ts`、既定50件）で `chunkRegrantFileIds()` により分割し、`runRegrantPickerChunks()`（`src/lib/drive-regrant-picker.ts`）がチャンクごとに Picker を開き直す。あるチャンクが `'granted'` 以外（キャンセル・パース失敗）で終わると、残りのチャンクは開かずに打ち切る（そうしないとユーザーがチャンク数だけキャンセルを押さないと抜けられない）。打ち切っても、そこまでの選択でサーバー側の付与は確定しているため呼び出し側は必ず再検知へ進む
+- 単票の再付与（`src/fulltext/document-loader.ts` / `src/fulltext/registry-snapshot.ts` の「読み取り権限を復旧」）は fileIds を渡さない。従来どおりフォルダ表示のまま変わらない
+- **実機での Picker 動作（fileIds指定時に対象ファイルだけが実際に表示されるか等）はこの変更の時点では未確認。** テストは `npm test` のURL組み立て・分割ロジックの単体テストと `npm run typecheck` に留まる
+
 #### 読めない PDF を「空のペイン」にしない（Issue #69）
 
 **Drive のプレビュー埋め込み（`https://drive.google.com/file/d/{id}/preview`）へフォールバックしてはならない。** Drive は `/preview` に対して `frame-ancestors https://drive.google.com` を返すため、`chrome-extension://` のページからは**構造的に埋め込めない**。`frame-ancestors` はリモート側が返すヘッダなので拡張機能側の CSP 設定では上書きできず、直しようがない。以前の `showCachedPdf()` はここへフォールバックしており、実際には無言で空のペインになるだけだった（エラー表示すら出ない）。

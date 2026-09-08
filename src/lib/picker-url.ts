@@ -32,6 +32,54 @@ export function isSharedDrivesRequested(value: string | null | undefined): boole
 }
 
 /**
+ * 一括再付与（`mode=regrant`）で「読めないPDFのfileIdだけ」をPickerに表示させるためのフラグ名
+ * （Issue #203）。`drives=1` と同じ理由（PICKER_DRIVES_PARAM 参照）でフラグメント側にゲートを
+ * 置く。Pickerページは GitHub Pages から配信され旧バージョンの拡張機能にも即時反映されるため、
+ * **拡張機能が明示的に `fileIds` を渡したときだけ** Picker 側の挙動を変える。渡されなければ
+ * 従来どおりフォルダ全体を初期表示する経路をそのまま通す。
+ */
+export const PICKER_FILE_IDS_PARAM = 'fileIds';
+
+/**
+ * フラグメントで渡された fileIds 文字列（カンマ区切り）をパースする純関数（Issue #203）。
+ * フラグメントは外部から任意の値を与えられうるため、Drive のファイルID相当の文字種
+ * （英数字・`_`・`-`）にマッチするものだけを残し、それ以外は黙って捨てる
+ * （Picker へ素通しせず、形が壊れた値をここで弾く）。
+ */
+export function parseRegrantFileIds(value: string | null | undefined): string[] {
+    if (!value) return [];
+    return value
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => /^[A-Za-z0-9_-]+$/.test(id));
+}
+
+/**
+ * 一括再付与のPickerを1回に開く際の fileIds の上限件数（Issue #203）。
+ * Picker の初期表示件数の実測上限が概ね50件で、それを超えると対象ファイルが一覧から
+ * 見つからず選びようがなくなる（Issue #203 の報告事象そのもの）。この定数を
+ * URL組み立てのモジュールに置く理由: 分割する理由が「1回のPickerに載せるfileIdsの量を、
+ * URL長とPickerのビュー設定サイズと表示件数の上限に当てない粒度へ抑える」ことであり、
+ * URLの制約そのものだから。
+ */
+export const REGRANT_PICKER_CHUNK_SIZE = 50;
+
+/**
+ * fileIds を REGRANT_PICKER_CHUNK_SIZE 件ずつのチャンクへ分割する（Issue #203）。
+ * 空配列を渡したら空配列を返す（呼び出し側はPickerを1回も開かない判断に使える）。
+ * chunkSize に 1 未満の値（0や負数）が渡っても無限ループにならないよう 1 に丸める。
+ */
+export function chunkRegrantFileIds(fileIds: string[], chunkSize = REGRANT_PICKER_CHUNK_SIZE): string[][] {
+    if (fileIds.length === 0) return [];
+    const size = Math.max(1, chunkSize);
+    const chunks: string[][] = [];
+    for (let i = 0; i < fileIds.length; i += size) {
+        chunks.push(fileIds.slice(i, i + size));
+    }
+    return chunks;
+}
+
+/**
  * メールアドレスを配信サーバーのログへ残さないため、パラメータはクエリではなく
  * URLフラグメントで渡す。
  * `drives=1` は共有ドライブ対応のゲート（PICKER_DRIVES_PARAM 参照）。
@@ -70,21 +118,26 @@ export function buildPdfPickerUrl(options: {
 /**
  * mode=regrant（読み取り権限の再付与）でPickerページを開くためのURLを組み立てる。
  * buildPdfPickerUrl と同様、選択結果は launchWebAuthFlow のリダイレクト捕捉で受け取るため
- * email/redirect/folderId はすべてURLフラグメントで渡す（配信サーバーのログに残さないため）。
- * folderId は再付与対象のfulltextフォルダを初期表示するために必須（pdfモードと異なり省略不可）。
+ * email/redirect/folderId/fileIds はすべてURLフラグメントで渡す（配信サーバーのログに残さないため）。
+ * folderId は再付与対象のfulltextフォルダを初期表示するために必須（pdfモードと異なり省略不可。
+ * fileIds をPickerページ側が使えなかった場合のフォールバック表示にも要る）。
+ * fileIds（空でない配列のときのみ付与）は「読めないPDFのfileIdだけ」を表示させるためのフラグ
+ * （Issue #203。PICKER_FILE_IDS_PARAM 参照）。
  * `drives=1` は共有ドライブ対応のゲート（PICKER_DRIVES_PARAM 参照）。
  */
 export function buildRegrantPickerUrl(options: {
     email?: string;
     redirectUri: string;
     folderId: string;
+    fileIds?: string[];
     baseUrl?: string;
 }): string {
-    const { email, redirectUri, folderId, baseUrl = PICKER_PAGE_URL } = options;
+    const { email, redirectUri, folderId, fileIds, baseUrl = PICKER_PAGE_URL } = options;
     const params = new URLSearchParams();
     params.set('mode', 'regrant');
     params.set('redirect', redirectUri);
     params.set('folderId', folderId);
+    if (fileIds && fileIds.length > 0) params.set(PICKER_FILE_IDS_PARAM, fileIds.join(','));
     if (email) params.set('email', email);
     params.set(PICKER_DRIVES_PARAM, '1');
     return `${baseUrl}#${params.toString()}`;
