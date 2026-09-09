@@ -15,7 +15,7 @@
  * （真値は `listAccessibleFileIdsInFolder` の再取得や、PDF の再ダウンロードで取り直す）。
  */
 
-import { buildRegrantPickerUrl, chunkRegrantFileIds } from './picker-url';
+import { buildRegrantPickerUrl, chunkRegrantFileIdsForUrl } from './picker-url';
 import { parseRegrantPickerRedirect } from './drive-picker-result';
 
 export type RegrantPickerOutcome =
@@ -43,13 +43,19 @@ export function isUserCancelledAuthError(message: string): boolean {
  * fileIds（Issue #203）を渡すと、Pickerページ側は folderId 全体ではなく
  * 「その fileIds だけ」を表示する（buildRegrantPickerUrl / src/webapp/picker.ts 参照）。
  * 省略時・空配列のときは従来どおりフォルダ全体の初期表示のまま変わらない。
+ *
+ * redirectUri は省略時のみ自分で chrome.identity.getRedirectURL('picker') を呼ぶ。
+ * runRegrantPickerChunks から呼ばれる場合は、チャンク分割時にURL長を測るのに使った
+ * redirectUri と、実際にPickerを開くときの redirectUri を一致させる必要があるため、
+ * そちらが解決済みの値を渡してくる（同モジュールの runRegrantPickerChunks 参照）。
  */
 export async function runRegrantPickerFlow(options: {
     folderId: string;
     email?: string;
     fileIds?: string[];
+    redirectUri?: string;
 }): Promise<RegrantPickerOutcome> {
-    const redirectUri = chrome.identity.getRedirectURL('picker');
+    const redirectUri = options.redirectUri ?? chrome.identity.getRedirectURL('picker');
     const url = buildRegrantPickerUrl({
         email: options.email,
         redirectUri,
@@ -91,8 +97,14 @@ export interface RegrantPickerChunkedOutcome {
 
 /**
  * 「読めないPDFのfileIdだけ」を表示する mode=regrant の Picker を、fileIds を
- * REGRANT_PICKER_CHUNK_SIZE 件ずつに分割してチャンクごとに開き直す（Issue #203）。
- * UI非依存（このモジュール冒頭のコメントの原則どおり、state/dom/showToast/DOM APIに触れない）。
+ * 組み立てたURLの実長基準で分割してチャンクごとに開き直す（Issue #203、chunkRegrantFileIdsForUrl
+ * 参照）。UI非依存（このモジュール冒頭のコメントの原則どおり、state/dom/showToast/DOM APIに触れない）。
+ *
+ * チャンク分割には実際に開くURLが要るため、buildRegrantPickerUrl で測る。**測るURLと実際に
+ * 開くURLを一致させる**ために、redirectUri をこの関数の中で1箇所だけ決め（省略時は
+ * chrome.identity.getRedirectURL('picker')）、分割時の buildUrl と openPicker への引数の
+ * 両方へ同じ値を渡す。redirectUri が buildUrl と openPicker でズレると、分割の根拠にした
+ * URL長と実際に開くURLの長さが食い違い、分割の意味が無くなるため。
  *
  * 各チャンクの Picker が 'granted' 以外（'cancelled' / 'parse-error'）で閉じたら、
  * その時点で残りのチャンクは開かずに打ち切る。打ち切らないと、ユーザーは
@@ -109,6 +121,12 @@ export async function runRegrantPickerChunks(options: {
     folderId: string;
     fileIds: string[];
     email?: string;
+    /**
+     * 各チャンクのPickerを開くURLと、分割時にURL長を測るURLの両方に使う redirectUri。
+     * 省略時は chrome.identity.getRedirectURL('picker') を呼ぶ。テストからはこれを注入する
+     * ことで、fileIds が非空でも chrome.identity に触れずに分割結果まで検証できる。
+     */
+    redirectUri?: string;
     /** 各チャンクのPickerを開く直前に呼ぶ。index は0始まり、remainingはこの回を含む未処理のfileId件数 */
     onChunkStart?: (progress: { index: number; total: number; remaining: number }) => void;
     /**
@@ -118,11 +136,23 @@ export async function runRegrantPickerChunks(options: {
      * 本番の呼び出し側（src/sidepanel/features/fulltext/regrant.ts）は指定しないため、
      * これまでどおり実物の runRegrantPickerFlow がそのまま動く。
      */
-    openPicker?: (args: { folderId: string; email?: string; fileIds: string[] }) => Promise<RegrantPickerOutcome>;
+    openPicker?: (args: { folderId: string; email?: string; fileIds: string[]; redirectUri: string }) => Promise<RegrantPickerOutcome>;
 }): Promise<RegrantPickerChunkedOutcome> {
     const openPicker = options.openPicker ?? runRegrantPickerFlow;
-    const chunks = chunkRegrantFileIds(options.fileIds);
-    if (chunks.length === 0) return { total: 0, opened: 0, stoppedBy: 'completed' };
+    if (options.fileIds.length === 0) return { total: 0, opened: 0, stoppedBy: 'completed' };
+
+    // fileIds が空なら上のreturnで既に抜けているため、ここに到達する時点で分割が必要。
+    // chrome.identity に触れないテスト（fileIds空のケース）を壊さないよう、必要になるまで呼ばない。
+    const redirectUri = options.redirectUri ?? chrome.identity.getRedirectURL('picker');
+    const buildUrl = (ids: string[]): string => buildRegrantPickerUrl({
+        email: options.email,
+        redirectUri,
+        folderId: options.folderId,
+        fileIds: ids,
+    });
+    // options.fileIds が非空である以上 chunkRegrantFileIdsForUrl は必ず1件以上のチャンクを返す
+    // （「1チャンクには必ず1件以上入れる」という同関数の保証）ため、ここでの空チェックは不要。
+    const chunks = chunkRegrantFileIdsForUrl(options.fileIds, buildUrl);
 
     let processed = 0;
     let opened = 0;
@@ -135,6 +165,7 @@ export async function runRegrantPickerChunks(options: {
             folderId: options.folderId,
             email: options.email,
             fileIds: chunk,
+            redirectUri,
         });
         if (outcome.status !== 'granted') {
             return { total: chunks.length, opened, stoppedBy: outcome.status };

@@ -2967,6 +2967,15 @@
   "picker_invalidRedirect": {
     "message": "This redirect destination is not allowed. Please reopen this page from the extension."
   },
+  "picker_regrantReceivedCount": {
+    "message": "PDFs received for recovery: $1"
+  },
+  "picker_regrantCountMismatch": {
+    "message": "Warning: the extension sent $1 files but only $2 arrived on this page (the URL may have been truncated). Go ahead and select and allow these $2 files. Then return to the extension panel and repeat the same action — the rest will appear on the next round."
+  },
+  "picker_regrantTruncated": {
+    "message": "Warning: the URL that reached this page was cut off. The extension sent $1 files, but at most $2 could be confirmed as received. Go ahead and select and allow whatever is shown. Then return to the extension panel and repeat the same action — the rest will appear on the next round."
+  },
   "fulltext_importDriveBtn": {
     "message": "Import a PDF placed directly in Drive"
   },

@@ -1,9 +1,12 @@
 import { getMessage } from '../platform/web/i18n';
 import {
     isExtensionRedirectUri,
+    isRegrantFileIdsComplete,
     isSharedDrivesRequested,
     parseRegrantFileIds,
     PICKER_DRIVES_PARAM,
+    PICKER_FILE_IDS_COUNT_PARAM,
+    PICKER_FILE_IDS_END_PARAM,
     PICKER_FILE_IDS_PARAM,
 } from '../lib/picker-url';
 
@@ -25,6 +28,58 @@ function hashParams(): URLSearchParams {
 function setStatus(message: string): void {
     const el = document.getElementById('status');
     if (el) el.textContent = message;
+}
+
+/**
+ * mode=regrant で fileIds を受け取ったときだけ #regrantInfo に表示する
+ * （fileIds がURLの途中で切り詰められて欠落する事態を画面上で見えるようにする対策）。
+ *
+ * **init() から呼ぶ（start() からは呼ばない）。** fileIds/fileIdsCount/fileIdsEnd はどれも
+ * URLフラグメントから読むだけでトークン取得を待つ必要が無い一方、start() の最後は
+ * openRegrantPicker() が picker.setVisible(true) でPickerをモーダル表示してしまい、
+ * その陰に隠れてユーザーの目に触れなくなる。init() はDOMContentLoadedで即座に走るため、
+ * 「Google Pickerを開く」を押す前のランディング画面の時点でこの表示が見える。
+ *
+ * 判定は次の優先順位（fileIdsCountParam が数字として渡っているかどうかで大きく分岐する）:
+ * 1. fileIdsCount が無い/数字以外 → 拡張機能側の送信件数と比較できない。
+ *    - 受信件数が0件なら、fileIds自体が渡されていない従来経路（フォルダ全体の初期表示）と
+ *      判別できないため、ここだけ何も表示しない（#regrantInfo を書き換えない）
+ *    - 受信件数が1件以上なら、旧バージョンの拡張機能からの起動とみなし受信件数のみ表示
+ * 2. fileIdsCount が数字として渡っている → 番兵（fileIdsEnd）を見る
+ *    - 番兵が `'1'` でない（欠落・改変）→ 件数の一致/不一致を問わず「切り詰めの疑いあり」
+ *      警告（picker_regrantTruncated）。件数が一致していても末尾の fileId が途中で切れて
+ *      文字種の検証をたまたま通過している可能性があるため、件数一致は安全の証拠にならない
+ *    - 番兵が `'1'` で件数が不一致 → 従来の食い違い警告（picker_regrantCountMismatch）
+ *    - 番兵が `'1'` で件数も一致 → 受信件数のみ表示
+ *
+ * なお番兵だけが失われる位置でURLが切れた場合（fileIds本体は無事）も1.と同じ「切り詰めの
+ * 疑いあり」判定になる（偽陽性）。診断が「異常なし」と誤答するより警告側に倒す方が安全という
+ * 判断で、意図した挙動（picker-url.ts の PICKER_FILE_IDS_END_PARAM 参照）。
+ *
+ * mode=regrant 以外のモードから呼ばれることも無い（init() で isRegrantMode のときだけ呼ぶ）
+ * ため、他モードの見た目は変わらない。
+ */
+function updateRegrantInfo(fileIds: string[], fileIdsCountParam: string | null, fileIdsEndParam: string | null): void {
+    const el = document.getElementById('regrantInfo');
+    if (!el) return;
+    const received = fileIds.length;
+    const sent = fileIdsCountParam !== null && /^\d+$/.test(fileIdsCountParam) ? Number(fileIdsCountParam) : null;
+
+    if (sent === null) {
+        // fileIdsCount と比較できない。fileIds自体が渡されていない従来経路（受信0件）との
+        // 区別ができないため、ここだけ早期returnで何も表示しない。
+        if (received === 0) return;
+        el.textContent = t('picker_regrantReceivedCount', String(received));
+        return;
+    }
+
+    if (!isRegrantFileIdsComplete(fileIdsEndParam)) {
+        el.textContent = t('picker_regrantTruncated', [String(sent), String(received)]);
+    } else if (sent !== received) {
+        el.textContent = t('picker_regrantCountMismatch', [String(sent), String(received)]);
+    } else {
+        el.textContent = t('picker_regrantReceivedCount', String(received));
+    }
 }
 
 function waitForGoogleApis(): Promise<void> {
@@ -347,7 +402,8 @@ async function start(ignoreFileId = false, forceAccountSelection = false): Promi
 }
 
 function init(): void {
-    const mode = hashParams().get('mode');
+    const params = hashParams();
+    const mode = params.get('mode');
     const isPdfMode = mode === 'pdf';
     const isRegrantMode = mode === 'regrant';
     document.title = t('picker_pageTitle');
@@ -360,6 +416,13 @@ function init(): void {
     document.getElementById('shareHint')!.textContent = (isPdfMode || isRegrantMode)
         ? t('picker_pdfShareHint')
         : t('picker_shareHint');
+    if (isRegrantMode) {
+        // fileIds/fileIdsCount/fileIdsEnd はURLフラグメントから読むだけなので、トークン取得
+        // (start())を待たずにここで表示する（「Google Pickerを開く」を押す前のランディング
+        // 画面に出す）。
+        const fileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
+        updateRegrantInfo(fileIds, params.get(PICKER_FILE_IDS_COUNT_PARAM), params.get(PICKER_FILE_IDS_END_PARAM));
+    }
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
     const switchAccountBtn = document.getElementById('switchAccountBtn')!;
     switchAccountBtn.textContent = t('picker_switchAccountBtn');
