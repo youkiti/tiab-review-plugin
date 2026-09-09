@@ -72,3 +72,33 @@ body {
     background-color: #e8f0fe;
     color: #1a73e8;
 }
+
+.status-secondary {
+    margin: 8px 0 0;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.status-target {
+    margin: 6px 0 0;
+    font-size: 12px;
+    word-break: break-all;
+    opacity: 0.85;
+}
+
+.status-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+/* .btn-primary は width:100% を持つため、行に並べるここでは自動幅へ戻す */
+.status-actions .btn {
+    width: auto;
+}
+
+.status-help-link {
+    font-size: 12px;
+}

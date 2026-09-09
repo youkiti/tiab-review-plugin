@@ -1384,8 +1384,11 @@
   "share_copyInviteHint": {
     "message": "Copies an invitation (install link, spreadsheet URL, and usage guide) to the clipboard to send to collaborators"
   },
+  "share_inviteSheetName": {
+    "message": "Review sheet: $1"
+  },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -2893,10 +2896,22 @@
     "message": "Blind mode is on — only your own decisions are reflected in the numbers."
   },
   "picker_accessNeeded": {
-    "message": "Google permission is required to open this sheet. Select this sheet on the page that opens (first time only). The sheet may also have been deleted, or the URL/ID may be incorrect."
+    "message": "To use this sheet, you need to select it once on Google's screen. Click \"Allow with Google\" below — a new tab will open."
+  },
+  "picker_accessNeededSecondary": {
+    "message": "If it still doesn't open after you allow it, the sheet may have been deleted, the URL/ID may be wrong, or it may not be shared with this Google account."
+  },
+  "picker_targetSheet": {
+    "message": "Connecting to: $1"
+  },
+  "picker_helpLink": {
+    "message": "Detailed steps"
+  },
+  "picker_switchAccountBtn": {
+    "message": "Choose a different account"
   },
   "picker_accessStillDenied": {
-    "message": "The sheet still could not be opened after Google Picker selection. The sheet may have been deleted, the URL/ID may be incorrect, or it may not be shared with your Google Drive account."
+    "message": "This sheet still can't be opened. Check that you selected it on Google's screen."
   },
   "picker_openBtn": {
     "message": "Allow with Google"
@@ -2938,7 +2953,7 @@
     "message": "An error occurred: $1"
   },
   "picker_wrongAccount": {
-    "message": "A different Google account was selected. Please allow access again with the account currently signed in to the extension ($1)."
+    "message": "The Google account you selected ($2) is different from the one signed in to the extension ($1). Use \"Choose a different account\" and select with $1."
   },
   "picker_openAllSheets": {
     "message": "Choose from all sheets"

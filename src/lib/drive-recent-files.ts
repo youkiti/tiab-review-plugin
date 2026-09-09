@@ -20,7 +20,9 @@ export async function getRecentSpreadsheets(maxResults = 10): Promise<RecentSpre
 
     const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet'");
     const fields = encodeURIComponent('files(id,name,modifiedTime)');
-    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=recency&pageSize=${maxResults}&fields=${fields}`;
+    // desc が無いと Drive API の既定は昇順になる。
+    const orderBy = encodeURIComponent('recency desc');
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=${orderBy}&pageSize=${maxResults}&fields=${fields}`;
 
     console.log('[getRecentSpreadsheets] Fetching:', url);
 

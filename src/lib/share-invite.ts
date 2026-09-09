@@ -16,8 +16,9 @@ export function buildSpreadsheetUrl(spreadsheetId: string): string {
 
 /**
  * 招待文（インストール手順・スプレッドシートURL・操作ガイド）を組み立てる。
- * 既存ロケール文字列 share_inviteTemplate を再利用する。
+ * 既存ロケール文字列 share_inviteTemplate を再利用し、シート名があれば先頭に付ける。
  */
-export function buildInviteMessage(spreadsheetId: string): string {
-    return t('share_inviteTemplate', buildSpreadsheetUrl(spreadsheetId));
+export function buildInviteMessage(spreadsheetId: string, title?: string): string {
+    const message = t('share_inviteTemplate', buildSpreadsheetUrl(spreadsheetId));
+    return title ? `${t('share_inviteSheetName', title)}\n\n${message}` : message;
 }

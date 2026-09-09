@@ -22,6 +22,9 @@ const mockPlatform: PlatformAdapter = {
         if (key === 'share_inviteTemplate') {
             return `INVITE_TEMPLATE:${substitutions?.[0] ?? ''}`;
         }
+        if (key === 'share_inviteSheetName') {
+            return `INVITE_SHEET_NAME:${substitutions?.[0] ?? ''}`;
+        }
         return key;
     },
     openExternal: () => {},
@@ -40,6 +43,19 @@ test('buildSpreadsheetUrl はスプレッドシートの編集URLを組み立て
 test('buildInviteMessage は share_inviteTemplate にスプレッドシートURLを渡して招待文を組み立てる', () => {
     const message = buildInviteMessage('sheet123');
     assert.equal(message, 'INVITE_TEMPLATE:https://docs.google.com/spreadsheets/d/sheet123/edit');
+});
+
+test('buildInviteMessage はタイトル未指定・空文字の場合にテンプレート単体を返す', () => {
+    const expected = 'INVITE_TEMPLATE:https://docs.google.com/spreadsheets/d/sheet123/edit';
+    assert.equal(buildInviteMessage('sheet123'), expected);
+    assert.equal(buildInviteMessage('sheet123', ''), expected);
+});
+
+test('buildInviteMessage はシート名の行と空行をテンプレートの先頭に付ける', () => {
+    assert.equal(
+        buildInviteMessage('sheet123', '共同レビュー'),
+        'INVITE_SHEET_NAME:共同レビュー\n\nINVITE_TEMPLATE:https://docs.google.com/spreadsheets/d/sheet123/edit'
+    );
 });
 
 // --- addPermission ---

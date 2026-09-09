@@ -10,7 +10,7 @@
     .card { border: 1px solid #dadce0; border-radius: 12px; padding: 24px; background: #fff; }
     .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
     button, a.button { border: 0; border-radius: 8px; padding: 10px 16px; background: #1a73e8; color: #fff; text-decoration: none; cursor: pointer; font-weight: 600; }
-    a.secondary { background: #f1f3f4; color: #202124; }
+    a.secondary, button.secondary { background: #f1f3f4; color: #202124; }
     #status { margin-top: 16px; white-space: pre-wrap; }
     .hint { color: #5f6368; line-height: 1.6; }
   </style>
@@ -24,6 +24,7 @@
     <p id="shareHint" class="hint"></p>
     <div class="actions">
       <button id="startBtn" type="button"></button>
+      <button id="switchAccountBtn" type="button" class="secondary" hidden></button>
       <a id="allSheetsLink" class="button secondary" href="picker.html"></a>
     </div>
     <div id="status" role="status"></div>

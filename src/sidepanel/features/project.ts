@@ -33,6 +33,7 @@ import { getQueuedDecisions } from '../utils/offline-queue';
 import { flushUnsentQueue, refreshUnsentBadge } from './unsent-queue';
 import { mergeQueuedDecisions } from '../../lib/queued-decisions-merge';
 import { buildPickerUrl } from '../../lib/picker-url';
+import { buildSpreadsheetUrl } from '../../lib/share-invite';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -203,10 +204,22 @@ function startPickerPolling(spreadsheetId: string): void {
 
 function showPickerAccessGuidance(spreadsheetId: string, message = t('picker_accessNeeded')): void {
     stopPickerPolling();
-    showStatus(message, 'error');
+    showStatus(message, 'info');
+
+    const secondary = document.createElement('p');
+    secondary.textContent = t('picker_accessNeededSecondary');
+    secondary.className = 'status-secondary';
+
+    const target = document.createElement('p');
+    target.textContent = t('picker_targetSheet', buildSpreadsheetUrl(spreadsheetId));
+    target.className = 'status-target';
+
+    const actions = document.createElement('div');
+    actions.className = 'status-actions';
 
     const openBtn = document.createElement('button');
     openBtn.type = 'button';
+    openBtn.className = 'btn btn-primary';
     openBtn.textContent = t('picker_openBtn');
     openBtn.addEventListener('click', () => {
         platform().openExternal(buildPickerUrl(spreadsheetId, state.userEmail));
@@ -215,13 +228,20 @@ function showPickerAccessGuidance(spreadsheetId: string, message = t('picker_acc
 
     const retryBtn = document.createElement('button');
     retryBtn.type = 'button';
+    retryBtn.className = 'btn btn-secondary';
     retryBtn.textContent = t('picker_retryBtn');
     retryBtn.addEventListener('click', () => void connectToSpreadsheet(spreadsheetId));
 
-    dom.statusMessage.appendChild(document.createTextNode(' '));
-    dom.statusMessage.appendChild(openBtn);
-    dom.statusMessage.appendChild(document.createTextNode(' '));
-    dom.statusMessage.appendChild(retryBtn);
+    const helpLink = document.createElement('a');
+    helpLink.textContent = t('picker_helpLink');
+    helpLink.href = 'https://youkiti.github.io/tiab-review-plugin/help.html#shared-sheet-first-time';
+    helpLink.target = '_blank';
+    helpLink.rel = 'noopener';
+    helpLink.className = 'status-help-link';
+
+    actions.append(openBtn, retryBtn, helpLink);
+    dom.statusMessage.append(secondary, target, actions);
+    dom.statusMessage.scrollIntoView({ block: 'nearest' });
 }
 
 async function connectToSpreadsheet(resolvedId: string): Promise<void> {
