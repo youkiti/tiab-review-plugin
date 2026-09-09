@@ -41,6 +41,15 @@ export function isSharedDrivesRequested(value: string | null | undefined): boole
 export const PICKER_FILE_IDS_PARAM = 'fileIds';
 
 /**
+ * fileIds と一緒に渡す「拡張機能が送った件数」のパラメータ名。
+ * URLが途中で切り詰められると fileIds は末尾から失われるため、buildRegrantPickerUrl は
+ * これを fileIds より前の位置に置く（詳細は buildRegrantPickerUrl のコメント参照）。
+ * Picker ページ（src/webapp/picker.ts）は実際に受け取った fileIds の件数とこの値を比較し、
+ * 食い違っていれば「URLが途中で切れた可能性がある」という警告を表示する。
+ */
+export const PICKER_FILE_IDS_COUNT_PARAM = 'fileIdsCount';
+
+/**
  * フラグメントで渡された fileIds 文字列（カンマ区切り）をパースする純関数（Issue #203）。
  * フラグメントは外部から任意の値を与えられうるため、Drive のファイルID相当の文字種
  * （英数字・`_`・`-`）にマッチするものだけを残し、それ以外は黙って捨てる
@@ -57,35 +66,68 @@ export function parseRegrantFileIds(value: string | null | undefined): string[] 
 /**
  * 一括再付与のPickerを1回に開く際の fileIds の上限件数（Issue #203）。
  *
- * Picker の初期表示件数が概ね50件で頭打ちになる事象は実測済みだが、これは
- * `setParent` でフォルダを初期表示したときの話であり、`setFileIds` で明示した
- * fileIds には当てはまらない（実測: 20件→20件、60件→60件、100件→100件と、
- * いずれも渡した件数がそのまま全件表示された）。そのためこの定数は「表示件数の
- * 上限」を避けるためのものではない。
+ * **localhost へ直接フラグメントを渡す経路（dev ビルドでの手元検証）では**、setFileIds に
+ * 20件→20件、60件→60件、100件→100件と渡した件数がそのまま全件表示されることを実測済み。
+ * つまりこの経路では、Picker の初期表示が概ね50件で頭打ちになるという事象は再現しなかった。
+ *
+ * **ただしこの実測は `chrome.identity.launchWebAuthFlow` を通る実運用の経路を覆っていない。**
+ * 実運用では約50件で頭打ちになる事象が報告されており、原因が (a) Picker へ渡すURLがどこかで
+ * 切り詰められ fileIds の後半が失われている、(b) Picker 側の表示上限が setFileIds にも
+ * 実運用環境では効いている、のどちらなのかはまだ確定していない。chunkRegrantFileIdsForUrl
+ * によるURL長ベースの分割と、Pickerページの受信件数表示（src/webapp/picker.ts）は、
+ * どちらの原因であっても効くようにするための対策。
  *
  * それでも分割している理由は次の2つ:
  * - fileId の個数上限を Google が文書化していない
- * - Picker ページの URL 長に効く。100件のときの URL は概ね3,800文字程度で、
- *   これを200件へ増やすと概ね7,600文字程度になり、サーバー側の一般的なURL長制限
- *   （目安として8KB前後）に近づいてしまう
- *
- * 100件までは実測で全件表示を確認済みだが、**100件を超えたところは未測定**であり、
- * 「100が上限」ではなく「100までは確認済み」という位置づけで採用している。
+ * - Picker ページの URL 長に効く（chunkRegrantFileIdsForUrl の maxCount 引数の既定値として
+ *   使う。URL長そのものの上限は REGRANT_PICKER_MAX_URL_LENGTH で別に管理する）
  */
 export const REGRANT_PICKER_CHUNK_SIZE = 100;
 
 /**
- * fileIds を REGRANT_PICKER_CHUNK_SIZE 件ずつのチャンクへ分割する（Issue #203）。
- * 空配列を渡したら空配列を返す（呼び出し側はPickerを1回も開かない判断に使える）。
- * chunkSize に 1 未満の値（0や負数）が渡っても無限ループにならないよう 1 に丸める。
+ * 一括再付与のPickerを1回に開く際のURLの長さの上限（文字数）。
+ *
+ * ブラウザ・サーバーの実装に依存する「2,083文字」というレガシーなURL長制限の目安に対して
+ * 安全余裕を取った値。Drive のファイルIDは概ね33文字前後のため、fileIds の件数が増えると
+ * URLがこの目安に近づく、または超えうる（背景は buildRegrantPickerUrl と
+ * REGRANT_PICKER_CHUNK_SIZE のコメント参照）。
  */
-export function chunkRegrantFileIds(fileIds: string[], chunkSize = REGRANT_PICKER_CHUNK_SIZE): string[][] {
+export const REGRANT_PICKER_MAX_URL_LENGTH = 1800;
+
+/**
+ * fileIds を「組み立てた URL の実長」基準で貪欲法により分割する。
+ * 先頭から順に buildUrl(ids) で実際に組み立てたURLの長さを測り、maxUrlLength を超えるか
+ * チャンクの件数が maxCount に達したら、そのチャンクを確定して次のチャンクへ移る。
+ *
+ * 1チャンクには必ず1件以上入れる: 1件だけで既に maxUrlLength を超えていても、その1件を
+ * 捨てずに単独チャンクとして返す（捨てると復旧対象から黙って脱落し、空チャンクを作って
+ * 次に回すと同じ1件を永遠に詰め直そうとして無限ループになる）。
+ * fileId の並び順はそのまま保ち、どの fileId もちょうど1回だけどこかのチャンクに現れる。
+ * 空配列を渡したら空配列を返す（呼び出し側はPickerを1回も開かない判断に使える）。
+ */
+export function chunkRegrantFileIdsForUrl(
+    fileIds: string[],
+    buildUrl: (ids: string[]) => string,
+    maxUrlLength = REGRANT_PICKER_MAX_URL_LENGTH,
+    maxCount = REGRANT_PICKER_CHUNK_SIZE,
+): string[][] {
     if (fileIds.length === 0) return [];
-    const size = Math.max(1, chunkSize);
+    const count = Math.max(1, maxCount);
     const chunks: string[][] = [];
-    for (let i = 0; i < fileIds.length; i += size) {
-        chunks.push(fileIds.slice(i, i + size));
+    let current: string[] = [];
+    for (const id of fileIds) {
+        const candidate = [...current, id];
+        // 今のチャンクが空なら（=1件目）、どれだけ長くても必ず受け入れる（1件以上の原則）。
+        const exceedsCount = current.length > 0 && candidate.length > count;
+        const exceedsLength = current.length > 0 && buildUrl(candidate).length > maxUrlLength;
+        if (exceedsCount || exceedsLength) {
+            chunks.push(current);
+            current = [id];
+        } else {
+            current = candidate;
+        }
     }
+    if (current.length > 0) chunks.push(current);
     return chunks;
 }
 
@@ -134,6 +176,16 @@ export function buildPdfPickerUrl(options: {
  * fileIds（空でない配列のときのみ付与）は「読めないPDFのfileIdだけ」を表示させるためのフラグ
  * （Issue #203。PICKER_FILE_IDS_PARAM 参照）。
  * `drives=1` は共有ドライブ対応のゲート（PICKER_DRIVES_PARAM 参照）。
+ *
+ * パラメータの並び順は mode → redirect → folderId → email → drives → fileIdsCount → fileIds。
+ * **切り詰めが起きたときに失って困る順に前へ置く。** fileIds は件数次第で他のどのパラメータ
+ * よりも長くなりうるため、URLが何らかの事情（ブラウザ・サーバー側のURL長制限等）で途中で
+ * 切り詰められると、その後ろにあるパラメータはまとめて失われる。email が失われると
+ * Pickerページ側のアカウント一致確認（picker.ts の expectedEmail 比較）が黙ってスキップされ、
+ * drives が失われると共有ドライブ対応が無効になる。どちらも影響が大きいため fileIds より前に
+ * 置き、最も切り詰めの影響を局所化できる fileIds を最後に置く（切り詰めが起きても失われるのは
+ * fileIds の末尾だけで済む）。fileIdsCount は fileIds の受信件数診断に使うカウントだが、
+ * fileIds 自体より後ろに置くと切り詰めで一緒に失われ診断にならないため、fileIds の直前に置く。
  */
 export function buildRegrantPickerUrl(options: {
     email?: string;
@@ -147,9 +199,12 @@ export function buildRegrantPickerUrl(options: {
     params.set('mode', 'regrant');
     params.set('redirect', redirectUri);
     params.set('folderId', folderId);
-    if (fileIds && fileIds.length > 0) params.set(PICKER_FILE_IDS_PARAM, fileIds.join(','));
     if (email) params.set('email', email);
     params.set(PICKER_DRIVES_PARAM, '1');
+    if (fileIds && fileIds.length > 0) {
+        params.set(PICKER_FILE_IDS_COUNT_PARAM, String(fileIds.length));
+        params.set(PICKER_FILE_IDS_PARAM, fileIds.join(','));
+    }
     return `${baseUrl}#${params.toString()}`;
 }
 

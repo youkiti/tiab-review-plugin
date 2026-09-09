@@ -2967,6 +2967,12 @@
   "picker_invalidRedirect": {
     "message": "許可できないリダイレクト先です。拡張機能から開き直してください。"
   },
+  "picker_regrantReceivedCount": {
+    "message": "復旧対象として受け取ったPDF: $1件"
+  },
+  "picker_regrantCountMismatch": {
+    "message": "警告: 拡張機能は$1件を送りましたが、このページには$2件しか届いていません（URLが途中で切れた可能性があります）。この$2件はそのまま選んで許可して構いません。拡張機能のパネルに戻って同じ操作をもう一度実行すると、残りが次の回に表示されます。"
+  },
   "fulltext_importDriveBtn": {
     "message": "Driveに直接置かれたPDFを取り込む"
   },

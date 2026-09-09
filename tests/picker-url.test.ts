@@ -7,10 +7,12 @@ import {
     isExtensionRedirectUri,
     isSharedDrivesRequested,
     parseRegrantFileIds,
-    chunkRegrantFileIds,
+    chunkRegrantFileIdsForUrl,
     REGRANT_PICKER_CHUNK_SIZE,
+    REGRANT_PICKER_MAX_URL_LENGTH,
     PICKER_PAGE_URL,
     PICKER_FILE_IDS_PARAM,
+    PICKER_FILE_IDS_COUNT_PARAM,
 } from '../src/lib/picker-url';
 
 test('buildPickerUrl uses URL fragment for fileId and email', () => {
@@ -75,7 +77,7 @@ test('buildRegrantPickerUrl omits email when not provided (folderId is always re
     );
 });
 
-test('buildRegrantPickerUrl adds fileIds to the fragment when provided (Issue #203)', () => {
+test('buildRegrantPickerUrl adds fileIds and fileIdsCount to the fragment when provided (Issue #203)', () => {
     const url = buildRegrantPickerUrl({
         email: 'reviewer@example.com',
         redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
@@ -83,10 +85,54 @@ test('buildRegrantPickerUrl adds fileIds to the fragment when provided (Issue #2
         fileIds: ['a', 'b', 'c'],
         baseUrl: 'https://example.test/picker.html',
     });
+    // fileIds は末尾、fileIdsCount はその直前（切り詰めが起きたときに失って困る順に
+    // 前へ置く。email/drives より後ろ、fileIds より前）。
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&fileIds=a%2Cb%2Cc&email=reviewer%40example.com&drives=1'
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1&fileIdsCount=3&fileIds=a%2Cb%2Cc'
     );
+});
+
+test('buildRegrantPickerUrl puts fileIds last, after email/drives/fileIdsCount', () => {
+    const url = buildRegrantPickerUrl({
+        email: 'reviewer@example.com',
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: ['a', 'b', 'c'],
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const fileIdsIndex = url.indexOf('&fileIds=');
+    assert.ok(fileIdsIndex > url.indexOf('&email='));
+    assert.ok(fileIdsIndex > url.indexOf('&drives='));
+    assert.ok(fileIdsIndex > url.indexOf('&fileIdsCount='));
+    // 末尾パラメータであること（これより後ろに他のパラメータが続かない＝最後の "&" が fileIds の前）
+    assert.equal(url.lastIndexOf('&'), fileIdsIndex);
+});
+
+test('buildRegrantPickerUrl sets fileIdsCount to the fileIds length, and omits it when fileIds is absent', () => {
+    const withFileIds = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: ['a', 'b', 'c', 'd'],
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const withFileIdsParams = new URLSearchParams(withFileIds.slice(withFileIds.indexOf('#') + 1));
+    assert.equal(withFileIdsParams.get(PICKER_FILE_IDS_COUNT_PARAM), '4');
+
+    const withoutFileIds = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        baseUrl: 'https://example.test/picker.html',
+    });
+    assert.equal(withoutFileIds.includes(PICKER_FILE_IDS_COUNT_PARAM), false);
+
+    const withEmptyFileIds = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds: [],
+        baseUrl: 'https://example.test/picker.html',
+    });
+    assert.equal(withEmptyFileIds.includes(PICKER_FILE_IDS_COUNT_PARAM), false);
 });
 
 test('buildRegrantPickerUrl omits fileIds when not provided or empty (matches the pre-#203 URL exactly)', () => {
@@ -141,39 +187,67 @@ test('parseRegrantFileIds returns an empty array for null/undefined/empty string
     assert.deepEqual(parseRegrantFileIds(''), []);
 });
 
-test('chunkRegrantFileIds splits evenly-divisible input into equal chunks', () => {
-    const ids = Array.from({ length: 100 }, (_, i) => `id${i}`);
-    const chunks = chunkRegrantFileIds(ids, 50);
-    assert.equal(chunks.length, 2);
-    assert.equal(chunks[0].length, 50);
-    assert.equal(chunks[1].length, 50);
+test('chunkRegrantFileIdsForUrl returns an empty array for empty input (Picker never opens)', () => {
+    assert.deepEqual(chunkRegrantFileIdsForUrl([], (ids) => ids.join(',')), []);
 });
 
-test('chunkRegrantFileIds puts the remainder into a final smaller chunk', () => {
-    const ids = Array.from({ length: 120 }, (_, i) => `id${i}`);
-    const chunks = chunkRegrantFileIds(ids, 50);
-    assert.equal(chunks.length, 3);
-    assert.equal(chunks[0].length, 50);
-    assert.equal(chunks[1].length, 50);
-    assert.equal(chunks[2].length, 20);
+test('chunkRegrantFileIdsForUrl keeps every fileId exactly once, in order, split by URL length', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const buildUrl = (chunk: string[]): string => chunk.join(',');
+    // 3文字（"a,b"）までは許容、4文字目（"a,b,c"→5文字）で次のチャンクへ、というmaxUrlLength=5。
+    const chunks = chunkRegrantFileIdsForUrl(ids, buildUrl, 5, 1000);
+    assert.deepEqual(chunks, [['a', 'b', 'c'], ['d', 'e', 'f']]);
+    assert.deepEqual(chunks.flat(), ids);
+    for (const chunk of chunks) {
+        assert.ok(buildUrl(chunk).length <= 5);
+    }
 });
 
-test('chunkRegrantFileIds returns an empty array for empty input (Picker never opens)', () => {
-    assert.deepEqual(chunkRegrantFileIds([]), []);
+test('chunkRegrantFileIdsForUrl never drops a single fileId even if it alone exceeds maxUrlLength (no infinite loop)', () => {
+    const ids = ['toolong', 'x', 'y'];
+    const buildUrl = (chunk: string[]): string => chunk.join(',');
+    const chunks = chunkRegrantFileIdsForUrl(ids, buildUrl, 1, 1000);
+    // 'toolong' 単独で既に上限(1文字)を超えるが、捨てられず単独チャンクになる
+    assert.deepEqual(chunks, [['toolong'], ['x'], ['y']]);
+    assert.deepEqual(chunks.flat(), ids);
 });
 
-test('chunkRegrantFileIds treats a chunkSize below 1 as 1, never as an infinite loop', () => {
+test('chunkRegrantFileIdsForUrl closes a chunk at maxCount even when the URL length has headroom', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    const buildUrl = (chunk: string[]): string => chunk.join(',');
+    // maxUrlLengthは十分大きく、maxCount=2 が分割の決め手になる
+    const chunks = chunkRegrantFileIdsForUrl(ids, buildUrl, 1000, 2);
+    assert.deepEqual(chunks, [['a', 'b'], ['c', 'd'], ['e']]);
+});
+
+test('chunkRegrantFileIdsForUrl treats a maxCount below 1 as 1, never as an infinite loop', () => {
     const ids = ['a', 'b', 'c'];
-    assert.deepEqual(chunkRegrantFileIds(ids, 0), [['a'], ['b'], ['c']]);
-    assert.deepEqual(chunkRegrantFileIds(ids, -5), [['a'], ['b'], ['c']]);
+    const buildUrl = (chunk: string[]): string => chunk.join(',');
+    assert.deepEqual(chunkRegrantFileIdsForUrl(ids, buildUrl, 1000, 0), [['a'], ['b'], ['c']]);
+    assert.deepEqual(chunkRegrantFileIdsForUrl(ids, buildUrl, 1000, -5), [['a'], ['b'], ['c']]);
 });
 
-test('chunkRegrantFileIds defaults to REGRANT_PICKER_CHUNK_SIZE', () => {
-    const ids = Array.from({ length: REGRANT_PICKER_CHUNK_SIZE + 1 }, (_, i) => `id${i}`);
-    const chunks = chunkRegrantFileIds(ids);
-    assert.equal(chunks.length, 2);
-    assert.equal(chunks[0].length, REGRANT_PICKER_CHUNK_SIZE);
-    assert.equal(chunks[1].length, 1);
+test('chunkRegrantFileIdsForUrl defaults to REGRANT_PICKER_MAX_URL_LENGTH / REGRANT_PICKER_CHUNK_SIZE and stays within the real buildRegrantPickerUrl budget for realistic Drive file ids', () => {
+    // 33文字前後のDrive風fileIdを多数渡し、既定値のまま実際のbuildRegrantPickerUrlで分割する
+    // （Issue #203の報告: 実運用で約50件で頭打ちになる事象の再現条件に近い状況）。
+    // ここでは「51件」のような具体的な閾値には合わせ込まず、一般的な性質だけを検証する。
+    const fileIds = Array.from({ length: 300 }, (_, i) => `1${String(i).padStart(31, 'B')}`);
+    const buildUrl = (ids: string[]): string => buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: `1${'A'.repeat(32)}`,
+        email: 'someone@example.com',
+        fileIds: ids,
+        baseUrl: 'https://youkiti.github.io/tiab-review-plugin/app/picker.html',
+    });
+    const chunks = chunkRegrantFileIdsForUrl(fileIds, buildUrl);
+    assert.deepEqual(chunks.flat(), fileIds);
+    for (const chunk of chunks) {
+        assert.ok(chunk.length > 0);
+        assert.ok(buildUrl(chunk).length <= REGRANT_PICKER_MAX_URL_LENGTH);
+    }
+    // 1,800文字のURL長上限が効いて、REGRANT_PICKER_CHUNK_SIZE（100件）よりずっと小さい
+    // 単位で分割されること（件数固定の分割だけでは防げなかった問題の再発防止）
+    assert.ok(chunks.every((chunk) => chunk.length < REGRANT_PICKER_CHUNK_SIZE));
 });
 
 test('isSharedDrivesRequested enables shared drives only for the exact flag value', () => {

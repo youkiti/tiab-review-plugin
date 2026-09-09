@@ -5,23 +5,30 @@ import type { RegrantPickerOutcome } from '../src/lib/drive-regrant-picker';
 import { REGRANT_PICKER_CHUNK_SIZE } from '../src/lib/picker-url';
 
 // このファイルは runRegrantPickerChunks の「ループ制御」だけを検証する（Issue #203）。
-// chunkRegrantFileIds 自体の分割ロジックは tests/picker-url.test.ts でカバー済みのため、
+// chunkRegrantFileIdsForUrl 自体の分割ロジックは tests/picker-url.test.ts でカバー済みのため、
 // ここでは openPicker を差し替えて chrome.identity に一切触れずに検証する。
 //
-// runRegrantPickerChunks に chunkSize の差し替え口は無い（本番の chunkRegrantFileIds は
-// REGRANT_PICKER_CHUNK_SIZE 固定で呼ばれる）。そこでテスト側は REGRANT_PICKER_CHUNK_SIZE を
-// import し、その定数から算出した件数（SIZE*2+1件）の fileIds を作ることで、
-// 定数の実値が変わっても壊れないまま必ず3チャンク（[SIZE, SIZE, 1]）になる状況を作る。
+// fileIds が非空のときは runRegrantPickerChunks 内部でチャンク分割のためにURLを組み立てる
+// （buildRegrantPickerUrl）ため、redirectUri が必要になる。省略時は chrome.identity.getRedirectURL
+// を呼んでしまい Node 環境（chrome グローバル無し）で落ちるため、テストでは明示的に注入する
+// （chrome.identity に一切触れないことの確認でもある）。
+const TEST_REDIRECT_URI = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker';
 
-type RecordedCall = { folderId: string; email: string | undefined; fileIds: string[] };
+// fileId を短い文字列（`id0`〜）にしてURL長を小さく保つことで、REGRANT_PICKER_CHUNK_SIZE
+// （件数上限）がチャンク境界の決め手になる状況を作る。REGRANT_PICKER_CHUNK_SIZE * 2 + 1 件の
+// fileIds なら、定数の実値が変わっても壊れないまま必ず3チャンク（[SIZE, SIZE, 1]）になる。
+const TOTAL_FILE_IDS = REGRANT_PICKER_CHUNK_SIZE * 2 + 1;
+const ALL_FILE_IDS = Array.from({ length: TOTAL_FILE_IDS }, (_, i) => `id${i}`);
+
+type RecordedCall = { folderId: string; email: string | undefined; fileIds: string[]; redirectUri: string };
 type RecordedProgress = { index: number; total: number; remaining: number };
 
 /** 呼び出し順に status を返し分ける openPicker のスタブを作る。 */
 function makeOpenPickerStub(statuses: RegrantPickerOutcome['status'][]) {
     const calls: RecordedCall[] = [];
-    const openPicker = async (args: { folderId: string; email?: string; fileIds: string[] }): Promise<RegrantPickerOutcome> => {
+    const openPicker = async (args: { folderId: string; email?: string; fileIds: string[]; redirectUri: string }): Promise<RegrantPickerOutcome> => {
         const callIndex = calls.length;
-        calls.push({ folderId: args.folderId, email: args.email, fileIds: args.fileIds });
+        calls.push({ folderId: args.folderId, email: args.email, fileIds: args.fileIds, redirectUri: args.redirectUri });
         const status = statuses[callIndex];
         if (status === 'granted') return { status: 'granted', granted: args.fileIds.length };
         if (status === 'cancelled') return { status: 'cancelled' };
@@ -30,16 +37,12 @@ function makeOpenPickerStub(statuses: RegrantPickerOutcome['status'][]) {
     return { openPicker, calls };
 }
 
-// REGRANT_PICKER_CHUNK_SIZE * 2 + 1 件の fileIds で
-// [SIZE件, SIZE件, 1件] の3チャンクになる状況を作る。
-const TOTAL_FILE_IDS = REGRANT_PICKER_CHUNK_SIZE * 2 + 1;
-const ALL_FILE_IDS = Array.from({ length: TOTAL_FILE_IDS }, (_, i) => `id${i}`);
-
 test('all chunks granted: total/opened/stoppedBy and the flattened fileIds round-trip (Issue #203)', async () => {
     const { openPicker, calls } = makeOpenPickerStub(['granted', 'granted', 'granted']);
     const outcome = await runRegrantPickerChunks({
         folderId: 'folder_1',
         fileIds: ALL_FILE_IDS,
+        redirectUri: TEST_REDIRECT_URI,
         openPicker,
     });
     assert.deepEqual(outcome, { total: 3, opened: 3, stoppedBy: 'completed' });
@@ -52,6 +55,7 @@ test('a cancelled chunk stops the loop before opening the remaining chunk (Issue
     const outcome = await runRegrantPickerChunks({
         folderId: 'folder_1',
         fileIds: ALL_FILE_IDS,
+        redirectUri: TEST_REDIRECT_URI,
         openPicker,
     });
     assert.deepEqual(outcome, { total: 3, opened: 1, stoppedBy: 'cancelled' });
@@ -64,6 +68,7 @@ test('a parse-error on the first chunk stops immediately (Issue #203)', async ()
     const outcome = await runRegrantPickerChunks({
         folderId: 'folder_1',
         fileIds: ALL_FILE_IDS,
+        redirectUri: TEST_REDIRECT_URI,
         openPicker,
     });
     assert.deepEqual(outcome, { total: 3, opened: 0, stoppedBy: 'parse-error' });
@@ -90,6 +95,7 @@ test('onChunkStart reports remaining as the count including the current chunk (I
     await runRegrantPickerChunks({
         folderId: 'folder_1',
         fileIds: ALL_FILE_IDS,
+        redirectUri: TEST_REDIRECT_URI,
         openPicker,
         onChunkStart: (p) => progress.push(p),
     });
@@ -101,18 +107,22 @@ test('onChunkStart reports remaining as the count including the current chunk (I
     ]);
 });
 
-test('folderId and email are passed through to every chunk unchanged (Issue #203)', async () => {
+test('folderId/email/redirectUri are passed through to every chunk unchanged (Issue #203)', async () => {
     const { openPicker, calls } = makeOpenPickerStub(['granted', 'granted', 'granted']);
     await runRegrantPickerChunks({
         folderId: 'folder_42',
         email: 'reviewer@example.com',
         fileIds: ALL_FILE_IDS,
+        redirectUri: TEST_REDIRECT_URI,
         openPicker,
     });
     assert.equal(calls.length, 3);
     for (const call of calls) {
         assert.equal(call.folderId, 'folder_42');
         assert.equal(call.email, 'reviewer@example.com');
+        // 分割時にURL長を測った redirectUri と、実際にPickerを開く際の redirectUri が
+        // 一致していること（測るURLと開くURLを一致させる、という作業4の要）。
+        assert.equal(call.redirectUri, TEST_REDIRECT_URI);
     }
 });
 
