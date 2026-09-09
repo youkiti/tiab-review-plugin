@@ -5,6 +5,7 @@ import {
     buildPdfPickerUrl,
     buildRegrantPickerUrl,
     isExtensionRedirectUri,
+    isRegrantFileIdsComplete,
     isSharedDrivesRequested,
     parseRegrantFileIds,
     chunkRegrantFileIdsForUrl,
@@ -13,6 +14,7 @@ import {
     PICKER_PAGE_URL,
     PICKER_FILE_IDS_PARAM,
     PICKER_FILE_IDS_COUNT_PARAM,
+    PICKER_FILE_IDS_END_PARAM,
 } from '../src/lib/picker-url';
 
 test('buildPickerUrl uses URL fragment for fileId and email', () => {
@@ -77,7 +79,7 @@ test('buildRegrantPickerUrl omits email when not provided (folderId is always re
     );
 });
 
-test('buildRegrantPickerUrl adds fileIds and fileIdsCount to the fragment when provided (Issue #203)', () => {
+test('buildRegrantPickerUrl adds fileIds, fileIdsCount and fileIdsEnd to the fragment when provided (Issue #203)', () => {
     const url = buildRegrantPickerUrl({
         email: 'reviewer@example.com',
         redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
@@ -85,15 +87,15 @@ test('buildRegrantPickerUrl adds fileIds and fileIdsCount to the fragment when p
         fileIds: ['a', 'b', 'c'],
         baseUrl: 'https://example.test/picker.html',
     });
-    // fileIds は末尾、fileIdsCount はその直前（切り詰めが起きたときに失って困る順に
-    // 前へ置く。email/drives より後ろ、fileIds より前）。
+    // fileIdsEnd は末尾（番兵）、fileIds はその直前、fileIdsCount はさらにその前
+    // （切り詰めが起きたときに失って困る順に前へ置く。email/drives より後ろ、fileIds より前）。
     assert.equal(
         url,
-        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1&fileIdsCount=3&fileIds=a%2Cb%2Cc'
+        'https://example.test/picker.html#mode=regrant&redirect=https%3A%2F%2Fabcdefghijklmnopabcdefghijklmnop.chromiumapp.org%2Fpicker&folderId=folder_1&email=reviewer%40example.com&drives=1&fileIdsCount=3&fileIds=a%2Cb%2Cc&fileIdsEnd=1'
     );
 });
 
-test('buildRegrantPickerUrl puts fileIds last, after email/drives/fileIdsCount', () => {
+test('buildRegrantPickerUrl puts fileIds after email/drives/fileIdsCount, and fileIdsEnd last of all (right after fileIds)', () => {
     const url = buildRegrantPickerUrl({
         email: 'reviewer@example.com',
         redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
@@ -102,11 +104,15 @@ test('buildRegrantPickerUrl puts fileIds last, after email/drives/fileIdsCount',
         baseUrl: 'https://example.test/picker.html',
     });
     const fileIdsIndex = url.indexOf('&fileIds=');
+    const fileIdsEndIndex = url.indexOf('&fileIdsEnd=');
     assert.ok(fileIdsIndex > url.indexOf('&email='));
     assert.ok(fileIdsIndex > url.indexOf('&drives='));
     assert.ok(fileIdsIndex > url.indexOf('&fileIdsCount='));
-    // 末尾パラメータであること（これより後ろに他のパラメータが続かない＝最後の "&" が fileIds の前）
-    assert.equal(url.lastIndexOf('&'), fileIdsIndex);
+    assert.ok(fileIdsEndIndex > fileIdsIndex);
+    // fileIdsEnd が末尾パラメータであること（これより後ろに他のパラメータが続かない
+    // ＝最後の "&" が fileIdsEnd の前）。fileIds はもはや最後のパラメータではない
+    // （犠牲用の番兵 fileIdsEnd がその後ろに付く）。
+    assert.equal(url.lastIndexOf('&'), fileIdsEndIndex);
 });
 
 test('buildRegrantPickerUrl sets fileIdsCount to the fileIds length, and omits it when fileIds is absent', () => {
@@ -173,6 +179,84 @@ test('buildRegrantPickerUrl fileIds round-trip through the fragment via parseReg
     const params = new URLSearchParams(fragment);
     const roundTrippedFileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
     assert.deepEqual(roundTrippedFileIds, originalFileIds);
+});
+
+test('a URL truncated near the end is still flagged via the sentinel, even though parseRegrantFileIds still returns all fileIds (reported reproduction)', () => {
+    // レビューで報告された再現手順: 33文字前後のDrive風fileIdを2件渡してURLを組み立て、
+    // 末尾から10文字削る。fileIdsEnd（13文字の "&fileIdsEnd=1"）を追加した後は、
+    // この程度の切り詰めは番兵のほうが先に（かつ丸ごと）失われ、fileIds 自体は無事残る。
+    // 件数比較だけでは「2件のまま」で食い違いが起きないため検知できないが、番兵が
+    // 欠けていることから切り詰めを検知できることを確認する。
+    const fileIds = [`1${'B'.repeat(32)}`, `1${'C'.repeat(32)}`];
+    const fullUrl = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: `1${'A'.repeat(32)}`,
+        email: 'someone@example.com',
+        fileIds,
+        baseUrl: 'https://youkiti.github.io/tiab-review-plugin/app/picker.html',
+    });
+    const truncatedUrl = fullUrl.slice(0, fullUrl.length - 10);
+    const fragment = truncatedUrl.slice(truncatedUrl.indexOf('#') + 1);
+    const params = new URLSearchParams(fragment);
+
+    const parsedFileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
+    assert.equal(parsedFileIds.length, 2); // (b) 件数だけ見ると切り詰めが起きたようには見えない
+    assert.equal(isRegrantFileIdsComplete(params.get(PICKER_FILE_IDS_END_PARAM)), false); // (a) 番兵は欠けている
+});
+
+test('a truncation that eats the sentinel and bites into the last fileId is still flagged via the sentinel, even though the count alone would not catch it', () => {
+    // 上のテスト（番兵だけが失われるケース）との違い: あちらは番兵（13文字の "&fileIdsEnd=1"）
+    // の内側に収まる軽い切り詰めで、fileIds 本体（末尾のID）は無傷のまま残る。
+    // こちらは番兵を丸ごと食い切って、さらに fileIds 本体（末尾のID）にも食い込む、
+    // より深い切り詰めのケース。レビュー指摘が突いていたのはまさにこちら側:
+    // 切れた断片が Drive のファイルID相当の文字種（英数字・`_`・`-`）にたまたまマッチすれば、
+    // parseRegrantFileIds は「2件」を返してしまい、件数比較だけでは検知できない
+    // （壊れた2件目が文字種の検証をそのまま通過するため）。番兵の欠落だけが、この
+    // ケースを確実に検知できる手段になる。
+    const fileIds = [`1${'B'.repeat(32)}`, `1${'C'.repeat(32)}`];
+    const fullUrl = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: `1${'A'.repeat(32)}`,
+        email: 'someone@example.com',
+        fileIds,
+        baseUrl: 'https://youkiti.github.io/tiab-review-plugin/app/picker.html',
+    });
+    // 番兵（"&" + PICKER_FILE_IDS_END_PARAM + "=1"）を丸ごと食い切って、さらに12文字だけ
+    // 本体（末尾のfileId）にも食い込む長さを削る。パラメータ名が変わってもテストが
+    // 追随するよう、削る文字数はハードコードせず定数から計算する。
+    const cutLength = `&${PICKER_FILE_IDS_END_PARAM}=1`.length + 12;
+    const truncatedUrl = fullUrl.slice(0, fullUrl.length - cutLength);
+    const fragment = truncatedUrl.slice(truncatedUrl.indexOf('#') + 1);
+    const params = new URLSearchParams(fragment);
+
+    const parsedFileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
+    assert.equal(parsedFileIds.length, 2); // 件数だけ見ると2件のままで、異常には見えない
+    assert.notEqual(parsedFileIds[1], fileIds[1]); // 2件目は元のIDと一致しない（途中で切れて壊れている）
+    assert.ok(parsedFileIds[1].length < fileIds[1].length); // 元より短い（壊れた断片が「有効」として数えられている）
+    assert.equal(isRegrantFileIdsComplete(params.get(PICKER_FILE_IDS_END_PARAM)), false); // 番兵なら検知できる
+});
+
+test('a truncation that drops fileIds entirely (fileIdsCount survives) is also flagged via the sentinel', () => {
+    // fileIdsCount は残るが fileIds 自体（とそれより後ろの fileIdsEnd）が丸ごと失われる
+    // 位置まで切り詰めた場合の再現。fileIds が空になったからといって「fileIds指定なしの
+    // 従来経路」と即断してはならないことの確認（fileIdsCount が残っている＝本来は
+    // fileIds が送られたはずのケースであり、番兵の欠落から切り詰めを検知できる）。
+    const fileIds = ['a', 'b'];
+    const fullUrl = buildRegrantPickerUrl({
+        redirectUri: 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/picker',
+        folderId: 'folder_1',
+        fileIds,
+        baseUrl: 'https://example.test/picker.html',
+    });
+    const cutIndex = fullUrl.indexOf('&fileIds=');
+    assert.ok(cutIndex > 0);
+    const truncatedUrl = fullUrl.slice(0, cutIndex);
+    const fragment = truncatedUrl.slice(truncatedUrl.indexOf('#') + 1);
+    const params = new URLSearchParams(fragment);
+
+    assert.equal(params.get(PICKER_FILE_IDS_COUNT_PARAM), '2'); // 送信件数は残っている
+    assert.deepEqual(parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM)), []); // fileIds は空
+    assert.equal(isRegrantFileIdsComplete(params.get(PICKER_FILE_IDS_END_PARAM)), false);
 });
 
 test('parseRegrantFileIds splits on comma, trims whitespace, and drops entries with invalid characters', () => {
@@ -248,6 +332,20 @@ test('chunkRegrantFileIdsForUrl defaults to REGRANT_PICKER_MAX_URL_LENGTH / REGR
     // 1,800文字のURL長上限が効いて、REGRANT_PICKER_CHUNK_SIZE（100件）よりずっと小さい
     // 単位で分割されること（件数固定の分割だけでは防げなかった問題の再発防止）
     assert.ok(chunks.every((chunk) => chunk.length < REGRANT_PICKER_CHUNK_SIZE));
+});
+
+test('isRegrantFileIdsComplete treats only the exact sentinel value as complete', () => {
+    assert.equal(isRegrantFileIdsComplete('1'), true);
+});
+
+test('isRegrantFileIdsComplete falls back to incomplete (truncated) for anything else', () => {
+    // 番兵が欠けている・改変されている場合はすべて「切り詰めあり」に倒す
+    // （isSharedDrivesRequested と同じイディオム。異常なしと誤答するより安全側に倒す）
+    assert.equal(isRegrantFileIdsComplete(null), false);
+    assert.equal(isRegrantFileIdsComplete(undefined), false);
+    assert.equal(isRegrantFileIdsComplete(''), false);
+    assert.equal(isRegrantFileIdsComplete('0'), false);
+    assert.equal(isRegrantFileIdsComplete('x'), false);
 });
 
 test('isSharedDrivesRequested enables shared drives only for the exact flag value', () => {

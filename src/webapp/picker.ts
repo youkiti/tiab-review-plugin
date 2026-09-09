@@ -1,10 +1,12 @@
 import { getMessage } from '../platform/web/i18n';
 import {
     isExtensionRedirectUri,
+    isRegrantFileIdsComplete,
     isSharedDrivesRequested,
     parseRegrantFileIds,
     PICKER_DRIVES_PARAM,
     PICKER_FILE_IDS_COUNT_PARAM,
+    PICKER_FILE_IDS_END_PARAM,
     PICKER_FILE_IDS_PARAM,
 } from '../lib/picker-url';
 
@@ -29,35 +31,51 @@ function setStatus(message: string): void {
 }
 
 /**
- * mode=regrant で fileIds を受け取ったときだけ #regrantInfo に受信件数を表示する
+ * mode=regrant で fileIds を受け取ったときだけ #regrantInfo に表示する
  * （fileIds がURLの途中で切り詰められて欠落する事態を画面上で見えるようにする対策）。
  *
- * **init() から呼ぶ（start() からは呼ばない）。** fileIds/fileIdsCount はどちらもURL
- * フラグメントから読むだけでトークン取得を待つ必要が無い一方、start() の最後は
+ * **init() から呼ぶ（start() からは呼ばない）。** fileIds/fileIdsCount/fileIdsEnd はどれも
+ * URLフラグメントから読むだけでトークン取得を待つ必要が無い一方、start() の最後は
  * openRegrantPicker() が picker.setVisible(true) でPickerをモーダル表示してしまい、
  * その陰に隠れてユーザーの目に触れなくなる。init() はDOMContentLoadedで即座に走るため、
  * 「Google Pickerを開く」を押す前のランディング画面の時点でこの表示が見える。
  *
- * 常に受信件数（パース後に実際に Picker へ渡る件数）を表示する。加えて、拡張機能が
- * fileIdsCount（PICKER_FILE_IDS_COUNT_PARAM。送信件数）を渡していて、かつ受信件数と
- * 食い違う場合は警告文へ差し替える。URLが途中で切り詰められると fileIds の末尾（＝件数）
- * だけが変わり、エラーも例外も出ないため、ここで初めて食い違いが可視化される。
- * fileIdsCount が無い場合（旧バージョンの拡張機能から開かれた場合。Pickerページは
- * GitHub Pages から配信され旧バージョンにも即時反映されるため必ずこの経路が起こる）は
- * 比較する相手が無いので警告は出さず、受信件数の表示だけにする。fileIdsCount の値が
- * 数字以外（フラグメントは外部から任意の値を与えられうる）のときも同様に扱う
- * （空文字を件数0と誤認して「0件を送りました」という嘘の警告を出さないため）。
+ * 判定は次の優先順位（fileIdsCountParam が数字として渡っているかどうかで大きく分岐する）:
+ * 1. fileIdsCount が無い/数字以外 → 拡張機能側の送信件数と比較できない。
+ *    - 受信件数が0件なら、fileIds自体が渡されていない従来経路（フォルダ全体の初期表示）と
+ *      判別できないため、ここだけ何も表示しない（#regrantInfo を書き換えない）
+ *    - 受信件数が1件以上なら、旧バージョンの拡張機能からの起動とみなし受信件数のみ表示
+ * 2. fileIdsCount が数字として渡っている → 番兵（fileIdsEnd）を見る
+ *    - 番兵が `'1'` でない（欠落・改変）→ 件数の一致/不一致を問わず「切り詰めの疑いあり」
+ *      警告（picker_regrantTruncated）。件数が一致していても末尾の fileId が途中で切れて
+ *      文字種の検証をたまたま通過している可能性があるため、件数一致は安全の証拠にならない
+ *    - 番兵が `'1'` で件数が不一致 → 従来の食い違い警告（picker_regrantCountMismatch）
+ *    - 番兵が `'1'` で件数も一致 → 受信件数のみ表示
  *
- * fileIds が空のとき（従来どおりフォルダ全体を初期表示する経路）は #regrantInfo を
- * 書き換えない（空のまま）。mode=regrant 以外のモードから呼ばれることも無い
- * （init() で isRegrantMode のときだけ呼ぶ）ため、他モードの見た目は変わらない。
+ * なお番兵だけが失われる位置でURLが切れた場合（fileIds本体は無事）も1.と同じ「切り詰めの
+ * 疑いあり」判定になる（偽陽性）。診断が「異常なし」と誤答するより警告側に倒す方が安全という
+ * 判断で、意図した挙動（picker-url.ts の PICKER_FILE_IDS_END_PARAM 参照）。
+ *
+ * mode=regrant 以外のモードから呼ばれることも無い（init() で isRegrantMode のときだけ呼ぶ）
+ * ため、他モードの見た目は変わらない。
  */
-function updateRegrantInfo(fileIds: string[], fileIdsCountParam: string | null): void {
+function updateRegrantInfo(fileIds: string[], fileIdsCountParam: string | null, fileIdsEndParam: string | null): void {
     const el = document.getElementById('regrantInfo');
-    if (!el || fileIds.length === 0) return;
+    if (!el) return;
     const received = fileIds.length;
     const sent = fileIdsCountParam !== null && /^\d+$/.test(fileIdsCountParam) ? Number(fileIdsCountParam) : null;
-    if (sent !== null && sent !== received) {
+
+    if (sent === null) {
+        // fileIdsCount と比較できない。fileIds自体が渡されていない従来経路（受信0件）との
+        // 区別ができないため、ここだけ早期returnで何も表示しない。
+        if (received === 0) return;
+        el.textContent = t('picker_regrantReceivedCount', String(received));
+        return;
+    }
+
+    if (!isRegrantFileIdsComplete(fileIdsEndParam)) {
+        el.textContent = t('picker_regrantTruncated', [String(sent), String(received)]);
+    } else if (sent !== received) {
         el.textContent = t('picker_regrantCountMismatch', [String(sent), String(received)]);
     } else {
         el.textContent = t('picker_regrantReceivedCount', String(received));
@@ -399,10 +417,11 @@ function init(): void {
         ? t('picker_pdfShareHint')
         : t('picker_shareHint');
     if (isRegrantMode) {
-        // fileIds/fileIdsCount はURLフラグメントから読むだけなので、トークン取得(start())を
-        // 待たずにここで表示する（「Google Pickerを開く」を押す前のランディング画面に出す）。
+        // fileIds/fileIdsCount/fileIdsEnd はURLフラグメントから読むだけなので、トークン取得
+        // (start())を待たずにここで表示する（「Google Pickerを開く」を押す前のランディング
+        // 画面に出す）。
         const fileIds = parseRegrantFileIds(params.get(PICKER_FILE_IDS_PARAM));
-        updateRegrantInfo(fileIds, params.get(PICKER_FILE_IDS_COUNT_PARAM));
+        updateRegrantInfo(fileIds, params.get(PICKER_FILE_IDS_COUNT_PARAM), params.get(PICKER_FILE_IDS_END_PARAM));
     }
     document.getElementById('startBtn')!.textContent = t('picker_startBtn');
     const switchAccountBtn = document.getElementById('switchAccountBtn')!;

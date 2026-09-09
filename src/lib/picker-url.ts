@@ -50,6 +50,37 @@ export const PICKER_FILE_IDS_PARAM = 'fileIds';
 export const PICKER_FILE_IDS_COUNT_PARAM = 'fileIdsCount';
 
 /**
+ * fileIds の直後に置く「番兵」のパラメータ名。fileIds が URL の最後の実データであることを
+ * 前提に、**わざと犠牲にする値**として fileIds のさらに後ろへ置く。
+ *
+ * 件数（PICKER_FILE_IDS_COUNT_PARAM）の比較だけでは、末尾の fileId が途中で切れても
+ * 検知できない場合がある。`parseRegrantFileIds` は文字種（英数字・`_`・`-`）しか見ないため、
+ * 切れた後に残った断片がたまたまこの文字種にマッチすれば「1件」として数えてしまい、件数は
+ * 送信件数と一致してしまう。フラグメント上では区切りが `%2C`（3文字）、Drive のIDは33文字
+ * 前後なので、切れる位置の大半はID内部に落ちる＝この誤検知は例外ケースではない。
+ *
+ * `fileIdsEnd=1` という番兵を fileIds の直後に置けば、URLがどこで切り詰められても
+ * fileIds 本体より先にこの番兵が失われる。したがって `fileIdsEnd` が `'1'` でなければ
+ * 切り詰めが起きたと確実に判定できる（isRegrantFileIdsComplete 参照）。
+ *
+ * **fileIds 自体は無事で、番兵だけが失われる位置で切れた場合も「切り詰めあり」と判定される
+ * （偽陽性）。これは意図した挙動。** 診断は「異常なし」と誤答するより「切り詰めの疑いあり」
+ * と警告側に倒す方が安全であり、番兵1件の追加コスト（`&fileIdsEnd=1` で13文字）は
+ * buildRegrantPickerUrl で組み立てるURLの実長に自動的に織り込まれるため、チャンク分割側の
+ * 追加対応は不要。
+ */
+export const PICKER_FILE_IDS_END_PARAM = 'fileIdsEnd';
+
+/**
+ * fileIds が末尾まで欠けずに届いたか（番兵 fileIdsEnd が `'1'` か）を判定する純関数。
+ * `'1'` のみを有効とし、他の値（欠落・改変）は全て「欠けている」に倒す
+ * （既存の isSharedDrivesRequested と同じイディオム）。
+ */
+export function isRegrantFileIdsComplete(value: string | null | undefined): boolean {
+    return value === '1';
+}
+
+/**
  * フラグメントで渡された fileIds 文字列（カンマ区切り）をパースする純関数（Issue #203）。
  * フラグメントは外部から任意の値を与えられうるため、Drive のファイルID相当の文字種
  * （英数字・`_`・`-`）にマッチするものだけを残し、それ以外は黙って捨てる
@@ -177,15 +208,18 @@ export function buildPdfPickerUrl(options: {
  * （Issue #203。PICKER_FILE_IDS_PARAM 参照）。
  * `drives=1` は共有ドライブ対応のゲート（PICKER_DRIVES_PARAM 参照）。
  *
- * パラメータの並び順は mode → redirect → folderId → email → drives → fileIdsCount → fileIds。
- * **切り詰めが起きたときに失って困る順に前へ置く。** fileIds は件数次第で他のどのパラメータ
- * よりも長くなりうるため、URLが何らかの事情（ブラウザ・サーバー側のURL長制限等）で途中で
- * 切り詰められると、その後ろにあるパラメータはまとめて失われる。email が失われると
- * Pickerページ側のアカウント一致確認（picker.ts の expectedEmail 比較）が黙ってスキップされ、
- * drives が失われると共有ドライブ対応が無効になる。どちらも影響が大きいため fileIds より前に
- * 置き、最も切り詰めの影響を局所化できる fileIds を最後に置く（切り詰めが起きても失われるのは
- * fileIds の末尾だけで済む）。fileIdsCount は fileIds の受信件数診断に使うカウントだが、
+ * パラメータの並び順は mode → redirect → folderId → email → drives → fileIdsCount → fileIds
+ * → fileIdsEnd。**切り詰めが起きたときに失って困る順に前へ置く。** fileIds は件数次第で
+ * 他のどのパラメータよりも長くなりうるため、URLが何らかの事情（ブラウザ・サーバー側のURL長
+ * 制限等）で途中で切り詰められると、その後ろにあるパラメータはまとめて失われる。email が
+ * 失われると Pickerページ側のアカウント一致確認（picker.ts の expectedEmail 比較）が黙って
+ * スキップされ、drives が失われると共有ドライブ対応が無効になる。どちらも影響が大きいため
+ * fileIds より前に置く。fileIdsCount は fileIds の受信件数診断に使うカウントだが、
  * fileIds 自体より後ろに置くと切り詰めで一緒に失われ診断にならないため、fileIds の直前に置く。
+ * fileIds は「最後の実データ」として置き、そのさらに後ろに**わざと犠牲にする番兵**
+ * `fileIdsEnd` を置く（PICKER_FILE_IDS_END_PARAM 参照）。件数の比較だけでは末尾の fileId が
+ * 途中で切れても検知できない場合がある（文字種の検証を通ってしまう）ため、fileIds より後ろに
+ * 何か置いて「ここまで無事届いたか」を直接確かめる必要がある。
  */
 export function buildRegrantPickerUrl(options: {
     email?: string;
@@ -204,6 +238,7 @@ export function buildRegrantPickerUrl(options: {
     if (fileIds && fileIds.length > 0) {
         params.set(PICKER_FILE_IDS_COUNT_PARAM, String(fileIds.length));
         params.set(PICKER_FILE_IDS_PARAM, fileIds.join(','));
+        params.set(PICKER_FILE_IDS_END_PARAM, '1');
     }
     return `${baseUrl}#${params.toString()}`;
 }
