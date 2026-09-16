@@ -4,6 +4,7 @@
 
 import { saveDecision } from '../lib/sheets-api';
 import { platform } from '../platform';
+import { t } from '../lib/i18n';
 import { getClientVersion } from '../lib/client-version';
 import { buildDecisionContext } from '../lib/decision-context';
 import { excludeReasonLabel, MAX_REASON_HOTKEYS } from '../lib/exclude-reasons';
@@ -65,13 +66,24 @@ export function renderDecisionPanel(): void {
     updateSaveButton();
 }
 
-export const AI_DECISION_LABELS: Record<string, string> = {
-    include: '組み入れ',
-    exclude: '除外',
-    maybe: '保留',
-    // AI判定には出ないが、自分のTiAb判定・他レビュアーの判定の表示で使う
-    pending: '未判定',
-};
+/**
+ * 判定キー（include/exclude/maybe/pending）を表示ラベルへ変換する。
+ * i18n化前は module-level の Record リテラルだったが、リテラル内で t() を呼ぶと
+ * import 巻き上げ（ESモジュールの import は宣言順に関わらず先に評価される）により
+ * setPlatform(chromePlatform) より前に評価されてしまい、platform 未初期化のまま
+ * キー名がそのまま返る（fulltext.ts の setPlatform 呼び出しコメント参照）。
+ * 呼び出し時（関数本体の実行時）まで t() 呼び出しを遅延させるため関数化している。
+ */
+export function aiDecisionLabel(decision: string): string {
+    switch (decision) {
+        case 'include': return t('ftPage_decisionInclude');
+        case 'exclude': return t('ftPage_decisionExclude');
+        case 'maybe': return t('ftPage_decisionMaybe');
+        // AI判定には出ないが、自分のTiAb判定・他レビュアーの判定の表示で使う
+        case 'pending': return t('ftPage_decisionPending');
+        default: return decision;
+    }
+}
 
 /**
  * AI判定の開示トグル（管理者のみ）。
@@ -99,8 +111,8 @@ export function setupAiRevealToggle(): void {
 export function syncAiRevealButton(): void {
     const btn = document.getElementById('ft-ai-reveal-btn');
     if (!btn) return;
-    btn.textContent = session.aiReveal ? 'AI判断: 表示中' : 'AI判断: 非表示';
-    btn.title = 'AIの組入/除外の判断とその理由の表示を切り替えます（管理者のみ）';
+    btn.textContent = session.aiReveal ? t('ftPage_aiRevealShown') : t('ftPage_aiRevealHidden');
+    btn.title = t('ftPage_aiRevealToggleTitle');
     btn.classList.toggle('active', session.aiReveal);
 }
 
@@ -130,7 +142,7 @@ function renderAiSummary(): void {
         else panel.prepend(banner);
     }
 
-    const decLabel = AI_DECISION_LABELS[decision.decision] ?? decision.decision;
+    const decLabel = aiDecisionLabel(decision.decision);
     const pct = Math.round((note.include_probability ?? 0) * 100);
     const reasonCat = note.exclude_reason_category
         ? `（${excludeReasonLabel(note.exclude_reason_category, session.excludeReasonItems)}）`
@@ -139,11 +151,11 @@ function renderAiSummary(): void {
     banner.innerHTML = '';
     const head = document.createElement('div');
     head.className = 'ft-ai-summary-head';
-    head.textContent = `AI判定: ${decLabel}${reasonCat} ・ 組入確率 ${pct}%`;
+    head.textContent = t('ftPage_aiSummaryHead', [decLabel, reasonCat, String(pct)]);
     // 数字＋小バーの併記で、maybe（50%前後）と高確信判定を一目で区別できるようにする
     const bar = document.createElement('span');
     bar.className = 'ft-ai-prob-bar';
-    bar.title = `組入確率 ${pct}%`;
+    bar.title = t('ftPage_includeProbTitle', String(pct));
     const fill = document.createElement('span');
     fill.className = 'ft-ai-prob-fill';
     fill.style.width = `${pct}%`;
@@ -247,7 +259,7 @@ async function commitNoteAndAdvance(): Promise<void> {
     if (session.pendingDecision === 'exclude') {
         const select = document.getElementById('ft-reason-select') as HTMLSelectElement | null;
         if (!select?.value) {
-            showFeedback('除外理由を選択してください', true);
+            showFeedback(t('ftPage_selectReasonPrompt'), true);
             focusReasonSelect();
             return;
         }
@@ -269,14 +281,14 @@ export async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'):
 
     if (decision === 'exclude') {
         focusReasonSelect();     // キーボードで理由を選べるようフォーカス
-        showFeedback('除外理由を選択すると保存して次の候補へ進みます');
+        showFeedback(t('ftPage_excludeReasonHelp'));
         return;                  // 理由確定で保存して advanceToNext する
     }
 
     if (decision === 'maybe') {
         const saved = await handleSave();
         if (saved) {
-            showFeedback('保存しました。判断できなかった点をメモできます（Enterで次へ）');
+            showFeedback(t('ftPage_maybeSavedHelp'));
             focusReasonNote();
         }
         return;                  // Enter（またはボタン/キーで次へ）で advanceToNext する
@@ -321,7 +333,7 @@ export function renderReasonOptions(): void {
         // 末尾の項目にだけ「1〜n が当てはまらない場合」の補足を付ける
         // （'other' というキー名では判定しない。カスタム理由には無いか、あっても末尾とは限らない）
         const isFallback = idx === session.excludeReasonItems.length - 1 && idx > 0;
-        const suffix = isFallback ? `（1〜${idx}が当てはまらない場合）` : '';
+        const suffix = isFallback ? t('ftPage_reasonFallbackSuffix', String(idx)) : '';
         opt.textContent = `${idx + 1}. ${item.label}${suffix}`;
         select.appendChild(opt);
     });
@@ -331,7 +343,7 @@ export function renderReasonOptions(): void {
 
     const hint = document.querySelector('.ft-reason-hint');
     if (hint) {
-        hint.textContent = `クリックまたは数字 1〜${hotkeyCount()} で確定して次へ ／ ↑↓ で移動・Enter で確定`;
+        hint.textContent = t('ftPage_reasonHint', String(hotkeyCount()));
     }
 }
 
@@ -409,8 +421,8 @@ function updateReasonArea(): void {
         hint?.classList.toggle('hidden', !excludeMode);
         if (note) {
             note.placeholder = excludeMode
-                ? '補足メモ（任意・Enterで保存して次へ／Shift+Enterで改行）'
-                : '判断できなかった点のメモ（任意・Enterで保存して次へ／Shift+Enterで改行）';
+                ? t('ftPage_reasonNotePlaceholder')
+                : t('ftPage_reasonNoteMaybePlaceholder');
         }
         // 既存の除外理由を復元
         if (select) {
@@ -437,7 +449,7 @@ async function handleSave(): Promise<boolean> {
     const saveBtn = document.getElementById('ft-save-btn') as HTMLButtonElement | null;
     if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.textContent = '保存中...';
+        saveBtn.textContent = t('ftPage_saving');
     }
 
     try {
@@ -446,7 +458,7 @@ async function handleSave(): Promise<boolean> {
         const reason = reasonSelect?.value || '';
 
         if (session.pendingDecision === 'exclude' && !reason) {
-            showFeedback('除外理由を選択してください', true);
+            showFeedback(t('ftPage_selectReasonPrompt'), true);
             focusReasonSelect();
             return false;
         }
@@ -494,15 +506,15 @@ async function handleSave(): Promise<boolean> {
         // （サイドパネルが閉じていて受信側がいなくてもエラーにしない）
         platform().emitMessage({ type: 'team-progress:decision-saved', spreadsheetId: session.spreadsheetId, decision: decisionObj });
 
-        showFeedback('保存しました');
+        showFeedback(t('ftPage_saved'));
         return true;
     } catch (err) {
-        showFeedback(`保存失敗: ${(err as Error).message}`, true);
+        showFeedback(t('ftPage_saveFailed', (err as Error).message), true);
         return false;
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.textContent = '保存';
+            saveBtn.textContent = t('ftPage_saveBtn');
         }
     }
 }
@@ -560,13 +572,13 @@ export function buildOtherDecisionsBlock(others: Decision[]): HTMLElement {
 
     const head = document.createElement('div');
     head.className = 'ft-context-others-head';
-    head.textContent = '他レビュアーのフルテキスト判定';
+    head.textContent = t('ftPage_otherReviewersHeading');
     block.appendChild(head);
 
     if (others.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'ft-context-others-empty';
-        empty.textContent = 'まだありません';
+        empty.textContent = t('ftPage_noneYet');
         block.appendChild(empty);
         return block;
     }
@@ -576,7 +588,7 @@ export function buildOtherDecisionsBlock(others: Decision[]): HTMLElement {
         row.className = 'ft-context-other';
         row.dataset.decision = d.decision;
 
-        const parts = [otherReviewerLabel(d.reviewer_id || '', session.userEmail), AI_DECISION_LABELS[d.decision] ?? d.decision];
+        const parts = [otherReviewerLabel(d.reviewer_id || '', session.userEmail), aiDecisionLabel(d.decision)];
         if (d.reason) parts.push(excludeReasonLabel(d.reason, session.excludeReasonItems));
         const rowHead = document.createElement('div');
         rowHead.className = 'ft-context-other-head';

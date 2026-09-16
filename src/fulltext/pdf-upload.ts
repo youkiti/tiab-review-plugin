@@ -113,13 +113,13 @@ async function handleDeletePdf(): Promise<void> {
     const isSnapshot = resolveFulltextDisplayMode(session.currentRef) === 'registry_snapshot';
     const confirmMessage = isSnapshot
         ? t('fulltext_snapshotDeleteConfirm')
-        : 'このPDFをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）';
+        : t('ftPage_deletePdfConfirm');
     if (!window.confirm(confirmMessage)) {
         return;
     }
 
     const delBtn = document.getElementById('ft-delete-btn') as HTMLButtonElement | null;
-    if (delBtn) { delBtn.disabled = true; delBtn.textContent = '削除中...'; }
+    if (delBtn) { delBtn.disabled = true; delBtn.textContent = t('ftPage_deleting'); }
 
     try {
         const fileId = extractDriveFileId(session.currentRef.fulltext_url);
@@ -132,9 +132,9 @@ async function handleDeletePdf(): Promise<void> {
         // 削除時はDrive取り込み元/コピーIDも必ずクリアする（ゴミ箱送りのコピーを取り込み済みと誤判定させないため）
         session.currentRef.fulltext_drive_source_id = undefined;
         session.currentRef.fulltext_drive_copy_id = undefined;
-        showPlaceholder('PDFを削除しました。\n上の「⬆ PDFをアップロード」から再取得してください。');
+        showPlaceholder(t('ftPage_pdfDeleted'));
     } catch (err) {
-        window.alert(`削除に失敗しました: ${(err as Error).message}`);
+        window.alert(t('ftPage_deleteFailed', (err as Error).message));
     } finally {
         if (delBtn) delBtn.disabled = false;
         // ラベルのハードコード復元をやめ updateToolbarMode() に委ねる（PR #124 レビュー指摘4）。
@@ -157,13 +157,13 @@ async function uploadPdfFile(file: File): Promise<void> {
     // マジックナンバーでPDF検証
     const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
     if (!String.fromCharCode(...head).startsWith('%PDF')) {
-        window.alert('PDFファイルではないようです。.pdf ファイルを選択してください。');
+        window.alert(t('ftPage_notAPdf'));
         return;
     }
 
     session.uploadInProgress = true;
     const ref = session.currentRef; // アップロード中に遷移しても結果は元の文献へ反映する
-    showPlaceholder('Drive へPDFをアップロード中...');
+    showPlaceholder(t('ftPage_uploadingPdf'));
     try {
         const folderId = await ensureFulltextFolder(session.spreadsheetId);
         const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
@@ -177,12 +177,12 @@ async function uploadPdfFile(file: File): Promise<void> {
         if (ref === session.currentRef) {
             await showCachedPdf(info.webViewLink);
             updateToolbarMode();
-            showFeedback('PDFをDriveに保存しました');
+            showFeedback(t('ftPage_pdfSavedToDrive'));
         }
     } catch (err) {
         if (ref === session.currentRef) {
             const knownMessage = describeDriveAccessError(err);
-            showPlaceholder(knownMessage ?? `アップロードに失敗しました: ${(err as Error).message}`);
+            showPlaceholder(knownMessage ?? t('ftPage_uploadFailed', (err as Error).message));
         }
     } finally {
         session.uploadInProgress = false;

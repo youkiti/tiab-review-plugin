@@ -18,6 +18,7 @@ setPlatform(chromePlatform);
 
 import { getAuthToken, getUserEmail, getFulltextPageData, isUserAdmin } from '../lib/sheets-api';
 import { platform } from '../platform';
+import { t, localizeHtml } from '../lib/i18n';
 import { resolveExcludeReasonItems } from '../lib/exclude-reason-config';
 import { isDecisionVisibleDuringBlind } from '../lib/blind-visibility';
 import { initialSelectedFulltextSets, normalizeStoredFulltextSets } from '../lib/fulltext-assignment';
@@ -55,7 +56,7 @@ import { clearPdfPrefetch } from './pdf-prefetch';
 
 document.addEventListener('DOMContentLoaded', () => {
     initFulltextPage().catch(err => {
-        showPlaceholder(`初期化エラー: ${(err as Error).message}`);
+        showPlaceholder(t('ftPage_initError', (err as Error).message));
     });
 });
 
@@ -70,6 +71,9 @@ window.addEventListener('pagehide', () => {
 });
 
 async function initFulltextPage(): Promise<void> {
+    // i18n: 最初の描画（showPlaceholder 等）より前に静的HTMLの文言を翻訳する
+    localizeHtml();
+
     setDocumentViewDependencies({ openLinkedInline });
     setDocumentLoaderDependencies({ showRegistrySnapshot });
     setDecisionControllerDependencies({ advanceToNext, renderOverallProgress });
@@ -78,11 +82,11 @@ async function initFulltextPage(): Promise<void> {
     const refId = params.get('ref_id') ?? '';
 
     if (!refId) {
-        showPlaceholder('ref_id が指定されていません。サイドパネルから開いてください。');
+        showPlaceholder(t('ftPage_missingRefId'));
         return;
     }
 
-    showPlaceholder('読み込み中...');
+    showPlaceholder(t('ftPage_loading'));
 
     // 認証・ユーザー情報
     await getAuthToken();
@@ -92,7 +96,7 @@ async function initFulltextPage(): Promise<void> {
     const stored = await chrome.storage.local.get(['spreadsheetId']);
     session.spreadsheetId = (stored.spreadsheetId as string | undefined) ?? '';
     if (!session.spreadsheetId) {
-        showPlaceholder('プロジェクトが未設定です。サイドパネルで先にプロジェクトを開いてください。');
+        showPlaceholder(t('ftPage_noProject'));
         return;
     }
 
@@ -135,7 +139,7 @@ async function initFulltextPage(): Promise<void> {
 
     session.currentRef = refs.find(r => r.ref_id === refId) ?? null;
     if (!session.currentRef) {
-        showPlaceholder(`ref_id "${refId}" が見つかりませんでした。`);
+        showPlaceholder(t('ftPage_refNotFound', refId));
         return;
     }
 

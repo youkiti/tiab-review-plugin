@@ -3641,5 +3641,431 @@
   },
   "llm_customModelToggle": {
     "message": "＋ 一覧にないモデルを追加"
+  },
+  "ftPage_closeBtn": {
+    "message": "← 閉じる"
+  },
+  "ftPage_closeBtnTitle": {
+    "message": "タブを閉じて一覧に戻る"
+  },
+  "ftPage_criteriaBtn": {
+    "message": "📋 基準"
+  },
+  "ftPage_criteriaTitle": {
+    "message": "レビュー基準（組入・除外基準）"
+  },
+  "ftPage_overallTitle": {
+    "message": "候補プール全体の判定進捗"
+  },
+  "ftPage_uploadBtn": {
+    "message": "⬆ PDFをアップロード"
+  },
+  "ftPage_savePdfBtn": {
+    "message": "このPDFを保存"
+  },
+  "ftPage_replaceBtn": {
+    "message": "別のPDFをアップロード"
+  },
+  "ftPage_deleteBtn": {
+    "message": "PDFを削除"
+  },
+  "ftPage_pdfPlaceholder": {
+    "message": "PDFが取得されていません"
+  },
+  "ftPage_pdfFrameTitle": {
+    "message": "フルテキストPDF"
+  },
+  "ftPage_snapshotFrameTitle": {
+    "message": "試験登録情報"
+  },
+  "ftPage_dropOverlay": {
+    "message": "PDFをここにドロップしてアップロード"
+  },
+  "ftPage_decisionPanelTitle": {
+    "message": "判定"
+  },
+  "ftPage_includeBtn": {
+    "message": "組み入れ (i)"
+  },
+  "ftPage_excludeBtn": {
+    "message": "除外 (e)"
+  },
+  "ftPage_maybeBtn": {
+    "message": "保留 (m)"
+  },
+  "ftPage_reasonLabel": {
+    "message": "除外理由 (PRISMA)"
+  },
+  "ftPage_reasonPriorityNote": {
+    "message": "複数当てはまるときは<strong>上（番号が小さい方）</strong>を選ぶ ─ 理由が判定者間で割れると、あとで裁定が必要になります"
+  },
+  "ftPage_reasonHintDefault": {
+    "message": "クリックまたは数字キーで確定して次へ ／ ↑↓ で移動・Enter で確定"
+  },
+  "ftPage_reasonNotePlaceholder": {
+    "message": "補足メモ（任意・Enterで保存して次へ／Shift+Enterで改行）"
+  },
+  "ftPage_saveBtn": {
+    "message": "保存"
+  },
+  "ftPage_contextSummaryDefault": {
+    "message": "抄録・自分のTiAb判定"
+  },
+  "ftPage_highlightsPanelTitle": {
+    "message": "ハイライト"
+  },
+  "ftPage_highlightToggleTitle": {
+    "message": "PDF上のハイライトのみ切り替えます（根拠一覧は残ります）"
+  },
+  "ftPage_highlightToggleLabel": {
+    "message": "PDF上に表示"
+  },
+  "ftPage_prevBtn": {
+    "message": "← 前"
+  },
+  "ftPage_nextUndecidedBtn": {
+    "message": "未判定へ (u)"
+  },
+  "ftPage_nextUndecidedBtnTitle": {
+    "message": "次の未判定候補へジャンプ (u)"
+  },
+  "ftPage_nextBtn": {
+    "message": "次 →"
+  },
+  "ftPage_criteriaCloseBtnTitle": {
+    "message": "閉じる (c / Esc)"
+  },
+  "ftPage_closeBtnGeneric": {
+    "message": "閉じる"
+  },
+  "ftPage_initError": {
+    "message": "初期化エラー: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_missingRefId": {
+    "message": "ref_id が指定されていません。サイドパネルから開いてください。"
+  },
+  "ftPage_loading": {
+    "message": "読み込み中..."
+  },
+  "ftPage_noProject": {
+    "message": "プロジェクトが未設定です。サイドパネルで先にプロジェクトを開いてください。"
+  },
+  "ftPage_refNotFound": {
+    "message": "ref_id \"$1\" が見つかりませんでした。",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_lastCandidate": {
+    "message": "最後の候補です"
+  },
+  "ftPage_allDoneAutoClose": {
+    "message": "全件の判定が完了しました 🎉 まもなくタブを閉じます（操作でキャンセル）"
+  },
+  "ftPage_autoCloseCancelled": {
+    "message": "自動クローズをキャンセルしました"
+  },
+  "ftPage_noUndecidedCandidates": {
+    "message": "未判定の候補はありません"
+  },
+  "ftPage_outOfCandidates": {
+    "message": "候補外（候補 $1件）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_overallProgress": {
+    "message": "判定済 $1/$2 ($3%)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      },
+      "3": {
+        "content": "$3"
+      }
+    }
+  },
+  "ftPage_decisionInclude": {
+    "message": "組み入れ"
+  },
+  "ftPage_decisionExclude": {
+    "message": "除外"
+  },
+  "ftPage_decisionMaybe": {
+    "message": "保留"
+  },
+  "ftPage_decisionPending": {
+    "message": "未判定"
+  },
+  "ftPage_aiRevealShown": {
+    "message": "AI判断: 表示中"
+  },
+  "ftPage_aiRevealHidden": {
+    "message": "AI判断: 非表示"
+  },
+  "ftPage_aiRevealToggleTitle": {
+    "message": "AIの組入/除外の判断とその理由の表示を切り替えます（管理者のみ）"
+  },
+  "ftPage_aiSummaryHead": {
+    "message": "AI判定: $1$2 ・ 組入確率 $3%",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      },
+      "3": {
+        "content": "$3"
+      }
+    }
+  },
+  "ftPage_includeProbTitle": {
+    "message": "組入確率 $1%",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_selectReasonPrompt": {
+    "message": "除外理由を選択してください"
+  },
+  "ftPage_excludeReasonHelp": {
+    "message": "除外理由を選択すると保存して次の候補へ進みます"
+  },
+  "ftPage_maybeSavedHelp": {
+    "message": "保存しました。判断できなかった点をメモできます（Enterで次へ）"
+  },
+  "ftPage_reasonFallbackSuffix": {
+    "message": "（1〜$1が当てはまらない場合）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_reasonHint": {
+    "message": "クリックまたは数字 1〜$1 で確定して次へ ／ ↑↓ で移動・Enter で確定",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_reasonNoteMaybePlaceholder": {
+    "message": "判断できなかった点のメモ（任意・Enterで保存して次へ／Shift+Enterで改行）"
+  },
+  "ftPage_saving": {
+    "message": "保存中..."
+  },
+  "ftPage_saved": {
+    "message": "保存しました"
+  },
+  "ftPage_saveFailed": {
+    "message": "保存失敗: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_otherReviewersHeading": {
+    "message": "他レビュアーのフルテキスト判定"
+  },
+  "ftPage_noneYet": {
+    "message": "まだありません"
+  },
+  "ftPage_checkingOaSources": {
+    "message": "OAソースを順番に検証中...\nPMC OA → Europe PMC → 出版社 → Unpaywall → OpenAlex → 出版社PDF"
+  },
+  "ftPage_fetchError": {
+    "message": "取得エラー: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_fetchingPdf": {
+    "message": "PDFを取得中..."
+  },
+  "ftPage_pdfSavedToDrive": {
+    "message": "PDFをDriveに保存しました"
+  },
+  "ftPage_loadingPdfFromDrive": {
+    "message": "Drive から PDF を読み込み中..."
+  },
+  "ftPage_sourcePublisher": {
+    "message": "出版社"
+  },
+  "ftPage_sourceLandingMeta": {
+    "message": "出版社PDF"
+  },
+  "ftPage_sourceRegistry": {
+    "message": "レジストリ登録情報"
+  },
+  "ftPage_sourceCached": {
+    "message": "Drive保存済み"
+  },
+  "ftPage_sourceLinked": {
+    "message": "リンクのみ"
+  },
+  "ftPage_linkedFoundLead": {
+    "message": "フルテキストURLが見つかりました。クリックで左ペインに表示し、可能ならDriveへ自動保存します。"
+  },
+  "ftPage_showPdfBtn": {
+    "message": "▶ PDFを表示"
+  },
+  "ftPage_noFulltextNoIds": {
+    "message": "フルテキストが見つかりませんでした。\n（DOI/PMID が無いため論文ページも開けません）"
+  },
+  "ftPage_articlePageLabel": {
+    "message": "論文ページ"
+  },
+  "ftPage_noFulltextCheckArticle": {
+    "message": "フルテキストが見つかりませんでした。\n論文ページで本文を確認してください。"
+  },
+  "ftPage_openArticlePageBtn": {
+    "message": "↗ 論文ページを開く"
+  },
+  "ftPage_openPubmedBtn": {
+    "message": "↗ PubMed で開く"
+  },
+  "ftPage_evidenceEmptyNoEvidence": {
+    "message": "このPDFのAI判定根拠はまだありません。"
+  },
+  "ftPage_evidenceEmptyNoRound": {
+    "message": "フルテキストAI判定はまだ実行されていません。\nサイドパネルの「フルテキスト」→「AI判定」から一括AI判定を実行すると、ここに根拠ハイライトが表示されます（TiAbのAI判定とは別枠です）。"
+  },
+  "ftPage_evidenceEmptyRoundNotAdopted": {
+    "message": "フルテキストAI判定はありますが、採用するラウンドが選ばれていません。\nサイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選択してください。"
+  },
+  "ftPage_evidenceEmptyAdoptedRoundMissing": {
+    "message": "採用中のAI判定ラウンドの判定が見つかりません（削除された可能性があります）。\nサイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選び直してください。"
+  },
+  "ftPage_evidenceFallbackNotice": {
+    "message": "この表示モードではPDF上のハイライト表示はできません（根拠一覧のみ）。"
+  },
+  "ftPage_imageOnlyNotice": {
+    "message": "⚠ スキャン画像PDFのため、ハイライト位置はAIの領域推定に基づきます（精度が落ちる場合があります）。"
+  },
+  "ftPage_polarityAiNote": {
+    "message": "AI注目箇所"
+  },
+  "ftPage_polarityExclude": {
+    "message": "－ 除外根拠"
+  },
+  "ftPage_polarityInclude": {
+    "message": "＋ 組入根拠"
+  },
+  "ftPage_pageEstimatedRegion": {
+    "message": "p.$1（領域推定）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_pageUnresolved": {
+    "message": "p.$1（位置不明）",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_unsafeLinkTitle": {
+    "message": "安全でないURL形式のためリンクを無効化しました"
+  },
+  "ftPage_criteriaUpdatedBanner": {
+    "message": "レビュー基準が更新されました。"
+  },
+  "ftPage_criteriaEmpty": {
+    "message": "まだレビュー基準が登録されていません。サイドパネル（TiAb画面）の📋ボタンから登録できます。"
+  },
+  "ftPage_criteriaUpdatedBy": {
+    "message": "更新者: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_criteriaUpdatedAt": {
+    "message": "更新日時: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_noTitle": {
+    "message": "(タイトルなし)"
+  },
+  "ftPage_myTiabDecision": {
+    "message": "自分のTiAb判定: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_myTiabDecisionNone": {
+    "message": "自分のTiAb判定: なし"
+  },
+  "ftPage_contextSummaryWithOthers": {
+    "message": "抄録・自分のTiAb判定・他レビュアーの判定 ($1)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_noAbstract": {
+    "message": "（抄録なし）"
+  },
+  "ftPage_deletePdfConfirm": {
+    "message": "このPDFをDriveから削除します。よろしいですか？\n（削除後、この画面から正しいPDFをアップロードできます）"
+  },
+  "ftPage_deleting": {
+    "message": "削除中..."
+  },
+  "ftPage_pdfDeleted": {
+    "message": "PDFを削除しました。\n上の「⬆ PDFをアップロード」から再取得してください。"
+  },
+  "ftPage_deleteFailed": {
+    "message": "削除に失敗しました: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_notAPdf": {
+    "message": "PDFファイルではないようです。.pdf ファイルを選択してください。"
+  },
+  "ftPage_uploadingPdf": {
+    "message": "Drive へPDFをアップロード中..."
+  },
+  "ftPage_uploadFailed": {
+    "message": "アップロードに失敗しました: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   }
 }

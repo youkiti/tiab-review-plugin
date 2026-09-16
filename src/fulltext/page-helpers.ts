@@ -2,6 +2,7 @@
 // ページ状態だけを参照し、他の画面処理を呼び出さない。
 // Issue #156: 関数本体と実行順序を保った責務分割。
 
+import { t } from '../lib/i18n';
 import { session } from './session';
 
 export function showFeedback(msg: string, isError = false): void {
@@ -45,7 +46,7 @@ export function buildExternalAnchor(url: string, label: string, className?: stri
         anchor.href = url;
     } else {
         anchor.removeAttribute('href');
-        anchor.title = '安全でないURL形式のためリンクを無効化しました';
+        anchor.title = t('ftPage_unsafeLinkTitle');
     }
     return anchor;
 }
