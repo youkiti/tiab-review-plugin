@@ -32,7 +32,7 @@ import { showFeedback } from './page-helpers';
 export async function loadRef(refId: string): Promise<void> {
     const ref = session.allRefs.find(r => r.ref_id === refId) ?? null;
     if (!ref) {
-        showPlaceholder(`ref_id "${refId}" が見つかりませんでした。`);
+        showPlaceholder(t('ftPage_refNotFound', refId));
         return;
     }
     const token = ++session.loadToken;
@@ -134,7 +134,7 @@ export function advanceToNext(): void {
         return;
     }
     if (session.currentCandidateIndex >= session.fulltextCandidates.length - 1) {
-        showFeedback('最後の候補です');
+        showFeedback(t('ftPage_lastCandidate'));
         return;
     }
     void loadRef(session.fulltextCandidates[session.currentCandidateIndex + 1].ref_id);
@@ -170,14 +170,14 @@ function closeTab(): void {
  */
 function startAutoClose(): void {
     if (session.autoCloseTimer !== undefined) return;
-    showFeedback('全件の判定が完了しました 🎉 まもなくタブを閉じます（操作でキャンセル）');
+    showFeedback(t('ftPage_allDoneAutoClose'));
     const ac = new AbortController();
     const cancel = (): void => {
         ac.abort();
         if (session.autoCloseTimer === undefined) return;
         clearTimeout(session.autoCloseTimer);
         session.autoCloseTimer = undefined;
-        showFeedback('自動クローズをキャンセルしました');
+        showFeedback(t('ftPage_autoCloseCancelled'));
     };
     window.addEventListener('keydown', cancel, { capture: true, signal: ac.signal });
     window.addEventListener('pointerdown', cancel, { capture: true, signal: ac.signal });
@@ -208,7 +208,7 @@ function jumpToNextUndecided(): void {
             return;
         }
     }
-    showFeedback('未判定の候補はありません');
+    showFeedback(t('ftPage_noUndecidedCandidates'));
 }
 
 // ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ export function renderProgress(): void {
     }
     if (session.currentCandidateIndex === -1) {
         // この文献は現在の候補条件に含まれていない（判定・保存は可能）
-        el.textContent = `候補外（候補 ${session.fulltextCandidates.length}件）`;
+        el.textContent = t('ftPage_outOfCandidates', String(session.fulltextCandidates.length));
         return;
     }
     el.textContent = `${session.currentCandidateIndex + 1} / ${session.fulltextCandidates.length}`;
@@ -351,6 +351,6 @@ export function renderOverallProgress(): void {
     const total = session.fulltextCandidates.length;
     const decided = session.fulltextCandidates.filter(r => isDecided(r.ref_id)).length;
     const pct = total > 0 ? Math.round((decided / total) * 100) : 0;
-    if (text) text.textContent = total > 0 ? `判定済 ${decided}/${total} (${pct}%)` : '';
+    if (text) text.textContent = total > 0 ? t('ftPage_overallProgress', [String(decided), String(total), String(pct)]) : '';
     if (fill) fill.style.width = `${pct}%`;
 }

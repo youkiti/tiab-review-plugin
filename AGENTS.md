@@ -195,6 +195,7 @@ tiab-review-plugin/
 - `npm run check:structure` は相対import・再export・型import・文字列リテラルの動的importを正規表現で抽出し、Tarjanの強連結成分で循環を検出する。外部パッケージ、宣言ファイル、バックアップは対象外。既存循環は辺まで基準値に記録し、同じ循環グループ内の新しい辺も回帰とする。TypeScriptの完全な構文解析ではないため、計算式の動的import等は別途レビューする。
 - `npm run check:bundle` は同条件のproductionビルドでサイドパネルとWeb版appの初期JS量（.map除外）を検査する。`scripts/bundle-budget.json` の上限は実測値の101%を整数切り上げ。上限超過は失敗、上限より3%以上小さければ更新可能と表示する。時間の閾値はばらつきが大きいためCIに入れない。通信回数は `tests/project-load-request-counts.test.ts` で固定する。
 - 基準値更新は `node scripts/check-structure.mjs --update-baseline`。予算更新は `npm run bench:bundle` 後の `node scripts/check-bundle-budget.mjs --update-budget`（`--stats <JSONパス>` で既存統計も利用可能）。基準値・予算の更新は意図的な設計変更として、コミットに理由を書く。単に検査を通すために更新しない。改善の検出は通知のみで失敗にしない。
+- Web版は `_locales/*/messages.json` を丸ごと同梱するが、`scripts/webpack/strip-locale-keys.cjs` の接頭辞（現在 `ftPage_`）に該当する拡張専用キーはビルド時に落とす（PR #207、フルテキスト判定ページ専用キーでbundle-budgetを超過したため）。拡張専用の画面用にキーを追加するときは、既存の接頭辞に揃えるか、この配列にその接頭辞を足すこと。
 
 ### 遅延読み込み（動的 import）でチャンクを分けるときの規約
 

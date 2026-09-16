@@ -3641,5 +3641,431 @@
   },
   "llm_customModelToggle": {
     "message": "+ Add a model not in the list"
+  },
+  "ftPage_closeBtn": {
+    "message": "← Close"
+  },
+  "ftPage_closeBtnTitle": {
+    "message": "Close this tab and return to the list"
+  },
+  "ftPage_criteriaBtn": {
+    "message": "📋 Criteria"
+  },
+  "ftPage_criteriaTitle": {
+    "message": "Review criteria (inclusion/exclusion criteria)"
+  },
+  "ftPage_overallTitle": {
+    "message": "Decision progress across the whole candidate pool"
+  },
+  "ftPage_uploadBtn": {
+    "message": "⬆ Upload PDF"
+  },
+  "ftPage_savePdfBtn": {
+    "message": "Save this PDF"
+  },
+  "ftPage_replaceBtn": {
+    "message": "Upload a different PDF"
+  },
+  "ftPage_deleteBtn": {
+    "message": "Delete PDF"
+  },
+  "ftPage_pdfPlaceholder": {
+    "message": "No PDF has been retrieved yet"
+  },
+  "ftPage_pdfFrameTitle": {
+    "message": "Full-text PDF"
+  },
+  "ftPage_snapshotFrameTitle": {
+    "message": "Trial registration information"
+  },
+  "ftPage_dropOverlay": {
+    "message": "Drop a PDF here to upload"
+  },
+  "ftPage_decisionPanelTitle": {
+    "message": "Decision"
+  },
+  "ftPage_includeBtn": {
+    "message": "Include (i)"
+  },
+  "ftPage_excludeBtn": {
+    "message": "Exclude (e)"
+  },
+  "ftPage_maybeBtn": {
+    "message": "Maybe (m)"
+  },
+  "ftPage_reasonLabel": {
+    "message": "Exclusion reason (PRISMA)"
+  },
+  "ftPage_reasonPriorityNote": {
+    "message": "When more than one reason applies, choose the one <strong>higher up (the smaller number)</strong> — if reviewers pick different reasons, it will need adjudication later"
+  },
+  "ftPage_reasonHintDefault": {
+    "message": "Click or press a number key to confirm and move on / ↑↓ to navigate, Enter to confirm"
+  },
+  "ftPage_reasonNotePlaceholder": {
+    "message": "Optional note (Enter to save and move on / Shift+Enter for a new line)"
+  },
+  "ftPage_saveBtn": {
+    "message": "Save"
+  },
+  "ftPage_contextSummaryDefault": {
+    "message": "Abstract & my TiAb decision"
+  },
+  "ftPage_highlightsPanelTitle": {
+    "message": "Highlights"
+  },
+  "ftPage_highlightToggleTitle": {
+    "message": "Toggles only the highlights on the PDF (the evidence list stays)"
+  },
+  "ftPage_highlightToggleLabel": {
+    "message": "Show on PDF"
+  },
+  "ftPage_prevBtn": {
+    "message": "← Prev"
+  },
+  "ftPage_nextUndecidedBtn": {
+    "message": "To undecided (u)"
+  },
+  "ftPage_nextUndecidedBtnTitle": {
+    "message": "Jump to the next undecided candidate (u)"
+  },
+  "ftPage_nextBtn": {
+    "message": "Next →"
+  },
+  "ftPage_criteriaCloseBtnTitle": {
+    "message": "Close (c / Esc)"
+  },
+  "ftPage_closeBtnGeneric": {
+    "message": "Close"
+  },
+  "ftPage_initError": {
+    "message": "Initialization error: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_missingRefId": {
+    "message": "No ref_id was provided. Please open this page from the side panel."
+  },
+  "ftPage_loading": {
+    "message": "Loading..."
+  },
+  "ftPage_noProject": {
+    "message": "No project is set. Please open a project in the side panel first."
+  },
+  "ftPage_refNotFound": {
+    "message": "Could not find ref_id \"$1\".",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_lastCandidate": {
+    "message": "This is the last candidate"
+  },
+  "ftPage_allDoneAutoClose": {
+    "message": "All candidates are decided 🎉 This tab will close shortly (any action cancels it)"
+  },
+  "ftPage_autoCloseCancelled": {
+    "message": "Automatic close cancelled"
+  },
+  "ftPage_noUndecidedCandidates": {
+    "message": "There are no undecided candidates"
+  },
+  "ftPage_outOfCandidates": {
+    "message": "Not in candidate list (candidates: $1)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_overallProgress": {
+    "message": "Decided $1/$2 ($3%)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      },
+      "3": {
+        "content": "$3"
+      }
+    }
+  },
+  "ftPage_decisionInclude": {
+    "message": "Include"
+  },
+  "ftPage_decisionExclude": {
+    "message": "Exclude"
+  },
+  "ftPage_decisionMaybe": {
+    "message": "Maybe"
+  },
+  "ftPage_decisionPending": {
+    "message": "Undecided"
+  },
+  "ftPage_aiRevealShown": {
+    "message": "AI judgment: shown"
+  },
+  "ftPage_aiRevealHidden": {
+    "message": "AI judgment: hidden"
+  },
+  "ftPage_aiRevealToggleTitle": {
+    "message": "Toggles display of the AI's include/exclude judgment and its reasoning (admins only)"
+  },
+  "ftPage_aiSummaryHead": {
+    "message": "AI judgment: $DECISION$$REASON$ · Include probability $PCT$%",
+    "placeholders": {
+      "DECISION": {
+        "content": "$1"
+      },
+      "REASON": {
+        "content": "$2"
+      },
+      "PCT": {
+        "content": "$3"
+      }
+    }
+  },
+  "ftPage_includeProbTitle": {
+    "message": "Include probability $1%",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_selectReasonPrompt": {
+    "message": "Please select an exclusion reason"
+  },
+  "ftPage_excludeReasonHelp": {
+    "message": "Selecting an exclusion reason will save and move to the next candidate"
+  },
+  "ftPage_maybeSavedHelp": {
+    "message": "Saved. You can note what you couldn't decide (Enter to move on)"
+  },
+  "ftPage_reasonFallbackSuffix": {
+    "message": " (if none of 1–$1 apply)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_reasonHint": {
+    "message": "Click or press a number 1–$1 to confirm and move on / ↑↓ to navigate, Enter to confirm",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_reasonNoteMaybePlaceholder": {
+    "message": "Note on what you couldn't decide (optional; Enter to save and move on / Shift+Enter for a new line)"
+  },
+  "ftPage_saving": {
+    "message": "Saving..."
+  },
+  "ftPage_saved": {
+    "message": "Saved"
+  },
+  "ftPage_saveFailed": {
+    "message": "Save failed: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_otherReviewersHeading": {
+    "message": "Other reviewers' full-text decisions"
+  },
+  "ftPage_noneYet": {
+    "message": "None yet"
+  },
+  "ftPage_checkingOaSources": {
+    "message": "Checking OA sources in order...\nPMC OA → Europe PMC → Publisher → Unpaywall → OpenAlex → Publisher PDF"
+  },
+  "ftPage_fetchError": {
+    "message": "Fetch error: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_fetchingPdf": {
+    "message": "Fetching PDF..."
+  },
+  "ftPage_pdfSavedToDrive": {
+    "message": "Saved the PDF to Drive"
+  },
+  "ftPage_loadingPdfFromDrive": {
+    "message": "Loading the PDF from Drive..."
+  },
+  "ftPage_sourcePublisher": {
+    "message": "Publisher"
+  },
+  "ftPage_sourceLandingMeta": {
+    "message": "Publisher PDF"
+  },
+  "ftPage_sourceRegistry": {
+    "message": "Registry record"
+  },
+  "ftPage_sourceCached": {
+    "message": "Saved to Drive"
+  },
+  "ftPage_sourceLinked": {
+    "message": "Link only"
+  },
+  "ftPage_linkedFoundLead": {
+    "message": "A full-text URL was found. Click to display it in the left pane; it will be auto-saved to Drive when possible."
+  },
+  "ftPage_showPdfBtn": {
+    "message": "▶ Show PDF"
+  },
+  "ftPage_noFulltextNoIds": {
+    "message": "Full text was not found.\n(The article page can't be opened either because there is no DOI/PMID.)"
+  },
+  "ftPage_articlePageLabel": {
+    "message": "Article page"
+  },
+  "ftPage_noFulltextCheckArticle": {
+    "message": "Full text was not found.\nPlease check the article page for the full text."
+  },
+  "ftPage_openArticlePageBtn": {
+    "message": "↗ Open article page"
+  },
+  "ftPage_openPubmedBtn": {
+    "message": "↗ Open in PubMed"
+  },
+  "ftPage_evidenceEmptyNoEvidence": {
+    "message": "There is no AI judgment evidence for this PDF yet."
+  },
+  "ftPage_evidenceEmptyNoRound": {
+    "message": "Full-text AI judgment hasn't been run yet.\nRun a batch AI judgment from the side panel's \"Full-text\" → \"AI judgment\" to see evidence highlights here (this is separate from TiAb's AI judgment)."
+  },
+  "ftPage_evidenceEmptyRoundNotAdopted": {
+    "message": "Full-text AI judgment exists, but no round has been adopted.\nSelect one from the side panel's \"Full-text\" → \"AI judgment\" → \"Decision round\"."
+  },
+  "ftPage_evidenceEmptyAdoptedRoundMissing": {
+    "message": "The adopted AI judgment round's decisions could not be found (it may have been deleted).\nChoose again from the side panel's \"Full-text\" → \"AI judgment\" → \"Decision round\"."
+  },
+  "ftPage_evidenceFallbackNotice": {
+    "message": "Highlights can't be shown on the PDF in this display mode (evidence list only)."
+  },
+  "ftPage_imageOnlyNotice": {
+    "message": "⚠ Because this is a scanned-image PDF, highlight positions are based on the AI's estimated region (accuracy may be reduced)."
+  },
+  "ftPage_polarityAiNote": {
+    "message": "AI-highlighted area"
+  },
+  "ftPage_polarityExclude": {
+    "message": "− Exclusion evidence"
+  },
+  "ftPage_polarityInclude": {
+    "message": "+ Inclusion evidence"
+  },
+  "ftPage_pageEstimatedRegion": {
+    "message": "p.$1 (estimated region)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_pageUnresolved": {
+    "message": "p.$1 (position unknown)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_unsafeLinkTitle": {
+    "message": "The link was disabled because the URL format is unsafe"
+  },
+  "ftPage_criteriaUpdatedBanner": {
+    "message": "The review criteria have been updated."
+  },
+  "ftPage_criteriaEmpty": {
+    "message": "No review criteria have been registered yet. You can register them from the 📋 button on the side panel (TiAb screen)."
+  },
+  "ftPage_criteriaUpdatedBy": {
+    "message": "Updated by: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_criteriaUpdatedAt": {
+    "message": "Updated at: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_noTitle": {
+    "message": "(No title)"
+  },
+  "ftPage_myTiabDecision": {
+    "message": "My TiAb decision: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_myTiabDecisionNone": {
+    "message": "My TiAb decision: none"
+  },
+  "ftPage_contextSummaryWithOthers": {
+    "message": "Abstract, my TiAb decision & other reviewers' decisions ($1)",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_noAbstract": {
+    "message": "(No abstract)"
+  },
+  "ftPage_deletePdfConfirm": {
+    "message": "This will delete the PDF from Drive. Are you sure?\n(After deleting, you can upload the correct PDF from this screen.)"
+  },
+  "ftPage_deleting": {
+    "message": "Deleting..."
+  },
+  "ftPage_pdfDeleted": {
+    "message": "The PDF has been deleted.\nUse \"⬆ Upload PDF\" above to fetch it again."
+  },
+  "ftPage_deleteFailed": {
+    "message": "Failed to delete: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "ftPage_notAPdf": {
+    "message": "This doesn't look like a PDF file. Please select a .pdf file."
+  },
+  "ftPage_uploadingPdf": {
+    "message": "Uploading the PDF to Drive..."
+  },
+  "ftPage_uploadFailed": {
+    "message": "Upload failed: $1",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
   }
 }

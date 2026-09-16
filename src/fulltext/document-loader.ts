@@ -92,7 +92,7 @@ async function handleResolve(token?: number): Promise<void> {
     if (!session.currentRef) return;
     const ref = session.currentRef; // 取得中に遷移しても結果は元の文献へ反映する
 
-    showPlaceholder('OAソースを順番に検証中...\nPMC OA → Europe PMC → 出版社 → Unpaywall → OpenAlex → 出版社PDF');
+    showPlaceholder(t('ftPage_checkingOaSources'));
 
     // 既知ホスト（PMC/Europe PMC/Unpaywall/OpenAlex/Springer）は host_permissions 済みで
     // 追加権限は不要。それ以外の出版社PDF取得には全サイト権限が要るが、ページ表示時の
@@ -151,7 +151,7 @@ async function handleResolve(token?: number): Promise<void> {
             if (!stale()) await showArticlePage();
         }
     } catch (err) {
-        if (!stale()) showPlaceholder(`取得エラー: ${(err as Error).message}`);
+        if (!stale()) showPlaceholder(t('ftPage_fetchError', (err as Error).message));
     }
 }
 
@@ -168,7 +168,7 @@ async function handleResolve(token?: number): Promise<void> {
 export async function openLinkedInline(url: string, source: OaSource | 'cached' | 'linked'): Promise<void> {
     if (!session.currentRef) return;
 
-    showPlaceholder('PDFを取得中...');
+    showPlaceholder(t('ftPage_fetchingPdf'));
     // クリック（ユーザージェスチャ）起点。リダイレクト先（任意ホスト）のヘッダー除去と
     // PDF取得を行うため、ここで全サイト権限ダイアログを出せる。
     await requestBroadHostPermission();
@@ -187,7 +187,7 @@ export async function openLinkedInline(url: string, source: OaSource | 'cached' 
             session.currentRef.fulltext_drive_copy_id = undefined;
             await showCachedPdf(info.webViewLink);
             updateToolbarMode();
-            showFeedback('PDFをDriveに保存しました');
+            showFeedback(t('ftPage_pdfSavedToDrive'));
             return;
         } catch (err) {
             // fail-fast エラー（アクセス拒否等）は原因が分かるよう通知した上で、
@@ -265,7 +265,7 @@ export async function showCachedPdf(url: string, token?: number): Promise<void> 
         return;
     }
 
-    showPlaceholder('Drive から PDF を読み込み中...');
+    showPlaceholder(t('ftPage_loadingPdfFromDrive'));
     setUrlLabel(url, 'cached');
 
     // 先読み済みなら即利用。無ければその場で取得。

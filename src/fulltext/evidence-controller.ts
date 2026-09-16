@@ -2,6 +2,7 @@
 // 状態と表示ヘルパーへ依存し、PDF取得処理へは依存しない。
 // Issue #156: 関数本体と実行順序を保った責務分割。
 
+import { t } from '../lib/i18n';
 import { explainEmptyAiEvidence } from '../lib/ai-evidence-empty-reason';
 import type { AiEvidenceEmptyReason } from '../lib/ai-evidence-empty-reason';
 import type { Decision, FulltextLlmDecisionNote } from '../lib/types';
@@ -64,20 +65,31 @@ export function clearAiHighlights(): void {
  * 「AI判定が存在するか」が推測できてしまうため 'no_evidence' と同一文言に固定する。
  * Config の生キー名は出さず、UIから辿れる導線（サイドパネルのAI判定タブ）を案内する。
  */
-const AI_EVIDENCE_EMPTY_MESSAGES: Record<AiEvidenceEmptyReason, string> = {
-    blinded: 'このPDFのAI判定根拠はまだありません。',
-    no_round:
-        'フルテキストAI判定はまだ実行されていません。\n'
-        + 'サイドパネルの「フルテキスト」→「AI判定」から一括AI判定を実行すると、ここに根拠ハイライトが表示されます'
-        + '（TiAbのAI判定とは別枠です）。',
-    round_not_adopted:
-        'フルテキストAI判定はありますが、採用するラウンドが選ばれていません。\n'
-        + 'サイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選択してください。',
-    adopted_round_missing:
-        '採用中のAI判定ラウンドの判定が見つかりません（削除された可能性があります）。\n'
-        + 'サイドパネルの「フルテキスト」→「AI判定」→「判定ラウンド」で選び直してください。',
-    no_evidence: 'このPDFのAI判定根拠はまだありません。',
-};
+/**
+ * 根拠一覧の空メッセージ（理由別）を i18n キーへ変換する。
+ * i18n化前は module-level の Record リテラルだったが、リテラル内で t() を呼ぶと
+ * import 巻き上げにより setPlatform(chromePlatform) より前に評価されてしまう
+ * （decision-controller.ts の aiDecisionLabel() 冒頭コメント参照）。呼び出し時まで
+ * t() 呼び出しを遅延させるため関数化している。
+ * 'blinded' と 'no_evidence' は同一文言に固定する必要がある（このファイル冒頭の
+ * evidenceEmptyMessage() 呼び出し元コメント参照。表示レベル neutral/none で
+ * 理由を出し分けると「AI判定が存在するか」が漏れるため）ため、同じキーを共有する。
+ */
+function aiEvidenceEmptyMessage(reason: AiEvidenceEmptyReason): string {
+    switch (reason) {
+        case 'blinded':
+        case 'no_evidence':
+            return t('ftPage_evidenceEmptyNoEvidence');
+        case 'no_round':
+            return t('ftPage_evidenceEmptyNoRound');
+        case 'round_not_adopted':
+            return t('ftPage_evidenceEmptyRoundNotAdopted');
+        case 'adopted_round_missing':
+            return t('ftPage_evidenceEmptyAdoptedRoundMissing');
+        default:
+            return t('ftPage_evidenceEmptyNoEvidence');
+    }
+}
 
 /** 状態に応じた根拠一覧の空メッセージ */
 function evidenceEmptyMessage(): string {
@@ -88,7 +100,7 @@ function evidenceEmptyMessage(): string {
             && session.allDecisions.some(d => isFulltextAiDecision(d) && d.reviewer_id === session.aiActiveRound),
         activeRound: session.aiActiveRound,
     });
-    return AI_EVIDENCE_EMPTY_MESSAGES[reason];
+    return aiEvidenceEmptyMessage(reason);
 }
 
 /** フルテキストフェーズのAI判定（reviewer_id が `llm:`）か */
@@ -153,7 +165,7 @@ export function renderAiCardsFallback(): void {
 
     renderAnnotationsList(items, note.image_only ?? false, {
         clickable: false,
-        notice: 'この表示モードではPDF上のハイライト表示はできません（根拠一覧のみ）。',
+        notice: t('ftPage_evidenceFallbackNotice'),
     });
 }
 
@@ -316,7 +328,7 @@ function renderAnnotationsList(
         const empty = document.createElement('div');
         empty.className = 'ft-annotation-empty';
         // 理由別メッセージは導線案内を含み複数行になるため、改行を <br> として描画する
-        appendTextWithBreaks(empty, opts.emptyMessage ?? AI_EVIDENCE_EMPTY_MESSAGES.no_evidence);
+        appendTextWithBreaks(empty, opts.emptyMessage ?? aiEvidenceEmptyMessage('no_evidence'));
         list.appendChild(empty);
         return;
     }
@@ -331,7 +343,7 @@ function renderAnnotationsList(
     if (imageOnly) {
         const note = document.createElement('div');
         note.className = 'ft-annotation-imageonly';
-        note.textContent = '⚠ スキャン画像PDFのため、ハイライト位置はAIの領域推定に基づきます（精度が落ちる場合があります）。';
+        note.textContent = t('ftPage_imageOnlyNotice');
         list.appendChild(note);
     }
 
@@ -350,15 +362,15 @@ function renderAnnotationsList(
         meta.className = 'ft-annotation-meta';
         // ＋/－ は緑/赤（P/D型色覚で区別困難）の冗長コーディング
         const polarityLabel =
-            item.category === 'ai_evidence' ? 'AI注目箇所'
-                : item.category === 'exclude_evidence' ? '－ 除外根拠' : '＋ 組入根拠';
+            item.category === 'ai_evidence' ? t('ftPage_polarityAiNote')
+                : item.category === 'exclude_evidence' ? t('ftPage_polarityExclude') : t('ftPage_polarityInclude');
         // フォールバック（クリック不可）時の位置はAIの申告ページ番号そのままなので
         // 「位置不明」の注記は付けない
         const locLabel = !clickable
             ? `p.${item.page}`
             : item.resolved
-                ? (item.via === 'bbox' ? `p.${item.page}（領域推定）` : `p.${item.page}`)
-                : `p.${item.page}（位置不明）`;
+                ? (item.via === 'bbox' ? t('ftPage_pageEstimatedRegion', String(item.page)) : `p.${item.page}`)
+                : t('ftPage_pageUnresolved', String(item.page));
         meta.textContent = `${polarityLabel} · ${locLabel}`;
         card.appendChild(meta);
 

@@ -13,12 +13,12 @@
         <!-- ヘッダー -->
         <header class="ft-header">
             <div class="ft-header-left">
-                <button id="ft-close-btn" class="ft-close-btn" title="タブを閉じて一覧に戻る">← 閉じる</button>
+                <button id="ft-close-btn" class="ft-close-btn" data-i18n-title="ftPage_closeBtnTitle" data-i18n="ftPage_closeBtn"></button>
                 <h1 class="ft-title">Full-text Screening</h1>
-                <button id="ft-criteria-btn" class="btn btn-secondary" title="レビュー基準（組入・除外基準）">📋 基準</button>
+                <button id="ft-criteria-btn" class="btn btn-secondary" data-i18n-title="ftPage_criteriaTitle" data-i18n="ftPage_criteriaBtn"></button>
             </div>
             <div class="ft-header-right">
-                <span id="ft-overall" class="ft-overall" title="候補プール全体の判定進捗">
+                <span id="ft-overall" class="ft-overall" data-i18n-title="ftPage_overallTitle">
                     <span id="ft-overall-text" class="ft-overall-text"></span>
                     <span class="ft-overall-bar"><span id="ft-overall-fill" class="ft-overall-fill"></span></span>
                 </span>
@@ -39,12 +39,12 @@
                     <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
                     <!-- PDF未保存時に表示: ローカルPDFをアップロードする導線
                          （論文ページ埋め込み中でも手元のPDFを保存できる） -->
-                    <button id="ft-upload-btn" class="btn btn-secondary hidden">⬆ PDFをアップロード</button>
+                    <button id="ft-upload-btn" class="btn btn-secondary hidden" data-i18n="ftPage_uploadBtn"></button>
                     <!-- リンクのみPDFをインライン表示できたが自動保存できなかった時の手動保存導線 -->
-                    <button id="ft-save-pdf-btn" class="btn btn-secondary hidden">このPDFを保存</button>
+                    <button id="ft-save-pdf-btn" class="btn btn-secondary hidden" data-i18n="ftPage_savePdfBtn"></button>
                     <!-- PDF保存済み時のみ表示: 差し替え導線 -->
-                    <button id="ft-replace-btn" class="btn btn-secondary hidden">別のPDFをアップロード</button>
-                    <button id="ft-delete-btn" class="btn btn-secondary hidden">PDFを削除</button>
+                    <button id="ft-replace-btn" class="btn btn-secondary hidden" data-i18n="ftPage_replaceBtn"></button>
+                    <button id="ft-delete-btn" class="btn btn-secondary hidden" data-i18n="ftPage_deleteBtn"></button>
                     <!-- 登録行のスナップショット表示中のみ表示（fulltext.ts の
                          showSnapshotSaveButton/hideSnapshotSaveButton）。ラベルは新規追加の
                          文言のため wireSnapshotPrintButton() が t() 経由で設定する。
@@ -56,12 +56,11 @@
                     <!-- PDF.js が全ページの canvas + テキスト/ハイライトレイヤーを描画する。
                          Drive保存済み(cached)PDFのバイト列が取得できた時のみ使用する。 -->
                     <div id="ft-pdf-canvas-container" class="ft-pdf-canvas-container hidden"></div>
-                    <div id="ft-pdf-placeholder" class="ft-pdf-placeholder">
-                        PDFが取得されていません
+                    <div id="ft-pdf-placeholder" class="ft-pdf-placeholder" data-i18n="ftPage_pdfPlaceholder">
                     </div>
                     <!-- Drive保存済みPDFの表示用（blob: または Drive プレビュー埋め込み）
                          Chrome内蔵PDFビュワーを使うため sandbox は付けない -->
-                    <iframe id="ft-pdf-frame" class="ft-pdf-frame hidden" title="フルテキストPDF"></iframe>
+                    <iframe id="ft-pdf-frame" class="ft-pdf-frame hidden" data-i18n-title="ftPage_pdfFrameTitle"></iframe>
                     <!-- フルテキスト未発見時に論文ページを埋め込み表示 -->
                     <iframe id="ft-article-frame" class="ft-article-frame hidden"
                         referrerpolicy="no-referrer"
@@ -101,12 +100,12 @@
                          アンカークリックのみから発生する。かつそのhrefは isSafeHttpUrl() を
                          通ったhttp/httpsのみ（buildRegistrySnapshotHtml側でガード済み）。
                          既存の ft-article-frame とは用途もsandbox設定も別物のため流用しない。 -->
-                    <iframe id="ft-snapshot-frame" class="ft-snapshot-frame hidden" title="試験登録情報"
+                    <iframe id="ft-snapshot-frame" class="ft-snapshot-frame hidden" data-i18n-title="ftPage_snapshotFrameTitle"
                         sandbox="allow-same-origin allow-modals allow-popups allow-popups-to-escape-sandbox"></iframe>
                     <!-- PDFドラッグ&ドロップ用オーバーレイ。
                          dragenter時に最前面へ出して iframe へのドロップを奪う。 -->
                     <div id="ft-drop-overlay" class="ft-drop-overlay hidden">
-                        <div class="ft-drop-overlay-inner">PDFをここにドロップしてアップロード</div>
+                        <div class="ft-drop-overlay-inner" data-i18n="ftPage_dropOverlay"></div>
                     </div>
                 </div>
             </section>
@@ -115,15 +114,15 @@
             <aside class="ft-decision-pane" id="ft-decision-pane">
                 <!-- 決断パネル -->
                 <section class="ft-panel ft-decision-panel">
-                    <h2 class="ft-panel-title">判定</h2>
+                    <h2 class="ft-panel-title" data-i18n="ftPage_decisionPanelTitle"></h2>
                     <div class="ft-decision-buttons">
-                        <button id="ft-btn-include" class="btn btn-include" data-decision="include" title="組み入れ (i)">組み入れ (i)</button>
-                        <button id="ft-btn-exclude" class="btn btn-exclude" data-decision="exclude" title="除外 (e)">除外 (e)</button>
-                        <button id="ft-btn-maybe" class="btn btn-maybe" data-decision="maybe" title="保留 (m)">保留 (m)</button>
+                        <button id="ft-btn-include" class="btn btn-include" data-decision="include" data-i18n-title="ftPage_includeBtn" data-i18n="ftPage_includeBtn"></button>
+                        <button id="ft-btn-exclude" class="btn btn-exclude" data-decision="exclude" data-i18n-title="ftPage_excludeBtn" data-i18n="ftPage_excludeBtn"></button>
+                        <button id="ft-btn-maybe" class="btn btn-maybe" data-decision="maybe" data-i18n-title="ftPage_maybeBtn" data-i18n="ftPage_maybeBtn"></button>
                     </div>
                     <div id="ft-reason-area" class="ft-reason-area hidden">
-                        <label class="ft-reason-label">除外理由 (PRISMA)</label>
-                        <div class="ft-reason-priority-note">複数当てはまるときは<strong>上（番号が小さい方）</strong>を選ぶ ─ 理由が判定者間で割れると、あとで裁定が必要になります</div>
+                        <label class="ft-reason-label" data-i18n="ftPage_reasonLabel"></label>
+                        <div class="ft-reason-priority-note" data-i18n-html="ftPage_reasonPriorityNote"></div>
                         <!--
                             選択肢はプロジェクト設定（Config タブ fulltext_exclude_reasons）から
                             fulltext.ts の renderReasonOptions() が実行時に描画する。
@@ -131,17 +130,17 @@
                             ここに固定の <option> を書かないこと（設定と二重定義になる）。
                         -->
                         <select id="ft-reason-select" class="ft-reason-select" size="7"></select>
-                        <div class="ft-reason-hint">クリックまたは数字キーで確定して次へ ／ ↑↓ で移動・Enter で確定</div>
-                        <textarea id="ft-reason-note" class="ft-reason-note" placeholder="補足メモ（任意・Enterで保存して次へ／Shift+Enterで改行）" rows="3"></textarea>
+                        <div class="ft-reason-hint" data-i18n="ftPage_reasonHintDefault"></div>
+                        <textarea id="ft-reason-note" class="ft-reason-note" data-i18n-placeholder="ftPage_reasonNotePlaceholder" rows="3"></textarea>
                     </div>
-                    <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden">保存</button>
+                    <button id="ft-save-btn" class="btn btn-primary ft-save-btn hidden" data-i18n="ftPage_saveBtn"></button>
                 </section>
 
                 <!-- 文脈参照: 抄録・自分のTiAb判定・他レビュアーの判定（PDF取り違え確認・文脈想起・不一致の見直し用）
                      見出しは Blind 状態で変わるため fulltext.ts の renderContextPanel() が実行時に書き換える -->
                 <section class="ft-panel ft-context-panel">
                     <details id="ft-context-details">
-                        <summary id="ft-context-summary" class="ft-context-summary">抄録・自分のTiAb判定</summary>
+                        <summary id="ft-context-summary" class="ft-context-summary" data-i18n="ftPage_contextSummaryDefault"></summary>
                         <div id="ft-context-body" class="ft-context-body"></div>
                     </details>
                 </section>
@@ -149,10 +148,10 @@
                 <!-- アノテーション一覧 -->
                 <section class="ft-panel ft-annotations-panel">
                     <h2 class="ft-panel-title">
-                        ハイライト
-                        <label class="ft-highlight-toggle" title="PDF上のハイライトのみ切り替えます（根拠一覧は残ります）">
+                        <span data-i18n="ftPage_highlightsPanelTitle"></span>
+                        <label class="ft-highlight-toggle" data-i18n-title="ftPage_highlightToggleTitle">
                             <input type="checkbox" id="ft-highlight-checkbox" checked>
-                            <span>PDF上に表示</span>
+                            <span data-i18n="ftPage_highlightToggleLabel"></span>
                         </label>
                     </h2>
                     <div id="ft-annotations-list" class="ft-annotations-list">
@@ -162,10 +161,10 @@
 
                 <!-- ナビゲーション -->
                 <div class="ft-nav">
-                    <button id="ft-prev-btn" class="btn btn-secondary">← 前</button>
+                    <button id="ft-prev-btn" class="btn btn-secondary" data-i18n="ftPage_prevBtn"></button>
                     <button id="ft-next-undecided-btn" class="btn btn-secondary"
-                        title="次の未判定候補へジャンプ (u)">未判定へ (u)</button>
-                    <button id="ft-next-btn" class="btn btn-secondary">次 →</button>
+                        data-i18n-title="ftPage_nextUndecidedBtnTitle" data-i18n="ftPage_nextUndecidedBtn"></button>
+                    <button id="ft-next-btn" class="btn btn-secondary" data-i18n="ftPage_nextBtn"></button>
                 </div>
             </aside>
         </main>
@@ -176,12 +175,12 @@
     <div id="ft-criteria-backdrop" class="ft-criteria-backdrop hidden">
         <div class="ft-criteria-content">
             <div class="ft-criteria-header">
-                <h3 id="ft-criteria-title" class="ft-criteria-title">レビュー基準（組入・除外基準）</h3>
-                <button id="ft-criteria-close-btn" class="btn-icon" title="閉じる (c / Esc)">✕</button>
+                <h3 id="ft-criteria-title" class="ft-criteria-title" data-i18n="ftPage_criteriaTitle"></h3>
+                <button id="ft-criteria-close-btn" class="btn-icon" data-i18n-title="ftPage_criteriaCloseBtnTitle">✕</button>
             </div>
             <div id="ft-criteria-body" class="ft-criteria-body"></div>
             <div class="ft-criteria-footer">
-                <button id="ft-criteria-footer-close-btn" class="btn btn-outline btn-small">閉じる</button>
+                <button id="ft-criteria-footer-close-btn" class="btn btn-outline btn-small" data-i18n="ftPage_closeBtnGeneric"></button>
             </div>
         </div>
     </div>

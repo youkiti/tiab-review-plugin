@@ -2,6 +2,7 @@
 // 状態・判定表示・共通ヘルパーへ一方向に依存する。
 // Issue #156: 関数本体と実行順序を保った責務分割。
 
+import { t } from '../lib/i18n';
 import { excludeReasonLabel } from '../lib/exclude-reasons';
 import { needsCriteriaNotice } from '../lib/review-criteria';
 import { getCriteriaSeenAt, setCriteriaSeenAt } from '../lib/storage';
@@ -9,7 +10,7 @@ import type { Reference } from '../lib/types';
 import { session } from './session';
 import {
     findMyTiabDecision,
-    AI_DECISION_LABELS,
+    aiDecisionLabel,
     findOtherFulltextDecisions,
     buildOtherDecisionsBlock,
 } from './decision-controller';
@@ -45,14 +46,14 @@ function renderCriteriaModalBody(notice: boolean): void {
     if (notice) {
         const banner = document.createElement('div');
         banner.className = 'ft-criteria-notice-banner';
-        banner.textContent = 'レビュー基準が更新されました。';
+        banner.textContent = t('ftPage_criteriaUpdatedBanner');
         body.appendChild(banner);
     }
 
     if (session.reviewCriteria === null) {
         const empty = document.createElement('p');
         empty.className = 'ft-criteria-empty';
-        empty.textContent = 'まだレビュー基準が登録されていません。サイドパネル（TiAb画面）の📋ボタンから登録できます。';
+        empty.textContent = t('ftPage_criteriaEmpty');
         body.appendChild(empty);
         return;
     }
@@ -67,8 +68,8 @@ function renderCriteriaModalBody(notice: boolean): void {
         const meta = document.createElement('div');
         meta.className = 'ft-criteria-meta';
         const parts: string[] = [];
-        if (session.reviewCriteria.updated_by) parts.push(`更新者: ${session.reviewCriteria.updated_by}`);
-        if (session.reviewCriteria.updated_at) parts.push(`更新日時: ${formatCriteriaUpdatedAt(session.reviewCriteria.updated_at)}`);
+        if (session.reviewCriteria.updated_by) parts.push(t('ftPage_criteriaUpdatedBy', session.reviewCriteria.updated_by));
+        if (session.reviewCriteria.updated_at) parts.push(t('ftPage_criteriaUpdatedAt', formatCriteriaUpdatedAt(session.reviewCriteria.updated_at)));
         meta.textContent = parts.join(' / ');
         body.appendChild(meta);
     }
@@ -140,7 +141,7 @@ export function renderBiblio(ref: Reference): void {
     const idsEl = document.getElementById('ft-biblio-ids');
     if (!bar || !titleEl || !metaEl || !idsEl) return;
 
-    titleEl.textContent = ref.title || '(タイトルなし)';
+    titleEl.textContent = ref.title || t('ftPage_noTitle');
 
     // 著者 · 誌名 year;vol(issue):pages
     const metaParts: string[] = [];
@@ -195,7 +196,7 @@ export function renderContextPanel(ref: Reference): void {
     tiabRow.className = 'ft-context-tiab';
     if (tiab) {
         tiabRow.dataset.decision = tiab.decision;
-        const parts = [`自分のTiAb判定: ${AI_DECISION_LABELS[tiab.decision] ?? tiab.decision}`];
+        const parts = [t('ftPage_myTiabDecision', aiDecisionLabel(tiab.decision))];
         // TiAb の除外理由は既定PICOキー（フルテキスト用カスタムリストとは別物）で保存されているため、
         // excludeReasonItems（フルテキスト用リスト）で引くと解決できず生キーが出る。
         // 引数を省略して既定リスト（DEFAULT_EXCLUDE_REASON_ITEMS）で引く。
@@ -203,7 +204,7 @@ export function renderContextPanel(ref: Reference): void {
         if (tiab.note) parts.push(tiab.note);
         tiabRow.textContent = parts.join(' · ');
     } else {
-        tiabRow.textContent = '自分のTiAb判定: なし';
+        tiabRow.textContent = t('ftPage_myTiabDecisionNone');
     }
     body.appendChild(tiabRow);
 
@@ -216,12 +217,12 @@ export function renderContextPanel(ref: Reference): void {
     const summary = document.getElementById('ft-context-summary');
     if (summary) {
         summary.textContent = session.keyOpened
-            ? `抄録・自分のTiAb判定・他レビュアーの判定 (${others.length})`
-            : '抄録・自分のTiAb判定';
+            ? t('ftPage_contextSummaryWithOthers', String(others.length))
+            : t('ftPage_contextSummaryDefault');
     }
 
     const abs = document.createElement('div');
     abs.className = 'ft-context-abstract';
-    abs.textContent = ref.abstract || '（抄録なし）';
+    abs.textContent = ref.abstract || t('ftPage_noAbstract');
     body.appendChild(abs);
 }

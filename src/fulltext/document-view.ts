@@ -25,17 +25,26 @@ function getDependencies(): Dependencies {
     return deps;
 }
 
-const OA_SOURCE_LABELS: Record<OaSource | 'cached' | 'linked', string> = {
-    pmc_oa: 'PMC OA',
-    europe_pmc: 'Europe PMC',
-    unpaywall: 'Unpaywall',
-    openalex: 'OpenAlex',
-    publisher: '出版社',
-    landing_meta: '出版社PDF',
-    registry: 'レジストリ登録情報',
-    cached: 'Drive保存済み',
-    linked: 'リンクのみ',
-};
+/**
+ * OA取得元の表示ラベル。i18n化前は module-level の Record リテラルだったが、
+ * リテラル内で t() を呼ぶと import 巻き上げにより setPlatform(chromePlatform) より前に
+ * 評価されてしまう（decision-controller.ts の aiDecisionLabel() 冒頭コメント参照）。
+ * 呼び出し時まで t() 呼び出しを遅延させるため関数化している。
+ */
+function oaSourceLabel(source: OaSource | 'cached' | 'linked'): string {
+    switch (source) {
+        case 'pmc_oa': return 'PMC OA';
+        case 'europe_pmc': return 'Europe PMC';
+        case 'unpaywall': return 'Unpaywall';
+        case 'openalex': return 'OpenAlex';
+        case 'publisher': return t('ftPage_sourcePublisher');
+        case 'landing_meta': return t('ftPage_sourceLandingMeta');
+        case 'registry': return t('ftPage_sourceRegistry');
+        case 'cached': return t('ftPage_sourceCached');
+        case 'linked': return t('ftPage_sourceLinked');
+        default: return source;
+    }
+}
 
 /**
  * PDFの取得状態に応じてツールバーのボタンを出し分ける。
@@ -128,8 +137,9 @@ export function hideSavePdfButton(): void {
 // スナップショットiframeの中身だけに限定する（親ページの判定パネル等を巻き込まない）。
 // ---------------------------------------------------------------------------
 
-/** ラベルは新規追加の文言のため t() 経由で設定する（既存の静的ツールバーボタンは
- *  ハードコードされたJapanese文言だが、新規に追加する文言は必ずi18nキーを通す方針） */
+/** この文言は fulltext.html に静的マークアップを持たず（ボタン自体は表示切替式のため）、
+ *  常にここで t() 経由で設定する。他の静的ツールバーボタンは fulltext.html の data-i18n 属性で
+ *  localizeHtml() から翻訳される（他画面と同じ i18n 経路）。 */
 export function wireSnapshotPrintButton(): void {
     const btn = document.getElementById('ft-snapshot-print-btn') as HTMLButtonElement | null;
     if (!btn) return;
@@ -196,7 +206,7 @@ function renderUrlLabel(label: HTMLElement, sourceLabel: string, url: string): v
 export function setUrlLabel(url: string, source: OaSource | 'cached' | 'linked'): void {
     const label = document.getElementById('ft-pdf-url-label');
     if (!label) return;
-    const sourceLabel = OA_SOURCE_LABELS[source] ?? source;
+    const sourceLabel = oaSourceLabel(source);
     renderUrlLabel(label, sourceLabel, url);
 }
 
@@ -285,7 +295,7 @@ export function showResolvedUrl(url: string, source: OaSource | 'cached' | 'link
     hideSavePdfButton();
     const placeholder = document.getElementById('ft-pdf-placeholder');
     if (placeholder) {
-        const sourceLabel = OA_SOURCE_LABELS[source] ?? source;
+        const sourceLabel = oaSourceLabel(source);
         placeholder.replaceChildren();
         placeholder.style.display = '';
 
@@ -298,11 +308,11 @@ export function showResolvedUrl(url: string, source: OaSource | 'cached' | 'link
 
         const lead = document.createElement('div');
         lead.className = 'ft-linked-lead';
-        lead.textContent = 'フルテキストURLが見つかりました。クリックで左ペインに表示し、可能ならDriveへ自動保存します。';
+        lead.textContent = t('ftPage_linkedFoundLead');
 
         const openBtn = document.createElement('button');
         openBtn.className = 'btn btn-primary ft-linked-open-btn';
-        openBtn.textContent = '▶ PDFを表示';
+        openBtn.textContent = t('ftPage_showPdfBtn');
         openBtn.addEventListener('click', () => { void getDependencies().openLinkedInline(url, source); });
 
         const urlNote = document.createElement('div');
@@ -375,7 +385,7 @@ export async function enableFrameEmbeddingForThisTab(): Promise<boolean> {
 export async function showArticlePage(): Promise<void> {
     const url = session.currentRef ? articlePageUrl(session.currentRef) : null;
     if (!url) {
-        showPlaceholder('フルテキストが見つかりませんでした。\n（DOI/PMID が無いため論文ページも開けません）');
+        showPlaceholder(t('ftPage_noFulltextNoIds'));
         return;
     }
 
@@ -393,7 +403,7 @@ export async function showArticlePage(): Promise<void> {
         frame.src = url;
         const label = document.getElementById('ft-pdf-url-label');
         if (label) {
-            renderUrlLabel(label, '論文ページ', url);
+            renderUrlLabel(label, t('ftPage_articlePageLabel'), url);
         }
         // 論文ページ埋め込みでもAI根拠カードは参照できるようにする
         renderAiCardsFallback();
@@ -414,14 +424,14 @@ function showArticleFallback(url: string): void {
     panel.className = 'ft-article-fallback';
 
     const message = document.createElement('div');
-    appendTextWithBreaks(message, 'フルテキストが見つかりませんでした。\n論文ページで本文を確認してください。');
+    appendTextWithBreaks(message, t('ftPage_noFulltextCheckArticle'));
 
     const links = document.createElement('div');
     links.className = 'ft-fallback-links';
-    links.appendChild(buildExternalAnchor(url, '↗ 論文ページを開く', 'btn btn-secondary'));
+    links.appendChild(buildExternalAnchor(url, t('ftPage_openArticlePageBtn'), 'btn btn-secondary'));
     if (session.currentRef?.pmid) {
         const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(session.currentRef.pmid)}/`;
-        links.appendChild(buildExternalAnchor(pubmedUrl, '↗ PubMed で開く', 'btn btn-secondary'));
+        links.appendChild(buildExternalAnchor(pubmedUrl, t('ftPage_openPubmedBtn'), 'btn btn-secondary'));
     }
 
     panel.append(message, links);
