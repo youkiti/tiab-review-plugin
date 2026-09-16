@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 const dotenv = require('dotenv');
 const packageJson = require('./package.json');
+const { stripLocaleKeys } = require('./scripts/webpack/strip-locale-keys.cjs');
 
 dotenv.config();
 
@@ -377,6 +378,14 @@ function buildWebConfig(env, argv) {
                     include: /node_modules/,
                     type: 'javascript/auto',
                     resolve: { fullySpecified: false },
+                },
+                {
+                    // Web 版は拡張専用のフルテキスト判定ページ（ftPage_* キー）を持たないため、
+                    // src/platform/web/i18n.ts が import する messages.json から読み込み時に
+                    // 落とす（scripts/webpack/strip-locale-keys.cjs、PR #207）。
+                    test: /[\\/]_locales[\\/](ja|en)[\\/]messages\.json$/,
+                    type: 'json',
+                    parser: { parse: (source) => stripLocaleKeys(JSON.parse(source)) },
                 },
             ],
         },

@@ -3819,15 +3819,15 @@
     "message": "AIの組入/除外の判断とその理由の表示を切り替えます（管理者のみ）"
   },
   "ftPage_aiSummaryHead": {
-    "message": "AI判定: $1$2 ・ 組入確率 $3%",
+    "message": "AI判定: $DECISION$$REASON$ ・ 組入確率 $PCT$%",
     "placeholders": {
-      "1": {
+      "DECISION": {
         "content": "$1"
       },
-      "2": {
+      "REASON": {
         "content": "$2"
       },
-      "3": {
+      "PCT": {
         "content": "$3"
       }
     }

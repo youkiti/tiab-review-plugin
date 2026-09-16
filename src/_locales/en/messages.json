@@ -3819,15 +3819,15 @@
     "message": "Toggles display of the AI's include/exclude judgment and its reasoning (admins only)"
   },
   "ftPage_aiSummaryHead": {
-    "message": "AI judgment: $1$2 · Include probability $3%",
+    "message": "AI judgment: $DECISION$$REASON$ · Include probability $PCT$%",
     "placeholders": {
-      "1": {
+      "DECISION": {
         "content": "$1"
       },
-      "2": {
+      "REASON": {
         "content": "$2"
       },
-      "3": {
+      "PCT": {
         "content": "$3"
       }
     }
