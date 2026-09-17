@@ -383,6 +383,7 @@ export interface FulltextAdjudicationNote {
     adjudicated_by: string;                              // 裁定者 email
     adjudicated_at: string;                               // ISO 8601
     votes: FulltextAdjudicationVoteSnapshot[];             // 裁定時点の各判定者の票
+    memo?: string;                                       // 裁定者の自由記述（任意）
 }
 
 /**

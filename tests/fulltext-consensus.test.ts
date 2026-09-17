@@ -5,9 +5,131 @@ import {
     isAdjudicationKey,
     adjudicationReviewerId,
     adjudicationEmail,
+    parseFulltextAdjudicationNote,
     computeFulltextConsensus,
 } from '../src/lib/fulltext-consensus';
 import type { FulltextVote } from '../src/lib/fulltext-consensus';
+
+test('parseFulltextAdjudicationNote: 正しい JSON から裁定メモを取得できる', () => {
+    const note = JSON.stringify({
+        type: 'fulltext_adjudication',
+        adjudicated_by: 'owner@example.com',
+        adjudicated_at: '2026-01-01T00:00:00.000Z',
+        votes: [],
+        memo: '本研究では学生と同等と判断\n組み入れとする',
+    });
+    assert.equal(parseFulltextAdjudicationNote(note)?.memo, '本研究では学生と同等と判断\n組み入れとする');
+});
+
+test('parseFulltextAdjudicationNote: メモのない既存の裁定 JSON も読み取れる', () => {
+    const value = {
+        type: 'fulltext_adjudication',
+        adjudicated_by: 'owner@example.com',
+        adjudicated_at: '2026-01-01T00:00:00.000Z',
+        votes: [],
+    };
+    const result = parseFulltextAdjudicationNote(JSON.stringify(value));
+    assert.deepEqual(result, value);
+    assert.equal(result?.memo, undefined);
+});
+
+test('parseFulltextAdjudicationNote: 通常の自由記述テキストは null', () => {
+    assert.equal(parseFulltextAdjudicationNote('対象集団を再確認する'), null);
+});
+
+test('parseFulltextAdjudicationNote: 壊れた JSON は例外を投げず null', () => {
+    assert.equal(parseFulltextAdjudicationNote('{"type":"fulltext_adjudication"'), null);
+});
+
+test('parseFulltextAdjudicationNote: type が違う JSON は null', () => {
+    assert.equal(parseFulltextAdjudicationNote(JSON.stringify({
+        type: 'fulltext_llm_decision', adjudicated_by: 'owner@example.com', votes: [],
+    })), null);
+});
+
+test('parseFulltextAdjudicationNote: 空の入力・オブジェクト以外・必須フィールドの型違いは null', () => {
+    for (const note of [undefined, null, '', 'null', '[]', '42', '"メモ"',
+        '{"type":"fulltext_adjudication","votes":[]}',
+        '{"type":"fulltext_adjudication","adjudicated_by":42,"votes":[]}',
+        '{"type":"fulltext_adjudication","adjudicated_by":"owner@example.com","votes":{}}',
+    ]) {
+        assert.equal(parseFulltextAdjudicationNote(note), null);
+    }
+});
+
+test('computeFulltextConsensus: 裁定票のメモを合議結果に含める', () => {
+    const result = computeFulltextConsensus([{
+        judge: adjudicationReviewerId('owner@example.com'),
+        decision: 'include',
+        note: JSON.stringify({
+            type: 'fulltext_adjudication',
+            adjudicated_by: 'owner@example.com',
+            adjudicated_at: '2026-01-01T00:00:00.000Z',
+            votes: [],
+            memo: '本研究では学生と同等と判断',
+        }),
+        decidedAt: '2026-01-01T00:00:00.000Z',
+    }]);
+    assert.equal(result.adjudicationMemo, '本研究では学生と同等と判断');
+});
+
+test('computeFulltextConsensus: 未裁定なら裁定メモは null', () => {
+    assert.equal(computeFulltextConsensus([]).adjudicationMemo, null);
+    assert.equal(computeFulltextConsensus([
+        { judge: 'a@example.com', decision: 'include', note: '通常のメモ' },
+    ]).adjudicationMemo, null);
+});
+
+test('computeFulltextConsensus: 最新の裁定票にメモがなければ古いメモは拾わない', () => {
+    const votes: FulltextVote[] = [
+        {
+            judge: adjudicationReviewerId('owner@example.com'),
+            decision: 'include',
+            note: JSON.stringify({
+                type: 'fulltext_adjudication', adjudicated_by: 'owner@example.com',
+                adjudicated_at: '2026-01-01T00:00:00.000Z', votes: [], memo: '古い裁定メモ',
+            }),
+            decidedAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+            judge: adjudicationReviewerId('other@example.com'),
+            decision: 'maybe',
+            note: JSON.stringify({
+                type: 'fulltext_adjudication', adjudicated_by: 'other@example.com',
+                adjudicated_at: '2026-02-01T00:00:00.000Z', votes: [],
+            }),
+            decidedAt: '2026-02-01T00:00:00.000Z',
+        },
+    ];
+    for (const ordered of [votes, [...votes].reverse()]) {
+        const result = computeFulltextConsensus(ordered);
+        assert.equal(result.adjudicatedBy, 'other@example.com');
+        assert.equal(result.adjudicationMemo, null);
+    }
+});
+
+test('computeFulltextConsensus: 裁定票の note が JSON でなくても裁定メモは null', () => {
+    const result = computeFulltextConsensus([{
+        judge: adjudicationReviewerId('owner@example.com'),
+        decision: 'include',
+        note: '通常のテキスト',
+    }]);
+    assert.equal(result.adjudicated, true);
+    assert.equal(result.adjudicationMemo, null);
+});
+
+test('computeFulltextConsensus: 空文字・空白のみ・文字列以外の裁定メモは null', () => {
+    for (const memo of ['', ' \n ', 42, null, {}]) {
+        const result = computeFulltextConsensus([{
+            judge: adjudicationReviewerId('owner@example.com'),
+            decision: 'include',
+            note: JSON.stringify({
+                type: 'fulltext_adjudication', adjudicated_by: 'owner@example.com', votes: [], memo,
+            }),
+        }]);
+        assert.equal(result.adjudicationMemo, null);
+    }
+});
 
 test('isAdjudicationKey: adjudication: プレフィックスのキーだけ true', () => {
     assert.equal(isAdjudicationKey('adjudication:owner@example.com'), true);

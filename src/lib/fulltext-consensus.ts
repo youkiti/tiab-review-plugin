@@ -24,6 +24,7 @@
 
 import { pickPrimaryExcludeReason, hasExcludeReasonConflict, DEFAULT_EXCLUDE_REASON_ITEMS } from './exclude-reasons';
 import type { ExcludeReasonItem } from './exclude-reasons';
+import type { FulltextAdjudicationNote } from './types';
 
 /** フルテキスト判定の合議結果の型（旧 fulltext-results.ts のローカル型をここへ移設） */
 export type ConsensusDecision = 'include' | 'exclude' | 'maybe' | 'pending';
@@ -47,6 +48,23 @@ export function adjudicationReviewerId(email: string): string {
  */
 export function adjudicationEmail(reviewerId: string): string {
     return isAdjudicationKey(reviewerId) ? reviewerId.slice(ADJUDICATION_PREFIX.length) : reviewerId;
+}
+
+/** 裁定票の note を読み取る。通常のメモや壊れた JSON は null とする。 */
+export function parseFulltextAdjudicationNote(note: string | null | undefined): FulltextAdjudicationNote | null {
+    if (!note) return null;
+    try {
+        const value: unknown = JSON.parse(note);
+        if (value && typeof value === 'object'
+            && 'type' in value && value.type === 'fulltext_adjudication'
+            && 'adjudicated_by' in value && typeof value.adjudicated_by === 'string'
+            && 'votes' in value && Array.isArray(value.votes)) {
+            return value as FulltextAdjudicationNote;
+        }
+    } catch {
+        return null;
+    }
+    return null;
 }
 
 /** 合議計算に渡す1票分の入力。通常の判定者票・裁定票の両方をこの形で表す。 */
@@ -76,6 +94,8 @@ export interface FulltextConsensusResult {
     adjudicatedBy: string | null;
     /** 裁定日時 ISO 8601（未裁定なら null） */
     adjudicatedAt: string | null;
+    /** 最新の裁定メモ（未裁定・メモなしなら null） */
+    adjudicationMemo: string | null;
     /** (conflict || reasonConflict) && !adjudicated */
     unresolved: boolean;
     /** exclude票を出した通常判定者ごとの理由・メモ（裁定票は含まない。PRISMA内訳・CSV・不一致解消UI用） */
@@ -123,6 +143,7 @@ export function computeFulltextConsensus(
     let adjudicated = false;
     let adjudicatedBy: string | null = null;
     let adjudicatedAt: string | null = null;
+    let adjudicationMemo: string | null = null;
 
     if (adjudicationVotes.length > 0) {
         const latest = adjudicationVotes.reduce((best, v) =>
@@ -133,6 +154,8 @@ export function computeFulltextConsensus(
         adjudicated = true;
         adjudicatedBy = adjudicationEmail(latest.judge);
         adjudicatedAt = latest.decidedAt ?? null;
+        const memo = parseFulltextAdjudicationNote(latest.note)?.memo;
+        adjudicationMemo = typeof memo === 'string' && memo.trim() ? memo : null;
     }
 
     const unresolved = (conflict || reasonConflict) && !adjudicated;
@@ -145,6 +168,7 @@ export function computeFulltextConsensus(
         adjudicated,
         adjudicatedBy,
         adjudicatedAt,
+        adjudicationMemo,
         unresolved,
         excludeReasons,
     };
