@@ -818,7 +818,7 @@ export interface ModelOption {
  * 全件ベンチ結果に基づき採用したもののみを載せる:
  *  - qwen/qwen3-235b-a22b-2507 : Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件
  *  - deepseek/deepseek-v4-flash : Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件
- * TypeSafe Jev 1.13.0 は確率を直接返すモデル（depression Recall 93.6% / Precision 53.3%、フォールバック枠。experiments/typesafe-jev/）。
+ * TypeSafe Jev 1.13.0 は確率を直接返すモデル（拡張の既定閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0% でフォールバック枠。experiments/typesafe-jev/）。
  *
  * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
  * 実応答の modelVersion は履歴ログへ保存。

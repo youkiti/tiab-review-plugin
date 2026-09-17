@@ -7,20 +7,27 @@ export interface BenchConfig {
     model: string;
     questionDesign: string;
     ledgerVersion: string;
-    datasets: { depression: string };
-    datasetConfigs: { depression: { criteria: string } };
+    datasets: Record<string, {
+        path: string; labelField: string;
+        expected: { n: number; positives: number; emptyAbstracts: number };
+        criteria: string;
+    }>;
     defaultScreeningPrompt: string;
     outputLanguage: string;
     concurrency: number;
     retry: { maxAttempts: number; baseDelayMs: number; maxDelayMs: number };
     smokeSampleSize: number;
     sampleSeed: number;
-    thresholds: { primary: number; extensionDefault: number };
+    thresholds: { primary: number; reference: number };
     pricing: null | { inputPerMillion: number; outputPerMillion: number };
-    comparison: Array<{
-        model: string; condition: string; recall: number; specificity: number | null;
-        precision: number; fBeta7: number; source: string;
-    }>;
+    comparison: Record<string, Comparison[]>;
+    pooledComparison: Comparison[];
+    pooledGroup: string[];
+}
+
+export interface Comparison {
+    model: string; condition: string; threshold: number; recall: number; specificity: number | null;
+    precision: number | null; fBeta7: number | null; source: string;
 }
 
 export interface DatasetRecord {
@@ -59,45 +66,48 @@ export function loadConfig(): BenchConfig {
     return JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 }
 
-export function screeningPrompt(config: BenchConfig): string {
-    const criteria = config.datasetConfigs.depression.criteria;
+export function screeningPrompt(config: BenchConfig, dataset: string): string {
+    const criteria = config.datasets[dataset].criteria;
     return config.defaultScreeningPrompt.includes('{{CRITERIA}}')
         ? config.defaultScreeningPrompt.replace('{{CRITERIA}}', criteria)
         : criteria ? `## Inclusion Criteria\n${criteria}\n\n${config.defaultScreeningPrompt}` : config.defaultScreeningPrompt;
 }
 
-export function configHash(config: BenchConfig): string {
+export function configHash(config: BenchConfig, dataset: string): string {
     return createHash('sha256').update(JSON.stringify({
-        model: config.model, questionDesign: config.questionDesign, screeningPrompt: screeningPrompt(config),
+        model: config.model, questionDesign: config.questionDesign, screeningPrompt: screeningPrompt(config, dataset),
         outputLanguage: config.outputLanguage,
     })).digest('hex');
 }
 
-export function outputPaths(config: BenchConfig, fake: boolean) {
+export function outputPaths(config: BenchConfig, fake: boolean, dataset: string) {
     const directory = fake ? path.join(projectRoot, '.tmp/typesafe-jev-fake') : path.join(__dirname, 'results');
     return {
         directory,
-        ledger: path.join(directory, `depression_${config.model}_overall_${config.ledgerVersion}.jsonl`),
-        sample: path.join(directory, `smoke_sample_depression_${config.smokeSampleSize}.json`),
+        ledger: path.join(directory, `${dataset}_${config.model}_overall_${config.ledgerVersion}.jsonl`),
+        sample: path.join(directory, `smoke_sample_${dataset}_${config.smokeSampleSize}.json`),
         report: fake ? path.join(directory, 'report.md') : path.join(__dirname, 'report.md'),
     };
 }
 
-export function loadDataset(config: BenchConfig): DatasetRecord[] {
-    const rows: DatasetRecord[] = JSON.parse(fs.readFileSync(path.join(projectRoot, config.datasets.depression), 'utf8'));
+export function loadDataset(config: BenchConfig, dataset: string): DatasetRecord[] {
+    const { path: file, labelField, expected } = config.datasets[dataset];
+    const data = JSON.parse(fs.readFileSync(path.join(projectRoot, file), 'utf8'));
+    const rows = Array.isArray(data) ? data : data?.records;
     if (!Array.isArray(rows) || rows.some(r => !r || typeof r.id !== 'string' || typeof r.title !== 'string'
-        || (typeof r.abstract !== 'string' && r.abstract != null) || ![0, 1].includes(r.label_included))) {
+        || (typeof r.abstract !== 'string' && r.abstract != null) || ![0, 1].includes(r[labelField]))) {
         throw new BenchError('データセットの形式が不正です。');
     }
-    const positives = rows.filter(r => r.label_included === 1).length;
+    const positives = rows.filter(r => r[labelField] === 1).length;
     const empty = rows.filter(r => !r.abstract).length;
-    if (rows.length !== 1993 || new Set(rows.map(r => r.id)).size !== rows.length || positives !== 280 || empty !== 394) {
+    if (rows.length !== expected.n || new Set(rows.map(r => r.id)).size !== rows.length
+        || positives !== expected.positives || empty !== expected.emptyAbstracts) {
         throw new BenchError(`データセットが想定と異なります: N=${rows.length}、陽性=${positives}、抄録なし=${empty}。`);
     }
-    return rows;
+    return rows.map(r => ({ id: r.id, title: r.title, abstract: r.abstract ?? '', label_included: r[labelField] }));
 }
 
-export function readLedger(file: string, expectedHash: string): { rows: Map<string, LedgerRow>; brokenLines: number } {
+export function readLedger(file: string, expectedHash: string, dataset: string): { rows: Map<string, LedgerRow>; brokenLines: number } {
     const rows = new Map<string, LedgerRow>();
     let brokenLines = 0;
     if (!fs.existsSync(file)) return { rows, brokenLines };
@@ -110,7 +120,7 @@ export function readLedger(file: string, expectedHash: string): { rows: Map<stri
             throw new BenchError('レジャに現在と異なる config_hash があります。設定を戻すか版タグを変更してください。');
         }
         if (!row || typeof row.key !== 'string' || row.config_hash !== expectedHash
-            || row.dataset !== 'depression' || typeof row.model_requested !== 'string'
+            || row.dataset !== dataset || typeof row.model_requested !== 'string'
             || (row.model_version !== null && typeof row.model_version !== 'string')
             || typeof row.ledger_version !== 'string' || ![0, 1].includes(row.label_included)
             || !Number.isFinite(row.include_probability) || row.include_probability < 0 || row.include_probability > 1

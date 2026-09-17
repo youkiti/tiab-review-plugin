@@ -44,6 +44,7 @@ function fatalReason(error: unknown): string {
 }
 
 export interface RunOptions {
+    dataset: string;
     records: DatasetRecord[];
     existing: Map<string, LedgerRow>;
     config: BenchConfig;
@@ -56,7 +57,7 @@ export interface RunOptions {
 }
 
 export async function runRecords(options: RunOptions): Promise<number> {
-    const { records, existing, config, hash, concurrency, fake, screen, append } = options;
+    const { records, existing, config, hash, concurrency, fake, screen, append, dataset } = options;
     const log = options.log ?? console.log;
     const pending = records.filter(r => !existing.has(r.id));
     let completed = records.length - pending.length;
@@ -103,7 +104,7 @@ export async function runRecords(options: RunOptions): Promise<number> {
                 continue;
             }
             const row: LedgerRow = {
-                key: record.id, dataset: 'depression', label_included: record.label_included,
+                key: record.id, dataset, label_included: record.label_included,
                 include_probability: result.output.include_probability,
                 model_requested: config.model, model_version: result.responseMetadata.modelVersion ?? null,
                 input_tokens: result.usageMetadata.promptTokenCount,
@@ -138,12 +139,17 @@ export async function runRecords(options: RunOptions): Promise<number> {
 async function main(): Promise<number> {
     const config = loadConfig();
     let fake = false, smoke = false, concurrency = config.concurrency;
+    let dataset = 'depression';
     const args = process.argv.slice(2);
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--fake') fake = true;
         else if (args[i] === '--smoke') smoke = true;
         else if (args[i] === '--concurrency') concurrency = Number(args[++i]);
-        else throw new BenchError('不明な引数です。--fake / --smoke / --concurrency N を指定してください。');
+        else if (args[i] === '--dataset') dataset = args[++i];
+        else throw new BenchError('不明な引数です。--fake / --smoke / --concurrency N / --dataset キー を指定してください。');
+    }
+    if (!Object.prototype.hasOwnProperty.call(config.datasets, dataset)) {
+        throw new BenchError('指定されたデータセットキーが config にありません。');
     }
     if (!Number.isInteger(concurrency) || concurrency < 1
         || !Number.isInteger(config.retry.maxAttempts) || config.retry.maxAttempts < 1
@@ -153,23 +159,23 @@ async function main(): Promise<number> {
     if (!fake && !process.env.TYPE_SAFE_API_KEY?.trim()) {
         throw new BenchError('TYPE_SAFE_API_KEY がありません。環境変数またはリポジトリ直下の .env に設定してください。');
     }
-    const all = loadDataset(config);
-    const paths = outputPaths(config, fake);
-    const hash = configHash(config);
-    const { rows, brokenLines } = readLedger(paths.ledger, hash);
+    const all = loadDataset(config, dataset);
+    const paths = outputPaths(config, fake, dataset);
+    const hash = configHash(config, dataset);
+    const { rows, brokenLines } = readLedger(paths.ledger, hash, dataset);
     if (brokenLines) console.warn(`警告: 読めないレジャ行 ${brokenLines} 件を読み飛ばしました。`);
     const records = smoke ? frozenSample(paths.sample, all, config.smokeSampleSize, config.sampleSeed) : all;
     let screen: Screen = fakeScreen;
     if (!fake) {
         // fake ではプロバイダを読み込まず、実 API への経路を作らない。
         const { screenViaTypeSafe } = await import('../../src/lib/providers/typesafe');
-        const prompt = screeningPrompt(config);
+        const prompt = screeningPrompt(config, dataset);
         screen = record => screenViaTypeSafe({
             title: record.title, abstract: record.abstract || '', screeningPrompt: prompt,
             model: config.model, outputLanguage: config.outputLanguage,
         });
     }
-    return runRecords({ records, existing: rows, config, hash, concurrency, fake, screen,
+    return runRecords({ records, existing: rows, config, hash, concurrency, fake, screen, dataset,
         append: row => appendLedger(paths.ledger, row) });
 }
 
