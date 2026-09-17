@@ -1,0 +1,28 @@
+{
+    "description": "TypeSafe jev-1.13.0 の総合 Noul 1問による depression 評価。成功した記録を逐次保存し、未処理分だけ再開する。",
+    "model": "jev-1.13.0",
+    "questionDesign": "overall-noul",
+    "ledgerVersion": "v1",
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "outputLanguage": "en",
+    "concurrency": 4,
+    "retry": { "maxAttempts": 5, "baseDelayMs": 2000, "maxDelayMs": 60000 },
+    "smokeSampleSize": 50,
+    "sampleSeed": 2026,
+    "thresholds": { "primary": 0.5, "extensionDefault": 0.3 },
+    "pricing": null,
+    "comparison": [
+        { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "recall": 96.1, "specificity": 86.3, "precision": 53.4, "fBeta7": 95.2, "source": "experiments/gpt-5.6/report.md" },
+        { "model": "gpt-5.6-luna", "condition": "effort none", "recall": 92.9, "specificity": 84.3, "precision": 49.1, "fBeta7": 91.2, "source": "experiments/gpt-5.6/report.md" },
+        { "model": "gemini-3.1-flash-lite", "condition": "Temp 0", "recall": 93.6, "specificity": null, "precision": 61.6, "fBeta7": 92.6, "source": "README.md" },
+        { "model": "qwen/qwen3-235b-a22b-2507", "condition": "Temp 0", "recall": 93.9, "specificity": null, "precision": 47.9, "fBeta7": 92.2, "source": "README.md" }
+    ]
+}
