@@ -818,7 +818,7 @@ export interface ModelOption {
  * 全件ベンチ結果に基づき採用したもののみを載せる:
  *  - qwen/qwen3-235b-a22b-2507 : Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件
  *  - deepseek/deepseek-v4-flash : Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件
- * TypeSafe Jev 1.13.0 は確率を直接返すモデル（拡張の既定閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0% でフォールバック枠。experiments/typesafe-jev/）。
+ * TypeSafe Jev 1.13.0 は確率を直接返すモデル（拡張の既定閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0% で、同梱基準（Recall ≥ 90%）を満たし採用。experiments/typesafe-jev/）。
  *
  * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
  * 実応答の modelVersion は履歴ログへ保存。
@@ -874,6 +874,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         // 旧版 jev-1.12.0 は 400 Unknown model。新版公開時は ID の差し替えが必要。
         id: 'jev-1.13.0',
         name: 'TypeSafe Jev 1.13.0',
+        nameKey: 'llm_modelName_jev_1_13_0',
         provider: 'typesafe',
         // temperature は型の都合で置くだけで、typesafe プロバイダでは送らない。
         config: { temperature: 0 }

@@ -2754,6 +2754,9 @@
   "llm_modelName_gpt_5_6_luna": {
     "message": "GPT-5.6 Luna"
   },
+  "llm_modelName_jev_1_13_0": {
+    "message": "TypeSafe Jev 1.13.0 — Recall 96.1%（閾値0.3）"
+  },
   "llm_openRouterApiKeyRequired": {
     "message": "OpenRouter APIキーを設定してください"
   },
