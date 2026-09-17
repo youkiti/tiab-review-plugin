@@ -2731,7 +2731,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\nConfigure the selected model’s key in the matching row of the API keys card below. See the latest benchmark via the link beside the model."
+    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.13.0: System One model that returns probabilities, without written reasons (not benchmarked).\n\nConfigure the selected model’s key in the matching row of the API keys card below. See the latest benchmark via the link beside the model."
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 Compare on the benchmark"
@@ -2759,6 +2759,12 @@
   },
   "llm_openAiApiKeyRequired": {
     "message": "Please configure an OpenAI API key"
+  },
+  "llm_typeSafeApiKeyRequired": {
+    "message": "Please configure a TypeSafe API key"
+  },
+  "llm_typeSafeCriteriaUnsupported": {
+    "message": "TypeSafe models cannot be used to optimize criteria. Choose a Gemini, OpenRouter, or OpenAI model instead."
   },
   "llm_customModelDescription": {
     "message": "Test <a href=\"https://openrouter.ai/models\" target=\"_blank\" rel=\"noopener noreferrer\">any OpenRouter model ID</a> and save it to your browser on success. Saved models appear in the model selector on subsequent sessions (not benchmarked by this tool)."
@@ -3603,6 +3609,9 @@
   "llm_providerCaptionOpenAi": {
     "message": "GPT models"
   },
+  "llm_providerCaptionTypeSafe": {
+    "message": "System One model that returns probabilities"
+  },
   "llm_providerChipUnset": {
     "message": "Not set"
   },
@@ -3621,6 +3630,9 @@
   "llm_apiKeyPlaceholderOpenAi": {
     "message": "Paste a key starting with sk-…"
   },
+  "llm_apiKeyPlaceholderTypeSafe": {
+    "message": "Paste a TypeSafe key"
+  },
   "llm_providerHintGemini": {
     "message": "Works on the free tier, but at roughly 13 s per reference; a paid tier (Tier 1 or above) is recommended for large runs. <a href=\"https://aistudio.google.com/app/apikey\" target=\"_blank\" rel=\"noopener noreferrer\">Get a key ↗</a>"
   },
@@ -3629,6 +3641,9 @@
   },
   "llm_providerHintOpenAi": {
     "message": "<a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">Get a key ↗</a>"
+  },
+  "llm_providerHintTypeSafe": {
+    "message": "For TiAb AI screening only. Records per-criterion match probabilities instead of written reasons. Cannot optimize criteria. <a href=\"https://console.typesafe.ai/settings/keys\" target=\"_blank\" rel=\"noopener noreferrer\">Get a key ↗</a>"
   },
   "llm_apiKeySaveToDeviceHint": {
     "message": "Stored encrypted on this device. Untick on a shared PC; the key is then kept only for this session."

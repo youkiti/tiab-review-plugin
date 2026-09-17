@@ -539,6 +539,23 @@
                             <div id="openai-api-key-status" class="api-key-status" aria-live="polite"></div>
                         </div>
                     </div>
+                    <div id="provider-row-typesafe" class="provider-row" data-provider="typesafe">
+                        <button type="button" class="provider-row-head" aria-expanded="false" aria-controls="provider-body-typesafe">
+                            <span id="provider-name-typesafe" class="provider-name">TypeSafe</span>
+                            <span class="provider-caption" data-i18n="llm_providerCaptionTypeSafe"></span>
+                            <span id="provider-chip-typesafe" class="provider-chip"></span>
+                            <span class="provider-chevron" aria-hidden="true">▶</span>
+                        </button>
+                        <div id="provider-body-typesafe" class="provider-row-body">
+                            <div class="api-key-input-group">
+                                <input type="password" id="typesafe-api-key" data-i18n-placeholder="llm_apiKeyPlaceholderTypeSafe" class="api-key-input" autocomplete="off" aria-labelledby="provider-name-typesafe">
+                                <button id="toggle-typesafe-api-key-visibility" class="btn btn-icon" data-i18n-title="common_showHide">👁</button>
+                                <button id="verify-typesafe-api-key-btn" class="btn btn-primary btn-small" data-i18n="llm_apiKeyVerifyBtn"></button>
+                            </div>
+                            <p class="help-text provider-hint" data-i18n-html="llm_providerHintTypeSafe"></p>
+                            <div id="typesafe-api-key-status" class="api-key-status" aria-live="polite"></div>
+                        </div>
+                    </div>
                 </div>
                 <label class="checkbox-label save-key-line">
                     <input type="checkbox" id="save-api-key-checkbox">

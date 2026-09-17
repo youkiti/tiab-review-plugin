@@ -71,6 +71,7 @@ gcloud services enable drive.googleapis.com
 | `GCP_PROJECT_NUMBER`  | Picker `setAppId` に渡すGCPプロジェクト番号 | `build:web` 本番ビルド時 |
 | `GEMINI_API_KEY`       | Gemini API キー                      | Gemini モデル使用時   |
 | `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
+| `TYPE_SAFE_API_KEY`    | TypeSafe API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 
 > **LLM プロバイダ**: v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「OpenRouter APIキー」カードから登録します（環境変数は実験ランナー用途のみ）。
 
@@ -220,9 +221,11 @@ npm run watch
 ## LLMモデル履歴
 
 - 既定のLLMモデルは `gemini-3.1-flash-lite` (GA, Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
-- UI で選べるモデルは以下の 4 つ。Gemini 系と OpenRouter 系で別の API キーが必要です:
+- UI で選べるモデルは以下の 7 つ。プロバイダごとに別の API キーが必要です:
   - **Gemini**: `gemini-3.1-flash-lite` (既定 / depression Recall 93.6%) / `gemini-3-flash-preview` (Recall 96.1%)
   - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
+  - **OpenAI**: `gpt-5.6-terra` / `gpt-5.6-luna`
+  - **TypeSafe**: `jev-1.13.0`（ベンチマーク未実施。判定理由の文章は返らず、基準の要素別確率を記録）
 - OpenRouter モデルは [experiments/openrouter-bench/](experiments/openrouter-bench/) の depression データセット全件 (N=1,993) ベンチで採用基準 (Recall ≥ 0.90) を満たした 2 モデルのみを同梱しています。
 - **OpenRouter カスタムモデル**: 上記同梱モデル以外の OpenRouter モデル（例: `anthropic/claude-3.7-sonnet`、`openai/gpt-4o-mini` 等）も、サイドパネルの「OpenRouter カスタムモデル」カードからモデル ID を手入力できます。「テストして保存」を押すと実 API を 1 回叩き、スクリーニング用 JSON 出力が返ったモデルだけがブラウザに保存され、以降モデル選択肢に出現します（最大 20 件）。カスタムモデルは当ツールのベンチマーク対象外のため、組入精度は各自で必ず検証してください。
 - **2026-05 以降は `latest` エイリアス (`gemini-flash-lite-latest` / `gemini-flash-latest`) ではなく、ベンチマーク済みの固定バージョン ID を採用しています**。Google がエイリアス実体を更新した際の挙動変化 (Recall・コスト) を防ぐためです。例として `gemini-3.5-flash` (depression Recall 93.2%) が将来 `gemini-flash-latest` の実体になった場合でも、UI 上のユーザー設定は影響を受けません。

@@ -19,6 +19,7 @@
         "https://generativelanguage.googleapis.com/*",
         "https://openrouter.ai/*",
         "https://api.openai.com/*",
+        "https://api.typesafe.ai/*",
         "https://www.ncbi.nlm.nih.gov/pmc/*",
         "https://pmc.ncbi.nlm.nih.gov/*",
         "https://www.ebi.ac.uk/europepmc/*",

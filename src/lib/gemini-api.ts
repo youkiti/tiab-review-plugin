@@ -802,7 +802,7 @@ export interface ModelOption {
     id: string;
     name: string;        // フォールバック表示 (i18n 未取得時)
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
-    provider: 'gemini' | 'openrouter' | 'openai';
+    provider: 'gemini' | 'openrouter' | 'openai' | 'typesafe';
     config: Omit<GeminiModelConfig, 'model'>;
     /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
     custom?: boolean;
@@ -818,6 +818,7 @@ export interface ModelOption {
  * 全件ベンチ結果に基づき採用したもののみを載せる:
  *  - qwen/qwen3-235b-a22b-2507 : Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件
  *  - deepseek/deepseek-v4-flash : Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件
+ * TypeSafe Jev 1.13.0 は確率を直接返すモデル（ベンチマーク未実施）。
  *
  * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
  * 実応答の modelVersion は履歴ログへ保存。
@@ -866,6 +867,16 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         provider: 'openai',
         // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
         config: { temperature: 0, reasoningEffort: 'medium' }
+    },
+    {
+        // latest エイリアスではなく固定版 ID を使う既存方針に従う（未ベンチマーク）。
+        // 2026-09-17 時点で jev-latest / jev-preview は jev-1.13.0 を返し、
+        // 旧版 jev-1.12.0 は 400 Unknown model。新版公開時は ID の差し替えが必要。
+        id: 'jev-1.13.0',
+        name: 'TypeSafe Jev 1.13.0',
+        provider: 'typesafe',
+        // temperature は型の都合で置くだけで、typesafe プロバイダでは送らない。
+        config: { temperature: 0 }
     },
 ];
 

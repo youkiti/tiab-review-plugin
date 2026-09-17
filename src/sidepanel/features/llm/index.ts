@@ -35,9 +35,11 @@ import {
     hasGeminiApiKey,
     hasOpenRouterApiKey,
     hasOpenAiApiKey,
+    hasTypeSafeApiKey,
     getSessionApiKey,
     getSessionOpenRouterApiKey,
     getSessionOpenAiApiKey,
+    getSessionTypeSafeApiKey,
 } from '../../../lib/storage';
 import {
     handleOptimizeCriteria,
@@ -90,15 +92,17 @@ import {
  * 永続化された API キー（chrome.storage）に加え、セッション限定キー（保存しない設定）も「設定済み」として扱う。
  */
 async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
-    const [gemini, openRouter, openAi] = await Promise.all([
+    const [gemini, openRouter, openAi, typeSafe] = await Promise.all([
         hasGeminiApiKey(),
         hasOpenRouterApiKey(),
         hasOpenAiApiKey(),
+        hasTypeSafeApiKey(),
     ]);
     const configured = new Set<LlmProviderId>();
     if (gemini || (getSessionApiKey() ?? '').length > 0) configured.add('gemini');
     if (openRouter || (getSessionOpenRouterApiKey() ?? '').length > 0) configured.add('openrouter');
     if (openAi || (getSessionOpenAiApiKey() ?? '').length > 0) configured.add('openai');
+    if (typeSafe || (getSessionTypeSafeApiKey() ?? '').length > 0) configured.add('typesafe');
     return configured;
 }
 
@@ -124,10 +128,12 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
         gemini: document.createElement('optgroup'),
         openrouter: document.createElement('optgroup'),
         openai: document.createElement('optgroup'),
+        typesafe: document.createElement('optgroup'),
     };
     groups.gemini.label = 'Gemini';
     groups.openrouter.label = 'OpenRouter';
     groups.openai.label = 'OpenAI';
+    groups.typesafe.label = 'TypeSafe';
 
     for (const model of allModels) {
         const option = document.createElement('option');
@@ -148,6 +154,7 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
     if (groups.gemini.childElementCount > 0) select.appendChild(groups.gemini);
     if (groups.openrouter.childElementCount > 0) select.appendChild(groups.openrouter);
     if (groups.openai.childElementCount > 0) select.appendChild(groups.openai);
+    if (groups.typesafe.childElementCount > 0) select.appendChild(groups.typesafe);
 
     const hasAnyOption = select.options.length > 0;
 
@@ -174,7 +181,7 @@ export async function refreshModelKeyNote(): Promise<void> {
     const configured = await getConfiguredProviders();
     if (dom.llmModelSelect.value !== modelId) return;
     const provider = resolveProviderId(modelId, AVAILABLE_MODELS);
-    const names: Record<LlmProviderId, string> = { gemini: 'Gemini', openrouter: 'OpenRouter', openai: 'OpenAI' };
+    const names: Record<LlmProviderId, string> = { gemini: 'Gemini', openrouter: 'OpenRouter', openai: 'OpenAI', typesafe: 'TypeSafe' };
     const ready = configured.has(provider);
     dom.llmModelKeyNote.className = ready ? 'model-key-note ok' : 'model-key-note warn';
     dom.llmModelKeyNote.textContent = t(ready ? 'llm_modelKeyReady' : 'llm_modelKeyMissing', names[provider]);

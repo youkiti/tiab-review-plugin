@@ -938,8 +938,8 @@
                     <span class="en">AI Screening Support</span>
                 </h2>
                 <p>
-                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAIの3プロバイダに対応しており、全モデルから選んで必要なAPIキーを設定できます。</span>
-                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Choose from all models across Gemini, OpenRouter, and OpenAI, then configure the required API key.</span>
+                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAI・TypeSafeの4プロバイダに対応しており、全モデルから選んで必要なAPIキーを設定できます。</span>
+                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Choose from all models across Gemini, OpenRouter, OpenAI, and TypeSafe, then configure the required API key.</span>
                 </p>
 
                 <h3>
@@ -947,8 +947,8 @@
                     <span class="en">API Key Setup</span>
                 </h3>
                 <p>
-                    <span class="ja">「🤖 AI」タブ先頭の「使うモデル」でモデルを選ぶと、キー未設定の場合は「🔑 APIキー」カード内の対応する行が開きます。キーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。3プロバイダの行は1枚のカードにまとまり、状態チップで設定状況を確認できます。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。</span>
-                    <span class="en">Choose a model in the first "Model" card on the "🤖 AI" tab. If its key is missing, the matching row opens in the single "🔑 API keys" card. Paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Status chips show the configuration of all three providers. Keys are stored independently; "Save the key on this device" controls the storage preference for all three.</span>
+                    <span class="ja">「🤖 AI」タブ先頭の「使うモデル」でモデルを選ぶと、キー未設定の場合は「🔑 APIキー」カード内の対応する行が開きます。キーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。4プロバイダの行は1枚のカードにまとまり、状態チップで設定状況を確認できます。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。</span>
+                    <span class="en">Choose a model in the first "Model" card on the "🤖 AI" tab. If its key is missing, the matching row opens in the single "🔑 API keys" card. Paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Status chips show the configuration of all four providers. Keys are stored independently; "Save the key on this device" controls the storage preference for all four.</span>
                 </p>
                 <figure class="help-img-figure help-img-tall">
                     <img class="help-img" src="images/faq-gemini/01-ai-tab-overview.png"
@@ -966,7 +966,8 @@
                         API キーを発行します。<br>
                         3. OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
                         から API キーを発行します。<br>
-                        4. 対応する行にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。</span>
+                        4. TypeSafe: <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a> から API キーを発行します。<br>
+                        5. 対応する行にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。</span>
                     <span class="en">1. Gemini: Get an API key from <a href="https://aistudio.google.com/app/apikey"
                             target="_blank">Google AI Studio</a> (see <a
                             href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">instructions</a>).<br>
@@ -974,7 +975,12 @@
                             target="_blank">OpenRouter</a> account settings.<br>
                         3. OpenAI: Issue an API key from the <a href="https://platform.openai.com/api-keys"
                             target="_blank">OpenAI Platform</a>.<br>
-                        4. Paste the key in the matching row and click "Verify and save". Leaving the input also verifies it.</span>
+                        4. TypeSafe: Issue an API key from <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a>.<br>
+                        5. Paste the key in the matching row and click "Verify and save". Leaving the input also verifies it.</span>
+                </p>
+                <p>
+                    <span class="ja">TypeSafe（Jev）は判定理由の文章を返さないため、判定理由の欄には基準の要素（P/I/C/O など）ごとの合致確率が記録され、根拠のハイライトは付きません。基準の最適化には使えません。</span>
+                    <span class="en">TypeSafe (Jev) returns no written reasons. The reason field records match probabilities for each criterion (such as P/I/C/O), without evidence highlights. It cannot be used to optimize criteria.</span>
                 </p>
 
                 <h3 id="ai-screening-gemini-key">
@@ -1177,9 +1183,9 @@
                     style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-top: 16px;">
                     <p>
                         <span class="ja"><strong>注意:</strong> APIの利用には料金が発生する場合があります（各プロバイダ（Google AI Studio /
-                            OpenRouter / OpenAI）の利用規約をご確認ください）。また、センシティブなデータを含む場合は、組織のポリシーに従ってください。</span>
+                            OpenRouter / OpenAI / TypeSafe）の利用規約をご確認ください）。また、センシティブなデータを含む場合は、組織のポリシーに従ってください。</span>
                         <span class="en"><strong>Note:</strong> API usage may incur charges (check the terms of the
-                            provider you use — Google AI Studio, OpenRouter, or OpenAI). Follow your organization's
+                            provider you use — Google AI Studio, OpenRouter, OpenAI, or TypeSafe). Follow your organization's
                             policy when handling sensitive data.</span>
                     </p>
                 </div>
@@ -1532,11 +1538,11 @@
                     <span class="en">Batch AI Screening</span>
                 </h3>
                 <p>
-                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAIは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。</span>
+                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/TypeSafeは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。</span>
                     <span class="en">The "AI judge" view sends the full PDF of each candidate that is saved to
                         Drive (cached) and not yet AI-screened to Gemini, and returns a batch Include/Exclude/Maybe
                         decision. Batch AI screening for full text only supports Gemini — unlike TiAb AI screening,
-                        OpenRouter and OpenAI are not available here. The criteria prompt can be pre-filled from your
+                        OpenRouter, OpenAI, and TypeSafe are not available here. The criteria prompt can be pre-filled from your
                         TiAb settings. Each run is recorded as a "round". Once at least one decision succeeds, that
                         round is adopted automatically (a cancelled run is not adopted). When multiple rounds exist,
                         you can switch which round is adopted later using radio buttons (including "None adopted"),
@@ -2029,11 +2035,11 @@
                         <span class="en">Q: Where is my data stored?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。AI機能を使わなければ、データが外部へ送信されることはありません。</span>
+                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI/TypeSafe）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。AI機能を使わなければ、データが外部へ送信されることはありません。</span>
                         <span class="en">A: Your review data (references, decisions, notes, etc.) is stored in your
                             Google Drive. However, if you use AI screening, the title/abstract of each reference
                             being screened (or the full PDF, for full-text AI screening) is sent to the API of
-                            whichever provider you configured (Gemini/OpenRouter/OpenAI). API keys are stored in your
+                            whichever provider you configured (Gemini/OpenRouter/OpenAI/TypeSafe). API keys are stored in your
                             browser's local storage. If you don't use the AI features, no data is sent
                             externally.</span>
                     </p>
@@ -2084,9 +2090,9 @@
                         <span class="en">Q: Can I use AI screening with providers other than Google Gemini?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: TiAbのAI判定はGemini・OpenRouter・OpenAIの3プロバイダに対応しています（プロバイダごとに個別のAPIキー設定が必要です）。ただし、フルテキストのAI一括判定はGeminiのみに対応しています。</span>
-                        <span class="en">A: TiAb AI screening supports three providers — Gemini, OpenRouter, and
-                            OpenAI (each requires its own API key). However, batch AI screening for full text only
+                        <span class="ja">A: TiAbのAI判定はGemini・OpenRouter・OpenAI・TypeSafeの4プロバイダに対応しています（プロバイダごとに個別のAPIキー設定が必要です）。ただし、フルテキストのAI一括判定はGeminiのみに対応しています。</span>
+                        <span class="en">A: TiAb AI screening supports four providers — Gemini, OpenRouter,
+                            OpenAI, and TypeSafe (each requires its own API key). However, batch AI screening for full text only
                             supports Gemini.</span>
                     </p>
                 </div>

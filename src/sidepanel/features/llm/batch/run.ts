@@ -27,7 +27,8 @@ import {
     getJudgedRefIdsForBatches,
 } from '../../../../lib/sheets-api';
 import { computeConfigHash } from '../../../../lib/llm-config-hash';
-import { getEffectiveApiKey, getEffectiveOpenRouterApiKey, getEffectiveOpenAiApiKey, getManualTier } from '../../../../lib/storage';
+import { getManualTier } from '../../../../lib/storage';
+import { getEffectiveApiKeyForProvider, missingApiKeyMessageKey } from '../api-key';
 import { resolveProviderId } from '../../../../lib/llm-provider';
 import {
     processBatch,
@@ -129,18 +130,9 @@ export async function handleStartBatch() {
     // (Gemini モデル選択中なのに OpenRouter キーしか無い、等のケースで誤ったエラーを出さない)
     const selectedModelId = dom.llmModelSelect.value;
     const providerId = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
-    const apiKey = providerId === 'openrouter'
-        ? await getEffectiveOpenRouterApiKey()
-        : providerId === 'openai'
-            ? await getEffectiveOpenAiApiKey()
-            : await getEffectiveApiKey();
+    const apiKey = await getEffectiveApiKeyForProvider(providerId);
     if (!apiKey) {
-        const missingKeyMessageKey = providerId === 'openrouter'
-            ? 'llm_openRouterApiKeyRequired'
-            : providerId === 'openai'
-                ? 'llm_openAiApiKeyRequired'
-                : 'llm_apiKeyRequired';
-        showToast(t(missingKeyMessageKey));
+        showToast(t(missingApiKeyMessageKey(providerId)));
         return;
     }
 
@@ -295,6 +287,7 @@ export async function handleStartBatch() {
         const result = await processBatch(targetRefs, {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
+            criteria: llmConfig.llm_criteria,
             model: modelConfig.model,
             temperature: modelConfig.temperature,
             topP: modelConfig.topP,
@@ -456,9 +449,10 @@ export async function handleRetryFailed() {
     syncClearFailedRefIds();
 
     // 通常のバッチ処理と同様に処理
-    const apiKey = await getEffectiveApiKey();
+    const providerId = resolveProviderId(dom.llmModelSelect.value, AVAILABLE_MODELS);
+    const apiKey = await getEffectiveApiKeyForProvider(providerId);
     if (!apiKey) {
-        showToast(t('llm_apiKeyRequired'));
+        showToast(t(missingApiKeyMessageKey(providerId)));
         return;
     }
 
@@ -485,6 +479,7 @@ export async function handleRetryFailed() {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
             model: modelId,
+            criteria: state.llmConfig.llm_criteria,
             temperature: 0,
 
             outputLanguage: dom.llmLanguageSelect.value,

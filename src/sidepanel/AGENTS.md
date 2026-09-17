@@ -76,7 +76,7 @@
        - 折りたたみ時のヘッダー要約にも絞り込み後の数字を反映する（対象外のメンバーは「—」）
 7. **LLMスクリーニング支援**
 
-   - **APIキー設定**: 先頭の「使うモデル」で全プロバイダのモデルを選び、1枚の「🔑 APIキー」カード内の Gemini / OpenRouter / OpenAI 行で確認・保存する。キーは provider 別に独立保管し、端末保存のチェックボックスは3プロバイダ共通。状態チップで設定状況を示し、選択モデルのキーが未設定なら対応行を開く。
+   - **APIキー設定**: 先頭の「使うモデル」で全プロバイダのモデルを選び、1枚の「🔑 APIキー」カード内の Gemini / OpenRouter / OpenAI / TypeSafe 行で確認・保存する。キーは provider 別に独立保管し、端末保存のチェックボックスは4プロバイダ共通。状態チップで設定状況を示し、選択モデルのキーが未設定なら対応行を開く。
    - **Gemini APIキーの無料/有料判定**（`detectTierByBatchProbe()` / `classifyTierProbeResponse()`, `src/lib/gemini-api.ts`）:
      `batchGenerateContent` に requests が空の batch を送るプローブで判定する（1リクエスト・課金ゼロ、バッチジョブは作られない）。
      `400 FAILED_PRECONDITION` → free（課金チェックが body 検証より先に走る）、
@@ -103,7 +103,7 @@
      水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
      蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
      既定で効いており、**実装すべきものは無い**
-   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) から選択
+   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) + OpenAI 2 種 (GPT-5.6 Terra, GPT-5.6 Luna) + TypeSafe (`jev-1.13.0`) から選択
    - **OpenRouter カスタムモデル**: キー設定済みの OpenRouter 行内の「＋ 一覧にないモデルを追加」からフォームを開く（一覧も同じ行内に表示）。任意のモデル ID を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: LLMによる自動判定（バッチ処理）。対象の決定ロジックは `src/lib/llm-batch-target.ts`（純粋関数）に集約
