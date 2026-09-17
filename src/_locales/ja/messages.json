@@ -2731,7 +2731,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.13.0: 確率を直接返す System One モデル。判定理由の文章は返りません（depression Recall 93.6%）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
+    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.13.0: 確率を直接返す System One モデル。判定理由の文章は返りません（閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0%）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 ベンチマークで比べる"
