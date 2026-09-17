@@ -30,6 +30,11 @@ export const dom = {
     get toggleOpenAiApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openai-api-key-visibility'); },
     get openAiApiKeyStatus() { return getElement<HTMLElement>('openai-api-key-status'); },
 
+    // LLM APIキー (TypeSafe)
+    get typeSafeApiKeyInput() { return getElement<HTMLInputElement>('typesafe-api-key'); },
+    get toggleTypeSafeApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-typesafe-api-key-visibility'); },
+    get typeSafeApiKeyStatus() { return getElement<HTMLElement>('typesafe-api-key-status'); },
+
     // LLM カスタムモデル (OpenRouter)
     get customModelIdInput() { return getElement<HTMLInputElement>('custom-model-id-input'); },
     get customModelLabelInput() { return getElement<HTMLInputElement>('custom-model-label-input'); },

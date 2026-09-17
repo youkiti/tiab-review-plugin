@@ -126,6 +126,7 @@ export function summarizeReasons(reasons: string[]): string {
 export interface BatchProcessOptions {
     batchSize: number; // 1回の保存単位の件数
     screeningPrompt: string;
+    criteria?: LlmCriteria | null;
     model: string;
     // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
     // 未指定なら送らない運用を許容する optional にしている。
@@ -203,8 +204,8 @@ type ProcessOutcome =
  * 空白区切りの `rate limit` はこれらに誤ってマッチしてしまう（ハイフン付きの
  * `rate-limiting` はマッチしないので実際に踏んだ実例あり）。そのため、抄録には出てこない
  * アンダースコア付きのコード名・明示的な HTTP シグナルだけに絞る:
- * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI 実装
- *   (providers/openrouter.ts, providers/openai.ts) が投げる形
+ * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI/TypeSafe 実装
+ *   (providers/openrouter.ts, providers/openai.ts, providers/typesafe.ts) が投げる形
  * - `RESOURCE_EXHAUSTED`: Gemini のステータス文字列
  * - `rate_limit_exceeded`: providers/openai.ts が投げる
  *   `OpenAI: リクエストが失敗しました (code=rate_limit_exceeded): ...` の形
@@ -260,7 +261,7 @@ async function sleepOrAbort(
  * RetryInfo 由来の retryAfterMs を詰めることがあるため、429 以外のバックオフにも使う）。
  *
  * GeminiApiError（gemini-api.ts）は status / retryAfterMs をフィールドとして直接持つので
- * そのまま拾える。OpenRouter/OpenAI 実装は status を持たない Error しか投げないため、
+ * そのまま拾える。OpenRouter/OpenAI/TypeSafe 実装は status を持たない Error しか投げないため、
  * メッセージ中の明示的なレート制限シグナル（RATE_LIMIT_MESSAGE_PATTERN）を最後の手段として
  * 拾う（この場合 retryAfterMs は取れない）。
  * 循環依存を避けるため `instanceof GeminiApiError` ではなくダックタイピングで判定する。
@@ -307,6 +308,7 @@ interface ProcessWithRetryDeps {
 async function processWithRetry(
     ref: Reference,
     screeningPrompt: string,
+    criteria: LlmCriteria | null | undefined,
     modelConfig: GeminiModelConfig,
     outputLanguage: string,
     executionId: string,
@@ -340,6 +342,7 @@ async function processWithRetry(
                 title: ref.title,
                 abstract: ref.abstract || '',
                 screeningPrompt,
+                criteria,
                 model: modelConfig.model,
                 temperature: modelConfig.temperature,
                 topP: modelConfig.topP,
@@ -367,7 +370,9 @@ async function processWithRetry(
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
             const errorCode = (error as { code?: string } | null)?.code;
-            const nonRetryable = errorCode === 'max_tokens_truncated';
+            // TypeSafe の認証・形式エラーは同条件で再試行しても回復しない。
+            const nonRetryable = errorCode === 'max_tokens_truncated'
+                || (providerId === 'typesafe' && (error as { retryable?: boolean } | null)?.retryable === false);
             if (nonRetryable) {
                 console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);
                 break;
@@ -738,6 +743,7 @@ export async function processBatch(
             const result = await processWithRetry(
                 ref,
                 options.screeningPrompt,
+                options.criteria,
                 modelConfig,
                 options.outputLanguage,
                 executionId,

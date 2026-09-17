@@ -35,10 +35,23 @@ import {
     setSessionOpenAiApiKey,
     getOpenAiApiKeySavePreference,
     setOpenAiApiKeySavePreference,
+    getTypeSafeApiKey,
+    getSessionTypeSafeApiKey,
+    saveTypeSafeApiKey,
+    removeTypeSafeApiKey,
+    hasTypeSafeApiKey,
+    setSessionTypeSafeApiKey,
+    getTypeSafeApiKeySavePreference,
+    setTypeSafeApiKeySavePreference,
+    getEffectiveApiKey,
+    getEffectiveOpenRouterApiKey,
+    getEffectiveOpenAiApiKey,
+    getEffectiveTypeSafeApiKey,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
 import { testOpenAiApiKey } from '../../../lib/providers/openai';
+import { testTypeSafeApiKey } from '../../../lib/providers/typesafe';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
 import type { ApiTier, ManualTier } from '../../../lib/types';
@@ -167,7 +180,26 @@ async function afterValidGemini(result: KeyTestResult, shouldSave: boolean): Pro
     await refreshTierSelector();
 }
 
-const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai'];
+export async function getEffectiveApiKeyForProvider(provider: LlmProviderId): Promise<string | null> {
+    const getters = {
+        gemini: getEffectiveApiKey,
+        openrouter: getEffectiveOpenRouterApiKey,
+        openai: getEffectiveOpenAiApiKey,
+        typesafe: getEffectiveTypeSafeApiKey,
+    };
+    return getters[provider]();
+}
+
+export function missingApiKeyMessageKey(provider: LlmProviderId): string {
+    return {
+        gemini: 'llm_apiKeyRequired',
+        openrouter: 'llm_openRouterApiKeyRequired',
+        openai: 'llm_openAiApiKeyRequired',
+        typesafe: 'llm_typeSafeApiKeyRequired',
+    }[provider];
+}
+
+const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai', 'typesafe'];
 const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
     gemini: {
         input: () => dom.geminiApiKeyInput,
@@ -216,11 +248,25 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
         setSavePreference: setOpenAiApiKeySavePreference,
         test: testOpenAiApiKey,
     },
+    typesafe: {
+        input: () => dom.typeSafeApiKeyInput,
+        toggleBtn: () => dom.toggleTypeSafeApiKeyVisibilityBtn,
+        status: () => dom.typeSafeApiKeyStatus,
+        hasKey: hasTypeSafeApiKey,
+        getKey: getTypeSafeApiKey,
+        getSessionKey: getSessionTypeSafeApiKey,
+        saveKey: saveTypeSafeApiKey,
+        removeKey: removeTypeSafeApiKey,
+        setSessionKey: setSessionTypeSafeApiKey,
+        getSavePreference: getTypeSafeApiKeySavePreference,
+        setSavePreference: setTypeSafeApiKeySavePreference,
+        test: testTypeSafeApiKey,
+    },
 };
 
-const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false };
-const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null };
-const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false };
+const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, typesafe: false };
+const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null, typesafe: null };
+const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, typesafe: false };
 
 export function setProviderRowOpen(provider: LlmProviderId, open: boolean): void {
     dom.providerRow(provider).classList.toggle('open', open);

@@ -448,6 +448,70 @@ export async function getEffectiveOpenAiApiKey(): Promise<string | null> {
     return await getOpenAiApiKey();
 }
 
+// ========== TypeSafe API キー ==========
+// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
+
+const TYPE_SAFE_API_KEY_STORAGE_KEY = 'typesafe_api_key';
+const TYPE_SAFE_API_KEY_SAVE_PREFERENCE = 'typesafe_api_key_save_preference';
+
+export async function saveTypeSafeApiKey(apiKey: string): Promise<void> {
+    const encoded = await encryptApiKey(apiKey);
+    await chrome.storage.local.set({ [TYPE_SAFE_API_KEY_STORAGE_KEY]: encoded });
+}
+
+export async function getTypeSafeApiKey(): Promise<string | null> {
+    const result = await chrome.storage.local.get([TYPE_SAFE_API_KEY_STORAGE_KEY]);
+    const encoded = result[TYPE_SAFE_API_KEY_STORAGE_KEY];
+    if (!encoded) return null;
+    try {
+        return await decryptApiKey(encoded);
+    } catch {
+        return null;
+    }
+}
+
+export async function removeTypeSafeApiKey(): Promise<void> {
+    await chrome.storage.local.remove([TYPE_SAFE_API_KEY_STORAGE_KEY]);
+}
+
+export async function hasTypeSafeApiKey(): Promise<boolean> {
+    const key = await getTypeSafeApiKey();
+    return key !== null && key.length > 0;
+}
+
+export async function setTypeSafeApiKeySavePreference(save: boolean): Promise<void> {
+    await chrome.storage.local.set({ [TYPE_SAFE_API_KEY_SAVE_PREFERENCE]: save });
+}
+
+export async function getTypeSafeApiKeySavePreference(): Promise<boolean> {
+    const result = await chrome.storage.local.get([TYPE_SAFE_API_KEY_SAVE_PREFERENCE]);
+    return result[TYPE_SAFE_API_KEY_SAVE_PREFERENCE] === true;
+}
+
+// セッション保持（保存しない設定時のメモリ保持）
+let sessionTypeSafeApiKey: string | null = null;
+
+export function setSessionTypeSafeApiKey(apiKey: string): void {
+    sessionTypeSafeApiKey = apiKey;
+}
+
+export function getSessionTypeSafeApiKey(): string | null {
+    return sessionTypeSafeApiKey;
+}
+
+export function clearSessionTypeSafeApiKey(): void {
+    sessionTypeSafeApiKey = null;
+}
+
+/** 有効な TypeSafe API キーを取得（セッション > 環境変数 > 保存値） */
+export async function getEffectiveTypeSafeApiKey(): Promise<string | null> {
+    if (sessionTypeSafeApiKey) return sessionTypeSafeApiKey;
+    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
+    if (isNodeEnv && process.env.TYPE_SAFE_API_KEY) return process.env.TYPE_SAFE_API_KEY;
+    if (typeof chrome === 'undefined' || !chrome.storage) return null;
+    return await getTypeSafeApiKey();
+}
+
 // ========== OpenRouter カスタムモデル ==========
 // ユーザーが手入力し、API 試行成功で永続化された OpenRouter モデルの管理。
 // ビルトイン AVAILABLE_MODELS と合成して使うため、保存形式は最小限（id と任意のラベル）。

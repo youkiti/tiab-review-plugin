@@ -2731,7 +2731,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
+    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.13.0: 確率を直接返す System One モデル。判定理由の文章は返りません（ベンチマーク未実施）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 ベンチマークで比べる"
@@ -2759,6 +2759,12 @@
   },
   "llm_openAiApiKeyRequired": {
     "message": "OpenAI APIキーを設定してください"
+  },
+  "llm_typeSafeApiKeyRequired": {
+    "message": "TypeSafe APIキーを設定してください"
+  },
+  "llm_typeSafeCriteriaUnsupported": {
+    "message": "TypeSafe のモデルは基準の最適化に使えません。Gemini・OpenRouter・OpenAI のモデルを選んで実行してください。"
   },
   "llm_customModelDescription": {
     "message": "<a href=\"https://openrouter.ai/models\" target=\"_blank\" rel=\"noopener noreferrer\">OpenRouter の任意のモデルID</a>を試してから保存します。テストに成功したモデルはブラウザに保存され、次回以降モデル選択肢として表示されます（ベンチマーク未検証）。"
@@ -3603,6 +3609,9 @@
   "llm_providerCaptionOpenAi": {
     "message": "GPT 系モデル"
   },
+  "llm_providerCaptionTypeSafe": {
+    "message": "確率を直接返す System One モデル"
+  },
   "llm_providerChipUnset": {
     "message": "未設定"
   },
@@ -3621,6 +3630,9 @@
   "llm_apiKeyPlaceholderOpenAi": {
     "message": "sk-… で始まるキーを貼り付け"
   },
+  "llm_apiKeyPlaceholderTypeSafe": {
+    "message": "TypeSafe のキーを貼り付け"
+  },
   "llm_providerHintGemini": {
     "message": "無料枠でも動きますが約13秒/件です。大量に回すなら有料版（Tier 1 以上）を推奨。 <a href=\"https://aistudio.google.com/app/apikey\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"
   },
@@ -3629,6 +3641,9 @@
   },
   "llm_providerHintOpenAi": {
     "message": "<a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"
+  },
+  "llm_providerHintTypeSafe": {
+    "message": "TiAb の AI 判定専用です。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。 <a href=\"https://console.typesafe.ai/settings/keys\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"
   },
   "llm_apiKeySaveToDeviceHint": {
     "message": "暗号化して保存します。共有PCでは外してください。外すとこのセッションの間だけ保持します。"

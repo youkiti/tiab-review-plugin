@@ -1,11 +1,11 @@
 // llm-provider.ts - LLM プロバイダ抽象化
 //
-// Gemini / OpenRouter / OpenAI を共通インタフェースで呼び分ける薄いディスパッチ層。
+// Gemini / OpenRouter / OpenAI / TypeSafe を共通インタフェースで呼び分ける薄いディスパッチ層。
 // llm-processor.ts はこのレイヤだけを叩き、プロバイダ実装の詳細を知らない。
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 
-export type LlmProviderId = 'gemini' | 'openrouter' | 'openai';
+export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'typesafe';
 
 /**
  * プロバイダ非依存のスクリーニング入力
@@ -15,6 +15,8 @@ export interface LlmScreenParams {
     title: string;
     abstract: string;
     screeningPrompt: string;
+    /** TypeSafe だけが基準の要素別の質問に使う。 */
+    criteria?: LlmCriteria | null;
     model: string;
     // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
     // 未指定なら送らない運用を許容する optional にしている。
@@ -34,7 +36,7 @@ export interface LlmScreenResult {
 
 /**
  * モデル ID から所属プロバイダを判定する。
- * AVAILABLE_MODELS に登録されていれば `provider` フィールド（gemini / openrouter / openai）を優先し、
+ * AVAILABLE_MODELS に登録されていれば `provider` フィールド（gemini / openrouter / openai / typesafe）を優先し、
  * 未登録ならスラッシュを含む ID（`qwen/...`, `deepseek/...` 等の OpenRouter 形式）を
  * openrouter として扱い、それ以外を gemini にフォールバックする。
  *
@@ -100,6 +102,9 @@ export async function convertCriteriaWithProvider(
     params: ConvertCriteriaParams,
     options?: ConvertCriteriaOptions
 ): Promise<ConvertCriteriaResult> {
+    if (providerId === 'typesafe') {
+        throw Object.assign(new Error('TypeSafe のモデルは基準の最適化に対応していません'), { retryable: false });
+    }
     if (providerId === 'openrouter') {
         const { convertCriteriaViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');
         return convertCriteriaViaOpenRouter(params, options);
@@ -126,13 +131,17 @@ export async function convertCriteriaWithProvider(
 /**
  * スクリーニング呼び出しのディスパッチ
  *
- * Gemini / OpenRouter / OpenAI の実装モジュールを動的 import することで、
+ * Gemini / OpenRouter / OpenAI / TypeSafe の実装モジュールを動的 import することで、
  * Sidepanel ビルドサイズや循環依存を最小化する。
  */
 export async function screenWithProvider(
     providerId: LlmProviderId,
     params: LlmScreenParams
 ): Promise<LlmScreenResult> {
+    if (providerId === 'typesafe') {
+        const { screenViaTypeSafe } = await import(/* webpackChunkName: "llm-feature" */ './providers/typesafe');
+        return screenViaTypeSafe(params);
+    }
     if (providerId === 'openrouter') {
         const { screenViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');
         return screenViaOpenRouter(params);
