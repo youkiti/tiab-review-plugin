@@ -24,15 +24,13 @@ import { getReviewerLabel } from '../screening/reviewer-utils';
 import { voteNoteText } from '../screening/decision-summary';
 import { handleKeyToggle } from '../screening/actions';
 import { showToast } from '../../ui/feedback';
-import { renderFulltextAi, reloadReferences as reloadFulltextReferences } from './ai';
+import { renderFulltextAi } from './ai';
+import { buildAdjudicationControls } from './adjudication';
 import { excludeReasonLabel } from '../../../lib/exclude-reasons';
-import { getClientVersion } from '../../../lib/client-version';
-import { saveDecision } from '../../../lib/sheets-api';
 import { identificationRouteOf, splitByIdentificationRoute } from '../../../lib/identification-route';
 import {
     computeFulltextConsensus,
     isAdjudicationKey,
-    adjudicationReviewerId,
 } from '../../../lib/fulltext-consensus';
 import type { ConsensusDecision, FulltextVote, FulltextConsensusResult } from '../../../lib/fulltext-consensus';
 import {
@@ -48,9 +46,6 @@ import {
 import type { FulltextResultsSummary } from '../../../lib/fulltext-results-summary';
 import type {
     ReferenceWithStatus,
-    Decision,
-    FulltextAdjudicationNote,
-    FulltextAdjudicationVoteSnapshot,
 } from '../../../lib/types';
 
 const DECISION_ICON: Record<ConsensusDecision, string> = {
@@ -470,6 +465,12 @@ function buildConflictItem(
             formatAdjudicatedAt(consensus.adjudicatedAt),
         ]);
         body.appendChild(info);
+        if (consensus.adjudicationMemo) {
+            const memo = document.createElement('div');
+            memo.className = 'fulltext-conflict-adjudicated-memo';
+            memo.textContent = `${t('fulltext_conflictMemoLabel')}: ${consensus.adjudicationMemo}`;
+            body.appendChild(memo);
+        }
     }
 
     const openBtn = document.createElement('button');
@@ -482,128 +483,10 @@ function buildConflictItem(
     });
     body.appendChild(openBtn);
 
-    body.appendChild(buildAdjudicationControls(ref, votes, consensus.adjudicated));
+    body.appendChild(buildAdjudicationControls(ref, votes, consensus.adjudicated, consensus.adjudicationMemo, renderFulltextResults));
 
     details.appendChild(body);
     return details;
-}
-
-function buildAdjudicationControls(ref: ReferenceWithStatus, votes: FulltextVote[], alreadyAdjudicated: boolean): HTMLElement {
-    const wrap = document.createElement('div');
-    wrap.className = 'fulltext-conflict-controls';
-
-    const head = document.createElement('div');
-    head.className = 'fulltext-conflict-controls-head';
-    head.textContent = t(alreadyAdjudicated ? 'fulltext_conflictRedoHead' : 'fulltext_conflictResolveHead');
-    wrap.appendChild(head);
-
-    const buttonsRow = document.createElement('div');
-    buttonsRow.className = 'fulltext-conflict-controls-buttons';
-
-    const btnInclude = document.createElement('button');
-    btnInclude.type = 'button';
-    btnInclude.className = 'btn btn-small btn-include';
-    btnInclude.textContent = t('fulltext_conflictAdjudicateInclude');
-    btnInclude.addEventListener('click', () => { void handleAdjudicate(ref, 'include', undefined, votes); });
-    buttonsRow.appendChild(btnInclude);
-
-    const btnMaybe = document.createElement('button');
-    btnMaybe.type = 'button';
-    btnMaybe.className = 'btn btn-small btn-maybe';
-    btnMaybe.textContent = t('fulltext_conflictAdjudicateMaybe');
-    btnMaybe.addEventListener('click', () => { void handleAdjudicate(ref, 'maybe', undefined, votes); });
-    buttonsRow.appendChild(btnMaybe);
-
-    wrap.appendChild(buttonsRow);
-
-    // 除外理由の優先順位ルール（スクリーニング側 .ft-reason-priority-note と同趣旨）。
-    // 最終的な理由を決める裁定の場面でこそ効くルールなので、理由セレクトの直前に明示する。
-    const reasonPriorityNote = document.createElement('div');
-    reasonPriorityNote.className = 'fulltext-conflict-reason-priority-note';
-    reasonPriorityNote.textContent = t('fulltext_conflictReasonPriorityNote');
-    wrap.appendChild(reasonPriorityNote);
-
-    const excludeRow = document.createElement('div');
-    excludeRow.className = 'fulltext-conflict-controls-exclude-row';
-
-    const reasonSelect = document.createElement('select');
-    reasonSelect.className = 'fulltext-conflict-reason-select';
-    const placeholderOpt = document.createElement('option');
-    placeholderOpt.value = '';
-    placeholderOpt.textContent = t('fulltext_conflictReasonPlaceholder');
-    reasonSelect.appendChild(placeholderOpt);
-    // 選択肢はプロジェクト設定（Config タブ fulltext_exclude_reasons）から。
-    // スクリーニング側（fulltext.ts の renderReasonOptions）と同じ配列・同じ並び。
-    state.excludeReasonItems.forEach((item, idx) => {
-        const opt = document.createElement('option');
-        opt.value = item.key;
-        opt.textContent = `${idx + 1}. ${item.label}`;
-        reasonSelect.appendChild(opt);
-    });
-
-    const btnExclude = document.createElement('button');
-    btnExclude.type = 'button';
-    btnExclude.className = 'btn btn-small btn-exclude';
-    btnExclude.textContent = t('fulltext_conflictAdjudicateExclude');
-    btnExclude.addEventListener('click', () => { void handleAdjudicate(ref, 'exclude', reasonSelect.value, votes); });
-
-    excludeRow.appendChild(reasonSelect);
-    excludeRow.appendChild(btnExclude);
-    wrap.appendChild(excludeRow);
-
-    return wrap;
-}
-
-/** 裁定を確定して保存する。裁定票は追記専用経路（-human-adjudication）に乗り、やり直しの履歴も残る。 */
-async function handleAdjudicate(
-    ref: ReferenceWithStatus,
-    decision: 'include' | 'exclude' | 'maybe',
-    reason: string | undefined,
-    votes: FulltextVote[]
-): Promise<void> {
-    const email = state.userEmail;
-    if (!email) return;
-
-    if (decision === 'exclude' && !reason) {
-        showToast(t('fulltext_conflictReasonRequired'), 3000);
-        return;
-    }
-
-    const snapshot: FulltextAdjudicationVoteSnapshot[] = votes
-        .filter(v => !isAdjudicationKey(v.judge))
-        .map(v => ({ judge: v.judge, decision: v.decision, reason: v.reason, note: v.note }));
-
-    const now = new Date().toISOString();
-    const note: FulltextAdjudicationNote = {
-        type: 'fulltext_adjudication',
-        adjudicated_by: email,
-        adjudicated_at: now,
-        votes: snapshot,
-    };
-
-    const decisionObj: Decision = {
-        decision_id: crypto.randomUUID(),
-        ref_id: ref.ref_id,
-        reviewer_id: adjudicationReviewerId(email),
-        decision,
-        reason: decision === 'exclude' ? reason : undefined,
-        note: JSON.stringify(note),
-        decided_at: now,
-        client_version: getClientVersion('-human-adjudication'),
-        screening_phase: 'fulltext',
-    };
-
-    try {
-        await saveDecision(state.spreadsheetId, decisionObj);
-        showToast(t('fulltext_conflictAdjudicateSaved'), 3000);
-        // 既存の参照再読込パターン（fulltext/ai.ts の reloadReferences）を再利用して state を更新し、
-        // 合議表示（結果一覧・PRISMA・この不一致解消セクション自体）を最新化する
-        await reloadFulltextReferences(state.spreadsheetId);
-        renderFulltextResults();
-    } catch (err) {
-        console.error('[fulltext-results] adjudication save failed:', err);
-        showToast(t('fulltext_conflictAdjudicateSaveFailed'), 4000);
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -657,14 +540,15 @@ function handleExportCsv(): void {
     const orderedJudges = [...judges];
     const judgeLabels = orderedJudges.map(j => getReviewerLabel(j, state.userEmail));
 
-    // identification_route（Issue #120: database / registry_linkage）は既存の固定列・判定者列の
-    // インデックスを1つもずらさないため、必ずヘッダ配列の一番最後に足す。
+    // 追加列は既存の固定列・判定者列のインデックスをずらさないよう末尾へ足す。
+    // adjudication_memo は identification_route（Issue #120: database / registry_linkage）の後に置く。
     const headers = [
         'ref_id', 'title', 'year', 'journal', 'doi', 'pmid',
         'fulltext_status', 'consensus', 'conflict', 'reason_conflict', 'adjudicated', 'adjudicated_by',
         'exclusion_reason', 'note',
         ...judgeLabels,
         'identification_route',
+        'adjudication_memo',
     ];
     const rows: string[] = [headers.map(escapeCSVField).join(',')];
 
@@ -689,7 +573,7 @@ function handleExportCsv(): void {
             note,
         ];
         const perJudge = orderedJudges.map(j => map.get(j)?.decision ?? '');
-        rows.push([...base, ...perJudge, identificationRouteOf(ref)].map(escapeCSVField).join(','));
+        rows.push([...base, ...perJudge, identificationRouteOf(ref), c.adjudicationMemo || ''].map(escapeCSVField).join(','));
     }
 
     const filename = `fulltext_results_${dateStamp()}_${candidates.length}.csv`;

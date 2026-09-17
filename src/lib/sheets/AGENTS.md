@@ -106,7 +106,8 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 
 判定者間の不一致（判定不一致・理由不一致）を、判定後レビュー画面の「不一致の解消」セクションから
 その場で確定できる（`src/sidepanel/features/fulltext/results.ts` の `renderConflicts` /
-`buildConflictItem` / `handleAdjudicate`）。**`state.isKeyOpened === true`（キー開封後）のときだけ表示**する。
+`buildConflictItem`、`src/sidepanel/features/fulltext/adjudication.ts` の
+`buildAdjudicationControls` / `handleAdjudicate`）。**`state.isKeyOpened === true`（キー開封後）のときだけ表示**する。
 ブラインド中は他レビュアーの人間票がそもそもクライアントに配られない（`filterDecisionsForBlind`）ため、
 不一致の検出自体が成立しないため。
 
@@ -128,7 +129,9 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 - `decision` / `reason` は裁定で確定した最終判定・除外理由
 - `note` に JSON（`FulltextAdjudicationNote` 型、`src/lib/types.ts`）でスナップショットを保存する:
   `type: 'fulltext_adjudication'`、`adjudicated_by`（裁定者email）、`adjudicated_at`（ISO 8601）、
-  `votes`（裁定時点の各判定者の判定・理由・メモの配列）
+  `votes`（裁定時点の各判定者の判定・理由・メモの配列）、`memo`（任意、裁定者の自由記述）。
+  メモは組み入れ・保留・除外に共通で、前後の空白を除去して空ならキー自体を保存しない。
+  再裁定時の入力欄には現在の裁定メモを入れ、表示には最新裁定票のメモだけを使う。
 - **`client_version` は `getClientVersion('-human-adjudication')` を使うこと。**
   `isHumanDecision()`（`client-version.ts`）は `clientVersion.includes('-human')` で判定するため、
   このサフィックスなら `saveDecision` の追記専用（append-only）経路に乗り、裁定のやり直し（再確定）が
@@ -147,7 +150,8 @@ TiAbスクリーニング画面の「合議モード」チェックボックス�
 
 **「完了が見える」導線**: PRISMA集計・エクスポート前確認は生の `conflict` ではなく
 **未解消の不一致件数**（`unresolved`）を基準にする。全て裁定済みなら警告を出さない。
-CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` 列を追加している。
+CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `adjudicated_by` / `adjudication_memo` 列を追加している。
+`adjudication_memo` は既存列の位置を保つため、`identification_route` の後に末尾追加する。
 
 #### フルテキスト判定画面（PDFウィンドウ）の「他レビュアーの判定」
 
@@ -170,8 +174,8 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
   サイドパネル側だけBlindへ戻された場合、購読していないと文献を移動してもメモリ上のキャッシュから
   他レビュアーの判定が再表示され続けてしまうため。
 - AI票（`llm:`）はここには出さない（判定パネル上部のAI判定サマリと二重になるため）。
-  裁定票（`adjudication:`）は「不一致がどう解消されたか」を示すので出すが、`note` は裁定時点の票の
-  スナップショット（JSON）なので本文としては表示しない。裁定票は reviewer_id（裁定者）ごとではなく
+  裁定票（`adjudication:`）は「不一致がどう解消されたか」を示すので出す。`note` の JSON 自体は
+  表示しないが、`memo` があればそれだけ本文に出す。裁定票は reviewer_id（裁定者）ごとではなく
   **全裁定者を横断して1グループ**として畳み、`decided_at` が最新の1件だけを出す
   （`computeFulltextConsensus()` と同じ「裁定票のうち最新のものを最終とする」規則）。
 - 表示名（`otherReviewerLabel`）は通常の判定者・裁定者ともに完全なメールアドレスを出す

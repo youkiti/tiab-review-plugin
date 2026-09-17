@@ -959,6 +959,12 @@
   "fulltext_conflictReasonRequired": {
     "message": "Please select an exclusion reason."
   },
+  "fulltext_conflictMemoPlaceholder": {
+    "message": "Adjudication memo (optional) — e.g. why this should be included"
+  },
+  "fulltext_conflictMemoLabel": {
+    "message": "Adjudication memo"
+  },
   "fulltext_conflictAdjudicateSaved": {
     "message": "Adjudication saved."
   },

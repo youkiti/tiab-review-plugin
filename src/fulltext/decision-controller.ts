@@ -9,7 +9,7 @@ import { getClientVersion } from '../lib/client-version';
 import { buildDecisionContext } from '../lib/decision-context';
 import { excludeReasonLabel, MAX_REASON_HOTKEYS } from '../lib/exclude-reasons';
 import { isTiabDecision } from '../lib/fulltext-pool';
-import { isAdjudicationKey } from '../lib/fulltext-consensus';
+import { isAdjudicationKey, parseFulltextAdjudicationNote } from '../lib/fulltext-consensus';
 import { selectOtherFulltextDecisions, otherReviewerLabel } from '../lib/fulltext-other-decisions';
 import { isImeComposing } from '../lib/ime-composition';
 import type { Decision } from '../lib/types';
@@ -595,11 +595,13 @@ export function buildOtherDecisionsBlock(others: Decision[]): HTMLElement {
         rowHead.textContent = parts.join(' · ');
         row.appendChild(rowHead);
 
-        // 裁定票の note は裁定時点の票のスナップショット（JSON）なので本文としては出さない
-        if (d.note && !isAdjudicationKey(d.reviewer_id || '')) {
+        // 裁定票の JSON 自体は表示せず、自由記述の裁定メモだけを本文として出す。
+        const isAdjudication = isAdjudicationKey(d.reviewer_id || '');
+        const noteText = isAdjudication ? parseFulltextAdjudicationNote(d.note)?.memo : d.note;
+        if (typeof noteText === 'string' && (isAdjudication ? noteText.trim() : noteText)) {
             const note = document.createElement('div');
             note.className = 'ft-context-other-note';
-            note.textContent = d.note;
+            note.textContent = noteText;
             row.appendChild(note);
         }
 

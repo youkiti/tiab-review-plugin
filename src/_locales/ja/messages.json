@@ -959,6 +959,12 @@
   "fulltext_conflictReasonRequired": {
     "message": "除外理由を選択してください。"
   },
+  "fulltext_conflictMemoPlaceholder": {
+    "message": "裁定メモ（任意）── 組み入れ・保留・除外の根拠など"
+  },
+  "fulltext_conflictMemoLabel": {
+    "message": "裁定メモ"
+  },
   "fulltext_conflictAdjudicateSaved": {
     "message": "裁定を保存しました。"
   },
