@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AVAILABLE_MODELS } from '../src/lib/gemini-api';
-import { isOpenRouterJevModel, resolveProviderId, screenWithProvider, convertCriteriaWithProvider } from '../src/lib/llm-provider';
+import { resolveProviderId, screenWithProvider, convertCriteriaWithProvider } from '../src/lib/llm-provider';
+import { isOpenRouterJevModel } from '../src/lib/openrouter-model';
+import { testOpenRouterModel } from '../src/lib/providers/openrouter';
 import type { LlmScreenParams } from '../src/lib/llm-provider';
 import { buildTypeSafeScreeningRequest, parseTypeSafeScreeningResponse } from '../src/lib/providers/typesafe';
 import { setSessionOpenRouterApiKey, clearSessionOpenRouterApiKey } from '../src/lib/storage';
@@ -54,6 +56,51 @@ for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
         });
     });
 }
+
+for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
+    test(`${model} のカスタムモデル検証は Decisions に1回だけ送って成功する`, async () => {
+        let calls = 0;
+        await withFetch(async (url, init) => {
+            calls++;
+            assert.equal(url, 'https://openrouter.ai/api/alpha/decisions');
+            assert.equal(init?.method, 'POST');
+            assert.equal(JSON.parse(String(init?.body)).model, model);
+            return Response.json(payload);
+        }, async () => {
+            assert.deepEqual(await testOpenRouterModel(model, 5000), { ok: true });
+            assert.equal(calls, 1);
+        });
+    });
+}
+
+test('Jev のカスタムモデル検証は Decisions エラーを再試行せずキーを伏せて返す', async () => {
+    let calls = 0;
+    await withFetch(async (url) => {
+        calls++;
+        assert.equal(url, 'https://openrouter.ai/api/alpha/decisions');
+        return new Response('invalid test-openrouter-key', { status: 500 });
+    }, async () => {
+        const result = await testOpenRouterModel('~typesafe/jev-latest', 5000);
+        assert.equal(result.ok, false);
+        assert.match(result.error!, /OpenRouter Decisions API error 500/);
+        assert.equal(result.error!.includes('test-openrouter-key'), false);
+        assert.equal(calls, 1);
+    });
+});
+
+test('通常のカスタムモデル検証はチャット補完に1回だけ送る', async () => {
+    let calls = 0;
+    await withFetch(async (url) => {
+        calls++;
+        assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
+        return Response.json({ choices: [{ message: { content: JSON.stringify({
+            include_probability: 0.5, reasons: [], evidence: [],
+        }) } }] });
+    }, async () => {
+        assert.deepEqual(await testOpenRouterModel('foo/bar', 5000), { ok: true });
+        assert.equal(calls, 1);
+    });
+});
 
 test('Decisions のコストは有限の非負数だけを保存し、未対応応答ではキーを付けない', () => {
     for (const cost of [undefined, null, '0.1', -1, NaN, Infinity]) {

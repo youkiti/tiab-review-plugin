@@ -4,13 +4,9 @@
 // llm-processor.ts はこのレイヤだけを叩き、プロバイダ実装の詳細を知らない。
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
+import { isOpenRouterJevModel } from './openrouter-model';
 
 export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'typesafe';
-
-/** OpenRouter の TypeSafe モデルはチャット補完ではなく Decisions API を使う。 */
-export function isOpenRouterJevModel(modelId: string): boolean {
-    return modelId.startsWith('typesafe/') || modelId.startsWith('~typesafe/');
-}
 
 /**
  * プロバイダ非依存のスクリーニング入力

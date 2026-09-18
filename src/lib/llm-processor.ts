@@ -16,7 +16,8 @@ import type {
 import type { LlmTargetMode } from './llm-target-selection';
 import { RATE_LIMIT_PAID } from './types';
 import { GeminiModelConfig, AVAILABLE_MODELS } from './gemini-api';
-import { resolveProviderId, screenWithProvider, isOpenRouterJevModel } from './llm-provider';
+import { resolveProviderId, screenWithProvider } from './llm-provider';
+import { isOpenRouterJevModel } from './openrouter-model';
 import type { LlmProviderId, LlmScreenParams, LlmScreenResult } from './llm-provider';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
