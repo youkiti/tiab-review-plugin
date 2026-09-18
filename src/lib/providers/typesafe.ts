@@ -4,7 +4,7 @@
 // 内部で待つとガバナーから待ち時間が見えなくなるため、ここでは1回だけ通信する。
 
 import type { LlmCriteria, LlmScreeningOutput, UsageMetadata, LlmModelResponseMetadata } from '../types';
-import { getEffectiveTypeSafeApiKey } from '../storage';
+import { getEffectiveTypeSafeApiKey, getEffectiveOpenRouterApiKey } from '../storage';
 
 // ディスパッチ層への型 import も循環になるため、使用する入力だけを構造型で受け取る。
 interface TypeSafeScreenParams {
@@ -88,14 +88,18 @@ export function parseTypeSafeScreeningResponse(
             reasons: matches.length ? [prefix + matches.join(' / ')] : [],
             evidence: [],
         },
-        usageMetadata: { promptTokenCount, candidatesTokenCount, thoughtsTokenCount: 0, totalTokenCount: promptTokenCount + candidatesTokenCount },
+        usageMetadata: {
+            promptTokenCount, candidatesTokenCount, thoughtsTokenCount: 0, totalTokenCount: promptTokenCount + candidatesTokenCount,
+            ...(typeof usage.cost === 'number' && Number.isFinite(usage.cost) && usage.cost >= 0 ? { costUsd: usage.cost } : {}),
+        },
         responseMetadata: {
             modelVersion: typeof response.model === 'string' && response.model.trim() ? response.model : params.model,
+            ...(typeof response.id === 'string' ? { responseId: response.id } : {}),
         },
     };
 }
 
-function sanitizeApiKey(rawKey: string): string {
+function sanitizeApiKey(rawKey: string, providerName = 'TypeSafe'): string {
     let out = '';
     for (const ch of rawKey.trim()) {
         const cp = ch.codePointAt(0);
@@ -104,7 +108,7 @@ function sanitizeApiKey(rawKey: string): string {
         if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
             cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
         if (cp > 255) {
-            throw new Error('TypeSafe APIキーに ISO-8859-1 範囲外の文字が含まれています。'
+            throw new Error(`${providerName} APIキーに ISO-8859-1 範囲外の文字が含まれています。`
                 + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。');
         }
         out += ch;
@@ -112,17 +116,23 @@ function sanitizeApiKey(rawKey: string): string {
     return out;
 }
 
-export async function screenViaTypeSafe(params: TypeSafeScreenParams, timeoutMs = 60000): Promise<TypeSafeScreenResult> {
-    const rawKey = await getEffectiveTypeSafeApiKey();
-    const apiKey = rawKey ? sanitizeApiKey(rawKey) : '';
+export async function screenViaTypeSafe(
+    params: TypeSafeScreenParams, timeoutMs = 60000, route: 'typesafe' | 'openrouter' = 'typesafe'
+): Promise<TypeSafeScreenResult> {
+    const viaOpenRouter = route === 'openrouter';
+    const rawKey = await (viaOpenRouter ? getEffectiveOpenRouterApiKey() : getEffectiveTypeSafeApiKey());
+    const apiKey = rawKey ? sanitizeApiKey(rawKey, viaOpenRouter ? 'OpenRouter' : 'TypeSafe') : '';
     if (!apiKey) {
-        throw new Error('TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。');
+        throw new Error(viaOpenRouter
+            ? 'OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。'
+            : 'TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。');
     }
     const { body, criterionKeys } = buildTypeSafeScreeningRequest(params);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        const response = await fetch('https://api.typesafe.ai/v1/systemone', {
+        const url = viaOpenRouter ? 'https://openrouter.ai/api/alpha/decisions' : 'https://api.typesafe.ai/v1/systemone';
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -131,14 +141,15 @@ export async function screenViaTypeSafe(params: TypeSafeScreenParams, timeoutMs 
         if (!response.ok) {
             // 応答にキーが含まれてもエラーメッセージへ流出させない。
             const text = (await response.text().catch(() => '')).split(apiKey).join('[REDACTED]');
-            const detail = response.status === 400 && text.includes('Unknown model')
+            const unknownModel = response.status === 400 && text.includes(viaOpenRouter ? 'does not exist' : 'Unknown model');
+            const detail = unknownModel
                 ? `モデル ${params.model} が見つかりません（提供終了の可能性があります。拡張機能の更新が必要です）。応答=${text.slice(0, 200)}`
                 : text.slice(0, 200);
-            const error = new Error(`TypeSafe API error ${response.status}: ${detail}`);
+            const error = new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`);
             // 4xx を恒久的な失敗と決めつけない。負荷時の 400 は直後に通ることがあるため、
-            // キー不正・権限なし・モデル不明の3条件だけを再試行不可にする。
+            // キー不正・権限なし・モデル不明と、OpenRouter の残高不足だけを再試行不可にする。
             if (response.status === 401 || response.status === 403
-                || (response.status === 400 && text.includes('Unknown model'))) Object.assign(error, { retryable: false });
+                || (viaOpenRouter && response.status === 402) || unknownModel) Object.assign(error, { retryable: false });
             throw error;
         }
         // JSON として読めない場合も通常の Error のまま外側のリトライへ渡す。

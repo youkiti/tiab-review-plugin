@@ -166,6 +166,7 @@ async function callOnce(
             provider?: string;
             choices?: Array<{ message?: { content?: string } }>;
             usage?: {
+                cost?: number;
                 prompt_tokens?: number;
                 completion_tokens?: number;
                 completion_tokens_details?: { reasoning_tokens?: number };
@@ -196,6 +197,7 @@ async function callOnce(
                 candidatesTokenCount: completionTokens,
                 thoughtsTokenCount: reasoningTokens,
                 totalTokenCount: totalTokens,
+                ...(typeof u.cost === 'number' && Number.isFinite(u.cost) && u.cost >= 0 ? { costUsd: u.cost } : {}),
             },
             responseMetadata: {
                 modelVersion: data.model || params.model,

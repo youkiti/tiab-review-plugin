@@ -7,6 +7,11 @@ import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMe
 
 export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'typesafe';
 
+/** OpenRouter の TypeSafe モデルはチャット補完ではなく Decisions API を使う。 */
+export function isOpenRouterJevModel(modelId: string): boolean {
+    return modelId.startsWith('typesafe/') || modelId.startsWith('~typesafe/');
+}
+
 /**
  * プロバイダ非依存のスクリーニング入力
  * （Gemini の thinkingLevel と OpenRouter / OpenAI の reasoningEffort はそれぞれ対応プロバイダのみで参照される）
@@ -102,7 +107,7 @@ export async function convertCriteriaWithProvider(
     params: ConvertCriteriaParams,
     options?: ConvertCriteriaOptions
 ): Promise<ConvertCriteriaResult> {
-    if (providerId === 'typesafe') {
+    if (providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(params.model))) {
         throw Object.assign(new Error('TypeSafe のモデルは基準の最適化に対応していません'), { retryable: false });
     }
     if (providerId === 'openrouter') {
@@ -138,9 +143,9 @@ export async function screenWithProvider(
     providerId: LlmProviderId,
     params: LlmScreenParams
 ): Promise<LlmScreenResult> {
-    if (providerId === 'typesafe') {
+    if (providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(params.model))) {
         const { screenViaTypeSafe } = await import(/* webpackChunkName: "llm-feature" */ './providers/typesafe');
-        return screenViaTypeSafe(params);
+        return screenViaTypeSafe(params, undefined, providerId);
     }
     if (providerId === 'openrouter') {
         const { screenViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');

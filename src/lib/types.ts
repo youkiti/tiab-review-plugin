@@ -259,6 +259,11 @@ export interface LlmScreeningOutput {
  * Gemini API usageMetadata
  */
 export interface UsageMetadata {
+    /**
+     * プロバイダが応答で返した課金額（USD）。OpenRouter（チャット補完の usage.cost、Decisions の usage.cost）のみ。
+     * 未対応プロバイダ・対応前の保存済みレコードでは undefined。
+     */
+    costUsd?: number;
     promptTokenCount: number;
     candidatesTokenCount: number;
     thoughtsTokenCount: number;

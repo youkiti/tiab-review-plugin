@@ -9,7 +9,7 @@ import { updateLlmConfig } from '../../../lib/sheets-api';
 import { updateBatchTargetCount } from './batch';
 import { getEffectiveApiKeyForProvider, missingApiKeyMessageKey } from './api-key';
 import { getStandardCriteriaFields, AVAILABLE_MODELS, getModelConfig } from '../../../lib/gemini-api';
-import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
+import { resolveProviderId, convertCriteriaWithProvider, isOpenRouterJevModel } from '../../../lib/llm-provider';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
@@ -51,7 +51,7 @@ export async function handleOptimizeCriteria() {
     // 選択中のモデルから provider を判定し、必要な API キーを取得
     const selectedModelId = dom.llmModelSelect.value;
     const selectedProvider = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
-    if (selectedProvider === 'typesafe') {
+    if (selectedProvider === 'typesafe' || (selectedProvider === 'openrouter' && isOpenRouterJevModel(selectedModelId))) {
         showToast(t('llm_typeSafeCriteriaUnsupported'));
         return;
     }
