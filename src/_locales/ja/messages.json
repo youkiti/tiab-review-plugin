@@ -2763,6 +2763,12 @@
   "llm_modelName_jev_1_13_0": {
     "message": "TypeSafe Jev 1.13.0 — Recall 96.1%（閾値0.3）"
   },
+  "llm_modelName_jev_1_13_openrouter": {
+    "message": "TypeSafe Jev 1.13（OpenRouter）— Recall 96.1%（閾値0.3）"
+  },
+  "llm_batchCost": {
+    "message": "（推定コスト $1 USD）"
+  },
   "llm_openRouterApiKeyRequired": {
     "message": "OpenRouter APIキーを設定してください"
   },

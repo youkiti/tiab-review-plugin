@@ -32,6 +32,7 @@ import { getEffectiveApiKeyForProvider, missingApiKeyMessageKey } from '../api-k
 import { resolveProviderId } from '../../../../lib/llm-provider';
 import {
     processBatch,
+    formatBatchCostUsd,
     previewThresholdCounts,
     createLlmExecution,
     generateLlmReviewerId,
@@ -332,7 +333,8 @@ export async function handleStartBatch() {
                 const counts = previewThresholdCounts(state.currentBatchDecisions, runThreshold);
                 await setSingleActiveRun(spreadsheetId, runId);
                 showToast(
-                    t('llm_thresholdAutoApplied', [String(counts.includeCount), String(counts.excludeCount)]),
+                    t('llm_thresholdAutoApplied', [String(counts.includeCount), String(counts.excludeCount)])
+                        + (result.totalCostUsd !== undefined ? t('llm_batchCost', formatBatchCostUsd(result.totalCostUsd)) : ''),
                     4000
                 );
                 console.log('[handleStartBatch] Auto-applied confirmed Run threshold:', {
@@ -350,9 +352,10 @@ export async function handleStartBatch() {
                         dom.thresholdValueDisplay.textContent = initial.toFixed(2);
                     }
                 }
-                dom.thresholdCompleteMessage.textContent = result.fallbackCount > 0
+                dom.thresholdCompleteMessage.textContent = (result.fallbackCount > 0
                     ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
-                    : t('llm_thresholdComplete', String(result.successCount));
+                    : t('llm_thresholdComplete', String(result.successCount)))
+                    + (result.totalCostUsd !== undefined ? t('llm_batchCost', formatBatchCostUsd(result.totalCostUsd)) : '');
                 dom.thresholdSection.classList.remove('hidden');
                 handleThresholdChange();
             }
@@ -501,7 +504,8 @@ export async function handleRetryFailed() {
             dom.retryFailedBtn.classList.remove('hidden');
             showToast(t('llm_retryPartial', [String(result.successCount), String(result.failCount + result.fallbackCount)]));
         } else {
-            showToast(t('llm_retryComplete', String(result.successCount)));
+            showToast(t('llm_retryComplete', String(result.successCount))
+                + (result.totalCostUsd !== undefined ? t('llm_batchCost', formatBatchCostUsd(result.totalCostUsd)) : ''));
         }
 
         if (result.fallbackCount > 0) {

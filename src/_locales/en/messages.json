@@ -2763,6 +2763,12 @@
   "llm_modelName_jev_1_13_0": {
     "message": "TypeSafe Jev 1.13.0 — Recall 96.1% (threshold 0.3)"
   },
+  "llm_modelName_jev_1_13_openrouter": {
+    "message": "TypeSafe Jev 1.13 (OpenRouter) — Recall 96.1% (threshold 0.3)"
+  },
+  "llm_batchCost": {
+    "message": " (estimated cost: $1 USD)"
+  },
   "llm_openRouterApiKeyRequired": {
     "message": "Please configure an OpenRouter API key"
   },

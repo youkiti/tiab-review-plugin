@@ -17,6 +17,7 @@ import type { LlmTargetMode } from './llm-target-selection';
 import { RATE_LIMIT_PAID } from './types';
 import { GeminiModelConfig, AVAILABLE_MODELS } from './gemini-api';
 import { resolveProviderId, screenWithProvider } from './llm-provider';
+import { isOpenRouterJevModel } from './openrouter-model';
 import type { LlmProviderId, LlmScreenParams, LlmScreenResult } from './llm-provider';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
@@ -172,6 +173,8 @@ export interface BatchProcessOptions {
  * バッチ処理の結果
  */
 export interface BatchProcessResult {
+    /** 成功した判定のみの合計。フォールバック・失敗・再試行の消費分を含まない下限の推定値。 */
+    totalCostUsd?: number;
     executionId: string;
     processedCount: number;
     successCount: number;       // 通常の成功件数（フォールバックは含まない）
@@ -187,7 +190,7 @@ export interface BatchProcessResult {
 }
 
 type ProcessOutcome =
-    | { success: true; decision: Decision; refId: string; isFallback: boolean; responseMetadata?: LlmModelResponseMetadata; aborted?: false }
+    | { success: true; decision: Decision; refId: string; isFallback: boolean; usageMetadata?: UsageMetadata; responseMetadata?: LlmModelResponseMetadata; aborted?: false }
     | { success: false; decision: null; refId: string; aborted?: false }
     // 中断（Stop）で待機中に打ち切られた場合。フォールバック判定（pending / include_probability=1.0）を
     // 書いてはいけないので、成功/フォールバックとは別の形にする（1(c)）
@@ -365,14 +368,15 @@ async function processWithRetry(
                 client_version: getClientVersion('-llm'),
             };
 
-            return { success: true, decision, refId: ref.ref_id, isFallback: false, responseMetadata };
+            return { success: true, decision, refId: ref.ref_id, isFallback: false, usageMetadata, responseMetadata };
         } catch (error) {
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
             const errorCode = (error as { code?: string } | null)?.code;
-            // TypeSafe の認証・形式エラーは同条件で再試行しても回復しない。
+            // TypeSafe（OpenRouter 経由を含む）の再試行不可エラーは即座にフォールバックへ進む。
             const nonRetryable = errorCode === 'max_tokens_truncated'
-                || (providerId === 'typesafe' && (error as { retryable?: boolean } | null)?.retryable === false);
+                || ((providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
+                    && (error as { retryable?: boolean } | null)?.retryable === false);
             if (nonRetryable) {
                 console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);
                 break;
@@ -657,6 +661,7 @@ export async function processBatch(
     const modelVersions = new Set<string>();
     const responseIds = new Set<string>();
     let latestResponseId: string | undefined;
+    let totalCostUsd: number | undefined;
 
     const modelConfig: GeminiModelConfig = {
         model: options.model,
@@ -769,6 +774,8 @@ export async function processBatch(
                     fallbackRefIds.push(result.refId);
                 } else {
                     progress.succeeded++;
+                    const costUsd = result.usageMetadata?.costUsd;
+                    if (costUsd !== undefined) totalCostUsd = (totalCostUsd ?? 0) + costUsd;
                 }
                 allDecisions.push(result.decision);
                 pendingForSave.push(result.decision);
@@ -832,10 +839,17 @@ export async function processBatch(
         responseIds: Array.from(responseIds),
         resolvedModelVersion: Array.from(modelVersions).join(', '),
         latestResponseId,
+        ...(totalCostUsd !== undefined ? { totalCostUsd } : {}),
         decisions: allDecisions,
         failedRefIds,
         fallbackRefIds,
     };
+}
+
+/** バッチ完了時の推定コストを、小額でも有効数字が残るように整形する。 */
+export function formatBatchCostUsd(costUsd: number): string {
+    // 0.0605 の二進表現が丸め境界を僅かに下回る誤差を補い、0.061 と表示する。
+    return costUsd >= 1 ? costUsd.toFixed(2) : (costUsd + costUsd * Number.EPSILON).toPrecision(2);
 }
 
 /**

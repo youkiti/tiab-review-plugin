@@ -979,8 +979,12 @@
                         5. Paste the key in the matching row and click "Verify and save". Leaving the input also verifies it.</span>
                 </p>
                 <p>
-                    <span class="ja">TypeSafe（Jev）は判定理由の文章を返さないため、判定理由の欄には基準の要素（P/I/C/O など）ごとの合致確率が記録され、根拠のハイライトは付きません。基準の最適化には使えません。</span>
-                    <span class="en">TypeSafe (Jev) returns no written reasons. The reason field records match probabilities for each criterion (such as P/I/C/O), without evidence highlights. It cannot be used to optimize criteria.</span>
+                    <span class="ja">TypeSafe（Jev）は判定理由の文章を返さないため、判定理由の欄には基準の要素（P/I/C/O など）ごとの合致確率が記録され、根拠のハイライトは付きません。基準の最適化には使えません。OpenRouter のキーでも利用でき、モデル一覧の「TypeSafe Jev 1.13（OpenRouter）— Recall 96.1%（閾値0.3）」を選びます。</span>
+                    <span class="en">TypeSafe (Jev) returns no written reasons. The reason field records match probabilities for each criterion (such as P/I/C/O), without evidence highlights. It cannot be used to optimize criteria. You can also use an OpenRouter key by selecting “TypeSafe Jev 1.13 (OpenRouter) — Recall 96.1% (threshold 0.3)” from the model list.</span>
+                </p>
+                <p>
+                    <span class="ja">OpenRouter のモデルでは判定ごとのコスト（USD）が記録され、一括実行の完了時に推定コストの合計が表示されます。フォールバック・失敗・再試行で消費した分は含みません。</span>
+                    <span class="en">For OpenRouter models, the cost (USD) is recorded for each decision and the estimated total is shown when a batch completes. Costs incurred by fallbacks, failures, and retries are not included.</span>
                 </p>
 
                 <h3 id="ai-screening-gemini-key">

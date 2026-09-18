@@ -19,6 +19,7 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenRouterApiKey } from '../storage';
+import { isOpenRouterJevModel } from '../openrouter-model';
 import { normalizeCriteriaConversionResult } from '../gemini-api';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
@@ -166,6 +167,7 @@ async function callOnce(
             provider?: string;
             choices?: Array<{ message?: { content?: string } }>;
             usage?: {
+                cost?: number;
                 prompt_tokens?: number;
                 completion_tokens?: number;
                 completion_tokens_details?: { reasoning_tokens?: number };
@@ -196,6 +198,7 @@ async function callOnce(
                 candidatesTokenCount: completionTokens,
                 thoughtsTokenCount: reasoningTokens,
                 totalTokenCount: totalTokens,
+                ...(typeof u.cost === 'number' && Number.isFinite(u.cost) && u.cost >= 0 ? { costUsd: u.cost } : {}),
             },
             responseMetadata: {
                 modelVersion: data.model || params.model,
@@ -403,7 +406,7 @@ export async function convertCriteriaViaOpenRouter(
  * 極小スクリーニング用プロンプトを 1 回だけ投げ、JSON レスポンスがパースできるかを
  * もって「実用可能」と判定する。リトライなし・短めタイムアウト。
  *
- * 成功条件: screenViaOpenRouter が例外なく完了し JSON 抽出に成功すること。
+ * Jev は Decisions API、それ以外はチャット補完で応答のパース成功を確認する。
  * これにより 404 (モデルID 不正)、認証エラー、provider routing 失敗、出力形式不一致を
  * まとめて検出できる。
  */
@@ -412,20 +415,22 @@ export async function testOpenRouterModel(
     timeoutMs: number = 60000
 ): Promise<{ ok: boolean; error?: string }> {
     try {
-        await screenViaOpenRouter(
-            {
-                title: 'Test article on cardiovascular disease',
-                abstract: 'A randomized controlled trial evaluating treatment outcomes in adults.',
-                screeningPrompt:
-                    'You are evaluating whether to include this study in a systematic review. Respond strictly in the requested JSON format.',
-                model: modelId,
-                temperature: 0,
-                outputLanguage: 'en',
-                maxOutputTokens: 1024,
-            },
-            0,
-            timeoutMs
-        );
+        const params: LlmScreenParams = {
+            title: 'Test article on cardiovascular disease',
+            abstract: 'A randomized controlled trial evaluating treatment outcomes in adults.',
+            screeningPrompt:
+                'You are evaluating whether to include this study in a systematic review. Respond strictly in the requested JSON format.',
+            model: modelId,
+            temperature: 0,
+            outputLanguage: 'en',
+            maxOutputTokens: 1024,
+        };
+        if (isOpenRouterJevModel(modelId)) {
+            const { screenViaTypeSafe } = await import(/* webpackChunkName: "llm-feature" */ './typesafe');
+            await screenViaTypeSafe(params, timeoutMs, 'openrouter');
+        } else {
+            await screenViaOpenRouter(params, 0, timeoutMs);
+        }
         return { ok: true };
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
