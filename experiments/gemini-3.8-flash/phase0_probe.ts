@@ -485,7 +485,7 @@ async function main(): Promise<void> {
 
 main().catch((e) => {
     // fetch 系の例外（や cause）には `?key=...` 付き URL が乗る経路があるため、
-    // 各プローブ内と同じく redact() を通してから出力する（AGENTS.md CRITICAL PROTOCOLS 9）。
+    // 各プローブ内と同じく redact() を通してから出力する（AGENTS.md 基本ルール 9）。
     // ここは main() の外（トップレベル catch）なので apiKey を改めて読み直す。
     const apiKey = process.env.GEMINI_API_KEY || '';
     console.error('Phase 0 プローブが失敗しました:', redact((e as Error).message, apiKey));

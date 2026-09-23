@@ -1,7 +1,7 @@
 # src/lib/ の仕様
 
 このファイルは ../../AGENTS.md（リポジトリ根）から Issue #195 で切り出した詳細仕様です。
-リポジトリ全体の規約・CRITICAL PROTOCOLS は [根の AGENTS.md](../../AGENTS.md) を参照してください。
+リポジトリ全体の規約・基本ルールは [根の AGENTS.md](../../AGENTS.md) を参照してください。
 
 ## インポート規約
 
