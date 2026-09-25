@@ -264,7 +264,7 @@ export const CRITERIA_CONVERSION_SCHEMA = {
                         E: { type: 'string', description: '曝露' },
                         C: { type: 'string', description: '比較対照' },
                         O: { type: 'string', description: 'アウトカム' },
-                        S: { type: 'string', description: '研究デザイン/セッティング' },
+                        S: { type: 'string', description: 'サンプル/セッティング' },
                         PI: { type: 'string', description: '関心現象' },
                         D: { type: 'string', description: '研究デザイン' },
                         R: { type: 'string', description: '研究タイプ' },
@@ -613,14 +613,11 @@ ${protocolText}
 
 ## 出力指示
 
-1. **criteria**: PICO/PECO形式で構造化
-   - template: "pico"（または適切な形式）
-   - fields: 各要素を${outputLanguage === 'ja' ? '日本語' : outputLanguage}で簡潔に記述
-     - P: 対象患者/集団
-     - I: 介入（または E: 曝露）
-     - C: 比較対照
-     - O: アウトカム
-     - 必要に応じて「研究デザイン」等の追加フィールド
+1. **criteria**: PICO/PECO/SPIDER 等の形式で構造化
+   - template: "pico" | "peco" | "spider" | "custom" のいずれかを選択する
+   - fields: template に応じて必要なフィールドのみを${outputLanguage === 'ja' ? '日本語' : outputLanguage}で簡潔に記述する
+     (P: 対象患者/集団, I: 介入, E: 曝露, C: 比較対照, O: アウトカム,
+      S: サンプル/セッティング, PI: 関心現象, D: 研究デザイン, R: 研究タイプ)
 
 2. **screening_prompt**: スクリーニング用のプロンプトテンプレート
    - タイトル・抄録から組み入れ/除外を判断するための詳細な指示
