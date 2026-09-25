@@ -203,3 +203,29 @@ test('convertCriteria は SPIDER の標準フィールドを補完し、追加�
         extra: '追加条件',
     });
 });
+
+test('convertCriteria は SPIDER と標準キーを案内するプロンプトを Gemini に送信する', async () => {
+    let sentPrompt = '';
+    let sampleDescription = '';
+    setFetchMock(async (_input, init) => {
+        const body = JSON.parse(String(init?.body));
+        sentPrompt = body.contents[0].parts[0].text;
+        sampleDescription = body.generationConfig.responseSchema.properties.criteria.properties.fields.properties.S.description;
+        return createStreamResponse([createGeminiChunk(JSON.stringify({
+            criteria: { template: 'spider', fields: { S: '患者' } },
+            screening_prompt: 'スクリーニングの指示',
+        }))]);
+    });
+
+    await convertCriteria(
+        '患者の療養経験を調べる',
+        { model: 'gemini-3-flash-preview', temperature: 0 },
+        'ja',
+        { retryDelayMs: 0 }
+    );
+
+    assert.ok(sentPrompt.includes('"spider"'));
+    assert.ok(sentPrompt.includes('S: サンプル/セッティング'));
+    assert.ok(!sentPrompt.includes('「研究デザイン」等の追加フィールド'));
+    assert.equal(sampleDescription, 'サンプル/セッティング');
+});
