@@ -64,6 +64,8 @@ vendor/
 # Experiments
 experiments/results/
 experiments/local_data/
+experiments/typesafe-jev/titan-external/data/
+experiments/typesafe-jev/titan-external/results/
 
 # Internal planning docs
 plans/
