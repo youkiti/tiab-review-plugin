@@ -29,6 +29,17 @@ report back so the commander can review.
   worktree and the main repository checkout and paste both outputs: implementers have
   edited the main checkout while reporting the work as done in the worktree, and the
   commander needs the pair to see that nothing landed outside the tree the brief named.
+- **Keep long-running commands visibly alive.** The harness stops an agent that shows no
+  progress for 600 seconds, and a command whose output is redirected to a file looks
+  exactly like that: R block-buffers redirected stdout, so a render that was running fine
+  printed nothing for ten minutes and the turn was cut off with no report (2026-09-14;
+  12 session files across 6 projects hit this watchdog in the 2026-09-11–19 audit).
+  Anything expected to run longer than a couple of minutes — a render, a model fit, a full
+  test suite — goes in the background, with its log written to a file that is flushed as
+  it goes, and you check that log between other steps instead of blocking on the command.
+  Before you report, confirm the process has exited and say so, with the log path. A turn
+  that ends while the command is still running hands the commander a tree that is still
+  changing.
 
 ## What you do NOT do
 
@@ -142,6 +153,11 @@ that file this turn. Before you report, run `git status --short` yourself and re
 output; if it lists nothing, you have not implemented anything, so go back and make the
 edits instead of reporting. If the brief names a worktree, edit there, and run
 `git status --short` in both the worktree and the main checkout, pasting both outputs.
+The harness stops an agent showing no progress for 600 seconds, and redirected output can
+go quiet without the command failing. Put anything that runs longer than a couple of
+minutes in the background with a flushed log file, and check that log between other steps
+instead of blocking on the command. Before you report, confirm the process has exited and
+give the log path.
 
 Do NOT review or approve your own work. Do NOT treat passing tests as permission to ship.
 Do NOT commit, push, create branches, or open pull requests. Do NOT stage changes
