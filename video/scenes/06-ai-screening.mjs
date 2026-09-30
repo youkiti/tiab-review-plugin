@@ -1,10 +1,7 @@
 // シーン06: AIスクリーニング支援
 //
-// 全5キュー。cue2 は本来「設定(⚙️)を開いてAPIキーカードを表示」という構成だが、
-// 実際のUIでは #llm-settings-btn は拡張機能全体の設定画面（settings-section）に
-// 遷移するボタンであり、AIタブ内のAPIキーカード（#api-key-card）とは無関係。
-// APIキーカードはAIタブを開いた時点で常に表示されているため、ここでは歯車ボタンは
-// 押さずに直接カードへ入力する（ストーリーボードからの意図的な逸脱）。
+// 全5キュー。cue2 はAIタブ内のAPIキーカード（#api-key-card）で、
+// Gemini欄にキーを入力し、「確認して保存」を押す。
 //
 // また、閾値確定保存（#confirm-threshold-btn）の完了後は、1秒後にネイティブの
 // confirm() ダイアログ（手動タブへの切り替え確認）が表示される実装になっている。
@@ -41,12 +38,12 @@ export default {
         await ctx.page.locator('#api-key-card').waitFor({ state: 'visible', timeout: 10000 });
         await sleepRemainder(ctx, t1, DUR['01'] * 1000 + 500);
 
-        // --- cue 2: Gemini APIキーカードにダミーキーを入力し、ティア確認表示を待つ ---
+        // --- cue 2: Gemini欄にダミーキーを入力し、「確認して保存」を押してティア確認表示を待つ ---
         const t2 = Date.now();
         ctx.cue(2);
         await hoverSlow(ctx.page, ctx.page.locator('#gemini-api-key'), { durationMs: 500 });
         await ctx.page.locator('#gemini-api-key').fill('AIzaDemoKey1234567890');
-        await ctx.page.locator('#gemini-api-key').dispatchEvent('change');
+        await ctx.page.locator('#verify-gemini-api-key-btn').click();
         await ctx.page.locator('#api-key-status').waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
         await ctx.sleep(1000);
         await sleepRemainder(ctx, t2, DUR['02'] * 1000 + 500);

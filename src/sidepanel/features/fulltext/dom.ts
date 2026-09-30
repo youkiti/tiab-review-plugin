@@ -36,6 +36,7 @@ export const dom = {
     // 結果ビュー（ビュー切替・判定者選択・PRISMA・エクスポート）
     get fulltextBlindRow() { return getElement<HTMLElement>('fulltext-blind-row'); },
     get fulltextKeyToggle() { return getElement<HTMLInputElement>('fulltext-key-toggle'); },
+    get fulltextKeyToggleLabel() { return getElement<HTMLElement>('fulltext-key-toggle-label'); },
     get fulltextModeListBtn() { return getElement<HTMLButtonElement>('fulltext-mode-list'); },
     get fulltextModeAiBtn() { return getElement<HTMLButtonElement>('fulltext-mode-ai'); },
     get fulltextModeResultsBtn() { return getElement<HTMLButtonElement>('fulltext-mode-results'); },

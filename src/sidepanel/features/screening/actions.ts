@@ -411,7 +411,7 @@ export async function handleKeyToggle() {
         }
         if (!confirm(confirmMessage)) {
             // キャンセルされたら元の状態に戻す
-            dom.keyToggleInput.checked = true;
+            renderKeyStatus();
             return;
         }
 
@@ -468,7 +468,7 @@ export async function handleKeyToggle() {
             console.error('Key close error:', error);
             alert(buildKeyToggleErrorMessage('blind_onError', error));
             // エラー時は元の状態に戻す（永続化・状態変更はまだ行っていないため、これだけで整合する）
-            dom.keyToggleInput.checked = true;
+            renderKeyStatus();
         } finally {
             showLoading(false);
         }
@@ -477,7 +477,7 @@ export async function handleKeyToggle() {
         // OPEN処理 (OFF -> ON)
         if (!confirm(t('blind_offConfirm'))) {
             // キャンセルされたら元の状態に戻す
-            dom.keyToggleInput.checked = false;
+            renderKeyStatus();
             return;
         }
 
@@ -544,7 +544,7 @@ export async function handleKeyToggle() {
             console.error('Key open error:', error);
             alert(buildKeyToggleErrorMessage('blind_offError', error));
             // エラー時は元の状態に戻す（永続化・状態変更はまだ行っていないため、これだけで整合する）
-            dom.keyToggleInput.checked = false;
+            renderKeyStatus();
         } finally {
             showLoading(false);
         }

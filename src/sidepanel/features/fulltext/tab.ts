@@ -15,7 +15,7 @@ import { escapeHtml } from '../../utils/text';
 import { getFulltextCandidateList, getVisibleFulltextCandidateList } from '../screening/filters';
 import { handleKeyToggle } from '../screening/actions';
 import { explainEmptyFulltextCandidates } from '../../../lib/fulltext-empty-reason';
-import { setupFulltextResultsListeners, renderFulltextResults, setFulltextResultsDeps } from './results';
+import { setupFulltextResultsListeners, renderFulltextResults, renderFulltextKeyStatus, setFulltextResultsDeps } from './results';
 import { setupFulltextAiListeners } from './ai';
 import {
     renderFulltextAssignmentRow,
@@ -408,7 +408,7 @@ function buildEmptyState(): HTMLElement {
                 btn.addEventListener('click', () => {
                     sharedDom.keyToggleInput.checked = true;
                     void handleKeyToggle().then(() => {
-                        dom.fulltextKeyToggle.checked = state.isKeyOpened;
+                        renderFulltextKeyStatus();
                         renderFulltextTab();
                     });
                 });
@@ -566,7 +566,7 @@ function openRuleEditor(): void {
             // handleKeyToggle は sharedDom.keyToggleInput.checked を正とする
             sharedDom.keyToggleInput.checked = true;
             await handleKeyToggle();
-            dom.fulltextKeyToggle.checked = state.isKeyOpened;
+            renderFulltextKeyStatus();
             renderFulltextTab();
             // 開封成功なら編集フォーム、キャンセル/失敗なら再びブロック表示
             openRuleEditor();

@@ -58,7 +58,7 @@ export default {
         await ctx.sleep(1200);
         await sleepRemainder(ctx, t3, DUR['03'] * 1000 + 500);
 
-        // --- cue 4: パネルを閉じ、Blindをオフ→オンに切り替える ---
+        // --- cue 4: パネルを閉じ、スイッチをオフ（Blind中）からオン（キー開封）に切り替える ---
         // #key-toggle-input 自体は `.switch input { opacity:0; width:0; height:0; }` で
         // 視覚的に隠されたチェックボックス（トグルスイッチの実装パターン）なので、
         // Playwright からは「不可視」と判定されクリックできない。見た目上クリック可能な
@@ -70,7 +70,6 @@ export default {
         await hoverSlow(ctx.page, keySlider, { durationMs: 500 });
         await keySlider.click();
         await ctx.sleep(1800);
-        await keySlider.click();
         await sleepRemainder(ctx, t4, DUR['04'] * 1000 + 500);
 
         // --- cue 5: チーム進捗チップを開き、🔄をホバー ---

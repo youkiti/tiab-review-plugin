@@ -113,6 +113,7 @@ const domElements = {
     // ========== Key Open Section ==========
     get keySection() { return getElement<HTMLElement>('key-section'); },
     get keyToggleInput() { return getElement<HTMLInputElement>('key-toggle-input'); },
+    get keyToggleLabel() { return getElement<HTMLElement>('key-toggle-label'); },
     get aiHighlightContainer() { return getElement<HTMLElement>('ai-highlight-container'); },
     get aiHighlightCheckbox() { return getElement<HTMLInputElement>('ai-highlight-checkbox'); },
     get consensusModeContainer() { return getElement<HTMLElement>('consensus-mode-container'); },

@@ -1,4 +1,13 @@
 {
+  "blind_stateClosed": {
+    "message": "🙈 Blind中（他者の判定は非表示）"
+  },
+  "blind_stateOpened": {
+    "message": "🔓 キー開封中（全員の判定を表示）"
+  },
+  "blind_toggleTitle": {
+    "message": "オンにするとキー開封（全員の判定を表示）、オフでBlindに戻します。管理者のみ・プロジェクト全体に反映"
+  },
   "extName": {
     "message": "TiAb Review Plugin"
   },

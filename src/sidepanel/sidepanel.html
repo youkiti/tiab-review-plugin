@@ -139,12 +139,12 @@
                             data-i18n="share_copyInvite" data-i18n-title="share_copyInviteHint"></button>
                     </div>
                 </div>
-                <div id="key-section" class="toggle-container hidden">
+                <div id="key-section" class="toggle-container hidden" data-i18n-title="blind_toggleTitle">
                     <label class="switch">
-                        <input type="checkbox" id="key-toggle-input">
+                        <input type="checkbox" id="key-toggle-input" aria-labelledby="key-toggle-label">
                         <span class="slider"></span>
                     </label>
-                    <span class="toggle-label">Blind on/off</span>
+                    <span id="key-toggle-label" class="toggle-label"></span>
                 </div>
                 <div id="ai-highlight-container" class="ai-highlight-container hidden">
                     <label class="reviewer-label" style="font-weight: bold;">
@@ -993,12 +993,12 @@
             <!-- ④ 結果まとめ + エクスポート（ビュー切替で表示） -->
             <div id="fulltext-results" class="fulltext-results hidden">
                 <!-- キー開封（ブラインド解除）: admin のみ表示 -->
-                <div id="fulltext-blind-row" class="fulltext-blind-row hidden">
+                <div id="fulltext-blind-row" class="fulltext-blind-row hidden" data-i18n-title="blind_toggleTitle">
                     <label class="switch">
-                        <input type="checkbox" id="fulltext-key-toggle">
+                        <input type="checkbox" id="fulltext-key-toggle" aria-labelledby="fulltext-key-toggle-label">
                         <span class="slider"></span>
                     </label>
-                    <span class="toggle-label">Blind on/off</span>
+                    <span id="fulltext-key-toggle-label" class="toggle-label"></span>
                     <span class="fulltext-blind-note" data-i18n="fulltext_blindNote"></span>
                 </div>
 

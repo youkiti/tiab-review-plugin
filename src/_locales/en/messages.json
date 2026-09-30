@@ -1,4 +1,13 @@
 {
+  "blind_stateClosed": {
+    "message": "🙈 Blinded (others' decisions hidden)"
+  },
+  "blind_stateOpened": {
+    "message": "🔓 Key opened (all decisions shown)"
+  },
+  "blind_toggleTitle": {
+    "message": "Turn on to open the key (show all decisions), or off to return to blind review. Admins only; applies to the whole project."
+  },
   "extName": {
     "message": "TiAb Review Plugin"
   },

@@ -13,7 +13,7 @@ If the project has a Drive folder, the whole folder is shared, giving edit acces
 Access can be revoked from the ✕ button on each user's row.
 
 ## cue 04
-While the "Blind" switch is on, other reviewers' decisions are hidden. After independent dual screening, switch it off to reveal conflicts and start resolving them.
+The Blind switch is off by default, hiding other reviewers' decisions. After independent dual screening, an admin turns the switch on to open the key, reveal conflicts, and start resolving them. The change applies to the whole project.
 
 ## cue 05
 The team progress panel shows every member's decision count and last activity. To preserve blinding, the include/exclude breakdown is never shown.
