@@ -1,0 +1,256 @@
+{
+    "model": "jev-1.13.0",
+    "questionDesign": "overall-noul",
+    "ledgerVersion": "v1",
+    "outputLanguage": "en",
+    "concurrency": 4,
+    "retry": {
+        "maxAttempts": 5,
+        "baseDelayMs": 2000,
+        "maxDelayMs": 60000
+    },
+    "thresholds": {
+        "primary": 0.3,
+        "reference": 0.5
+    },
+    "inputSha256": "69c1a38e0842be7a8794fdb0676b408d222bf8973b5615639802f40a1b890493",
+    "reviews": {
+        "CD011218": {
+            "n": 690,
+            "positives": 14,
+            "emptyAbstracts": 16,
+            "criteria": "We included randomised controlled trials (RCTs), both individually randomised and cluster‐randomised, that evaluated education, engineering, incentive‐based interventions (or combinations) that promoted seat belt use."
+        },
+        "CD012268": {
+            "n": 4586,
+            "positives": 18,
+            "emptyAbstracts": 85,
+            "criteria": "We included randomised controlled trials evaluating the effect of calcium in participants with overweight or obesity of any age or gender. We excluded studies in participants with absorption problems. We included studies of any dose with a minimum duration of two months. We included the following comparisons: calcium supplementation versus placebo, calcium‐fortified food or beverage versus placebo, or calcium‐fortified food or beverage versus non‐calcium‐fortified food or beverage. We excluded studies that evaluated the effect of calcium and vitamin D or mixed minerals compared to placebo."
+        },
+        "CD013042": {
+            "n": 1005,
+            "positives": 27,
+            "emptyAbstracts": 60,
+            "criteria": "We included randomised or quasi‐randomised trials. Participants were adults with lateral elbow pain. Interventions were manual therapy, prescribed exercises or both. Primary comparators were placebo or minimal or no intervention. We also included comparisons of manual therapy and prescribed exercises with either intervention alone, with or without glucocorticoid injection. Exclusions were trials testing a single application of an intervention or comparison of different types of manual therapy or prescribed exercises."
+        },
+        "CD013059": {
+            "n": 5441,
+            "positives": 17,
+            "emptyAbstracts": 94,
+            "criteria": "We included randomized controlled trials (RCTs) and cluster‐RCTs of any type of psychological therapy for the treatment of depression in adults aged 65 years and over residing in a LTC facility."
+        },
+        "CD013071": {
+            "n": 9962,
+            "positives": 52,
+            "emptyAbstracts": 859,
+            "criteria": "We included randomized controlled trials (RCTs) in men (40 years or over) with sexual dysfunction. We excluded men with primary or secondary hypogonadism. We compared testosterone or testosterone with phosphodiesterase‐5 inhibitors (PDEI5I) to placebo or PDE5I alone."
+        },
+        "CD013197": {
+            "n": 2464,
+            "positives": 43,
+            "emptyAbstracts": 69,
+            "criteria": "We included randomised clinical trials (irrespective of language, blinding, or publication status) in adults undergoing laparoscopic intra‐ or transperitoneal procedures comparing deep NMB to moderate, shallow, or no NMB. We excluded trials that did not report any of the primary or secondary outcomes of our review."
+        },
+        "CD013199": {
+            "n": 2238,
+            "positives": 16,
+            "emptyAbstracts": 469,
+            "criteria": "We included all participants with clinically suspected GCA who were investigated for the presence of the halo sign on temporal artery US, using the ACR 1990 criteria as a reference standard. We included studies with participants with a prior diagnosis of polymyalgia rheumatica. We excluded studies if participants had had two or more weeks of steroid treatment prior to the investigations.  We also included any comparative test accuracy studies of the halo sign on temporal artery US versus TAB, with use of the 1990 ACR diagnostic criteria as a reference standard. Although we have chosen to use this classification for the purpose of the meta‐analysis, we accept that it incorporates unavoidable incorporation bias, as TAB is itself one of the five criteria. This increases the specificity of TAB, making it difficult to compare with US.  We excluded case‐control studies, as they overestimate accuracy, as well as case series in which all participants had a prior diagnosis of GCA, as they can only address sensitivity and not specificity."
+        },
+        "CD013295": {
+            "n": 3137,
+            "positives": 115,
+            "emptyAbstracts": 252,
+            "criteria": "We included RCTs of people undergoing elective hip or knee surgery only. We excluded non‐elective or emergency procedures, and studies published since 2010 that had not been prospectively registered (Cochrane Injuries policy). There were no restrictions on gender, ethnicity or age (adults only). We excluded studies that used standard of care as the comparator.  Eligible interventions included: antifibrinolytics (tranexamic acid (TXA), aprotinin, epsilon‐aminocaproic acid (EACA)), desmopressin, factor VIIa and XIII, fibrinogen, fibrin sealants and non‐fibrin sealants."
+        },
+        "CD013358": {
+            "n": 3542,
+            "positives": 99,
+            "emptyAbstracts": 325,
+            "criteria": "We included randomised controlled trials (RCTs) of 12 weeks or more in adults at high risk of CVD and those with established CVD. We explored four comparisons: MBIs versus active comparators (alternative interventions); MBIs versus non‐active comparators (no intervention, wait list, usual care); TM versus active comparators; TM versus non‐active comparators."
+        },
+        "CD013377": {
+            "n": 5955,
+            "positives": 10,
+            "emptyAbstracts": 390,
+            "criteria": "We included parallel‐group, randomised controlled trials evaluating a therapeutic cancer vaccine, alone or in combination with other treatments, in adults (> 18 years) with advanced non‐small cell lung cancer (NSCLC), whatever the line of treatment."
+        },
+        "CD013421": {
+            "n": 2400,
+            "positives": 23,
+            "emptyAbstracts": 89,
+            "criteria": "We included randomized controlled trials that compared fibrin or synthetic sealant use with alternative interventions (e.g. manual compression, reversal of anticoagulation) for achieving anastomotic‐site hemostasis in vascular surgery procedures. We included participants who underwent the creation of an anastomosis during vascular surgery. We excluded non‐vascular surgery patients."
+        },
+        "CD013590": {
+            "n": 1852,
+            "positives": 28,
+            "emptyAbstracts": 178,
+            "criteria": "We included randomized and quasi‐randomized controlled trials comparing antioxidant supplementation to placebo, other antioxidants, or different doses of antioxidants, in people with SCD."
+        },
+        "CD013591": {
+            "n": 10958,
+            "positives": 20,
+            "emptyAbstracts": 217,
+            "criteria": "Participants were adolescents and adults with overweight or obesity. Eligible interventions were integrated smartphone apps using at least two behaviour change techniques. The intervention could target physical activity, cardiorespiratory fitness, weight loss, healthy diet, or self‐efficacy. Comparators included no or minimal intervention (NMI), a different smartphone app, personal coaching, or usual care. Eligible studies were randomised controlled trials of any duration with a follow‐up of at least three months."
+        },
+        "CD013822": {
+            "n": 10314,
+            "positives": 18,
+            "emptyAbstracts": 607,
+            "criteria": "We included parallel randomised controlled trials (RCTs) and cluster‐RCTs assessing interventions targeting various components of SDM. The focus was on supporting women aged 40 to 75 at average or above‐average risk of breast cancer in their decision to participate in breast cancer screening."
+        },
+        "CD013880": {
+            "n": 11642,
+            "positives": 43,
+            "emptyAbstracts": 360,
+            "criteria": "We included individual and cluster‐randomised trials, and cost/cost‐effectiveness data collected alongside eligible effectiveness studies. Eligible study participants included older people who reside in an ACF as their place of permanent abode and healthcare professionals delivering or co‐ordinating the delivery of healthcare at ACFs. Eligible interventions focused on either ways of delivering primary or secondary health care (or both) or ways of co‐ordinating the delivery of this care. Eligible comparators included usual care or another model of care. Primary outcomes were emergency department visits, unplanned hospital admissions and adverse effects (defined as infections, falls and pressure ulcers). Secondary outcomes included adherence to clinical guideline‐recommended care, health‐related quality of life of residents, mortality, resource use, access to primary or specialist healthcare services, any hospital admissions, length of hospital stay, satisfaction with the health care by residents and their families, work‐related satisfaction and work‐related stress of ACF staff."
+        },
+        "CD014715": {
+            "n": 49162,
+            "positives": 133,
+            "emptyAbstracts": 912,
+            "criteria": "Studies were eligible if they included low‐risk or unselected pregnant women undergoing a first‐ and/or second‐trimester fetal anomaly scan, conducted at 11 to 14 or 18 to 24 weeks’ gestation, respectively. The reference standard was detection of anomalies at birth or postmortem."
+        },
+        "CD014736": {
+            "n": 6128,
+            "positives": 8,
+            "emptyAbstracts": 115,
+            "criteria": "We included randomised controlled trials which compared supervised exercise training following lower limb revascularisation with standard care following lower limb revascularisation in adults (18 years and older) with PAD."
+        },
+        "CD015038": {
+            "n": 2196,
+            "positives": 14,
+            "emptyAbstracts": 315,
+            "criteria": "We included parallel‐group randomised controlled trials (RCTs) only. We included studies where most participants were adults with uncomplicated/simple appendicitis. Interventions included antibiotics (by any route) compared with appendectomy (open or laparoscopic)."
+        },
+        "CD015042": {
+            "n": 3057,
+            "positives": 9,
+            "emptyAbstracts": 62,
+            "criteria": "We included randomised controlled trials that compared medications or psychosocial interventions, or both, to placebo, no intervention, usual care, or other medications or psychosocial interventions used to reduce or stop alcohol use during pregnancy. Our primary outcomes of interest were abstinence from alcohol, reduction in alcohol consumption, retention in treatment, and women with any adverse event."
+        },
+        "CD015067": {
+            "n": 2068,
+            "positives": 12,
+            "emptyAbstracts": 162,
+            "criteria": "We included randomised controlled trials (RCTs) evaluating the effects of non‐pharmacological interventions in people with PPA."
+        },
+        "CD015306": {
+            "n": 1671,
+            "positives": 6,
+            "emptyAbstracts": 245,
+            "criteria": "We included randomised controlled trials (RCTs), which evaluated the role of vitamin A supplementation in the prevention of acute URTIs in children up to seven years of age."
+        },
+        "CD015432": {
+            "n": 2036,
+            "positives": 43,
+            "emptyAbstracts": 167,
+            "criteria": "We included randomised controlled trials (RCTs) in children aged 17 years and younger, treated for acute postoperative or postprocedural pain, that compared ibuprofen to placebo or any active comparator. We included RCTs that compared different administration routes, doses of ibuprofen and schedules."
+        }
+    },
+    "comparison": {
+        "source": "Pitre et al. 2026 図3B（目視読み取り、概数）",
+        "reviews": {
+            "CD011218": {
+                "titan": 0.94,
+                "asreview": 0.49
+            },
+            "CD012268": {
+                "titan": 0.88,
+                "asreview": 0.75
+            },
+            "CD013042": {
+                "titan": 0.71,
+                "asreview": 0.57
+            },
+            "CD013059": {
+                "titan": 0.95,
+                "asreview": 0.72
+            },
+            "CD013071": {
+                "titan": 0.79,
+                "asreview": 0.74
+            },
+            "CD013197": {
+                "titan": 0.9,
+                "asreview": 0.76
+            },
+            "CD013199": {
+                "titan": 0.72,
+                "asreview": 0.74
+            },
+            "CD013295": {
+                "titan": 0.74,
+                "asreview": 0.65
+            },
+            "CD013358": {
+                "titan": 0.49,
+                "asreview": 0.66
+            },
+            "CD013377": {
+                "titan": 0.99,
+                "asreview": 0.78
+            },
+            "CD013421": {
+                "titan": null,
+                "asreview": null
+            },
+            "CD013590": {
+                "titan": 0.97,
+                "asreview": 0.78
+            },
+            "CD013591": {
+                "titan": 0.81,
+                "asreview": 0.53
+            },
+            "CD013822": {
+                "titan": 0.99,
+                "asreview": 0.77
+            },
+            "CD013880": {
+                "titan": 0.9,
+                "asreview": 0.75
+            },
+            "CD014715": {
+                "titan": 0.42,
+                "asreview": 0.78
+            },
+            "CD014736": {
+                "titan": 0.99,
+                "asreview": 0.69
+            },
+            "CD015038": {
+                "titan": 0.9,
+                "asreview": 0.76
+            },
+            "CD015042": {
+                "titan": 0.93,
+                "asreview": 0.78
+            },
+            "CD015067": {
+                "titan": 0.6,
+                "asreview": 0.75
+            },
+            "CD015306": {
+                "titan": 0.94,
+                "asreview": 0.78
+            },
+            "CD015432": {
+                "titan": 0.82,
+                "asreview": 0.75
+            }
+        }
+    },
+    "paperSummary": {
+        "TITAN-SR": {
+            "auc": 0.976,
+            "s99": 0.879,
+            "s95": 0.897
+        },
+        "ASReview": {
+            "auc": null,
+            "s99": 0.747,
+            "s95": 0.752
+        }
+    }
+}
