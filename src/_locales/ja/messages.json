@@ -1773,11 +1773,65 @@
   "guideExt_tour_share_invite_desc": {
     "message": "共同研究者をシートに共有し、招待文を送るまでを案内します。"
   },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "まず「共有」を押して、共有パネルを開きます。共同研究者を招くのは、ここからです。"
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "共有したい相手の Google アカウントのメールアドレスを入力し、「追加」を押します。その相手に編集権限が付き、招待メールが届きます。フォルダのあるプロジェクトでは、フォルダごと共有されます。実際に共有されるので、見るだけなら「押さずに次へ」で進めます。追加するとパネルは閉じます。"
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "追加するとパネルは閉じます。続きを見るので、もう一度「共有」を押して開いてください。"
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "この警告は、シートが「リンクを知っている全員」に開かれているときに出ます。URL を知っていれば誰でも判定データを見たり書き換えたりできます。先に全メンバーを個別共有に追加してから、Drive の共有設定を「制限付き」に変えてください。"
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "ここが共有済みのユーザーの一覧です。役割（オーナー・編集者）が見え、管理者には各行に ✕（共有の解除）が付きます。解除すると相手はすぐにシートを開けなくなり、取り消すには招待し直す必要があるため、ツアー中は押せないようにしています。「次へ」を押してください。"
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "「招待文をコピー」を押すと、インストール先・シートの URL・使い方をまとめた文面がクリップボードに入ります。メールやチャットに貼って相手へ送ってください。コピーできなかったときは、画面の下にお知らせが出ます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "次はチーム進捗です。共有パネルがチップに重なるので、もう一度「共有」を押してパネルを閉じてください。"
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "共有した相手が判定を始めると、この「👥 チーム進捗」に、全員の判定件数と最終判定日時が出ます。押すと一覧が開き、🔄 で最新にできます。Include か Exclude かの内訳は見えません。"
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "担当者が2人以上になるか、自分以外の人が判定を始めると、ツールバーに「👥 チーム進捗」が出ます。共有した相手が判定を始めたら、ここで進み具合を確かめられます。"
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "共有と招待の手順は以上です。この ❓ から、ほかの操作ツアーや各画面の説明をいつでも開けます。"
+  },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "不一致の解消"
   },
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "レビュアー間で判定が割れた文献を見つけ、合意に導く手順を案内します。"
+  },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "ここが Blind のスイッチです。全員の独立した判定が終わるまで、他のレビュアーの判定は見えません。全員が終わったら、管理者がオンにして「キーを開封」します。プロジェクト全体に効くため、このツアーでは押せません。"
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "今は Blind 中なので、不一致はまだ見えません。管理者がキーを開封したら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。続きの手順が出ます。"
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "ここのフィルターで「不一致」を選ぶと、レビュアーの判定が割れた文献だけが並びます。選んでみてください。"
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "今の文献は不一致ではありません。フィルターを「不一致」にすると、判定が割れた文献だけを順に見られます。"
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "不一致の文献には、上に警告が出て、ここに全レビュアーの判定とメモが並びます。誰がどう判定し、なぜそうしたかを読んで、話し合いの材料にします。"
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "レビュアー同士で話し合ってすり合わせるときは、🤝 合議モードをオンにします。オンの間に保存した判定は「合議による判定」として記録され、最初に独立して付けた判定と区別されます。いつでもオフに戻せます。"
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "話し合いで決まったら、ここで判定し直します。合議モードがオンなら、合議による判定として保存されます。記録が変わるので、押さずに次へ進んでもかまいません。終わったら合議モードをオフに戻してください。"
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "全文タブの不一致は、「判定後レビュー」で裁定します（このツアーでは扱いません）。ツアーの一覧は、この ❓ からいつでも開けます。"
   },
   "guideExt_tour_duplicate_review_title": {
     "message": "重複の確認"
@@ -1798,7 +1852,7 @@
     "message": "全文タブには3つの表示があります。「候補リスト」で全文を集めて判定し、「AI判定」で全文を AI に読ませ、「判定後レビュー」で結果の突き合わせをします。ここでは「候補リスト」を見ていきます。"
   },
   "guideExt_tour_fulltext_setup_rule": {
-    "message": "候補ルールは、何人の TiAb 判定が Include なら全文の候補にするかを決めます。右のボタンで変更できます（Blind を開封した後に決めます）。"
+    "message": "候補ルールは、何人の TiAb 判定が Include なら全文の候補にするかを決めます。右のボタンで変更できます（キーを開封した後に決めます）。"
   },
   "guideExt_tour_fulltext_setup_rule_pending": {
     "message": "今は「自分の TiAb の Include」が仮の候補として表示されています。候補ルールは、管理者が Blind のキーを開封した後で決めます。開封したら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。"
@@ -1813,7 +1867,7 @@
     "message": "ここで全文の入手状況を確認します。「フリー全文を一括検索」を押すと、無料で読める全文を自動で探して Drive に保存します（時間がかかります）。押さずに、次へ進んでもかまいません。"
   },
   "guideExt_tour_fulltext_setup_no_candidates": {
-    "message": "候補がまだありません。手動タブで TiAb の判定を進めるか、Blind を開封して候補ルールを決めると、ここに全文の候補が並びます。候補ができたら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。"
+    "message": "候補がまだありません。手動タブで TiAb の判定を進めるか、キーを開封して候補ルールを決めると、ここに全文の候補が並びます。候補ができたら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。"
   },
   "guideExt_tour_fulltext_setup_missing": {
     "message": "全文が取れなかった候補には、補う手段が出ます。「PDFアップロード」で手元の PDF を入れる、「DOI/PubMed」で記録のページを開いて入手する、のどれかで補います。"
@@ -1825,7 +1879,7 @@
     "message": "候補のカードを押すと、その文献の全文の判定ページが別のタブで開きます。試しに押してもかまいませんし、押さずに次へ進んでもかまいません。"
   },
   "guideExt_tour_fulltext_setup_finish": {
-    "message": "全文の準備は以上です。わからなくなったときは、この「?」から説明を開けます。ツアーの一覧は、手動タブの ❓ にあります。"
+    "message": "全文の準備は以上です。わからなくなったときは、この「?」から、説明と操作ツアーの一覧を開けます。"
   },
   "guideExt_tour_ai_first_run_title": {
     "message": "AI 判定の初回"

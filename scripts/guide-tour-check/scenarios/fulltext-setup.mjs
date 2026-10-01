@@ -94,6 +94,11 @@ export default defineScenario({
             run.log('一括検索ボタンは押せない状態（対象0件）。押さずに次へ進みます');
             await run.clickNext('fetch');
         } else {
+            // ブラウザの権限ダイアログ（全サイトへのアクセス）は自動操作で出たり出なかったりして待ちが固まるので、
+            // 「すでに許可済み」の応答に差し替える（外部への問い合わせは、デモのモックが 404 で返す）
+            await run.page.evaluate(() => {
+                chrome.permissions.contains = (_query, callback) => callback?.(true);
+            });
             await run.click('#fulltext-fetch-btn', 'fetch', '「フリー全文を一括検索」');
             await run.shot('fetch-pressed');
             await run.waitStep(T, ['no-candidates', 'missing', 'drive-import'], 60000);

@@ -1773,11 +1773,65 @@
   "guideExt_tour_share_invite_desc": {
     "message": "Walks you through sharing the sheet with collaborators and sending the invitation."
   },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "First press Share to open the sharing panel. This is where you invite collaborators."
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "Enter the Google account email address of the person you want to share with, then press Add. That person gets edit access and an invitation email. In a project with a folder, the whole folder is shared. This really shares the project, so to just look, press \"Skip this step\". The panel closes after you add."
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "The panel closes after you add someone. To see the rest, press Share again to reopen it."
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "This warning appears when the sheet is open to anyone with the link. Anyone who knows the URL can view or change the decision data. First add every member as an individual share, then change the Drive sharing setting to Restricted."
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "This is the list of people the project is shared with. You can see each role (owner or editor), and admins get a ✕ (remove access) on each row. Removing access locks that person out right away and can only be undone by inviting them again, so it is disabled during this tour. Press Next."
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "\"Copy invite message\" puts a message on the clipboard with where to install the extension, the sheet URL, and how to get started. Paste it into an email or chat to send it. If copying fails, a notice appears at the bottom of the screen. You can also move on without pressing it."
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "Next is Team progress. The sharing panel covers the chip, so press Share again to close the panel."
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "Once the people you shared with start screening, this Team progress chip shows everyone's decision counts and last decision time. Press it to open the list, and use 🔄 to refresh. The Include / Exclude breakdown is not shown."
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "The Team progress chip appears in the toolbar once there are two or more assigned reviewers or someone else has started screening. After the people you shared with start, you can check progress there."
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "That covers sharing and inviting. This ❓ opens the other guided tours and the explanation for each screen at any time."
+  },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "Resolve conflicts"
   },
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "Shows how to find records where reviewers disagree and reach a consensus."
+  },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "This is the Blind switch. Until everyone has finished their independent decisions, other reviewers' decisions stay hidden. When everyone is done, an admin turns it on to \"open the key\". It affects the whole project, so you cannot press it in this tour."
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "Decisions are still blinded, so conflicts are not visible yet. Once an admin opens the key, open this tour again from ❓ → \"List of guided tours\" and the remaining steps will appear."
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "Choose \"Conflict\" in this filter to list only the records where reviewers disagree. Give it a try."
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "The record on screen is not a conflict. Set the filter to \"Conflict\" to step through only the records where decisions differ."
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "For a conflicting record, a warning appears above and every reviewer's decision and note is listed here. Read who decided what, and why, as the basis for your discussion."
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "When reviewers meet to reconcile, turn on 🤝 Consensus mode. Decisions saved while it is on are recorded as consensus decisions, separate from the independent first-pass decisions. You can turn it off again at any time."
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "Once you agree, decide again here. With Consensus mode on, the decision is saved as a consensus decision. This changes the record, so you may also continue without pressing. Turn Consensus mode off when you are done."
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "Conflicts in the Full text tab are settled in \"Post-decision review\" (not covered in this tour). You can reopen the tour list anytime from this ❓."
   },
   "guideExt_tour_duplicate_review_title": {
     "message": "Review duplicates"
@@ -1798,7 +1852,7 @@
     "message": "The Full-text tab has three views. Use \"Candidates\" to collect and judge full texts, \"AI judge\" to have AI read them, and \"Review\" to compare the results. Let's look at \"Candidates\"."
   },
   "guideExt_tour_fulltext_setup_rule": {
-    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the Blind key is opened)."
+    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened)."
   },
   "guideExt_tour_fulltext_setup_rule_pending": {
     "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\"."
@@ -1825,7 +1879,7 @@
     "message": "Click a candidate card to open that record's full-text judgment page in another tab. You can try it, or move on without pressing it."
   },
   "guideExt_tour_fulltext_setup_finish": {
-    "message": "That is the full-text setup. If you get stuck, this \"?\" opens the explanation. The list of tours is under the ❓ in the Manual tab."
+    "message": "That is the full-text setup. If you get stuck, this \"?\" opens the explanation and the list of guided tours."
   },
   "guideExt_tour_ai_first_run_title": {
     "message": "Your first AI screening"

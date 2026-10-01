@@ -110,10 +110,10 @@ export const FULLTEXT_SETUP_TOUR: TourFor<FulltextSetupEvent, FulltextSetupCondi
             skipIf: 'no-fulltext-cards',
             scroll: 'if-hidden',
         },
-        // 全文タブには ❓（ツアー一覧）が無いので、この画面の「?」を指す
+        // 全文タブ上部の「?」（ツアー一覧も開ける）を指す
         {
             id: 'finish',
-            target: 'fulltext-help',
+            target: 'tour-list',
             textKey: stepKey(BASE, 'finish'),
             advance: { type: 'next' },
         },
