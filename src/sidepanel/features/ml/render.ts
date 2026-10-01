@@ -33,6 +33,8 @@ const elements = {
         fill: () => document.getElementById('ml-stopping-progress-fill'),
         current: () => document.getElementById('ml-stopping-current'),
         threshold: () => document.getElementById('ml-stopping-threshold'),
+        // 「(連続 exclude)」などの単位の表記（sidepanel.html の .progress-text の最後の span）
+        unit: () => document.querySelector('#ml-stopping-progress-container .progress-text > span:last-child'),
         settingsBtn: () => document.getElementById('ml-stopping-settings-btn'),
     },
     ref: {
@@ -261,7 +263,7 @@ export function renderMlStats() {
     if (settingsBtn) {
         if (stopping) {
             if (isCmhStoppingRule(stopping)) {
-                settingsBtn.textContent = `CMH リコール${(stopping.targetRecall * 100).toFixed(0)}%`;
+                settingsBtn.textContent = t('ml_cmhRecall', (stopping.targetRecall * 100).toFixed(0));
             } else {
                 settingsBtn.textContent = t('ml_stoppingConsecutiveCount', String(stopping.threshold));
             }
@@ -278,10 +280,15 @@ export function renderMlStats() {
             // CMH: screened / included を表示
             if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.screened.toString();
             if (elements.stopping.threshold()) elements.stopping.threshold()!.textContent = stopping.included.toString();
+            // 表示は「既読 / Include」。HTML 既定の「(連続 exclude)」のままにしない
+            const unit = elements.stopping.unit();
+            if (unit) unit.textContent = t('ml_stoppingCmhUnit');
         } else {
             // Consecutive: current / threshold を表示
             if (elements.stopping.current()) elements.stopping.current()!.textContent = stopping.current.toString();
             if (elements.stopping.threshold()) elements.stopping.threshold()!.textContent = stopping.threshold.toString();
+            const unit = elements.stopping.unit();
+            if (unit) unit.textContent = t('ml_stoppingConsecutive');
         }
 
         const percent = getStoppingProgressPercent(stopping);

@@ -1,16 +1,17 @@
-import { saveStoppingRuleToStorage } from './stopping-storage';
+import { saveStoppingRuleToStorage, loadStoppingRuleFromStorage } from './stopping-storage';
 import { state } from '../../state';
 import { dom } from '../../dom';
 
 import { mlClient } from '../../../lib/ml/worker-client';
 import { Decision } from '../../../lib/types';
-import { createStoppingRule, isCmhStoppingRule } from '../../../lib/ml/types';
+import { isCmhStoppingRule } from '../../../lib/ml/types';
+import { advanceStoppingRule, buildMlStoppingSetup } from '../../../lib/ml/stopping-restore';
 import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
-import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
+import { isStoppingReached } from '../../../lib/ml/stopping-rules';
 import { showToast, hideToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
-import { buildMlLabelsFromReferences, initMlWorker } from './operations';
+import { buildMlLabelsFromReferences, buildScreenedDecisionsFromReferences, initMlWorker, isScreenedByMe, restoreSavedStoppingRule } from './operations';
 import { saveDecisionOrQueue } from '../unsent-queue';
 import { getMlClientVersion } from './version';
 import { t } from '../../../lib/i18n';
@@ -21,30 +22,6 @@ import {
     changeTab as syncChangeTab,
     setMlState as syncSetMlState,
 } from '../../store/compat';
-
-// ========== ストレージ関数 ==========
-
-/**
- * 停止基準の設定をブラウザから読み込み（プロジェクトごと）
- */
-async function loadStoppingRuleFromStorage(): Promise<{ confirmed: boolean; threshold: number }> {
-    const key = `mlStoppingRule_${state.spreadsheetId}`;
-    const result = await chrome.storage.local.get([key]);
-    const data = result[key];
-
-    if (data && data.confirmed) {
-        return {
-            confirmed: true,
-            threshold: data.threshold || 50
-        };
-    }
-
-    return {
-        confirmed: false,
-        threshold: 50
-    };
-}
-
 
 // ========== 要素 ==========
 
@@ -134,14 +111,17 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
 
         if (!savedRule.confirmed) {
             // 初回: ダイアログを表示
-            showInitialStoppingRuleDialog(async (threshold) => {
-                // 設定をブラウザに保存
-                await saveStoppingRuleToStorage(threshold);
+            showInitialStoppingRuleDialog(async ({ threshold, ruleType }) => {
+                // 設定（選んだ基準の種類つき）をブラウザに保存
+                await saveStoppingRuleToStorage(threshold, ruleType);
 
                 // 停止基準を設定（Store経由で更新）
+                const setup = buildMlStoppingSetup(
+                    ruleType, threshold, state.references.length, buildScreenedDecisionsFromReferences()
+                );
                 syncSetMlState({
                     ...state.mlState,
-                    stoppingRule: createStoppingRule(threshold)
+                    stoppingRule: setup.stoppingRule
                 });
 
                 await initMlWorker();
@@ -151,11 +131,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
         } else {
             // 2回目以降: 保存された設定を使用
             if (!state.mlState.stoppingRule) {
-                // Store経由で更新
-                syncSetMlState({
-                    ...state.mlState,
-                    stoppingRule: createStoppingRule(savedRule.threshold)
-                });
+                restoreSavedStoppingRule(savedRule);
             }
             await initMlWorker();
             if (isCurrent()) renderMlSection();
@@ -192,6 +168,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
         client_version: getMlClientVersion('-ml'),
     };
 
+    const rejudged = isScreenedByMe(ref.myDecision);
     ref.myDecision = decisionObj;
     ref.status = decision; // Local update
 
@@ -201,8 +178,11 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
 
     // 3. Update Stopping Rule
     if (state.mlState.stoppingRule) {
-        // Pass decision ('include' | 'exclude') directly as expected by updateStoppingProgress
-        const newRule = updateStoppingProgress(state.mlState.stoppingRule, decision);
+        // 最新の判定記録から数え直し、再判定を独立した標本として二重に数えない。
+        const newRule = advanceStoppingRule(
+            state.mlState.stoppingRule, { decision, rejudged },
+            buildScreenedDecisionsFromReferences(), state.references.length
+        );
         // Store経由で更新
         syncSetMlState({
             ...state.mlState,

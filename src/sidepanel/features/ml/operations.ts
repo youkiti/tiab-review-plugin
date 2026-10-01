@@ -2,6 +2,8 @@ import { state } from '../../state';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { Decision } from '../../../lib/types';
 import type { Label } from '../../../lib/ml/types';
+import { planMlStoppingRule, type SavedStoppingRule, type ScreenedDecision } from '../../../lib/ml/stopping-restore';
+import { loadStoppingRuleFromStorage } from './stopping-storage';
 import { t } from '../../../lib/i18n';
 import {
     loadProjectSnapshot,
@@ -37,6 +39,40 @@ export function buildMlLabelsFromReferences(): Record<string, Label> {
     });
 
     return labels;
+}
+
+/**
+ * 停止基準の「読んだ件数」に数える判定かどうか（自分の include / exclude）。
+ * 「残りを一括 Exclude」で付いた判定（client_version に `-ml-auto`）は読んだ件数に数えない。
+ */
+export function isScreenedByMe(decision: Decision | undefined): decision is Decision {
+    return !!decision && (decision.decision === 'include' || decision.decision === 'exclude') &&
+        !decision.client_version?.includes('-ml-auto');
+}
+
+/** 文献ごとの最新の判定から、読んだ記録だけを取り出す。 */
+export function buildScreenedDecisionsFromReferences(): ScreenedDecision[] {
+    const decisions: ScreenedDecision[] = [];
+
+    state.references.forEach((ref) => {
+        const d = ref.myDecision;
+        if (isScreenedByMe(d)) {
+            decisions.push({
+                decision: d.decision,
+                decidedAt: d.decided_at,
+            });
+        }
+    });
+
+    return decisions;
+}
+
+/** 確定済みの保存設定と最新の判定記録から停止基準を復元する。 */
+export function restoreSavedStoppingRule(saved: SavedStoppingRule): void {
+    const plan = planMlStoppingRule(saved, state.references.length, buildScreenedDecisionsFromReferences());
+    if (plan.action === 'restore') {
+        syncSetMlState({ ...state.mlState, stoppingRule: plan.setup.stoppingRule });
+    }
 }
 
 export async function initMlWorker(): Promise<void> {
@@ -205,6 +241,7 @@ export async function resetAndStartNewMlReview() {
 
         const { createInitialMlState } = await import('../../../lib/ml/types');
         syncSetMlState(createInitialMlState());
+        restoreSavedStoppingRule(await loadStoppingRuleFromStorage());
 
         await initMlWorker();
         renderMlSection();

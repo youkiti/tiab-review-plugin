@@ -9,9 +9,11 @@ export const CMH_DEFAULTS = {
     targetRecall: 0.99,
     confidence: 0.95,
     minRecords: 1000,
-    initialRandomSize: 500,
+    // 停止の計算を始めるまでの最低既読件数。提示順はこの区間もランダムではない。
+    warmupSize: 500,
     updateInterval: 15,
-    auditSampleSize: 200,
+    minIncludedForStop: 10,
+    minAdditionalScreened: 100,
 } as const;
 
 /**
