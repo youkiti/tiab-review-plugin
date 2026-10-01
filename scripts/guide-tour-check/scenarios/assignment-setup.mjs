@@ -78,7 +78,7 @@ export default defineScenario({
 
         // ウィザード: 件数とチーム数・プレビュー
         await run.waitStep(T, 'wizard-numbers');
-        await expectCardClearOf(run, 'wizard-numbers', ['#assignment-calibration-size', '#assignment-group-count']);
+        await expectCardClearOf(run, 'wizard-numbers', ['#assignment-calibration-size', '#assignment-group-count', '#modal-footer button']);
         await expectNoHorizontalScroll(run, 'wizard-numbers');
         await run.page.locator('#assignment-calibration-size').fill('3');
         await run.page.locator('#assignment-group-count').fill('2');
@@ -86,7 +86,7 @@ export default defineScenario({
 
         // ウィザード: 担当者
         await run.waitStep(T, 'wizard-reviewers');
-        await expectCardClearOf(run, 'wizard-reviewers', ['.assignment-group-grid input']);
+        await expectCardClearOf(run, 'wizard-reviewers', ['.assignment-group-grid input', '#modal-footer button']);
         await run.page.locator('#assignment-wizard-reviewers-group-1').fill('a@example.com, b@example.com');
         await run.page.locator('#assignment-wizard-reviewers-group-2').fill('c@example.com, d@example.com');
         await clickNextKeepModal(run, 'wizard-reviewers');

@@ -51,7 +51,7 @@ export const ASSIGNMENT_SETUP_TOUR: TourFor<AssignmentSetupEvent, AssignmentSetu
         },
         {
             id: 'wizard-numbers',
-            target: 'assignment-wizard-preview',
+            target: 'assignment-wizard-numbers',
             dynamicTarget: true,
             textKey: stepKey(BASE, 'wizard-numbers'),
             advance: { type: 'next' },

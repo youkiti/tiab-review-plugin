@@ -477,7 +477,6 @@ function showAssignmentWizard() {
 
     const preview = document.createElement('p');
     preview.className = 'assignment-preview';
-    preview.dataset.tour = 'assignment-wizard-preview';
 
     const renderPreview = () => {
         const calibrationRaw = parseInt(calibrationInput.value || '', 10);
@@ -560,8 +559,13 @@ function showAssignmentWizard() {
 
     container.appendChild(intro);
     container.appendChild(total);
-    container.appendChild(form);
-    container.appendChild(preview);
+    // 件数・チーム数の欄とプレビューを1つの箱にまとめ、ツアーが一緒に強調できるようにする（余白は .assignment-wizard と同じ）
+    const numbersBox = document.createElement('div');
+    numbersBox.className = 'assignment-wizard';
+    numbersBox.dataset.tour = 'assignment-wizard-numbers';
+    numbersBox.appendChild(form);
+    numbersBox.appendChild(preview);
+    container.appendChild(numbersBox);
     container.appendChild(reviewerHelp);
     container.appendChild(reviewerGrid);
 

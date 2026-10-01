@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const UI = /^src\/(sidepanel|fulltext|popup|webapp|background|demo)\//;
+const UI = /^src\/(sidepanel|fulltext|guide-ui|popup|webapp|background|demo)\//;
 // 型・既定値の置き場所を増やす場合、この一覧にも追加する。
 export const FOUNDATION_MODULES = new Set([
     'src/lib/types.ts', 'src/lib/assignment-set.ts', 'src/lib/sheets/schema.ts', 'src/lib/sheets/config-schema.ts',

@@ -132,6 +132,20 @@ function judgeReference(title: string, abstract: string): ScreeningJudgement {
     };
 }
 
+/** 「基準を最適化」への固定の応答（PICO の基準とスクリーニング用プロンプト） */
+const DEMO_CRITERIA_CONVERSION = {
+    criteria: {
+        template: 'pico',
+        fields: {
+            P: 'うつ病の成人',
+            I: '運動療法',
+            C: '通常ケアまたは運動なし',
+            O: '抑うつ症状の改善',
+        },
+    },
+    screening_prompt: 'タイトルと抄録から、うつ病の成人に対する運動療法の無作為化比較試験かどうかを判断してください。動物実験・症例報告・研究プロトコルは除外します。判断に迷うときは、確率を中間にしてください。',
+};
+
 /**
  * streamGenerateContent のレスポンスボディ（JSON配列を文字列化したもの）を組み立てる。
  * callGeminiApiWithParts はこの文字列全体を1つの ReadableStream として読み取り、
@@ -144,7 +158,10 @@ export function buildStreamGenerateContentResponseText(requestBody: any, modelId
         ? parts.map((p: any) => (typeof p?.text === 'string' ? p.text : '')).join('\n')
         : '';
     const { title, abstract } = extractTitleAndAbstract(promptText);
-    const judgement = judgeReference(title, abstract);
+    // 「基準を最適化」（convertCriteria）の呼び出しには、判定ではなく基準の変換結果を返す
+    const judgement = promptText.includes('## 入力: プロトコルの基準')
+        ? DEMO_CRITERIA_CONVERSION
+        : judgeReference(title, abstract);
 
     const responseId = `demo-resp-${stableHash(promptText).toString(16)}`;
     const chunk = {

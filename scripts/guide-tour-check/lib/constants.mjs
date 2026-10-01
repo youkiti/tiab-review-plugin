@@ -12,6 +12,9 @@ export const NBIB_FILE = path.join(REPO_ROOT, 'sample', 'pubmed-srws-psgad-set.n
 export const DEMO_SPREADSHEET_ID = 'demo-spreadsheet-001';
 export const DEMO_SHEET_URL = `https://docs.google.com/spreadsheets/d/${DEMO_SPREADSHEET_ID}/edit`;
 
+// src/demo/constants.ts の DEMO_SIGNED_IN_STORAGE_KEY と同じ値（デモのサインイン済みフラグの chrome.storage.local のキー）
+export const DEMO_SIGNED_IN_STORAGE_KEY = 'demo_signed_in';
+
 export const DEVICE_SCALE_FACTOR = 1;
 
 /**

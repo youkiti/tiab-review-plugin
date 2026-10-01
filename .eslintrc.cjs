@@ -32,7 +32,7 @@ module.exports = {
       files: ["src/lib/**"],
       rules: {
         "no-restricted-imports": ["error", { patterns: [{
-          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/demo", "**/demo/**"],
+          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/guide-ui", "**/guide-ui/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/demo", "**/demo/**"],
           message: "純関数・保存APIは src/lib/、画面と処理の調整は src/sidepanel/ に置き、lib から画面を参照しないでください。",
         }] }],
       },
@@ -42,7 +42,7 @@ module.exports = {
       files: ["src/platform/**"],
       rules: {
         "no-restricted-imports": ["error", { patterns: [{
-          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/lib", "**/lib/**"],
+          group: ["**/sidepanel", "**/sidepanel/**", "**/fulltext", "**/fulltext/**", "**/guide-ui", "**/guide-ui/**", "**/popup", "**/popup/**", "**/webapp", "**/webapp/**", "**/background", "**/background/**", "**/lib", "**/lib/**"],
           message: "純関数・保存APIは src/lib/、画面と処理の調整は src/sidepanel/ に置き、platform から上位を参照しないでください。",
         }] }],
       },

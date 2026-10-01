@@ -4,7 +4,22 @@
  * （返す型が条件名を網羅していないとコンパイルが通らない）。遅延チャンク `guide-feature` に入る。
  */
 import type { ResolveConflictsCondition } from '../../../../lib/guide/tours/resolve-conflicts';
+import { dom } from '../../../dom';
+import { state } from '../../../state';
+
+/** 要素が画面にあり、`hidden` クラスが付いていない */
+function isShown(element: HTMLElement | null): boolean {
+    return element !== null && !element.classList.contains('hidden');
+}
 
 export function computeResolveConflictsConditions(): Record<ResolveConflictsCondition, boolean> {
-    return {};
+    const keyOpened = state.isKeyOpened;
+    return {
+        'not-admin': !state.isAdmin,
+        'key-opened': keyOpened,
+        'key-closed': !keyOpened,
+        // バナー・他の人の判定の一覧は、描画（features/screening/render.ts）がキー開封後にだけ出す
+        'conflict-banner-shown-or-blind': !keyOpened || isShown(dom.conflictBanner),
+        'no-other-decisions-shown': !keyOpened || !isShown(dom.allDecisionsDiv),
+    };
 }
