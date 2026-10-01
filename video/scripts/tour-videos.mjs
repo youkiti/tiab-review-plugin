@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 // 操作ツアーの解説動画（ツアー1本につき1本の短い動画）を作る。
 //
-// 使い方（収録は拡張機能をヘッド付きで動かすので xvfb-run 経由で実行する）:
+// 使い方（Linux で画面の無い環境では、収録を xvfb-run 経由で実行する）:
 //   npm run build:demo
 //   LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" npm run video:tours
 //   LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" npm run video:tours -- join-project ml-start
 //   npm run video:tours -- --skip-capture join-project   # 撮り直さず、既存のスクリーンショットから作り直す
+// Windows では xvfb は不要。そのまま node video/scripts/tour-videos.mjs <ツアーID> を実行できる。
 //
 // 引数を省略すると、参加者向けのツアー（DEFAULT_TOURS）を作る。
 //
 // 手書きのシーン（video/scenes/）と違い、映像も原稿もツアーそのものから作る:
 //   映像  scripts/guide-tour-check のシナリオがデモビルドの上でツアーを最後まで操作し、手順ごとに残す
-//         スクリーンショット（.tmp/guide-tour-check/<ツアーID>-<連番>-<手順ID>.png）。手順ごとに最初の1枚を使う
+//         スクリーンショット（.tmp/guide-tour-check/<シナリオ名>-<連番>-<手順ID>.png）。手順ごとに最初の1枚を使う
 //   原稿  ツアーの定義（src/lib/guide/tours/<ツアーID>.ts）の手順の順番と、ja の messages.json のカードの文言
 // ツアーの手順や文言を変えたら、この動画も作り直せば追従する（check:tours が落ちれば撮り直しが要る合図）。
 // シナリオで通らなかった手順（skipIf で飛ばされる分岐など）は、スクリーンショットが無いので動画にも入れない。
@@ -25,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import {
     REPO_ROOT, BUILD_DIR, VIDEO_WIDTH, VIDEO_HEIGHT, FPS,
@@ -35,6 +37,9 @@ import { readWavInfo } from './lib/wav.mjs';
 
 /** 引数を省略したときに作るツアー（アサインされた参加者が最初に見るもの） */
 const DEFAULT_TOURS = ['join-project', 'fulltext-page', 'ml-start'];
+
+// 確認用の fulltext-page は判定を保存して PDF の無い次の候補へ進むため、動画では専用のシナリオを使う。
+const CAPTURE_SCENARIOS = { 'fulltext-page': 'fulltext-page-video' };
 
 const TOURS_SRC_DIR = path.join(REPO_ROOT, 'src', 'lib', 'guide', 'tours');
 const MESSAGES_JA = path.join(REPO_ROOT, 'src', '_locales', 'ja', 'messages.json');
@@ -90,8 +95,8 @@ export function readTourDefinition(tourId) {
 }
 
 /** 手順ごとに最初のスクリーンショットを選ぶ。*-placement（配置の確認用）は除く */
-export function pickShots(tourId, stepIds, files) {
-    const re = new RegExp(`^${tourId}-(\\d+)-(.+)\\.png$`);
+export function pickShots(scenarioName, stepIds, files) {
+    const re = new RegExp(`^${scenarioName}-(\\d+)-(.+)\\.png$`);
     const shots = files
         .map((f) => f.match(re))
         .filter(Boolean)
@@ -123,7 +128,7 @@ function frameHtml({ title, text, shotPath }) {
     const img = buf ? `<div class="shot"><img src="data:image/png;base64,${buf.toString('base64')}"></div>` : '';
     return `<!doctype html><html><head><meta charset="utf-8"><style>
         html,body{margin:0;width:${VIDEO_WIDTH}px;height:${VIDEO_HEIGHT}px;background:#eef2f6;
-            font-family:'Noto Sans CJK JP','IPAPGothic','IPA Pゴシック','IPAGothic','WenQuanYi Zen Hei',sans-serif;color:#1f2937}
+            font-family:'Noto Sans CJK JP','IPAPGothic','IPA Pゴシック','IPAGothic','WenQuanYi Zen Hei','Noto Sans JP','Yu Gothic UI','Meiryo',sans-serif;color:#1f2937}
         .wrap{display:flex;align-items:center;gap:72px;height:100%;padding:0 120px;box-sizing:border-box}
         .shot{flex:none;background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(15,23,42,.18);overflow:hidden}
         .shot img{display:block;height:${VIDEO_HEIGHT - 80}px}
@@ -162,15 +167,16 @@ function srtTime(sec) {
 }
 
 function capture(tourId) {
+    const scenarioName = CAPTURE_SCENARIOS[tourId] ?? tourId;
     console.log(`[${tourId}] ツアーを通して手順ごとのスクリーンショットを撮ります...`);
-    const res = spawnSync(process.execPath, [TOUR_CHECK, '--only', tourId, '--lang', 'ja'], {
+    const res = spawnSync(process.execPath, [TOUR_CHECK, '--only', scenarioName, '--lang', 'ja'], {
         cwd: REPO_ROOT,
         stdio: ['ignore', 'pipe', 'pipe'],
         encoding: 'utf8',
         env: { ...process.env, PLAYWRIGHT_CHROMIUM_PATH: process.env.PLAYWRIGHT_CHROMIUM_PATH || resolveChromiumExecutable() || '' },
     });
     if (res.status !== 0) {
-        throw new Error(`[${tourId}] ツアーの通し実行が失敗しました。npm run build:demo 済みか、xvfb-run 経由か、LANGUAGE=ja かを確認してください。\n${(res.stdout + res.stderr).slice(-3000)}`);
+        throw new Error(`[${tourId}] ツアーの通し実行が失敗しました。npm run build:demo 済みか、Linux の画面の無い環境では xvfb-run 経由か、LANGUAGE=ja かを確認してください。\n${(res.stdout + res.stderr).slice(-3000)}`);
     }
 }
 
@@ -181,7 +187,8 @@ async function buildTour(tourId, browser, messages) {
         if (!m) throw new Error(`${tourId}: 文言がありません: ${key}`);
         return m;
     };
-    const shots = pickShots(tourId, stepIds, existsSync(SHOTS_DIR) ? readdirSync(SHOTS_DIR) : []);
+    const scenarioName = CAPTURE_SCENARIOS[tourId] ?? tourId;
+    const shots = pickShots(scenarioName, stepIds, existsSync(SHOTS_DIR) ? readdirSync(SHOTS_DIR) : []);
     if (shots.length === 0) throw new Error(`${tourId}: 手順のスクリーンショットがありません（${path.relative(REPO_ROOT, SHOTS_DIR)}）`);
 
     const title = msg(`${base}_title`);
@@ -263,7 +270,7 @@ async function main() {
     }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     main().catch((err) => {
         console.error(err.message || err);
         process.exitCode = 1;
