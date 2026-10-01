@@ -1941,6 +1941,30 @@
   "guideExt_tour_ml_start_desc": {
     "message": "Shows how to use ML to learn from your decisions and rank the remaining records by priority."
   },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "Press the ML tab. ML learns from the records you have decided on and reorders the remaining ones so the likely relevant records come first. It is available only for projects with 1,000 or more records."
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "The first time you open it, a confirmation of the stopping rule (a guide for when to stop) appears. Review it and press \"Start with these settings\". This only confirms the setup for starting ML; your decision data is not changed. Afterwards you can check the current rule and your progress in the stopping rule display on the ML screen."
+  },
+  "guideExt_tour_ml_start_stopping_reopen": {
+    "message": "You closed the confirmation, so ML has not started yet. Switch to another tab such as the Manual tab, then press the ML tab again and the confirmation appears again. Review it and press \"Start with these settings\"."
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Press Include or Exclude to decide (the i / e keys work too). Your decision is actually saved. Once you have one Include and one Exclude, learning starts, and the order of the remaining records is updated after each decision. You can also move on without pressing."
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Here you can see the counts of Include, Exclude and Remaining (undecided) records. The badge at the top right shows the learning state (Not trained, Training, Ready). While it still says \"Not trained\", decide one Include and one Exclude."
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "This ? (the ❓ in the toolbar on the Manual tab) opens the explanation and the list of guided tours. You can start this tour again from there."
+  },
   "guideExt_tour_fulltext_page_title": {
     "message": "Full-text screening page"
   },

@@ -8,6 +8,7 @@ import { computeTourCardPosition } from '../src/guide-ui/placement';
 import {
     GUIDE_PROGRESS_STORAGE_KEY,
     availableTours,
+    completeTour,
     createEmptyGuideProgress,
     decideProgressSync,
     nextStepIndex,
@@ -165,9 +166,23 @@ test('unavailableIf: 条件の値を渡されたときだけ、真なら一覧�
 });
 
 test('unavailableIf: 初回のバナーの判定（shouldSuggest）には影響しない（条件を渡さない availableTours を使う）', () => {
-    // 実在のツアーは unavailableIf を持たないので、判定は従来どおり
-    assert.equal(Object.values(GUIDE_TOURS).some(tour => tour.unavailableIf !== undefined), false);
-    assert.equal(shouldSuggest(createEmptyGuideProgress(), { screen: 'project', ...context }), true);
+    // 条件を渡さない availableTours は unavailableIf を見ないので、unavailableIf を持つ実在のツアーも一覧に残る。
+    // 実在のツアーが unavailableIf を持つかどうかには依存しない書き方（持たなければ後半は空の繰り返しになる）
+    const listed = availableTours(context).map(tour => tour.id);
+    for (const tour of Object.values(GUIDE_TOURS)) {
+        if (tour.unavailableIf === undefined || tour.draft) continue;
+        const applicable = tour.platforms.includes(context.platform)
+            && !(tour.audience === 'admin' && !context.capabilities.createProject);
+        assert.equal(listed.includes(tour.id), applicable, `${tour.id}: 条件を渡さなければ unavailableIf で外れない`);
+    }
+    // 初回のバナーは、使えるツアーのどれも済・却下でないときに出る（unavailableIf があっても同じ）
+    const fresh = createEmptyGuideProgress();
+    assert.equal(shouldSuggest(fresh, { screen: 'project', ...context }), listed.length > 0);
+    // 使えるツアーのどれかを済にすると出なくなる
+    if (listed.length > 0) {
+        const done = completeTour(fresh, availableTours(context)[0].id, '2026-01-01T00:00:00.000Z');
+        assert.equal(shouldSuggest(done, { screen: 'project', ...context }), false);
+    }
 });
 
 test('decideProgressSync: 保存値を正として、表示していなければ何もせず、終わった・置き換わったら片づけ、手順が違えば切り替える', () => {

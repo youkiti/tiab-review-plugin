@@ -19,6 +19,7 @@ import { renderMlStats } from './render';
 import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
 import { saveStoppingRuleToStorage } from './stopping-storage';
 import { showToast } from '../../ui/feedback';
+import { emitGuideEvent } from '../guide/lazy';
 
 // Store互換レイヤー（Phase 5）
 import { setMlState as syncSetMlState } from '../../store/compat';
@@ -87,7 +88,10 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn btn-primary btn-full';
     confirmBtn.textContent = t('ml_startWithSettings');
+    confirmBtn.dataset.tour = 'ml-stopping-confirm'; // 操作ツアーが指す対象
+    let confirmed = false;
     confirmBtn.onclick = () => {
+        confirmed = true;
         // CMH ルールを作成して state に設定
         const cmhRule = createCmhStoppingRule();
         syncSetMlState({
@@ -105,7 +109,11 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
     showModal({
         title: t('ml_cmhSettingsTitle'),
         body: body,
-        footer: footer
+        footer: footer,
+        // 確定せずに閉じたとき（✕）は、操作ツアーに知らせる（確定のときは hideModal からも呼ばれるので除く）
+        onClose: () => {
+            if (!confirmed) emitGuideEvent('ml-setup-dismissed');
+        },
     });
 }
 
