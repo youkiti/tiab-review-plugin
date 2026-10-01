@@ -107,25 +107,37 @@ export default defineScenario({
         }
         await run.clickNext('shared-users');
         await run.waitStep(T, 'copy-invite');
-        // クリップボードが使えない環境を再現する（writeText の拒否と execCommand の失敗）。トーストが出て、手順は進まない
+        // クリップボードが使えない環境を再現する。writeText は拒否され、execCommand は
+        // 「false を返す」場合と「例外を投げる」場合の両方で、トーストが出て、手順は進まず、textarea が残らない
         await run.page.evaluate(() => {
             Object.defineProperty(navigator, 'clipboard', {
                 configurable: true,
                 value: { writeText: () => Promise.reject(new Error('denied')) },
             });
-            document.execCommand = () => { throw new Error('execCommand unavailable'); };
         });
-        await run.click('#share-copy-invite-btn', 'copy-invite', '「招待文をコピー」ボタン');
-        try {
-            await run.page.locator('#toast.show').waitFor({ state: 'visible', timeout: 3000 });
-        } catch (err) {
-            await run.fail('copy-invite', 'コピー失敗のトースト（#toast.show）が出ること', err);
+        for (const mode of ['false', 'throw']) {
+            await run.page.evaluate((m) => {
+                document.execCommand = () => {
+                    if (m === 'throw') throw new Error('execCommand unavailable');
+                    return false;
+                };
+            }, mode);
+            await run.click('#share-copy-invite-btn', 'copy-invite', '「招待文をコピー」ボタン');
+            try {
+                await run.page.locator('#toast.show').waitFor({ state: 'visible', timeout: 3000 });
+            } catch (err) {
+                await run.fail('copy-invite', `コピー失敗（execCommand が ${mode}）のトースト（#toast.show）が出ること`, err);
+            }
+            const failToast = await run.page.locator('#toast').textContent();
+            if (!failToast.includes('失敗')) await run.fail('copy-invite', `失敗のトーストであること（実際: ${failToast}）`);
+            run.log(`コピー失敗（execCommand が ${mode}）のトースト: ${failToast}`);
+            await run.shot(`copy-failed-toast-${mode}`);
+            const stepAfterFail = await run.page.locator('#guide-tour-card').getAttribute('data-guide-step');
+            if (stepAfterFail !== 'copy-invite') await run.fail('copy-invite', `コピーに失敗したら手順は進まないこと（execCommand が ${mode}）`);
+            const leftover = await run.page.locator('body > textarea').count();
+            if (leftover !== 0) await run.fail('copy-invite', `一時的な textarea が残らないこと（execCommand が ${mode}）`);
+            await run.page.locator('#toast.show').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
         }
-        const failToast = await run.page.locator('#toast').textContent();
-        run.log(`コピー失敗のトースト: ${failToast}`);
-        await run.shot('copy-failed-toast');
-        const stepAfterFail = await run.page.locator('#guide-tour-card').getAttribute('data-guide-step');
-        if (stepAfterFail !== 'copy-invite') await run.fail('copy-invite', 'コピーに失敗したら手順は進まないこと');
         await run.clickNext('copy-invite');
         await run.waitStep(T, 'close-share');
         await run.click('#share-cancel-btn', 'close-share', '共有パネルの閉じる（✕）ボタン'); // 別の閉じ方でも進む

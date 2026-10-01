@@ -283,20 +283,22 @@ export async function copyInviteTemplate() {
         emitGuideEvent('invite-copied');
     } catch (error) {
         // クリップボードAPIが使えない環境向けのフォールバック
+        const textarea = document.createElement('textarea');
         try {
-            const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
+            // execCommand は失敗しても例外でなく false を返すので、戻り値で成否を見る
+            if (!document.execCommand('copy')) throw new Error('execCommand copy returned false');
             showToast(t('share_inviteCopied'));
             emitGuideEvent('invite-copied');
         } catch (fallbackError) {
             console.error('Copy invite error:', fallbackError);
             showToast(t('share_inviteCopyFailed'));
+        } finally {
+            textarea.remove();
         }
     }
 }
