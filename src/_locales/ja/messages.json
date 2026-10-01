@@ -1983,6 +1983,30 @@
   "guideExt_tour_ml_start_desc": {
     "message": "判定済みの文献から学習して、残りを優先度順に並べる ML の使い方を案内します。"
   },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "「ML」タブを押してください。ML は、あなたが判定した文献から学習して、残りを関連していそうな順に並べ替える機能です。文献が1,000件以上のプロジェクトでだけ使えます。"
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "初めて開くと、停止基準（やめどきの目安）の確認が出ます。内容を確認して「この設定で開始」を押してください。ML を始めるための確認で、判定のデータは変わりません。あとから ML 画面の停止基準の表示で、今の基準と進み具合を確かめられます。"
+  },
+  "guideExt_tour_ml_start_stopping_reopen": {
+    "message": "確認を閉じたので、ML はまだ始まっていません。手動タブなど別のタブへ移ってから、もう一度「ML」タブを押すと、確認がまた出ます。内容を確認して「この設定で開始」を押してください。"
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Include か Exclude を押して判定します（i / e キーでも押せます）。実際に判定が保存されます。Include と Exclude が1件ずつそろうと学習が始まり、以降は判定のたびに残りの並び順が更新されます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Include・Exclude・Remaining（未判定）の件数が見られます。右上のバッジは、学習の状態（未学習 → 学習中 → Ready）です。まだ「未学習」のときは、Include と Exclude を1件ずつ判定してください。"
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "ここが停止基準の進み具合です。バーが満たされると、やめどきの案内（次の手順）が出ます。ボタンを押すと、設定の内容を確認できます。"
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "停止基準に到達すると、「停止推奨」のダイアログが出ます。選べるのは、「20件追加でレビュー」（しきい値を20件増やして続ける）、「終了して残りを除外」（未判定の文献をすべて Exclude として保存して終える）、「閉じる (何もしない)」の3つです。「終了して残りを除外」は取り消せないので、慎重に選んでください。"
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "この「?」（手動タブではツールバーの ❓）から、説明と操作ツアーの一覧を開けます。このツアーもそこからもう一度始められます。"
+  },
   "guideExt_tour_fulltext_page_title": {
     "message": "全文の判定ページ"
   },

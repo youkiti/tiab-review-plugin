@@ -1,15 +1,22 @@
-import { tourKeyBase } from './keys';
+import { stepKey, tourKeyBase } from './keys';
 import type { TourFor } from './types';
 
 /**
  * ツアー「ml-start」（ML の開始）。
- * 中身（手順・固有のイベント・固有の条件）はまだ無い枠。手順を書き終えたら `draft` を外す。
+ * ML タブは文献が 1,000 件以上のプロジェクトでだけ開ける。使えないプロジェクトでは `unavailableIf` で
+ * 一覧・「?」の吹き出し・提案・開始から外す。
  */
 
-/** このツアー固有のイベント名。使うものを足す（例: `'my-event' | 'other-event'`）。 */
-export type MlStartEvent = never;
-/** このツアー固有の条件名。使うものを足し、条件の計算は sidepanel/features/guide/conditions/ml-start.ts に書く。 */
-export type MlStartCondition = never;
+/** このツアー固有のイベント名 */
+export type MlStartEvent =
+    | 'ml-setup-done' // 停止基準の確認が済み、ML の学習が使える状態になった
+    | 'ml-decision-saved' // ML タブで判定を保存した
+    | 'ml-setup-dismissed'; // 停止基準の確認を、確定せずに閉じた
+/** このツアー固有の条件名（計算は sidepanel/features/guide/conditions/ml-start.ts） */
+export type MlStartCondition =
+    | 'ml-unusable' // スクリーニング画面にいて、文献が ML タブの最小件数に満たない（ツアー全体の unavailableIf）
+    | 'ml-tab-open' // ML タブを開いている
+    | 'ml-dialog-not-needed'; // 停止基準の確認ダイアログを待つ必要が無い（停止基準が設定済み）
 
 // 拡張版だけのツアーなので、`guideExt_` 接頭辞（Web 版ビルドが落とす）。
 const BASE = tourKeyBase('guideExt_tour_', 'ml-start');
@@ -19,10 +26,71 @@ export const ML_START_TOUR: TourFor<MlStartEvent, MlStartCondition> = {
     titleKey: `${BASE}_title`,
     descriptionKey: `${BASE}_desc`,
     platforms: ['extension'],
-    audience: 'admin',
+    // ML タブを使える人（管理者に限らない）
+    audience: 'participant',
+    unavailableIf: 'ml-unusable',
     page: 'sidepanel',
-    draft: true,
     // このタブを開いたときに提案する（初期バンドルの lazy.ts の SUGGEST_TOUR_BY_EVENT と合わせる）
     suggestOn: 'tab-opened-ml',
-    steps: [],
+    steps: [
+        {
+            id: 'open-tab',
+            target: 'ml-tab',
+            textKey: stepKey(BASE, 'open-tab'),
+            advance: { type: 'events', events: ['tab-opened-ml'] },
+            skipIf: 'ml-tab-open',
+        },
+        {
+            id: 'stopping-dialog',
+            target: 'ml-stopping-confirm',
+            dynamicTarget: true,
+            textKey: stepKey(BASE, 'stopping-dialog'),
+            // 確定してもプロジェクトのデータは変わらない（ブラウザに設定を保存して ML を始めるだけ）ので、
+            // 「押さずに次へ」は用意しない。確定せずに閉じたときは次の手順で開き直しを案内する
+            advance: { type: 'events', events: ['ml-setup-done', 'ml-setup-dismissed'] },
+            skipIf: 'ml-dialog-not-needed',
+        },
+        {
+            // 確認を閉じると ML は始まらない（停止基準が未設定のまま）。別のタブから ML タブを開き直すと確認がまた出る
+            id: 'stopping-reopen',
+            target: 'ml-tab',
+            textKey: stepKey(BASE, 'stopping-reopen'),
+            advance: { type: 'events', events: ['ml-setup-done'] },
+            skipIf: 'ml-dialog-not-needed',
+        },
+        {
+            id: 'decide',
+            target: 'ml-decision-buttons',
+            textKey: stepKey(BASE, 'decide'),
+            advance: { type: 'events', events: ['ml-decision-saved'], optional: true },
+            scroll: 'if-hidden',
+        },
+        {
+            id: 'learning-state',
+            target: 'ml-stats',
+            textKey: stepKey(BASE, 'learning-state'),
+            advance: { type: 'next' },
+            scroll: 'if-hidden',
+        },
+        {
+            id: 'stopping-progress',
+            target: 'ml-stopping',
+            textKey: stepKey(BASE, 'stopping-progress'),
+            advance: { type: 'next' },
+            scroll: 'if-hidden',
+        },
+        {
+            id: 'stopping-reached',
+            target: 'ml-stopping',
+            textKey: stepKey(BASE, 'stopping-reached'),
+            advance: { type: 'next' },
+            scroll: 'if-hidden',
+        },
+        {
+            id: 'finish',
+            target: 'tour-list',
+            textKey: stepKey(BASE, 'finish'),
+            advance: { type: 'next' },
+        },
+    ],
 };

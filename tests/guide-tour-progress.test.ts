@@ -251,8 +251,10 @@ test('tourToSuggestOnEvent: suggestOn が一致し、まだ済・却下でなけ
     assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-llm', ctx(), [tour]), null);
     // suggestOn の無いツアーは対象外
     assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx(), [fakeTour({ suggestOn: undefined })]), null);
-    // 既定では実在のツアー（suggestOn を持つものが無い）から選ぶ
-    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx()), null);
+    // 既定では実在のツアーから選ぶ（draft でなく、拡張版の suggestOn が一致するもの。実在のツアーが増えても変わらない書き方）
+    const expectedReal = Object.values(GUIDE_TOURS)
+        .find((t) => !t.draft && t.platforms.includes('extension') && t.suggestOn === 'tab-opened-ml');
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx())?.id ?? null, expectedReal?.id ?? null);
 });
 
 test('tourToSuggestOnEvent: 済・却下・実行中・今後表示しない・draft・プラットフォーム外・権限なしでは返さない', () => {
