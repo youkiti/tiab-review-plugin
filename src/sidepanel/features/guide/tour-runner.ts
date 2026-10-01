@@ -14,6 +14,7 @@ import {
     setActiveStep,
     shouldAdvance,
     startTour,
+    visibleStepPosition,
 } from '../../../lib/guide/tour-progress';
 import { computeModalWaitPosition, computeTourCardPosition } from './placement';
 import { computeGuideConditions, currentGuidePlatform } from './tour-conditions';
@@ -273,7 +274,11 @@ function renderContent(): void {
     card.dataset.guideTour = tour.id;
     card.dataset.guideStep = step.id;
     const progress = card.querySelector<HTMLElement>('.guide-tour-progress');
-    if (progress) progress.textContent = `${index + 1} / ${tour.steps.length}`;
+    if (progress) {
+        // 条件で飛ばされる手順は数えない。条件は途中で変わりうるので描画のたびに数え直す
+        const { position, total } = visibleStepPosition(tour, index, computeGuideConditions());
+        progress.textContent = `${position} / ${total}`;
+    }
     const text = card.querySelector<HTMLElement>('.guide-tour-text');
     if (text) text.textContent = t(modalMode ? 'guide_tourModalOpen' : step.textKey);
 
