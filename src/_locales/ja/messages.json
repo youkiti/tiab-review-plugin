@@ -1686,6 +1686,12 @@
   "guideExt_tourOpenFulltextHint": {
     "message": "全文タブで文献を開くと始められます"
   },
+  "guideExt_fulltextTourBtn": {
+    "message": "ツアー"
+  },
+  "guideExt_fulltextTourBtnTitle": {
+    "message": "このページの操作ツアーを始める"
+  },
   "guide_suggestTitle": {
     "message": "はじめての方へ"
   },
@@ -1900,7 +1906,37 @@
     "message": "全文の判定ページ"
   },
   "guideExt_tour_fulltext_page_desc": {
-    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。"
+    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。書誌と PDF の確認、判定、除外理由、次の候補への移動までを説明します。"
+  },
+  "guideExt_tour_fulltext_page_biblio": {
+    "message": "ここに文献のタイトル・著者・DOI が出ます。判定の前に、下の PDF と見比べて、取り違えた PDF が保存されていないかを確かめます。"
+  },
+  "guideExt_tour_fulltext_page_pdf": {
+    "message": "PDF はこの下に表示されます。PDF がまだ無いときは「PDFをアップロード」で手元のファイルを保存でき、あるときは「別のPDFをアップロード」で差し替えられます。"
+  },
+  "guideExt_tour_fulltext_page_criteria": {
+    "message": "「基準」を押す（c キーでも開閉）と、レビュー基準の組み入れ・除外基準を読めます。判定に迷ったときに確かめます。"
+  },
+  "guideExt_tour_fulltext_page_decision": {
+    "message": "読み終えたら、組み入れ (i)・除外 (e)・保留 (m) を選びます。押すと判定が本当に保存され、組み入れは次の候補へ進みます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_fulltext_page_reason_info": {
+    "message": "「除外」を選ぶと除外理由の一覧が出ます（保留では補足メモの欄が出ます）。複数当てはまるときは上（番号が小さい方）を選びます。理由は数字キーでも選べます。"
+  },
+  "guideExt_tour_fulltext_page_reason": {
+    "message": "除外理由を選びます。複数当てはまるときは、上（番号が小さい方）を選んでください。クリックか数字キーで選ぶと保存して次の候補へ進みます。メモ欄は任意で、Enter で保存して次へ進みます。"
+  },
+  "guideExt_tour_fulltext_page_context": {
+    "message": "ここを開くと、抄録と自分の TiAb 判定が見られます。キーを開封したあとは、他のレビュアーの判定とメモも並びます。"
+  },
+  "guideExt_tour_fulltext_page_evidence": {
+    "message": "AI が全文を判定していると、その根拠の引用がここに並びます。押すと PDF の該当箇所へ飛び、「PDF上に表示」でハイライトを切り替えられます。AI 判定が無い文献では空のままです。"
+  },
+  "guideExt_tour_fulltext_page_navigate": {
+    "message": "「未判定へ (u)」で、まだ判定していない次の候補へ移れます。最後の候補を判定し終えると、このタブは少し待って自動で閉じます（操作すると取り消せます）。"
+  },
+  "guideExt_tour_fulltext_page_finish": {
+    "message": "以上です。この「?」はヘルプの該当ページを開きます。このツアーをもう一度見るときは、隣の「ツアー」ボタンを押してください。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"

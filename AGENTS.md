@@ -153,7 +153,11 @@ tiab-review-plugin/
 │   │   ├── evidence-controller.ts # AI根拠・アノテーション一覧・ジャンプ・表示切替
 │   │   ├── navigation.ts      # 候補計算・文献切替・進捗・キーボード操作
 │   │   ├── page-panels.ts     # 書誌・判定の文脈・レビュー基準モーダル
-│   │   └── page-helpers.ts    # 表示文言・外部リンク・一時通知の共通処理
+│   │   ├── page-helpers.ts    # 表示文言・外部リンク・一時通知の共通処理
+│   │   ├── guide.ts           # 操作ツアーの入口（初期バンドル。保存値を見て本体を読むかの判定とイベント送出だけ）
+│   │   ├── guide-feature.ts   # 操作ツアーの本体（遅延チャンク fulltext-guide。ランナーの組み立て・初回の提案の帯）
+│   │   └── guide-conditions.ts # 操作ツアーの手順の飛ばし判定（画面の状態から計算）
+│   ├── guide-ui/              # 操作ツアーの画面部品（サイドパネルと全文の判定ページで共有。ランナー・保存・配置・提案の帯。画面には依存しない）
 │   ├── lib/
 │   │   ├── AGENTS.md          # インポート規約・型定義
 │   │   ├── gemini-api.ts      # Gemini API クライアント
@@ -187,7 +191,7 @@ tiab-review-plugin/
 
 ### 開発規約（依存方向・ファイル規模・CI 回帰条件）
 
-- 依存方向は「画面 → 処理の調整 → ドメイン純関数 / 保存API → platform」。画面と調整は `src/sidepanel/`（`store/` を含む）、`src/fulltext/`、`src/popup/`、`src/webapp/`、`src/background/`、`src/demo/`。ドメイン・保存APIは `src/lib/`（`sheets/`・`ml/`・`providers/` を含む）、環境差分は `src/platform/` に置く。小さい処理まで機械的にファイル化せず、変更理由とテスト境界が共通のものをまとめる。
+- 依存方向は「画面 → 処理の調整 → ドメイン純関数 / 保存API → platform」。画面と調整は `src/sidepanel/`（`store/` を含む）、`src/fulltext/`、`src/guide-ui/`（サイドパネルと全文の判定ページが共有する操作ツアーの部品。どちらの画面も import せず、画面ごとの違いは引数で受け取る）、`src/popup/`、`src/webapp/`、`src/background/`、`src/demo/`。ドメイン・保存APIは `src/lib/`（`sheets/`・`ml/`・`providers/` を含む）、環境差分は `src/platform/` に置く。小さい処理まで機械的にファイル化せず、変更理由とテスト境界が共通のものをまとめる。
 - lib / platform からUIをimportしない。platform → lib は導入時の実測0件なので禁止する。platform → demo の既存1辺のみ `scripts/structure-baseline.json` に記録し、新しい参照は許容しない。現状0件の方向はESLintでも検出する。
 - 型・既定値モジュールからUI・通信をimportしない。`scripts/check-structure.mjs` の `FOUNDATION_MODULES` は `lib/types.ts`、`lib/assignment-set.ts`、`lib/sheets/schema.ts`、`lib/sheets/config-schema.ts`、`lib/ml/types.ts`、`lib/ml/cmh-defaults.ts`、`platform/types.ts` を検査する。型・既定値の配置や通信APIを増やしたら、この一覧と通信先の判定も追従させる。
 - 新規ファイルは200〜500行が目安。TS / CSS / HTML の800行超は設計レビューの通知対象で、基準値にない超過をCIで失敗させる。既存の大規模ファイルは改善対象として行数と増減を表示し、増加だけでは失敗させない。行数制限のためにコメントを削らない。

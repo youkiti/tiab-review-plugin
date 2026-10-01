@@ -92,6 +92,24 @@ body {
     background: rgba(255, 255, 255, 0.15);
 }
 
+/* 暗色ヘッダー上の「ツアー」ボタン（このページの操作ツアーを始める。?リンクの隣） */
+.ft-tour-btn {
+    flex: none;
+    height: 22px;
+    padding: 0 10px;
+    color: #fff;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 11px;
+    cursor: pointer;
+}
+
+.ft-tour-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .ft-title {
     font-size: 16px;
     font-weight: 600;
@@ -962,4 +980,46 @@ body {
     margin-top: 10px;
     font-size: 11px;
     color: #7f8c8d;
+}
+
+/* ---------- ツアー（操作に連動する案内） ----------
+   カード・強調枠・提案の帯の見た目は ../sidepanel/styles/guide.css（fulltext.html から読み込む）。
+   ここには、このページ固有の差分だけを置く。 */
+
+/* カード内のボタン。サイドパネルの .btn-xsmall と同じ寸法 */
+.btn-xsmall {
+    padding: 2px 6px;
+    font-size: 10px;
+    height: 20px;
+    line-height: 1;
+}
+
+/* レビュー基準のモーダル（z-index 3000）が開いている間は、ツアーのカードをその前面に出す */
+.guide-tour-card--over-modal {
+    z-index: 3100;
+}
+
+.guide-tour-highlight--over-modal {
+    z-index: 3090;
+}
+
+.guide-tour-block--over-modal {
+    z-index: 3091;
+}
+
+/* 初めて開いたときの提案の帯。ヘッダーの下に、幅いっぱいの1行で出す（本体の高さは flex で縮む） */
+#guide-page-suggest {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 6px 16px;
+    border-width: 0 0 1px;
+    border-radius: 0;
+}
+
+#guide-page-suggest .guide-suggest-title {
+    margin-bottom: 0;
 }
