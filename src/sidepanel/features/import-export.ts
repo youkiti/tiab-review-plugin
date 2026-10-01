@@ -14,6 +14,7 @@ import { t } from '../../lib/i18n';
 import { parseImportFile } from '../../lib/file-dispatcher';
 import { partitionIncomingReferences } from '../../lib/duplicate-import-filter';
 import { openDuplicateReviewModal, invalidatePendingCountAndRerenderSection } from './duplicate-review';
+import { emitGuideEvent } from './guide/lazy';
 
 // 外部レンダリング関数への参照
 let _renderCurrentReference: (() => void) | null = null;
@@ -152,6 +153,7 @@ export async function handleRISImport(e: Event) {
         const completionMsg = t('import_complete', [String(uniqueReferences.length), String(duplicateCount)]);
         dom.importStatus.textContent = completionMsg;
         showToast(completionMsg);
+        emitGuideEvent('references-imported');
 
         // 候補の保存に成功し、かつ実際に検出があったときだけ自動起動する。
         // saveDuplicateCandidates() は既出の組を内部で落とすため、渡した件数と実際に新規保存

@@ -27,6 +27,7 @@ import { noteLocalTeamDecision } from '../team-progress';
 import { t } from '../../../lib/i18n';
 import { toggleReviewCriteriaModal, closeReviewCriteriaModal, isCriteriaModalOpen, isCriteriaEditMode } from '../review-criteria';
 import { perfSpan, perfSpanSync } from '../../../lib/perf';
+import { emitGuideEvent } from '../guide/lazy';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -223,7 +224,8 @@ function handleReviewHistoryNavigation(direction: number, filtered = getFiltered
  */
 export async function navigate(direction: number) {
     // Issue #151（#150 工程0）: tiab:screening.navigate として計測（前後移動）。
-    return perfSpan('tiab:screening.navigate', () => navigateImpl(direction));
+    await perfSpan('tiab:screening.navigate', () => navigateImpl(direction));
+    if (direction < 0) emitGuideEvent('navigated-prev');
 }
 
 async function navigateImpl(direction: number) {
@@ -362,6 +364,9 @@ async function handleDecisionImpl(decision: 'include' | 'exclude' | 'maybe') {
             if (_renderSpecificReference) _renderSpecificReference(ref);
         }
     });
+
+    // 判定を記録した（保存はこの後バックグラウンドで行い、失敗時はオフラインキューへ退避される）
+    emitGuideEvent('decision-saved');
 
     // APIに保存（バックグラウンド、UIブロックしない）。tiab:decision.save で計測するが、
     // 既存どおり fire-and-forget のまま保つ（await しない。Issue #151（#150 工程0））。

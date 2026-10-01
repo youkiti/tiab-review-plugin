@@ -159,6 +159,7 @@ export function bootstrapCommon(): void {
     dom.spreadsheetInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') project.handleConnect();
     });
+    dom.spreadsheetInput?.addEventListener('input', project.handleSpreadsheetInput);
 
     // Settings
     dom.settingsBtnProject?.addEventListener('click', settings.showSettings);

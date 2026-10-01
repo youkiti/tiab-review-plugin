@@ -34,6 +34,7 @@ import { flushUnsentQueue, refreshUnsentBadge } from './unsent-queue';
 import { mergeQueuedDecisions } from '../../lib/queued-decisions-merge';
 import { buildPickerUrl } from '../../lib/picker-url';
 import { buildSpreadsheetUrl } from '../../lib/share-invite';
+import { emitGuideEvent } from './guide/lazy';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -114,6 +115,7 @@ export async function handleBack() {
     // 失敗時のフォールバック表示は loadConfig / loadRecentSheets 内で行う
     await loadRecentSheets();
     await loadConfig();
+    emitGuideEvent('project-screen-shown');
 }
 
 /**
@@ -135,6 +137,11 @@ function extractSpreadsheetId(input: string): string | null {
     }
 
     return null;
+}
+
+/** URL/ID 欄に解釈できるスプレッドシートIDが入ったことをツアーへ知らせる。 */
+export function handleSpreadsheetInput(): void {
+    if (extractSpreadsheetId(dom.spreadsheetInput.value)) emitGuideEvent('sheet-url-entered');
 }
 
 let pickerPollTimer: number | undefined;
@@ -220,6 +227,7 @@ function showPickerAccessGuidance(spreadsheetId: string, message = t('picker_acc
     const openBtn = document.createElement('button');
     openBtn.type = 'button';
     openBtn.className = 'btn btn-primary';
+    openBtn.dataset.tour = 'picker-open';
     openBtn.textContent = t('picker_openBtn');
     openBtn.addEventListener('click', () => {
         platform().openExternal(buildPickerUrl(spreadsheetId, state.userEmail));
@@ -242,6 +250,7 @@ function showPickerAccessGuidance(spreadsheetId: string, message = t('picker_acc
     actions.append(openBtn, retryBtn, helpLink);
     dom.statusMessage.append(secondary, target, actions);
     dom.statusMessage.scrollIntoView({ block: 'nearest' });
+    emitGuideEvent('picker-guidance-shown');
 }
 
 async function connectToSpreadsheet(resolvedId: string): Promise<void> {
@@ -492,6 +501,7 @@ export async function handleCreateNew() {
 
         // 画面切り替え
         await loadDataAndShowScreening();
+        emitGuideEvent('project-created');
     } catch (error) {
         console.error('Create error:', error);
         showStatus(t('project_createError', (error as Error).message), 'error');
@@ -712,6 +722,9 @@ async function loadDataAndShowScreeningImpl() {
 
             // 画面表示後にバックグラウンドで未送信分の送信を試みる（表示順序は維持）
             void flushUnsentQueue({ interactive: false });
+
+            // スクリーニング画面の表示が終わった（新規作成後・共有シートへの接続後を含む）
+            emitGuideEvent('project-connected');
         });
     } catch (error) {
         // 旧世代の失敗は破棄する。新しい読み込みが自分の結果（成功・失敗）を画面へ反映する（Issue #153）。

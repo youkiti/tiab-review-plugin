@@ -1394,7 +1394,7 @@
     "message": "レビュー対象のシート: $1"
   },
   "share_inviteTemplate": {
-    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Chromeの右上にあるパズルピースのアイコン（拡張機能ボタン）をクリックし、一覧の「TiAb Review Plugin」をクリックして立ち上げます。\n   プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n3. 初回のみ、接続時に「Googleで許可する」ボタンが表示されることがあります。押すと別のタブでGoogleの画面が開くので、そこで上記のシートを選択してください。パネルは自動で再接続します。\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Chromeの右上にあるパズルピースのアイコン（拡張機能ボタン）をクリックし、一覧の「TiAb Review Plugin」をクリックして立ち上げます。\n   プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n3. 初回のみ、接続時に「Googleで許可する」ボタンが表示されることがあります。押すと別のタブでGoogleの画面が開くので、そこで上記のシートを選択してください。パネルは自動で再接続します。\n\n拡張機能（またはWeb版）でシートを開くと、初回は参加手順の案内（ツアー）が表示されます。右上の 🧭 からいつでも開けます。\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "招待文をコピーしました"
@@ -1640,6 +1640,105 @@
   },
   "guide_topic_web_app": {
     "message": "Web版"
+  },
+  "guide_startTourHere": {
+    "message": "🧭 この画面のツアーを始める"
+  },
+  "guide_tourListTitle": {
+    "message": "操作ツアー"
+  },
+  "guide_tourNext": {
+    "message": "次へ"
+  },
+  "guide_tourDone": {
+    "message": "完了"
+  },
+  "guide_tourEnd": {
+    "message": "ツアーを終える"
+  },
+  "guide_tourModalOpen": {
+    "message": "ダイアログが開いています。内容を確認して閉じると、ツアーの続きに戻ります。"
+  },
+  "guide_tourWaiting": {
+    "message": "この操作ができる画面を開いてください。"
+  },
+  "guide_tourStart": {
+    "message": "開始"
+  },
+  "guide_tourAgain": {
+    "message": "もう一度"
+  },
+  "guide_suggestTitle": {
+    "message": "はじめての方へ"
+  },
+  "guideExt_suggestFirstProject": {
+    "message": "新しくレビューを始める（ツアー）"
+  },
+  "guide_suggestJoinProject": {
+    "message": "招待されたシートに参加する（ツアー）"
+  },
+  "guide_suggestLater": {
+    "message": "あとで"
+  },
+  "guide_suggestNever": {
+    "message": "今後表示しない"
+  },
+  "guide_joinFromPicker": {
+    "message": "参加ツアーで進める"
+  },
+  "guideExt_tour_first_project_title": {
+    "message": "初めてのプロジェクト"
+  },
+  "guideExt_tour_first_project_desc": {
+    "message": "新規作成から取り込み・判定・やり直しまで、実際に操作しながら進めます。"
+  },
+  "guideExt_tour_first_project_project_create": {
+    "message": "このボタンで新しいプロジェクトを作ります。作成するとドライブにスプレッドシートができ、それがプロジェクトの実体になります。名前を確認して OK を押してください。"
+  },
+  "guideExt_tour_first_project_import": {
+    "message": "PubMed の .nbib や RIS などの文献ファイルを取り込みます。ダウンロードしたファイルを直接開くのではなく、このボタンから選んでください。重複は自動で除外されます。"
+  },
+  "guideExt_tour_first_project_read": {
+    "message": "タイトルと抄録を読み、緑・赤のキーワードを手がかりに判断します。"
+  },
+  "guideExt_tour_first_project_decide": {
+    "message": "Include / Maybe / Exclude のどれかを押してください。キーボードの i / m / e でも押せます。保存されると次の文献へ進みます。"
+  },
+  "guideExt_tour_first_project_go_back": {
+    "message": "判定を直したいときは前の文献へ戻ります。「前へ」を押してください（← キーでも戻れます）。"
+  },
+  "guideExt_tour_first_project_redecide": {
+    "message": "別のボタンを押すと、判定が上書きされます。試しに押してみてください。"
+  },
+  "guideExt_tour_first_project_blind": {
+    "message": "既定は Blind 中で、他のレビュアーの判定は見えません。全員の独立した判定が終わるまで、キーは開封しないでください。切り替えはプロジェクト全体に効くので、ツアー中は押せないようにしています。"
+  },
+  "guideExt_tour_first_project_finish": {
+    "message": "各カードの「?」でいつでも説明を開けます。ツアーはこの 🧭 からやり直せます。共同研究者はツールバーの「共有」から招待します。"
+  },
+  "guide_tour_join_project_title": {
+    "message": "共同研究者として参加"
+  },
+  "guide_tour_join_project_desc": {
+    "message": "招待されたシートに接続し、担当分を判定するまでを案内します。"
+  },
+  "guide_tour_join_project_paste_url": {
+    "message": "招待メールに書かれたスプレッドシートの URL をここに貼り付けてください。"
+  },
+  "guide_tour_join_project_connect": {
+    "message": "接続ボタンを押してください。"
+  },
+  "guide_tour_join_project_allow": {
+    "message": "別のタブで Google の画面が開くので、招待されたシートを選んでください。選んだらこのパネルに戻ると、自動で接続し直します。"
+  },
+  "guide_tour_join_project_assignment": {
+    "message": "あなたの担当分だけが表示されています。"
+  },
+  "guide_tour_join_project_decide": {
+    "message": "Blind 中は他の人の判定は見えません。自分の判断で独立に判定してください。i / m / e キーでも押せます。"
+  },
+  "guide_tour_join_project_finish": {
+    "message": "「?」でいつでも説明を開けます。判定を直したいときは、前の文献に戻って押し直してください。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"

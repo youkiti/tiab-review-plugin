@@ -1394,7 +1394,7 @@
     "message": "Review sheet: $1"
   },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\nWhen you open the sheet in the extension (or the web app), a guided tour of the joining steps appears the first time. You can reopen it any time from the 🧭 at the top right.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -1640,6 +1640,105 @@
   },
   "guide_topic_web_app": {
     "message": "Web app"
+  },
+  "guide_startTourHere": {
+    "message": "🧭 Start a tour for this screen"
+  },
+  "guide_tourListTitle": {
+    "message": "Guided tours"
+  },
+  "guide_tourNext": {
+    "message": "Next"
+  },
+  "guide_tourDone": {
+    "message": "Done"
+  },
+  "guide_tourEnd": {
+    "message": "End tour"
+  },
+  "guide_tourModalOpen": {
+    "message": "A dialog is open. Check it and close it to return to the tour."
+  },
+  "guide_tourWaiting": {
+    "message": "Open the screen where you can do this."
+  },
+  "guide_tourStart": {
+    "message": "Start"
+  },
+  "guide_tourAgain": {
+    "message": "Again"
+  },
+  "guide_suggestTitle": {
+    "message": "New here?"
+  },
+  "guideExt_suggestFirstProject": {
+    "message": "Start a new review (tour)"
+  },
+  "guide_suggestJoinProject": {
+    "message": "Join an invited sheet (tour)"
+  },
+  "guide_suggestLater": {
+    "message": "Later"
+  },
+  "guide_suggestNever": {
+    "message": "Don't show again"
+  },
+  "guide_joinFromPicker": {
+    "message": "Continue with the join tour"
+  },
+  "guideExt_tour_first_project_title": {
+    "message": "Your first project"
+  },
+  "guideExt_tour_first_project_desc": {
+    "message": "Create a project, import records, screen them, and fix a decision, hands-on."
+  },
+  "guideExt_tour_first_project_project_create": {
+    "message": "This button creates a new project. A spreadsheet is created in your Drive and becomes the project itself. Check the name and press OK."
+  },
+  "guideExt_tour_first_project_import": {
+    "message": "Import record files such as PubMed .nbib or RIS. Choose the file from this button instead of opening the download directly. Duplicates are removed automatically."
+  },
+  "guideExt_tour_first_project_read": {
+    "message": "Read the title and abstract, using the green and red keywords as cues."
+  },
+  "guideExt_tour_first_project_decide": {
+    "message": "Press Include, Maybe, or Exclude. The i / m / e keys work too. The next record appears once it is saved."
+  },
+  "guideExt_tour_first_project_go_back": {
+    "message": "To fix a decision, go back to the previous record. Press Prev (the left arrow key works too)."
+  },
+  "guideExt_tour_first_project_redecide": {
+    "message": "Pressing a different button overwrites the decision. Try it."
+  },
+  "guideExt_tour_first_project_blind": {
+    "message": "Blind is on by default, so other reviewers' decisions are hidden. Do not open the key until everyone has finished screening independently. The switch affects the whole project, so it is disabled during this tour."
+  },
+  "guideExt_tour_first_project_finish": {
+    "message": "The ? on each card opens an explanation any time. You can replay tours from this 🧭. Invite collaborators with Share in the toolbar."
+  },
+  "guide_tour_join_project_title": {
+    "message": "Join as a collaborator"
+  },
+  "guide_tour_join_project_desc": {
+    "message": "Connect to an invited sheet and screen your assigned records."
+  },
+  "guide_tour_join_project_paste_url": {
+    "message": "Paste the spreadsheet URL from your invitation here."
+  },
+  "guide_tour_join_project_connect": {
+    "message": "Press the connect button."
+  },
+  "guide_tour_join_project_allow": {
+    "message": "A Google screen opens in another tab. Select the invited sheet there, then return to this panel. It reconnects automatically."
+  },
+  "guide_tour_join_project_assignment": {
+    "message": "Only your assigned records are shown."
+  },
+  "guide_tour_join_project_decide": {
+    "message": "While Blind is on, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
+  },
+  "guide_tour_join_project_finish": {
+    "message": "The ? opens an explanation any time. To fix a decision, go back to the previous record and press again."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."

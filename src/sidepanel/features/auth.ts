@@ -10,6 +10,7 @@ import { getAuthToken, getUserEmail } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 import { platform } from '../../platform';
 import { refreshUnsentBadge } from './unsent-queue';
+import { emitGuideEvent } from './guide/lazy';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -156,4 +157,5 @@ export async function showProjectSection() {
     console.log('[showProjectSection] Config loaded');
 
     showLoading(false);
+    emitGuideEvent('project-screen-shown');
 }

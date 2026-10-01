@@ -4,6 +4,7 @@
  */
 import { t } from '../../../lib/i18n';
 import { platform } from '../../../platform';
+import { availableTours } from '../../../lib/guide/tour-progress';
 import {
     GUIDE_TOPICS,
     buildHelpUrl,
@@ -13,6 +14,12 @@ import {
     type GuideTopic,
     type GuideTopicId,
 } from '../../../lib/guide/topics';
+import { placeNear } from './placement';
+import { currentGuidePlatform } from './tour-conditions';
+import { startGuideTour } from './tour-runner';
+
+export { initGuide, handleGuideEvent, resumeGuide } from './tour-lifecycle';
+export { toggleGuideTourList } from './tour-entry';
 
 /** 吹き出しに並べるボタン。ツアー開始など、後から項目を足せるよう配列で持つ。 */
 interface GuideAction {
@@ -25,9 +32,6 @@ interface OpenPopover {
     element: HTMLElement;
     anchor: HTMLElement;
 }
-
-const VIEWPORT_MARGIN = 8;
-const ANCHOR_GAP = 6;
 
 let current: OpenPopover | null = null;
 let listenersAttached = false;
@@ -55,6 +59,15 @@ function buildActions(topicId: GuideTopicId): GuideAction[] {
             id: 'video',
             label: t('guide_watchVideo'),
             run: () => platform().openExternal(buildVideoUrl(video)),
+        });
+    }
+    // このトピックに対応するツアーが、このプラットフォームで使えるときだけ開始ボタンを足す
+    const tourId = topic.tourId;
+    if (tourId && availableTours(currentGuidePlatform()).some(tour => tour.id === tourId)) {
+        actions.push({
+            id: 'tour',
+            label: t('guide_startTourHere'),
+            run: () => { void startGuideTour(tourId); },
         });
     }
     return actions;
@@ -88,21 +101,6 @@ function buildPopover(topicId: GuideTopicId): HTMLElement {
     }
     popover.appendChild(list);
     return popover;
-}
-
-/** ボタンの近くに置き、サイドパネルの幅（左右）と高さ（下端）からはみ出さないよう寄せる。 */
-function placePopover(popover: HTMLElement, anchor: HTMLElement): void {
-    const rect = anchor.getBoundingClientRect();
-    const width = popover.offsetWidth;
-    const height = popover.offsetHeight;
-    const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN);
-    const left = Math.min(Math.max(rect.left, VIEWPORT_MARGIN), maxLeft);
-    let top = rect.bottom + ANCHOR_GAP;
-    if (top + height > window.innerHeight - VIEWPORT_MARGIN) {
-        top = Math.max(VIEWPORT_MARGIN, rect.top - ANCHOR_GAP - height);
-    }
-    popover.style.left = `${left}px`;
-    popover.style.top = `${top}px`;
 }
 
 function handleOutsideClick(event: MouseEvent): void {
@@ -149,7 +147,7 @@ export function toggleGuidePopover(anchor: HTMLElement): void {
     attachListeners();
     const element = buildPopover(topicId);
     document.body.appendChild(element);
-    placePopover(element, anchor);
+    placeNear(element, anchor);
     anchor.setAttribute('aria-expanded', 'true');
     current = { element, anchor };
     element.querySelector<HTMLElement>('.guide-popover-action')?.focus({ preventScroll: true });
