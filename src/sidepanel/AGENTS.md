@@ -290,19 +290,30 @@
 
 ### ツアー（操作に連動する案内）
 
-- 構成: 定義は `src/lib/guide/tours.ts`（純粋なデータ。手順・進む条件・対象の `data-tour` 値）、進行状態の純関数は `src/lib/guide/tour-progress.ts`、画面は `src/sidepanel/features/guide/`。ツアー本体は遅延チャンク `guide-feature` に入れる。初期バンドルに置くのは、イベントを投げる小さな関数（`emitGuideEvent`）と、本体を読むかどうかの判定だけ。初期 JS の予算（`scripts/bundle-budget.json`）に余裕が少ないため、初期側から `tours.ts` の本体を静的 import しない（型は `import type`）
-- ツアーを足す・直す手順:
-  1. `tours.ts` に手順を定義する
-  2. 対象の要素に `data-tour="<対象>"` を付ける。見た目用の class や構造に依存させない（デザイン変更で黙って壊れるため）
-  3. 進む条件に新しいイベントが要るなら、`GuideEventName` に足し、該当する操作の完了箇所に `emitGuideEvent` の呼び出しを足す
-  4. 文言を ja/en の `messages.json` に同じキーで入れる。拡張版だけのツアーの文言は `guideExt_` 接頭辞にする（Web 版ビルドの messages.json から落とすため。`scripts/webpack/strip-locale-keys.cjs`）
-  5. `npm test`（定義と HTML・文言の照合）と、`npm run build:demo && npm run check:tours`（デモビルドでの通し検証）を回す。`check:tours` はブラウザが要るので CI には入っていない。UI やツアーを変えたら手元で回すこと
+- 構成: 定義は `src/lib/guide/tours/`（ツアー1本につき1ファイル `<ツアーID>.ts`。純粋なデータ。手順・進む条件・対象の `data-tour` 値）、集約と型は `tours/index.ts`・`tours/types.ts`、進行状態の純関数は `src/lib/guide/tour-progress.ts`、画面は `src/sidepanel/features/guide/`。ツアー本体は遅延チャンク `guide-feature` に入れる。初期バンドルに置くのは、イベントを投げる小さな関数（`emitGuideEvent`）と、本体を読むかどうかの判定だけ。初期 JS の予算（`scripts/bundle-budget.json`）に余裕が少ないため、初期側から `tours/` の本体を静的 import しない（型は `import type`）
+- ツアーを足す手順（枠は `draft: true` で作成済み。**自分のツアーのファイル・条件ファイル・文言の自分の区画・シナリオだけを触る**）:
+  1. `src/lib/guide/tours/<ID>.ts` に手順（`steps`）を書く。このツアーだけが使うイベント名・条件名は、同じファイルの `<Pascal>Event`・`<Pascal>Condition`（枠では `never`）の型を広げて足す（`GuideEventName`・`GuideCondition` は `index.ts` が各ファイルの型の合併で組み立てるので、`index.ts` は触らない）。文言のキーは `tours/keys.ts` の `tourKeyBase`・`stepKey` で組み立てる
+  2. 手順の `skipIf` に固有の条件を使うなら、`src/sidepanel/features/guide/conditions/<ID>.ts` の `compute<Pascal>Conditions()` に真偽の計算を書く（返す型が `Record<<Pascal>Condition, boolean>` なので、条件名を足したら返し忘れがコンパイルで落ちる）。共通の条件（`tours/types.ts` の `CommonGuideCondition`）は `tour-conditions.ts` が計算する
+  3. 対象の要素に `data-tour="<対象>"` を付ける。見た目用の class や構造に依存させない（デザイン変更で黙って壊れるため）。`page: 'fulltext'` のツアーの対象は `src/fulltext/fulltext.html`（動的な対象は `src/fulltext/` の TypeScript）に付ける
+  4. 進む条件・提案に新しいイベントが要るなら、自分のツアーの `<Pascal>Event` に足し、該当する操作の完了箇所に `emitGuideEvent` の呼び出しを足す。共通のイベント（`types.ts` の `CommonGuideEventName`）は複数のツアーで使うものだけ
+  5. 文言を ja/en の `messages.json` の**自分のツアーの区画**に同じキーで入れる（下の「文言の置き場所」）。拡張版だけのツアーの文言は `guideExt_` 接頭辞にする（Web 版ビルドの messages.json から落とすため。`scripts/webpack/strip-locale-keys.cjs`）
+  6. `scripts/guide-tour-check/scenarios/<ID>.mjs` にシナリオを1本足す（書き方は `scripts/guide-tour-check/lib/scenario.mjs` のコメント）
+  7. `draft: true` を外す。外すと、一覧・提案・開始・テストの照合の対象になる（`draft` のツアーは手順が空、`draft` でないツアーは手順が1つ以上、とテストが検査する）
+  8. `npm test`（定義と HTML・文言の照合）と、`npm run build:demo && npm run check:tours`（デモビルドでの通し検証）を回す。`check:tours` はブラウザが要るので CI には入っていない。UI やツアーを変えたら手元で回すこと
+- 並列で足すときに触ってよいファイル: 自分の `tours/<ID>.ts`、自分の `features/guide/conditions/<ID>.ts`、自分の `scenarios/<ID>.mjs`、`messages.json`（ja/en）の自分の区画、`data-tour` を付ける画面（HTML・TypeScript）と `emitGuideEvent` を足す操作の完了箇所。**`tours/index.ts`・`tours/types.ts`・`topics.ts`（「?」とツアーの対応 `tourId` は入力済みなので触らない。吹き出しの開始ボタンは draft を外すと自動で出る）・`tour-conditions.ts`・`tour-progress.ts`・ランナー・`lib/` の検証道具は共有部分なので、触るなら別の変更として分ける**（共通のイベント・条件・ランナーの挙動を足すとき）
+- 文言の置き場所: `messages.json` は**ツアーごとに title → desc → 手順の本文の順の1つの区画**で、区画と区画の間は必ず次のツアーの `_title`・`_desc` の2キーで区切られる。自分のツアーの `_desc` の直後に手順のキーを足す（区画が離れているので、並列の変更が git のマージで衝突しない）。テストがこの並び（連続・title 始まり・区画の非重複）を検査する
+- `TourDefinition` の項目:
+  - `page`: `'sidepanel'`（サイドパネル）か `'fulltext'`（全文の判定ページ `src/fulltext/`）。`'fulltext'` のツアーの対象はサイドパネルの HTML ではなく `fulltext.html` で照合される。サイドパネルのランナーは `'fulltext'` のツアーを始めも再開もしない（実際に始める仕組みは全文の判定ページ側で作る）。ツアー一覧には出すが、開始ボタンの代わりに「全文タブで文献を開くと始められます」（`guideExt_tourOpenFulltextHint`）を出す
+  - `draft`: 真なら中身の無い枠。`GUIDE_TOURS` には入るが、`availableTours()` が除外するので、一覧・提案・開始・テストの照合の対象外（見出し・説明のキーの実在だけは検査する）
+  - `suggestOn`: （足す・変えるときは、初期バンドル `features/guide/lazy.ts` の `SUGGEST_TOUR_BY_EVENT` の対応表も合わせる。テストが照合する。対応表に無いイベントでは本体チャンクを読まない）このイベント（今のところ `tab-opened-screening`・`tab-opened-ml`・`tab-opened-llm`・`tab-opened-fulltext`）が起きたとき、そのツアーをまだ `done`・`dismissed` にしておらず、ほかのツアーが実行中でなく、全体の「今後表示しない」でもなければ、そのタブの section の上部に提案の帯（`#guide-tab-suggest`、`data-guide-tour="<ID>"`）を出す。「ツアーで進める」（`data-guide-action="start"`）と「表示しない」（`data-guide-action="dismiss"`。そのツアーを `dismissed` に記録）の2つ。帯は1つだけで、別のタブへ移ると消える。判定は純関数 `tourToSuggestOnEvent`（`tour-progress.ts`）。サイドパネルのツアーにだけ付ける
+  - `TourStep.advance` の `{ type: 'events'; events: [...]; optional?: true }`: `optional` の手順は、イベントが起きれば進むのに加えて、カードに「押さずに次へ」（`guide_tourSkip`、属性は `data-guide-action="next"` のまま）も出す。AI の一括実行・共有の追加・担当セットの作成など、慎重に扱う操作を、押させずに説明だけ済ませて先へ進める手順に使う。最後の手順は `{ type: 'next' }` にする
+- タブを開いたイベント（`tab-opened-*`）は、`src/sidepanel/bootstrap.ts` のストア購読が、スクリーニング画面でタブが切り替わるたびに `emitGuideEvent` で1回投げる。初期バンドル側の `lazy.ts` は、全体の「今後表示しない」でなければ、このイベントでも本体チャンクを読む（初期 JS の予算が小さいので、初期側に足す量は数百バイトに収める）。全文の判定ページのイベントはそのツアーの実装役が足す
 - UI を変えるときの注意: `data-tour` / `data-help` の付いた要素を消す・id を変えると照合テストが落ちる。落ちたらテストを緩めず、ツアーの定義か属性のほうを直す（テストを緩めると、利用者の画面でツアーが黙って止まる）
-- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この2つの ❓ には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）
+- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この2つの ❓ には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）。一覧は使えるツアー（`draft` を除く）を全部出し、パネルは縦にスクロールできる（`max-height` で画面内に収める）
 - 手順に入ったときのスクロールは `TourStep.scroll` で指定する。`'start'`（文献カードの先頭＝タイトルを見せる。`read`）、`'if-hidden'`（対象が画面内に全部見えているならスクロールしない。`decide` で、直前まで読んでいた抄録を画面に残す）。省略時は対象が高ければ上端、そうでなければ中央へ寄せる
 - 取り消せない操作・プロジェクト全体に効く操作（Blind の切り替え、再シャッフルなど）をツアーの手順にするときは、`blockTarget: true` で押せないようにし、進む条件は「次へ」（`advance: { type: 'next' }`）にする。実際に押させると、練習のつもりが本番のデータを変えてしまうため
 - デモビルドでの再現: 新規作成は `POST /v4/spreadsheets` のモックがデモのシートストアを空に初期化する（`src/demo/fetch-mock.ts`）。共有シートの初回許可（Picker）は URL に `?demoPickerRequired=1` を付けると再現できる（`src/demo/fetch-mock.ts` と `src/platform/demo/index.ts`）
 - 実行中のツアーは手順の ID（`active.stepId`）で保存しているので、手順を足す・並べ替えても再開位置はずれない。手順の ID を改名・削除すると、その手順で止まっていた人のツアーは再開されない（`active` は捨てる。済み・却下の記録は残る）。`stepId` の無い旧版の保存値だけは添字で読む
 - 保存: 進行状態は `platform().storageGet/storageSet` のキー `guide_progress`（`GUIDE_PROGRESS_STORAGE_KEY`）。壊れた値は既定値に戻して読み、保存形式の検証は `tour-progress.ts` に置く。「あとで」はそのセッションの中だけで保存しない（次回また提案するため）。「今後表示しない」と、ツアーごとの完了・中止は保存する
 - アプリのダイアログ（`#modal-backdrop`）が開いていて、今の手順の対象がその中に無い間は、カードは「ダイアログ待ち」の表示（`data-guide-waiting-reason="modal"`、枠・覆い・「次へ」なし、ダイアログの前面）になり、閉じると元の表示に戻る（ウィザード専用ではなく、ランナーの一般規則）
-- 照合: `tests/guide-tours.test.ts`（定義と画面・文言の照合: 対象の `data-tour` の実在・動的対象の付与コードの実在・文言キーの実在・Web 版で隠れる要素への非依存・`tourId` の実在・イベント送出元の実在）、`tests/guide-tours-definition.test.ts`（定義そのもの）、`tests/guide-tour-progress.test.ts`（進行状態の純関数）。`emitGuideEvent` は `src/sidepanel/features/guide/lazy.ts`。デモビルドでの通し検証は `scripts/guide-tour-check/run.mjs`（`npm run check:tours`）
+- 照合: `tests/guide-tours.test.ts`（定義と画面・文言の照合: 対象の `data-tour` の実在・動的対象の付与コードの実在・文言キーの実在と並び・Web 版で隠れる要素への非依存・`tourId` の実在・イベント送出元の実在・draft の扱い）、`tests/guide-tours-definition.test.ts`（定義そのもの）、`tests/guide-tour-progress.test.ts`（進行状態の純関数。提案の判定を含む）。`emitGuideEvent` は `src/sidepanel/features/guide/lazy.ts`。デモビルドでの通し検証は `scripts/guide-tour-check/run.mjs`（`npm run check:tours`。`--only <シナリオ名>` で1本、`--lang`・`--size` も使える。共通の道具は `lib/`、シナリオは `scenarios/<ID>.mjs`）

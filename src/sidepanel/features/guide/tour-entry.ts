@@ -3,9 +3,15 @@
  * 「?」の吹き出しからの開始は ./index.ts の buildActions が持つ。遅延チャンク `guide-feature` に入る。
  */
 import { t } from '../../../lib/i18n';
-import type { GuideEventName } from '../../../lib/guide/tours';
+import type { GuideEventName, TourDefinition } from '../../../lib/guide/tours';
 import type { GuideTourId } from '../../../lib/guide/topics';
-import { availableTours, shouldSuggest, suppressSuggestions } from '../../../lib/guide/tour-progress';
+import {
+    availableTours,
+    dismissTour,
+    shouldSuggest,
+    suppressSuggestions,
+    tourToSuggestOnEvent,
+} from '../../../lib/guide/tour-progress';
 import { currentGuidePlatform } from './tour-conditions';
 import { placeNear } from './anchor-placement';
 import { startGuideTour } from './tour-runner';
@@ -19,6 +25,7 @@ import {
 
 const BANNER_ID = 'guide-suggest-banner';
 const LIST_ID = 'guide-tour-list';
+const TAB_SUGGEST_ID = 'guide-tab-suggest';
 /** 参加ツアーのうち、Picker の「Googleで許可する」を説明する手順 */
 const PICKER_STEP_ID = 'allow';
 
@@ -111,10 +118,68 @@ async function addPickerTourButton(): Promise<void> {
         'btn btn-secondary', () => { void startGuideTour('join-project', PICKER_STEP_ID); }));
 }
 
+// ---------- タブを初めて開いたときの提案の帯 ----------
+
+/** タブを開いたイベントと、そのタブの section の id。 */
+const TAB_SECTION_IDS: Partial<Record<GuideEventName, string>> = {
+    'tab-opened-screening': 'screening-section',
+    'tab-opened-ml': 'ml-section',
+    'tab-opened-llm': 'llm-section',
+    'tab-opened-fulltext': 'fulltext-section',
+};
+/** 古い非同期の結果が、新しいタブの帯を上書きしたり重ねたりしないための通し番号 */
+let tabSuggestSeq = 0;
+
+function removeTabSuggestion(): void {
+    document.getElementById(TAB_SUGGEST_ID)?.remove();
+}
+
+function buildTabSuggestion(tour: TourDefinition): HTMLElement {
+    const band = document.createElement('div');
+    band.id = TAB_SUGGEST_ID;
+    band.className = 'guide-suggest-banner guide-tab-suggest';
+    band.dataset.guideTour = tour.id;
+
+    const title = document.createElement('div');
+    title.className = 'guide-suggest-title';
+    title.textContent = t(tour.titleKey);
+
+    const actions = document.createElement('div');
+    actions.className = 'guide-suggest-dismissals';
+    actions.append(
+        createButton('dismiss', t('guide_tabSuggestDismiss'), 'btn btn-outline btn-xsmall', () => {
+            updateGuideProgress(progress => dismissTour(progress, tour.id, new Date().toISOString()));
+            removeTabSuggestion();
+        }),
+        createButton('start', t('guide_tabSuggestStart'), 'btn btn-primary btn-xsmall', () => {
+            removeTabSuggestion();
+            void startGuideTour(tour.id);
+        }),
+    );
+    band.append(title, actions);
+    return band;
+}
+
+/** タブを開いたとき、前の帯を消し、そのタブに提案するツアーがあれば上部に帯を出す（帯は1つだけ）。 */
+async function showTabSuggestion(name: GuideEventName): Promise<void> {
+    const seq = ++tabSuggestSeq;
+    removeTabSuggestion();
+    const sectionId = TAB_SECTION_IDS[name];
+    if (!sectionId) return;
+    const progress = await loadGuideProgress();
+    if (seq !== tabSuggestSeq) return;
+    const tour = tourToSuggestOnEvent(progress, name, currentGuidePlatform());
+    if (!tour) return;
+    const section = document.getElementById(sectionId);
+    if (!section || section.classList.contains('hidden')) return;
+    section.prepend(buildTabSuggestion(tour));
+}
+
 /** 本体チャンクが受ける、入口用のイベント処理。 */
 export function handleEntryEvent(name: GuideEventName): Promise<void> {
     if (name === 'project-screen-shown') return showSuggestionBanner();
     if (name === 'picker-guidance-shown') return addPickerTourButton();
+    if (name in TAB_SECTION_IDS) return showTabSuggestion(name);
     return Promise.resolve();
 }
 
@@ -129,7 +194,8 @@ export function closeGuideTourList(): void {
     listAnchor = null;
 }
 
-function buildListItem(tourId: GuideTourId, titleKey: string, descriptionKey: string): HTMLElement {
+function buildListItem(tour: TourDefinition): HTMLElement {
+    const { id: tourId, titleKey, descriptionKey } = tour;
     const done = getGuideProgress().tours[tourId]?.status === 'done';
     const item = document.createElement('div');
     item.className = 'guide-tour-item';
@@ -149,6 +215,16 @@ function buildListItem(tourId: GuideTourId, titleKey: string, descriptionKey: st
     description.className = 'guide-tour-item-desc';
     description.textContent = t(descriptionKey);
 
+    // 全文の判定ページのツアーは、サイドパネルからは始められない（その画面を開いたときに始める）。
+    // 開始ボタンの代わりに、始め方の説明を出す
+    if (tour.page === 'fulltext') {
+        const hint = document.createElement('div');
+        hint.className = 'guide-tour-item-hint';
+        hint.dataset.guideTourHint = 'fulltext';
+        hint.textContent = t('guideExt_tourOpenFulltextHint');
+        item.append(head, description, hint);
+        return item;
+    }
     const start = createButton('start', t(done ? 'guide_tourAgain' : 'guide_tourStart'),
         'btn btn-secondary btn-xsmall', () => {
             closeGuideTourList();
@@ -172,7 +248,7 @@ function buildList(): HTMLElement {
     header.append(title, createButton('close-list', '✕', 'btn btn-outline btn-xsmall', closeGuideTourList));
     panel.append(header);
     for (const tour of availableTours(currentGuidePlatform())) {
-        panel.append(buildListItem(tour.id, tour.titleKey, tour.descriptionKey));
+        panel.append(buildListItem(tour));
     }
     return panel;
 }

@@ -1,6 +1,6 @@
 /**
  * ツアーの実行。対象の要素を強調し、近くに本文のカードを出して、利用者の操作（イベント）で次の手順へ進める。
- * 手順の定義は src/lib/guide/tours.ts、状態遷移は lib/guide/tour-progress.ts の純関数、保存は ./tour-store.ts。
+ * 手順の定義は src/lib/guide/tours/（ツアーごとのファイル）、状態遷移は lib/guide/tour-progress.ts の純関数、保存は ./tour-store.ts。
  * 遅延チャンク `guide-feature` に入る。同時に走るツアーは1本だけ。
  */
 import { t } from '../../../lib/i18n';
@@ -279,9 +279,11 @@ function renderContent(): void {
 
     const next = card.querySelector<HTMLElement>('[data-guide-action="next"]');
     if (next) {
-        next.classList.toggle('hidden', modalMode || step.advance.type !== 'next');
+        // 'next' の手順は常に「次へ」を出す。optional な events の手順は、イベントでも進むが「押さずに次へ」も出す
+        const optional = step.advance.type === 'events' && step.advance.optional === true;
+        next.classList.toggle('hidden', modalMode || !(step.advance.type === 'next' || optional));
         const isLast = nextStepIndex(tour, index + 1, computeGuideConditions()) === null;
-        next.textContent = t(isLast ? 'guide_tourDone' : 'guide_tourNext');
+        next.textContent = t(optional ? 'guide_tourSkip' : isLast ? 'guide_tourDone' : 'guide_tourNext');
     }
 }
 
@@ -339,6 +341,8 @@ function handleEnd(): void {
 export async function startGuideTour(tourId: GuideTourId, fromStepId?: string): Promise<void> {
     await loadGuideProgress();
     const tour = GUIDE_TOURS[tourId];
+    // 中身の無い枠と、サイドパネル以外の画面のツアー（全文の判定ページ側のランナーが扱う）は、ここでは始めない
+    if (tour.draft || tour.page !== 'sidepanel') return;
     const from = fromStepId ? Math.max(0, tour.steps.findIndex(step => step.id === fromStepId)) : 0;
     const index = nextStepIndex(tour, from, computeGuideConditions());
     stopTour();
@@ -356,6 +360,7 @@ export async function resumeGuideTour(): Promise<void> {
     const active = progress.active;
     if (!active || running) return;
     const tour = GUIDE_TOURS[active.tourId];
+    if (tour.page !== 'sidepanel') return; // 全文の判定ページのツアーは、そちらの画面が再開する
     if (!availableTours(currentGuidePlatform()).some(candidate => candidate.id === tour.id)) {
         updateGuideProgress(current => ({ ...current, active: null }));
         return;

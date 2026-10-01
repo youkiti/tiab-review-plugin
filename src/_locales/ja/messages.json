@@ -1674,6 +1674,18 @@
   "guide_tourAgain": {
     "message": "もう一度"
   },
+  "guide_tourSkip": {
+    "message": "押さずに次へ"
+  },
+  "guide_tabSuggestStart": {
+    "message": "ツアーで進める"
+  },
+  "guide_tabSuggestDismiss": {
+    "message": "表示しない"
+  },
+  "guideExt_tourOpenFulltextHint": {
+    "message": "全文タブで文献を開くと始められます"
+  },
   "guide_suggestTitle": {
     "message": "はじめての方へ"
   },
@@ -1748,6 +1760,54 @@
   },
   "guide_tour_join_project_finish": {
     "message": "各カードの「?」でいつでも説明を開けます。この ❓ から、各画面の説明と操作ツアーの一覧を開けます。判定を直したいときは、前の文献に戻って押し直してください。"
+  },
+  "guideExt_tour_assignment_setup_title": {
+    "message": "分担の設定"
+  },
+  "guideExt_tour_assignment_setup_desc": {
+    "message": "全員で同じ文献を判定して基準をそろえ、残りを分担する設定を案内します。"
+  },
+  "guideExt_tour_share_invite_title": {
+    "message": "共有と招待"
+  },
+  "guideExt_tour_share_invite_desc": {
+    "message": "共同研究者をシートに共有し、招待文を送るまでを案内します。"
+  },
+  "guideExt_tour_resolve_conflicts_title": {
+    "message": "不一致の解消"
+  },
+  "guideExt_tour_resolve_conflicts_desc": {
+    "message": "レビュアー間で判定が割れた文献を見つけ、合意に導く手順を案内します。"
+  },
+  "guideExt_tour_duplicate_review_title": {
+    "message": "重複の確認"
+  },
+  "guideExt_tour_duplicate_review_desc": {
+    "message": "重複と判定された文献を確認し、残すものを決める手順を案内します。"
+  },
+  "guideExt_tour_fulltext_setup_title": {
+    "message": "全文の準備"
+  },
+  "guideExt_tour_fulltext_setup_desc": {
+    "message": "全文スクリーニングの対象を決め、PDF を集める準備を案内します。"
+  },
+  "guideExt_tour_ai_first_run_title": {
+    "message": "AI 判定の初回"
+  },
+  "guideExt_tour_ai_first_run_desc": {
+    "message": "AI のモデルと基準を設定して、はじめて判定を実行するまでを案内します。"
+  },
+  "guideExt_tour_ml_start_title": {
+    "message": "ML の開始"
+  },
+  "guideExt_tour_ml_start_desc": {
+    "message": "判定済みの文献から学習して、残りを優先度順に並べる ML の使い方を案内します。"
+  },
+  "guideExt_tour_fulltext_page_title": {
+    "message": "全文の判定ページ"
+  },
+  "guideExt_tour_fulltext_page_desc": {
+    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"

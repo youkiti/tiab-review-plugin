@@ -14,10 +14,11 @@ import {
     shouldSuggest,
     startTour,
     suppressSuggestions,
+    tourToSuggestOnEvent,
     type GuideSuggestContext,
 } from '../src/lib/guide/tour-progress';
 import { GUIDE_TOURS } from '../src/lib/guide/tours';
-import type { GuideCondition } from '../src/lib/guide/tours';
+import type { GuideCondition, TourDefinition } from '../src/lib/guide/tours';
 
 const NOW = '2026-10-01T00:00:00.000Z';
 const ctx = (over: Partial<GuideSuggestContext> = {}): GuideSuggestContext => ({
@@ -208,4 +209,54 @@ test('遷移: 元の状態を書き換えない', () => {
     completeTour(base, 'first-project', NOW);
     suppressSuggestions(base);
     assert.deepEqual(base, createEmptyGuideProgress());
+});
+
+test('shouldAdvance: optional な events の手順も、該当イベントで進む（「押さずに次へ」は画面側の追加の出口）', () => {
+    const optional = { advance: { type: 'events' as const, events: ['decision-saved' as const], optional: true as const } };
+    assert.equal(shouldAdvance(optional, 'decision-saved'), true);
+    assert.equal(shouldAdvance(optional, 'navigated-prev'), false);
+});
+
+test('availableTours: draft の枠は含めず、渡した定義の中から選ぶ', () => {
+    const real = availableTours(ctx()).map((t) => t.id);
+    assert.deepEqual(real.sort(), ['first-project', 'join-project']);
+    for (const tour of Object.values(GUIDE_TOURS)) {
+        if (tour.draft) assert.equal(real.includes(tour.id), false, tour.id);
+    }
+    const base = GUIDE_TOURS['join-project'];
+    const draft: TourDefinition = { ...base, id: 'ml-start', draft: true, steps: [] };
+    assert.deepEqual(availableTours(ctx(), [base, draft]).map((t) => t.id), ['join-project']);
+});
+
+/** 仕組みの確認用の架空のツアー（実際のツアーは draft のため、提案の純関数はこの定義で検査する）。 */
+const fakeTour = (over: Partial<TourDefinition> = {}): TourDefinition => ({
+    ...GUIDE_TOURS['first-project'],
+    id: 'ml-start',
+    suggestOn: 'tab-opened-ml',
+    ...over,
+});
+
+test('tourToSuggestOnEvent: suggestOn が一致し、まだ済・却下でなければ返す', () => {
+    const tour = fakeTour();
+    const empty = createEmptyGuideProgress();
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx(), [tour]), tour);
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-llm', ctx(), [tour]), null);
+    // suggestOn の無いツアーは対象外
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx(), [fakeTour({ suggestOn: undefined })]), null);
+    // 既定では実在のツアー（suggestOn を持つものが無い）から選ぶ
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx()), null);
+});
+
+test('tourToSuggestOnEvent: 済・却下・実行中・今後表示しない・draft・プラットフォーム外・権限なしでは返さない', () => {
+    const tour = fakeTour();
+    const empty = createEmptyGuideProgress();
+    assert.equal(tourToSuggestOnEvent(completeTour(empty, 'ml-start', NOW), 'tab-opened-ml', ctx(), [tour]), null);
+    assert.equal(tourToSuggestOnEvent(dismissTour(empty, 'ml-start', NOW), 'tab-opened-ml', ctx(), [tour]), null);
+    assert.equal(tourToSuggestOnEvent(startTour(empty, 'join-project'), 'tab-opened-ml', ctx(), [tour]), null);
+    assert.equal(tourToSuggestOnEvent(suppressSuggestions(empty), 'tab-opened-ml', ctx(), [tour]), null);
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx(), [fakeTour({ draft: true })]), null);
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx({ platform: 'web' }), [tour]), null);
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx({ capabilities: { createProject: false } }), [tour]), null);
+    // 別のツアーの済・却下は影響しない
+    assert.equal(tourToSuggestOnEvent(completeTour(empty, 'first-project', NOW), 'tab-opened-ml', ctx(), [tour]), tour);
 });

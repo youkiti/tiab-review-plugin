@@ -299,6 +299,18 @@
     font-size: 12px;
 }
 
+.guide-tour-item-hint {
+    margin: 2px 0 0;
+    color: #5f6368;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* タブを初めて開いたときの提案の帯（見た目は初回のバナーと同じ。ツアーの見出しと2つのボタンだけ） */
+.guide-tab-suggest .guide-suggest-dismissals {
+    margin-top: 0;
+}
+
 /* プロジェクト画面のログイン情報の行: 右のボタン列は折り返さず、メールアドレス側が縮む */
 .user-info-container .user-info {
     flex: 1 1 0;

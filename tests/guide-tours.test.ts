@@ -2,13 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { GUIDE_TOURS, type GuideEventName } from '../src/lib/guide/tours';
-import { GUIDE_PROGRESS_STORAGE_KEY } from '../src/lib/guide/tour-progress';
+import { GUIDE_TOURS, type GuideEventName, type TourDefinition } from '../src/lib/guide/tours';
+import { GUIDE_PROGRESS_STORAGE_KEY, availableTours } from '../src/lib/guide/tour-progress';
 import { GUIDE_TOPICS, type GuideTopic } from '../src/lib/guide/topics';
 
 /**
- * ツアーの定義（src/lib/guide/tours.ts）と、画面（sidepanel.html・TypeScript）・messages.json の照合。
+ * ツアーの定義（src/lib/guide/tours/）と、画面（sidepanel.html・fulltext.html・TypeScript）・messages.json の照合。
  * UI を変えてもツアーが黙って壊れないよう、対象の要素・文言・イベントの送出元の実在を検査する。
+ *
+ * draft（まだ中身の無い枠）のツアーは、対象・各手順の文言・イベントの照合から外す（見出しと説明のキーの実在だけは見る）。
+ * page が 'fulltext' のツアーの対象は、sidepanel.html ではなく src/fulltext/fulltext.html（と src/fulltext/ の TypeScript）で照合する。
  *
  * テストは .tmp/tests/ 配下にコンパイルされて実行されるため、__dirname ではなく
  * リポジトリルート（npm test の cwd）基準でファイルを解決する。
@@ -33,21 +36,37 @@ function listFiles(dir: string, extensions: string[]): string[] {
 }
 
 const html = read('src', 'sidepanel', 'sidepanel.html');
-const tours = Object.values(GUIDE_TOURS);
+const fulltextHtml = read('src', 'fulltext', 'fulltext.html');
+/** 全ツアー（draft の枠を含む）。見出し・説明のキーと、draft の性質の検査にだけ使う。 */
+const allTours: TourDefinition[] = Object.values(GUIDE_TOURS);
+/** 中身のあるツアー。対象・文言・イベントの照合はこちらだけ。 */
+const tours: TourDefinition[] = allTours.filter(tour => !tour.draft);
+const sidepanelTours = tours.filter(tour => tour.page === 'sidepanel');
 
-test('静的な対象は sidepanel.html に data-tour として実在する', () => {
-    const present = new Set([...html.matchAll(/\bdata-tour="([^"]+)"/g)].map(m => m[1]));
+/** そのツアーが動く画面の HTML（page 'fulltext' は src/fulltext/fulltext.html）。 */
+function htmlOf(tour: TourDefinition): string {
+    return tour.page === 'fulltext' ? fulltextHtml : html;
+}
+
+/** そのツアーの画面を作る TypeScript のあるディレクトリ。動的な対象を探す範囲。 */
+function sourceDirOf(tour: TourDefinition): string {
+    return tour.page === 'fulltext' ? join(ROOT, 'src', 'fulltext') : join(ROOT, 'src');
+}
+
+test('静的な対象は、そのツアーが動く画面の HTML に data-tour として実在する', () => {
     for (const tour of tours) {
+        const present = new Set([...htmlOf(tour).matchAll(/\bdata-tour="([^"]+)"/g)].map(m => m[1]));
+        const file = tour.page === 'fulltext' ? 'fulltext.html' : 'sidepanel.html';
         for (const step of tour.steps) {
             if (step.dynamicTarget) continue;
-            assert.ok(present.has(step.target), `${tour.id}/${step.id} の対象 data-tour="${step.target}" が sidepanel.html に無い`);
+            assert.ok(present.has(step.target), `${tour.id}/${step.id} の対象 data-tour="${step.target}" が ${file} に無い`);
         }
     }
 });
 
 test('dynamicTarget の対象は、TypeScript に data-tour を付けるコードが実在する', () => {
-    const sources = listFiles(join(ROOT, 'src'), ['.ts']).map(file => readFileSync(file, 'utf8'));
     for (const tour of tours) {
+        const sources = listFiles(sourceDirOf(tour), ['.ts']).map(file => readFileSync(file, 'utf8'));
         for (const step of tour.steps) {
             if (!step.dynamicTarget) continue;
             const pattern = new RegExp(
@@ -55,24 +74,48 @@ test('dynamicTarget の対象は、TypeScript に data-tour を付けるコー�
             );
             assert.ok(
                 sources.some(source => pattern.test(source)),
-                `${tour.id}/${step.id} の動的な対象 "${step.target}" に data-tour を付けるコードが src に無い`,
+                `${tour.id}/${step.id} の動的な対象 "${step.target}" に data-tour を付けるコードが ${tour.page === 'fulltext' ? 'src/fulltext' : 'src'} に無い`,
             );
         }
     }
 });
 
-test('ツアーの見出し・説明・各手順の本文が ja の messages.json にある', () => {
-    const ja = JSON.parse(read('src', '_locales', 'ja', 'messages.json')) as Record<string, { message: string }>;
-    for (const tour of tours) {
-        const keys = [tour.titleKey, tour.descriptionKey, ...tour.steps.map(step => step.textKey)];
-        for (const key of keys) {
-            assert.ok(ja[key]?.message, `${tour.id} のキー ${key} が ja の messages.json に無い`);
+test('ツアーの見出し・説明（draft を含む）と、draft でないツアーの各手順の本文が ja/en の messages.json にある', () => {
+    for (const lang of ['ja', 'en']) {
+        const messages = JSON.parse(read('src', '_locales', lang, 'messages.json')) as Record<string, { message: string }>;
+        for (const tour of allTours) {
+            const keys = [tour.titleKey, tour.descriptionKey, ...tour.steps.map(step => step.textKey)];
+            for (const key of keys) {
+                assert.ok(messages[key]?.message, `${tour.id} のキー ${key} が ${lang} の messages.json に無い`);
+            }
+        }
+    }
+});
+
+test('messages.json は、ツアーごとに title → desc → 手順の本文の順で1つの連続した区画になり、区画は重ならない', () => {
+    for (const lang of ['ja', 'en']) {
+        const keys = Object.keys(JSON.parse(read('src', '_locales', lang, 'messages.json')) as Record<string, unknown>);
+        const ranges: { id: string; first: number; last: number }[] = [];
+        for (const tour of allTours) {
+            const own = [tour.titleKey, tour.descriptionKey, ...tour.steps.map(step => step.textKey)];
+            const positions = own.map(key => keys.indexOf(key));
+            assert.ok(positions.every(position => position >= 0), `${lang}: ${tour.id} のキーが messages.json に無い`);
+            const first = Math.min(...positions);
+            const last = Math.max(...positions);
+            assert.equal(last - first + 1, own.length, `${lang}: ${tour.id} のキーが連続していない`);
+            assert.equal(keys[first], tour.titleKey, `${lang}: ${tour.id} の区画は title から始まる`);
+            assert.equal(keys[first + 1], tour.descriptionKey, `${lang}: ${tour.id} の title の次は desc`);
+            ranges.push({ id: tour.id, first, last });
+        }
+        ranges.sort((a, b) => a.first - b.first);
+        for (let i = 1; i < ranges.length; i += 1) {
+            assert.ok(ranges[i - 1].last < ranges[i].first, `${lang}: ${ranges[i - 1].id} と ${ranges[i].id} の区画が重なっている`);
         }
     }
 });
 
 test('拡張版でしか出ないツアーのキーは guideExt_、Web 版でも出るツアーは guide_ の接頭辞', () => {
-    for (const tour of tours) {
+    for (const tour of allTours) {
         const webToo = tour.platforms.includes('web');
         const prefix = webToo ? 'guide_' : 'guideExt_';
         const keys = [tour.titleKey, tour.descriptionKey, ...tour.steps.map(step => step.textKey)];
@@ -133,7 +176,7 @@ function hiddenByCapabilities(): Set<string> {
 test('Web 版でも出るツアーの静的な対象は、Web 版で隠される要素（とその中身）に依存しない', () => {
     const hidden = hiddenByCapabilities();
     const elements = parseHtmlElements(html);
-    for (const tour of tours) {
+    for (const tour of sidepanelTours) {
         if (!tour.platforms.includes('web')) continue;
         for (const step of tour.steps) {
             if (step.dynamicTarget) continue;
@@ -158,25 +201,93 @@ test('topics.ts の tourId はすべて GUIDE_TOURS に実在する', () => {
     assert.ok(count > 0, 'tourId を持つトピックが1つも無い');
 });
 
-test('手順の進め方: events の手順は1つ以上のイベントを持ち、すべてのイベントを画面側のどこかが送る', () => {
+test('サイドパネルのトピックの tourId は page が sidepanel のツアーだけ。draft のツアーの開始ボタンは吹き出しに出ない', () => {
+    const usable = new Set(availableTours({ platform: 'extension', capabilities: { createProject: true } }).map(tour => tour.id));
+    for (const [topicId, topic] of Object.entries<GuideTopic>(GUIDE_TOPICS)) {
+        if (!topic.tourId) continue;
+        const tour = GUIDE_TOURS[topic.tourId];
+        assert.equal(tour.page, 'sidepanel', `トピック ${topicId} の tourId "${topic.tourId}" は全文の判定ページのツアー`);
+        // 吹き出しの開始ボタンは features/guide/index.ts が availableTours に含まれるときだけ出す
+        if (tour.draft) assert.equal(usable.has(tour.id), false, `${tour.id} は draft なのに使えるツアーに入っている`);
+    }
+    const guideIndex = read('src', 'sidepanel', 'features', 'guide', 'index.ts');
+    assert.match(guideIndex, /tourId && availableTours\(currentGuidePlatform\(\)\)\.some\(tour => tour\.id === tourId\)/);
+});
+
+test('lazy.ts の SUGGEST_TOUR_BY_EVENT は、ツアー定義の suggestOn（draft を含む）と一致する', () => {
+    const lazy = read('src', 'sidepanel', 'features', 'guide', 'lazy.ts');
+    const block = /const SUGGEST_TOUR_BY_EVENT[^=]*=\s*\{([\s\S]*?)\};/.exec(lazy)?.[1];
+    assert.ok(block, 'lazy.ts に SUGGEST_TOUR_BY_EVENT が見つからない');
+    const table = new Map<string, string>();
+    for (const m of block.matchAll(/'(tab-opened-[a-z]+)':\s*'([a-z-]+)'/g)) table.set(m[1], m[2]);
+    const defined = new Map<string, string>();
+    for (const tour of allTours) {
+        if (!tour.suggestOn) continue;
+        assert.equal(defined.has(tour.suggestOn), false, `${tour.suggestOn} を suggestOn に持つツアーが複数ある（lazy.ts の対応表は1対1）`);
+        defined.set(tour.suggestOn, tour.id);
+    }
+    assert.deepEqual([...table].sort(), [...defined].sort(), 'lazy.ts の対応表とツアー定義の suggestOn が食い違っている');
+    assert.ok(table.size > 0);
+});
+
+/** dir 配下の TypeScript が emitGuideEvent('<名前>') で送るイベント名。 */
+function emittedEventsIn(dir: string): Set<string> {
     const emitted = new Set<string>();
-    for (const file of listFiles(join(ROOT, 'src', 'sidepanel'), ['.ts'])) {
+    for (const file of listFiles(dir, ['.ts'])) {
         for (const m of readFileSync(file, 'utf8').matchAll(/emitGuideEvent\('([a-z-]+)'\)/g)) emitted.add(m[1]);
     }
-    const used = new Set<GuideEventName>();
+    return emitted;
+}
+
+test('手順の進め方・提案: events の手順は1つ以上のイベントを持ち、使うイベント（suggestOn を含む）はすべて画面側のどこかが送る', () => {
+    const emittedBySidepanel = emittedEventsIn(join(ROOT, 'src', 'sidepanel'));
+    // 全文の判定ページのツアーは、全文の判定ページ側かサイドパネル側のどちらかが送ればよい
+    const emittedByFulltext = new Set([...emittedBySidepanel, ...emittedEventsIn(join(ROOT, 'src', 'fulltext'))]);
     for (const tour of tours) {
+        const emitted = tour.page === 'fulltext' ? emittedByFulltext : emittedBySidepanel;
+        const used = new Set<GuideEventName>();
+        if (tour.suggestOn) used.add(tour.suggestOn);
         for (const step of tour.steps) {
             if (step.advance.type !== 'events') continue;
             assert.ok(step.advance.events.length > 0, `${tour.id}/${step.id} の events が空`);
             step.advance.events.forEach(event => used.add(event));
         }
+        for (const event of used) {
+            assert.ok(emitted.has(event), `${tour.id}: イベント "${event}" を emitGuideEvent で送るコードが無い`);
+        }
     }
-    for (const event of used) {
+});
+
+test('タブを開いたイベント（tab-opened-*）は、サイドパネル側が送る', () => {
+    const emitted = emittedEventsIn(join(ROOT, 'src', 'sidepanel'));
+    for (const event of ['tab-opened-screening', 'tab-opened-ml', 'tab-opened-llm', 'tab-opened-fulltext']) {
         assert.ok(emitted.has(event), `イベント "${event}" を emitGuideEvent で送るコードが src/sidepanel に無い`);
     }
 });
 
-test('初期バンドルの入口 lazy.ts は、ツアーの本体（tours.ts・tour-progress.ts）を値として import しない', () => {
+test('draft のツアーには手順が無く、draft でないツアーには手順が1つ以上ある', () => {
+    for (const tour of allTours) {
+        if (tour.draft) {
+            assert.equal(tour.steps.length, 0, `${tour.id} は draft なのに手順がある（手順を書いたら draft を外す）`);
+        } else {
+            assert.ok(tour.steps.length >= 1, `${tour.id} は draft でないのに手順が無い`);
+        }
+    }
+    assert.ok(tours.length >= 2, 'draft でないツアーが2本未満（検査が空振りしている）');
+});
+
+test('page が fulltext のツアーは拡張版だけ。suggestOn はタブを開いたイベントで、サイドパネルのツアーにだけ付く', () => {
+    for (const tour of allTours) {
+        if (tour.page === 'fulltext') {
+            assert.deepEqual([...tour.platforms], ['extension'], `${tour.id}: 全文の判定ページは拡張版だけ`);
+        }
+        if (tour.suggestOn === undefined) continue;
+        assert.ok(tour.suggestOn.startsWith('tab-opened-'), `${tour.id}: suggestOn は今のところタブを開いたイベントだけ（提案の帯の出し先がタブごとに決まっている）`);
+        assert.equal(tour.page, 'sidepanel', `${tour.id}: suggestOn はサイドパネルのツアーだけ`);
+    }
+});
+
+test('初期バンドルの入口 lazy.ts は、ツアーの本体（tours/・tour-progress.ts）を値として import しない', () => {
     const lazy = read('src', 'sidepanel', 'features', 'guide', 'lazy.ts');
     for (const m of lazy.matchAll(/^import\s+(?!type\b)[^;]*from\s+'([^']+)'/gm)) {
         assert.doesNotMatch(m[1], /lib\/guide\//, `lazy.ts が ${m[1]} を値として import している（初期バンドルに入る）`);
@@ -187,7 +298,7 @@ test('初期バンドルの入口 lazy.ts は、ツアーの本体（tours.ts・
 });
 
 test('ツアーの手順 ID はツアー内で重複しない', () => {
-    for (const tour of tours) {
+    for (const tour of allTours) {
         const ids = tour.steps.map(step => step.id);
         assert.equal(new Set(ids).size, ids.length, `${tour.id} に重複した手順 ID がある`);
     }
@@ -217,6 +328,15 @@ test('tourList: true のトピックは、プロジェクト選択画面とツ�
     for (const lang of ['ja', 'en']) {
         const messages = JSON.parse(read('src', '_locales', lang, 'messages.json')) as Record<string, { message: string }>;
         assert.ok(messages.guide_tourListAction?.message, `${lang} に guide_tourListAction が無い`);
+    }
+});
+
+test('入口の文言（押さずに次へ・タブの提案の帯・全文タブの案内）が ja/en にある', () => {
+    for (const lang of ['ja', 'en']) {
+        const messages = JSON.parse(read('src', '_locales', lang, 'messages.json')) as Record<string, { message: string }>;
+        for (const key of ['guide_tourSkip', 'guide_tabSuggestStart', 'guide_tabSuggestDismiss', 'guideExt_tourOpenFulltextHint']) {
+            assert.ok(messages[key]?.message, `${lang} に ${key} が無い`);
+        }
     }
 });
 

@@ -1674,6 +1674,18 @@
   "guide_tourAgain": {
     "message": "Again"
   },
+  "guide_tourSkip": {
+    "message": "Skip this step"
+  },
+  "guide_tabSuggestStart": {
+    "message": "Guide me"
+  },
+  "guide_tabSuggestDismiss": {
+    "message": "Don't show"
+  },
+  "guideExt_tourOpenFulltextHint": {
+    "message": "Open a record in the Full-text tab to start."
+  },
   "guide_suggestTitle": {
     "message": "New here?"
   },
@@ -1748,6 +1760,54 @@
   },
   "guide_tour_join_project_finish": {
     "message": "The ? on each card opens an explanation any time. This ❓ opens the explanation for each screen and the list of guided tours. To fix a decision, go back to the previous record and press again."
+  },
+  "guideExt_tour_assignment_setup_title": {
+    "message": "Set up assignments"
+  },
+  "guideExt_tour_assignment_setup_desc": {
+    "message": "Walks you through having everyone screen the same records to calibrate, then splitting the rest."
+  },
+  "guideExt_tour_share_invite_title": {
+    "message": "Share and invite"
+  },
+  "guideExt_tour_share_invite_desc": {
+    "message": "Walks you through sharing the sheet with collaborators and sending the invitation."
+  },
+  "guideExt_tour_resolve_conflicts_title": {
+    "message": "Resolve conflicts"
+  },
+  "guideExt_tour_resolve_conflicts_desc": {
+    "message": "Shows how to find records where reviewers disagree and reach a consensus."
+  },
+  "guideExt_tour_duplicate_review_title": {
+    "message": "Review duplicates"
+  },
+  "guideExt_tour_duplicate_review_desc": {
+    "message": "Shows how to check records flagged as duplicates and decide which to keep."
+  },
+  "guideExt_tour_fulltext_setup_title": {
+    "message": "Prepare full-text screening"
+  },
+  "guideExt_tour_fulltext_setup_desc": {
+    "message": "Walks you through choosing the records for full-text screening and gathering their PDFs."
+  },
+  "guideExt_tour_ai_first_run_title": {
+    "message": "Your first AI screening"
+  },
+  "guideExt_tour_ai_first_run_desc": {
+    "message": "Walks you through setting the AI model and criteria and running screening for the first time."
+  },
+  "guideExt_tour_ml_start_title": {
+    "message": "Start ML prioritization"
+  },
+  "guideExt_tour_ml_start_desc": {
+    "message": "Shows how to use ML to learn from your decisions and rank the remaining records by priority."
+  },
+  "guideExt_tour_fulltext_page_title": {
+    "message": "Full-text screening page"
+  },
+  "guideExt_tour_fulltext_page_desc": {
+    "message": "Shows how to use the separate tab where you open the PDF and screen the full text."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."
