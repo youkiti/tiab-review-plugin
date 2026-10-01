@@ -46,6 +46,14 @@ export default defineScenario({
         await run.click('#share-btn', 'open-share', '「共有」ボタン');
 
         await run.waitStep(T, 'add');
+        const shareBounds = await run.page.evaluate(() => {
+            const root = document.documentElement;
+            const { left, right } = document.querySelector('#share-input-area').getBoundingClientRect();
+            return { left, right, clientWidth: root.clientWidth, scrollWidth: root.scrollWidth };
+        });
+        if (shareBounds.scrollWidth > shareBounds.clientWidth || shareBounds.left < 0 || shareBounds.right > shareBounds.clientWidth) {
+            await run.fail('add', `横スクロールがなく共有パネルが画面内に収まること（実測: ${JSON.stringify(shareBounds)}）`);
+        }
         await expectCardClearOfTarget(run, 'add', '#share-submit-btn', '追加ボタン');
         await run.page.locator('#share-email-input').fill(NEW_MEMBER);
         await run.click('#share-submit-btn', 'add', '追加ボタン');

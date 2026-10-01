@@ -5,6 +5,19 @@
 
 import type { AppState } from '../store/types';
 import { dom } from '../dom';
+import { computeSharePanelPosition } from '../utils/share-panel-position';
+
+/** 前回の補正を外して測り、開閉やリサイズによる位置ずれの累積を防ぐ。 */
+function positionSharePanel(): void {
+    const area = dom.shareInputArea;
+    area.style.removeProperty('left');
+    area.style.removeProperty('width');
+    if (area.classList.contains('hidden')) return;
+    const rect = area.getBoundingClientRect();
+    const { offset, width } = computeSharePanelPosition(rect.left, rect.width, document.documentElement.clientWidth);
+    if (offset !== 0) area.style.left = `${offset}px`;
+    if (width !== rect.width) area.style.width = `${width}px`;
+}
 
 /**
  * レイアウト描画
@@ -75,6 +88,10 @@ export function renderTemporaryUI(state: AppState): void {
 
     // 共有入力エリア
     dom.shareInputArea.classList.toggle('hidden', !flags.shareInputOpen);
+    positionSharePanel();
+    // 同じ関数の登録は重複せず、閉じている間は監視しない。
+    if (flags.shareInputOpen) window.addEventListener('resize', positionSharePanel);
+    else window.removeEventListener('resize', positionSharePanel);
 
     // トースト（既存CSSは.showクラスを使用）
     if (toast) {
