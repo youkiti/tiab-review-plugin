@@ -1867,7 +1867,7 @@
     "message": "\"Optimize Criteria\" turns the pasted text into criteria and a prompt for the AI. This calls the API, so use \"Skip this step\" if you are only looking."
   },
   "guideExt_tour_ai_first_run_prompt": {
-    "message": "This is the generated prompt. Check it and edit it directly if something is missing. \"Save Criteria\" stores it in the sheet (saving costs nothing)."
+    "message": "This is the generated prompt. Check it and edit it directly if something is missing. \"Save Criteria to Google Spreadsheet\" stores it in the sheet (saving costs nothing)."
   },
   "guideExt_tour_ai_first_run_prompt_wait": {
     "message": "The prompt appears here once you optimize the criteria. There are none yet, so we move on. After you create them, open this tour again from the ❓ \"List of guided tours\" and it will continue from here."
@@ -1879,7 +1879,7 @@
     "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
   },
   "guideExt_tour_ai_first_run_threshold": {
-    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; 0.5 is the standard if unsure. \"Confirm Threshold & Save\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
+    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; 0.5 is the standard if unsure. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
   },
   "guideExt_tour_ai_first_run_threshold_wait": {
     "message": "Once a run finishes, the threshold confirmation appears here, below the batch controls. You have not run it yet, so we move on. After a run, open this tour again from the ❓ \"List of guided tours\" and it will explain the threshold."
