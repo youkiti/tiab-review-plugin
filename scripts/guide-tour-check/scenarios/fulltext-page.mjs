@@ -161,6 +161,65 @@ export default defineScenario({
         await run.waitCardGone('finish');
         await run.waitTourStatus(T, 'done', 'finish');
 
+        // ---------- 3b. 同じツアーを2つのタブで開く（保存値を正として、全タブが同じ手順を表示する） ----------
+        const tabA = run.page;
+        const stepOf = (page) => page.evaluate(() => document.getElementById('guide-tour-card')?.getAttribute('data-guide-step') ?? null);
+        const waitStepOn = async (page, expected, label) => {
+            try {
+                await page.waitForFunction(
+                    (id) => (document.getElementById('guide-tour-card')?.getAttribute('data-guide-step') ?? null) === id,
+                    expected, { timeout: STEP_TIMEOUT },
+                );
+            } catch (err) {
+                await run.fail('two-tabs', `${label}の手順が ${expected ?? '（カード無し）'} になること（実際: ${await stepOf(page)}）`, err);
+            }
+        };
+        const nextOn = (page) => page.locator('#guide-tour-card [data-guide-action="next"]').click({ timeout: STEP_TIMEOUT });
+        const activeStepId = async () => (await run.readProgress())?.active?.stepId ?? null;
+
+        // タブ A でツアーを始めて2手順進める
+        await run.click('[data-guide-action="start-tour"]', 'two-tabs', '「ツアー」ボタン');
+        await waitStepOn(tabA, 'biblio', 'タブ A');
+        await nextOn(tabA);
+        await waitStepOn(tabA, 'pdf', 'タブ A');
+        await nextOn(tabA);
+        await waitStepOn(tabA, 'criteria', 'タブ A');
+
+        // タブ B（別の文献）を開くと、同じ手順（criteria）から再開する
+        const tabB = await tabA.context().newPage();
+        await run.openFulltextPage(SECOND_REF, { page: tabB });
+        await waitStepOn(tabB, 'criteria', 'タブ B（再開）');
+        await tabB.bringToFront();
+
+        // B で「次へ」→ A も追従する。保存値の手順は巻き戻らない
+        await nextOn(tabB);
+        await waitStepOn(tabB, 'decision', 'タブ B');
+        await waitStepOn(tabA, 'decision', 'タブ A（B の操作に追従）');
+        await sleep(1500); // 通知が往復して手順が動き続けないこと
+        if ((await stepOf(tabA)) !== 'decision' || (await stepOf(tabB)) !== 'decision' || (await activeStepId()) !== 'decision') {
+            await run.fail('two-tabs', `追従のあと、両タブと保存値が decision のまま動かないこと（A: ${await stepOf(tabA)}、B: ${await stepOf(tabB)}、保存値: ${await activeStepId()}）`);
+        }
+        run.log('タブ B の操作にタブ A が追従し、手順は往復しなかった');
+
+        // A で「押さずに次へ」→ B も追従する
+        await tabA.bringToFront();
+        await nextOn(tabA);
+        await waitStepOn(tabA, 'reason-info', 'タブ A');
+        await waitStepOn(tabB, 'reason-info', 'タブ B（A の操作に追従）');
+        if ((await activeStepId()) !== 'reason-info') {
+            await run.fail('two-tabs', `保存値の active.stepId が reason-info になること（実際: ${await activeStepId()}）`);
+        }
+
+        // 片方で「ツアーを終える」と、両方のカードが消える
+        await tabB.bringToFront();
+        await tabB.locator('#guide-tour-card [data-guide-action="end"]').click({ timeout: STEP_TIMEOUT });
+        await waitStepOn(tabB, null, 'タブ B');
+        await waitStepOn(tabA, null, 'タブ A（B の終了に追従）');
+        await run.waitTourStatus(T, 'dismissed', 'two-tabs');
+        run.log('片方で終了すると、両方のカードが消えた');
+        await tabB.close();
+        await tabA.bringToFront();
+
         // ---------- 4. サイドパネルのツアーとの置き換え（同時に走るのは1本だけ。置き換えられた側のカードは消える） ----------
         const sidepanel = await run.page.context().newPage();
         await sidepanel.goto(run.sidepanelUrl());

@@ -14,6 +14,7 @@ import {
     dismissTour,
     nextStepIndex,
     setActiveStep,
+    decideProgressSync,
     isTourUnavailable,
     shouldAdvance,
     startTour,
@@ -62,6 +63,8 @@ export interface TourRunner {
 interface RunningTour {
     tour: TourDefinition;
     index: number;
+    /** 別の画面の保存値に追従して切り替えた手順か。真なら、この画面の条件で飛ばされる手順でも、自分では先へ進めない（保存して食い違わないため） */
+    followed: boolean;
 }
 
 function isVisible(element: HTMLElement): boolean {
@@ -352,17 +355,25 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
         }
     }
 
-    /** 別の画面がほかのツアーを始めて保存値が置き換わったら、こちらの表示を片づける（保存はしない）。 */
+    /**
+     * 別の画面が進行状態を保存したら、保存値を正として表示を合わせる（保存はしない）。
+     * ツアーが終わった・置き換わったなら片づけ、同じツアーで手順が違うならその手順へ切り替える。
+     */
     function ensureSubscribed(): void {
         if (subscribed) return;
         subscribed = true;
         subscribeGuideProgressChange(() => {
-            if (running && getGuideProgress().active?.tourId !== running.tour.id) stopTour();
+            const action = decideProgressSync(
+                getGuideProgress().active,
+                running ? { tourId: running.tour.id, stepIndex: running.index } : null,
+            );
+            if (action.type === 'close') stopTour();
+            else if (action.type === 'switch' && running) showStep(running.tour, action.stepIndex, true);
         });
     }
 
-    function showStep(tour: TourDefinition, index: number): void {
-        running = { tour, index };
+    function showStep(tour: TourDefinition, index: number, followed = false): void {
+        running = { tour, index, followed };
         needsScroll = true;
         ensureSubscribed();
         ensureElements();
@@ -462,6 +473,8 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
             goTo(nextStepIndex(tour, index + 1, conditions));
             return;
         }
+        // 別の画面に追従した手順は、この画面の条件で飛ばされる手順でも先へ進めない（進めて保存すると食い違う）
+        if (running.followed) return;
         const settled = nextStepIndex(tour, index, conditions);
         if (settled !== index) goTo(settled);
     }

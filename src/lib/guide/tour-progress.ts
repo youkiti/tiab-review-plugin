@@ -210,6 +210,31 @@ export function tourToSuggestOnPage(
     return availableTours(context, tours, conditions).find(tour => tour.page === page && progress.tours[tour.id] === undefined) ?? null;
 }
 
+/** 別の画面から保存値が変わったと知らされたとき、この画面の表示がすべきこと。 */
+export type ProgressSyncAction =
+    | { type: 'none' }
+    | { type: 'close' }
+    | { type: 'switch'; stepIndex: number };
+
+/**
+ * 保存値を正として、複数の画面が同じツアーの同じ手順を表示するための判断（純関数）。
+ * shown はこの画面で今表示しているツアーと手順（表示していなければ null）。
+ * - 表示していない: 何もしない。
+ * - 保存値の active が無い、または別のツアー: 片づける（別の画面でツアーが終わった・置き換わった）。
+ * - active が自分のツアーで手順が違う: その手順に切り替える（保存はしない。保存し直すと通知が往復する）。
+ * - 同じ: 何もしない。
+ * 切り替え先がこの画面の条件で飛ばされる手順でも、保存値は変えず、そのまま表示する（対象が見えなければ待機表示になる）。
+ */
+export function decideProgressSync(
+    active: GuideActiveTour | null,
+    shown: { tourId: GuideTourId; stepIndex: number } | null,
+): ProgressSyncAction {
+    if (shown === null) return { type: 'none' };
+    if (active === null || active.tourId !== shown.tourId) return { type: 'close' };
+    if (active.stepIndex === shown.stepIndex) return { type: 'none' };
+    return { type: 'switch', stepIndex: active.stepIndex };
+}
+
 function stepIdAt(tourId: GuideTourId, stepIndex: number): string {
     return GUIDE_TOURS[tourId].steps[stepIndex]?.id ?? '';
 }

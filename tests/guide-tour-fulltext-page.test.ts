@@ -9,6 +9,7 @@ import {
     GUIDE_PROGRESS_STORAGE_KEY,
     availableTours,
     createEmptyGuideProgress,
+    decideProgressSync,
     nextStepIndex,
     shouldSuggest,
     tourToSuggestOnEvent,
@@ -167,4 +168,22 @@ test('unavailableIf: 初回のバナーの判定（shouldSuggest）には影響�
     // 実在のツアーは unavailableIf を持たないので、判定は従来どおり
     assert.equal(Object.values(GUIDE_TOURS).some(tour => tour.unavailableIf !== undefined), false);
     assert.equal(shouldSuggest(createEmptyGuideProgress(), { screen: 'project', ...context }), true);
+});
+
+test('decideProgressSync: 保存値を正として、表示していなければ何もせず、終わった・置き換わったら片づけ、手順が違えば切り替える', () => {
+    const active = (tourId: 'fulltext-page' | 'join-project', stepIndex: number) => ({ tourId, stepId: 'x', stepIndex });
+    const shown = { tourId: 'fulltext-page', stepIndex: 2 } as const;
+    assert.deepEqual(decideProgressSync(active('fulltext-page', 4), null), { type: 'none' }, '表示していない画面は何もしない');
+    assert.deepEqual(decideProgressSync(null, shown), { type: 'close' }, 'ツアーが終わった・やめた');
+    assert.deepEqual(decideProgressSync(active('join-project', 0), shown), { type: 'close' }, '別のツアーに置き換わった');
+    assert.deepEqual(decideProgressSync(active('fulltext-page', 2), shown), { type: 'none' }, '同じ手順なら何もしない（通知が往復しない）');
+    assert.deepEqual(decideProgressSync(active('fulltext-page', 4), shown), { type: 'switch', stepIndex: 4 }, '進んだ手順へ追従する');
+    assert.deepEqual(decideProgressSync(active('fulltext-page', 1), shown), { type: 'switch', stepIndex: 1 }, '保存値が正なので、戻っていてもそれに合わせる');
+});
+
+test('別の画面の保存値に追従するランナーは、追従で保存しない（通知が往復しない）', () => {
+    const runner = read('src', 'guide-ui', 'tour-runner.ts');
+    const body = /subscribeGuideProgressChange\(\(\) => \{([\s\S]*?)\n {8}\}\);/.exec(runner)?.[1] ?? '';
+    assert.ok(body.includes('decideProgressSync'), '購読の中で decideProgressSync を使う');
+    assert.doesNotMatch(body, /updateGuideProgress/, '購読の中で保存しない');
 });
