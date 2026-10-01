@@ -34,6 +34,7 @@ import {
     isAdjudicationKey,
 } from '../../../lib/fulltext-consensus';
 import type { ConsensusDecision, FulltextVote, FulltextConsensusResult } from '../../../lib/fulltext-consensus';
+import { emitGuideEvent } from '../guide/lazy';
 import {
     fulltextRetrievalStatus as retrievalStatus,
     judgeDecisionMap,
@@ -656,6 +657,7 @@ export function setFulltextMode(mode: FulltextViewMode): void {
     currentMode = mode;
     resultsMode = mode === 'results';
     applyModeVisibility();
+    if (mode === 'list') emitGuideEvent('fulltext-list-shown');
     if (mode === 'results') renderFulltextResults();
     else if (mode === 'ai') renderFulltextAi();
 }
