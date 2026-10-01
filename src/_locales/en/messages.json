@@ -1773,6 +1773,36 @@
   "guideExt_tour_share_invite_desc": {
     "message": "Walks you through sharing the sheet with collaborators and sending the invitation."
   },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "First press Share to open the sharing panel. This is where you invite collaborators."
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "Enter the Google account email address of the person you want to share with, then press Add. That person gets edit access and an invitation email. In a project with a folder, the whole folder is shared. This really shares the project, so to just look, press \"Skip this step\". The panel closes after you add."
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "The panel closes after you add someone. To see the rest, press Share again to reopen it."
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "This warning appears when the sheet is open to anyone with the link. Anyone who knows the URL can view or change the decision data. First add every member as an individual share, then change the Drive sharing setting to Restricted."
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "This is the list of people the project is shared with. You can see each role (owner or editor), and admins get a ✕ (remove access) on each row. Removing access locks that person out right away and can only be undone by inviting them again, so it is disabled during this tour. Press Next."
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "\"Copy invite message\" puts a message on the clipboard with where to install the extension, the sheet URL, and how to get started. Paste it into an email or chat to send it. If copying fails, a notice appears at the bottom of the screen. You can also move on without pressing it."
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "Next is Team progress. The sharing panel covers the chip, so press Share again to close the panel."
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "Once the people you shared with start screening, this Team progress chip shows everyone's decision counts and last decision time. Press it to open the list, and use 🔄 to refresh. The Include / Exclude breakdown is not shown."
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "The Team progress chip appears in the toolbar once there are two or more assigned reviewers or someone else has started screening. After the people you shared with start, you can check progress there."
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "That covers sharing and inviting. This ❓ opens the other guided tours and the explanation for each screen at any time."
+  },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "Resolve conflicts"
   },
