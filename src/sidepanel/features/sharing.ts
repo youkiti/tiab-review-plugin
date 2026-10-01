@@ -34,6 +34,7 @@ import {
 
 // Store互換レイヤー（Phase 4）
 import { closeShareInput } from '../store/compat';
+import { emitGuideEvent } from './guide/lazy';
 
 /** 候補チップとして表示する最大件数（datalistは全件、チップは絞る） */
 const SHARE_SUGGESTION_CHIP_LIMIT = 5;
@@ -244,6 +245,7 @@ export async function handleShare() {
 
         // Store経由で閉じる
         closeShareInput();
+        emitGuideEvent('share-added');
     } catch (error) {
         console.error('Share error:', error);
         showToast(t('share_addError', (error as Error).message));
@@ -278,21 +280,25 @@ export async function copyInviteTemplate() {
     try {
         await navigator.clipboard.writeText(text);
         showToast(t('share_inviteCopied'));
+        emitGuideEvent('invite-copied');
     } catch (error) {
         // クリップボードAPIが使えない環境向けのフォールバック
+        const textarea = document.createElement('textarea');
         try {
-            const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
+            // execCommand は失敗しても例外でなく false を返すので、戻り値で成否を見る
+            if (!document.execCommand('copy')) throw new Error('execCommand copy returned false');
             showToast(t('share_inviteCopied'));
+            emitGuideEvent('invite-copied');
         } catch (fallbackError) {
             console.error('Copy invite error:', fallbackError);
             showToast(t('share_inviteCopyFailed'));
+        } finally {
+            textarea.remove();
         }
     }
 }
@@ -306,10 +312,26 @@ export async function copyInviteTemplate() {
 function buildLinkShareWarning(role: 'writer' | 'reader'): HTMLElement {
     const div = document.createElement('div');
     div.className = `share-link-warning share-link-warning--${role}`;
+    div.dataset.tour = 'share-link-warning';
     div.textContent = role === 'writer'
         ? t('share_linkShareWarningWriter')
         : t('share_linkShareWarningReader');
     return div;
+}
+
+let sharePanelObserver: MutationObserver | null = null;
+
+/**
+ * 共有パネルが閉じたことを操作ツアーへ知らせる（閉じる経路が複数あるため、要素の hidden を見る）。
+ * パネルを開くたびに呼ばれるが、監視は1回だけ張る。
+ */
+function watchSharePanelClosed(): void {
+    if (sharePanelObserver) return;
+    const area = dom.shareInputArea;
+    sharePanelObserver = new MutationObserver(() => {
+        if (area.classList.contains('hidden')) emitGuideEvent('share-panel-closed');
+    });
+    sharePanelObserver.observe(area, { attributes: true, attributeFilter: ['class'] });
 }
 
 /**
@@ -321,6 +343,13 @@ function buildLinkShareWarning(role: 'writer' | 'reader'): HTMLElement {
  * リンク共有（type='anyone'）が見つかった場合は、リストの先頭に警告を表示する。
  */
 export async function loadSharedUsers() {
+    watchSharePanelClosed();
+    await renderSharedUsers();
+    // 共有パネルを開いて一覧の描画が済んだことを、操作ツアーへ知らせる
+    emitGuideEvent('share-panel-opened');
+}
+
+async function renderSharedUsers() {
     const spreadsheetId = state.spreadsheetId;
     const userEmail = state.userEmail;
 

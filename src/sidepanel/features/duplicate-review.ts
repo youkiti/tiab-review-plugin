@@ -422,7 +422,10 @@ function renderReviewModal(refs: Reference[], candidates: DuplicateCandidate[], 
         title: t('dupReview_modalTitle'),
         body,
         footer,
+        onClose: () => emitGuideEvent('duplicate-review-closed'),
     });
+    const section = document.getElementById(SECTION_ID);
+    if (section) section.dataset.reviewOpened = '1'; // 案内ツアーが「比較画面を一度でも開いたか」を読む印
     emitGuideEvent('duplicate-review-opened');
 }
 
@@ -434,6 +437,7 @@ function buildModalFooter(): HTMLElement {
     bulkBtn.type = 'button';
     bulkBtn.className = 'btn btn-primary btn-small';
     bulkBtn.textContent = t('dupReview_bulkApplyBtn');
+    bulkBtn.dataset.tour = 'duplicate-bulk';
 
     const laterBtn = document.createElement('button');
     laterBtn.type = 'button';
@@ -534,6 +538,7 @@ function buildPairHeader(candidate: DuplicateCandidate): HTMLElement {
 function buildCompareTable(refA: Reference, refB: Reference): HTMLElement {
     const table = document.createElement('table');
     table.className = 'dup-review-compare-table';
+    table.dataset.tour = 'duplicate-compare';
 
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
@@ -597,6 +602,7 @@ function buildPairActions(
 ): HTMLElement {
     const actions = document.createElement('div');
     actions.className = 'dup-review-pair-actions';
+    actions.dataset.tour = 'duplicate-actions';
 
     const keepLeftBtn = document.createElement('button');
     keepLeftBtn.type = 'button';
@@ -797,6 +803,7 @@ async function applyPairDecision(
 
         invalidatePendingCountAndRerenderSection();
         await refreshModalContents();
+        emitGuideEvent('duplicate-pair-resolved');
 
         const messages = [statusUpdateOk ? t('dupReview_applyDone') : t('dupReview_statusUpdateFailedAfterRemoval')];
         let reloadOk = true;
@@ -869,6 +876,7 @@ async function dismissPairDecision(candidate: DuplicateCandidate, buttons: HTMLB
         showToast(t('dupReview_dismissDone'), 3000);
         invalidatePendingCountAndRerenderSection();
         await refreshModalContents();
+        emitGuideEvent('duplicate-pair-resolved');
     } catch (err) {
         // getDuplicateCandidates() 等の取得失敗がここへ流れてくる（Issue #147。
         // 「他のレビュアーが処理済み」とは事実が異なるため、別の文言で知らせる）。

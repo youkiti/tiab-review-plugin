@@ -1686,6 +1686,12 @@
   "guideExt_tourOpenFulltextHint": {
     "message": "全文タブで文献を開くと始められます"
   },
+  "guideExt_fulltextTourBtn": {
+    "message": "ツアー"
+  },
+  "guideExt_fulltextTourBtnTitle": {
+    "message": "このページの操作ツアーを始める"
+  },
   "guide_suggestTitle": {
     "message": "はじめての方へ"
   },
@@ -1773,11 +1779,65 @@
   "guideExt_tour_share_invite_desc": {
     "message": "共同研究者をシートに共有し、招待文を送るまでを案内します。"
   },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "まず「共有」を押して、共有パネルを開きます。共同研究者を招くのは、ここからです。"
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "共有したい相手の Google アカウントのメールアドレスを入力し、「追加」を押します。その相手に編集権限が付き、招待メールが届きます。フォルダのあるプロジェクトでは、フォルダごと共有されます。実際に共有されるので、見るだけなら「押さずに次へ」で進めます。追加するとパネルは閉じます。"
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "追加するとパネルは閉じます。続きを見るので、もう一度「共有」を押して開いてください。"
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "この警告は、シートが「リンクを知っている全員」に開かれているときに出ます。URL を知っていれば誰でも判定データを見たり書き換えたりできます。先に全メンバーを個別共有に追加してから、Drive の共有設定を「制限付き」に変えてください。"
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "ここが共有済みのユーザーの一覧です。役割（オーナー・編集者）が見え、管理者には各行に ✕（共有の解除）が付きます。解除すると相手はすぐにシートを開けなくなり、取り消すには招待し直す必要があるため、ツアー中は押せないようにしています。「次へ」を押してください。"
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "「招待文をコピー」を押すと、インストール先・シートの URL・使い方をまとめた文面がクリップボードに入ります。メールやチャットに貼って相手へ送ってください。コピーできなかったときは、画面の下にお知らせが出ます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "次はチーム進捗です。共有パネルがチップに重なるので、もう一度「共有」を押してパネルを閉じてください。"
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "共有した相手が判定を始めると、この「👥 チーム進捗」に、全員の判定件数と最終判定日時が出ます。押すと一覧が開き、🔄 で最新にできます。Include か Exclude かの内訳は見えません。"
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "担当者が2人以上になるか、自分以外の人が判定を始めると、ツールバーに「👥 チーム進捗」が出ます。共有した相手が判定を始めたら、ここで進み具合を確かめられます。"
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "共有と招待の手順は以上です。この ❓ から、ほかの操作ツアーや各画面の説明をいつでも開けます。"
+  },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "不一致の解消"
   },
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "レビュアー間で判定が割れた文献を見つけ、合意に導く手順を案内します。"
+  },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "ここが Blind のスイッチです。全員の独立した判定が終わるまで、他のレビュアーの判定は見えません。全員が終わったら、管理者がオンにして「キーを開封」します。プロジェクト全体に効くため、このツアーでは押せません。"
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "今は Blind 中なので、不一致はまだ見えません。管理者がキーを開封したら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。続きの手順が出ます。"
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "ここのフィルターで「不一致」を選ぶと、レビュアーの判定が割れた文献だけが並びます。選んでみてください。"
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "今の文献は不一致ではありません。フィルターを「不一致」にすると、判定が割れた文献だけを順に見られます。"
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "不一致の文献には、上に警告が出て、ここに全レビュアーの判定とメモが並びます。誰がどう判定し、なぜそうしたかを読んで、話し合いの材料にします。"
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "レビュアー同士で話し合ってすり合わせるときは、🤝 合議モードをオンにします。オンの間に保存した判定は「合議による判定」として記録され、最初に独立して付けた判定と区別されます。いつでもオフに戻せます。"
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "話し合いで決まったら、ここで判定し直します。合議モードがオンなら、合議による判定として保存されます。記録が変わるので、押さずに次へ進んでもかまいません。終わったら合議モードをオフに戻してください。"
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "全文タブの不一致は、「判定後レビュー」で裁定します（このツアーでは扱いません）。ツアーの一覧は、この ❓ からいつでも開けます。"
   },
   "guideExt_tour_duplicate_review_title": {
     "message": "重複の確認"
@@ -1797,20 +1857,23 @@
   "guideExt_tour_duplicate_review_no_candidates": {
     "message": "いまは未確認の重複候補が0件です。取り込み直しや再スキャンで候補が見つかると、ここの件数が増えて比較画面を開けます。候補ができたら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いて、続きを確認してください。"
   },
-  "guideExt_tour_duplicate_review_compare_info": {
-    "message": "「重複を確認」を押すと開く比較画面では、候補を1組ずつ左右に並べて見られます。色の付いた行が2つで違う項目で、上のバッジは何が一致して候補になったか（PMID・DOI・タイトルなど）、下の件数は各文献に付いている人の判定の数です。"
-  },
-  "guideExt_tour_duplicate_review_choose_info": {
-    "message": "比較画面では「左を残す」「右を残す」で、残す文献を選びます。もう一方は重複として除外されます（行は消えず、重複の印が付くだけです）。除外する側に人の判定が付いているときは確認が出て、その判定は集計に使われなくなります。別の文献なら「別々の文献」を選びます。"
-  },
-  "guideExt_tour_duplicate_review_bulk_info": {
-    "message": "比較画面の下には「自動判定ぶんをすべて適用」と「あとでまとめて確認」があります。前者は PMID や DOI が一致した組などを、人の判定が多い側を残して一度にまとめて統合します。全部の組に効くので、内容を確かめてから使ってください。後者は閉じて、あとでここから続けます。"
-  },
   "guideExt_tour_duplicate_review_open_review": {
-    "message": "比較画面を開いて、実際の候補を見てみましょう。開くだけでは何も変わりません。開いている間はこのツアーはひと休みし、閉じると続きに戻ります。押さずに次へ進んでもかまいません。"
+    "message": "「重複を確認」を押すと、候補を1組ずつ見比べる画面が開きます。開くだけでは何も変わりません。押さずに次へ進んでもかまいません。"
+  },
+  "guideExt_tour_duplicate_review_compare": {
+    "message": "左右に2つの文献の項目が並んでいます。色の付いた行が、2つで違う項目です。上のバッジは何が一致して候補になったか（PMID・DOI・タイトルなど）、下の件数は各文献に付いている人の判定の数を示します。"
+  },
+  "guideExt_tour_duplicate_review_choose": {
+    "message": "残す文献を選びます。「左を残す」「右を残す」は、もう一方を重複として除外します（行は消えず、印が付くだけです）。除外する側に人の判定が付いているときは確認が出て、その判定は集計に使われなくなります。別の文献なら「別々の文献」を選びます。押さずに次へ進んでもかまいません。"
+  },
+  "guideExt_tour_duplicate_review_bulk": {
+    "message": "ここは説明だけです。「自動判定ぶんをすべて適用」は、PMID や DOI が一致した組などを、人の判定が多い側を残して一度にまとめて統合します。全部の組に効くので、押せないようにしています。確認を後回しにするときは、隣の「あとでまとめて確認」を押して閉じます。"
+  },
+  "guideExt_tour_duplicate_review_not_opened": {
+    "message": "「重複を確認」を押すと、候補が左右に並んだ比較画面が開き、「左を残す」「右を残す」「別々の文献」から選べます。確認するときに押してください。"
   },
   "guideExt_tour_duplicate_review_after_review": {
-    "message": "判定した組は、未確認の件数から減ります。「あとでまとめて確認」で閉じた組や、まだ見ていない組は、この件数に残ります。いつでも、ここの「重複を確認」から続きを開けます。"
+    "message": "判定した組は、未確認の件数から減ります。「あとでまとめて確認」で閉じた組や、まだ見ていない組はこの件数に残り、「重複を再スキャン」で新しい候補が見つかると増えます。いつでも「重複を確認」から続きを開けます。"
   },
   "guideExt_tour_duplicate_review_finish": {
     "message": "重複の確認の案内は以上です。もう一度見たいときは、この ❓ の「操作ツアーの一覧」からいつでも開けます。"
@@ -1827,6 +1890,45 @@
   "guideExt_tour_ai_first_run_desc": {
     "message": "AI のモデルと基準を設定して、はじめて判定を実行するまでを案内します。"
   },
+  "guideExt_tour_ai_first_run_open_tab": {
+    "message": "ここを押して AI タブを開いてください。"
+  },
+  "guideExt_tour_ai_first_run_model": {
+    "message": "AI 判定に使うモデルを選びます。迷ったら初期のままで構いません。モデルによって、料金と判定の速さ・精度が変わります。"
+  },
+  "guideExt_tour_ai_first_run_keys": {
+    "message": "選んだモデルの会社の欄に API キーを入れて「確認して保存」を押してください。キーはモデルの提供元で発行します。Gemini の無料キーは、処理の速さが制限されます。キーが済んでいれば「押さずに次へ」で進めます。"
+  },
+  "guideExt_tour_ai_first_run_protocol": {
+    "message": "プロトコルの組み入れ基準・除外基準をここへ貼り付けます。人が使うレビュー基準があるときは、「抄録レビューの基準をコピー」で入れられます。"
+  },
+  "guideExt_tour_ai_first_run_optimize": {
+    "message": "「基準を最適化」を押すと、貼った文章から AI 用の基準とプロンプトを作ります。ここで API を使うので、試すだけなら「押さずに次へ」で進めてください。"
+  },
+  "guideExt_tour_ai_first_run_prompt": {
+    "message": "できたプロンプトです。内容を確かめて、足りない点は直接書き換えられます。「基準をGoogleスプレッドシートに保存」を押すとシートに残ります（保存しても費用はかかりません）。"
+  },
+  "guideExt_tour_ai_first_run_prompt_wait": {
+    "message": "ここには、基準を最適化するとプロンプトが出ます。まだ基準が無いので、先へ進みます。基準を作ったあとは、❓ の「操作ツアーの一覧」からこのツアーをもう一度開くと、この続きを案内します。"
+  },
+  "guideExt_tour_ai_first_run_batch_settings": {
+    "message": "AI にかける文献を決めます。「対象」は初期では全件です。「実行上限」で件数を絞れるので、はじめは 10 件など少ない件数で試すと費用を抑えられます。"
+  },
+  "guideExt_tour_ai_first_run_batch_run": {
+    "message": "「一括実行開始」を押すと AI の判定が始まり、実行した件数だけ費用がかかります。終わるまで案内は待ちます（途中で止めるときは同じ場所の「実行を中止」）。実行しないなら「押さずに次へ」で進めます。"
+  },
+  "guideExt_tour_ai_first_run_threshold": {
+    "message": "実行が終わると、ここで閾値を決めます。スライダーを動かすと Include と Exclude の件数の見込みが変わります。迷ったら 0.5 が標準です。「閾値を確定して判断をGoogleスプレッドシートに保存」を押すと判定がシートに記録されます。確定の少しあとに、手動タブへ切り替えるかの確認が出ます。切り替えた場合、ツアーを続けるには AI タブに戻ってください。"
+  },
+  "guideExt_tour_ai_first_run_threshold_wait": {
+    "message": "実行が終わると、ここ（一括実行の下）に閾値の確定が出ます。まだ実行していないので、先へ進みます。実行したあとは、❓ の「操作ツアーの一覧」からこのツアーをもう一度開くと、閾値の見方を案内します。"
+  },
+  "guideExt_tour_ai_first_run_history": {
+    "message": "AI タブの下にある「実行履歴」です。実行のたびに履歴が残ります。同じ基準・モデルの実行は 1 つの Run にまとまり、採用した Run の判定が使われます。採用する Run は、ここのラジオボタンで選べます。"
+  },
+  "guideExt_tour_ai_first_run_finish": {
+    "message": "AI 判定の初回の流れは以上です。AI の判定は、独立した判定者の 1 人として記録されます。結果は手動タブで、人の判定と見比べられます。各カードの「?」で説明を、このモデルの「?」から操作ツアーの一覧を開けます。"
+  },
   "guideExt_tour_ml_start_title": {
     "message": "ML の開始"
   },
@@ -1837,7 +1939,37 @@
     "message": "全文の判定ページ"
   },
   "guideExt_tour_fulltext_page_desc": {
-    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。"
+    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。書誌と PDF の確認、判定、除外理由、次の候補への移動までを説明します。"
+  },
+  "guideExt_tour_fulltext_page_biblio": {
+    "message": "ここに文献のタイトル・著者・DOI が出ます。判定の前に、下の PDF と見比べて、取り違えた PDF が保存されていないかを確かめます。"
+  },
+  "guideExt_tour_fulltext_page_pdf": {
+    "message": "PDF はこの下に表示されます。PDF がまだ無いときは「PDFをアップロード」で手元のファイルを保存でき、あるときは「別のPDFをアップロード」で差し替えられます。"
+  },
+  "guideExt_tour_fulltext_page_criteria": {
+    "message": "「基準」を押す（c キーでも開閉）と、レビュー基準の組み入れ・除外基準を読めます。判定に迷ったときに確かめます。"
+  },
+  "guideExt_tour_fulltext_page_decision": {
+    "message": "読み終えたら、組み入れ (i)・除外 (e)・保留 (m) を選びます。押すと判定が本当に保存され、組み入れは次の候補へ進みます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_fulltext_page_reason_info": {
+    "message": "「除外」を選ぶと除外理由の一覧が出ます（保留では補足メモの欄が出ます）。複数当てはまるときは上（番号が小さい方）を選びます。理由は数字キーでも選べます。"
+  },
+  "guideExt_tour_fulltext_page_reason": {
+    "message": "除外理由を選びます。複数当てはまるときは、上（番号が小さい方）を選んでください。クリックか数字キーで選ぶと保存して次の候補へ進みます。メモ欄は任意で、Enter で保存して次へ進みます。"
+  },
+  "guideExt_tour_fulltext_page_context": {
+    "message": "ここを開くと、抄録と自分の TiAb 判定が見られます。キーを開封したあとは、他のレビュアーの判定とメモも並びます。"
+  },
+  "guideExt_tour_fulltext_page_evidence": {
+    "message": "AI が全文を判定していると、その根拠の引用がここに並びます。押すと PDF の該当箇所へ飛び、「PDF上に表示」でハイライトを切り替えられます。AI 判定が無い文献では空のままです。"
+  },
+  "guideExt_tour_fulltext_page_navigate": {
+    "message": "「未判定へ (u)」で、まだ判定していない次の候補へ移れます。最後の候補を判定し終えると、このタブは少し待って自動で閉じます（操作すると取り消せます）。"
+  },
+  "guideExt_tour_fulltext_page_finish": {
+    "message": "以上です。この「?」はヘルプの該当ページを開きます。このツアーをもう一度見るときは、隣の「ツアー」ボタンを押してください。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"

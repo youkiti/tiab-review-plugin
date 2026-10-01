@@ -18,6 +18,12 @@ function pendingCount(): number | null {
     return Number.isFinite(count) ? count : null;
 }
 
+/** 表示中の要素があるか（ダイアログが閉じていれば、中の要素は表示中に数えない） */
+function hasVisible(target: string): boolean {
+    return Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${target}"]`))
+        .some(element => element.getClientRects().length > 0);
+}
+
 export function computeDuplicateReviewConditions(): Record<DuplicateReviewCondition, boolean> {
     const { ui } = getState();
     const none = pendingCount() === 0;
@@ -25,5 +31,8 @@ export function computeDuplicateReviewConditions(): Record<DuplicateReviewCondit
         'duplicate-manual-tab-open': ui.view === 'screening' && ui.currentTab === 'screening',
         'no-duplicate-candidates': none,
         'duplicate-candidates-present': !none,
+        'duplicate-modal-closed': !hasVisible('duplicate-bulk'),
+        'duplicate-no-hint-needed': none
+            || document.querySelector<HTMLElement>('[data-tour="duplicate-section"]')?.dataset.reviewOpened === '1',
     };
 }
