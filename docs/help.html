@@ -1676,7 +1676,7 @@
                 <p>
                     <span class="ja">この章の「<a href="#fulltext">レジストリ連携</a>」で取り込んだ論文は、データベース検索で見つけた文献とは<strong>別の腕として集計されます</strong>。PRISMA 2020では、citation searchingなどと同じ「Identification of studies via other methods（他の方法による同定）」で報告するのが正しいためです。結果サマリにはデータベース検索の数値に続けて「結果サマリ（PRISMA other methods 腕: レジストリ連携）」というブロックが表示され、レジストリ連携で同定・全文取得・全文評価で除外・組み入れの件数と除外理由の内訳が出ます（レジストリ連携由来の候補が0件のプロジェクトでは、このブロックは表示されず、数値も文案もこれまでと変わりません）。論文用テキストのMethods・Results・PRISMA 2020フロー図にも同じ腕別の記述が追加され、全文結果CSVには各文献がどちらの腕かを示す
                         <code>identification_route</code> 列（<code>database</code> /
-                        <code>registry_linkage</code>）が最後の列として入ります。</span>
+                        <code>registry_linkage</code>）が入ります（列の並びは既存の列の後ろで、そのあとに裁定メモの <code>adjudication_memo</code> 列が続きます）。</span>
                     <span class="en">Publications imported through <a href="#fulltext">registry linkage</a> are
                         <strong>counted as a separate arm</strong> from references found by database searching,
                         because PRISMA 2020 reports them under "Identification of studies via other methods"
@@ -1686,9 +1686,10 @@
                         full-text assessment, and included, plus the exclusion-reason breakdown. (In projects with no
                         registry-linkage candidates the block is not shown, and neither the numbers nor the generated
                         text change from before.) The manuscript text adds the same arm to its Methods, Results, and
-                        PRISMA 2020 flow, and the full-text results CSV gains a final
+                        PRISMA 2020 flow, and the full-text results CSV gains an
                         <code>identification_route</code> column (<code>database</code> /
-                        <code>registry_linkage</code>) telling you which arm each reference belongs to.</span>
+                        <code>registry_linkage</code>) telling you which arm each reference belongs to. It comes after
+                        the existing columns and is followed by the <code>adjudication_memo</code> column.</span>
                 </p>
                 <p>
                     <span class="ja">このビューの先頭には「Blind on/off」スイッチがあります（管理者にのみ表示）。スイッチをONにするとキー開封（ブラインド解除）となり、全レビュアー＋AIの判定を集計できます。ブラインド中は自分の判定のみが集計対象で、その旨の注記が判定者選択の下に表示されます。詳細は「<a
@@ -1698,6 +1699,29 @@
                         aggregated. While blinded, only your own decisions are aggregated, and a note saying so appears
                         under the judge selector. See "Blind on/off" in the "<a href="#sharing">Sharing and Team
                             Workflow</a>" section for details.</span>
+                </p>
+                <p>
+                    <span class="ja"><strong>不一致の解消（裁定）</strong>：キー開封後は「不一致の解消」が表示され、判定者の間で判定が割れた文献（判定不一致）と、全員が除外でも理由が割れた文献（理由不一致）が並びます。各文献を開くと判定者ごとの判定・除外理由・メモが見え、「組み入れで確定」「保留で確定」「除外で確定」で最終判定を決めます。除外では理由の選択が必須です（複数当てはまるときは番号の小さい方を選ぶ、判定時と同じ規則）。どの確定でも、根拠を<strong>裁定メモ</strong>（任意）として残せます。たとえば「対象は研修医だが、本研究では学生と同等とみなして組み入れる」のように、除外理由のリストに無い組み入れの理由も書けます。</span>
+                    <span class="en"><strong>Resolving conflicts (adjudication)</strong>: once the key is opened, a
+                        "Resolve conflicts" section lists references where judges disagreed on the decision
+                        (decision conflict) or all excluded but for different reasons (reason conflict). Open a
+                        reference to see each judge's decision, exclusion reason, and note, then set the final decision
+                        with "Confirm as Include", "Confirm as Maybe", or "Confirm as Exclude". Exclude requires a
+                        reason (when several apply, pick the lower number — the same rule screeners follow). With any
+                        of the three you can record your rationale in the optional <strong>adjudication memo</strong> —
+                        including reasons to include that the exclusion-reason list cannot express, such as "the
+                        participants are residents, but we treat them as equivalent to students for this review".</span>
+                </p>
+                <p>
+                    <span class="ja">裁定は上書きではなく1行ずつ追記されるので、誰がいつどう裁定したかが残ります。「裁定をやり直す」で確定し直すと最新の裁定が有効になり、そのとき入力欄には今の裁定メモが入った状態で開きます（空にして確定するとメモは消えます）。裁定メモは「裁定: 裁定者（日時）」の下に表示されるほか、全文の判定ページの「他レビュアーのフルテキスト判定」と、全文結果CSVの <code>adjudication_memo</code> 列にも出ます。未解消の不一致が残っている間は、PRISMA集計に「未解消の不一致: n件」が表示され、エクスポートの前に確認が出ます（裁定済みの不一致は解消済みとして数えません）。</span>
+                    <span class="en">Each adjudication is appended as a new row rather than overwriting the previous
+                        one, so who adjudicated what and when stays on record. Confirming again via "Redo
+                        adjudication" makes the latest adjudication the effective one; the memo field opens pre-filled
+                        with the current memo (clearing it and confirming removes the memo). The adjudication memo is
+                        shown under "Adjudicated by … (date)", in "Other reviewers' full-text decisions" on the
+                        full-text decision page, and in the <code>adjudication_memo</code> column of the full-text results CSV.
+                        While unresolved conflicts remain, the PRISMA counts show "Unresolved: n" and you are asked
+                        to confirm before exporting (adjudicated conflicts no longer count as unresolved).</span>
                 </p>
             </section>
 
