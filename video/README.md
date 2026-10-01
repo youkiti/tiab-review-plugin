@@ -28,7 +28,7 @@ video/
 
 - Node.js 18 以上（`package.json` の `engines` 参照）
 - Linux + [xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml)（拡張機能を読み込んだ Chromium
-  をヘッド付きで動かして収録するため。収録コマンドは常に `xvfb-run` 経由で実行する）
+  をヘッド付きで動かして収録するため。Linux の収録コマンドは `xvfb-run` 経由で実行する）
 - Python3 + [py7zr](https://pypi.org/project/py7zr/)（`pip install py7zr`）
   （VOICEVOX エンジンの配布形式が 7z のため、`video/scripts/setup.sh` の展開に使用）
 - ネットワーク到達性（初回セットアップ時のみ。Playwright の Chromium、ffmpeg、VOICEVOX
@@ -36,12 +36,21 @@ video/
 
 ## 使い方（基本の4ステップ）
 
+Windows では xvfb は不要で、`node video/scripts/record.mjs` をそのまま実行する。
+`video/scripts/setup.sh` は Linux 向けなので、VOICEVOX エンジンは Windows 版
+（`voicevox_engine-windows-cpu-<版>.7z.001`）を `video/tools/` に展開し、
+展開先で `run.exe --host 127.0.0.1 --port 50021` を実行して起動する。
+ffmpeg / ffprobe は PATH にあれば使われる。
+
 ```bash
 # 0. 環境セットアップ（初回のみ。以後は冪等なので再実行しても安全）
 npm run video:setup
 
 # 1. デモ用拡張機能ビルド（Playwright 収録用。実データ・実アカウントを使わない）
 npm run build:demo
+
+# 第9章が映す Web 版デモ（dist-web-demo/ に出力）
+npm run build:web:demo
 
 # 2. シーン収録（Playwright + xvfb。LANGUAGE=ja を必ず付与する）
 LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" npm run video:record
@@ -54,6 +63,8 @@ npm run video:assemble
 ```
 
 生成物は `video/build/` 配下にまとまる（後述）。
+収録に使うビルドはリポジトリ直下の `dist-demo/` と `dist-web-demo/` に出力する
+（どちらも git 管理外。配布しない）。
 
 ### ffmpeg / ffprobe の実行ファイル指定
 

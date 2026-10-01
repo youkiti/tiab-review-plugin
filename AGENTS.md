@@ -281,6 +281,8 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
 
+**収録用の Web 版デモビルド**: 解説動画の第9章の収録には `npm run build:web:demo` を使う。出力先は `dist-web-demo/`（`.gitignore` 済み・配布しない）。`src/demo/webapp-entry.ts` が fetch モック・シードデータ・GIS の代役を用意してから Web 版エントリを読み、実アカウントを使わずサンプルデータで操作できる。HTML には GIS の script を出さない（代役を本物が上書きするため）。本番の Web 版ビルド（`docs/app/`）には影響しない。
+
 **トークンは1時間固定で、無音更新はできない。** GIS の `TokenClient` はサイレントリフレッシュの仕組みを持たないため、`chrome.identity` 版のようなバックグラウンド更新はできない。トークンはメモリ保持のみ（`src/platform/web/auth.ts`）で、1時間経過後は次回の保存操作が失敗して初めて失効に気づく。この前提のため、失効の検知と再ログイン導線はユーザー操作（判定クリック・未送信バッジクリック）起点で設計している（`classifySaveFailure` で `'auth'` と判定された場合のみ、その場で対話的な再ログインを試す。詳細は「オフライン同期の方針」節）。対話的な再ログインでは `PlatformAdapter.setAuthHint`（`showProjectSection` でログイン中のメールを渡す）経由で GIS の `login_hint` を設定し、複数 Google アカウントログイン中でもアカウント選択を省略できるようにしている。
 
 **HTML は複製ではなく機械変換で生成する。** `webpack.config.js` の `transformSidepanelHtml()` が拡張版の `src/sidepanel/sidepanel.html` を変換して `docs/app/index.html` を出力する。これにより表示系の新機能が自動で Web 版へ載る。変換対象の文字列が見つからない場合は `replaceOrThrow` が例外を投げてビルドを止めるので、`sidepanel.html` の該当行（`<title>` / `<h1>` / `<body>` / stylesheet link / entry script / viewport meta）を書き換えたら変換ルールも必ず更新すること。

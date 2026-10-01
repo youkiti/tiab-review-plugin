@@ -329,36 +329,39 @@ function buildExtensionConfig(env, argv) {
 // =====================================================================
 function buildWebConfig(env, argv) {
     const isProduction = argv.mode === 'production';
+    const isDemo = Boolean(env && env.demo);
     const webClientId = process.env.WEB_OAUTH_CLIENT_ID?.trim();
     const pickerApiKey = process.env.PICKER_API_KEY?.trim();
     const gcpProjectNumber = process.env.GCP_PROJECT_NUMBER?.trim();
-    if (isProduction && !webClientId) {
+    if (isProduction && !webClientId && !isDemo) {
         throw new Error('WEB_OAUTH_CLIENT_ID が未設定です。.env に Web アプリ用 OAuth クライアントIDを設定してください。');
     }
-    if (isProduction && !pickerApiKey) {
+    if (isProduction && !pickerApiKey && !isDemo) {
         throw new Error('PICKER_API_KEY が未設定です。.env に Google Picker API key を設定してください。');
     }
-    if (isProduction && !gcpProjectNumber) {
+    if (isProduction && !gcpProjectNumber && !isDemo) {
         throw new Error('GCP_PROJECT_NUMBER が未設定です。.env に GCP プロジェクト番号を設定してください。');
     }
     // dev ビルドも既定で fail-fast する（拡張版と同じ理由。Issue #76）。
-    if (!webClientId) {
+    if (!webClientId && !isDemo) {
         requireEnvForDevOrWarn(
             'WEB_OAUTH_CLIENT_ID が未設定です。.env に Web アプリ用 OAuth クライアントIDを設定してください。' +
             '未設定のまま配信すると、Web版のログイン時に初めて認証エラーとして発覚します。'
         );
     }
-    if (!pickerApiKey || !gcpProjectNumber) {
+    if ((!pickerApiKey || !gcpProjectNumber) && !isDemo) {
         requireEnvForDevOrWarn(
             'PICKER_API_KEY または GCP_PROJECT_NUMBER が未設定です。.env に両方を設定してください。' +
             '未設定のままだと Picker ページ利用時に初めてエラーとして発覚します。'
         );
     }
     return {
-        cache: buildFilesystemCache(`web-${isProduction ? 'production' : 'development'}`),
-        entry: { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },
+        cache: buildFilesystemCache(`web-${isDemo ? 'demo-' : ''}${isProduction ? 'production' : 'development'}`),
+        entry: isDemo
+            ? { app: './src/demo/webapp-entry.ts' }
+            : { app: './src/webapp/index.ts', picker: './src/webapp/picker.ts' },
         output: {
-            path: resolveOutputPath(env, path.resolve(__dirname, 'docs/app')),
+            path: resolveOutputPath(env, path.resolve(__dirname, isDemo ? 'dist-web-demo' : 'docs/app')),
             filename: '[name].js',
             // publicPathは既定のautoを維持し、app.jsのURLからPagesのサブパスを解決する。
             chunkFilename: 'chunks/[name].js',
@@ -387,6 +390,8 @@ function buildWebConfig(env, argv) {
                     type: 'json',
                     parser: { parse: (source) => stripLocaleKeys(JSON.parse(source)) },
                 },
+                // デモのシードだけが使う PubMed サンプルを文字列として取り込む。
+                ...(isDemo ? [{ test: /\.nbib$/, type: 'asset/source' }] : []),
             ],
         },
         resolve: {
@@ -397,7 +402,7 @@ function buildWebConfig(env, argv) {
         },
         plugins: [
             new webpack.DefinePlugin({
-                __WEB_OAUTH_CLIENT_ID__: JSON.stringify(webClientId ?? ''),
+                __WEB_OAUTH_CLIENT_ID__: JSON.stringify(isDemo ? 'demo-web-client' : (webClientId ?? '')),
                 __PICKER_API_KEY__: JSON.stringify(pickerApiKey ?? ''),
                 __GCP_PROJECT_NUMBER__: JSON.stringify(gcpProjectNumber ?? ''),
                 __PICKER_PAGE_URL__: JSON.stringify(resolvePickerPageUrlOverride(isProduction)),
@@ -408,12 +413,12 @@ function buildWebConfig(env, argv) {
                     {
                         from: 'src/sidepanel/sidepanel.html',
                         to: 'index.html',
-                        transform: transformSidepanelHtml,
+                        transform: (content) => transformSidepanelHtml(content, isDemo),
                     },
                     { from: 'src/sidepanel/sidepanel.css', to: 'sidepanel.css' },
                     { from: 'src/sidepanel/styles', to: 'styles' },
                     { from: 'src/webapp/webapp.css', to: 'webapp.css' },
-                    { from: 'src/webapp/picker.html', to: 'picker.html' },
+                    ...(isDemo ? [] : [{ from: 'src/webapp/picker.html', to: 'picker.html' }]),
                     { from: 'src/icons/icon128.png', to: 'icon128.png' }, // favicon 用
                 ],
             }),
@@ -429,7 +434,7 @@ function buildWebConfig(env, argv) {
  * 変換対象の行が将来書き換わって見つからなくなった場合は、古い形式のまま出力されるのを
  * 防ぐために例外を投げる。
  */
-function transformSidepanelHtml(content) {
+function transformSidepanelHtml(content, isDemo = false) {
     let html = content.toString('utf8');
 
     const replaceOrThrow = (search, replacement, label) => {
@@ -451,10 +456,11 @@ function transformSidepanelHtml(content) {
         '<link rel="stylesheet" href="sidepanel.css">\n    <link rel="stylesheet" href="webapp.css">\n    <link rel="icon" href="icon128.png">',
         'stylesheet link'
     );
-    // script: 拡張用 sidepanel.js を GIS + Web エントリ app.js に置換
+    // デモでは GIS の代役を上書きしないよう、Web エントリだけを読む。
     replaceOrThrow(
         '<script src="sidepanel.js"></script>',
-        '<script src="https://accounts.google.com/gsi/client" async defer></script>\n    <script src="app.js"></script>',
+        isDemo ? '<script src="app.js"></script>'
+            : '<script src="https://accounts.google.com/gsi/client" async defer></script>\n    <script src="app.js"></script>',
         'entry script'
     );
     // body: FOUC 防止のため web-app クラスを付与（JS 側でも付与するが二重で問題ない）
