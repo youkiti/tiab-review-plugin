@@ -104,6 +104,33 @@ export function nextStepIndex(
     return null;
 }
 
+export interface VisibleStepPosition {
+    /** 今の手順が、飛ばされない手順の中で何番目か（1 始まり） */
+    position: number;
+    /** 飛ばされない手順の数 */
+    total: number;
+}
+
+/**
+ * カードに出す「n / m」。conditions で飛ばされる手順は数えない。
+ * index が飛ばされる手順そのものなら、その位置までに出る手順の数（最低 1。出る手順が1つも無ければ 0 / 0）。
+ * 条件は途中で変わりうるので、手順を描画するたびに計算し直す。
+ */
+export function visibleStepPosition(
+    tour: Pick<TourDefinition, 'steps'>,
+    index: number,
+    conditions: GuideConditionValues,
+): VisibleStepPosition {
+    let position = 0;
+    let total = 0;
+    tour.steps.forEach((step, i) => {
+        if (step.skipIf !== undefined && isConditionTrue(conditions, step.skipIf)) return;
+        total += 1;
+        if (i <= index) position += 1;
+    });
+    return { position: total === 0 ? 0 : Math.max(1, position), total };
+}
+
 /** イベントでこの手順が進むか。'next' で進む手順はイベントでは進まない。 */
 export function shouldAdvance(step: Pick<TourStep, 'advance'>, event: GuideEventName): boolean {
     return step.advance.type === 'events' && step.advance.events.includes(event);
