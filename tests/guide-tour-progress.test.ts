@@ -53,6 +53,37 @@ test('parse: 未知のツアー・不正な状態は読み飛ばし、正しい�
     assert.equal(p.active, null);
 });
 
+const stepIdOf = (tourId: 'first-project' | 'join-project', index: number): string => GUIDE_TOURS[tourId].steps[index].id;
+
+test('parse: stepId つきの保存値は、添字が食い違っていても ID の手順の今の添字に解決する', () => {
+    const joinSteps = GUIDE_TOURS['join-project'].steps;
+    const finish = joinSteps.findIndex(step => step.id === 'finish');
+    const active = parseGuideProgress({ active: { tourId: 'join-project', stepId: 'finish', stepIndex: 5 } }).active;
+    assert.deepEqual(active, { tourId: 'join-project', stepId: 'finish', stepIndex: finish });
+    // 保存時の添字が範囲外でも、ID が実在すれば採用する
+    const outOfRange = parseGuideProgress({ active: { tourId: 'join-project', stepId: 'read', stepIndex: 99 } }).active;
+    assert.equal(outOfRange?.stepIndex, joinSteps.findIndex(step => step.id === 'read'));
+});
+
+test('parse: 実在しない stepId は active を捨て、済み・却下の記録は残す', () => {
+    const p = parseGuideProgress({
+        tours: { 'first-project': { status: 'done', at: NOW } },
+        active: { tourId: 'join-project', stepId: 'renamed-away', stepIndex: 1 },
+    });
+    assert.equal(p.active, null);
+    assert.deepEqual(p.tours, { 'first-project': { status: 'done', at: NOW } });
+});
+
+test('parse: stepId の無い旧形式は、添字が範囲内なら採用して stepId を補い、範囲外なら捨てる', () => {
+    assert.deepEqual(parseGuideProgress({ active: { tourId: 'join-project', stepIndex: 1 } }).active, {
+        tourId: 'join-project',
+        stepId: stepIdOf('join-project', 1),
+        stepIndex: 1,
+    });
+    assert.equal(parseGuideProgress({ active: { tourId: 'join-project', stepIndex: 99 } }).active, null);
+    assert.equal(parseGuideProgress({ active: { tourId: 'join-project', stepId: 5, stepIndex: 99 } }).active, null);
+});
+
 test('parse: 実行中ツアーの位置が範囲外・非整数・未知ツアーなら捨てる', () => {
     const n = GUIDE_TOURS['join-project'].steps.length;
     assert.equal(parseGuideProgress({ active: { tourId: 'join-project', stepIndex: n } }).active, null);
@@ -61,6 +92,7 @@ test('parse: 実行中ツアーの位置が範囲外・非整数・未知ツア�
     assert.equal(parseGuideProgress({ active: { tourId: 'nope', stepIndex: 0 } }).active, null);
     assert.deepEqual(parseGuideProgress({ active: { tourId: 'join-project', stepIndex: 2 } }).active, {
         tourId: 'join-project',
+        stepId: stepIdOf('join-project', 2),
         stepIndex: 2,
     });
 });
@@ -70,6 +102,13 @@ test('serialize → parse で往復できる', () => {
     p = completeTour(p, 'join-project', NOW);
     p = suppressSuggestions(p);
     assert.deepEqual(parseGuideProgress(JSON.parse(JSON.stringify(serializeGuideProgress(p)))), p);
+});
+
+test('serialize → parse: 手順を更新しても同じ手順に戻る', () => {
+    const p = setActiveStep(startTour(createEmptyGuideProgress(), 'join-project'), 4);
+    assert.equal(p.active?.stepId, stepIdOf('join-project', 4));
+    const back = parseGuideProgress(JSON.parse(JSON.stringify(serializeGuideProgress(p))));
+    assert.deepEqual(back.active, { tourId: 'join-project', stepId: stepIdOf('join-project', 4), stepIndex: 4 });
 });
 
 test('nextStepIndex: 条件なしなら次の手順', () => {
@@ -145,15 +184,15 @@ test('shouldSuggest: Web 版・作成権限なしではツアー1を数えない
 
 test('遷移: 開始・手順更新・完了・却下', () => {
     let p = startTour(createEmptyGuideProgress(), 'first-project');
-    assert.deepEqual(p.active, { tourId: 'first-project', stepIndex: 0 });
+    assert.deepEqual(p.active, { tourId: 'first-project', stepId: stepIdOf('first-project', 0), stepIndex: 0 });
     p = setActiveStep(p, 4);
-    assert.deepEqual(p.active, { tourId: 'first-project', stepIndex: 4 });
+    assert.deepEqual(p.active, { tourId: 'first-project', stepId: stepIdOf('first-project', 4), stepIndex: 4 });
     // 別ツアーを始めると置き換わる
     p = startTour(p, 'join-project', 2);
-    assert.deepEqual(p.active, { tourId: 'join-project', stepIndex: 2 });
+    assert.deepEqual(p.active, { tourId: 'join-project', stepId: stepIdOf('join-project', 2), stepIndex: 2 });
     // 実行中でないツアーの完了は実行中の状態を消さない
     p = completeTour(p, 'first-project', NOW);
-    assert.deepEqual(p.active, { tourId: 'join-project', stepIndex: 2 });
+    assert.deepEqual(p.active, { tourId: 'join-project', stepId: stepIdOf('join-project', 2), stepIndex: 2 });
     p = dismissTour(p, 'join-project', NOW);
     assert.equal(p.active, null);
     assert.deepEqual(p.tours, {

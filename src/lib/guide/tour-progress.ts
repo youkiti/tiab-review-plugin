@@ -16,7 +16,9 @@ export interface GuideTourRecord {
 
 export interface GuideActiveTour {
     tourId: GuideTourId;
-    /** 実行中の手順の位置（steps の添字） */
+    /** 実行中の手順の ID。保存・再開の正本（手順を足す・並べ替えても再開位置がずれない） */
+    stepId: string;
+    /** 実行中の手順の位置（steps の添字）。読み込み時に stepId から今の定義に合わせて求め直す */
     stepIndex: number;
 }
 
@@ -54,9 +56,17 @@ export function parseGuideProgress(raw: unknown): GuideProgress {
 
     if (isRecord(raw.active) && isGuideTourId(raw.active.tourId)) {
         const tour = GUIDE_TOURS[raw.active.tourId];
+        const savedId = raw.active.stepId;
         const index = raw.active.stepIndex;
-        if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < tour.steps.length) {
-            result.active = { tourId: tour.id, stepIndex: index };
+        if (typeof savedId === 'string') {
+            // 手順の ID を優先する。保存時の添字と食い違っていても、今の定義での位置に解決する。
+            // 実在しない ID（手順が削除・改名された）は再開しない
+            const found = tour.steps.findIndex(step => step.id === savedId);
+            if (found >= 0) result.active = { tourId: tour.id, stepId: savedId, stepIndex: found };
+        } else if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < tour.steps.length) {
+            // stepId を持たない旧版の保存値は添字しか情報が無い。手順の挿入などでずれている可能性は
+            // ここでは直せない（PR #220 レビュー指摘: 手順を挿入すると保存済みの再開位置がずれる点）。
+            result.active = { tourId: tour.id, stepId: tour.steps[index].id, stepIndex: index };
         }
     }
 
@@ -127,15 +137,19 @@ export function shouldSuggest(progress: GuideProgress, context: GuideSuggestCont
     return tours.every((tour) => progress.tours[tour.id] === undefined);
 }
 
+function stepIdAt(tourId: GuideTourId, stepIndex: number): string {
+    return GUIDE_TOURS[tourId].steps[stepIndex]?.id ?? '';
+}
+
 /** ツアーを始める（既に別のツアーが動いていれば置き換える。同時に走るのは1本だけ）。 */
 export function startTour(progress: GuideProgress, tourId: GuideTourId, stepIndex = 0): GuideProgress {
-    return { ...progress, active: { tourId, stepIndex } };
+    return { ...progress, active: { tourId, stepId: stepIdAt(tourId, stepIndex), stepIndex } };
 }
 
 /** 実行中のツアーの手順の位置を更新する。実行中でなければ何もしない。 */
 export function setActiveStep(progress: GuideProgress, stepIndex: number): GuideProgress {
     if (!progress.active) return progress;
-    return { ...progress, active: { ...progress.active, stepIndex } };
+    return { ...progress, active: { ...progress.active, stepId: stepIdAt(progress.active.tourId, stepIndex), stepIndex } };
 }
 
 function endTour(
