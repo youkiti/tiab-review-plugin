@@ -14,7 +14,7 @@ import {
     type GuideTopic,
     type GuideTopicId,
 } from '../../../lib/guide/topics';
-import { placeNear } from './placement';
+import { placeNear } from './anchor-placement';
 import { currentGuidePlatform } from './tour-conditions';
 import { startGuideTour } from './tour-runner';
 

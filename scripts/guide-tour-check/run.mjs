@@ -303,13 +303,15 @@ async function scenario1(run) {
     await run.page.locator('#ris-file').setInputFiles(NBIB_FILE);
 
     await run.waitStep(T, 'read');
-    await expectDialogWaiting(run, 'read'); // 取り込み後のダイアログが開いている間は「ダイアログ待ち」
+    const dialogShown = await expectDialogWaiting(run, 'read'); // 取り込み後のダイアログが開いている間は「ダイアログ待ち」
+    if (dialogShown) await expectDialogButtonClickableInLowViewport(run, 'read');
     await run.closeModal(); // 取り込み後の確認・案内が出ていれば閉じる
     await expectDialogWaitingEnded(run, 'read');
     await run.clickNext('read');
 
     // 判定 → ここで1回リロードし、同じ手順から再開することを確かめる
     await run.waitStep(T, 'decide');
+    await expectCardStaysInViewportWhileScrolling(run, 'decide');
     await reloadAndExpectResume(run, T, 'decide');
     await run.click('#btn-include', 'decide', '判定ボタン（Include）');
 
@@ -350,7 +352,7 @@ async function expectDialogWaiting(run, stepLabel) {
         .waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
     if (!opened) {
         run.log('取り込み後にダイアログは開かなかったため、ダイアログ待ちの確認を省略');
-        return;
+        return false;
     }
     try {
         await run.page.waitForFunction(() => {
@@ -367,6 +369,60 @@ async function expectDialogWaiting(run, stepLabel) {
     await sleep(300);
     await run.shot(`${stepLabel}-modal`);
     run.log('ダイアログ待ちの表示を確認');
+    return true;
+}
+
+/**
+ * 画面が低くてカードがダイアログの上下に収まらないときは、カードが小さい表示（data-guide-compact）になり、
+ * ダイアログのフッターのボタンを実際に押せること。確認のため画面を一時的に低くし、終わったら元に戻す
+ * （この確認でダイアログは閉じる）。
+ */
+async function expectDialogButtonClickableInLowViewport(run, stepLabel) {
+    const original = run.page.viewportSize();
+    await run.page.setViewportSize({ width: 400, height: 480 });
+    try {
+        const compact = await run.page.waitForFunction(
+            () => document.getElementById('guide-tour-card')?.getAttribute('data-guide-compact') === 'true',
+            null, { timeout: 4000 },
+        ).then(() => true, () => false);
+        run.log(compact ? '低い画面: カードが小さい表示になった' : '低い画面でもカードは通常表示のまま（ダイアログの上下に収まった）');
+        await sleep(300);
+        await run.shot(`${stepLabel}-modal-low`);
+        try {
+            await run.page.locator('#modal-footer button').first().click({ timeout: 3000 });
+        } catch (err) {
+            await run.fail(stepLabel, '低い画面で、ダイアログのフッターのボタンがカードに覆われず押せること', err);
+        }
+        await run.page.locator('#modal-backdrop.hidden').waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
+        run.log('低い画面でダイアログのボタンを押せた');
+    } finally {
+        if (original) await run.page.setViewportSize(original);
+    }
+}
+
+/** ページをスクロールしても、カードと「ツアーを終える」ボタンが常に画面内にあること。 */
+async function expectCardStaysInViewportWhileScrolling(run, stepLabel) {
+    for (const y of [0, 600, 2000, 100000, 0]) {
+        await run.page.evaluate((top) => window.scrollTo(0, top), y);
+        await sleep(700); // 位置合わせ（400ms 間隔の補助を含む）を待つ
+        const check = await run.page.evaluate(() => {
+            const card = document.getElementById('guide-tour-card');
+            const end = card?.querySelector('[data-guide-action="end"]');
+            if (!card || !end) return { ok: false, reason: 'カードまたは「ツアーを終える」が無い' };
+            const vw = document.documentElement.clientWidth;
+            const vh = window.innerHeight;
+            const inside = (r) => r.top >= 0 && r.bottom <= vh && r.left >= 0 && r.right <= vw;
+            const c = card.getBoundingClientRect();
+            const e = end.getBoundingClientRect();
+            return { ok: inside(c) && inside(e), reason: `card=${JSON.stringify(c)} viewport=${vw}x${vh}` };
+        });
+        if (!check.ok) {
+            await run.shot(`${stepLabel}-scroll-${y}`);
+            await run.fail(stepLabel, `スクロール位置 ${y} でカードと「ツアーを終える」が画面内にあること（${check.reason}）`);
+        }
+    }
+    await run.shot(`${stepLabel}-scrolled`);
+    run.log('スクロールしてもカードが画面内にあることを確認');
 }
 
 /** ダイアログを閉じたあと、カードが通常の表示（待機の印なし・「次へ」あり）に戻ること。 */

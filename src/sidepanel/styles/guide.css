@@ -158,6 +158,42 @@
     z-index: 2100;
 }
 
+/* ダイアログの上にも下にも収まらないときの小さい表示。クリックは下のダイアログへ通し、「ツアーを終える」だけ押せる */
+.guide-tour-card--compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    max-width: 60vw;
+    padding: 4px 8px;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.guide-tour-card--compact .guide-tour-progress,
+.guide-tour-card--compact .guide-tour-waiting {
+    display: none;
+}
+
+.guide-tour-card--compact .guide-tour-text {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guide-tour-card--compact .guide-tour-actions {
+    flex: none;
+    margin-top: 0;
+}
+
+.guide-tour-card--compact .guide-tour-actions .btn {
+    padding: 1px 6px;
+    font-size: 11px;
+    pointer-events: auto;
+}
+
 .guide-tour-progress {
     margin-bottom: 4px;
     color: #1a73e8;

@@ -7,7 +7,7 @@ import type { GuideEventName } from '../../../lib/guide/tours';
 import type { GuideTourId } from '../../../lib/guide/topics';
 import { availableTours, shouldSuggest, suppressSuggestions } from '../../../lib/guide/tour-progress';
 import { currentGuidePlatform } from './tour-conditions';
-import { placeNear } from './placement';
+import { placeNear } from './anchor-placement';
 import { startGuideTour } from './tour-runner';
 import {
     getGuideProgress,

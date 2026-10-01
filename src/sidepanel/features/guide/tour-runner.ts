@@ -15,6 +15,7 @@ import {
     shouldAdvance,
     startTour,
 } from '../../../lib/guide/tour-progress';
+import { computeModalWaitPosition, computeTourCardPosition } from './placement';
 import { computeGuideConditions, currentGuidePlatform } from './tour-conditions';
 import { loadGuideProgress, updateGuideProgress } from './tour-store';
 
@@ -189,24 +190,52 @@ function reposition(): void {
     const cardHeight = card.offsetHeight;
 
     if (modalMode) {
-        // 枠と覆いは出さず、ダイアログのボタンに重ならない端（下→上の順）へカードを固定する
+        // 枠と覆いは出さず、ダイアログのボタンに重ならない場所へカードを置く。下にも上にも収まらないときは
+        // 小さい表示（クリックを通す）に切り替える
         highlight.classList.add('hidden');
         block.classList.add('hidden');
         setInert(null);
-        const dialog = backdrop?.querySelector<HTMLElement>('.modal-content')?.getBoundingClientRect();
-        let top = viewportHeight - cardHeight - MARGIN;
-        if (dialog && top < dialog.bottom + CARD_GAP && MARGIN + cardHeight <= dialog.top - CARD_GAP) top = MARGIN;
-        card.style.left = `${Math.max(MARGIN, (viewportWidth - cardWidth) / 2)}px`;
-        card.style.top = `${Math.max(MARGIN, top)}px`;
+        const rectOf = (selector: string): DOMRect | undefined =>
+            backdrop?.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+        const dialog = rectOf('.modal-content');
+        const footer = rectOf('.modal-footer');
+        const viewport = { width: viewportWidth, height: viewportHeight };
+        // 小さい表示の寸法は、クラスを付けて測ってから元に戻す（描画の前に済むので見えない）
+        const normalSize = { width: card.offsetWidth, height: card.offsetHeight };
+        card.classList.add('guide-tour-card--compact');
+        const compactSize = { width: card.offsetWidth, height: card.offsetHeight };
+        card.classList.remove('guide-tour-card--compact');
+        const position = computeModalWaitPosition({
+            viewport, card: normalSize, compactCard: compactSize, margin: MARGIN, gap: CARD_GAP,
+            dialog: dialog ? { top: dialog.top, bottom: dialog.bottom } : null,
+            footer: footer ? { top: footer.top, bottom: footer.bottom } : null,
+        });
+        card.classList.toggle('guide-tour-card--compact', position.compact);
+        if (position.compact) card.dataset.guideCompact = 'true';
+        else card.removeAttribute('data-guide-compact');
+        card.style.left = `${position.left}px`;
+        card.style.top = `${position.top}px`;
         return;
     }
+    card.classList.remove('guide-tour-card--compact');
+    card.removeAttribute('data-guide-compact');
+
+    const viewport = { width: viewportWidth, height: viewportHeight };
+    const cardSize = { width: cardWidth, height: cardHeight };
+    const place = (box: DOMRect | null): void => {
+        const position = computeTourCardPosition({
+            viewport, card: cardSize, margin: MARGIN, gap: CARD_GAP, pad: HIGHLIGHT_PAD,
+            target: box ? { top: box.top, bottom: box.bottom, left: box.left, right: box.right } : null,
+        });
+        card!.style.left = `${position.left}px`;
+        card!.style.top = `${position.top}px`;
+    };
 
     if (!target) {
         highlight.classList.add('hidden');
         block.classList.add('hidden');
         setInert(null);
-        card.style.left = `${Math.max(MARGIN, (viewportWidth - cardWidth) / 2)}px`;
-        card.style.top = `${Math.max(MARGIN, viewportHeight - cardHeight - MARGIN)}px`;
+        place(null);
         return;
     }
 
@@ -226,15 +255,8 @@ function reposition(): void {
     if (blocking && inViewport) placeBox(block, rect, HIGHLIGHT_PAD);
     setInert(blocking ? target : null);
 
-    // 対象の下→上→画面下部の順に、収まる場所へカードを置く
-    const left = Math.min(Math.max(rect.left, MARGIN), Math.max(MARGIN, viewportWidth - cardWidth - MARGIN));
-    let top = rect.bottom + HIGHLIGHT_PAD + CARD_GAP;
-    if (top + cardHeight > viewportHeight - MARGIN) {
-        const above = rect.top - HIGHLIGHT_PAD - CARD_GAP - cardHeight;
-        top = above >= MARGIN ? above : Math.max(MARGIN, viewportHeight - cardHeight - MARGIN);
-    }
-    card.style.left = `${left}px`;
-    card.style.top = `${top}px`;
+    // 対象の下→上→画面下端の順に配置する（対象が画面の外ならカードは画面下端）
+    place(rect);
 }
 
 /** 手順が変わったときに、カードの中身（番号・本文・ボタン）を作り直す。 */
