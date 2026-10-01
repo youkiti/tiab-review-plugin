@@ -13,6 +13,20 @@ async function expectNoHorizontalScroll(run, stepLabel) {
     if (overflow > 0) await run.fail(stepLabel, `横スクロールが出ないこと（はみ出し ${overflow}px）`);
 }
 
+/** 押せない手順（blockTarget）: ボタンを押しても、押した結果（開くはずの欄・ダイアログ）が現れないこと。覆いに遮られて押せないのも合格。 */
+async function expectBlocked(run, stepLabel, buttonSelector, effectSelector, what) {
+    let verdict = 'クリックは通った';
+    try {
+        await run.page.locator(buttonSelector).first().click({ timeout: 2500 });
+    } catch {
+        verdict = 'クリックが覆いに遮られて押せなかった';
+    }
+    await sleep(600);
+    const shown = await run.page.locator(effectSelector).first().isVisible().catch(() => false);
+    if (shown) await run.fail(stepLabel, `${what}を押しても ${effectSelector} が開かないこと（${verdict}が、開いてしまった）`);
+    run.log(`${what}は押せない（${verdict}。${effectSelector} は開かず）`);
+}
+
 export default defineScenario({
     name: 'fulltext-setup',
     title: 'ツアー fulltext-setup',
@@ -126,5 +140,44 @@ export default defineScenario({
         await run.waitCardGone('finish');
         await run.waitTourStatus(T, 'done', 'finish');
         run.log('guide_progress: fulltext-setup が done（実際に押す経路）');
+        // --- 経路C: 「判定後レビュー」の表示のまま始める。候補リストの表示にする手順が出て、押せない手順の確認もする ---
+        await run.click('#fulltext-mode-results', 'view-results', '「判定後レビュー」の表示ボタン');
+        await run.waitVisible('#fulltext-results', 'view-results', '判定後レビューの表示');
+        await openTourList(run, 'restart-results');
+        await run.click(`[data-guide-tour-item="${T}"] [data-guide-action="start"]`, 'restart-results', '一覧の fulltext-setup の開始ボタン');
+
+        await run.waitStep(T, 'views');
+        await run.clickNext('views');
+        await run.waitStep(T, 'list-view');
+        await expectCardClearOfTarget(run, 'list-view', '#fulltext-mode-list', '「候補リスト」のボタン');
+        await run.click('#fulltext-mode-list', 'list-view', '「候補リスト」のボタン');
+
+        // 押せない手順: 候補ルール・担当の変更ボタン
+        const ruleStepC = await run.waitStep(T, ['rule', 'rule-pending']);
+        await expectBlocked(run, ruleStepC, '#fulltext-rule-edit-btn', '#fulltext-rule-editor:not(.hidden)', '候補ルールの変更ボタン');
+        await run.clickNext(ruleStepC);
+        await run.waitStep(T, 'assignment');
+        await expectBlocked(run, 'assignment', '#fulltext-assignment-edit-btn', '#modal-backdrop:not(.hidden)', '担当割り振りの変更ボタン');
+        await run.clickNext('assignment');
+        await run.waitStep(T, 'checklist');
+        await run.clickNext('checklist');
+
+        // 以降の手順の対象が表示されている
+        await run.waitStep(T, 'fetch');
+        await run.waitVisible('#fulltext-fetch-btn', 'fetch', '一括検索ボタン');
+        await expectCardClearOfTarget(run, 'fetch', '#fulltext-fetch-btn', '一括検索ボタン');
+        await run.clickNext('fetch');
+        await run.waitStep(T, 'missing');
+        await run.waitVisible('[data-tour="fulltext-card"]', 'missing', '候補カード');
+        await run.clickNext('missing');
+        await run.waitStep(T, 'drive-import');
+        await run.clickNext('drive-import');
+        await run.waitStep(T, 'open-page');
+        await run.clickNext('open-page');
+        await run.waitStep(T, 'finish');
+        await run.clickNext('finish');
+        await run.waitCardGone('finish');
+        await run.waitTourStatus(T, 'done', 'finish');
+        run.log('guide_progress: fulltext-setup が done（判定後レビューの表示から始めた経路）');
     },
 });

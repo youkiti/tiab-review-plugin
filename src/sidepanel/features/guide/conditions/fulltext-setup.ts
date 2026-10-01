@@ -9,10 +9,13 @@ import { getState } from '../../../store';
 
 export function computeFulltextSetupConditions(): Record<FulltextSetupCondition, boolean> {
     const onScreening = getState().ui.view === 'screening';
-    // 候補カードの有無は、描画済みの DOM（features/fulltext/tab.ts が data-tour を付ける）で見る
+    // 候補カードの有無は、描画済みの DOM（features/fulltext/tab.ts が data-tour を付ける）で見る。
+    // 候補一覧は表示（候補リスト/AI判定/判定後レビュー）に関わらず描画され、非表示にされるだけなので、
+    // 非表示でも「候補はある」と数える（見えているかで数えると、候補があるのに「候補がありません」と案内してしまう）
     const hasCards = document.querySelector('[data-tour="fulltext-card"]') !== null;
     return {
         'on-fulltext-tab': onScreening && state.currentTab === 'fulltext',
+        'on-fulltext-list': document.getElementById('fulltext-mode-list')?.classList.contains('active') === true,
         'key-opened': state.isKeyOpened,
         'key-unopened': !state.isKeyOpened,
         'has-fulltext-cards': hasCards,

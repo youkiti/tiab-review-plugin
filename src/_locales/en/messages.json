@@ -1851,14 +1851,17 @@
   "guideExt_tour_fulltext_setup_views": {
     "message": "The Full-text tab has three views. Use \"Candidates\" to collect and judge full texts, \"AI judge\" to have AI read them, and \"Review\" to compare the results. Let's look at \"Candidates\"."
   },
+  "guideExt_tour_fulltext_setup_list_view": {
+    "message": "The full-text status and the candidate list are in the \"Candidates\" view. Click \"Candidates\"."
+  },
   "guideExt_tour_fulltext_setup_rule": {
-    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened)."
+    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.)"
   },
   "guideExt_tour_fulltext_setup_rule_pending": {
-    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\"."
+    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
   },
   "guideExt_tour_fulltext_setup_assignment": {
-    "message": "This is the full-text assignment. Check, and change if you are an admin, who reviews the full texts and how they are split. If assignments are set, only your own set appears in the list."
+    "message": "This is the full-text assignment. Check, and change if you are an admin, who reviews the full texts and how they are split. If assignments are set, only your own set appears in the list. Changing the assignment affects the whole project, so the button is disabled during the tour. To change it, finish the tour and then press the button."
   },
   "guideExt_tour_fulltext_setup_checklist": {
     "message": "This checks the points where people often get stuck before starting. Look at your assignment set, permission to read the PDFs, and your progress. If an item is not marked, use the button in that row to fix it."

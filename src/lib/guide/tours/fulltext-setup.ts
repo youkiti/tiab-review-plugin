@@ -9,10 +9,12 @@ import type { TourFor } from './types';
 /** このツアー固有のイベント名 */
 export type FulltextSetupEvent =
     | 'fulltext-fetch-finished' // 「フリー全文を一括検索」が最後まで走った（中断した場合は除く）
-    | 'fulltext-page-opened'; // 候補カードから全文の判定ページを開いた
+    | 'fulltext-page-opened' // 候補カードから全文の判定ページを開いた
+    | 'fulltext-list-shown'; // 全文タブの表示が「候補リスト」になった
 /** このツアー固有の条件名。条件の計算は sidepanel/features/guide/conditions/fulltext-setup.ts */
 export type FulltextSetupCondition =
     | 'on-fulltext-tab' // 全文タブを開いている
+    | 'on-fulltext-list' // 全文タブの表示が「候補リスト」（入手状況・候補一覧は、この表示のときだけ見える）
     | 'key-opened' // Blind のキーが開封済み
     | 'key-unopened' // Blind のキーが未開封
     | 'has-fulltext-cards' // 候補一覧に候補カードが出ている
@@ -44,12 +46,21 @@ export const FULLTEXT_SETUP_TOUR: TourFor<FulltextSetupEvent, FulltextSetupCondi
             textKey: stepKey(BASE, 'views'),
             advance: { type: 'next' },
         },
+        // 入手状況・候補一覧は「候補リスト」の表示でしか見えない。以降の手順で案内できるよう、この表示にしてもらう
+        {
+            id: 'list-view',
+            target: 'fulltext-mode-list',
+            textKey: stepKey(BASE, 'list-view'),
+            advance: { type: 'events', events: ['fulltext-list-shown'] },
+            skipIf: 'on-fulltext-list',
+        },
         // 候補ルールは、キーを開封してから決める（未開封の間は自分の Include を仮の候補として出す）
         {
             id: 'rule',
             target: 'fulltext-rule',
             textKey: stepKey(BASE, 'rule'),
             advance: { type: 'next' },
+            blockTarget: true,
             skipIf: 'key-unopened',
         },
         {
@@ -57,6 +68,7 @@ export const FULLTEXT_SETUP_TOUR: TourFor<FulltextSetupEvent, FulltextSetupCondi
             target: 'fulltext-rule',
             textKey: stepKey(BASE, 'rule-pending'),
             advance: { type: 'next' },
+            blockTarget: true,
             skipIf: 'key-opened',
         },
         {
@@ -64,6 +76,7 @@ export const FULLTEXT_SETUP_TOUR: TourFor<FulltextSetupEvent, FulltextSetupCondi
             target: 'fulltext-assignment',
             textKey: stepKey(BASE, 'assignment'),
             advance: { type: 'next' },
+            blockTarget: true,
         },
         {
             id: 'checklist',
