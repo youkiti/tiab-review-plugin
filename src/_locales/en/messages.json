@@ -1857,6 +1857,45 @@
   "guideExt_tour_ai_first_run_desc": {
     "message": "Walks you through setting the AI model and criteria and running screening for the first time."
   },
+  "guideExt_tour_ai_first_run_open_tab": {
+    "message": "Press here to open the AI tab."
+  },
+  "guideExt_tour_ai_first_run_model": {
+    "message": "Pick the model used for AI screening. If unsure, the default is fine. Cost, speed and accuracy differ by model."
+  },
+  "guideExt_tour_ai_first_run_keys": {
+    "message": "Enter an API key in the row for your model's provider and press \"Verify and save\". You get the key from the provider. Free Gemini keys limit the processing speed. If a key is already set, use \"Skip this step\" to move on."
+  },
+  "guideExt_tour_ai_first_run_protocol": {
+    "message": "Paste the protocol's inclusion and exclusion criteria here. If you already have review criteria for human reviewers, \"Copy TiAb review criteria\" fills this in."
+  },
+  "guideExt_tour_ai_first_run_optimize": {
+    "message": "\"Optimize Criteria\" turns the pasted text into criteria and a prompt for the AI. This calls the API, so use \"Skip this step\" if you are only looking."
+  },
+  "guideExt_tour_ai_first_run_prompt": {
+    "message": "This is the generated prompt. Check it and edit it directly if something is missing. \"Save Criteria to Google Spreadsheet\" stores it in the sheet (saving costs nothing)."
+  },
+  "guideExt_tour_ai_first_run_prompt_wait": {
+    "message": "The prompt appears here once you optimize the criteria. There are none yet, so we move on. After you create them, open this tour again from the ❓ \"List of guided tours\" and it will continue from here."
+  },
+  "guideExt_tour_ai_first_run_batch_settings": {
+    "message": "Choose which records go to the AI. \"Target\" is all records by default. \"Run limit\" caps the count, so try a small number such as 10 first to keep the cost down."
+  },
+  "guideExt_tour_ai_first_run_batch_run": {
+    "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
+  },
+  "guideExt_tour_ai_first_run_threshold": {
+    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; 0.5 is the standard if unsure. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
+  },
+  "guideExt_tour_ai_first_run_threshold_wait": {
+    "message": "Once a run finishes, the threshold confirmation appears here, below the batch controls. You have not run it yet, so we move on. After a run, open this tour again from the ❓ \"List of guided tours\" and it will explain the threshold."
+  },
+  "guideExt_tour_ai_first_run_history": {
+    "message": "This is the Execution History at the bottom of the AI tab. Every run leaves a history entry. Runs with the same criteria and model are grouped into one Run, and the adopted Run is the one whose decisions are used. Choose which Run to adopt with the radio buttons here."
+  },
+  "guideExt_tour_ai_first_run_finish": {
+    "message": "That is the flow for your first AI screening. The AI is recorded as one independent reviewer, and you can compare its results with human decisions on the Manual tab. The ? on each card opens an explanation, and the ? next to the model opens the list of guided tours."
+  },
   "guideExt_tour_ml_start_title": {
     "message": "Start ML prioritization"
   },
