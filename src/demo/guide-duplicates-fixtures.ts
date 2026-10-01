@@ -16,10 +16,16 @@ import { buildMatchKeys } from '../lib/duplicate-detect';
 import { DEMO_SEED_TIMESTAMP, DEMO_USER_EMAIL } from './constants';
 import type { Reference } from '../lib/types';
 
+/** 現在のページ URL の ?demoGuide= の値（duplicates: 通常の候補、duplicates-broken: 壊れた組だけ）。それ以外は null */
+function resolveDemoGuideDuplicatesMode(): 'duplicates' | 'duplicates-broken' | null {
+    if (typeof location === 'undefined') return null;
+    const value = new URLSearchParams(location.search).get('demoGuide');
+    return value === 'duplicates' || value === 'duplicates-broken' ? value : null;
+}
+
 /** 現在のページ URL の ?demoGuide=duplicates のときだけ true */
 export function resolveDemoGuideDuplicates(): boolean {
-    if (typeof location === 'undefined') return false;
-    return new URLSearchParams(location.search).get('demoGuide') === 'duplicates';
+    return resolveDemoGuideDuplicatesMode() === 'duplicates';
 }
 
 /** seed.ts の判定行の組み立て（SeedDecisionInput）のうち、ここで使う項目 */
@@ -104,6 +110,15 @@ function candidateRow(index: number, a: Reference, b: Reference, matchType: 'doi
 }
 
 /**
+ * ?demoGuide=duplicates-broken 用: 互いを重複として指し合う（相互削除の）壊れた組。
+ * 候補の比較の表は作られず、「左を残す」「右を残す」は選べない。この1組だけを候補に入れる。
+ */
+const BROKEN_REFERENCES: Reference[] = [
+    dupRef(7, { title: '壊れた組のデモ A: music therapy for dementia', year: 2017, duplicate_of: 'demo-dup-008' }),
+    dupRef(8, { title: '壊れた組のデモ B: acupuncture for migraine', year: 2016, duplicate_of: 'demo-dup-007' }),
+];
+
+/**
  * ?demoGuide=duplicates のときだけ、シード済みのデモシートへ重複する文献・候補・判定を追記する
  * （seedDemoStore の最後から呼ぶ。行の組み立ては seed.ts のものを受け取り、列順の写しを持たない）。
  */
@@ -111,7 +126,13 @@ export function seedGuideDuplicatesDemo(
     buildReferenceRow: (ref: Reference) => string[],
     buildDecisionRow: (input: GuideDecisionInput) => string[]
 ): void {
-    if (!resolveDemoGuideDuplicates()) return;
+    const mode = resolveDemoGuideDuplicatesMode();
+    if (mode === null) return;
+    if (mode === 'duplicates-broken') {
+        appendRowsTo('References', BROKEN_REFERENCES.map(buildReferenceRow));
+        appendRowsTo('Duplicate_Candidates', [candidateRow(1, BROKEN_REFERENCES[0], BROKEN_REFERENCES[1], 'title')]);
+        return;
+    }
 
     appendRowsTo('References', DUPLICATE_REFERENCES.map(buildReferenceRow));
 

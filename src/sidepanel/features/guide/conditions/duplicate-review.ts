@@ -32,6 +32,7 @@ export function computeDuplicateReviewConditions(): Record<DuplicateReviewCondit
         'no-duplicate-candidates': none,
         'duplicate-candidates-present': !none,
         'duplicate-modal-closed': !hasVisible('duplicate-bulk'),
+        'duplicate-compare-missing': !hasVisible('duplicate-compare'),
         'duplicate-no-hint-needed': none
             || document.querySelector<HTMLElement>('[data-tour="duplicate-section"]')?.dataset.reviewOpened === '1',
     };

@@ -21,6 +21,7 @@ export type DuplicateReviewCondition =
     | 'no-duplicate-candidates' // 未確認の重複候補が0件と分かっている
     | 'duplicate-candidates-present' // 未確認の重複候補が0件ではない（件数が未取得の間も含む）
     | 'duplicate-modal-closed' // 比較画面が開いていない
+    | 'duplicate-compare-missing' // 比較の表が画面に無い（比較画面が閉じている、または壊れた組で表が作られない）
     | 'duplicate-no-hint-needed'; // 比較画面を一度開いた、または見る候補が無い
 
 // 拡張版だけのツアーなので、`guideExt_` 接頭辞（Web 版ビルドが落とす）。
@@ -36,7 +37,7 @@ export const DUPLICATE_REVIEW_TOUR: TourFor<DuplicateReviewEvent, DuplicateRevie
     steps: [
         {
             id: 'open-tab',
-            target: 'duplicate-tab-manual',
+            target: 'tab-screening',
             textKey: stepKey(BASE, 'open-tab'),
             advance: { type: 'events', events: ['tab-opened-screening'] },
             skipIf: 'duplicate-manual-tab-open',
@@ -77,7 +78,7 @@ export const DUPLICATE_REVIEW_TOUR: TourFor<DuplicateReviewEvent, DuplicateRevie
             dynamicTarget: true,
             textKey: stepKey(BASE, 'compare'),
             advance: { type: 'next' },
-            skipIf: 'duplicate-modal-closed',
+            skipIf: 'duplicate-compare-missing',
         },
         {
             id: 'choose',

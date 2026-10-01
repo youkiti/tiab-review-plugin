@@ -313,5 +313,35 @@ export default defineScenario({
         await run.clickNext('after-review');
         await finishTour(run);
         run.log('経路2c: 比較画面を開かずに finish まで到達');
+
+        // ---------- 経路2d: 壊れた組だけ（比較の表が作られない） ----------
+        run.log('経路2d: 壊れた組（?demoGuide=duplicates-broken）');
+        await reopen(run, '?demoGuide=duplicates-broken');
+        await waitPending(run, 1, 'setup-broken');
+        await startFromSectionHelp(run);
+        await run.waitStep(T, 'section');
+        await run.clickNext('section');
+        await run.waitStep(T, 'rescan');
+        await run.clickNext('rescan');
+        await run.waitStep(T, 'open-review');
+        await run.click('[data-tour="duplicate-open"]', 'open-review', '「重複を確認」');
+        // 比較の表が無いので compare は飛ばされ、「別々の文献」が選べる choose へ進む（ダイアログ待ちで止まらない）
+        await run.waitStep(T, 'choose');
+        const tables = await run.page.locator('[data-tour="duplicate-compare"]').count();
+        if (tables !== 0) await run.fail('choose', `壊れた組だけのとき、比較の表が作られないこと（実際: ${tables} 個）`);
+        const reason = await run.page.locator('#guide-tour-card').getAttribute('data-guide-waiting-reason');
+        if (reason !== null) await run.fail('choose', `ダイアログ待ちにならないこと（waiting-reason=${reason}）`);
+        await expectHighlightOverModal(run, 'choose');
+        await expectCardClearInModal(run, 'choose', '[data-tour="duplicate-actions"]', 0);
+        await nextInModal(run, 'choose'); // 押さずに次へ
+        await run.waitStep(T, 'bulk');
+        await nextInModal(run, 'bulk');
+        await run.waitStep(T, 'after-review');
+        await expectDialogWaiting(run, 'after-review');
+        await closeReviewModal(run, 'after-review');
+        await expectDialogWaitingEnded(run, 'after-review');
+        await run.clickNext('after-review');
+        await finishTour(run);
+        run.log('経路2d: 壊れた組でも compare を飛ばして finish まで到達');
     },
 });
