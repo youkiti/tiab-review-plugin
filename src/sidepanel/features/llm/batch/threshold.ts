@@ -28,6 +28,7 @@ import {
 } from '../../../../lib/sheets-api';
 import { showToast } from '../../../ui/feedback';
 import { t } from '../../../../lib/i18n';
+import { emitGuideEvent } from '../../guide/lazy';
 import {
     calculateProbabilityDistribution,
     previewThresholdCounts,
@@ -245,6 +246,7 @@ export async function handleConfirmThreshold() {
 
         // 実行履歴を更新
         await loadExecutionHistory();
+        emitGuideEvent('ai-threshold-confirmed');
 
         // ML判定完了後のガイダンスメッセージ
         setTimeout(() => {

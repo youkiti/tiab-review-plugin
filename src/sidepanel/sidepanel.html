@@ -17,9 +17,9 @@
                 <span class="build-version">Build: 2026-09-18</span>
             </div>
             <div class="header-tabs hidden">
-                <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
+                <button id="tab-screening" class="tab-btn active" data-tour="tab-screening" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
                 <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
-                <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
+                <button id="tab-llm" class="tab-btn" data-tour="tab-llm" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
                 <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
             </div>
             <div class="progress">
@@ -449,7 +449,7 @@
             </div>
 
             <!-- 使うモデル -->
-            <div id="llm-model-card" class="llm-card">
+            <div id="llm-model-card" class="llm-card" data-tour="ai-model">
                 <h4 class="card-title">
                     <span id="llm-model-title" data-i18n="llm_modelCardTitle"></span>
                     <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model">?</span>
@@ -474,7 +474,7 @@
             </div>
 
             <!-- APIキー -->
-            <div id="llm-providers-card" class="llm-card">
+            <div id="llm-providers-card" class="llm-card" data-tour="ai-keys">
                 <h4 class="card-title"><span data-i18n="llm_apiKeysCardTitle"></span><button type="button" class="guide-help-btn" data-help="ai-keys" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button></h4>
                 <div class="provider-rows">
                     <div id="provider-row-gemini" class="provider-row" data-provider="gemini">
@@ -624,17 +624,18 @@
                     <button id="import-review-criteria-btn"
                         class="btn btn-outline btn-small protocol-import-btn hidden"
                         data-i18n="llm_importReviewCriteriaButton"></button>
-                    <textarea id="protocol-text-input" rows="6"
+                    <textarea id="protocol-text-input" rows="6" data-tour="ai-protocol"
                         data-i18n-placeholder="llm_protocolPlaceholder"></textarea>
                 </div>
 
-                <button id="optimize-criteria-btn" class="btn btn-primary btn-full" data-i18n="llm_optimizeBtn">
+                <button id="optimize-criteria-btn" class="btn btn-primary btn-full" data-tour="ai-optimize" data-i18n="llm_optimizeBtn">
                 </button>
                 <div id="optimize-status" class="optimize-status hidden"></div>
 
+                <div data-tour="ai-prompt">
                 <div class="criteria-section">
                     <label data-i18n="llm_optimizedLabel"></label>
-                    <div id="optimized-criteria-display" class="optimized-criteria-display">
+                    <div id="optimized-criteria-display" class="optimized-criteria-display" data-tour="ai-optimized">
                         <p class="placeholder-text" data-i18n="llm_optimizedPlaceholder"></p>
                     </div>
                     <textarea id="screening-prompt-input" rows="4" data-i18n-placeholder="llm_screeningPromptPlaceholder"
@@ -643,6 +644,7 @@
 
                 <button id="save-criteria-btn" class="btn btn-secondary btn-full hidden" data-i18n="llm_saveCriteria">
                 </button>
+                </div>
             </div>
 
             <!-- 一括実行 -->
@@ -653,6 +655,7 @@
                 </div>
 
                 <!-- 対象: 既定は全件。人間のお試しスクリーニングと同じ集合をAIに投げたいときに限定する -->
+                <div data-tour="ai-batch-settings">
                 <div class="setting-row batch-target-row">
                     <label data-i18n="llm_targetLabel"></label>
                     <span class="help-icon" data-i18n-tooltip="llm_tip_target" tabindex="0">?</span>
@@ -672,6 +675,7 @@
                         <option value="all" data-i18n="llm_batchMaxCountAll"></option>
                     </select>
                 </div>
+                </div>
 
                 <div id="batch-info" class="batch-info">
                     <span data-i18n="llm_batchPending"></span> <span id="batch-target-count">0</span>
@@ -684,9 +688,9 @@
                     <button type="button" id="batch-restart-run-btn" class="btn btn-outline btn-xsmall"></button>
                 </div>
 
-                <button id="start-batch-btn" class="btn btn-primary btn-full" data-i18n="llm_batchStart">
+                <button id="start-batch-btn" class="btn btn-primary btn-full" data-tour="ai-batch-run" data-i18n="llm_batchStart">
                 </button>
-                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-i18n="llm_batchStop">
+                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-tour="ai-batch-run" data-i18n="llm_batchStop">
                 </button>
 
                 <div id="batch-progress" class="batch-progress hidden">
@@ -709,7 +713,7 @@
             </div>
 
             <!-- 閾値調整（実行完了後に表示） -->
-            <div id="threshold-section" class="llm-card hidden">
+            <div id="threshold-section" class="llm-card hidden" data-tour="ai-threshold">
                 <div class="guide-heading-row">
                     <h4 data-i18n="llm_thresholdTitle"></h4>
                     <button type="button" class="guide-help-btn" data-help="ai-threshold" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
@@ -750,7 +754,7 @@
             </div>
 
             <!-- LLM実行履歴 -->
-            <div class="llm-card collapsible">
+            <div class="llm-card collapsible" data-tour="ai-history">
                 <h4 class="collapsible-header">
                     <span data-i18n="llm_historyTitle"></span>
                     <span class="collapse-icon">▼</span>
