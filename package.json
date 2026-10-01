@@ -31,7 +31,8 @@
         "bench:bundle": "node scripts/bench/bundle-stats.mjs",
         "check:structure": "node scripts/check-structure.mjs",
         "check:bundle": "npm run bench:bundle && node scripts/check-bundle-budget.mjs",
-        "check:tours": "node scripts/guide-tour-check/run.mjs"
+        "check:tours": "node scripts/guide-tour-check/run.mjs",
+        "video:tours": "node video/scripts/tour-videos.mjs"
     },
     "devDependencies": {
         "@types/chrome": "^0.0.260",

@@ -159,6 +159,32 @@ narration を `01-intro` に向けて音声付きで最後まで通す）。`vid
 - ナレーション音声の合計がシーン映像より長くなった場合は、映像の最終フレームを複製して
   引き伸ばす（`tpad`）。逆に映像がナレーションより長い場合は、映像の自然な尺がそのまま使われる。
 
+## 操作ツアーの解説動画（`npm run video:tours`）
+
+アプリ内の操作ツアー（`src/lib/guide/tours/`）を、ツアー1本につき1本の短い動画にする。
+上の4ステップ（手書きのシーンと原稿から作る長い解説動画）とは別の経路で、**映像も原稿もツアーそのものから作る**ので、
+シーンスクリプトやナレーション原稿を書く必要がない。招待した参加者へ「最初に見てほしい動画」として渡す用途を想定している。
+
+```bash
+npm run build:demo
+LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" npm run video:tours                    # 参加者向けの既定3本
+LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" npm run video:tours -- ml-start         # ツアー ID を指定
+npm run video:tours -- --skip-capture ml-start   # 撮り直さず、直前のスクリーンショットから作り直す
+```
+
+- **映像**: `scripts/guide-tour-check/` のシナリオ（`npm run check:tours` と同じもの）がデモビルドの上でツアーを最後まで操作し、
+  手順ごとに残すスクリーンショットを使う。手順ごとに最初の1枚を1画面にし、縦長（サイドパネル）は左に画面・右に文言、
+  横長（全文の判定ページ）は上に画面・下に文言で並べる。シナリオで通らなかった手順（`skipIf` で飛ばされる分岐）は入れない
+- **原稿**: ツアーの定義の手順の順番と、ja の `messages.json` のカードの文言。英字は VOICEVOX が読めないので、
+  `video/scripts/tour-videos.mjs` の `READINGS`（PDF → ピーディーエフ など）で音声だけ読み替える（画面の文言はそのまま）。
+  **ツアーの文言に新しい英字が入ったら `READINGS` に足すこと**（足さないとアルファベットを1字ずつ読む）
+- **追従**: ツアーの手順や文言を変えたら作り直すだけで動画も追従する。`check:tours` が落ちる変更は、動画の撮り直しも要る合図
+- **出力**: `video/build/tours/<ツアーID>.mp4` と字幕 `<ツアーID>.srt`（途中の画面・音声・区切りの MP4 は `video/build/tours/<ツアーID>/`）。
+  同じ文言・話者の音声は作り直さない
+- `--skip-capture` が使えるのは直前に撮ったツアーだけ（`check:tours` は実行のたびにスクリーンショットを消すため）
+- Playwright 同梱の Chromium と版が合わない環境（Claude Code web のコンテナなど）では、
+  `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` を付ける（`check:tours` も同じ変数を見る）
+
 ## 生成物一覧（`video/build/`, git 管理外）
 
 | パス | 内容 |
@@ -174,6 +200,8 @@ narration を `01-intro` に向けて音声付きで最後まで通す）。`vid
 | `subtitles-en.srt` | 英語字幕（YouTube の字幕トラックとしてアップロード） |
 | `description.txt` | YouTube 説明欄用テキスト（チャプター・リンク・クレジット込み） |
 | `thumbnail.png` | サムネイル（`video/assets/thumbnail.html` を撮影） |
+| `tours/<ツアーID>.mp4` / `.srt` | 操作ツアーの解説動画と字幕（`tour-videos.mjs`） |
+| `tours/<ツアーID>/` | ツアー動画の途中のファイル（画面 PNG・音声 WAV・手順ごとの MP4） |
 
 これらはすべて `video/build/` から再生成可能なため git 管理しない
 （`.gitignore` の `video/build/` / `video/tools/` を参照）。
