@@ -273,7 +273,7 @@
     "message": "Review conflicts"
   },
   "screening_tiabDoneBlind": {
-    "message": "Conflicts are hidden while blinded, so it's fine to proceed to full text as is. You can resolve any slip-ups after turning blinding off."
+    "message": "Conflicts are not shown while others' decisions are hidden, so it's fine to proceed to full text as is. You can resolve any slip-ups after the key is opened."
   },
   "screening_tiabDoneMaybe": {
     "message": "⚠️ There are $1 references marked Maybe. They won't become full-text candidates while left as Maybe — change any you'd like to evaluate in full text to Include."
@@ -405,7 +405,7 @@
     "message": "- Each reviewer: only their own group plus unassigned items"
   },
   "ftAssign_wizardRolePreviewBlind": {
-    "message": "- The candidate list is shown to everyone even while blind (decision content stays hidden)"
+    "message": "- The candidate list is shown to everyone even while others' decisions are hidden (the decisions themselves stay hidden)"
   },
   "ftAssign_selfSuffix": {
     "message": " (you)"
@@ -771,7 +771,7 @@
     "message": "Could not load judgment rounds: $1"
   },
   "fulltext_aiRoundsNotAdopted": {
-    "message": "No round is adopted yet. Adopting one shows the AI evidence highlights in the full-text window even while blinded (the AI’s judgment itself stays hidden)."
+    "message": "No round is adopted yet. Adopting one shows the AI evidence highlights in the full-text window even while the key is closed (the AI’s judgment itself stays hidden)."
   },
   "fulltext_aiRoundCounts": {
     "message": "include $1 · exclude $2 · maybe $3 ($4 total)"
@@ -840,7 +840,7 @@
     "message": "Select at least one judge."
   },
   "fulltext_resultsJudgesBlind": {
-    "message": "After the key is opened (unblinded), results aggregate across all reviewers. Currently showing your own decisions only."
+    "message": "After the key is opened, results aggregate across all reviewers. Currently showing your own decisions only."
   },
   "fulltext_blindNote": {
     "message": "Turn ON to aggregate all reviewers + AI (admin only)"
@@ -990,10 +990,10 @@
     "message": "Each checked reviewer's TiAb decision counts as a vote; references with at least the required number of Include votes become full-text candidates. This setting is shared project-wide. Configuring after TiAb screening is complete is recommended."
   },
   "ftRule_blocked": {
-    "message": "The pool rule can be configured after the key is opened (blinding lifted). Until then, your own TiAb includes are used as candidates."
+    "message": "The pool rule can be configured after the key is opened. Until then, your own TiAb includes are used as candidates."
   },
   "ftRule_openKeyBtn": {
-    "message": "Open the key (lift blinding)"
+    "message": "Open the key (show others' decisions)"
   },
   "ftRule_blockedAskAdmin": {
     "message": "Only the project admin can open the key."
@@ -1041,22 +1041,22 @@
     "message": "Save failed: $1"
   },
   "ftRule_blindWarnConfirm": {
-    "message": "This rule uses human votes ($1), but the key is currently closed (blind), so other members' candidate lists won't be calculated correctly until assignments are set. Save anyway?\n\n* Setting up assignments lets everyone see the same candidates even while blind."
+    "message": "This rule uses human votes ($1), but others' decisions are currently hidden (the key is closed), so other members' candidate lists won't be calculated correctly until assignments are set. Save anyway?\n\n* Setting up assignments lets everyone see the same candidates even while others' decisions are hidden."
   },
   "fulltext_emptyList": {
     "message": "No full-text candidates yet. Continue TiAb screening first."
   },
   "fulltext_emptyBlindUnevaluable": {
-    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Ask an admin to turn off Blind."
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while others' decisions are hidden. Ask an admin to open the key."
   },
   "fulltext_emptyBlindUnevaluableAdmin": {
-    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turning off Blind will let candidates be calculated."
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while others' decisions are hidden. Opening the key will let candidates be calculated."
   },
   "fulltext_emptyBlindUnevaluableFulltextWindow": {
-    "message": "The candidate rule (other reviewers' votes) can't be evaluated while Blind is on. Turn off Blind from the Manual tab in the side panel."
+    "message": "The candidate rule (other reviewers' votes) can't be evaluated while others' decisions are hidden. Open the key from the Manual tab in the side panel."
   },
   "fulltext_emptyAssignmentMismatch": {
-    "message": "$1 reference(s) are assigned, but no candidates could be calculated. Check the Blind state and the candidate rule settings."
+    "message": "$1 reference(s) are assigned, but no candidates could be calculated. Check whether the key is open and the candidate rule settings."
   },
   "fulltext_emptyFilteredOut": {
     "message": "No candidates match the selected assignment sets. Change the checkboxes."
@@ -1065,7 +1065,7 @@
     "message": "No items match the current view filter (missing/obtained/undecided). Change the view."
   },
   "fulltext_emptyUnblockBtn": {
-    "message": "Turn off Blind"
+    "message": "Open the key"
   },
   "fulltext_openTitle": {
     "message": "Open full-text page"
@@ -1146,7 +1146,7 @@
     "message": "🤝 Consensus mode"
   },
   "consensus_modeTooltip": {
-    "message": "When ON, this decision is recorded as a consensus decision (-human-consensus), distinguishable from an ordinary first-pass decision. Consensus is only available while the key is open (blinding lifted)."
+    "message": "When ON, this decision is recorded as a consensus decision (-human-consensus), distinguishable from an ordinary first-pass decision. Consensus is only available while the key is open."
   },
   "consensus_modeBadge": {
     "message": "🤝 Deciding in consensus mode"
@@ -1495,37 +1495,37 @@
     "message": ""
   },
   "export_blindedReviewerColumnsOmitted": {
-    "message": "Blinded: per-reviewer decision columns are omitted. Re-export after the key is opened."
+    "message": "Others' decisions are hidden, so per-reviewer decision columns are omitted. Re-export after the key is opened."
   },
   "blind_onConfirm": {
-    "message": "Enable blinding?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
+    "message": "Hide others' decisions again?\nOther reviewers' decisions will be hidden and conflict indicators will be removed."
   },
   "blind_onFulltextRuleWarn": {
-    "message": "⚠️ The full-text candidate rule uses human votes. Because reviewer assignment is not configured, turning Blind back on will make other members' full-text candidate lists empty. Configuring the assignment first is recommended."
+    "message": "⚠️ The full-text candidate rule uses human votes. Because reviewer assignment is not configured, hiding others' decisions again will make other members' full-text candidate lists empty. Configuring the assignment first is recommended."
   },
   "blind_onSuccess": {
-    "message": "Blinding enabled"
+    "message": "Others' decisions are now hidden"
   },
   "blind_onError": {
-    "message": "Blinding error: $1"
+    "message": "Error hiding others' decisions: $1"
   },
   "blind_offConfirm": {
-    "message": "Disable blinding?\nAll reviewers' decisions will become visible and conflicts will be shown."
+    "message": "Open the key?\nAll reviewers' decisions will become visible and conflicts will be shown."
   },
   "blind_offSuccess": {
-    "message": "Blinding disabled"
+    "message": "Key opened"
   },
   "blind_offError": {
-    "message": "Unblinding error: $1"
+    "message": "Error opening the key: $1"
   },
   "blind_stateClosed": {
-    "message": "🙈 Blinded (others' decisions hidden)"
+    "message": "Others' decisions hidden"
   },
   "blind_stateOpened": {
-    "message": "🔓 Key opened (all decisions shown)"
+    "message": "Others' decisions shown"
   },
   "blind_toggleTitle": {
-    "message": "Turn on to open the key (show all decisions), or off to return to blind review. Admins only; applies to the whole project."
+    "message": "Turn on to open the key (show all decisions), or off to hide others' decisions again. Admins only; applies to the whole project."
   },
   "guide_helpBtnTitle": {
     "message": "Help for this feature"
@@ -1570,7 +1570,7 @@
     "message": "Share a project"
   },
   "guide_topic_blind": {
-    "message": "Blind and key opening"
+    "message": "Hiding others' decisions and opening the key"
   },
   "guide_topic_screening_filters": {
     "message": "Filters"
@@ -1735,7 +1735,7 @@
     "message": "Pressing a different button overwrites the decision. Try it."
   },
   "guideExt_tour_first_project_blind": {
-    "message": "Blind is on by default, so other reviewers' decisions are hidden. Do not open the key until everyone has finished screening independently. The switch affects the whole project, so it is disabled during this tour."
+    "message": "By default, other reviewers' decisions are hidden. Do not open the key until everyone has finished screening independently. The switch affects the whole project, so it is disabled during this tour."
   },
   "guideExt_tour_first_project_finish": {
     "message": "The ? on each card opens an explanation any time. This ❓ opens the explanation for each screen and the list of guided tours. Invite collaborators with Share in the toolbar."
@@ -1762,7 +1762,7 @@
     "message": "First, read the title and abstract. If the abstract is long, scroll up and down to read it to the end. Press Next when you have finished reading."
   },
   "guide_tour_join_project_decide": {
-    "message": "When you have finished reading, decide with the buttons below. While Blind is on, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
+    "message": "When you have finished reading, decide with the buttons below. Until the key is opened, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
   },
   "guide_tour_join_project_finish": {
     "message": "The ? on each card opens an explanation any time. This ❓ opens the explanation for each screen and the list of guided tours. To fix a decision, go back to the previous record and press again."
@@ -1858,10 +1858,10 @@
     "message": "Shows how to find records where reviewers disagree and reach a consensus."
   },
   "guideExt_tour_resolve_conflicts_blind": {
-    "message": "This is the Blind switch. Until everyone has finished their independent decisions, other reviewers' decisions stay hidden. When everyone is done, an admin turns it on to \"open the key\". It affects the whole project, so you cannot press it in this tour."
+    "message": "This switch shows or hides other reviewers' decisions. Until everyone has finished their independent decisions, they stay hidden. When everyone is done, an admin turns it on to \"open the key\". It affects the whole project, so you cannot press it in this tour."
   },
   "guideExt_tour_resolve_conflicts_key_closed": {
-    "message": "Decisions are still blinded, so conflicts are not visible yet. Once an admin opens the key, open this tour again from ❓ → \"List of guided tours\" and the remaining steps will appear."
+    "message": "The key has not been opened yet, so conflicts are not visible. Once an admin opens the key, open this tour again from ❓ → \"List of guided tours\" and the remaining steps will appear."
   },
   "guideExt_tour_resolve_conflicts_filter": {
     "message": "Choose \"Conflict\" in this filter to list only the records where reviewers disagree. Give it a try."
@@ -1939,7 +1939,7 @@
     "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.)"
   },
   "guideExt_tour_fulltext_setup_rule_pending": {
-    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
+    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
   },
   "guideExt_tour_fulltext_setup_assignment": {
     "message": "This is the full-text assignment. Check, and change if you are an admin, who reviews the full texts and how they are split. If assignments are set, only your own set appears in the list. Changing the assignment affects the whole project, so the button is disabled during the tour. To change it, finish the tour and then press the button."
@@ -1951,7 +1951,7 @@
     "message": "Check how many full texts you have here. \"Fetch free full texts\" looks for freely available full texts and saves them to Drive (it takes a while). You can also move on without pressing it."
   },
   "guideExt_tour_fulltext_setup_no_candidates": {
-    "message": "There are no candidates yet. Keep screening in the Manual tab, or open the Blind key and set the candidate rule, and the full-text candidates will appear here. Once you have candidates, start this tour again from ❓ > \"List of guided tours\"."
+    "message": "There are no candidates yet. Keep screening in the Manual tab, or open the key and set the candidate rule, and the full-text candidates will appear here. Once you have candidates, start this tour again from ❓ > \"List of guided tours\"."
   },
   "guideExt_tour_fulltext_setup_missing": {
     "message": "A candidate without a full text shows ways to fill it in. Add your own PDF with \"Upload PDF\", or open the publisher page with \"DOI/PubMed\" and get it there."
@@ -2095,7 +2095,7 @@
     "message": "The PRISMA full-text counts (candidates, full text obtained, included, excluded, maybe, undecided) are tallied automatically. Changing the selected judges changes the numbers. If conflicts are unresolved, their count appears too."
   },
   "guideExt_tour_fulltext_results_key_closed": {
-    "message": "Decisions are still blinded, so only your own decisions are counted and conflicts do not appear. Once an admin opens the key, start this tour again from ❓ > \"List of guided tours\" and the remaining steps will appear."
+    "message": "The key has not been opened yet, so only your own decisions are counted and conflicts do not appear. Once an admin opens the key, start this tour again from ❓ > \"List of guided tours\" and the remaining steps will appear."
   },
   "guideExt_tour_fulltext_results_no_conflict": {
     "message": "No conflicts need adjudication right now (no records where judges disagree, or all are already adjudicated). When judges disagree, \"Resolve conflicts\" appears below with the records to adjudicate."
@@ -2536,7 +2536,7 @@
     "message": "Pending"
   },
   "llm_targetPickerBlindNote": {
-    "message": "⚠️ Blinded: other reviewers' decisions are not shown"
+    "message": "⚠️ The key is not open, so other reviewers' decisions are not shown"
   },
   "llm_screeningPromptRequired": {
     "message": "Please set screening criteria"
@@ -3496,7 +3496,7 @@
     "message": "Some files were imported before import statistics were recorded; their identification counts (marked *) are post-deduplication and the duplicate count is unknown."
   },
   "manuscript_warnBlind": {
-    "message": "Blind mode is on — only your own decisions are reflected in the numbers."
+    "message": "The key is not open — only your own decisions are reflected in the numbers."
   },
   "picker_accessNeeded": {
     "message": "To use this sheet, you need to select it once on Google's screen. Click \"Allow with Google\" below — a new tab will open."
