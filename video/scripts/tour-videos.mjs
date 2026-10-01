@@ -41,6 +41,12 @@ const DEFAULT_TOURS = ['join-project', 'fulltext-page', 'ml-start'];
 // 確認用の fulltext-page は判定を保存して PDF の無い次の候補へ進むため、動画では専用のシナリオを使う。
 const CAPTURE_SCENARIOS = { 'fulltext-page': 'fulltext-page-video' };
 
+// 最初の1枚がダイアログの開いている瞬間で説明文と合わない手順は、閉じた後のラベルを指定する。
+const SHOT_OVERRIDES = {
+    'first-project': { read: 'read-placement' },
+    'duplicate-review': { 'after-review': 'after-review-placement' },
+};
+
 const TOURS_SRC_DIR = path.join(REPO_ROOT, 'src', 'lib', 'guide', 'tours');
 const MESSAGES_JA = path.join(REPO_ROOT, 'src', '_locales', 'ja', 'messages.json');
 const SHOTS_DIR = path.join(REPO_ROOT, '.tmp', 'guide-tour-check');
@@ -94,8 +100,8 @@ export function readTourDefinition(tourId) {
     return { base: `${prefix}${tourId.replace(/-/g, '_')}`, stepIds };
 }
 
-/** 手順ごとに最初のスクリーンショットを選ぶ。*-placement（配置の確認用）は除く */
-export function pickShots(scenarioName, stepIds, files) {
+/** 手順ごとに指定ラベル（省略時は手順 ID）の最初のスクリーンショットを選ぶ。 */
+export function pickShots(scenarioName, stepIds, files, overrides = {}, tourId = scenarioName) {
     const re = new RegExp(`^${scenarioName}-(\\d+)-(.+)\\.png$`);
     const shots = files
         .map((f) => f.match(re))
@@ -103,8 +109,13 @@ export function pickShots(scenarioName, stepIds, files) {
         .map((m) => ({ seq: Number(m[1]), label: m[2], file: m[0] }))
         .sort((a, b) => a.seq - b.seq);
     const picked = new Map();
-    for (const s of shots) {
-        if (stepIds.includes(s.label) && !picked.has(s.label)) picked.set(s.label, s.file);
+    for (const id of stepIds) {
+        const label = overrides[id] ?? id;
+        const shot = shots.find((s) => s.label === label);
+        if (!shot && overrides[id] !== undefined) {
+            throw new Error(`ツアー ${tourId} の手順 ${id}: 指定ラベル ${label} の画像がありません（シナリオ: ${scenarioName}）`);
+        }
+        if (shot) picked.set(id, shot.file);
     }
     return stepIds.filter((id) => picked.has(id)).map((id) => ({ stepId: id, file: picked.get(id) }));
 }
@@ -188,7 +199,7 @@ async function buildTour(tourId, browser, messages) {
         return m;
     };
     const scenarioName = CAPTURE_SCENARIOS[tourId] ?? tourId;
-    const shots = pickShots(scenarioName, stepIds, existsSync(SHOTS_DIR) ? readdirSync(SHOTS_DIR) : []);
+    const shots = pickShots(scenarioName, stepIds, existsSync(SHOTS_DIR) ? readdirSync(SHOTS_DIR) : [], SHOT_OVERRIDES[tourId], tourId);
     if (shots.length === 0) throw new Error(`${tourId}: 手順のスクリーンショットがありません（${path.relative(REPO_ROOT, SHOTS_DIR)}）`);
 
     const title = msg(`${base}_title`);

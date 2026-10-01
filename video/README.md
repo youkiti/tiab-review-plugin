@@ -188,6 +188,8 @@ Windows では xvfb は不要で、`node video/scripts/tour-videos.mjs fulltext-
 - **映像**: `scripts/guide-tour-check/` のシナリオ（`npm run check:tours` と同じもの）がデモビルドの上でツアーを最後まで操作し、
   手順ごとに残すスクリーンショットを使う。手順ごとに最初の1枚を1画面にし、縦長（サイドパネル）は左に画面・右に文言、
   横長（全文の判定ページ）は上に画面・下に文言で並べる。シナリオで通らなかった手順（`skipIf` で飛ばされる分岐）は入れない。
+  最初の1枚がダイアログの開いた瞬間になる手順は、`video/scripts/tour-videos.mjs` の `SHOT_OVERRIDES` で、ツアー・手順ごとに使う画像のラベルを指定できる。
+  指定したラベルの最初の1枚を使い、画像が無い場合はエラーになる。
   `fulltext-page` は動画用シナリオ `fulltext-page-video` で撮る（`video/scripts/tour-videos.mjs` の `CAPTURE_SCENARIOS`）。
   確認用シナリオは判定を保存して PDF の無い次の候補へ進み、終盤が PDF の無い画面になるため、動画用では理由を選ばずに進めて
   同じ文献の PDF を保つ。このため動画には手順 `reason-info`（除外を押さなかったときの説明）は入らない
