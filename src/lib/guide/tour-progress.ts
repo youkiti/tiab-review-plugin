@@ -118,9 +118,16 @@ export interface GuideSuggestContext {
     postponedThisSession?: boolean;
 }
 
-/** このプラットフォーム・権限で提案してよいツアー。管理者向けは createProject が真のときだけ。 */
-export function availableTours(context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>): TourDefinition[] {
-    return Object.values(GUIDE_TOURS).filter((tour) => {
+/**
+ * このプラットフォーム・権限で提案してよいツアー。管理者向けは createProject が真のときだけ。
+ * まだ中身の無い枠（draft）は含めない。一覧・提案・開始・テストの照合の対象はすべてこの関数を通る。
+ */
+export function availableTours(
+    context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
+    tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+): TourDefinition[] {
+    return tours.filter((tour) => {
+        if (tour.draft) return false;
         if (!tour.platforms.includes(context.platform)) return false;
         if (tour.audience === 'admin' && !context.capabilities.createProject) return false;
         return true;
@@ -135,6 +142,21 @@ export function shouldSuggest(progress: GuideProgress, context: GuideSuggestCont
     const tours = availableTours(context);
     if (tours.length === 0) return false;
     return tours.every((tour) => progress.tours[tour.id] === undefined);
+}
+
+/**
+ * タブ・画面に入ったことを知らせるイベントで、提案の帯に出すツアー（無ければ null）。
+ * suggestOn がそのイベントに一致する使えるツアーのうち、まだ済・却下でなく、ほかのツアーが実行中でなく、
+ * 全体の「今後表示しない」でないときだけ返す。candidates を渡すと、その中から選ぶ（テスト用。省略時は availableTours）。
+ */
+export function tourToSuggestOnEvent(
+    progress: GuideProgress,
+    event: GuideEventName,
+    context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
+    tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+): TourDefinition | null {
+    if (progress.suppressSuggestions || progress.active) return null;
+    return availableTours(context, tours).find(tour => tour.suggestOn === event && progress.tours[tour.id] === undefined) ?? null;
 }
 
 function stepIdAt(tourId: GuideTourId, stepIndex: number): string {

@@ -44,11 +44,34 @@ function readStoredProgress(): Promise<StoredProgress> {
     return platform().storageGet([GUIDE_PROGRESS_KEY]).then(stored => (stored[GUIDE_PROGRESS_KEY] ?? {}) as StoredProgress);
 }
 
-/** 粗い判定だけ行う（細かい条件は本体の shouldSuggest が見る）。 */
+/** 本体が入口で受けるイベントか（プロジェクト選択画面・Picker 案内・タブを開いた）。 */
+function isEntryEvent(name: GuideEventName): boolean {
+    return name === 'project-screen-shown' || name === 'picker-guidance-shown' || name.startsWith('tab-opened-');
+}
+
+/**
+ * タブを開いたイベントごとに、提案しうるツアーの ID。値だけを持つ（tours/ を初期バンドルに入れないため）。
+ * ツアー定義の suggestOn と一致させる（tests/guide-tours.test.ts が照合する）。
+ * 対応するツアーが無いイベント（tab-opened-screening）では、本体を読まない。
+ */
+const SUGGEST_TOUR_BY_EVENT: Partial<Record<GuideEventName, string>> = {
+    'tab-opened-fulltext': 'fulltext-setup',
+    'tab-opened-llm': 'ai-first-run',
+    'tab-opened-ml': 'ml-start',
+};
+
+/** 粗い判定だけ行う（細かい条件は本体の shouldSuggest・tourToSuggestOnEvent が見る）。 */
 function mayNeedGuide(name: GuideEventName, saved: StoredProgress): boolean {
-    return !!saved.active || (name === 'picker-guidance-shown'
-        ? saved.tours?.['join-project']?.status !== 'done'
-        : saved.suppressSuggestions !== true && Object.keys(saved.tours ?? {}).length === 0);
+    if (saved.active) return true;
+    if (name === 'picker-guidance-shown') return saved.tours?.['join-project']?.status !== 'done';
+    if (saved.suppressSuggestions === true) return false;
+    if (name.startsWith('tab-opened-')) {
+        // 対応するツアーがまだ済・却下でないときだけ、本体（細かい条件を見る）を読む
+        const tourId = SUGGEST_TOUR_BY_EVENT[name];
+        const status = tourId ? saved.tours?.[tourId]?.status : undefined;
+        return tourId !== undefined && status !== 'done' && status !== 'dismissed';
+    }
+    return Object.keys(saved.tours ?? {}).length === 0;
 }
 
 /**
@@ -75,7 +98,7 @@ export function setupGuideListeners(): void {
     document.addEventListener('tiab-guide', event => {
         if (guideReady) return;
         const name = (event as CustomEvent<GuideEventName>).detail;
-        if (name !== 'project-screen-shown' && name !== 'picker-guidance-shown') return;
+        if (!isEntryEvent(name)) return;
         readStoredProgress()
             .then(saved => (mayNeedGuide(name, saved)
                 ? withGuide(feature => feature.handleGuideEvent(name))

@@ -25,7 +25,7 @@ import * as reviewCriteria from './features/review-criteria';
 import { setDuplicateReviewDeps } from './features/duplicate-review';
 import { setupTeamProgressListeners, renderTeamProgress } from './features/team-progress';
 import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
-import { setupGuideListeners } from './features/guide/lazy';
+import { emitGuideEvent, setupGuideListeners } from './features/guide/lazy';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
 import { isImeComposing } from '../lib/ime-composition';
@@ -261,9 +261,18 @@ export function bootstrapCommon(): void {
     document.getElementById('header-title')?.addEventListener('click', project.handleBack);
 
     // ========== Store描画購読 ==========
+    // 画面がスクリーニング画面のタブへ入ったら、ツアーの提案用にイベントを投げる（入り直しも1回ずつ）
+    let openedTab: string | null = null;
     subscribe((appState) => {
         renderLayout(appState);
         renderTemporaryUI(appState);
+        const tab = appState.ui.view === 'screening' ? appState.ui.currentTab : null;
+        if (tab === openedTab) return;
+        openedTab = tab;
+        if (tab === 'screening') emitGuideEvent('tab-opened-screening');
+        else if (tab === 'ml') emitGuideEvent('tab-opened-ml');
+        else if (tab === 'llm') emitGuideEvent('tab-opened-llm');
+        else if (tab === 'fulltext') emitGuideEvent('tab-opened-fulltext');
     });
     renderLayout(getState());
     renderTemporaryUI(getState());

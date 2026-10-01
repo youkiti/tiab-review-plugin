@@ -1,5 +1,15 @@
 /** ヘルプへの対応表。UI・通信に依存しない正本。 */
-export type GuideTourId = 'first-project' | 'join-project';
+export type GuideTourId =
+    | 'first-project'
+    | 'join-project'
+    | 'assignment-setup'
+    | 'share-invite'
+    | 'resolve-conflicts'
+    | 'duplicate-review'
+    | 'fulltext-setup'
+    | 'ai-first-run'
+    | 'ml-start'
+    | 'fulltext-page';
 
 export interface GuideTopic {
     /** docs/help.html 内の id（# は付けない） */
@@ -23,29 +33,29 @@ export const GUIDE_TOPICS = {
     'project-connect': { helpAnchor: 'login-connect-project', tourId: 'join-project' },
     'overview': { helpAnchor: 'getting-started', tourList: true },
     'screening-toolbar': { helpAnchor: 'screening-toolbar', tourList: true },
-    'share': { helpAnchor: 'sharing-dialog' },
-    'blind': { helpAnchor: 'sharing-blind' },
+    'share': { helpAnchor: 'sharing-dialog', tourId: 'share-invite' },
+    'blind': { helpAnchor: 'sharing-blind', tourId: 'resolve-conflicts' },
     'screening-filters': { helpAnchor: 'screening-filters' },
-    'screening-duplicates': { helpAnchor: 'screening-duplicates' },
+    'screening-duplicates': { helpAnchor: 'screening-duplicates', tourId: 'duplicate-review' },
     'screening-decisions': { helpAnchor: 'screening-decisions' },
     'highlight': { helpAnchor: 'screening-highlight' },
     'notes': { helpAnchor: 'screening-notes' },
-    'team-progress': { helpAnchor: 'sharing-team-progress' },
-    'assignment': { helpAnchor: 'screening-filters' },
-    'consensus': { helpAnchor: 'sharing-consensus' },
+    'team-progress': { helpAnchor: 'sharing-team-progress', tourId: 'share-invite' },
+    'assignment': { helpAnchor: 'screening-filters', tourId: 'assignment-setup' },
+    'consensus': { helpAnchor: 'sharing-consensus', tourId: 'resolve-conflicts' },
     'settings': { helpAnchor: 'settings' },
-    'ml': { helpAnchor: 'ml-screening-interface', extensionOnly: true },
-    'ai-model': { helpAnchor: 'ai-screening-models', extensionOnly: true },
-    'ai-keys': { helpAnchor: 'ai-screening-api-keys', extensionOnly: true },
-    'ai-criteria': { helpAnchor: 'ai-screening-criteria', extensionOnly: true },
-    'ai-batch': { helpAnchor: 'ai-screening-batch', extensionOnly: true },
-    'ai-threshold': { helpAnchor: 'ai-screening-batch', extensionOnly: true },
-    'fulltext-views': { helpAnchor: 'fulltext-views', extensionOnly: true },
-    'fulltext-candidates': { helpAnchor: 'fulltext-candidates', extensionOnly: true },
-    'fulltext-setup': { helpAnchor: 'fulltext-setup', extensionOnly: true },
-    'fulltext-assignment': { helpAnchor: 'fulltext-assignment', extensionOnly: true },
-    'fulltext-pdf': { helpAnchor: 'fulltext-pdf', extensionOnly: true },
-    'fulltext-drive-import': { helpAnchor: 'fulltext-drive-import', extensionOnly: true },
+    'ml': { helpAnchor: 'ml-screening-interface', tourId: 'ml-start', extensionOnly: true },
+    'ai-model': { helpAnchor: 'ai-screening-models', tourId: 'ai-first-run', extensionOnly: true },
+    'ai-keys': { helpAnchor: 'ai-screening-api-keys', tourId: 'ai-first-run', extensionOnly: true },
+    'ai-criteria': { helpAnchor: 'ai-screening-criteria', tourId: 'ai-first-run', extensionOnly: true },
+    'ai-batch': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true },
+    'ai-threshold': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true },
+    'fulltext-views': { helpAnchor: 'fulltext-views', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-candidates': { helpAnchor: 'fulltext-candidates', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-setup': { helpAnchor: 'fulltext-setup', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-assignment': { helpAnchor: 'fulltext-assignment', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-pdf': { helpAnchor: 'fulltext-pdf', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-drive-import': { helpAnchor: 'fulltext-drive-import', tourId: 'fulltext-setup', extensionOnly: true },
     'fulltext-registry': { helpAnchor: 'fulltext-registry', extensionOnly: true },
     'fulltext-ai': { helpAnchor: 'fulltext-ai', extensionOnly: true },
     'fulltext-results': { helpAnchor: 'fulltext-results', extensionOnly: true },
