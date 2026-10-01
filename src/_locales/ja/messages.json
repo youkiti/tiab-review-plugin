@@ -1773,6 +1773,36 @@
   "guideExt_tour_share_invite_desc": {
     "message": "共同研究者をシートに共有し、招待文を送るまでを案内します。"
   },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "まず「共有」を押して、共有パネルを開きます。共同研究者を招くのは、ここからです。"
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "共有したい相手の Google アカウントのメールアドレスを入力し、「追加」を押します。その相手に編集権限が付き、招待メールが届きます。フォルダのあるプロジェクトでは、フォルダごと共有されます。実際に共有されるので、見るだけなら「押さずに次へ」で進めます。追加するとパネルは閉じます。"
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "追加するとパネルは閉じます。続きを見るので、もう一度「共有」を押して開いてください。"
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "この警告は、シートが「リンクを知っている全員」に開かれているときに出ます。URL を知っていれば誰でも判定データを見たり書き換えたりできます。先に全メンバーを個別共有に追加してから、Drive の共有設定を「制限付き」に変えてください。"
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "ここが共有済みのユーザーの一覧です。役割（オーナー・編集者）が見え、管理者には各行に ✕（共有の解除）が付きます。解除すると相手はすぐにシートを開けなくなり、取り消すには招待し直す必要があるため、ツアー中は押せないようにしています。「次へ」を押してください。"
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "「招待文をコピー」を押すと、インストール先・シートの URL・使い方をまとめた文面がクリップボードに入ります。メールやチャットに貼って相手へ送ってください。コピーできなかったときは、画面の下にお知らせが出ます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "次はチーム進捗です。共有パネルがチップに重なるので、もう一度「共有」を押してパネルを閉じてください。"
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "共有した相手が判定を始めると、この「👥 チーム進捗」に、全員の判定件数と最終判定日時が出ます。押すと一覧が開き、🔄 で最新にできます。Include か Exclude かの内訳は見えません。"
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "担当者が2人以上になるか、自分以外の人が判定を始めると、ツールバーに「👥 チーム進捗」が出ます。共有した相手が判定を始めたら、ここで進み具合を確かめられます。"
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "共有と招待の手順は以上です。この ❓ から、ほかの操作ツアーや各画面の説明をいつでも開けます。"
+  },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "不一致の解消"
   },
