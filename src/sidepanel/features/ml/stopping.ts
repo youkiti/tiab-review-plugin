@@ -7,9 +7,9 @@ import {
     isCmhStoppingReached,
     getCmhStoppingProgressPercent
 } from '../../../lib/ml/stopping-rules';
+import type { StoppingRuleKind } from '../../../lib/ml/stopping-restore';
 import {
     createStoppingRule,
-    createCmhStoppingRule,
     CmhStoppingRule,
     isCmhStoppingRule
 } from '../../../lib/ml/types';
@@ -23,11 +23,18 @@ import { showToast } from '../../ui/feedback';
 // Store互換レイヤー（Phase 5）
 import { setMlState as syncSetMlState } from '../../store/compat';
 
+/** 初回ダイアログで確定した停止基準。 */
+export interface InitialStoppingChoice {
+    ruleType: StoppingRuleKind;
+    /** CMH のときは初期ランダム件数（旧形式の保存値との互換のため）。 */
+    threshold: number;
+}
+
 /**
  * 初回セットアップダイアログを表示（CMH対応）
  */
 export function showInitialStoppingRuleDialog(
-    onConfirm: (threshold: number) => void
+    onConfirm: (choice: InitialStoppingChoice) => void
 ) {
     const totalRecords = state.references.length;
     const canUseCmh = canUseCmhStopping(totalRecords);
@@ -44,7 +51,7 @@ export function showInitialStoppingRuleDialog(
 /**
  * CMH セットアップダイアログ
  */
-function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
+function showCmhSetupDialog(onConfirm: (choice: InitialStoppingChoice) => void) {
     const totalRecords = state.references.length;
 
     const body = document.createElement('div');
@@ -88,16 +95,9 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
     confirmBtn.className = 'btn btn-primary btn-full';
     confirmBtn.textContent = t('ml_startWithSettings');
     confirmBtn.onclick = () => {
-        // CMH ルールを作成して state に設定
-        const cmhRule = createCmhStoppingRule();
-        syncSetMlState({
-            ...state.mlState,
-            stoppingRule: cmhRule,
-            screeningPhase: 'initial_random',
-        });
-
-        // 後方互換性のため threshold も渡す
-        onConfirm(cmhRule.initialRandomSize);
+        // 基準の作成と state への設定は onConfirm 側（保存と同じ経路）で行う。
+        // threshold は旧形式の保存値との互換のため、初期ランダム件数を渡す。
+        onConfirm({ ruleType: 'cmh', threshold: CMH_DEFAULTS.initialRandomSize });
         hideModal();
     };
     footer.appendChild(confirmBtn);
@@ -113,7 +113,7 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
  * 旧停止基準ダイアログ（N < 1000 の場合）
  */
 function showLegacyStoppingRuleDialog(
-    onConfirm: (threshold: number) => void,
+    onConfirm: (choice: InitialStoppingChoice) => void,
     totalRecords: number
 ) {
     const body = document.createElement('div');
@@ -157,7 +157,7 @@ function showLegacyStoppingRuleDialog(
     confirmBtn.textContent = t('ml_startWithSettings');
     confirmBtn.onclick = () => {
         const threshold = parseInt(select.value, 10);
-        onConfirm(threshold);
+        onConfirm({ ruleType: 'consecutive', threshold });
         hideModal();
     };
     footer.appendChild(confirmBtn);
@@ -277,7 +277,7 @@ export function showStoppingSettingsDialog() {
         });
 
         // ブラウザストレージに永続化
-        saveStoppingRuleToStorage(currentThreshold);
+        saveStoppingRuleToStorage(currentThreshold, 'consecutive');
 
         renderMlStats(); // Update UI
         hideModal();

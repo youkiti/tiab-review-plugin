@@ -2495,6 +2495,9 @@
   "ml_stoppingConsecutive": {
     "message": "(consecutive excludes)"
   },
+  "ml_stoppingCmhUnit": {
+    "message": "(screened / included)"
+  },
   "ml_stoppingConsecutiveCount": {
     "message": "Consecutive exclude $1",
     "placeholders": {

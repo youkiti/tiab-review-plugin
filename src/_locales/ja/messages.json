@@ -2495,6 +2495,9 @@
   "ml_stoppingConsecutive": {
     "message": "(連続 exclude)"
   },
+  "ml_stoppingCmhUnit": {
+    "message": "(既読 / Include)"
+  },
   "ml_stoppingConsecutiveCount": {
     "message": "連続 exclude $1件",
     "placeholders": {

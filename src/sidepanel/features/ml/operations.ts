@@ -2,6 +2,7 @@ import { state } from '../../state';
 import { mlClient } from '../../../lib/ml/worker-client';
 import { Decision } from '../../../lib/types';
 import type { Label } from '../../../lib/ml/types';
+import type { ScreenedDecision } from '../../../lib/ml/stopping-restore';
 import { t } from '../../../lib/i18n';
 import {
     loadProjectSnapshot,
@@ -37,6 +38,27 @@ export function buildMlLabelsFromReferences(): Record<string, Label> {
     });
 
     return labels;
+}
+
+/**
+ * 自分の判定済みの記録（停止基準の進み具合の復元用）。
+ * 「残りを一括 Exclude」で付いた判定（client_version に `-ml-auto`）は読んだ件数に数えない。
+ */
+export function buildScreenedDecisionsFromReferences(): ScreenedDecision[] {
+    const decisions: ScreenedDecision[] = [];
+
+    state.references.forEach((ref) => {
+        const d = ref.myDecision;
+        if (d && (d.decision === 'include' || d.decision === 'exclude')) {
+            decisions.push({
+                decision: d.decision,
+                decidedAt: d.decided_at,
+                auto: d.client_version?.includes('-ml-auto') ?? false,
+            });
+        }
+    });
+
+    return decisions;
 }
 
 export async function initMlWorker(): Promise<void> {

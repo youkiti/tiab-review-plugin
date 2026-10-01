@@ -1,16 +1,17 @@
-import { saveStoppingRuleToStorage } from './stopping-storage';
+import { saveStoppingRuleToStorage, loadStoppingRuleFromStorage } from './stopping-storage';
 import { state } from '../../state';
 import { dom } from '../../dom';
 
 import { mlClient } from '../../../lib/ml/worker-client';
 import { Decision } from '../../../lib/types';
-import { createStoppingRule, isCmhStoppingRule } from '../../../lib/ml/types';
+import { isCmhStoppingRule } from '../../../lib/ml/types';
+import { buildMlStoppingSetup, nextScreeningPhase, planMlStoppingRule } from '../../../lib/ml/stopping-restore';
 import { renderMlSection, renderMlStats } from './render';
 import { showStoppingSettingsDialog, showStoppingReachedDialog, showInitialStoppingRuleDialog } from './stopping';
 import { updateStoppingProgress, isStoppingReached } from '../../../lib/ml/stopping-rules';
 import { showToast, hideToast } from '../../ui/feedback';
 import { getMlFilteredRanking, parseMlSearchQuery, resolveMlRanking } from './search';
-import { buildMlLabelsFromReferences, initMlWorker } from './operations';
+import { buildMlLabelsFromReferences, buildScreenedDecisionsFromReferences, initMlWorker } from './operations';
 import { saveDecisionOrQueue } from '../unsent-queue';
 import { getMlClientVersion } from './version';
 import { t } from '../../../lib/i18n';
@@ -20,30 +21,6 @@ import {
     changeTab as syncChangeTab,
     setMlState as syncSetMlState,
 } from '../../store/compat';
-
-// ========== ストレージ関数 ==========
-
-/**
- * 停止基準の設定をブラウザから読み込み（プロジェクトごと）
- */
-async function loadStoppingRuleFromStorage(): Promise<{ confirmed: boolean; threshold: number }> {
-    const key = `mlStoppingRule_${state.spreadsheetId}`;
-    const result = await chrome.storage.local.get([key]);
-    const data = result[key];
-
-    if (data && data.confirmed) {
-        return {
-            confirmed: true,
-            threshold: data.threshold || 50
-        };
-    }
-
-    return {
-        confirmed: false,
-        threshold: 50
-    };
-}
-
 
 // ========== 要素 ==========
 
@@ -133,14 +110,18 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
 
         if (!savedRule.confirmed) {
             // 初回: ダイアログを表示
-            showInitialStoppingRuleDialog(async (threshold) => {
-                // 設定をブラウザに保存
-                await saveStoppingRuleToStorage(threshold);
+            showInitialStoppingRuleDialog(async ({ threshold, ruleType }) => {
+                // 設定（選んだ基準の種類つき）をブラウザに保存
+                await saveStoppingRuleToStorage(threshold, ruleType);
 
                 // 停止基準を設定（Store経由で更新）
+                const setup = buildMlStoppingSetup(
+                    ruleType, threshold, state.references.length, buildScreenedDecisionsFromReferences()
+                );
                 syncSetMlState({
                     ...state.mlState,
-                    stoppingRule: createStoppingRule(threshold)
+                    stoppingRule: setup.stoppingRule,
+                    screeningPhase: setup.screeningPhase
                 });
 
                 await initMlWorker();
@@ -149,11 +130,16 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
         } else {
             // 2回目以降: 保存された設定を使用
             if (!state.mlState.stoppingRule) {
-                // Store経由で更新
-                syncSetMlState({
-                    ...state.mlState,
-                    stoppingRule: createStoppingRule(savedRule.threshold)
-                });
+                // 保存された基準の種類で復元する（CMH は判定済みの記録から進み具合を作り直す）
+                const plan = planMlStoppingRule(savedRule, state.references.length, buildScreenedDecisionsFromReferences());
+                if (plan.action === 'restore') {
+                    // Store経由で更新
+                    syncSetMlState({
+                        ...state.mlState,
+                        stoppingRule: plan.setup.stoppingRule,
+                        screeningPhase: plan.setup.screeningPhase
+                    });
+                }
             }
             await initMlWorker();
             if (isCurrent()) renderMlSection();
@@ -198,11 +184,13 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
     // 3. Update Stopping Rule
     if (state.mlState.stoppingRule) {
         // Pass decision ('include' | 'exclude') directly as expected by updateStoppingProgress
-        const newRule = updateStoppingProgress(state.mlState.stoppingRule, decision);
+        // CMH は総件数を使って停止可否を計算するため totalRecords が要る
+        const newRule = updateStoppingProgress(state.mlState.stoppingRule, decision, state.references.length);
         // Store経由で更新
         syncSetMlState({
             ...state.mlState,
-            stoppingRule: newRule
+            stoppingRule: newRule,
+            screeningPhase: nextScreeningPhase(newRule, state.mlState.screeningPhase)
         });
 
         // Check stopping condition
