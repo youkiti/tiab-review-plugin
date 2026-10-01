@@ -23,6 +23,7 @@ import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 import { renderDuplicateReviewSection } from '../duplicate-review';
 import { perfSpanSync } from '../../../lib/perf';
+import { emitGuideEvent } from '../guide/lazy';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -359,6 +360,7 @@ export function handleStatusFilterChange() {
     syncSetCurrentFilter(dom.statusFilter.value as DecisionStatus | 'all' | 'fulltext_candidates');
     // 注意: syncSetCurrentFilterはcurrentIndexを0にリセットするので、別途呼び出し不要
     if (_renderCurrentReference) _renderCurrentReference();
+    if (dom.statusFilter.value === 'conflict') emitGuideEvent('conflict-filter-selected');
 }
 
 /**

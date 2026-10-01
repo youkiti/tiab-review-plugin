@@ -1779,6 +1779,30 @@
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "レビュアー間で判定が割れた文献を見つけ、合意に導く手順を案内します。"
   },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "ここが Blind のスイッチです。全員の独立した判定が終わるまで、他のレビュアーの判定は見えません。全員が終わったら、管理者がオンにして「キーを開封」します。プロジェクト全体に効くため、このツアーでは押せません。"
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "今は Blind 中なので、不一致はまだ見えません。管理者がキーを開封したら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。続きの手順が出ます。"
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "ここのフィルターで「不一致」を選ぶと、レビュアーの判定が割れた文献だけが並びます。選んでみてください。"
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "今の文献は不一致ではありません。フィルターを「不一致」にすると、判定が割れた文献だけを順に見られます。"
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "不一致の文献には、上に警告が出て、ここに全レビュアーの判定とメモが並びます。誰がどう判定し、なぜそうしたかを読んで、話し合いの材料にします。"
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "レビュアー同士で話し合ってすり合わせるときは、🤝 合議モードをオンにします。オンの間に保存した判定は「合議による判定」として記録され、最初に独立して付けた判定と区別されます。いつでもオフに戻せます。"
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "話し合いで決まったら、ここで判定し直します。合議モードがオンなら、合議による判定として保存されます。記録が変わるので、押さずに次へ進んでもかまいません。終わったら合議モードをオフに戻してください。"
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "全文タブの不一致は、「判定後レビュー」で裁定します（このツアーでは扱いません）。ツアーの一覧は、この ❓ からいつでも開けます。"
+  },
   "guideExt_tour_duplicate_review_title": {
     "message": "重複の確認"
   },
