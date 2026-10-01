@@ -20,6 +20,9 @@ export const VIDEO_ROOT = path.resolve(__dirname, '..');
 /** デモ拡張機能のビルド成果物（`npm run build:demo` の出力） */
 export const DIST_DEMO_DIR = path.join(REPO_ROOT, 'dist-demo');
 
+/** デモ Web 版のビルド成果物（`npm run build:web:demo` の出力） */
+export const DIST_WEB_DEMO_DIR = path.join(REPO_ROOT, 'dist-web-demo');
+
 /** 生成物の出力先（git 管理外） */
 export const BUILD_DIR = path.join(VIDEO_ROOT, 'build');
 export const BUILD_SCENES_DIR = path.join(BUILD_DIR, 'scenes');

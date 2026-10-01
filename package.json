@@ -18,6 +18,7 @@
         "build:demo:prod": "webpack --mode production --env demo",
         "build:web": "webpack --mode production --env target=web",
         "dev:web": "webpack --mode development --env target=web",
+        "build:web:demo": "webpack --mode development --env target=web --env demo",
         "watch:web": "webpack --mode development --watch --env target=web",
         "lint": "eslint src --ext .ts --cache --cache-location .tmp/eslint/",
         "typecheck": "tsc --noEmit",

@@ -10,6 +10,7 @@
 // Chrome 拡張機能の録画には仮想ディスプレイが必要なため、Linux では以下のように
 // xvfb 経由で実行する。
 //   LANGUAGE=ja xvfb-run -a -s "-screen 0 1920x1080x24" node video/scripts/record.mjs
+// Windows では xvfb は不要。そのまま node video/scripts/record.mjs を実行する。
 //
 // ==========================================================================
 // シーンスクリプトの CONTRACT（video/scenes/NN-slug.mjs が実装する形）
@@ -71,6 +72,7 @@
 import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync, renameSync, copyFileSync, unlinkSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import {
     DIST_DEMO_DIR,
@@ -140,7 +142,7 @@ function filterSceneFiles(allFiles, args) {
  */
 async function recordScene(sceneFile) {
     const scenePath = path.join(SCENES_DIR, sceneFile);
-    const mod = await import(`${scenePath}?t=${Date.now()}`); // キャッシュ回避
+    const mod = await import(`${pathToFileURL(scenePath).href}?t=${Date.now()}`); // キャッシュ回避
     const scene = mod.default;
     if (!scene || typeof scene.run !== 'function') {
         throw new Error(`シーンモジュールの形式が不正です（default export に run() が必要）: ${sceneFile}`);

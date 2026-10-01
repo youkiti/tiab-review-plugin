@@ -1,29 +1,27 @@
 // シーン09: Web版（インストール不要）
 //
-// 全3キュー。実際のWeb版URLへの接続をまず試み、収録環境が外部ネットワークに
-// 到達できない場合はストーリーボードの指示どおり file:// のヘルプページ
-// 「Web版」章にフォールバックする（実測: このコンテナのプロキシ経由では
-// github.io への接続が ERR_TUNNEL_CONNECTION_FAILED になる）。
-//
-// 重要: 失敗したhttps:ナビゲーションの直後に file: へ goto すると、ブラウザ内部の
-// エラーページ遷移処理と競合し、後続のナビゲーションが数秒〜十数秒ブロックされる
-// ことを収録時に確認した。そのため接続判定・フォールバックは ctx.cue(1) を打つ
-// 「前」に済ませておき、cue(1) が発声される時点では既に正しい画面
-// （実際のWeb版 or フォールバックのヘルプページ）が表示された状態にする。
+// 全3キュー。公開中の Web 版はログイン前の画面しか映せず、実アカウントを収録に
+// 使わないため、ローカル配信した Web 版デモビルドでログインから判定画面まで映す。
+// 最後はヘルプページで拡張版との機能差を案内する。
 
-import { REPO_ROOT } from '../scripts/config.mjs';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { REPO_ROOT, DIST_WEB_DEMO_DIR } from '../scripts/config.mjs';
 import { loadCueDurations, sleepRemainder } from './lib/pacing.mjs';
-import { smoothWheel } from './lib/gestures.mjs';
+import { hoverSequence, hoverSlow } from './lib/gestures.mjs';
+import { connectDemoProject } from './lib/connect.mjs';
+import { startStaticServer } from './lib/static-server.mjs';
 
 const DUR = loadCueDurations('09-web-app');
-const WEB_APP_URL = 'https://youkiti.github.io/tiab-review-plugin/app/';
-const HELP_URL = `file://${REPO_ROOT}/docs/help.html?lang=ja`;
+const HELP_URL = pathToFileURL(path.join(REPO_ROOT, 'docs', 'help.html')).href + '?lang=ja';
+/** 抄録が映っているとみなす最小の文字数（「(抄録なし)」は数文字しかない） */
+const MIN_ABSTRACT_CHARS = 200;
+/** 抄録のある文献を探して「次へ」を押す回数の上限 */
+const MAX_NEXT_FOR_ABSTRACT = 6;
 
-/**
- * page.goto() を数回リトライする（ネットワーク不通直後は内部状態が落ち着くまで
- * ナビゲーションが失敗/遅延することがあるための保険）。
- */
-async function gotoWithRetry(page, url, attempts = 4) {
+/** ヘルプへの遷移が一時的に失敗した場合に再試行する。 */
+async function gotoWithRetry(page, url, attempts = 2) {
     let lastErr;
     for (let i = 0; i < attempts; i += 1) {
         try {
@@ -44,48 +42,57 @@ export default {
     narration: '09-web-app',
 
     async run(ctx) {
-        // --- cue 1 の前に接続を試み、必要ならフォールバックまで済ませておく ---
-        let usedFallback = false;
+        if (!existsSync(path.join(DIST_WEB_DEMO_DIR, 'index.html'))) {
+            throw new Error('Web 版デモビルドがありません。npm run build:web:demo を実行してください。');
+        }
+        const server = await startStaticServer(DIST_WEB_DEMO_DIR);
         try {
-            await ctx.page.goto(WEB_APP_URL, { timeout: 5000, waitUntil: 'domcontentloaded' });
-            const bodyText = await ctx.page.locator('body').innerText({ timeout: 3000 });
-            if (!bodyText || bodyText.trim().length < 20) {
-                throw new Error('Web版ページが空/壊れているように見えるためフォールバックします');
+            await ctx.page.goto(server.url);
+            await ctx.page.locator('#login-btn').waitFor({ state: 'visible' });
+            await ctx.sleep(800);
+
+            // ログイン画面から、レビュー専用のプロジェクト選択画面へ進む。
+            const t1 = Date.now();
+            ctx.cue(1);
+            await ctx.sleep(DUR['01'] * 1000 * 0.4);
+            await ctx.page.locator('#login-btn').click();
+            await ctx.page.locator('#recent-sheets').waitFor({ state: 'visible' });
+            await sleepRemainder(ctx, t1, DUR['01'] * 1000 + 500);
+
+            // 判定を保存せず、ボタン・メモ・チーム進捗の位置を見せる。
+            const t2 = Date.now();
+            ctx.cue(2);
+            await connectDemoProject(ctx.page);
+            // 最初の未判定は抄録の無い文献のことがある。抄録とハイライトが映る文献まで進める。
+            for (let i = 0; i < MAX_NEXT_FOR_ABSTRACT; i += 1) {
+                const abstract = (await ctx.page.locator('#ref-abstract').innerText().catch(() => '')).trim();
+                if (abstract.length >= MIN_ABSTRACT_CHARS) break;
+                await ctx.page.locator('#btn-next').click();
+                await ctx.sleep(300);
             }
-        } catch (err) {
-            console.warn(`[09-web-app] Web版URLへの接続に失敗したためフォールバックします: ${err.message}`);
-            usedFallback = true;
+            // 原稿の順（判定 → メモ → キーワードハイライト → チーム進捗）に指していく。
+            await hoverSequence(
+                ctx.page,
+                ['#btn-include', '#btn-maybe', '#btn-exclude'].map((selector) => ctx.page.locator(selector)),
+                { holdMs: 300, moveMs: 400 },
+            );
+            await hoverSlow(ctx.page, ctx.page.locator('#note'), { durationMs: 500 });
+            await hoverSlow(ctx.page, ctx.page.locator('#include-keywords-list'), { durationMs: 500 });
+            await hoverSlow(ctx.page, ctx.page.locator('#team-progress-host'), { durationMs: 500 });
+            await sleepRemainder(ctx, t2, DUR['02'] * 1000 + 500);
+
+            // ヘルプページの「できないこと（Chrome拡張機能版のみ）」まで表示する。
+            const t3 = Date.now();
+            ctx.cue(3);
             await gotoWithRetry(ctx.page, HELP_URL);
             await ctx.page.locator('#web-version').scrollIntoViewIfNeeded();
+            const limitHeading = ctx.page.getByText('できないこと（Chrome拡張機能版のみの機能）', { exact: false }).first();
+            await limitHeading.scrollIntoViewIfNeeded();
+            await sleepRemainder(ctx, t3, DUR['03'] * 1000 + 500);
+
+            await ctx.sleep(1500);
+        } finally {
+            await server.close();
         }
-        await ctx.sleep(800);
-
-        // --- cue 1: Web版のURL（またはフォールバック先）を表示 ---
-        const t1 = Date.now();
-        ctx.cue(1);
-        await sleepRemainder(ctx, t1, DUR['01'] * 1000 + 500);
-
-        // --- cue 2: 画面にとどまり、内容をスクロールして見せる ---
-        const t2 = Date.now();
-        ctx.cue(2);
-        if (usedFallback) {
-            await smoothWheel(ctx.page, 260, { steps: 8, stepDelayMs: 110 });
-        } else {
-            await smoothWheel(ctx.page, 260, { steps: 8, stepDelayMs: 110 });
-            await ctx.sleep(600);
-            await smoothWheel(ctx.page, -260, { steps: 8, stepDelayMs: 110 });
-        }
-        await sleepRemainder(ctx, t2, DUR['02'] * 1000 + 500);
-
-        // --- cue 3: ヘルプページの「できないこと（Chrome拡張機能版のみ）」まで表示 ---
-        const t3 = Date.now();
-        ctx.cue(3);
-        await gotoWithRetry(ctx.page, HELP_URL);
-        await ctx.page.locator('#web-version').scrollIntoViewIfNeeded();
-        const limitHeading = ctx.page.getByText('できないこと（Chrome拡張機能版のみの機能）', { exact: false }).first();
-        await limitHeading.scrollIntoViewIfNeeded();
-        await sleepRemainder(ctx, t3, DUR['03'] * 1000 + 500);
-
-        await ctx.sleep(1500);
     },
 };
