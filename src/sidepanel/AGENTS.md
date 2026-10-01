@@ -274,3 +274,16 @@
   - `isComposing` / `keyCode === 229` に加え、`compositionstart` / `compositionend` で追跡した状態も渡せる
     （`isComposing` を立てない IME への保険。補足メモ欄はこの追跡込みで実装している）
 
+
+### アプリ内ヘルプ（?ボタン）
+
+- 各カード・画面の見出しの横に置く「?」ボタン（`<button class="guide-help-btn" data-help="<トピックID>">`）は、押すと吹き出しを開き、ヘルプページ（`docs/help.html`）の該当する見出しへ UI の言語で飛ぶ。ヘルプページが唯一の正本で、アプリ側に説明文は持たない
+- トピックと見出し id の対応表の正本は `src/lib/guide/topics.ts`（`GUIDE_TOPICS`）。トピックごとの短い見出しは `guide_topic_<ID のハイフンをアンダースコアにしたもの>`（ja/en の両方）
+- **`docs/help.html` の見出しの `id` は変えない**（アプリ・招待文・外部から参照されている）。変えるときは対応表とテストも一緒に直す。見出しを足すときは `<section>` の id を接頭辞にした id を付ける
+- 新しいカード・画面を足したら、見出しの横に `data-help` を付ける。ヘルプに該当する節が無ければ、先にヘルプへ節と id を足す。実行時に生成する「?」は `dataset.help = '<トピックID>'` で指定する（テストが拾う）
+- 拡張版でしか表示されないトピック（Web 版では `capabilities` で該当セクションごと隠れる）は、`topics.ts` で `extensionOnly: true` を付け、見出しのキーを `guideExt_topic_*` にする。`guideExt_` は Web 版ビルドの messages.json から落とされる（`scripts/webpack/strip-locale-keys.cjs`）。それ以外は `guide_topic_*`。どちらを使うかは `guideTopicTitleKey()` が決め、`tests/guide-topics.test.ts` が検査する
+- 実行時に描画する領域（チーム進捗パネル・重複の確認・セットアップチェックリスト）の「?」は `features/guide/button.ts` の `createGuideHelpButton('<ID>')` で作る。既存の `.help-icon`（ツールチップ付き）に `data-help` を付けて、クリックで吹き出しも開くようにしてもよい
+- 構成: 初期バンドルには `features/guide/lazy.ts`（document へのクリック委譲と本体の遅延読み込みだけ）。吹き出し本体は `features/guide/index.ts`（チャンク `guide-feature`）で、`topics.ts` もここに入る。`lazy.ts` から `topics.ts` を静的 import しない（初期バンドルの予算のため）
+- 吹き出しのボタン列は `buildActions()` が配列から描画する。後続のツアー開始ボタンなどはここへ足す
+- フルテキスト判定ページ（`fulltext.html`）は別バンドルのため吹き出しを持たず、ヘッダーの「?」リンクがヘルプの該当節（`#fulltext-decisions`）を直接開く
+- 照合は `tests/guide-topics.test.ts`（対応表のアンカー実在・`data-help` の過不足・`help.html#id` リンクの実在・見出しの日英 span・ja/en のキーとプレースホルダ一致）

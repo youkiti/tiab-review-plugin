@@ -43,6 +43,7 @@ import {
 import type { Reference, DuplicateCandidate, Decision } from '../../lib/types';
 import type { DuplicateMatchType } from '../../lib/duplicate-detect';
 import type { BulkApplyCandidateInput } from '../../lib/duplicate-review';
+import { createGuideHelpButton } from './guide/button';
 
 // ---------------------------------------------------------------------------
 // 依存注入（project.loadDataAndShowScreening への依存を回避する。循環import回避）
@@ -266,7 +267,10 @@ function renderSectionBody(section: HTMLElement): void {
 
     const heading = document.createElement('h4');
     heading.textContent = t('dupReview_sectionTitle');
-    section.appendChild(heading);
+    const headingRow = document.createElement('div');
+    headingRow.className = 'guide-heading-row';
+    headingRow.append(heading, createGuideHelpButton('screening-duplicates'));
+    section.appendChild(headingRow);
 
     const countP = document.createElement('p');
     countP.className = 'dup-review-count';

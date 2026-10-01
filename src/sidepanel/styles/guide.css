@@ -1,0 +1,115 @@
+/**
+ * guide.css - アプリ内ヘルプ（「?」ボタンと吹き出し）
+ * 本体は src/sidepanel/features/guide/。対応表の正本は src/lib/guide/topics.ts。
+ */
+
+/* 見出しの横に小さく並ぶ「?」ボタン */
+.guide-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    margin: 0 0 0 4px;
+    padding: 0;
+    border: 1px solid #9aa0a6;
+    border-radius: 50%;
+    background: #fff;
+    color: #5f6368;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.guide-help-btn:hover,
+.guide-help-btn:focus-visible,
+.guide-help-btn[aria-expanded="true"] {
+    border-color: #1a73e8;
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.guide-help-btn:focus-visible {
+    outline: 2px solid #1a73e8;
+    outline-offset: 1px;
+}
+
+/* 見出し（h2〜h4・説明文）と「?」を1行に並べる。幅100%の要素の中でも改行させない */
+.guide-heading-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.guide-heading-row > :first-child {
+    min-width: 0;
+}
+
+/* 中央寄せの説明文の「?」は、文と同じ行の中央に並べる */
+.guide-heading-row--center {
+    justify-content: center;
+}
+
+.guide-heading-row--center > p {
+    margin: 0;
+}
+
+/* 既存のツールチップ付き「?」（.help-icon）にクリックで吹き出しを足したもの */
+.help-icon[data-help] {
+    cursor: pointer;
+}
+
+/* チーム進捗パネルを開いたときの本文右上の「?」 */
+.team-progress-help-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
+}
+
+/* 吹き出し */
+.guide-popover {
+    position: fixed;
+    z-index: 1100;
+    box-sizing: border-box;
+    max-width: calc(100vw - 16px);
+    min-width: 180px;
+    padding: 10px 12px;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.guide-popover-title {
+    margin-bottom: 8px;
+    color: #202124;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.guide-popover-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.guide-popover-action {
+    padding: 6px 10px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    background: #f8f9fa;
+    color: #1a73e8;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.guide-popover-action:hover,
+.guide-popover-action:focus-visible {
+    background: #e8f0fe;
+}

@@ -1,13 +1,4 @@
 {
-  "blind_stateClosed": {
-    "message": "🙈 Blind中（他者の判定は非表示）"
-  },
-  "blind_stateOpened": {
-    "message": "🔓 キー開封中（全員の判定を表示）"
-  },
-  "blind_toggleTitle": {
-    "message": "オンにするとキー開封（全員の判定を表示）、オフでBlindに戻します。管理者のみ・プロジェクト全体に反映"
-  },
   "extName": {
     "message": "TiAb Review Plugin"
   },
@@ -1526,6 +1517,129 @@
   },
   "blind_offError": {
     "message": "Blind openエラー: $1"
+  },
+  "blind_stateClosed": {
+    "message": "🙈 Blind中（他者の判定は非表示）"
+  },
+  "blind_stateOpened": {
+    "message": "🔓 キー開封中（全員の判定を表示）"
+  },
+  "blind_toggleTitle": {
+    "message": "オンにするとキー開封（全員の判定を表示）、オフでBlindに戻します。管理者のみ・プロジェクト全体に反映"
+  },
+  "guide_helpBtnTitle": {
+    "message": "この機能のヘルプ"
+  },
+  "guide_readHelp": {
+    "message": "📖 ヘルプを読む"
+  },
+  "guide_watchVideo": {
+    "message": "▶ 動画で見る"
+  },
+  "guide_language": {
+    "message": "ja"
+  },
+  "guide_featureLoadFailed": {
+    "message": "ヘルプの読み込みに失敗しました。ヘルプページを開きます。再度試すには画面を再読み込みしてください。"
+  },
+  "guide_activationFailed": {
+    "message": "ヘルプを表示できませんでした: $1"
+  },
+  "ftPage_helpTitle": {
+    "message": "フルテキスト判定のヘルプ"
+  },
+  "guide_topic_login": {
+    "message": "ログイン"
+  },
+  "guideExt_topic_project_create": {
+    "message": "新規プロジェクト"
+  },
+  "guide_topic_project_connect": {
+    "message": "既存プロジェクトへの接続"
+  },
+  "guide_topic_screening_toolbar": {
+    "message": "ツールバー"
+  },
+  "guide_topic_share": {
+    "message": "プロジェクトの共有"
+  },
+  "guide_topic_blind": {
+    "message": "Blind とキー開封"
+  },
+  "guide_topic_screening_filters": {
+    "message": "フィルター"
+  },
+  "guide_topic_screening_duplicates": {
+    "message": "重複の確認"
+  },
+  "guide_topic_screening_decisions": {
+    "message": "文献の判定"
+  },
+  "guide_topic_highlight": {
+    "message": "ハイライト設定"
+  },
+  "guide_topic_notes": {
+    "message": "メモ"
+  },
+  "guide_topic_team_progress": {
+    "message": "チーム進捗"
+  },
+  "guide_topic_assignment": {
+    "message": "担当セット"
+  },
+  "guide_topic_consensus": {
+    "message": "合議モード"
+  },
+  "guide_topic_settings": {
+    "message": "設定オプション"
+  },
+  "guideExt_topic_ml": {
+    "message": "MLスクリーニング"
+  },
+  "guideExt_topic_ai_model": {
+    "message": "AIモデルの選択"
+  },
+  "guideExt_topic_ai_keys": {
+    "message": "APIキーの設定"
+  },
+  "guideExt_topic_ai_criteria": {
+    "message": "判定基準"
+  },
+  "guideExt_topic_ai_batch": {
+    "message": "AI一括判定"
+  },
+  "guideExt_topic_ai_threshold": {
+    "message": "AI判定の閾値"
+  },
+  "guideExt_topic_fulltext_views": {
+    "message": "フルテキストのビュー"
+  },
+  "guideExt_topic_fulltext_candidates": {
+    "message": "全文候補のルール"
+  },
+  "guideExt_topic_fulltext_setup": {
+    "message": "セットアップ"
+  },
+  "guideExt_topic_fulltext_assignment": {
+    "message": "全文の担当割り振り"
+  },
+  "guideExt_topic_fulltext_pdf": {
+    "message": "全文PDFの取得"
+  },
+  "guideExt_topic_fulltext_drive_import": {
+    "message": "DriveのPDF取り込み"
+  },
+  "guideExt_topic_fulltext_registry": {
+    "message": "レジストリ連携"
+  },
+  "guideExt_topic_fulltext_ai": {
+    "message": "フルテキストAI判定"
+  },
+  "guideExt_topic_fulltext_results": {
+    "message": "判定後レビュー"
+  },
+  "guide_topic_web_app": {
+    "message": "Web版"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"
