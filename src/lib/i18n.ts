@@ -29,6 +29,7 @@ export function t(key: string, substitutions?: string | string[]): string {
  * - data-i18n="key" → textContent を翻訳
  * - data-i18n-placeholder="key" → placeholder属性を翻訳
  * - data-i18n-title="key" → title属性を翻訳
+ * - data-i18n-aria-label="key" → aria-label属性を翻訳
  * - data-i18n-html="key" → innerHTML を翻訳（HTML含む場合）
  * - data-i18n-tooltip="key" → カスタムツールチップ要素 (.help-tooltip) を子に挿入
  */
@@ -54,6 +55,14 @@ export function localizeHtml(root: Document | HTMLElement = document): void {
         const key = el.getAttribute('data-i18n-title');
         if (key) {
             (el as HTMLElement).title = t(key);
+        }
+    });
+
+    // aria-label の翻訳（テキストが「?」だけのボタン等）
+    root.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        if (key) {
+            el.setAttribute('aria-label', t(key));
         }
     });
 

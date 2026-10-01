@@ -28,6 +28,7 @@ import { getAssignmentSetLabel } from './assignment';
 import { getAvailableFulltextSets, getFulltextSetLabel } from '../../lib/fulltext-assignment';
 import { isSharedFulltextPoolMember } from '../../lib/fulltext-candidates';
 import type { Decision, ReferenceWithStatus } from '../../lib/types';
+import { createGuideHelpButton } from './guide/button';
 
 /** この日数以上判定がないメンバーに ⚠ を付ける */
 const STALE_DAYS = 3;
@@ -283,6 +284,11 @@ function buildPanel(kind: HostKind, members: TeamMemberProgress[] | null): HTMLE
     // ---- 展開ボディ ----
     const body = document.createElement('div');
     body.className = 'team-progress-body';
+    // パネルを開いたときだけ、見出し横ではなく本文の右上に「?」を置く（ヘッダーはクリックで開閉するため）
+    const helpRow = document.createElement('div');
+    helpRow.className = 'team-progress-help-row';
+    helpRow.appendChild(createGuideHelpButton('team-progress'));
+    body.appendChild(helpRow);
 
     body.appendChild(buildScopeFilterRow(kind));
 

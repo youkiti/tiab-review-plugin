@@ -1394,7 +1394,7 @@
     "message": "Review sheet: $1"
   },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\nWhen you open the sheet in the extension (or the web app), a guided tour of the joining steps appears the first time. You can reopen it any time from the 🧭 at the top right.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -1517,6 +1517,228 @@
   },
   "blind_offError": {
     "message": "Unblinding error: $1"
+  },
+  "blind_stateClosed": {
+    "message": "🙈 Blinded (others' decisions hidden)"
+  },
+  "blind_stateOpened": {
+    "message": "🔓 Key opened (all decisions shown)"
+  },
+  "blind_toggleTitle": {
+    "message": "Turn on to open the key (show all decisions), or off to return to blind review. Admins only; applies to the whole project."
+  },
+  "guide_helpBtnTitle": {
+    "message": "Help for this feature"
+  },
+  "guide_readHelp": {
+    "message": "📖 Read help"
+  },
+  "guide_watchVideo": {
+    "message": "▶ Watch video"
+  },
+  "guide_language": {
+    "message": "en"
+  },
+  "guide_featureLoadFailed": {
+    "message": "Help could not load. Opening the help page. Reload this screen to try again."
+  },
+  "guide_activationFailed": {
+    "message": "Could not show help: $1"
+  },
+  "ftPage_helpTitle": {
+    "message": "Help with full-text decisions"
+  },
+  "guide_topic_login": {
+    "message": "Sign in"
+  },
+  "guideExt_topic_project_create": {
+    "message": "Create a project"
+  },
+  "guide_topic_project_connect": {
+    "message": "Connect to a project"
+  },
+  "guide_topic_screening_toolbar": {
+    "message": "Toolbar"
+  },
+  "guide_topic_share": {
+    "message": "Share a project"
+  },
+  "guide_topic_blind": {
+    "message": "Blind and key opening"
+  },
+  "guide_topic_screening_filters": {
+    "message": "Filters"
+  },
+  "guide_topic_screening_duplicates": {
+    "message": "Duplicate review"
+  },
+  "guide_topic_screening_decisions": {
+    "message": "Screening decisions"
+  },
+  "guide_topic_highlight": {
+    "message": "Highlight settings"
+  },
+  "guide_topic_notes": {
+    "message": "Notes"
+  },
+  "guide_topic_team_progress": {
+    "message": "Team progress"
+  },
+  "guide_topic_assignment": {
+    "message": "Assignment sets"
+  },
+  "guide_topic_consensus": {
+    "message": "Consensus mode"
+  },
+  "guide_topic_settings": {
+    "message": "Settings"
+  },
+  "guideExt_topic_ml": {
+    "message": "ML screening"
+  },
+  "guideExt_topic_ai_model": {
+    "message": "AI model selection"
+  },
+  "guideExt_topic_ai_keys": {
+    "message": "API key setup"
+  },
+  "guideExt_topic_ai_criteria": {
+    "message": "Screening criteria"
+  },
+  "guideExt_topic_ai_batch": {
+    "message": "Batch AI screening"
+  },
+  "guideExt_topic_ai_threshold": {
+    "message": "AI decision threshold"
+  },
+  "guideExt_topic_fulltext_views": {
+    "message": "Full-text views"
+  },
+  "guideExt_topic_fulltext_candidates": {
+    "message": "Full-text candidate rules"
+  },
+  "guideExt_topic_fulltext_setup": {
+    "message": "Setup checklist"
+  },
+  "guideExt_topic_fulltext_assignment": {
+    "message": "Full-text assignments"
+  },
+  "guideExt_topic_fulltext_pdf": {
+    "message": "Retrieve full-text PDFs"
+  },
+  "guideExt_topic_fulltext_drive_import": {
+    "message": "Import PDFs from Drive"
+  },
+  "guideExt_topic_fulltext_registry": {
+    "message": "Registry linkage"
+  },
+  "guideExt_topic_fulltext_ai": {
+    "message": "Full-text AI screening"
+  },
+  "guideExt_topic_fulltext_results": {
+    "message": "Post-decision review"
+  },
+  "guide_topic_web_app": {
+    "message": "Web app"
+  },
+  "guide_startTourHere": {
+    "message": "🧭 Start a tour for this screen"
+  },
+  "guide_tourListTitle": {
+    "message": "Guided tours"
+  },
+  "guide_tourNext": {
+    "message": "Next"
+  },
+  "guide_tourDone": {
+    "message": "Done"
+  },
+  "guide_tourEnd": {
+    "message": "End tour"
+  },
+  "guide_tourModalOpen": {
+    "message": "A dialog is open. Check it and close it to return to the tour."
+  },
+  "guide_tourWaiting": {
+    "message": "Open the screen where you can do this."
+  },
+  "guide_tourStart": {
+    "message": "Start"
+  },
+  "guide_tourAgain": {
+    "message": "Again"
+  },
+  "guide_suggestTitle": {
+    "message": "New here?"
+  },
+  "guideExt_suggestFirstProject": {
+    "message": "Start a new review (tour)"
+  },
+  "guide_suggestJoinProject": {
+    "message": "Join an invited sheet (tour)"
+  },
+  "guide_suggestLater": {
+    "message": "Later"
+  },
+  "guide_suggestNever": {
+    "message": "Don't show again"
+  },
+  "guide_joinFromPicker": {
+    "message": "Continue with the join tour"
+  },
+  "guideExt_tour_first_project_title": {
+    "message": "Your first project"
+  },
+  "guideExt_tour_first_project_desc": {
+    "message": "Create a project, import records, screen them, and fix a decision, hands-on."
+  },
+  "guideExt_tour_first_project_project_create": {
+    "message": "This button creates a new project. A spreadsheet is created in your Drive and becomes the project itself. Check the name and press OK."
+  },
+  "guideExt_tour_first_project_import": {
+    "message": "Import record files such as PubMed .nbib or RIS. Choose the file from this button instead of opening the download directly. Duplicates are removed automatically."
+  },
+  "guideExt_tour_first_project_read": {
+    "message": "Read the title and abstract, using the green and red keywords as cues."
+  },
+  "guideExt_tour_first_project_decide": {
+    "message": "Press Include, Maybe, or Exclude. The i / m / e keys work too. The next record appears once it is saved."
+  },
+  "guideExt_tour_first_project_go_back": {
+    "message": "To fix a decision, go back to the previous record. Press Prev (the left arrow key works too)."
+  },
+  "guideExt_tour_first_project_redecide": {
+    "message": "Pressing a different button overwrites the decision. Try it."
+  },
+  "guideExt_tour_first_project_blind": {
+    "message": "Blind is on by default, so other reviewers' decisions are hidden. Do not open the key until everyone has finished screening independently. The switch affects the whole project, so it is disabled during this tour."
+  },
+  "guideExt_tour_first_project_finish": {
+    "message": "The ? on each card opens an explanation any time. You can replay tours from this 🧭. Invite collaborators with Share in the toolbar."
+  },
+  "guide_tour_join_project_title": {
+    "message": "Join as a collaborator"
+  },
+  "guide_tour_join_project_desc": {
+    "message": "Connect to an invited sheet and screen your assigned records."
+  },
+  "guide_tour_join_project_paste_url": {
+    "message": "Paste the spreadsheet URL from your invitation here."
+  },
+  "guide_tour_join_project_connect": {
+    "message": "Press the connect button."
+  },
+  "guide_tour_join_project_allow": {
+    "message": "A Google screen opens in another tab. Select the invited sheet there, then return to this panel. It reconnects automatically."
+  },
+  "guide_tour_join_project_assignment": {
+    "message": "Only your assigned records are shown."
+  },
+  "guide_tour_join_project_decide": {
+    "message": "While Blind is on, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
+  },
+  "guide_tour_join_project_finish": {
+    "message": "The ? opens an explanation any time. To fix a decision, go back to the previous record and press again."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."

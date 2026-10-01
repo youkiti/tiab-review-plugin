@@ -251,8 +251,8 @@
                 <span class="en">Help Guide</span>
             </h1>
             <p class="last-updated">
-                <span class="ja">最終更新: 2026年8月1日</span>
-                <span class="en">Last updated: August 1, 2026</span>
+                <span class="ja">最終更新: 2026年10月1日</span>
+                <span class="en">Last updated: October 1, 2026</span>
             </p>
 
             <!-- Web版への導線 -->
@@ -370,7 +370,7 @@
                         its own — you launch it from the browser toolbar.</span>
                 </p>
 
-                <h3>
+                <h3 id="getting-started-install">
                     <span class="ja">1. 拡張機能をインストールする</span>
                     <span class="en">1. Install the extension</span>
                 </h3>
@@ -388,7 +388,7 @@
                         though it installed" is the expected state — continue with the next step to launch it.</span>
                 </p>
 
-                <h3>
+                <h3 id="getting-started-launch">
                     <span class="ja">2. 拡張機能アイコンから起動する</span>
                     <span class="en">2. Launch it from the extensions button</span>
                 </h3>
@@ -422,7 +422,7 @@
                         installed.</span>
                 </p>
 
-                <h3>
+                <h3 id="getting-started-sign-in">
                     <span class="ja">3. ログインしてプロジェクトに接続する</span>
                     <span class="en">3. Sign in and connect to a project</span>
                 </h3>
@@ -433,7 +433,7 @@
                         steps. If a collaborator invited you, paste the spreadsheet URL you received and connect.</span>
                 </p>
 
-                <h3>
+                <h3 id="getting-started-reference-files">
                     <span class="ja">文献ファイル（.nbib / .ris）の扱い</span>
                     <span class="en">About reference files (.nbib / .ris)</span>
                 </h3>
@@ -445,6 +445,71 @@
                         not meant to be opened by double-clicking. Your computer may say it cannot open or play the
                         file, but nothing is broken. Leave the file where it downloaded, launch the extension, and load
                         it from "Import" in <a href="#screening">TiAb Screening</a>.</span>
+                </p>
+
+                <h3 id="getting-started-tours">
+                    <span class="ja">操作の案内（ツアーと「?」ボタン）</span>
+                    <span class="en">Guided tours and the "?" buttons</span>
+                </h3>
+                <p>
+                    <span class="ja">ツアーは、画面上で次に押す場所を示し、実際に操作すると次の手順へ進む案内です。次の2本があります。</span>
+                    <span class="en">A tour is a guide that points to the next place to click on the screen and moves on to
+                        the next step when you actually perform the action. There are two tours.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>初めてのプロジェクト</strong>：新規作成 → 文献の取り込み → 1件の判定 → 判定の修正、の順に案内します（Chrome 拡張機能版のみ）。</span>
+                        <span class="en"><strong>Your first project</strong>: walks you through creating a project, importing
+                            references, making one decision, and correcting it (Chrome extension only).</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>共同研究者として参加</strong>：招待されたシートの URL を貼る → Google で許可する → 担当の確認 → 判定、の順に案内します（拡張機能版と Web 版）。</span>
+                        <span class="en"><strong>Joining as a collaborator</strong>: walks you through pasting the URL of the
+                            sheet you were invited to, granting access in Google, checking your assignment, and making a
+                            decision (extension and web versions).</span>
+                    </li>
+                </ul>
+                <p>
+                    <span class="ja">ツアーは次の4つの方法で始められます。</span>
+                    <span class="en">You can start a tour in four ways.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja">初めてプロジェクト選択画面を開いたときに出る案内から始めます。「あとで」を選ぶとこのセッションでは再表示されず、「今後表示しない」を選ぶと自動では出なくなります。</span>
+                        <span class="en">Start from the notice that appears the first time you open the project selection
+                            screen. "Later" hides it for this session, and "Don't show again" stops it from appearing
+                            automatically.</span>
+                    </li>
+                    <li>
+                        <span class="ja">各カードの「?」の吹き出しにある「この画面のツアーを始める」を押します。</span>
+                        <span class="en">Press "Start the tour for this screen" in the balloon of the "?" button on each
+                            card.</span>
+                    </li>
+                    <li>
+                        <span class="ja">画面右上（ツールバー）の 🧭 を押すと、ツアーの一覧が開きます。済んだツアーには ✓ が付き、もう一度やり直せます。</span>
+                        <span class="en">Press 🧭 at the top right (in the toolbar) to open the list of tours. Finished tours
+                            are marked with ✓ and can be repeated.</span>
+                    </li>
+                    <li>
+                        <span class="ja">共同研究者へ送る招待文にも、参加ツアーの案内が入っています。</span>
+                        <span class="en">The invitation message you send to collaborators also mentions the joining
+                            tour.</span>
+                    </li>
+                </ul>
+                <p>
+                    <span class="ja">「ツアーを終える」を押すと、いつでもやめられます。途中でパネルを閉じても、開き直すと続きから再開します。</span>
+                    <span class="en">You can stop at any time with "End the tour". If you close the panel partway through, the
+                        tour resumes where you left off when you reopen it.</span>
+                </p>
+                <p>
+                    <span class="ja">ツアー中、Blind の切り替えのように取り消せない操作やプロジェクト全体に効く操作は、説明だけで押せないようにしてあります。</span>
+                    <span class="en">During a tour, actions that cannot be undone or that affect the whole project, such as the
+                        Blind switch, are only explained and cannot be clicked.</span>
+                </p>
+                <p>
+                    <span class="ja">各カードの「?」を押すと、そのカードの説明（このヘルプページの該当する節）を開けます。</span>
+                    <span class="en">Pressing the "?" on a card opens its explanation, which is the matching section of this
+                        help page.</span>
                 </p>
             </section>
 
@@ -460,7 +525,7 @@
                         Google account and select or create a review project.</span>
                 </p>
 
-                <h3>
+                <h3 id="login-google">
                     <span class="ja">Googleアカウントでログイン</span>
                     <span class="en">Sign in with Google</span>
                 </h3>
@@ -472,7 +537,7 @@
                         again after signing out or revoking the permission on Google.</span>
                 </p>
 
-                <h3>
+                <h3 id="login-create-project">
                     <span class="ja">新規プロジェクトの作成</span>
                     <span class="en">Create New Project</span>
                 </h3>
@@ -482,7 +547,7 @@
                         your Google Drive.</span>
                 </p>
 
-                <h3>
+                <h3 id="login-connect-project">
                     <span class="ja">既存プロジェクトへの接続</span>
                     <span class="en">Connect to Existing Project</span>
                 </h3>
@@ -506,7 +571,7 @@
                         make Include/Exclude/Maybe decisions. This section covers title/abstract (TiAb) screening.</span>
                 </p>
 
-                <h3>
+                <h3 id="screening-toolbar">
                     <span class="ja">ツールバー機能</span>
                     <span class="en">Toolbar Features</span>
                 </h3>
@@ -549,7 +614,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="screening-filters">
                     <span class="ja">フィルター機能</span>
                     <span class="en">Filter Features</span>
                 </h3>
@@ -581,7 +646,7 @@
                         denominators.</span>
                 </p>
 
-                <h3>
+                <h3 id="screening-duplicates">
                     <span class="ja">重複の確認</span>
                     <span class="en">Duplicate Review</span>
                 </h3>
@@ -644,7 +709,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="screening-decisions">
                     <span class="ja">判定ボタン</span>
                     <span class="en">Decision Buttons</span>
                 </h3>
@@ -680,7 +745,7 @@
                     </tr>
                 </table>
 
-                <h3>
+                <h3 id="screening-highlight">
                     <span class="ja">ハイライト設定</span>
                     <span class="en">Highlight Settings</span>
                 </h3>
@@ -690,7 +755,7 @@
                         shown in green, exclusion in red. RCT and SR presets are available.</span>
                 </p>
 
-                <h3>
+                <h3 id="screening-notes">
                     <span class="ja">メモ機能</span>
                     <span class="en">Notes</span>
                 </h3>
@@ -700,7 +765,7 @@
                         are saved automatically.</span>
                 </p>
 
-                <h3>
+                <h3 id="screening-completion">
                     <span class="ja">TiAb完了バナー</span>
                     <span class="en">TiAb Completion Banner</span>
                 </h3>
@@ -732,7 +797,7 @@
                         zero.</span>
                 </p>
 
-                <h3>
+                <h3 id="screening-team-progress">
                     <span class="ja">チーム進捗パネル（TiAbタブ）</span>
                     <span class="en">Team Progress Panel (TiAb Tab)</span>
                 </h3>
@@ -761,7 +826,7 @@
                         decision, prioritizing more relevant records.</span>
                 </p>
 
-                <h3>
+                <h3 id="ml-screening-requirements">
                     <span class="ja">利用条件</span>
                     <span class="en">Requirements to Use ML Screening</span>
                 </h3>
@@ -775,7 +840,7 @@
                         training).</span>
                 </p>
 
-                <h3>
+                <h3 id="ml-screening-concept">
                     <span class="ja">基本コンセプト</span>
                     <span class="en">Basic Concept</span>
                 </h3>
@@ -799,7 +864,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="ml-screening-new-review">
                     <span class="ja">新規レビュー開始の流れ</span>
                     <span class="en">Starting a New Review</span>
                 </h3>
@@ -825,7 +890,7 @@
                     </li>
                 </ol>
 
-                <h3>
+                <h3 id="ml-screening-learning-triggers">
                     <span class="ja">学習開始条件（ラベル数）と挙動</span>
                     <span class="en">Learning Trigger Conditions</span>
                 </h3>
@@ -849,7 +914,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="ml-screening-interface">
                     <span class="ja">スクリーニング画面の使い方</span>
                     <span class="en">Using the Screening Interface</span>
                 </h3>
@@ -866,7 +931,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="ml-screening-probability">
                     <span class="ja">p(relevant) の表示方針</span>
                     <span class="en">p(relevant) Display Policy</span>
                 </h3>
@@ -876,7 +941,7 @@
                         may cause anchoring bias.</span>
                 </p>
 
-                <h3>
+                <h3 id="ml-screening-late-phase">
                     <span class="ja">後半フェーズの運用</span>
                     <span class="en">Late-Phase Workflow</span>
                 </h3>
@@ -894,7 +959,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="ml-screening-dual-review">
                     <span class="ja">2人レビュー（独立スクリーニング）</span>
                     <span class="en">Dual Review (Independent Screening)</span>
                 </h3>
@@ -942,7 +1007,7 @@
                     <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Choose from all models across Gemini, OpenRouter, OpenAI, and TypeSafe, then configure the required API key.</span>
                 </p>
 
-                <h3>
+                <h3 id="ai-screening-api-keys">
                     <span class="ja">APIキーのセットアップ</span>
                     <span class="en">API Key Setup</span>
                 </h3>
@@ -1062,7 +1127,7 @@
                     </figcaption>
                 </figure>
 
-                <h3>
+                <h3 id="ai-screening-models">
                     <span class="ja">モデル選択とカスタムモデル</span>
                     <span class="en">Model Selection and Custom Models</span>
                 </h3>
@@ -1071,7 +1136,7 @@
                     <span class="en">The "Model" card lists all providers’ built-in models and registered custom models, regardless of key configuration. Selecting a model without a key displays a note and opens the matching row. Once an OpenRouter key is configured, open "+ Add a model not in the list" in the OpenRouter row, enter a model ID, and click "Test and save". Only models that pass a live API test are saved to your browser and added to the list (up to 20). The UI notes that custom models have not been benchmarked.</span>
                 </p>
 
-                <h3>
+                <h3 id="ai-screening-criteria">
                     <span class="ja">判定基準のカスタマイズ</span>
                     <span class="en">Customizing Criteria</span>
                 </h3>
@@ -1089,7 +1154,7 @@
                         before it overwrites text you have already entered.</span>
                 </p>
 
-                <h3>
+                <h3 id="ai-screening-batch">
                     <span class="ja">一括判定の実行</span>
                     <span class="en">Running Batch Screening</span>
                 </h3>
@@ -1209,7 +1274,7 @@
                         the TiAb completion banner).</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-views">
                     <span class="ja">3つのサブビュー</span>
                     <span class="en">Three Sub-Views</span>
                 </h3>
@@ -1234,7 +1299,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="fulltext-candidates">
                     <span class="ja">候補（対象文献）の決まり方</span>
                     <span class="en">How Candidates Are Determined</span>
                 </h3>
@@ -1262,7 +1327,7 @@
                         empty, the reason (rule not evaluable during Blind, filtered out, no candidates yet, etc.) is
                         shown instead of a blank message.</span>
                 </p>
-                <h3>
+                <h3 id="fulltext-setup">
                     <span class="ja">セットアップチェックリスト</span>
                     <span class="en">Setup Checklist</span>
                 </h3>
@@ -1296,7 +1361,7 @@
                         access has not been granted), this row is not shown at all.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-assignment">
                     <span class="ja">担当割り当て</span>
                     <span class="en">Assignment</span>
                 </h3>
@@ -1329,7 +1394,7 @@
                         PRISMA numbers never shift because of this filter.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-pdf">
                     <span class="ja">全文PDFの取得</span>
                     <span class="en">Retrieving Full-Text PDFs</span>
                 </h3>
@@ -1342,7 +1407,7 @@
                         upload button are also available.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-drive-import">
                     <span class="ja">Driveに直接置いたPDFの取り込み</span>
                     <span class="en">Importing PDFs Placed Directly in Drive</span>
                 </h3>
@@ -1379,7 +1444,7 @@
                         rename those headers to the expected names, or move your own columns elsewhere.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-registry">
                     <span class="ja">レジストリ連携（試験登録レコードから結果論文を探す）</span>
                     <span class="en">Registry Linkage (Finding Result Publications from Trial Registrations)</span>
                 </h3>
@@ -1441,7 +1506,7 @@
                         "Post-Decision Review" in this <a href="#fulltext">section</a>.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-decisions">
                     <span class="ja">フルテキストページでの判定</span>
                     <span class="en">Making Decisions on the Full-Text Page</span>
                 </h3>
@@ -1537,7 +1602,7 @@
                     </li>
                 </ul>
 
-                <h3>
+                <h3 id="fulltext-ai">
                     <span class="ja">AI一括判定</span>
                     <span class="en">Batch AI Screening</span>
                 </h3>
@@ -1566,7 +1631,7 @@
                         adopted or deleted — only its execution record remains in the list.</span>
                 </p>
 
-                <h3>
+                <h3 id="fulltext-results">
                     <span class="ja">判定後レビュー</span>
                     <span class="en">Post-Decision Review</span>
                 </h3>
@@ -1618,7 +1683,7 @@
                         same project together.</span>
                 </p>
 
-                <h3>
+                <h3 id="sharing-dialog">
                     <span class="ja">共有ダイアログ</span>
                     <span class="en">Share Dialog</span>
                 </h3>
@@ -1663,10 +1728,14 @@
                     </li>
                 </ul>
 
-                <h3>
-                    <span class="ja">Blind on/off</span>
-                    <span class="en">Blind On/Off</span>
+                <h3 id="sharing-blind">
+                    <span class="ja">Blind on/off（Blind中／キー開封中）</span>
+                    <span class="en">Blind On/Off (Blinded / Key opened)</span>
                 </h3>
+                <p>
+                    <span class="ja">画面のラベルは、現在の状態に応じて「🙈 Blind中（他者の判定は非表示）」または「🔓 キー開封中（全員の判定を表示）」に切り替わります。</span>
+                    <span class="en">The on-screen label reflects the current state: "🙈 Blinded (others' decisions hidden)" or "🔓 Key opened (all decisions shown)".</span>
+                </p>
                 <p>
                     <span class="ja">スイッチOFF（既定）が「Blind on」の状態で、他のレビュアーの判定を非表示にします（ブラインドレビュー）。スイッチをONにするとキー開封（ブラインド解除）となり、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。切り替え時には確認ダイアログが表示されます。スイッチは管理者にのみ表示され、ブラインド状態の切り替えはプロジェクト全体で共有されます。</span>
                     <span class="en">The switch is OFF by default, which is the blinded state: other reviewers'
@@ -1699,7 +1768,7 @@
                         viewer window (the PDF screen) has no switch of its own, so use the side panel.</span>
                 </p>
 
-                <h3>
+                <h3 id="sharing-consensus">
                     <span class="ja">🤝 合議モード</span>
                     <span class="en">🤝 Consensus Mode</span>
                 </h3>
@@ -1730,7 +1799,7 @@
                         calculation.</span>
                 </p>
 
-                <h3>
+                <h3 id="sharing-team-progress">
                     <span class="ja">チーム進捗パネル</span>
                     <span class="en">Team Progress Panel</span>
                 </h3>
@@ -1783,7 +1852,7 @@
                             rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
                 </p>
 
-                <h3>
+                <h3 id="web-version-features">
                     <span class="ja">できること</span>
                     <span class="en">What You Can Do</span>
                 </h3>
@@ -1817,7 +1886,7 @@
                         them.</span>
                 </p>
 
-                <h3>
+                <h3 id="web-version-limitations">
                     <span class="ja">できないこと（Chrome拡張機能版のみの機能）</span>
                     <span class="en">What You Can't Do (Chrome Extension Only)</span>
                 </h3>
@@ -1936,7 +2005,7 @@
                     <span class="en">Access settings via the ⚙️ button to change the following options.</span>
                 </p>
 
-                <h4>
+                <h4 id="settings-auto-advance">
                     <span class="ja">判断後に自動的に次の文献に遷移する</span>
                     <span class="en">Auto-advance after decision</span>
                 </h4>
@@ -1946,7 +2015,7 @@
                         reference, advance manually</span>
                 </p>
 
-                <h4>
+                <h4 id="settings-progress">
                     <span class="ja">進捗表示を下部に表示</span>
                     <span class="en">Show progress at bottom</span>
                 </h4>
@@ -1965,7 +2034,7 @@
                 </h2>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-open-extension">
                         <span class="ja">Q: インストールしたのに画面が開きません</span>
                         <span class="en">Q: I installed it but nothing opens</span>
                     </h4>
@@ -1980,7 +2049,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-open-nbib">
                         <span class="ja">Q: ダウンロードした .nbib ファイルが「開けません／再生できません」と表示されます</span>
                         <span class="en">Q: My downloaded .nbib file says it can't be opened or played</span>
                     </h4>
@@ -1996,7 +2065,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-truncated-abstract">
                         <span class="ja">Q: インポートしたら抄録が途中で切れました</span>
                         <span class="en">Q: The abstract got cut off after importing</span>
                     </h4>
@@ -2009,7 +2078,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-hidden-decisions">
                         <span class="ja">Q: 他のレビュアーの判定が見えません</span>
                         <span class="en">Q: I can't see other reviewers' decisions</span>
                     </h4>
@@ -2022,7 +2091,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-change-decision">
                         <span class="ja">Q: 判定を変更したい</span>
                         <span class="en">Q: I want to change a decision</span>
                     </h4>
@@ -2034,7 +2103,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-data-storage">
                         <span class="ja">Q: データはどこに保存されますか？</span>
                         <span class="en">Q: Where is my data stored?</span>
                     </h4>
@@ -2050,7 +2119,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-ml-training">
                         <span class="ja">Q: どれくらい集まったらML学習開始？</span>
                         <span class="en">Q: When does ML training start?</span>
                     </h4>
@@ -2062,7 +2131,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-initial-includes">
                         <span class="ja">Q: 最初に Include を何件くらい入れる？</span>
                         <span class="en">Q: How many Includes should I add initially?</span>
                     </h4>
@@ -2075,7 +2144,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-web-tabs">
                         <span class="ja">Q: Web版でML/AI/フルテキストのタブが見当たりません</span>
                         <span class="en">Q: I can't find the ML/AI/Full-text tabs in the web app</span>
                     </h4>
@@ -2089,7 +2158,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-ai-providers">
                         <span class="ja">Q: AI判定はGoogle Gemini以外でも使えますか？</span>
                         <span class="en">Q: Can I use AI screening with providers other than Google Gemini?</span>
                     </h4>
@@ -2102,7 +2171,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-fulltext-ai-targets">
                         <span class="ja">Q: フルテキストのAI一括判定の対象はどう決まりますか？</span>
                         <span class="en">Q: Which references are eligible for batch AI screening in Full-text?</span>
                     </h4>
@@ -2115,7 +2184,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-pending-ai">
                         <span class="ja">Q: AI判定を実行したのに、判定が pending のままです</span>
                         <span class="en">Q: I ran AI screening, but decisions are stuck as "pending"</span>
                     </h4>
@@ -2135,7 +2204,7 @@
                 </div>
 
                 <div class="faq-item">
-                    <h4>
+                    <h4 id="faq-free-gemini">
                         <span class="ja">Q: 無料の Gemini APIキーでも使えますか？</span>
                         <span class="en">Q: Can I use a free Gemini API key?</span>
                     </h4>

@@ -4,6 +4,7 @@
  */
 
 import { dom } from '../../dom';
+import { blindStateLabelKey } from '../../ui/blind-state';
 import { state } from '../../state';
 import { escapeHtml, escapeRegex } from '../../utils/text';
 import { getFilteredReferences, updateFilterCounts, getMyManualDecisionStatus, getScreeningCounts } from './filters';
@@ -769,4 +770,5 @@ function renderAllDecisions(ref: ReferenceWithStatus) {
  */
 export function renderKeyStatus() {
     dom.keyToggleInput.checked = state.isKeyOpened;
+    dom.keyToggleLabel.textContent = t(blindStateLabelKey(state.isKeyOpened));
 }

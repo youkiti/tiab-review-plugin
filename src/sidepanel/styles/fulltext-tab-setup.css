@@ -13,6 +13,10 @@
 
 /* ---------- ① 候補ルール ---------- */
 
+.fulltext-rule-row .btn {
+    white-space: nowrap;
+}
+
 .fulltext-rule-row {
     display: flex;
     align-items: center;
@@ -281,11 +285,15 @@
 /* ---------- ③ フィルタ ---------- */
 
 .fulltext-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin-bottom: 8px;
 }
 
 .fulltext-filter-row select {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 6px 8px;
     font-size: 13px;
     border: 1px solid #ccc;

@@ -10,10 +10,11 @@
 
 /**
  * Web 版バンドルに同梱しないキーの接頭辞。
- * 現在はフルテキスト判定ページ専用の `ftPage_` のみ。将来 ML/LLM 設定画面など、他の
+ * 現在はフルテキスト判定ページ専用の `ftPage_` と、拡張版でしか表示されないアプリ内ヘルプの
+ * トピック見出し `guideExt_`（src/lib/guide/topics.ts の `extensionOnly`）。将来 ML/LLM 設定画面など、他の
  * 拡張専用画面のキーが増えたときにここへ追記できるよう配列にしてある。
  */
-const WEB_EXCLUDED_KEY_PREFIXES = ['ftPage_'];
+const WEB_EXCLUDED_KEY_PREFIXES = ['ftPage_', 'guideExt_'];
 
 /**
  * messages（chrome.i18n 形式の messages.json をパースしたオブジェクト）から、

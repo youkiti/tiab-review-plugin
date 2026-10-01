@@ -14,6 +14,7 @@
  */
 
 import { dom } from './dom';
+import { blindStateLabelKey } from '../../ui/blind-state';
 import { dom as sharedDom } from '../../dom';
 import { state } from '../../state';
 import { t } from '../../../lib/i18n';
@@ -123,10 +124,15 @@ export function renderFulltextResults(): void {
     renderResultsList(candidates, judges);
 }
 
+export function renderFulltextKeyStatus(): void {
+    dom.fulltextKeyToggle.checked = state.isKeyOpened;
+    dom.fulltextKeyToggleLabel.textContent = t(blindStateLabelKey(state.isKeyOpened));
+}
+
 function renderJudgeSelector(allJudges: string[], effective: Set<string>): void {
     // ブラインド解除トグル（admin のみ表示・状態同期）
     dom.fulltextBlindRow.classList.toggle('hidden', !state.isAdmin);
-    dom.fulltextKeyToggle.checked = state.isKeyOpened;
+    renderFulltextKeyStatus();
 
     const list = dom.fulltextJudgeList;
     list.innerHTML = '';
@@ -665,7 +671,7 @@ async function handleBlindToggle(): Promise<void> {
     sharedDom.keyToggleInput.checked = open;
     await handleKeyToggle();
     // handleKeyToggle はキャンセル/失敗時に元状態へ戻すため、実状態へ同期
-    dom.fulltextKeyToggle.checked = state.isKeyOpened;
+    renderFulltextKeyStatus();
     // データが再読込されている可能性があるためタブ全体を再描画
     if (_rerenderTab) _rerenderTab();
     else renderFulltextResults();

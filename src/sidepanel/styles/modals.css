@@ -5,11 +5,32 @@
 /* インポートセクション */
 .import-section {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid #e0e0e0;
+}
+
+/* ボタンの中では折り返さず、幅が足りないときは行として折り返す */
+.import-section .btn,
+.import-section .unsent-queue-badge {
+    white-space: nowrap;
+}
+
+/* ツールバーの ❓ は右端寄せにせず、設定ボタンの隣に置く（折り返したとき孤立させない） */
+.import-section .btn-help {
+    margin-left: 0;
+}
+
+/* Blind / キー開封の行（ツールバーとは別の行。ラベルが長くても折り返せる） */
+#key-section {
+    margin-bottom: 8px;
+}
+
+#key-section .toggle-label {
+    min-width: 0;
 }
 
 .import-status {

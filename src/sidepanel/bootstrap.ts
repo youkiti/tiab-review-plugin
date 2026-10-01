@@ -25,6 +25,7 @@ import * as reviewCriteria from './features/review-criteria';
 import { setDuplicateReviewDeps } from './features/duplicate-review';
 import { setupTeamProgressListeners, renderTeamProgress } from './features/team-progress';
 import { initUnsentQueue, flushUnsentQueue } from './features/unsent-queue';
+import { setupGuideListeners } from './features/guide/lazy';
 import { hideToast } from './ui/feedback';
 import { localizeHtml } from '../lib/i18n';
 import { isImeComposing } from '../lib/ime-composition';
@@ -158,6 +159,7 @@ export function bootstrapCommon(): void {
     dom.spreadsheetInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') project.handleConnect();
     });
+    dom.spreadsheetInput?.addEventListener('input', project.handleSpreadsheetInput);
 
     // Settings
     dom.settingsBtnProject?.addEventListener('click', settings.showSettings);
@@ -268,6 +270,9 @@ export function bootstrapCommon(): void {
 
     // チーム進捗（判定保存イベントの即時反映）
     setupTeamProgressListeners();
+
+    // アプリ内ヘルプ（「?」ボタン）。本体は初回クリックで遅延読み込みする
+    setupGuideListeners();
 
     // Screening タブ（拡張専用の llm.switchToTab に依存せず共有ロジックで切替）
     dom.tabScreeningBtn?.addEventListener('click', () => {

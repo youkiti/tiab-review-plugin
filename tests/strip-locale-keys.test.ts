@@ -32,7 +32,7 @@ test('入力オブジェクトは変更されない', async () => {
 
 test('実際の en/messages.json では ftPage_ が全て消え、fulltext_ は同数残る（Web版のTiAb画面を誤って落とさない担保）', async () => {
     const { stripLocaleKeys, WEB_EXCLUDED_KEY_PREFIXES } = await modulePromise;
-    assert.deepEqual(WEB_EXCLUDED_KEY_PREFIXES, ['ftPage_']);
+    assert.deepEqual(WEB_EXCLUDED_KEY_PREFIXES, ['ftPage_', 'guideExt_']);
 
     const messages = JSON.parse(
         require('node:fs').readFileSync(path.resolve('src/_locales/en/messages.json'), 'utf8')
@@ -42,6 +42,8 @@ test('実際の en/messages.json では ftPage_ が全て消え、fulltext_ は�
     const result = stripLocaleKeys(messages);
 
     assert.equal(Object.keys(result).filter((k) => k.startsWith('ftPage_')).length, 0);
+    assert.equal(Object.keys(result).filter((k) => k.startsWith('guideExt_')).length, 0);
+    assert.ok(Object.keys(messages).some((k) => k.startsWith('guideExt_')), '拡張版には guideExt_ キーが残る');
     const afterFulltextCount = Object.keys(result).filter((k) => k.startsWith('fulltext_')).length;
     assert.equal(afterFulltextCount, beforeFulltextCount);
     assert.ok(afterFulltextCount > 0);

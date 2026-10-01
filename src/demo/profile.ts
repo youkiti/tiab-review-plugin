@@ -36,6 +36,17 @@ export function resolveDemoProfile(): DemoProfile {
     return 'default';
 }
 
+/**
+ * ?demoPickerRequired=1 のときだけ true。共有シートの初回許可（Google Picker）が必要な状態を
+ * 再現するため、デモのスプレッドシートへの Sheets API アクセスを「未許可」として扱う
+ * （fetch-mock.ts。許可の印は src/platform/demo/index.ts の openExternal が立てる）。
+ * 上と同じ理由で、クエリパラメータのみによる完全同期解決にしている。
+ */
+export function resolveDemoPickerRequired(): boolean {
+    if (typeof location === 'undefined') return false;
+    return new URLSearchParams(location.search).get('demoPickerRequired') === '1';
+}
+
 /** ?benchSize= の既定値（未指定・不正値のフォールバック先） */
 const DEFAULT_BENCH_SIZE = 1000;
 /** ?benchSize= の上限。超えた場合はこの値に丸める */

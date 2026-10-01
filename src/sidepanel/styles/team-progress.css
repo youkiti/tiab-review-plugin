@@ -208,7 +208,8 @@
     position: relative;
     margin: 0;
     min-width: 0;
-    flex-shrink: 1;
+    /* ツールバーが折り返す幅でも、展開パネルが画面の左へはみ出さないよう1行を使う */
+    flex: 1 1 100%;
 }
 
 .team-progress-host--toolbar .team-progress {

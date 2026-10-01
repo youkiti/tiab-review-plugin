@@ -38,6 +38,7 @@ import type { ReferenceWithStatus } from '../../../lib/types';
 import { getFilePermissions, getProjectDriveFolderId, getSpreadsheetPermissions, type SpreadsheetPermission } from '../../../lib/sheets-api';
 import { mergePermissionsForDisplay } from '../../../lib/share-permissions';
 import { buildSpreadsheetUrl } from '../../../lib/share-invite';
+import { createGuideHelpButton } from '../guide/button';
 
 // 前回確認結果の永続化キー。値は { [regrantResultKey(spreadsheetId, userEmail)]: StoredRegrantResult }
 // （プロジェクト × アカウントごとに保持）。
@@ -319,6 +320,7 @@ function buildPanel(allComplete: boolean, rows: HTMLElement[]): HTMLElement {
         // details の open 反映は click の既定動作の後なので、次のタスクで読む
         setTimeout(() => { manualOpenOverride = details.open; }, 0);
     });
+    summary.appendChild(createGuideHelpButton('fulltext-setup'));
     details.appendChild(summary);
 
     const body = document.createElement('div');

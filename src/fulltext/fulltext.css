@@ -72,6 +72,26 @@ body {
     background: rgba(255, 255, 255, 0.15);
 }
 
+/* 暗色ヘッダー上のヘルプリンク（ヘルプの「フルテキストページでの判定」へ） */
+.ft-help-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+}
+
+.ft-help-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .ft-title {
     font-size: 16px;
     font-weight: 600;
