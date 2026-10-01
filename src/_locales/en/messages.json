@@ -1767,6 +1767,39 @@
   "guideExt_tour_assignment_setup_desc": {
     "message": "Walks you through having everyone screen the same records to calibrate, then splitting the rest."
   },
+  "guideExt_tour_assignment_setup_open_settings": {
+    "message": "Press the ⚙️ at the top right to open Settings. The assignment settings are near the bottom of that screen."
+  },
+  "guideExt_tour_assignment_setup_banner": {
+    "message": "When assignments are not set up yet, this card appears. If several people will share the work, press \"Split references now\". If you screen alone, you do not need to split."
+  },
+  "guideExt_tour_assignment_setup_wizard_numbers": {
+    "message": "Use the two fields above to choose how many records everyone screens together (calibration) and how many teams to split the rest into. This preview shows the number of records per team as you change them. Press Next when you are done."
+  },
+  "guideExt_tour_assignment_setup_wizard_reviewers": {
+    "message": "Enter each team's reviewer email addresses, separated by commas. For independent screening by two people, that is usually two. You can leave this empty and fill it in later in Settings."
+  },
+  "guideExt_tour_assignment_setup_wizard_create": {
+    "message": "Pressing \"Create sets\" writes an assignment set to every record in the sheet. If you are not ready, \"Not now\" is fine too. You can also move on with \"Skip this step\" without pressing anything here."
+  },
+  "guideExt_tour_assignment_setup_reopen_settings": {
+    "message": "The sets have been created. Press ⚙️ again to open Settings and see where reviewers are saved."
+  },
+  "guideExt_tour_assignment_setup_save_map": {
+    "message": "Settings now shows a field for each team's reviewers. After entering their email addresses, press \"Save reviewer assignments\". You can also move on with \"Skip this step\" without saving now."
+  },
+  "guideExt_tour_assignment_setup_reshuffle": {
+    "message": "\"Re-split (redo)\" reassigns every record to a set from scratch. Once screening has started, the results would no longer match, so it cannot be pressed here. Use it only when you want to redo the split before screening begins. Press Next."
+  },
+  "guideExt_tour_assignment_setup_close_settings": {
+    "message": "Press \"Close\" to return to the Manual tab. If you split the records, an Assignment Sets panel appears lower on the screen."
+  },
+  "guideExt_tour_assignment_setup_sets": {
+    "message": "Each team's assignment set and reviewers are listed here. Toggle a checkbox to narrow the records you see. Each member sees only their own sets plus the calibration set shared by everyone."
+  },
+  "guideExt_tour_assignment_setup_finish": {
+    "message": "That covers setting up assignments. The ? on each card explains the idea any time. This ❓ also opens the other guided tours."
+  },
   "guideExt_tour_share_invite_title": {
     "message": "Share and invite"
   },

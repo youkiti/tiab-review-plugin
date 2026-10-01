@@ -1767,6 +1767,39 @@
   "guideExt_tour_assignment_setup_desc": {
     "message": "全員で同じ文献を判定して基準をそろえ、残りを分担する設定を案内します。"
   },
+  "guideExt_tour_assignment_setup_open_settings": {
+    "message": "右上の ⚙️ を押して、設定画面を開きます。担当分けの設定は、設定画面の下のほうにあります。"
+  },
+  "guideExt_tour_assignment_setup_banner": {
+    "message": "担当分けが未設定のときは、この案内カードが出ます。複数人で分担するなら「今すぐ文献を分割する」を押してください。1人で判定するなら、分割は不要です。"
+  },
+  "guideExt_tour_assignment_setup_wizard_numbers": {
+    "message": "上の2つの欄で、全員で同じ文献を判定する件数（キャリブレーション）と、残りを分けるチーム数を決めます。入力を変えると、このプレビューに1チームあたりの件数が出ます。決めたら「次へ」を押してください。"
+  },
+  "guideExt_tour_assignment_setup_wizard_reviewers": {
+    "message": "各チームの担当者のメールアドレスを、カンマ区切りで入れます。独立に2名で判定するなら、通常は2名です。空のままでも作成でき、あとで設定画面から入れられます。"
+  },
+  "guideExt_tour_assignment_setup_wizard_create": {
+    "message": "「セットを作成」を押すと、シートの全文献に担当セットが書き込まれます。まだ決められないときは「今回は分割しない」を選んでも構いません。ここは押さずに、「押さずに次へ」でも進めます。"
+  },
+  "guideExt_tour_assignment_setup_reopen_settings": {
+    "message": "担当セットができました。担当者の保存を見るために、もう一度 ⚙️ を押して設定画面を開きます。"
+  },
+  "guideExt_tour_assignment_setup_save_map": {
+    "message": "設定画面に、チームごとの担当者の欄が出ています。メールアドレスを入れたら、下の「担当者設定を保存」を押します。今は押さずに、「押さずに次へ」でも進めます。"
+  },
+  "guideExt_tour_assignment_setup_reshuffle": {
+    "message": "「再分割してやり直す」は、全文献の担当セットを最初から振り直します。判定が始まっていると結果が食い違うので、ここでは押せません。使うのは、判定を始める前にやり直したいときだけです。「次へ」を押してください。"
+  },
+  "guideExt_tour_assignment_setup_close_settings": {
+    "message": "「閉じる」を押して、手動タブへ戻ります。分割した場合は、画面の下のほうに担当セットの欄が出ます。"
+  },
+  "guideExt_tour_assignment_setup_sets": {
+    "message": "チームごとの担当セットと担当者が、ここに並びます。チェックを切り替えると、見る文献を絞れます。メンバーには、自分の担当セットと、全員共通のキャリブレーションだけが表示されます。"
+  },
+  "guideExt_tour_assignment_setup_finish": {
+    "message": "分担の設定は以上です。担当分けの考え方は、各カードの「?」でいつでも読めます。この ❓ から、ほかの操作ツアーも開けます。"
+  },
   "guideExt_tour_share_invite_title": {
     "message": "共有と招待"
   },

@@ -14,6 +14,7 @@ import {
     removeSelectedAssignmentSet as storeRemoveSelectedAssignmentSet,
 } from '../store/compat';
 import { hideModal, showModal } from '../ui/modal';
+import { emitGuideEvent } from './guide/lazy';
 
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 let _renderCurrentReference: (() => void) | null = null;
@@ -366,6 +367,7 @@ export async function handleAssignmentSaveMap() {
         await saveAssignmentConfig(state.spreadsheetId, nextConfig);
         storeSetAssignmentConfig(nextConfig);
         showToast(t('assignment_settingsMapSaved'));
+        emitGuideEvent('assignment-map-saved');
     } catch (error) {
         console.error('Assignment map save error:', error);
         showToast(t('assignment_settingsMapError', (error as Error).message));
@@ -475,6 +477,7 @@ function showAssignmentWizard() {
 
     const preview = document.createElement('p');
     preview.className = 'assignment-preview';
+    preview.dataset.tour = 'assignment-wizard-preview';
 
     const renderPreview = () => {
         const calibrationRaw = parseInt(calibrationInput.value || '', 10);
@@ -512,6 +515,7 @@ function showAssignmentWizard() {
 
     const reviewerGrid = document.createElement('div');
     reviewerGrid.className = 'assignment-group-grid';
+    reviewerGrid.dataset.tour = 'assignment-wizard-reviewers';
 
     const renderReviewerGrid = () => {
         const groupCount = Math.max(parseInt(groupCountInput.value || '0', 10), 1);
@@ -578,6 +582,7 @@ function showAssignmentWizard() {
 
     const createButton = document.createElement('button');
     createButton.className = 'btn btn-primary btn-small';
+    createButton.dataset.tour = 'assignment-wizard-create';
     createButton.textContent = isReshuffle
         ? t('assignment_settingsReshuffle')
         : t('assignment_wizardCreate');
@@ -599,6 +604,7 @@ function showAssignmentWizard() {
             _wizardOpen = false;
         },
     });
+    emitGuideEvent('assignment-wizard-opened');
 }
 
 async function dismissAssignmentWizard() {
@@ -614,6 +620,7 @@ async function dismissAssignmentWizard() {
         renderAssignmentManager();
         hideModal();
         showToast(t('assignment_dismissed'));
+        emitGuideEvent('assignment-dismissed');
     } catch (error) {
         console.error('Assignment dismiss error:', error);
         showToast(t('assignment_settingsMapError', (error as Error).message));
@@ -682,6 +689,7 @@ async function saveAssignmentWizard(
         if (_loadDataAndShowScreening) {
             await _loadDataAndShowScreening();
         }
+        emitGuideEvent('assignment-created');
     } catch (error) {
         console.error('Assignment save error:', error);
         showToast(t('assignment_wizardCreateError', (error as Error).message), 4000);

@@ -166,7 +166,7 @@
                 </div>
                 <button id="criteria-btn-screening" class="btn btn-icon" data-i18n-title="criteria_buttonTitle">📋<span
                         class="btn-icon-text" data-i18n="criteria_buttonLabel"></span></button>
-                <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️<span
+                <button id="settings-btn-screening" class="btn btn-icon" data-tour="settings-open" data-i18n-title="common_settings">⚙️<span
                         class="btn-icon-text" data-i18n="common_settings"></span></button>
                 <button type="button" class="btn btn-icon btn-help" data-help="screening-toolbar" data-tour="tour-list" data-i18n-title="common_help">❓</button>
                 <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
@@ -349,7 +349,7 @@
                     <h2 data-i18n="settings_title"></h2>
                     <button type="button" class="guide-help-btn" data-help="settings" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 </div>
-                <button id="close-settings-btn" class="btn btn-outline btn-small" data-i18n="settings_close"></button>
+                <button id="close-settings-btn" class="btn btn-outline btn-small" data-tour="settings-close" data-i18n="settings_close"></button>
             </div>
 
             <div class="settings-content">
@@ -415,7 +415,7 @@
                             <p id="assignment-settings-status" class="setting-description"></p>
                         </div>
                         <button id="assignment-reset-btn" class="btn btn-secondary btn-small hidden"></button>
-                        <button id="assignment-reshuffle-btn" class="btn btn-secondary btn-small hidden"></button>
+                        <button id="assignment-reshuffle-btn" class="btn btn-secondary btn-small hidden" data-tour="assignment-reshuffle"></button>
                     </div>
                     <!-- 未設定時の案内カード -->
                     <div id="assignment-banner" class="assignment-banner hidden">
@@ -427,12 +427,12 @@
                             </div>
                             <p id="assignment-banner-desc" class="assignment-banner-desc"></p>
                             <div class="assignment-banner-actions">
-                                <button id="assignment-banner-open-btn" class="btn btn-primary btn-small"
+                                <button id="assignment-banner-open-btn" class="btn btn-primary btn-small" data-tour="assignment-banner-open"
                                     data-i18n="assignment_bannerOpen"></button>
                             </div>
                         </div>
                     </div>
-                    <div id="assignment-reviewer-map" class="assignment-reviewer-map hidden"></div>
+                    <div id="assignment-reviewer-map" class="assignment-reviewer-map hidden" data-tour="assignment-reviewer-map"></div>
                     <button id="assignment-save-btn" class="btn btn-primary btn-small hidden" data-i18n="assignment_settingsSaveMap"></button>
                 </div>
             </div>
