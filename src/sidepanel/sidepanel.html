@@ -18,7 +18,7 @@
             </div>
             <div class="header-tabs hidden">
                 <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
-                <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
+                <button id="tab-ml" class="tab-btn" data-tour="ml-tab" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
                 <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
                 <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
             </div>
@@ -769,7 +769,7 @@
             <div class="llm-toolbar">
                 <button id="ml-back-btn" class="btn btn-nav btn-small" data-i18n="screening_back"></button>
                 <span class="llm-title" data-i18n="ml_title"></span>
-                <button type="button" class="guide-help-btn" data-help="ml" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
+                <button type="button" class="guide-help-btn" data-help="ml" data-tour="ml-help" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 <button id="ml-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                 <div class="ml-status-badge" id="ml-status-badge">
                     <span class="status-indicator">●</span> <span id="ml-status-text" data-i18n="ml_statusIdle"></span>
@@ -783,7 +783,7 @@
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
-                    <div class="ml-stats-row">
+                    <div class="ml-stats-row" data-tour="ml-stats">
                         <div class="ml-stat-item">
                             <span class="label">Include</span>
                             <span class="value include" id="ml-count-include">0</span>
@@ -798,7 +798,7 @@
                         </div>
                     </div>
 
-                    <div class="stopping-rule-container">
+                    <div class="stopping-rule-container" data-tour="ml-stopping">
                         <div class="stopping-header">
                             <span class="stopping-label-group">
                                 <span class="label" data-i18n="ml_stoppingLabel"></span>
@@ -843,7 +843,7 @@
             </article>
 
             <!-- 判定ボタン -->
-            <div class="decision-buttons">
+            <div class="decision-buttons" data-tour="ml-decision-buttons">
                 <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
                 <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
             </div>

@@ -1803,6 +1803,33 @@
   "guideExt_tour_ml_start_desc": {
     "message": "Shows how to use ML to learn from your decisions and rank the remaining records by priority."
   },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "Press the ML tab. ML learns from the records you have decided on and reorders the remaining ones so the likely relevant records come first. It is available only for projects with 1,000 or more records."
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "The first time you open it, a confirmation for the stopping rule (CMH) appears. The first 500 records are shown at random, and after that in ML priority order. When it is estimated that the target recall of 99% has been reached at 95% confidence, you are told it is time to stop. Review it and press \"Start with these settings\" (you can also move on without pressing it)."
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Press Include or Exclude to decide (the i / e keys work too). Your decision is actually saved. Once you have one Include and one Exclude, learning starts, and the order of the remaining records is updated after each decision. You can also move on without pressing."
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Here you can see the counts of Include, Exclude and Remaining (undecided) records. The badge at the top right shows the learning state (Not trained, Training, Ready). While it still says \"Not trained\", decide one Include and one Exclude."
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "When the stopping rule is reached, a dialog asks what to do next. You can review some more records, (with the statistical stopping rule) run audit sampling to check that nothing was missed, or choose \"Finish and exclude remaining\", which saves every undecided record as Exclude and ends the review. \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+  },
+  "guideExt_tour_ml_start_unavailable": {
+    "message": "This project has fewer than 1,000 records, so the ML tab is not available. Open this tour again in a project with 1,000 or more records."
+  },
+  "guideExt_tour_ml_start_finish_ml": {
+    "message": "This ? opens the explanation of ML any time, and you can start this tour again from it. The list of guided tours is in the ❓ in the toolbar of the Manual tab."
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "You can open the explanation of ML any time from the ? on the ML screen. You can run this tour again from the list of guided tours in this ❓."
+  },
   "guideExt_tour_fulltext_page_title": {
     "message": "Full-text screening page"
   },

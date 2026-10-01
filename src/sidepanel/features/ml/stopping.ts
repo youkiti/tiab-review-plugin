@@ -87,6 +87,7 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'btn btn-primary btn-full';
     confirmBtn.textContent = t('ml_startWithSettings');
+    confirmBtn.dataset.tour = 'ml-stopping-confirm'; // 操作ツアーが指す対象
     confirmBtn.onclick = () => {
         // CMH ルールを作成して state に設定
         const cmhRule = createCmhStoppingRule();
