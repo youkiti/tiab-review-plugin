@@ -142,21 +142,58 @@ export interface InDialogPlacementInput extends CardPlacementInput {
     footer: { top: number; bottom: number } | null;
 }
 
+/** 2つの箱が重なる面積（重ならなければ 0）。 */
+function overlapArea(a: Box, b: Box): number {
+    const width = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    const height = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    return width > 0 && height > 0 ? width * height : 0;
+}
+
 /**
- * 対象がアプリのダイアログの中にあるときのカードの位置。通常は computeTourCardPosition と同じ（対象の下→上→画面下端）。
- * それがダイアログのフッターのボタンに重なるときは、小さい表示（クリックを下へ通す）に切り替えて、フッターに重ならない位置へ置く。
+ * 対象がアプリのダイアログの中にあるときのカードの位置。この手順の説明が主役なので、本文が全部読める通常表示を保つことを優先し、
+ * 次の順に置き場所を決める（対象は強調の枠 pad を含めて数える）。
+ * 1. 対象の下に収まり、フッターにも重ならない。
+ * 2. 対象の上に収まり、フッターにも重ならない。
+ * 3. 画面の上端か下端のうち、対象にもフッターにも重ならない方（上端を優先）。
+ * 4. それも無ければ、対象を覆う面積が小さい方、同じなら対象から縦に離れた方の端に通常表示で置く
+ *    （ダイアログの見出しや別の入力欄には重なってよい。対象とフッターを覆わないことを優先する）。
+ * 5. 4 でも対象の半分以上を覆うときだけ、小さい表示（クリックを下へ通す）に落とす。
  */
 export function computeInDialogCardPosition(input: InDialogPlacementInput): ModalWaitPosition {
-    const { viewport, card, compactCard, footer, margin, gap } = input;
-    const normal = computeTourCardPosition(input);
-    const overlapsFooter = (top: number, height: number): boolean =>
-        footer !== null && top < footer.bottom && top + height > footer.top;
-    if (!overlapsFooter(normal.top, card.height)) return { ...normal, compact: false };
+    const { viewport, card, compactCard, footer, margin, gap, pad } = input;
+    const target = input.target;
+    if (!target) return { ...computeTourCardPosition(input), compact: false };
+    const left = clampLeft(target.left, viewport, card, margin);
+    const targetBox: Box = { top: target.top - pad, bottom: target.bottom + pad, left: target.left - pad, right: target.right + pad };
+    const footerBox: Box | null = footer ? { top: footer.top, bottom: footer.bottom, left: -Infinity, right: Infinity } : null;
+    const boxAt = (top: number, size: Size, boxLeft: number): Box =>
+        ({ top, bottom: top + size.height, left: boxLeft, right: boxLeft + size.width });
+    const coversTarget = (top: number): number => overlapArea(boxAt(top, card, left), targetBox);
+    const coversFooter = (top: number): number => (footerBox ? overlapArea(boxAt(top, card, left), footerBox) : 0);
+    const fits = (top: number): boolean => top >= margin && top + card.height <= viewport.height - margin;
+    const clean = (top: number): boolean => fits(top) && coversTarget(top) === 0 && coversFooter(top) === 0;
 
+    const topEdge = margin;
+    const bottomEdge = Math.max(margin, viewport.height - margin - card.height);
+    const ordered = [targetBox.bottom + gap, targetBox.top - gap - card.height, topEdge, bottomEdge];
+    const found = ordered.find(clean);
+    if (found !== undefined) return { left, top: found, compact: false };
+
+    // 4. 対象とフッターを覆う量が少ない端。対象を覆う量を優先して比べ、同じなら対象から縦に離れた方
+    const targetCenter = (targetBox.top + targetBox.bottom) / 2;
+    const distance = (top: number): number => Math.abs(top + card.height / 2 - targetCenter);
+    const edges = [topEdge, bottomEdge];
+    edges.sort((a, b) => (coversTarget(a) - coversTarget(b)) || (coversFooter(a) - coversFooter(b)) || (distance(b) - distance(a)));
+    const best = edges[0];
+    const targetArea = (targetBox.right - targetBox.left) * (targetBox.bottom - targetBox.top);
+    if (coversTarget(best) * 2 < targetArea) return { left, top: best, compact: false };
+
+    // 5. どう置いても対象の半分以上を覆う: 小さい表示にして、対象とフッターに重ならない位置を探す
     const small = computeTourCardPosition({ ...input, card: compactCard });
-    const candidates = [small.top, margin];
-    if (footer) candidates.push(footer.bottom + gap, footer.top - gap - compactCard.height);
-    const fits = (top: number): boolean => top >= margin && top + compactCard.height <= viewport.height - margin;
-    const top = candidates.find(candidate => fits(candidate) && !overlapsFooter(candidate, compactCard.height)) ?? small.top;
+    const smallClean = (top: number): boolean => top >= margin && top + compactCard.height <= viewport.height - margin
+        && overlapArea(boxAt(top, compactCard, small.left), targetBox) === 0
+        && (footerBox === null || overlapArea(boxAt(top, compactCard, small.left), footerBox) === 0);
+    const candidates = [small.top, margin, viewport.height - margin - compactCard.height];
+    const top = candidates.find(smallClean) ?? small.top;
     return { left: top === small.top ? small.left : margin, top, compact: true };
 }
