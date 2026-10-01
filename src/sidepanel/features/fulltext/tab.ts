@@ -72,6 +72,7 @@ import { setupFulltextRegrantListeners } from './regrant';
 import { renderFulltextChecklist, setupFulltextChecklistListeners } from './checklist';
 import { setFulltextPoolRule as syncSetFulltextPoolRule, changeTab } from '../../store/compat';
 import { hideToast, showToast } from '../../ui/feedback';
+import { emitGuideEvent } from '../guide/lazy';
 import type { ReferenceWithStatus, Decision, FulltextStatus, PublicationCandidate } from '../../../lib/types';
 
 // features/fulltext/lazy.ts が本体ロード後に委譲する（manuscript.ts の論文用テキスト生成が
@@ -369,9 +370,13 @@ function renderList(candidates: ReferenceWithStatus[]): void {
     // registration行ごとの論文候補バッジ件数を1パスでまとめて集計する
     // （カード1枚ごとに配列を毎回フィルタしない。Issue #118 チャンク3b）。
     const publicationCandidateCounts = countSuggestedPublicationCandidatesByRef(publicationCandidates);
-    for (const ref of visible) {
-        listDiv.appendChild(buildCard(ref, publicationCandidateCounts));
-    }
+    // ツアーの案内先は、全文が未入手で補う手段（PDFアップロード等）が出ている最初のカード（無ければ先頭）
+    const tourCardIndex = Math.max(0, visible.findIndex(r => retrievalStatus(r) !== 'cached'));
+    visible.forEach((ref, index) => {
+        const card = buildCard(ref, publicationCandidateCounts);
+        if (index === tourCardIndex) card.dataset.tour = 'fulltext-card';
+        listDiv.appendChild(card);
+    });
 }
 
 /**
@@ -462,6 +467,7 @@ function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<str
     card.addEventListener('click', () => {
         const url = chrome.runtime.getURL('fulltext/fulltext.html') + `?ref_id=${encodeURIComponent(ref.ref_id)}`;
         chrome.tabs.create({ url });
+        emitGuideEvent('fulltext-page-opened');
     });
 
     // 状態に応じたアクションボタンを付ける
@@ -899,6 +905,7 @@ async function handleBulkFetch(): Promise<void> {
             summary += ` ${t('fulltext_fetchDoneRegistry', [String(registrySnapshotSaved), String(registryCandidatesFound)])}`;
         }
         setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+        if (!cancelled) emitGuideEvent('fulltext-fetch-finished');
         // 論文候補キャッシュを再読み込みしてバッジへ反映する（この一括取得で新規発見された分も含む）。
         void loadPublicationCandidates();
     }

@@ -1846,10 +1846,49 @@
     "message": "Shows how to check records flagged as duplicates and decide which to keep."
   },
   "guideExt_tour_fulltext_setup_title": {
-    "message": "Prepare full-text screening"
+    "message": "Fulltext setup"
   },
   "guideExt_tour_fulltext_setup_desc": {
-    "message": "Walks you through choosing the records for full-text screening and gathering their PDFs."
+    "message": "Before you start full-text screening, check how candidates are chosen, who reviews what, and how to collect PDFs."
+  },
+  "guideExt_tour_fulltext_setup_open_tab": {
+    "message": "First, click the \"Full-text\" tab."
+  },
+  "guideExt_tour_fulltext_setup_views": {
+    "message": "The Full-text tab has three views. Use \"Candidates\" to collect and judge full texts, \"AI judge\" to have AI read them, and \"Review\" to compare the results. Let's look at \"Candidates\"."
+  },
+  "guideExt_tour_fulltext_setup_list_view": {
+    "message": "The full-text status and the candidate list are in the \"Candidates\" view. Click \"Candidates\"."
+  },
+  "guideExt_tour_fulltext_setup_rule": {
+    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.)"
+  },
+  "guideExt_tour_fulltext_setup_rule_pending": {
+    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
+  },
+  "guideExt_tour_fulltext_setup_assignment": {
+    "message": "This is the full-text assignment. Check, and change if you are an admin, who reviews the full texts and how they are split. If assignments are set, only your own set appears in the list. Changing the assignment affects the whole project, so the button is disabled during the tour. To change it, finish the tour and then press the button."
+  },
+  "guideExt_tour_fulltext_setup_checklist": {
+    "message": "This checks the points where people often get stuck before starting. Look at your assignment set, permission to read the PDFs, and your progress. If an item is not marked, use the button in that row to fix it."
+  },
+  "guideExt_tour_fulltext_setup_fetch": {
+    "message": "Check how many full texts you have here. \"Fetch free full texts\" looks for freely available full texts and saves them to Drive (it takes a while). You can also move on without pressing it."
+  },
+  "guideExt_tour_fulltext_setup_no_candidates": {
+    "message": "There are no candidates yet. Keep screening in the Manual tab, or open the Blind key and set the candidate rule, and the full-text candidates will appear here. Once you have candidates, start this tour again from ❓ > \"List of guided tours\"."
+  },
+  "guideExt_tour_fulltext_setup_missing": {
+    "message": "A candidate without a full text shows ways to fill it in. Add your own PDF with \"Upload PDF\", or open the publisher page with \"DOI/PubMed\" and get it there."
+  },
+  "guideExt_tour_fulltext_setup_drive_import": {
+    "message": "If you put PDFs straight into the Drive folder, import them from here. You match each chosen PDF to a record, and it is saved to the project folder. Press it after this tour ends."
+  },
+  "guideExt_tour_fulltext_setup_open_page": {
+    "message": "Click a candidate card to open that record's full-text judgment page in another tab. You can try it, or move on without pressing it."
+  },
+  "guideExt_tour_fulltext_setup_finish": {
+    "message": "That is the full-text setup. If you get stuck, this \"?\" opens the explanation and the list of guided tours."
   },
   "guideExt_tour_ai_first_run_title": {
     "message": "Your first AI screening"
