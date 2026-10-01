@@ -6,6 +6,7 @@
 import { state } from '../../state';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
+import { emitGuideEvent } from '../guide/lazy';
 import { reloadReferences as reloadFulltextReferences } from './ai';
 import { getClientVersion } from '../../../lib/client-version';
 import { saveDecision } from '../../../lib/sheets-api';
@@ -27,6 +28,7 @@ export function buildAdjudicationControls(
 ): HTMLElement {
     const wrap = document.createElement('div');
     wrap.className = 'fulltext-conflict-controls';
+    wrap.dataset.tour = 'fulltext-adjudication';
 
     const head = document.createElement('div');
     head.className = 'fulltext-conflict-controls-head';
@@ -143,6 +145,8 @@ async function handleAdjudicate(
     try {
         await saveDecision(state.spreadsheetId, decisionObj);
         showToast(t('fulltext_conflictAdjudicateSaved'), 3000);
+        // 再描画で項目が閉じる前に、保存できたことをツアーへ知らせる
+        emitGuideEvent('fulltext-adjudicated');
         // 既存の参照再読込パターン（fulltext/ai.ts の reloadReferences）を再利用して state を更新し、
         // 合議表示（結果一覧・PRISMA・この不一致解消セクション自体）を最新化する
         await reloadFulltextReferences(state.spreadsheetId);

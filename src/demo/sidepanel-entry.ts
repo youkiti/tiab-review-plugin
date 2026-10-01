@@ -34,4 +34,7 @@ void chrome.storage.local.set({
 import { applyGuideConflictsDemo } from './guide-conflicts-fixtures';
 applyGuideConflictsDemo();
 
+import { applyGuideFulltextConflictsDemo } from './guide-fulltext-conflicts-fixtures';
+applyGuideFulltextConflictsDemo();
+
 import '../sidepanel/sidepanel';

@@ -12,6 +12,7 @@ import { computeAiFirstRunConditions } from './conditions/ai-first-run';
 import { computeAssignmentSetupConditions } from './conditions/assignment-setup';
 import { computeDuplicateReviewConditions } from './conditions/duplicate-review';
 import { computeFulltextPageConditions } from './conditions/fulltext-page';
+import { computeFulltextResultsConditions } from './conditions/fulltext-results';
 import { computeFulltextSetupConditions } from './conditions/fulltext-setup';
 import { computeMlStartConditions } from './conditions/ml-start';
 import { computeResolveConflictsConditions } from './conditions/resolve-conflicts';
@@ -36,6 +37,7 @@ const TOUR_CONDITION_SOURCES = [
     computeAiFirstRunConditions,
     computeMlStartConditions,
     computeFulltextPageConditions,
+    computeFulltextResultsConditions,
 ] as const;
 
 type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void

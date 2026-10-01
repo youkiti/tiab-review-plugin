@@ -2076,6 +2076,45 @@
   "guideExt_tour_fulltext_page_finish": {
     "message": "That is all. This \"?\" opens the matching page of the help. To see this tour again, press the \"Tour\" button next to it."
   },
+  "guideExt_tour_fulltext_results_title": {
+    "message": "Post-decision review"
+  },
+  "guideExt_tour_fulltext_results_desc": {
+    "message": "Walks through choosing judges, the PRISMA counts, adjudicating conflicts, and exporting to CSV or RIS."
+  },
+  "guideExt_tour_fulltext_results_open_tab": {
+    "message": "First, click the \"Full-text\" tab."
+  },
+  "guideExt_tour_fulltext_results_open_results": {
+    "message": "Click \"Review\" in the Full-text tab. The counts, conflict resolution, and export are all in this view."
+  },
+  "guideExt_tour_fulltext_results_judges": {
+    "message": "Choose the judges to aggregate. Only the judges you select are counted, and inclusion is the OR of the selected judges (included if any one of them includes). AI can be selected as a judge too."
+  },
+  "guideExt_tour_fulltext_results_prisma": {
+    "message": "The PRISMA full-text counts (candidates, full text obtained, included, excluded, maybe, undecided) are tallied automatically. Changing the selected judges changes the numbers. If conflicts are unresolved, their count appears too."
+  },
+  "guideExt_tour_fulltext_results_key_closed": {
+    "message": "Decisions are still blinded, so only your own decisions are counted and conflicts do not appear. Once an admin opens the key, start this tour again from ❓ > \"List of guided tours\" and the remaining steps will appear."
+  },
+  "guideExt_tour_fulltext_results_no_conflict": {
+    "message": "No conflicts need adjudication right now (no records where judges disagree, or all are already adjudicated). When judges disagree, \"Resolve conflicts\" appears below with the records to adjudicate."
+  },
+  "guideExt_tour_fulltext_results_conflicts": {
+    "message": "\"Resolve conflicts\" lists the records where judges disagree. There are two kinds: \"Decision conflict\" (include vs. exclude) and \"Reason conflict\" (both exclude, but for different reasons). Unresolved ones come first."
+  },
+  "guideExt_tour_fulltext_results_open_item": {
+    "message": "Click one unresolved item to open it. Each judge's decision, reason and note are listed, so you can compare them as the basis for adjudication."
+  },
+  "guideExt_tour_fulltext_results_adjudicate": {
+    "message": "Once you agree, confirm here. Choose \"Confirm as Include\", \"Confirm as Maybe\" or \"Confirm as Exclude\"; Exclude needs a reason. Any of them can carry your rationale in the adjudication memo. Confirming again makes the latest one count, and the history is kept. This changes the record, so you may also continue without pressing."
+  },
+  "guideExt_tour_fulltext_results_export": {
+    "message": "\"Export CSV\" and \"Export RIS\" write the results out. The CSV also has a column for the adjudication memo. If unresolved conflicts remain, you are asked to confirm before exporting."
+  },
+  "guideExt_tour_fulltext_results_finish": {
+    "message": "That is the post-decision review. If you get stuck, this \"?\" opens the explanation and the list of guided tours."
+  },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."
   },
