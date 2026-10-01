@@ -263,7 +263,7 @@ export function renderMlStats() {
     if (settingsBtn) {
         if (stopping) {
             if (isCmhStoppingRule(stopping)) {
-                settingsBtn.textContent = `CMH リコール${(stopping.targetRecall * 100).toFixed(0)}%`;
+                settingsBtn.textContent = t('ml_cmhRecall', (stopping.targetRecall * 100).toFixed(0));
             } else {
                 settingsBtn.textContent = t('ml_stoppingConsecutiveCount', String(stopping.threshold));
             }

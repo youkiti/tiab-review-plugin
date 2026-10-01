@@ -63,7 +63,7 @@ export function createScreeningLog(
                 totalRecords,
                 targetRecall: rule.targetRecall,
                 confidence: rule.confidence,
-                initialRandomSize: rule.initialRandomSize,
+                warmupSize: rule.warmupSize,
             },
         }],
     };

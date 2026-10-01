@@ -30,12 +30,12 @@ export interface CmhStoppingRule {
     targetRecall: number;      // 目標リコール (既定 0.99)
     confidence: number;        // 信頼水準 (既定 0.95)
     minRecords: number;        // 最小レコード数 (既定 1000)
-    initialRandomSize: number; // 初期ランダム区間 (既定 500)
+    warmupSize: number; // 停止計算までの最低既読件数 (既定 500)
     updateInterval: number;    // 判定更新頻度 (既定 15)
     // 現在の状態
     screened: number;          // 既読数
     included: number;          // include 数
-    initialPhaseComplete: boolean; // 初期フェーズ完了フラグ
+    warmupComplete: boolean; // ウォームアップ完了フラグ
     canStop: boolean;          // 停止可能フラグ
     probUnderTarget: number;   // 現在の min_prob_target
     // ラベル履歴（CMH 計算用）
@@ -44,9 +44,6 @@ export interface CmhStoppingRule {
 
 /** 停止基準（Union型） */
 export type StoppingRule = ConsecutiveStoppingRule | CmhStoppingRule;
-
-/** スクリーニングフェーズ */
-export type ScreeningPhase = 'initial_random' | 'prioritized';
 
 /** ML 状態 */
 export interface MlState {
@@ -60,10 +57,6 @@ export interface MlState {
     currentIndex: number; // 現在表示中のインデックス
     lastUpdated: number;
     errorMessage?: string;
-    // CMH 追加フィールド
-    screeningPhase?: ScreeningPhase;
-    initialRandomSeed?: number;
-    initialRandomIds?: string[];
 }
 
 /** Worker へのメッセージ */
@@ -104,9 +97,6 @@ export function createInitialMlState(): MlState {
         ranking: [],
         currentIndex: 0,
         lastUpdated: 0,
-        screeningPhase: undefined,
-        initialRandomSeed: undefined,
-        initialRandomIds: undefined,
     };
 }
 
@@ -121,38 +111,21 @@ export function createStoppingRule(threshold: number): ConsecutiveStoppingRule {
 
 /** CMH 停止基準を作成 */
 export function createCmhStoppingRule(
-    options?: Partial<Pick<CmhStoppingRule, 'targetRecall' | 'confidence' | 'minRecords' | 'initialRandomSize' | 'updateInterval'>>
+    options?: Partial<Pick<CmhStoppingRule, 'targetRecall' | 'confidence' | 'minRecords' | 'warmupSize' | 'updateInterval'>>
 ): CmhStoppingRule {
     return {
         type: 'cmh',
         targetRecall: options?.targetRecall ?? CMH_DEFAULTS.targetRecall,
         confidence: options?.confidence ?? CMH_DEFAULTS.confidence,
         minRecords: options?.minRecords ?? CMH_DEFAULTS.minRecords,
-        initialRandomSize: options?.initialRandomSize ?? CMH_DEFAULTS.initialRandomSize,
+        warmupSize: options?.warmupSize ?? CMH_DEFAULTS.warmupSize,
         updateInterval: options?.updateInterval ?? CMH_DEFAULTS.updateInterval,
         screened: 0,
         included: 0,
-        initialPhaseComplete: false,
+        warmupComplete: false,
         canStop: false,
         probUnderTarget: 1.0,
         recentDecisions: [],
-    };
-}
-
-/** 旧停止基準から CMH に移行 */
-export function migrateToCmhRule(oldState: MlState): MlState {
-    const cmhRule = createCmhStoppingRule();
-
-    // 既存のラベル数を引き継ぐ
-    cmhRule.screened = oldState.labeledCount.include + oldState.labeledCount.exclude;
-    cmhRule.included = oldState.labeledCount.include;
-    // 既にスクリーニング中なので初期フェーズは完了扱い（保守的に）
-    cmhRule.initialPhaseComplete = cmhRule.screened >= cmhRule.initialRandomSize;
-
-    return {
-        ...oldState,
-        stoppingRule: cmhRule,
-        screeningPhase: 'prioritized', // 既にスクリーニング中
     };
 }
 

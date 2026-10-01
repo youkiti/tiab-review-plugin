@@ -2809,11 +2809,20 @@
   "ml_screeningProcedure": {
     "message": "スクリーニング手順:"
   },
-  "ml_initialRandom": {
-    "message": "最初の <strong>$1件</strong> はランダムに提示"
-  },
   "ml_priorityOrder": {
-    "message": "その後は ML の優先順位に従って提示"
+    "message": "最初から ML の優先順位に従って提示（Include と Exclude が1件ずつそろうまでは元の並び順）"
+  },
+  "ml_minimumBeforeStop": {
+    "message": "既読 <strong>$1</strong> 件・Include <strong>$2</strong> 件に達するまでは停止を提案しない"
+  },
+  "ml_cmhReference": {
+    "message": "ⓘ 詳しくは $1 を参照してください。"
+  },
+  "ml_recordCount": {
+    "message": "$1 件"
+  },
+  "ml_cmhRecall": {
+    "message": "CMH リコール $1%"
   },
   "ml_stopProposal": {
     "message": "統計基準を満たしたら停止を提案"
@@ -2926,15 +2935,6 @@
   "ml_pValue": {
     "message": "p値:"
   },
-  "ml_auditSamplingRecommended": {
-    "message": "監査サンプリングを実施(推奨)"
-  },
-  "ml_auditRandomSample": {
-    "message": "残りから $1 件をランダム抽出して確認"
-  },
-  "ml_finishWithoutAudit": {
-    "message": "監査なしで終了"
-  },
   "ml_continueScreening": {
     "message": "スクリーニングを続行"
   },
@@ -2943,24 +2943,6 @@
   },
   "ml_stopRecommendedTitle": {
     "message": "📊 停止推奨"
-  },
-  "ml_auditSampleDescription": {
-    "message": "残り <strong>$1件</strong> から<strong>$2件</strong> をランダムに抽出してレビューします。"
-  },
-  "ml_auditZeroInclude": {
-    "message": "✅ 監査で <strong>0件</strong> の Include が見つかった場合：→ スクリーニング完了を確定"
-  },
-  "ml_auditFoundInclude": {
-    "message": "⚠️ 監査で <strong>1件以上</strong> の Include が見つかった場合：→ スクリーニング続行を強く推奨"
-  },
-  "ml_startAudit": {
-    "message": "監査を開始"
-  },
-  "ml_auditStartMessage": {
-    "message": "監査サンプリング $1 件を開始します"
-  },
-  "ml_auditTitle": {
-    "message": "🔍 監査サンプリング"
   },
   "ml_bulkExcludeMessage": {
     "message": "残り <strong>$1件</strong> の未判定文献をすべて <span style=\"color: #ea4335; font-weight: bold;\">Exclude</span> として保存します。"
@@ -3439,7 +3421,7 @@
     "message": "AIのinclude候補をどれくらい広く拾うかを決めます。\n0.3: 広めに拾う\n0.5: 標準。迷ったらこの値を使ってください\n0.7: 厳しめに拾う\n下の分布グラフを見ながら調整できます。"
   },
   "ml_tip_stopping": {
-    "message": "スクリーニング終了の目安(停止基準)を設定します。\n推奨:\n• 「連続Exclude 50件」(シンプル基準)\n• 「目標リコール 95% / 信頼水準 95%」(統計基準)\nプロジェクト規模に応じて選んでください。"
+    "message": "スクリーニング終了の目安（停止基準）です。文献が1,000件以上のプロジェクトでは、統計的停止基準（目標リコール 99% / 信頼水準 95%）で停止を提案します。"
   },
   "manuscript_menuItem": {
     "message": "論文用テキスト（Methods/Results）"

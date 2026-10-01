@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     buildMlStoppingSetup,
-    nextScreeningPhase,
+    advanceStoppingRule,
+    LEGACY_CMH_SAVED_THRESHOLD,
     parseSavedStoppingRule,
     planMlStoppingRule,
     rebuildCmhRule,
@@ -13,7 +14,7 @@ import {
 import { createCmhStoppingRule, createStoppingRule, isCmhStoppingRule } from '../src/lib/ml/types';
 import { calculateCmhStopping } from '../src/lib/ml/cmh';
 import { CMH_DEFAULTS } from '../src/lib/ml/cmh-defaults';
-import { updateStoppingProgress } from '../src/lib/ml/stopping-rules';
+import { isCmhStoppingReached } from '../src/lib/ml/stopping-rules';
 
 const CMH_OK = 1100;   // CMH が使える件数
 const CMH_NG = 800;    // CMH が使えない件数
@@ -64,10 +65,106 @@ test('基準の種類: CMH が使えない件数では ruleType が cmh でも�
     assert.equal(resolveStoppingRuleKind({ threshold: 50 }, CMH_NG), 'consecutive');
 });
 
-test('基準の種類: 旧形式でしきい値が初期ランダム件数（500）なら CMH として復元する', () => {
-    assert.equal(CMH_DEFAULTS.initialRandomSize, 500);
+test('基準の種類: 旧形式でしきい値が旧保存値（500）なら CMH として復元する', () => {
+    assert.equal(CMH_DEFAULTS.warmupSize, 500);
+    assert.equal(LEGACY_CMH_SAVED_THRESHOLD, 500);
     assert.equal(resolveStoppingRuleKind({ threshold: 500 }, CMH_OK), 'cmh');
     assert.equal(resolveStoppingRuleKind({ threshold: 500 }, CMH_DEFAULTS.minRecords), 'cmh');
+});
+
+test('CMH の更新: ウォームアップ中は以前の停止可否と確率をリセットする', () => {
+    const previous = { ...createCmhStoppingRule(), canStop: true, probUnderTarget: 0.01 };
+    const rule = advanceStoppingRule(previous, { decision: 'exclude', rejudged: false }, decisions(100, 10), CMH_OK);
+    assert.ok(isCmhStoppingRule(rule));
+    assert.equal(rule.screened, 100);
+    assert.equal(rule.warmupComplete, false);
+    assert.equal(rule.canStop, false);
+    assert.equal(rule.probUnderTarget, 1);
+});
+
+test('CMH の更新: 境界の間では続行後の canStop と確率を引き継ぐ', () => {
+    const list = decisions(1051, 100);
+    const calculated = rebuildCmhRule(list, CMH_OK);
+    assert.equal(calculated.canStop, true);
+    const previous = { ...rebuildCmhRule(list.slice(0, -1), CMH_OK), canStop: false, probUnderTarget: 0.42 };
+    const rule = advanceStoppingRule(previous, { decision: 'exclude', rejudged: false }, list, CMH_OK);
+    assert.ok(isCmhStoppingRule(rule));
+    assert.equal(rule.screened, 1051);
+    assert.equal(rule.canStop, false);
+    assert.equal(rule.probUnderTarget, 0.42);
+});
+
+for (const [before, after] of [[599, 600], [598, 602]]) {
+    test(`CMH の更新: ${before} 件から ${after} 件への境界越えで計算する`, () => {
+        const list = decisions(after, 30);
+        const expected = rebuildCmhRule(list, CMH_OK);
+        const previous = { ...rebuildCmhRule(list.slice(0, before), CMH_OK), canStop: !expected.canStop, probUnderTarget: -1 };
+        const rule = advanceStoppingRule(previous, { decision: 'exclude', rejudged: false }, list, CMH_OK);
+        assert.deepEqual(rule, expected);
+    });
+}
+
+test('CMH の更新: 同じ文献を何度判定し直しても件数は増えず、最新のラベル列で計算する', () => {
+    let list = decisions(601, 30);
+    let previous = rebuildCmhRule(list, CMH_OK);
+    for (let i = 0; i < 4; i++) {
+        const kind = i % 2 === 0 ? 'exclude' : 'include';
+        list = [decision(700 + i, kind), ...list.slice(1)];
+        const expected = rebuildCmhRule(list, CMH_OK);
+        previous = { ...previous, canStop: !expected.canStop, probUnderTarget: -1 };
+        const rule = advanceStoppingRule(previous, { decision: kind, rejudged: true }, list, CMH_OK);
+        assert.ok(isCmhStoppingRule(rule));
+        assert.equal(rule.screened, 601);
+        assert.equal(rule.included, kind === 'include' ? 30 : 29);
+        assert.equal(rule.recentDecisions[rule.recentDecisions.length - 1], kind === 'include' ? 1 : 0);
+        assert.deepEqual(rule, expected);
+        previous = rule;
+    }
+});
+
+test('CMH の更新: 件数が減ったときも記録から再計算し、自動判定と pending は除外する', () => {
+    const previous = { ...rebuildCmhRule(decisions(610, 30), CMH_OK), probUnderTarget: -1 };
+    const list = [...decisions(601, 29), decision(800, 'exclude', { auto: true }), { decision: 'pending', decidedAt: '' }];
+    const rule = advanceStoppingRule(previous, { decision: 'exclude', rejudged: true }, list, CMH_OK);
+    assert.deepEqual(rule, rebuildCmhRule(list, CMH_OK));
+});
+
+test('CMH の更新: 既定値と異なる設定を引き継いで計算する', () => {
+    const options = { targetRecall: 0.9, confidence: 0.8, minRecords: 1200, warmupSize: 50, updateInterval: 7 };
+    const previous = createCmhStoppingRule(options);
+    const list = decisions(56, 15);
+    const rule = advanceStoppingRule(previous, { decision: 'exclude', rejudged: false }, list, CMH_OK);
+    assert.ok(isCmhStoppingRule(rule));
+    for (const key of Object.keys(options) as (keyof typeof options)[]) assert.equal(rule[key], options[key]);
+    assert.equal(rule.warmupComplete, true);
+    const expected = calculateCmhStopping(CMH_OK, 56, 15, rule.recentDecisions, options.targetRecall, options.confidence);
+    assert.equal(rule.canStop, expected.canStop);
+    assert.equal(rule.probUnderTarget, expected.minProbTarget);
+    assert.equal(previous.screened, 0);
+});
+
+for (const rejudged of [false, true]) {
+    for (const kind of ['include', 'exclude'] as const) {
+        test(`連続 Exclude の更新: 再判定=${rejudged}、判定=${kind}`, () => {
+            const previous = { ...createStoppingRule(50), current: 12 };
+            const rule = advanceStoppingRule(previous, { decision: kind, rejudged }, decisions(100, 20), CMH_OK);
+            assert.deepEqual(rule, { ...previous, current: kind === 'include' ? 0 : rejudged ? 12 : 13 });
+            assert.equal(previous.current, 12);
+        });
+    }
+}
+
+test('CMH の到達: Include と既読件数の下限を両方満たす必要がある', () => {
+    const rule = {
+        ...createCmhStoppingRule(), warmupComplete: true, canStop: true,
+        included: CMH_DEFAULTS.minIncludedForStop,
+        screened: CMH_DEFAULTS.warmupSize + CMH_DEFAULTS.minAdditionalScreened,
+    };
+    assert.equal(isCmhStoppingReached({ ...rule, included: rule.included - 1 }), false);
+    assert.equal(isCmhStoppingReached({ ...rule, screened: rule.screened - 1 }), false);
+    assert.equal(isCmhStoppingReached(rule), true);
+    assert.equal(isCmhStoppingReached({ ...rule, warmupComplete: false }), false);
+    assert.equal(isCmhStoppingReached({ ...rule, canStop: false }), false);
 });
 
 test('基準の種類: 旧形式でしきい値が 500 以外なら利用者が選んだ連続 Exclude のまま', () => {
@@ -89,7 +186,7 @@ test('CMH の復元: 件数・include 数・直近のラベル列を判定順に
     assert.equal(rule.screened, 3);
     assert.equal(rule.included, 1);
     assert.deepEqual(rule.recentDecisions, [0, 1, 0]);
-    assert.equal(rule.initialPhaseComplete, false);
+    assert.equal(rule.warmupComplete, false);
     assert.equal(rule.canStop, false);
     assert.equal(rule.probUnderTarget, 1.0);
 });
@@ -105,15 +202,15 @@ test('CMH の復元: pending・一括 Exclude（auto）の判定は数えない'
     assert.equal(rule.included, 1);
 });
 
-test('CMH の復元: 初期ランダム区間（500件）に届くまで初期フェーズは未完了、届いたら完了', () => {
-    assert.equal(rebuildCmhRule(decisions(499, 20), CMH_OK).initialPhaseComplete, false);
+test('CMH の復元: ウォームアップ（500件）に届くまでウォームアップは未完了、届いたら完了', () => {
+    assert.equal(rebuildCmhRule(decisions(499, 20), CMH_OK).warmupComplete, false);
     assert.equal(rebuildCmhRule(decisions(499, 20), CMH_OK).probUnderTarget, 1.0);
     const rule = rebuildCmhRule(decisions(500, 20), CMH_OK);
-    assert.equal(rule.initialPhaseComplete, true);
+    assert.equal(rule.warmupComplete, true);
     assert.equal(rule.screened, 500);
 });
 
-test('CMH の復元: 初期フェーズ完了後は calculateCmhStopping と同じ停止可否・確率を持つ', () => {
+test('CMH の復元: ウォームアップ完了後は calculateCmhStopping と同じ停止可否・確率を持つ', () => {
     const list = decisions(700, 25);
     const rule = rebuildCmhRule(list, CMH_OK);
     const expected = calculateCmhStopping(
@@ -125,35 +222,37 @@ test('CMH の復元: 初期フェーズ完了後は calculateCmhStopping と同�
 });
 
 test('CMH の復元: 復元したあとの更新が、最初から数えた場合と同じ結果になる', () => {
-    // 判定 600 件を一度に復元してから 1 件足す = 601 件を順に数えた結果の件数部分と一致する
+    // 判定 600 件の一括復元と、各判定のあとに記録から更新した結果を比較する。
     const list = decisions(600, 30);
     let live = createCmhStoppingRule();
-    for (const d of list) live = updateStoppingProgress(live, d.decision as 'include' | 'exclude', CMH_OK) as typeof live;
+    for (let i = 0; i < list.length; i++) {
+        live = advanceStoppingRule(
+            live, { decision: list[i].decision as 'include' | 'exclude', rejudged: false },
+            list.slice(0, i + 1), CMH_OK
+        ) as typeof live;
+    }
     const restored = rebuildCmhRule(list, CMH_OK);
     assert.equal(restored.screened, live.screened);
     assert.equal(restored.included, live.included);
     assert.deepEqual(restored.recentDecisions, live.recentDecisions);
-    assert.equal(restored.initialPhaseComplete, live.initialPhaseComplete);
+    assert.equal(restored.warmupComplete, live.warmupComplete);
 });
 
 // ---- buildMlStoppingSetup ----
 
-test('停止基準の組み立て: CMH は初期ランダム段階（判定 0 件）', () => {
+test('停止基準の組み立て: CMH は判定 0 件から作成する', () => {
     const setup = buildMlStoppingSetup('cmh', 500, CMH_OK, []);
     assert.ok(isCmhStoppingRule(setup.stoppingRule));
-    assert.equal(setup.screeningPhase, 'initial_random');
 });
 
-test('停止基準の組み立て: CMH で判定が 500 件を超えていれば優先順位づけの段階', () => {
+test('停止基準の組み立て: CMH の判定件数を復元する', () => {
     const setup = buildMlStoppingSetup('cmh', 500, CMH_OK, decisions(520, 15));
-    assert.equal(setup.screeningPhase, 'prioritized');
     assert.equal((setup.stoppingRule as ReturnType<typeof createCmhStoppingRule>).screened, 520);
 });
 
-test('停止基準の組み立て: 連続 Exclude はしきい値どおり、段階は持たない', () => {
+test('停止基準の組み立て: 連続 Exclude はしきい値どおりに復元する', () => {
     const setup = buildMlStoppingSetup('consecutive', 80, CMH_OK, decisions(520, 15));
     assert.deepEqual(setup.stoppingRule, createStoppingRule(80));
-    assert.equal(setup.screeningPhase, undefined);
 });
 
 // ---- planMlStoppingRule: 保存値の各形 x CMH が使える／使えない x 初回／再訪 ----
@@ -172,7 +271,6 @@ test('計画: 再訪・旧形式 500・CMH が使える → CMH で復元（判�
     assert.equal(plan.kind, 'cmh');
     assert.ok(isCmhStoppingRule(plan.setup.stoppingRule));
     assert.equal((plan.setup.stoppingRule as ReturnType<typeof createCmhStoppingRule>).screened, 120);
-    assert.equal(plan.setup.screeningPhase, 'initial_random');
 });
 
 test('計画: 再訪・旧形式 500・CMH が使えない → 連続 Exclude 500 件', () => {
@@ -203,26 +301,4 @@ test('計画: 再訪・ruleType が cmh → CMH で復元', () => {
     assert.equal(plan.action, 'restore');
     if (plan.action !== 'restore') return;
     assert.equal(plan.kind, 'cmh');
-    assert.equal(plan.setup.screeningPhase, 'prioritized');
-});
-
-// ---- nextScreeningPhase ----
-
-test('段階の遷移: 初期ランダム区間を終えた判定で優先順位づけへ移る', () => {
-    let rule = createCmhStoppingRule();
-    let phase: ReturnType<typeof nextScreeningPhase> = 'initial_random';
-    for (let i = 0; i < 499; i++) {
-        rule = updateStoppingProgress(rule, i % 25 === 0 ? 'include' : 'exclude', CMH_OK) as typeof rule;
-        phase = nextScreeningPhase(rule, phase);
-    }
-    assert.equal(phase, 'initial_random');
-    rule = updateStoppingProgress(rule, 'exclude', CMH_OK) as typeof rule;
-    phase = nextScreeningPhase(rule, phase);
-    assert.equal(phase, 'prioritized');
-});
-
-test('段階の遷移: 連続 Exclude・基準なし・段階なしでは今の値のまま', () => {
-    assert.equal(nextScreeningPhase(createStoppingRule(50), undefined), undefined);
-    assert.equal(nextScreeningPhase(null, 'initial_random'), 'initial_random');
-    assert.equal(nextScreeningPhase(createCmhStoppingRule(), 'prioritized'), 'prioritized');
 });

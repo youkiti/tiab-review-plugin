@@ -2809,11 +2809,20 @@
   "ml_screeningProcedure": {
     "message": "Screening procedure:"
   },
-  "ml_initialRandom": {
-    "message": "First <strong>$1</strong> items are presented randomly"
-  },
   "ml_priorityOrder": {
-    "message": "Then presented in ML priority order"
+    "message": "Records are presented in ML priority order from the start (in the original order until you have at least one Include and one Exclude)"
+  },
+  "ml_minimumBeforeStop": {
+    "message": "Stopping is not suggested until you have screened <strong>$1</strong> records and found <strong>$2</strong> Includes"
+  },
+  "ml_cmhReference": {
+    "message": "ⓘ See $1 for details."
+  },
+  "ml_recordCount": {
+    "message": "$1 records"
+  },
+  "ml_cmhRecall": {
+    "message": "CMH recall $1%"
   },
   "ml_stopProposal": {
     "message": "Stopping suggested when statistical criteria are met"
@@ -2926,15 +2935,6 @@
   "ml_pValue": {
     "message": "p-value:"
   },
-  "ml_auditSamplingRecommended": {
-    "message": "Perform audit sampling (recommended)"
-  },
-  "ml_auditRandomSample": {
-    "message": "Randomly sample $1 from remaining for review"
-  },
-  "ml_finishWithoutAudit": {
-    "message": "Finish without audit"
-  },
   "ml_continueScreening": {
     "message": "Continue screening"
   },
@@ -2943,24 +2943,6 @@
   },
   "ml_stopRecommendedTitle": {
     "message": "📊 Stop Recommended"
-  },
-  "ml_auditSampleDescription": {
-    "message": "Randomly sampling <strong>$2</strong> from <strong>$1 remaining</strong> for review."
-  },
-  "ml_auditZeroInclude": {
-    "message": "✅ If audit finds <strong>0</strong> Includes: → Confirm screening complete"
-  },
-  "ml_auditFoundInclude": {
-    "message": "⚠️ If audit finds <strong>1+</strong> Includes: → Strongly recommend continuing screening"
-  },
-  "ml_startAudit": {
-    "message": "Start audit"
-  },
-  "ml_auditStartMessage": {
-    "message": "Starting audit sampling of $1 items"
-  },
-  "ml_auditTitle": {
-    "message": "🔍 Audit Sampling"
   },
   "ml_bulkExcludeMessage": {
     "message": "Save all <strong>$1 remaining</strong> pending references as <span style=\"color: #ea4335; font-weight: bold;\">Exclude</span>."
@@ -3439,7 +3421,7 @@
     "message": "Choose how broadly AI should collect include candidates.\n0.3: broad\n0.5: standard. Use this if unsure\n0.7: strict\nYou can adjust while checking the distribution graph below."
   },
   "ml_tip_stopping": {
-    "message": "Choose when screening should be considered finished.\nRecommended:\n• 50 consecutive Excludes (simple rule)\n• Target recall 95% / confidence 95% (statistical rule)\nPick based on the project size."
+    "message": "The stopping rule tells you when screening can end. In projects with 1,000 or more records, stopping is suggested by a statistical rule (target recall 99% / confidence 95%)."
   },
   "manuscript_menuItem": {
     "message": "Methods / Results text"

@@ -9,13 +9,13 @@
  * `resolveStoppingRuleKind` に理由つきで書いてある。
  */
 
-import { CMH_DEFAULTS, canUseCmhStopping } from './cmh-defaults';
+import { canUseCmhStopping } from './cmh-defaults';
 import { calculateCmhStopping } from './cmh';
+import { updateConsecutiveStoppingProgress } from './stopping-rules';
 import {
     createCmhStoppingRule,
     createStoppingRule,
     type CmhStoppingRule,
-    type ScreeningPhase,
     type StoppingRule,
 } from './types';
 
@@ -24,6 +24,9 @@ export type StoppingRuleKind = 'cmh' | 'consecutive';
 
 /** 連続 Exclude の既定しきい値（旧ダイアログの推奨値）。 */
 export const DEFAULT_CONSECUTIVE_THRESHOLD = 50;
+
+/** 旧形式（ruleType なし）の保存値で、CMH のつもりで確定したことを示すしきい値。過去に保存された値との照合なので、warmupSize を変えてもここは変えない。 */
+export const LEGACY_CMH_SAVED_THRESHOLD = 500;
 
 /** ブラウザに保存している停止基準の設定（読み出し後に正規化したもの）。 */
 export interface SavedStoppingRule {
@@ -45,7 +48,6 @@ export interface ScreenedDecision {
 /** 有効にする停止基準と、それに伴う ML の状態。 */
 export interface MlStoppingSetup {
     stoppingRule: StoppingRule;
-    screeningPhase: ScreeningPhase | undefined;
 }
 
 /** chrome.storage から読んだ生の値を保存設定へ正規化する。未保存・未確定は `confirmed: false`。 */
@@ -66,8 +68,8 @@ export function parseSavedStoppingRule(raw: unknown): SavedStoppingRule {
  *
  * - CMH が使えない件数（`canUseCmhStopping` が偽）では常に連続 Exclude。
  * - `ruleType` があればそれに従う（ダイアログで確定した選択。次回以降も保たれる）。
- * - `ruleType` の無い旧形式は、しきい値が CMH の初期ランダム件数（500）と同じなら CMH とみなす。
- *   CMH ダイアログの確定は「しきい値＝初期ランダム件数」だけを保存していて（CMH の基準は
+ * - `ruleType` の無い旧形式は、しきい値が CMH の旧保存値（500）と同じなら CMH とみなす。
+ *   CMH ダイアログの確定は「しきい値＝旧保存値」だけを保存していて（CMH の基準は
  *   確定直後に連続 Exclude で上書きされていた）、CMH のつもりで使い始めた利用者の保存値は
  *   必ずこの形になるため。それ以外のしきい値（30・50・100・200・割合プリセット由来の値など）は
  *   連続 Exclude の設定ダイアログで利用者が選んだ値なので、連続 Exclude のまま保つ。
@@ -79,20 +81,30 @@ export function resolveStoppingRuleKind(
 ): StoppingRuleKind {
     if (!canUseCmhStopping(totalRecords)) return 'consecutive';
     if (saved.ruleType) return saved.ruleType;
-    return saved.threshold === CMH_DEFAULTS.initialRandomSize ? 'cmh' : 'consecutive';
+    return saved.threshold === LEGACY_CMH_SAVED_THRESHOLD ? 'cmh' : 'consecutive';
 }
 
 /**
  * 判定済みの記録から CMH の進み具合（読んだ件数・include 数・直近のラベル列・停止可否）を作る。
  *
  * 停止可否は updateInterval ごとの更新を再現せず、現在の件数で1回だけ計算する
- * （初期ランダム区間を過ぎているときだけ）。判定済みが 0 件なら新規の CMH 基準と同じ。
+ * （ウォームアップを終えているときだけ）。判定済みが 0 件なら新規の CMH 基準と同じ。
  */
 export function rebuildCmhRule(
     decisions: readonly ScreenedDecision[],
     totalRecords: number
 ): CmhStoppingRule {
-    const rule = createCmhStoppingRule();
+    return rebuildCmhProgress(createCmhStoppingRule(), decisions, totalRecords, true);
+}
+
+/** 判定し直した文献は、新しい decidedAt に従ってラベル列の最新の位置へ移る。 */
+function rebuildCmhProgress(
+    previous: CmhStoppingRule,
+    decisions: readonly ScreenedDecision[],
+    totalRecords: number,
+    forceCalculation: boolean
+): CmhStoppingRule {
+    const rule = { ...previous };
     const ordered = decisions
         .filter(d => !d.auto && (d.decision === 'include' || d.decision === 'exclude'))
         .map((d, index) => ({ d, index, time: Date.parse(d.decidedAt) }))
@@ -106,9 +118,13 @@ export function rebuildCmhRule(
     rule.recentDecisions = ordered.map((d): 0 | 1 => (d.decision === 'include' ? 1 : 0));
     rule.screened = ordered.length;
     rule.included = rule.recentDecisions.filter(x => x === 1).length;
-    rule.initialPhaseComplete = rule.screened >= rule.initialRandomSize;
+    rule.warmupComplete = rule.screened >= rule.warmupSize;
 
-    if (rule.initialPhaseComplete) {
+    if (!rule.warmupComplete) {
+        rule.canStop = false;
+        rule.probUnderTarget = 1.0;
+    } else if (forceCalculation || rule.screened <= previous.screened ||
+        Math.floor(rule.screened / rule.updateInterval) > Math.floor(previous.screened / rule.updateInterval)) {
         const result = calculateCmhStopping(
             totalRecords,
             rule.screened,
@@ -123,23 +139,18 @@ export function rebuildCmhRule(
     return rule;
 }
 
-/** CMH 基準の進み具合から、スクリーニングの段階を決める。 */
-export function screeningPhaseForCmh(rule: CmhStoppingRule): ScreeningPhase {
-    return rule.initialPhaseComplete ? 'prioritized' : 'initial_random';
-}
-
-/**
- * 判定が1件進んだあとの段階。初期ランダム区間を終えたら優先順位づけの段階へ移る。
- * CMH 以外の基準・すでに優先順位づけの段階なら今のまま。
- */
-export function nextScreeningPhase(
-    rule: StoppingRule | null,
-    current: ScreeningPhase | undefined
-): ScreeningPhase | undefined {
-    if (rule && rule.type === 'cmh' && current === 'initial_random' && rule.initialPhaseComplete) {
-        return 'prioritized';
+/** 判定1件を反映したあとの停止基準を返す。 */
+export function advanceStoppingRule(
+    previous: StoppingRule,
+    event: { decision: 'include' | 'exclude'; rejudged: boolean },
+    decisions: readonly ScreenedDecision[],
+    totalRecords: number
+): StoppingRule {
+    if (previous.type === 'cmh') {
+        return rebuildCmhProgress(previous, decisions, totalRecords, false);
     }
-    return current;
+    if (event.rejudged && event.decision === 'exclude') return { ...previous };
+    return updateConsecutiveStoppingProgress(previous, event.decision);
 }
 
 /**
@@ -154,9 +165,9 @@ export function buildMlStoppingSetup(
 ): MlStoppingSetup {
     if (kind === 'cmh') {
         const rule = rebuildCmhRule(decisions, totalRecords);
-        return { stoppingRule: rule, screeningPhase: screeningPhaseForCmh(rule) };
+        return { stoppingRule: rule };
     }
-    return { stoppingRule: createStoppingRule(threshold), screeningPhase: undefined };
+    return { stoppingRule: createStoppingRule(threshold) };
 }
 
 /** 再訪時の計画: 未確定ならダイアログ、確定済みなら復元する基準。 */
