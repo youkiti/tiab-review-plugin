@@ -58,8 +58,6 @@ export default defineScenario({
         await run.waitTourStatus(T, 'done', 'finish');
         run.log('guide_progress: ai-first-run が done');
 
-        // ❓ は手動タブにあるので、戻ってから一覧で済みを確かめる
-        await run.click('#tab-screening', 'tour-list', '手動タブのボタン');
         await expectTourListDone(run, T);
     },
 });

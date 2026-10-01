@@ -17,7 +17,7 @@
                 <span class="build-version">Build: 2026-09-18</span>
             </div>
             <div class="header-tabs hidden">
-                <button id="tab-screening" class="tab-btn active" data-tour="tab-screening" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
+                <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
                 <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
                 <button id="tab-llm" class="tab-btn" data-tour="tab-llm" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
                 <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
@@ -126,24 +126,24 @@
                     </div>
                 </div>
                 <div class="share-container">
-                    <button id="share-btn" class="btn btn-secondary btn-small" data-i18n="screening_share">
+                    <button id="share-btn" class="btn btn-secondary btn-small" data-tour="share-btn" data-i18n="screening_share">
                     </button>
                     <div id="share-input-area" class="share-input-area hidden">
                         <input type="email" id="share-email-input" data-i18n-placeholder="share_emailPlaceholder"
                             class="share-email-input" list="share-email-suggestions">
                         <datalist id="share-email-suggestions"></datalist>
-                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-i18n="share_add"></button>
+                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-tour="share-submit-btn" data-i18n="share_add"></button>
                         <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
                         <button type="button" class="guide-help-btn" data-help="share" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                         <div id="share-suggestion-area" class="share-suggestion-area hidden">
                             <div class="share-suggestion-label" data-i18n="share_recentContacts"></div>
                             <div id="share-suggestion-chips" class="share-suggestion-chips"></div>
                         </div>
-                        <div class="shared-users-section">
+                        <div class="shared-users-section" data-tour="shared-users">
                             <h5 data-i18n="share_sharedUsers"></h5>
                             <div id="shared-users-list" class="shared-users-list"></div>
                         </div>
-                        <button id="share-copy-invite-btn" class="btn btn-primary btn-xsmall share-copy-invite-btn"
+                        <button id="share-copy-invite-btn" class="btn btn-primary btn-xsmall share-copy-invite-btn" data-tour="share-copy-invite-btn"
                             data-i18n="share_copyInvite" data-i18n-title="share_copyInviteHint"></button>
                     </div>
                 </div>
@@ -153,7 +153,7 @@
                         <span data-i18n="filter_aiHighlight"></span>
                     </label>
                 </div>
-                <div id="consensus-mode-container" class="consensus-mode-container hidden">
+                <div id="consensus-mode-container" class="consensus-mode-container hidden" data-tour="consensus-mode">
                     <label class="reviewer-label" style="font-weight: bold;" data-i18n-title="consensus_modeTooltip">
                         <input type="checkbox" id="consensus-mode-checkbox">
                         <span data-i18n="consensus_modeLabel"></span>
@@ -170,7 +170,7 @@
                         class="btn-icon-text" data-i18n="common_settings"></span></button>
                 <button type="button" class="btn btn-icon btn-help" data-help="screening-toolbar" data-tour="tour-list" data-i18n-title="common_help">❓</button>
                 <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
-                <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden"></div>
+                <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden" data-tour="team-progress-host"></div>
                 <!-- 未送信キューバッジ（オフラインキューに件数がある間だけ表示。クリックで送信を試みる） -->
                 <button id="unsent-queue-badge" class="unsent-queue-badge hidden" type="button"></button>
                 <span id="import-status" class="import-status"></span>
@@ -188,7 +188,7 @@
 
             <!-- フィルター -->
             <div class="filters">
-                <select id="status-filter">
+                <select id="status-filter" data-tour="conflict-filter">
                     <optgroup label="自分の判定" data-i18n-label="filter_group_my">
                         <option value="pending" data-i18n="filter_pending"></option>
                         <option value="include" data-i18n="filter_include"></option>
@@ -220,7 +220,7 @@
                 <div id="tiab-done-banner" class="tiab-done-banner hidden"></div>
 
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
-                <div id="all-decisions" class="all-decisions hidden"></div>
+                <div id="all-decisions" class="all-decisions hidden" data-tour="all-decisions"></div>
 
                 <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
                 <div id="record-count-above" class="record-count-display hidden"></div>
@@ -452,7 +452,7 @@
             <div id="llm-model-card" class="llm-card" data-tour="ai-model">
                 <h4 class="card-title">
                     <span id="llm-model-title" data-i18n="llm_modelCardTitle"></span>
-                    <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model">?</span>
+                    <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model" data-tour="tour-list">?</span>
                 </h4>
                 <div class="model-select-row">
                     <select id="llm-model-select" aria-labelledby="llm-model-title">
@@ -773,7 +773,7 @@
             <div class="llm-toolbar">
                 <button id="ml-back-btn" class="btn btn-nav btn-small" data-i18n="screening_back"></button>
                 <span class="llm-title" data-i18n="ml_title"></span>
-                <button type="button" class="guide-help-btn" data-help="ml" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
+                <button type="button" class="guide-help-btn" data-help="ml" data-tour="tour-list" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 <button id="ml-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                 <div class="ml-status-badge" id="ml-status-badge">
                     <span class="status-indicator">●</span> <span id="ml-status-text" data-i18n="ml_statusIdle"></span>
@@ -907,7 +907,7 @@
         <section id="fulltext-section" class="section hidden">
             <div class="llm-toolbar">
                 <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
-                <button type="button" class="guide-help-btn" data-help="fulltext-views" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
+                <button type="button" class="guide-help-btn" data-help="fulltext-views" data-tour="tour-list" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
             </div>
 
             <!-- ビュー切替: 候補リスト / AI判定 / 判定後レビュー -->

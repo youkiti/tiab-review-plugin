@@ -120,8 +120,7 @@ export const AI_FIRST_RUN_TOUR: TourFor<AiFirstRunEvent, AiFirstRunCondition> = 
         },
         {
             id: 'finish',
-            // AI タブには ❓（tour-list）が無いので、手動タブのボタンを指して戻り先を示す
-            target: 'tab-screening',
+            target: 'tour-list',
             textKey: stepKey(BASE, 'finish'),
             advance: { type: 'next' },
         },
