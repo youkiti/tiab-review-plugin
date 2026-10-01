@@ -1,9 +1,11 @@
 // シーン07: フルテキストスクリーニング
 //
-// 全7キュー。cue4 で候補カードをクリックすると新規タブ（fulltext.html）が開くため、
+// 全8キュー。cue4 で候補カードをクリックすると新規タブ（fulltext.html）が開くため、
 // ctx.newSegment() で録画対象をそのタブへ切り替える。cue7 では、そのタブを
 // そのままサイドパネルへ goto しなおして「判定後レビュー」ビューを見せる
-// （ストーリーボード指定どおり）。
+// （ストーリーボード指定どおり）。開き直すときに ?demoGuide=fulltext-conflicts を付け、
+// キー開封済み・全文の不一致ありのデモデータ（src/demo/guide-fulltext-conflicts-fixtures.ts）にする。
+// cue8 で不一致の項目を開き、裁定メモを書いて「組み入れで確定」する。
 
 import { loadCueDurations, sleepRemainder } from './lib/pacing.mjs';
 import { hoverSlow, hoverSequence, smoothWheel } from './lib/gestures.mjs';
@@ -84,7 +86,7 @@ export default {
         // --- cue 7: 同じタブでサイドパネルへ→再接続→全文タブ→判定後レビュー ---
         const t7 = Date.now();
         ctx.cue(7);
-        await ctx.page.goto(`chrome-extension://${ctx.extId}/sidepanel/sidepanel.html`);
+        await ctx.page.goto(`chrome-extension://${ctx.extId}/sidepanel/sidepanel.html?demoGuide=fulltext-conflicts`);
         await connectDemoProject(ctx.page);
         await ctx.page.locator('#tab-fulltext').click();
         await ctx.page.locator('.fulltext-card').first().waitFor({ state: 'visible', timeout: 10000 });
@@ -94,6 +96,29 @@ export default {
         await ctx.sleep(800);
         await hoverSlow(ctx.page, ctx.page.locator('#fulltext-export-csv-btn'), { durationMs: 500 });
         await sleepRemainder(ctx, t7, DUR['07'] * 1000 + 500);
+
+        // --- cue 8: 不一致の項目を開き、裁定メモを書いて「組み入れで確定」→ 確定した項目を開いてメモを見せる ---
+        const t8 = Date.now();
+        ctx.cue(8);
+        const item = ctx.page.locator('details.fulltext-conflict-item.unresolved').first();
+        await item.scrollIntoViewIfNeeded();
+        await hoverSlow(ctx.page, item.locator('summary'), { durationMs: 500 });
+        await item.locator('summary').click();
+        const memo = item.locator('.fulltext-conflict-memo-input');
+        await memo.waitFor({ state: 'visible', timeout: 5000 });
+        await memo.click();
+        await memo.pressSequentially('対象は研修医だが、本研究では学生と同等とみなして組み入れる', { delay: 40 });
+        await ctx.sleep(400);
+        await hoverSlow(ctx.page, item.locator('.btn-include'), { durationMs: 500 });
+        await item.locator('.btn-include').click();
+        // 保存すると一覧が描き直されて項目は閉じるので、確定済みの項目を開き直して裁定メモの表示を見せる
+        const resolved = ctx.page.locator('details.fulltext-conflict-item.resolved').first();
+        await resolved.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+        await resolved.locator('summary').click().catch(() => {});
+        const shown = resolved.locator('.fulltext-conflict-adjudicated-memo');
+        await shown.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+        await hoverSlow(ctx.page, shown, { durationMs: 500 }).catch(() => {});
+        await sleepRemainder(ctx, t8, DUR['08'] * 1000 + 500);
 
         await ctx.sleep(1500);
     },
