@@ -23,3 +23,6 @@ Choosing Exclude shows a reason picker — Population, Intervention, and so on. 
 
 ## cue 07
 The "Post-decision review" view aggregates results per reviewer and computes PRISMA full-text-stage numbers automatically. CSV/RIS export and manuscript text generation are also available here.
+
+## cue 08
+Once the key is opened, references where judges disagreed on the decision or the exclusion reason are listed under "Resolve conflicts". Open one, compare each judge's decision and note, and set the final decision with a button such as "Confirm as Include". Every confirmation can carry your rationale in the adjudication memo — including reasons to include that the exclusion-reason list cannot express.

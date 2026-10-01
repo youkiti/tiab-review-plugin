@@ -1,7 +1,8 @@
 // シーン06: AIスクリーニング支援
 //
-// 全5キュー。cue2 はAIタブ内のAPIキーカード（#api-key-card）で、
-// Gemini欄にキーを入力し、「確認して保存」を押す。
+// 全5キュー。cue2 はAIタブ内の「🔑 APIキー」カード（#llm-providers-card）で、
+// Gemini欄にキーを入力し、「確認して保存」を押す。AI タブは PR #200 で「使うモデル」カード → キーのカード
+// （プロバイダごとの折りたたみ行）の順に組み替わったため、Gemini の行が閉じていれば開いてから入力する。
 //
 // また、閾値確定保存（#confirm-threshold-btn）の完了後は、1秒後にネイティブの
 // confirm() ダイアログ（手動タブへの切り替え確認）が表示される実装になっている。
@@ -35,14 +36,20 @@ export default {
         ctx.cue(1);
         await hoverSlow(ctx.page, ctx.page.locator('#tab-llm'), { durationMs: 500 });
         await ctx.page.locator('#tab-llm').click();
-        await ctx.page.locator('#api-key-card').waitFor({ state: 'visible', timeout: 10000 });
+        await ctx.page.locator('#llm-model-card').waitFor({ state: 'visible', timeout: 10000 });
         await sleepRemainder(ctx, t1, DUR['01'] * 1000 + 500);
 
         // --- cue 2: Gemini欄にダミーキーを入力し、「確認して保存」を押してティア確認表示を待つ ---
         const t2 = Date.now();
         ctx.cue(2);
-        await hoverSlow(ctx.page, ctx.page.locator('#gemini-api-key'), { durationMs: 500 });
-        await ctx.page.locator('#gemini-api-key').fill('AIzaDemoKey1234567890');
+        await ctx.page.locator('#llm-providers-card').scrollIntoViewIfNeeded();
+        const geminiKey = ctx.page.locator('#gemini-api-key');
+        if (!(await geminiKey.isVisible().catch(() => false))) {
+            await ctx.page.locator('#provider-row-gemini .provider-row-head').click();
+            await geminiKey.waitFor({ state: 'visible', timeout: 5000 });
+        }
+        await hoverSlow(ctx.page, geminiKey, { durationMs: 500 });
+        await geminiKey.fill('AIzaDemoKey1234567890');
         await ctx.page.locator('#verify-gemini-api-key-btn').click();
         await ctx.page.locator('#api-key-status').waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
         await ctx.sleep(1000);
