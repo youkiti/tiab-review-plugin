@@ -19,7 +19,9 @@ import {
     addSheetToStore,
     listSheets,
     getStoreSpreadsheetTitle,
+    resetDemoStore,
 } from './sheet-store';
+import { resolveDemoPickerRequired } from './profile';
 import { buildDemoModelsListBody, buildStreamGenerateContentResponseText, buildDemoBatchProbeErrorBody } from './gemini-fixtures';
 import {
     DEMO_SPREADSHEET_ID,
@@ -28,6 +30,7 @@ import {
     DEMO_COLLEAGUE_EMAIL,
     DEMO_SEED_TIMESTAMP,
     DEMO_PDF_FIXTURES,
+    DEMO_PICKER_GRANTED_STORAGE_KEY,
 } from './constants';
 
 let installed = false;
@@ -88,6 +91,41 @@ function demoServiceUnavailable(): Response {
     return jsonResponse(503, { error: { code: 503, message: 'Demo mode: simulated save failure (values write)' } });
 }
 
+// ============================================================
+// Picker 未許可状態の再現（?demoPickerRequired=1）
+// ============================================================
+//
+// 本物では、まだ許可していない共有シートへ Sheets API を呼ぶと 403/404 が返り、
+// src/lib/sheets/transport.ts の isSheetsAccessDeniedStatus() が SheetsAccessDeniedError にする
+// （getSpreadsheetInfo / getSheetValues / getSheetValuesBatch / appendRows 等が共通で使う）。
+// 実際の drive.file 未付与では 404 "Requested entity was not found." が返るため、
+// unknownSpreadsheet()（404）をそのまま使う。対象はデモのスプレッドシートそのものへの
+// Sheets API だけで、Drive・Gemini・userinfo、スプレッドシート新規作成には影響しない。
+
+/** インストール時に ?demoPickerRequired=1 から同期的に決める（chrome.storage は読まない。理由は profile.ts 参照） */
+let pickerRequired = false;
+/** 許可済みの印。platform/demo の openExternal が globalThis へ立てるか、同じ内容を sessionStorage に残す */
+let pickerGranted = false;
+
+declare global {
+    // 許可済みの印（src/platform/demo/index.ts が書く。モジュール間の循環importを避けるため globalThis 経由）
+    // eslint-disable-next-line no-var
+    var __tiabDemoPickerGranted: boolean | undefined;
+}
+
+function isPickerGranted(): boolean {
+    if (pickerGranted || globalThis.__tiabDemoPickerGranted === true) return true;
+    try {
+        return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(DEMO_PICKER_GRANTED_STORAGE_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function isDemoSheetsAccessDenied(): boolean {
+    return pickerRequired && !isPickerGranted();
+}
+
 function extractUrl(input: RequestInfo | URL): string {
     if (typeof input === 'string') return input;
     if (input instanceof URL) return input.toString();
@@ -112,6 +150,33 @@ function readJsonBody(init: RequestInit | undefined): any {
 // ============================================================
 // Google Sheets API
 // ============================================================
+
+/**
+ * spreadsheets.create。デモのストアを「要求されたシートだけがある空の状態」へ初期化し、
+ * 既存の DEMO_SPREADSHEET_ID を新しいスプレッドシートのIDとして返す。
+ * 本物と同じく、ヘッダー行はここでは書かない（createSpreadsheet() が続けて values:append で書く）。
+ * 作成したシートは本人が作ったファイルなので Picker の許可は不要（許可済みにする）。
+ */
+function handleSpreadsheetCreate(body: any): Response {
+    const requested: unknown[] = Array.isArray(body?.sheets) ? body.sheets : [];
+    const titles = requested
+        .map((sheet: any) => sheet?.properties?.title)
+        .filter((title: unknown): title is string => typeof title === 'string' && title !== '');
+    const sheetTitles = titles.length > 0 ? titles : ['References', 'Decisions', 'Config'];
+    const title: string = typeof body?.properties?.title === 'string' && body.properties.title
+        ? body.properties.title
+        : DEMO_SPREADSHEET_TITLE;
+    const emptySheets: Record<string, string[][]> = {};
+    for (const name of sheetTitles) emptySheets[name] = [];
+    resetDemoStore(title, emptySheets);
+    pickerGranted = true;
+    return jsonResponse(200, {
+        spreadsheetId: DEMO_SPREADSHEET_ID,
+        properties: { title },
+        sheets: listSheets().map(({ title: sheetTitle, sheetId }) => ({ properties: { title: sheetTitle, sheetId } })),
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${DEMO_SPREADSHEET_ID}/edit`,
+    });
+}
 
 function handleSpreadsheetMetadata(spreadsheetId: string): Response {
     if (spreadsheetId !== DEMO_SPREADSHEET_ID) return unknownSpreadsheet();
@@ -203,9 +268,17 @@ function handleValuesBatchUpdate(spreadsheetId: string, body: any): Response {
  * （404 + console.warn）に進む。
  */
 function routeSheetsApi(pathname: string, url: URL, method: string, body: any): Response | null {
+    // 新規プロジェクト作成（createSpreadsheet）。IDを含まないので Picker 未許可の影響を受けない
+    if (pathname === '/v4/spreadsheets') {
+        return method === 'POST' ? handleSpreadsheetCreate(body) : null;
+    }
     const prefix = '/v4/spreadsheets/';
     if (!pathname.startsWith(prefix)) return null;
     const rest = pathname.slice(prefix.length);
+
+    // Picker 未許可の再現: デモのスプレッドシートへのアクセスは、メタデータ・values・batchUpdate の別なく拒否する
+    const targetId = rest.split(/[/:]/)[0];
+    if (targetId === DEMO_SPREADSHEET_ID && isDemoSheetsAccessDenied()) return unknownSpreadsheet();
 
     // "{id}:batchUpdate" （スプレッドシート全体への addSheet 等。/values を含まないもの限定）
     if (rest.endsWith(':batchUpdate') && !rest.includes('/values')) {
@@ -502,6 +575,10 @@ interface TiabDemoNetInterface {
     setFailureMode: (mode: DemoNetFailureMode) => void;
     /** 現在の保存失敗モードを返す（テスト・診断用）。 */
     getFailureMode: () => DemoNetFailureMode;
+    /** Picker 許可済みの印を立てる（?demoPickerRequired=1 のとき、以後アクセスが通る。テスト・診断用）。 */
+    grantPicker: () => void;
+    /** ?demoPickerRequired=1 が有効で、まだ許可されていないか（テスト・診断用）。 */
+    isPickerPending: () => boolean;
 }
 
 declare global {
@@ -528,6 +605,7 @@ function sheetNameFromRangeSegment(segment: string): string {
  */
 function classifyDemoRequest(url: URL, method: string): string {
     if (url.hostname === 'sheets.googleapis.com') {
+        if (url.pathname === '/v4/spreadsheets') return `${method} sheets.create`;
         const prefix = '/v4/spreadsheets/';
         if (!url.pathname.startsWith(prefix)) return `${method} sheets.unknown`;
         const rest = url.pathname.slice(prefix.length);
@@ -612,11 +690,14 @@ export function installDemoFetchMock(): void {
     resetNetStats();
 
     const netDelayMs = resolveNetDelayMs();
+    pickerRequired = resolveDemoPickerRequired();
     globalThis.__tiabDemoNet = {
         snapshot: netSnapshot,
         reset: resetNetStats,
         setFailureMode: (mode) => { failureMode = mode; },
         getFailureMode: () => failureMode,
+        grantPicker: () => { pickerGranted = true; },
+        isPickerPending: () => isDemoSheetsAccessDenied(),
     };
 
     const originalFetch = globalThis.fetch.bind(globalThis);

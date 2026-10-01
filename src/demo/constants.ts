@@ -110,3 +110,12 @@ export const DEMO_PDF_FIXTURES: Record<DemoPdfFixtureId, DemoPdfFixture> = {
         pageCount: 57,
     },
 };
+
+/**
+ * Picker 許可済みの印（?demoPickerRequired=1 用）を sessionStorage に残すキー。
+ * chrome.storage.local は非同期でしか読めず、fetch モックが同期的に判定できないため
+ * （src/demo/profile.ts 冒頭と同じ理由）、同期で読める sessionStorage を使う。
+ * タブ単位で残るのでページを開き直しても許可済みのまま、新しいタブでは未許可に戻る。
+ * 書くのは src/platform/demo/index.ts の openExternal、読むのは src/demo/fetch-mock.ts。
+ */
+export const DEMO_PICKER_GRANTED_STORAGE_KEY = 'tiab_demo_picker_granted';

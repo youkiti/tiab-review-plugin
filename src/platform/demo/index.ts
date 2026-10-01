@@ -13,7 +13,7 @@
  */
 import type { PlatformAdapter } from '../types';
 import { chromePlatform } from '../chrome';
-import { DEMO_SIGNED_IN_STORAGE_KEY, DEMO_TOKEN } from '../../demo/constants';
+import { DEMO_PICKER_GRANTED_STORAGE_KEY, DEMO_SIGNED_IN_STORAGE_KEY, DEMO_TOKEN } from '../../demo/constants';
 
 async function isDemoSignedIn(): Promise<boolean> {
     const result = await chrome.storage.local.get([DEMO_SIGNED_IN_STORAGE_KEY]);
@@ -54,8 +54,47 @@ async function demoClearAuth(): Promise<void> {
     await setDemoSignedIn(false);
 }
 
+/** Google Picker 許可ページ（src/lib/picker-url.ts の buildPickerUrl が作るURL）かを判定する */
+export function isDemoPickerUrl(url: string): boolean {
+    try {
+        return new URL(url).pathname.endsWith('/picker.html');
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * ?demoPickerRequired=1 が付いているか。src/demo/profile.ts の resolveDemoPickerRequired() と
+ * 同じ式（platform/demo から src/demo/profile.ts は import できないため、ここに同じ判定を持つ）。
+ * 呼び出しのたびにクエリを同期的に読む。
+ */
+function isDemoPickerRequired(): boolean {
+    if (typeof location === 'undefined') return false;
+    return new URLSearchParams(location.search).get('demoPickerRequired') === '1';
+}
+
+/**
+ * ?demoPickerRequired=1 のときだけ、Picker のURLを新しいタブで開かず「許可済み」の印を立てる
+ * （未許可状態の再現用。印を読むのは src/demo/fetch-mock.ts）。fetch モックが同期的に読めるよう、
+ * globalThis と sessionStorage（ページを開き直しても残す）の両方へ書く。
+ * クエリが無いとき、および Picker 以外のURLは従来どおり開く。
+ */
+function demoOpenExternal(url: string): void {
+    if (!isDemoPickerRequired() || !isDemoPickerUrl(url)) {
+        chromePlatform.openExternal(url);
+        return;
+    }
+    globalThis.__tiabDemoPickerGranted = true;
+    try {
+        sessionStorage.setItem(DEMO_PICKER_GRANTED_STORAGE_KEY, '1');
+    } catch {
+        /* sessionStorage が使えなくても globalThis の印で足りる */
+    }
+}
+
 export const demoPlatform: PlatformAdapter = {
     ...chromePlatform,
+    openExternal: demoOpenExternal,
     getAuthToken: demoGetAuthToken,
     forceReauth: demoForceReauth,
     clearAuth: demoClearAuth,
