@@ -1957,7 +1957,7 @@
     "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
   },
   "guideExt_tour_ml_start_stopping_reached": {
-    "message": "When the stopping rule is reached, a dialog asks what to do next. You can review some more records, (with the statistical stopping rule) run audit sampling to check that nothing was missed, or choose \"Finish and exclude remaining\", which saves every undecided record as Exclude and ends the review. \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully."
   },
   "guideExt_tour_ml_start_finish": {
     "message": "This ? (the ❓ in the toolbar on the Manual tab) opens the explanation and the list of guided tours. You can start this tour again from there."
