@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeModalWaitPosition, computeTourCardPosition } from '../src/guide-ui/placement';
+import { computeInDialogCardPosition, computeModalWaitPosition, computeTourCardPosition } from '../src/guide-ui/placement';
 
 const viewport = { width: 400, height: 800 };
 const card = { width: 320, height: 120 };
@@ -84,4 +84,41 @@ test('ダイアログの寸法が取れないときは下端の通常表示', ()
     const pos = computeModalWaitPosition({ ...modalBase, dialog: null, footer: null });
     assert.equal(pos.compact, false);
     assert.equal(pos.top, 800 - 120 - 8);
+});
+
+test('computeInDialogCardPosition: ダイアログの中の対象は、フッターに重ならなければ通常の配置と同じ', () => {
+    const input = {
+        viewport: { width: 500, height: 1000 }, card: { width: 320, height: 110 }, compactCard: { width: 200, height: 30 },
+        margin: 8, gap: 8, pad: 3,
+        target: { top: 300, bottom: 340, left: 40, right: 460 },
+        footer: { top: 700, bottom: 760 },
+    };
+    const position = computeInDialogCardPosition(input);
+    assert.equal(position.compact, false);
+    assert.deepEqual({ left: position.left, top: position.top }, computeTourCardPosition(input));
+});
+
+test('computeInDialogCardPosition: 通常の配置がフッターのボタンに重なるときは、小さい表示でフッターに重ならない位置へ置く', () => {
+    // 低い画面。対象（入力欄）の下に置くとフッター（ボタン列）に重なる
+    const input = {
+        viewport: { width: 400, height: 700 }, card: { width: 320, height: 110 }, compactCard: { width: 200, height: 30 },
+        margin: 8, gap: 8, pad: 3,
+        target: { top: 300, bottom: 400, left: 20, right: 380 },
+        footer: { top: 410, bottom: 470 },
+    };
+    const position = computeInDialogCardPosition(input);
+    assert.equal(position.compact, true);
+    const bottom = position.top + input.compactCard.height;
+    assert.ok(position.top >= input.margin && bottom <= input.viewport.height - input.margin, '画面内に収まる');
+    assert.ok(bottom <= input.footer.top || position.top >= input.footer.bottom, `小さいカード（${position.top}〜${bottom}）がフッター（410〜470）に重なる`);
+});
+
+test('computeInDialogCardPosition: フッターが無いときは、常に通常の配置', () => {
+    const input = {
+        viewport: { width: 400, height: 700 }, card: { width: 320, height: 110 }, compactCard: { width: 200, height: 30 },
+        margin: 8, gap: 8, pad: 3,
+        target: { top: 300, bottom: 400, left: 20, right: 380 },
+        footer: null,
+    };
+    assert.deepEqual(computeInDialogCardPosition(input), { ...computeTourCardPosition(input), compact: false });
 });

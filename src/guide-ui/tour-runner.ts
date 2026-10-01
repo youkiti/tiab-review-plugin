@@ -14,11 +14,13 @@ import {
     dismissTour,
     nextStepIndex,
     setActiveStep,
+    isTourUnavailable,
     shouldAdvance,
     startTour,
+    visibleStepPosition,
     type GuideConditionValues,
 } from '../lib/guide/tour-progress';
-import { computeModalWaitPosition, computeTourCardPosition } from './placement';
+import { computeInDialogCardPosition, computeModalWaitPosition, computeTourCardPosition } from './placement';
 import { getGuideProgress, loadGuideProgress, subscribeGuideProgressChange, updateGuideProgress } from './tour-store';
 
 /** 強調の枠を対象より外側へ広げる量（px）、カードと対象の間隔、画面端の余白 */
@@ -194,9 +196,14 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
         if (!running || !step || !card || !highlight || !block) return;
 
         const target = findTarget(step.target);
+        const rectOf = (selector: string): DOMRect | undefined =>
+            document.getElementById(host.modal.backdropId)?.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
         const waitingText = card.querySelector<HTMLElement>('.guide-tour-waiting');
         const viewportWidth = document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight;
+        // 前の描画で付けた小さい表示のクラスが残っていると、通常表示の寸法を小さく測り、位置が行き来して点滅する。
+        // 先に外してから測る（小さい表示にするときは、位置を決めたあとに付け直す）
+        card.classList.remove('guide-tour-card--compact');
         const cardWidth = card.offsetWidth;
 
         // ダイアログが開いていて、対象がその中に無いときは「ダイアログ待ち」にする
@@ -207,7 +214,11 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
             modalMode = waitingForDialog;
             renderContent();
         }
-        card.classList.toggle('guide-tour-card--over-modal', modalMode);
+        // 対象がダイアログの中にあるときは、枠・覆い・カードをダイアログより前面に出す
+        const inDialog = backdrop !== null && dialogOpen && target !== null && backdrop.contains(target);
+        card.classList.toggle('guide-tour-card--over-modal', modalMode || inDialog);
+        highlight.classList.toggle('guide-tour-highlight--over-modal', inDialog);
+        block.classList.toggle('guide-tour-block--over-modal', inDialog);
 
         // 対象が見えないときだけ「この操作ができる画面を開いてください」を出す。表示の切り替えが
         // カードの高さを変えるので、位置の計算はその後に行う
@@ -228,8 +239,6 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
             highlight.classList.add('hidden');
             block.classList.add('hidden');
             setInert(null);
-            const rectOf = (selector: string): DOMRect | undefined =>
-                backdrop?.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
             const dialog = rectOf(host.modal.contentSelector);
             const footer = rectOf(host.modal.footerSelector);
             const viewport = { width: viewportWidth, height: viewportHeight };
@@ -256,11 +265,29 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
         const viewport = { width: viewportWidth, height: viewportHeight };
         const cardSize = { width: cardWidth, height: cardHeight };
         const place = (box: DOMRect | null): void => {
-            const position = computeTourCardPosition({
+            const input = {
                 viewport, card: cardSize, margin: MARGIN, gap: CARD_GAP, pad: HIGHLIGHT_PAD,
                 target: box ? { top: box.top, bottom: box.bottom, left: box.left, right: box.right } : null,
                 allowSide: host.cardSideFallback === true,
-            });
+            };
+            if (inDialog && input.target) {
+                // ダイアログの中の対象: フッターのボタンに重なるときは小さい表示（クリックを通す）にする
+                card!.classList.add('guide-tour-card--compact');
+                const compactCard = { width: card!.offsetWidth, height: card!.offsetHeight };
+                card!.classList.remove('guide-tour-card--compact');
+                const footer = rectOf(host.modal.footerSelector);
+                const position = computeInDialogCardPosition({
+                    ...input, target: input.target, compactCard,
+                    footer: footer ? { top: footer.top, bottom: footer.bottom } : null,
+                });
+                card!.classList.toggle('guide-tour-card--compact', position.compact);
+                if (position.compact) card!.dataset.guideCompact = 'true';
+                else card!.removeAttribute('data-guide-compact');
+                card!.style.left = `${position.left}px`;
+                card!.style.top = `${position.top}px`;
+                return;
+            }
+            const position = computeTourCardPosition(input);
             card!.style.left = `${position.left}px`;
             card!.style.top = `${position.top}px`;
         };
@@ -307,7 +334,11 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
         card.dataset.guideTour = tour.id;
         card.dataset.guideStep = step.id;
         const progress = card.querySelector<HTMLElement>('.guide-tour-progress');
-        if (progress) progress.textContent = `${index + 1} / ${tour.steps.length}`;
+        if (progress) {
+            // 条件で飛ばされる手順は数えない。条件は途中で変わりうるので描画のたびに数え直す
+            const { position, total } = visibleStepPosition(tour, index, host.computeConditions());
+            progress.textContent = `${position} / ${total}`;
+        }
         const text = card.querySelector<HTMLElement>('.guide-tour-text');
         if (text) text.textContent = t(modalMode ? 'guide_tourModalOpen' : step.textKey);
 
@@ -386,6 +417,8 @@ export function createTourRunner(host: TourRunnerHost): TourRunner {
         const tour = GUIDE_TOURS[tourId];
         // 中身の無い枠と、ほかの画面のツアー（その画面のランナーが扱う）は、ここでは始めない
         if (tour.draft || tour.page !== host.page) return;
+        // 今の状態では使えないツアー（unavailableIf）は始めない。実行中のツアーの再開（resume）は止めない
+        if (isTourUnavailable(tour, host.computeConditions())) return;
         const from = fromStepId ? Math.max(0, tour.steps.findIndex(step => step.id === fromStepId)) : 0;
         const index = nextStepIndex(tour, from, host.computeConditions());
         stopTour();

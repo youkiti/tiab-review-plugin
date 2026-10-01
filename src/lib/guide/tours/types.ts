@@ -70,6 +70,12 @@ export interface TourDefinitionOf<E extends string, C extends string> {
      * （tour-progress.ts の availableTours が除外する）。手順を書き終えたら外す。
      */
     draft?: true;
+    /**
+     * この条件が真のとき、今の状態ではこのツアーを使えない（一覧・「?」の吹き出し・提案の帯・開始から外す）。
+     * 例: 文献が少なくてタブ自体が使えないプロジェクト。実行中のツアーの再開は止めない。
+     * 純関数 availableTours などは、条件の値を渡されたときだけ見る。
+     */
+    unavailableIf?: C;
     /** このイベントが起きたときに、このツアーをまだやっていなければ、その画面の上部に提案の帯を出す。 */
     suggestOn?: E;
     steps: ReadonlyArray<TourStepOf<E, C>>;

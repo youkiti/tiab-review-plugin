@@ -2,14 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { GUIDE_TOURS } from '../src/lib/guide/tours';
+import { GUIDE_TOURS, type TourDefinition } from '../src/lib/guide/tours';
 import { FULLTEXT_PAGE_TOUR } from '../src/lib/guide/tours/fulltext-page';
 import { computeTourCardPosition } from '../src/guide-ui/placement';
 import {
     GUIDE_PROGRESS_STORAGE_KEY,
+    availableTours,
     createEmptyGuideProgress,
     nextStepIndex,
+    shouldSuggest,
+    tourToSuggestOnEvent,
     tourToSuggestOnPage,
+    type GuideConditionValues,
 } from '../src/lib/guide/tour-progress';
 
 /**
@@ -142,4 +146,25 @@ test('カードの配置: allowSide が偽（既定）なら従来どおり。�
     // 下に収まるなら、allowSide でも下（従来と同じ）
     const small = { top: 100, bottom: 140, left: 594, right: 891 };
     assert.deepEqual(computeTourCardPosition({ ...base, target: small, allowSide: true }), computeTourCardPosition({ ...base, target: small }));
+});
+
+test('unavailableIf: 条件の値を渡されたときだけ、真なら一覧・提案から外し、偽なら出す。渡さなければ今のまま', () => {
+    const tour: TourDefinition = { ...GUIDE_TOURS['join-project'], id: 'ml-start', suggestOn: 'tab-opened-ml', page: 'sidepanel', unavailableIf: 'is-admin' };
+    const ids = (conditions?: GuideConditionValues) => availableTours(context, [tour], conditions).map(candidate => candidate.id);
+    assert.deepEqual(ids(), ['ml-start'], '条件を渡さなければ unavailableIf は見ない');
+    assert.deepEqual(ids({ 'is-admin': true }), [], '真なら外れる');
+    assert.deepEqual(ids({ 'is-admin': false }), ['ml-start'], '偽なら出る');
+    assert.deepEqual(ids(new Set(['is-admin'] as const)), [], 'Set でも同じ');
+    const fresh = createEmptyGuideProgress();
+    assert.equal(tourToSuggestOnEvent(fresh, 'tab-opened-ml', context, [tour], { 'is-admin': true }), null);
+    assert.equal(tourToSuggestOnEvent(fresh, 'tab-opened-ml', context, [tour], { 'is-admin': false })?.id, 'ml-start');
+    assert.equal(tourToSuggestOnEvent(fresh, 'tab-opened-ml', context, [tour])?.id, 'ml-start');
+    assert.equal(tourToSuggestOnPage(fresh, 'sidepanel', context, [tour], { 'is-admin': true }), null);
+    assert.equal(tourToSuggestOnPage(fresh, 'sidepanel', context, [tour], {})?.id, 'ml-start');
+});
+
+test('unavailableIf: 初回のバナーの判定（shouldSuggest）には影響しない（条件を渡さない availableTours を使う）', () => {
+    // 実在のツアーは unavailableIf を持たないので、判定は従来どおり
+    assert.equal(Object.values(GUIDE_TOURS).some(tour => tour.unavailableIf !== undefined), false);
+    assert.equal(shouldSuggest(createEmptyGuideProgress(), { screen: 'project', ...context }), true);
 });

@@ -20,7 +20,7 @@ import {
     postponeGuideSuggestions,
     updateGuideProgress,
 } from '../../../guide-ui/tour-store';
-import { currentGuidePlatform } from './tour-conditions';
+import { computeGuideConditions, currentGuidePlatform } from './tour-conditions';
 import { placeNear } from './anchor-placement';
 import { startGuideTour } from './tour-runner';
 
@@ -148,7 +148,7 @@ async function showTabSuggestion(name: GuideEventName): Promise<void> {
     if (!sectionId) return;
     const progress = await loadGuideProgress();
     if (seq !== tabSuggestSeq) return;
-    const tour = tourToSuggestOnEvent(progress, name, currentGuidePlatform());
+    const tour = tourToSuggestOnEvent(progress, name, currentGuidePlatform(), undefined, computeGuideConditions());
     if (!tour) return;
     const section = document.getElementById(sectionId);
     if (!section || section.classList.contains('hidden')) return;
@@ -227,7 +227,7 @@ function buildList(): HTMLElement {
     title.textContent = t('guide_tourListTitle');
     header.append(title, createGuideButton('close-list', '✕', 'btn btn-outline btn-xsmall', closeGuideTourList));
     panel.append(header);
-    for (const tour of availableTours(currentGuidePlatform())) {
+    for (const tour of availableTours(currentGuidePlatform(), undefined, computeGuideConditions())) {
         panel.append(buildListItem(tour));
     }
     return panel;

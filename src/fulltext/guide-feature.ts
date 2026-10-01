@@ -66,7 +66,7 @@ export async function showFulltextSuggestion(): Promise<void> {
     initFulltextGuide();
     const progress = await loadGuideProgress();
     removeSuggestion();
-    const tour = tourToSuggestOnPage(progress, 'fulltext', platformContext());
+    const tour = tourToSuggestOnPage(progress, 'fulltext', platformContext(), undefined, computeFulltextGuideConditions());
     if (!tour) return;
     const header = document.querySelector('.ft-header');
     if (!header) return;

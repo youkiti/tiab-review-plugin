@@ -999,6 +999,14 @@ body {
     z-index: 3100;
 }
 
+.guide-tour-highlight--over-modal {
+    z-index: 3090;
+}
+
+.guide-tour-block--over-modal {
+    z-index: 3091;
+}
+
 /* 初めて開いたときの提案の帯。ヘッダーの下に、幅いっぱいの1行で出す（本体の高さは flex で縮む） */
 #guide-page-suggest {
     display: flex;

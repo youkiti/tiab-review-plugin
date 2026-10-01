@@ -134,3 +134,29 @@ export function computeModalWaitPosition(input: ModalWaitInput): ModalWaitPositi
     const top = candidates.find(candidate => fits(candidate) && clear(candidate)) ?? margin;
     return { left, top, compact: true };
 }
+
+export interface InDialogPlacementInput extends CardPlacementInput {
+    /** 小さい表示にしたときのカードの寸法 */
+    compactCard: Size;
+    /** 対象があるダイアログのフッター（ボタン列）。無ければ null */
+    footer: { top: number; bottom: number } | null;
+}
+
+/**
+ * 対象がアプリのダイアログの中にあるときのカードの位置。通常は computeTourCardPosition と同じ（対象の下→上→画面下端）。
+ * それがダイアログのフッターのボタンに重なるときは、小さい表示（クリックを下へ通す）に切り替えて、フッターに重ならない位置へ置く。
+ */
+export function computeInDialogCardPosition(input: InDialogPlacementInput): ModalWaitPosition {
+    const { viewport, card, compactCard, footer, margin, gap } = input;
+    const normal = computeTourCardPosition(input);
+    const overlapsFooter = (top: number, height: number): boolean =>
+        footer !== null && top < footer.bottom && top + height > footer.top;
+    if (!overlapsFooter(normal.top, card.height)) return { ...normal, compact: false };
+
+    const small = computeTourCardPosition({ ...input, card: compactCard });
+    const candidates = [small.top, margin];
+    if (footer) candidates.push(footer.bottom + gap, footer.top - gap - compactCard.height);
+    const fits = (top: number): boolean => top >= margin && top + compactCard.height <= viewport.height - margin;
+    const top = candidates.find(candidate => fits(candidate) && !overlapsFooter(candidate, compactCard.height)) ?? small.top;
+    return { left: top === small.top ? small.left : margin, top, compact: true };
+}
