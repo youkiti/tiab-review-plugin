@@ -1887,6 +1887,39 @@
   "guideExt_tour_duplicate_review_desc": {
     "message": "Shows how to check records flagged as duplicates and decide which to keep."
   },
+  "guideExt_tour_duplicate_review_open_tab": {
+    "message": "Duplicate Review is at the bottom of the Manual tab. Open the Manual tab first."
+  },
+  "guideExt_tour_duplicate_review_section": {
+    "message": "This is the Duplicate Review section. The \"unresolved duplicate candidate(s)\" count is the number of pairs nobody has checked yet. When you import records, pairs that share a PMID, DOI or title become candidates automatically."
+  },
+  "guideExt_tour_duplicate_review_rescan": {
+    "message": "\"Rescan Duplicates\" checks all current records again and looks for new candidates. The records themselves do not change; only the list of candidates can grow. You can press \"Skip this step\" instead."
+  },
+  "guideExt_tour_duplicate_review_no_candidates": {
+    "message": "There are no unresolved duplicate candidates right now. When an import or a rescan finds some, the count here goes up and you can open the comparison. Once you have candidates, open this tour again from ❓ > the list of guided tours to see the rest."
+  },
+  "guideExt_tour_duplicate_review_open_review": {
+    "message": "\"Review Duplicates\" opens a screen that shows the candidates one pair at a time. Opening it changes nothing. You can press \"Skip this step\" instead."
+  },
+  "guideExt_tour_duplicate_review_compare": {
+    "message": "The two records are listed side by side. Highlighted rows are the fields that differ. The badge at the top shows what matched (PMID, DOI, title and so on), and the counts below show how many human decisions each record has."
+  },
+  "guideExt_tour_duplicate_review_choose": {
+    "message": "Pressing \"Keep Left\" or \"Keep Right\" here really merges the records (the other one is marked as a duplicate; its row stays and only gets a mark). To just try the tour, press \"Skip this step\" instead. If the record to be removed already has human decisions, you are asked to confirm and those decisions stop counting (with no decisions, it is applied without asking). If they are different records, choose \"Different Records\". For a pair whose data is broken, only \"Different Records\" can be chosen."
+  },
+  "guideExt_tour_duplicate_review_bulk": {
+    "message": "This one is for explanation only. \"Apply All Auto-Resolvable\" merges pairs such as those sharing a PMID or DOI in one go, keeping the record with more human decisions. It affects every such pair, so it is locked here. To postpone, press the neighboring \"Review Later\" to close the window."
+  },
+  "guideExt_tour_duplicate_review_not_opened": {
+    "message": "\"Review Duplicates\" opens a comparison with the two records side by side, where you choose \"Keep Left\", \"Keep Right\" or \"Different Records\". Press it when you are ready to check."
+  },
+  "guideExt_tour_duplicate_review_after_review": {
+    "message": "Pairs you have decided drop out of the unresolved count. Pairs you left with \"Review Later\", and pairs you have not seen yet, stay in this count, and it goes up when \"Rescan Duplicates\" finds new candidates. You can continue any time from \"Review Duplicates\"."
+  },
+  "guideExt_tour_duplicate_review_finish": {
+    "message": "That is the end of the duplicate review guide. To see it again, open the list of guided tours from this ❓ at any time."
+  },
   "guideExt_tour_fulltext_setup_title": {
     "message": "Fulltext setup"
   },

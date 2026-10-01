@@ -21,6 +21,7 @@ import { resetDemoStore } from './sheet-store';
 import type { DemoProfile, BenchOptions } from './profile';
 import { buildSyntheticReferences, buildSyntheticDecisionSeeds } from './ml-fixtures';
 import { buildBenchReferences, buildBenchDecisionSeeds, buildBenchLlmRound } from './bench-fixtures';
+import { seedGuideDuplicatesDemo } from './guide-duplicates-fixtures';
 import {
     DEMO_SPREADSHEET_TITLE,
     DEMO_USER_EMAIL,
@@ -344,4 +345,6 @@ export function seedDemoStore(profile: DemoProfile = 'default', options?: BenchO
         // 検出・保存はチャンク2の後続配線とチャンク3のレビューUIで行う）。
         Duplicate_Candidates: [DUPLICATE_CANDIDATES_HEADERS],
     });
+    // ?demoGuide=duplicates のときだけ、重複する文献の組と候補を足す（案内ツアーの通し検証用）
+    seedGuideDuplicatesDemo(buildReferenceRow, buildDecisionRow);
 }
