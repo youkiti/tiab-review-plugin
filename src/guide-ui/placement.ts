@@ -27,6 +27,11 @@ export interface CardPlacementInput {
     gap: number;
     /** 強調の枠が対象より外へ広がる量 */
     pad: number;
+    /**
+     * 真なら、対象の下にも上にも収まらないとき、画面下端へ固定する（対象に重なる）前に、対象の左→右の
+     * 横に収まる場所を探す（画面が広く、対象が縦に長いとき）。省略時は偽で、従来どおり画面下端へ固定する。
+     */
+    allowSide?: boolean;
 }
 
 export interface CardPosition {
@@ -53,11 +58,11 @@ function intersectsViewport(box: Box, viewport: Size): boolean {
 }
 
 /**
- * 対象の下→上→画面下端の順に、収まる場所へカードを置く。対象が無い・画面の外にあるときは
+ * 対象の下→上→（allowSide なら左→右）→画面下端の順に、収まる場所へカードを置く。対象が無い・画面の外にあるときは
  * 画面下端の中央に固定する。結果は常に画面内（top は [margin, 高さ - カード高 - margin]）に収める。
  */
 export function computeTourCardPosition(input: CardPlacementInput): CardPosition {
-    const { viewport, card, target, margin, gap, pad } = input;
+    const { viewport, card, target, margin, gap, pad, allowSide } = input;
     const bottomFixed = clampTop(viewport.height - card.height - margin, viewport, card, margin);
     if (!target || !intersectsViewport(target, viewport)) {
         return { left: clampLeft((viewport.width - card.width) / 2, viewport, card, margin), top: bottomFixed };
@@ -66,9 +71,26 @@ export function computeTourCardPosition(input: CardPlacementInput): CardPosition
     let top = target.bottom + pad + gap;
     if (top + card.height > viewport.height - margin) {
         const above = target.top - pad - gap - card.height;
-        top = above >= margin ? above : bottomFixed;
+        if (above >= margin) {
+            top = above;
+        } else {
+            const side = allowSide ? placeBeside(target, input) : null;
+            if (side) return side;
+            top = bottomFixed;
+        }
     }
     return { left, top: clampTop(top, viewport, card, margin) };
+}
+
+/** 対象の左、無ければ右の横に、カードを対象の上端にそろえて置く。どちらにも収まらなければ null。 */
+function placeBeside(target: Box, input: CardPlacementInput): CardPosition | null {
+    const { viewport, card, margin, gap, pad } = input;
+    const top = clampTop(target.top - pad, viewport, card, margin);
+    const leftOf = target.left - pad - gap - card.width;
+    if (leftOf >= margin) return { left: leftOf, top };
+    const rightOf = target.right + pad + gap;
+    if (rightOf + card.width <= viewport.width - margin) return { left: rightOf, top };
+    return null;
 }
 
 export interface ModalWaitInput {

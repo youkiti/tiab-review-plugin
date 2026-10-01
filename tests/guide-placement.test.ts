@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeModalWaitPosition, computeTourCardPosition } from '../src/sidepanel/features/guide/placement';
+import { computeModalWaitPosition, computeTourCardPosition } from '../src/guide-ui/placement';
 
 const viewport = { width: 400, height: 800 };
 const card = { width: 320, height: 120 };

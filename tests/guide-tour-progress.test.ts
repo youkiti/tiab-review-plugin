@@ -219,7 +219,10 @@ test('shouldAdvance: optional な events の手順も、該当イベントで進
 
 test('availableTours: draft の枠は含めず、渡した定義の中から選ぶ', () => {
     const real = availableTours(ctx()).map((t) => t.id);
-    assert.deepEqual(real.sort(), ['first-project', 'join-project']);
+    // 中身のあるツアー（draft でない）が増えても追従できるよう、定義から導く。拡張版・作成権限ありの文脈なので、draft 以外は全部入る
+    const finished = Object.values(GUIDE_TOURS).filter((tour) => !tour.draft).map((tour) => tour.id);
+    assert.deepEqual(real.sort(), finished.sort());
+    assert.ok(real.includes('first-project') && real.includes('join-project'));
     for (const tour of Object.values(GUIDE_TOURS)) {
         if (tour.draft) assert.equal(real.includes(tour.id), false, tour.id);
     }

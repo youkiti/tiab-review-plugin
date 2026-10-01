@@ -1686,6 +1686,12 @@
   "guideExt_tourOpenFulltextHint": {
     "message": "Open a record in the Full-text tab to start."
   },
+  "guideExt_fulltextTourBtn": {
+    "message": "Tour"
+  },
+  "guideExt_fulltextTourBtnTitle": {
+    "message": "Start the guided tour of this page"
+  },
   "guide_suggestTitle": {
     "message": "New here?"
   },
@@ -1807,7 +1813,37 @@
     "message": "Full-text screening page"
   },
   "guideExt_tour_fulltext_page_desc": {
-    "message": "Shows how to use the separate tab where you open the PDF and screen the full text."
+    "message": "Walks you through the separate tab where you open the PDF and screen the full text: checking the bibliography and PDF, deciding, exclusion reasons, and moving to the next record."
+  },
+  "guideExt_tour_fulltext_page_biblio": {
+    "message": "The title, authors and DOI of the record appear here. Before you decide, compare them with the PDF below to make sure the wrong PDF has not been saved."
+  },
+  "guideExt_tour_fulltext_page_pdf": {
+    "message": "The PDF is shown below this bar. With no PDF yet, \"Upload PDF\" saves a file from your computer; with one, \"Upload a different PDF\" replaces it."
+  },
+  "guideExt_tour_fulltext_page_criteria": {
+    "message": "Press \"Criteria\" (or the c key) to open or close the review criteria with the inclusion and exclusion rules. Check it whenever you are unsure."
+  },
+  "guideExt_tour_fulltext_page_decision": {
+    "message": "When you have read the paper, choose Include (i), Exclude (e) or Maybe (m). Pressing one really saves the decision, and Include moves on to the next record. You can also continue without pressing."
+  },
+  "guideExt_tour_fulltext_page_reason_info": {
+    "message": "Choosing \"Exclude\" shows the list of exclusion reasons (Maybe shows a note box instead). When more than one applies, choose the one higher up (the smaller number). A number key also picks a reason."
+  },
+  "guideExt_tour_fulltext_page_reason": {
+    "message": "Choose the exclusion reason. When more than one applies, choose the one higher up (the smaller number). Clicking or pressing a number key saves and moves on. The note box is optional; Enter in it saves and moves on."
+  },
+  "guideExt_tour_fulltext_page_context": {
+    "message": "Open this to see the abstract and your own TiAb decision. After the key is opened, the other reviewers' decisions and notes are listed here too."
+  },
+  "guideExt_tour_fulltext_page_evidence": {
+    "message": "If the AI has judged the full text, its supporting quotes are listed here. Click one to jump to that place in the PDF; \"Show on PDF\" turns the highlights on or off. Without an AI decision, the list stays empty."
+  },
+  "guideExt_tour_fulltext_page_navigate": {
+    "message": "\"To undecided (u)\" jumps to the next record you have not decided yet. After you decide the last record, this tab closes by itself after a short wait (any action cancels it)."
+  },
+  "guideExt_tour_fulltext_page_finish": {
+    "message": "That is all. This \"?\" opens the matching page of the help. To see this tour again, press the \"Tour\" button next to it."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."

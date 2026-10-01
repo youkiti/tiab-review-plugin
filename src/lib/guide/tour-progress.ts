@@ -159,6 +159,21 @@ export function tourToSuggestOnEvent(
     return availableTours(context, tours).find(tour => tour.suggestOn === event && progress.tours[tour.id] === undefined) ?? null;
 }
 
+/**
+ * 別の画面（全文の判定ページ）を初めて開いたときに、その画面の上部の提案の帯に出すツアー（無ければ null）。
+ * page が一致する使えるツアーのうち、まだ済・却下でなく、ほかのツアーが実行中でなく、
+ * 全体の「今後表示しない」でないときだけ返す。tours を渡すと、その中から選ぶ（テスト用。省略時は GUIDE_TOURS）。
+ */
+export function tourToSuggestOnPage(
+    progress: GuideProgress,
+    page: TourDefinition['page'],
+    context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
+    tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+): TourDefinition | null {
+    if (progress.suppressSuggestions || progress.active) return null;
+    return availableTours(context, tours).find(tour => tour.page === page && progress.tours[tour.id] === undefined) ?? null;
+}
+
 function stepIdAt(tourId: GuideTourId, stepIndex: number): string {
     return GUIDE_TOURS[tourId].steps[stepIndex]?.id ?? '';
 }
