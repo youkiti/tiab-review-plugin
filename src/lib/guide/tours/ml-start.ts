@@ -10,7 +10,8 @@ import type { TourFor } from './types';
 /** このツアー固有のイベント名 */
 export type MlStartEvent =
     | 'ml-setup-done' // 停止基準の確認が済み、ML の学習が使える状態になった
-    | 'ml-decision-saved'; // ML タブで判定を保存した
+    | 'ml-decision-saved' // ML タブで判定を保存した
+    | 'ml-setup-dismissed'; // 停止基準の確認を、確定せずに閉じた
 /** このツアー固有の条件名（計算は sidepanel/features/guide/conditions/ml-start.ts） */
 export type MlStartCondition =
     | 'ml-unusable' // スクリーニング画面にいて、文献が ML タブの最小件数に満たない（ツアー全体の unavailableIf）
@@ -44,7 +45,17 @@ export const ML_START_TOUR: TourFor<MlStartEvent, MlStartCondition> = {
             target: 'ml-stopping-confirm',
             dynamicTarget: true,
             textKey: stepKey(BASE, 'stopping-dialog'),
-            advance: { type: 'events', events: ['ml-setup-done'], optional: true },
+            // 確定してもプロジェクトのデータは変わらない（ブラウザに設定を保存して ML を始めるだけ）ので、
+            // 「押さずに次へ」は用意しない。確定せずに閉じたときは次の手順で開き直しを案内する
+            advance: { type: 'events', events: ['ml-setup-done', 'ml-setup-dismissed'] },
+            skipIf: 'ml-dialog-not-needed',
+        },
+        {
+            // 確認を閉じると ML は始まらない（停止基準が未設定のまま）。別のタブから ML タブを開き直すと確認がまた出る
+            id: 'stopping-reopen',
+            target: 'ml-tab',
+            textKey: stepKey(BASE, 'stopping-reopen'),
+            advance: { type: 'events', events: ['ml-setup-done'] },
             skipIf: 'ml-dialog-not-needed',
         },
         {
