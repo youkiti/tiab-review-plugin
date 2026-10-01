@@ -15,6 +15,7 @@ import { buildMlLabelsFromReferences, buildScreenedDecisionsFromReferences, init
 import { saveDecisionOrQueue } from '../unsent-queue';
 import { getMlClientVersion } from './version';
 import { t } from '../../../lib/i18n';
+import { emitGuideEvent } from '../guide/lazy';
 
 // Store互換レイヤー（Phase 5）
 import {
@@ -126,6 +127,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
 
                 await initMlWorker();
                 renderMlSection();  // UI全体を更新
+                emitGuideEvent('ml-setup-done');
             });
         } else {
             // 2回目以降: 保存された設定を使用
@@ -143,6 +145,7 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
             }
             await initMlWorker();
             if (isCurrent()) renderMlSection();
+            emitGuideEvent('ml-setup-done');
         }
     }
 
@@ -180,6 +183,7 @@ async function handleMlDecision(decision: 'include' | 'exclude') {
 
     // API Save (background)
     saveMlDecisionWithQueue(decisionObj);
+    emitGuideEvent('ml-decision-saved');
 
     // 3. Update Stopping Rule
     if (state.mlState.stoppingRule) {

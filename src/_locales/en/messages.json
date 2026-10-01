@@ -1686,6 +1686,12 @@
   "guideExt_tourOpenFulltextHint": {
     "message": "Open a record in the Full-text tab to start."
   },
+  "guideExt_fulltextTourBtn": {
+    "message": "Tour"
+  },
+  "guideExt_fulltextTourBtnTitle": {
+    "message": "Start the guided tour of this page"
+  },
   "guide_suggestTitle": {
     "message": "New here?"
   },
@@ -1767,11 +1773,83 @@
   "guideExt_tour_assignment_setup_desc": {
     "message": "Walks you through having everyone screen the same records to calibrate, then splitting the rest."
   },
+  "guideExt_tour_assignment_setup_open_settings": {
+    "message": "Press the ⚙️ at the top right to open Settings. The assignment settings are near the bottom of that screen."
+  },
+  "guideExt_tour_assignment_setup_banner": {
+    "message": "When assignments are not set up yet, this card appears. If several people will share the work, press \"Split references now\". If you screen alone, you do not need to split."
+  },
+  "guideExt_tour_assignment_setup_wizard_numbers": {
+    "message": "Use the two fields above to choose how many records everyone screens together (calibration) and how many teams to split the rest into. The preview below shows the number of records per team as you change them. Press Next when you are done."
+  },
+  "guideExt_tour_assignment_setup_wizard_reviewers": {
+    "message": "Enter each team's reviewer email addresses, separated by commas. For independent screening by two people, that is usually two. You can leave this empty and fill it in later in Settings."
+  },
+  "guideExt_tour_assignment_setup_wizard_create": {
+    "message": "Pressing \"Create sets\" writes an assignment set to every record in the sheet. If you are not ready, \"Not now\" is fine too. You can also move on with \"Skip this step\" without pressing anything here."
+  },
+  "guideExt_tour_assignment_setup_reopen_settings": {
+    "message": "The sets have been created. Press ⚙️ again to open Settings and see where reviewers are saved."
+  },
+  "guideExt_tour_assignment_setup_save_map": {
+    "message": "Settings now shows a field for each team's reviewers. After entering their email addresses, press \"Save reviewer assignments\". You can also move on with \"Skip this step\" without saving now."
+  },
+  "guideExt_tour_assignment_setup_reshuffle": {
+    "message": "\"Re-split (redo)\" reassigns every record to a set from scratch. Once screening has started, the results would no longer match, so it cannot be pressed here. Use it only when you want to redo the split before screening begins. Press Next."
+  },
+  "guideExt_tour_assignment_setup_close_settings": {
+    "message": "Press \"Close\" to return to the Manual tab. If you split the records, an Assignment Sets panel appears lower on the screen."
+  },
+  "guideExt_tour_assignment_setup_sets": {
+    "message": "Each team's assignment set and reviewers are listed here. Toggle a checkbox to narrow the records you see. Each member sees only their own sets plus the calibration set shared by everyone."
+  },
+  "guideExt_tour_assignment_setup_finish": {
+    "message": "That covers setting up assignments. The ? on each card explains the idea any time. This ❓ also opens the other guided tours."
+  },
+  "guideExt_tour_assignment_setup_open_manual_tab": {
+    "message": "Assignments are set up from Settings on the Manual tab. First, open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_back_to_manual_tab": {
+    "message": "The Assignment Sets panel appears on the Manual tab. Open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_not_admin": {
+    "message": "The project administrator sets up assignments. You can see your own assignments in the Assignment Sets panel below the Manual tab."
+  },
   "guideExt_tour_share_invite_title": {
     "message": "Share and invite"
   },
   "guideExt_tour_share_invite_desc": {
     "message": "Walks you through sharing the sheet with collaborators and sending the invitation."
+  },
+  "guideExt_tour_share_invite_open_share": {
+    "message": "First press Share to open the sharing panel. This is where you invite collaborators."
+  },
+  "guideExt_tour_share_invite_add": {
+    "message": "Enter the Google account email address of the person you want to share with, then press Add. That person gets edit access and an invitation email. In a project with a folder, the whole folder is shared. This really shares the project, so to just look, press \"Skip this step\". The panel closes after you add."
+  },
+  "guideExt_tour_share_invite_reopen_share": {
+    "message": "The panel closes after you add someone. To see the rest, press Share again to reopen it."
+  },
+  "guideExt_tour_share_invite_link_warning": {
+    "message": "This warning appears when the sheet is open to anyone with the link. Anyone who knows the URL can view or change the decision data. First add every member as an individual share, then change the Drive sharing setting to Restricted."
+  },
+  "guideExt_tour_share_invite_shared_users": {
+    "message": "This is the list of people the project is shared with. You can see each role (owner or editor), and admins get a ✕ (remove access) on each row. Removing access locks that person out right away and can only be undone by inviting them again, so it is disabled during this tour. Press Next."
+  },
+  "guideExt_tour_share_invite_copy_invite": {
+    "message": "\"Copy invite message\" puts a message on the clipboard with where to install the extension, the sheet URL, and how to get started. Paste it into an email or chat to send it. If copying fails, a notice appears at the bottom of the screen. You can also move on without pressing it."
+  },
+  "guideExt_tour_share_invite_close_share": {
+    "message": "Next is Team progress. The sharing panel covers the chip, so press Share again to close the panel."
+  },
+  "guideExt_tour_share_invite_team_progress": {
+    "message": "Once the people you shared with start screening, this Team progress chip shows everyone's decision counts and last decision time. Press it to open the list, and use 🔄 to refresh. The Include / Exclude breakdown is not shown."
+  },
+  "guideExt_tour_share_invite_team_progress_later": {
+    "message": "The Team progress chip appears in the toolbar once there are two or more assigned reviewers or someone else has started screening. After the people you shared with start, you can check progress there."
+  },
+  "guideExt_tour_share_invite_finish": {
+    "message": "That covers sharing and inviting. This ❓ opens the other guided tours and the explanation for each screen at any time."
   },
   "guideExt_tour_resolve_conflicts_title": {
     "message": "Resolve conflicts"
@@ -1779,17 +1857,113 @@
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "Shows how to find records where reviewers disagree and reach a consensus."
   },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "This is the Blind switch. Until everyone has finished their independent decisions, other reviewers' decisions stay hidden. When everyone is done, an admin turns it on to \"open the key\". It affects the whole project, so you cannot press it in this tour."
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "Decisions are still blinded, so conflicts are not visible yet. Once an admin opens the key, open this tour again from ❓ → \"List of guided tours\" and the remaining steps will appear."
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "Choose \"Conflict\" in this filter to list only the records where reviewers disagree. Give it a try."
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "The record on screen is not a conflict. Set the filter to \"Conflict\" to step through only the records where decisions differ."
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "For a conflicting record, a warning appears above and every reviewer's decision and note is listed here. Read who decided what, and why, as the basis for your discussion."
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "When reviewers meet to reconcile, turn on 🤝 Consensus mode. Decisions saved while it is on are recorded as consensus decisions, separate from the independent first-pass decisions. You can turn it off again at any time."
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "Once you agree, decide again here. With Consensus mode on, the decision is saved as a consensus decision. This changes the record, so you may also continue without pressing. Turn Consensus mode off when you are done."
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "Conflicts in the Full text tab are settled in \"Post-decision review\" (not covered in this tour). You can reopen the tour list anytime from this ❓."
+  },
   "guideExt_tour_duplicate_review_title": {
     "message": "Review duplicates"
   },
   "guideExt_tour_duplicate_review_desc": {
     "message": "Shows how to check records flagged as duplicates and decide which to keep."
   },
+  "guideExt_tour_duplicate_review_open_tab": {
+    "message": "Duplicate Review is at the bottom of the Manual tab. Open the Manual tab first."
+  },
+  "guideExt_tour_duplicate_review_section": {
+    "message": "This is the Duplicate Review section. The \"unresolved duplicate candidate(s)\" count is the number of pairs nobody has checked yet. When you import records, pairs that share a PMID, DOI or title become candidates automatically."
+  },
+  "guideExt_tour_duplicate_review_rescan": {
+    "message": "\"Rescan Duplicates\" checks all current records again and looks for new candidates. The records themselves do not change; only the list of candidates can grow. You can press \"Skip this step\" instead."
+  },
+  "guideExt_tour_duplicate_review_no_candidates": {
+    "message": "There are no unresolved duplicate candidates right now. When an import or a rescan finds some, the count here goes up and you can open the comparison. Once you have candidates, open this tour again from ❓ > the list of guided tours to see the rest."
+  },
+  "guideExt_tour_duplicate_review_open_review": {
+    "message": "\"Review Duplicates\" opens a screen that shows the candidates one pair at a time. Opening it changes nothing. You can press \"Skip this step\" instead."
+  },
+  "guideExt_tour_duplicate_review_compare": {
+    "message": "The two records are listed side by side. Highlighted rows are the fields that differ. The badge at the top shows what matched (PMID, DOI, title and so on), and the counts below show how many human decisions each record has."
+  },
+  "guideExt_tour_duplicate_review_choose": {
+    "message": "Pressing \"Keep Left\" or \"Keep Right\" here really merges the records (the other one is marked as a duplicate; its row stays and only gets a mark). To just try the tour, press \"Skip this step\" instead. If the record to be removed already has human decisions, you are asked to confirm and those decisions stop counting (with no decisions, it is applied without asking). If they are different records, choose \"Different Records\". For a pair whose data is broken, only \"Different Records\" can be chosen."
+  },
+  "guideExt_tour_duplicate_review_bulk": {
+    "message": "This one is for explanation only. \"Apply All Auto-Resolvable\" merges pairs such as those sharing a PMID or DOI in one go, keeping the record with more human decisions. It affects every such pair, so it is locked here. To postpone, press the neighboring \"Review Later\" to close the window."
+  },
+  "guideExt_tour_duplicate_review_not_opened": {
+    "message": "\"Review Duplicates\" opens a comparison with the two records side by side, where you choose \"Keep Left\", \"Keep Right\" or \"Different Records\". Press it when you are ready to check."
+  },
+  "guideExt_tour_duplicate_review_after_review": {
+    "message": "Pairs you have decided drop out of the unresolved count. Pairs you left with \"Review Later\", and pairs you have not seen yet, stay in this count, and it goes up when \"Rescan Duplicates\" finds new candidates. You can continue any time from \"Review Duplicates\"."
+  },
+  "guideExt_tour_duplicate_review_finish": {
+    "message": "That is the end of the duplicate review guide. To see it again, open the list of guided tours from this ❓ at any time."
+  },
   "guideExt_tour_fulltext_setup_title": {
-    "message": "Prepare full-text screening"
+    "message": "Fulltext setup"
   },
   "guideExt_tour_fulltext_setup_desc": {
-    "message": "Walks you through choosing the records for full-text screening and gathering their PDFs."
+    "message": "Before you start full-text screening, check how candidates are chosen, who reviews what, and how to collect PDFs."
+  },
+  "guideExt_tour_fulltext_setup_open_tab": {
+    "message": "First, click the \"Full-text\" tab."
+  },
+  "guideExt_tour_fulltext_setup_views": {
+    "message": "The Full-text tab has three views. Use \"Candidates\" to collect and judge full texts, \"AI judge\" to have AI read them, and \"Review\" to compare the results. Let's look at \"Candidates\"."
+  },
+  "guideExt_tour_fulltext_setup_list_view": {
+    "message": "The full-text status and the candidate list are in the \"Candidates\" view. Click \"Candidates\"."
+  },
+  "guideExt_tour_fulltext_setup_rule": {
+    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.)"
+  },
+  "guideExt_tour_fulltext_setup_rule_pending": {
+    "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the Blind key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
+  },
+  "guideExt_tour_fulltext_setup_assignment": {
+    "message": "This is the full-text assignment. Check, and change if you are an admin, who reviews the full texts and how they are split. If assignments are set, only your own set appears in the list. Changing the assignment affects the whole project, so the button is disabled during the tour. To change it, finish the tour and then press the button."
+  },
+  "guideExt_tour_fulltext_setup_checklist": {
+    "message": "This checks the points where people often get stuck before starting. Look at your assignment set, permission to read the PDFs, and your progress. If an item is not marked, use the button in that row to fix it."
+  },
+  "guideExt_tour_fulltext_setup_fetch": {
+    "message": "Check how many full texts you have here. \"Fetch free full texts\" looks for freely available full texts and saves them to Drive (it takes a while). You can also move on without pressing it."
+  },
+  "guideExt_tour_fulltext_setup_no_candidates": {
+    "message": "There are no candidates yet. Keep screening in the Manual tab, or open the Blind key and set the candidate rule, and the full-text candidates will appear here. Once you have candidates, start this tour again from ❓ > \"List of guided tours\"."
+  },
+  "guideExt_tour_fulltext_setup_missing": {
+    "message": "A candidate without a full text shows ways to fill it in. Add your own PDF with \"Upload PDF\", or open the publisher page with \"DOI/PubMed\" and get it there."
+  },
+  "guideExt_tour_fulltext_setup_drive_import": {
+    "message": "If you put PDFs straight into the Drive folder, import them from here. You match each chosen PDF to a record, and it is saved to the project folder. Press it after this tour ends."
+  },
+  "guideExt_tour_fulltext_setup_open_page": {
+    "message": "Click a candidate card to open that record's full-text judgment page in another tab. You can try it, or move on without pressing it."
+  },
+  "guideExt_tour_fulltext_setup_finish": {
+    "message": "That is the full-text setup. If you get stuck, this \"?\" opens the explanation and the list of guided tours."
   },
   "guideExt_tour_ai_first_run_title": {
     "message": "Your first AI screening"
@@ -1797,17 +1971,110 @@
   "guideExt_tour_ai_first_run_desc": {
     "message": "Walks you through setting the AI model and criteria and running screening for the first time."
   },
+  "guideExt_tour_ai_first_run_open_tab": {
+    "message": "Press here to open the AI tab."
+  },
+  "guideExt_tour_ai_first_run_model": {
+    "message": "Pick the model used for AI screening. If unsure, the default is fine. Cost, speed and accuracy differ by model."
+  },
+  "guideExt_tour_ai_first_run_keys": {
+    "message": "Enter an API key in the row for your model's provider and press \"Verify and save\". You get the key from the provider. Free Gemini keys limit the processing speed. If a key is already set, use \"Skip this step\" to move on."
+  },
+  "guideExt_tour_ai_first_run_protocol": {
+    "message": "Paste the protocol's inclusion and exclusion criteria here. If you already have review criteria for human reviewers, \"Copy TiAb review criteria\" fills this in."
+  },
+  "guideExt_tour_ai_first_run_optimize": {
+    "message": "\"Optimize Criteria\" turns the pasted text into criteria and a prompt for the AI. This calls the API, so use \"Skip this step\" if you are only looking."
+  },
+  "guideExt_tour_ai_first_run_prompt": {
+    "message": "This is the generated prompt. Check it and edit it directly if something is missing. \"Save Criteria to Google Spreadsheet\" stores it in the sheet (saving costs nothing)."
+  },
+  "guideExt_tour_ai_first_run_prompt_wait": {
+    "message": "The prompt appears here once you optimize the criteria. There are none yet, so we move on. After you create them, open this tour again from the ❓ \"List of guided tours\" and it will continue from here."
+  },
+  "guideExt_tour_ai_first_run_batch_settings": {
+    "message": "Choose which records go to the AI. \"Target\" is all records by default. \"Run limit\" caps the count, so try a small number such as 10 first to keep the cost down."
+  },
+  "guideExt_tour_ai_first_run_batch_run": {
+    "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
+  },
+  "guideExt_tour_ai_first_run_threshold": {
+    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; 0.5 is the standard if unsure. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
+  },
+  "guideExt_tour_ai_first_run_threshold_wait": {
+    "message": "Once a run finishes, the threshold confirmation appears here, below the batch controls. You have not run it yet, so we move on. After a run, open this tour again from the ❓ \"List of guided tours\" and it will explain the threshold."
+  },
+  "guideExt_tour_ai_first_run_history": {
+    "message": "This is the Execution History at the bottom of the AI tab. Every run leaves a history entry. Runs with the same criteria and model are grouped into one Run, and the adopted Run is the one whose decisions are used. Choose which Run to adopt with the radio buttons here."
+  },
+  "guideExt_tour_ai_first_run_finish": {
+    "message": "That is the flow for your first AI screening. The AI is recorded as one independent reviewer, and you can compare its results with human decisions on the Manual tab. The ? on each card opens an explanation, and the ? next to the model opens the list of guided tours."
+  },
   "guideExt_tour_ml_start_title": {
     "message": "Start ML prioritization"
   },
   "guideExt_tour_ml_start_desc": {
     "message": "Shows how to use ML to learn from your decisions and rank the remaining records by priority."
   },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "Press the ML tab. ML learns from the records you have decided on and reorders the remaining ones so the likely relevant records come first. It is available only for projects with 1,000 or more records."
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "The first time you open it, a confirmation of the stopping rule (a guide for when to stop) appears. Review it and press \"Start with these settings\". This only confirms the setup for starting ML; your decision data is not changed. Afterwards you can check the current rule and your progress in the stopping rule display on the ML screen."
+  },
+  "guideExt_tour_ml_start_stopping_reopen": {
+    "message": "You closed the confirmation, so ML has not started yet. Switch to another tab such as the Manual tab, then press the ML tab again and the confirmation appears again. Review it and press \"Start with these settings\"."
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Press Include or Exclude to decide (the i / e keys work too). Your decision is actually saved. Once you have one Include and one Exclude, learning starts, and the order of the remaining records is updated after each decision. You can also move on without pressing."
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Here you can see the counts of Include, Exclude and Remaining (undecided) records. The badge at the top right shows the learning state (Not trained, Training, Ready). While it still says \"Not trained\", decide one Include and one Exclude."
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "This ? (the ❓ in the toolbar on the Manual tab) opens the explanation and the list of guided tours. You can start this tour again from there."
+  },
   "guideExt_tour_fulltext_page_title": {
     "message": "Full-text screening page"
   },
   "guideExt_tour_fulltext_page_desc": {
-    "message": "Shows how to use the separate tab where you open the PDF and screen the full text."
+    "message": "Walks you through the separate tab where you open the PDF and screen the full text: checking the bibliography and PDF, deciding, exclusion reasons, and moving to the next record."
+  },
+  "guideExt_tour_fulltext_page_biblio": {
+    "message": "The title, authors and DOI of the record appear here. Before you decide, compare them with the PDF below to make sure the wrong PDF has not been saved."
+  },
+  "guideExt_tour_fulltext_page_pdf": {
+    "message": "The PDF is shown below this bar. With no PDF yet, \"Upload PDF\" saves a file from your computer; with one, \"Upload a different PDF\" replaces it."
+  },
+  "guideExt_tour_fulltext_page_criteria": {
+    "message": "Press \"Criteria\" (or the c key) to open or close the review criteria with the inclusion and exclusion rules. Check it whenever you are unsure."
+  },
+  "guideExt_tour_fulltext_page_decision": {
+    "message": "When you have read the paper, choose Include (i), Exclude (e) or Maybe (m). Pressing one really saves the decision, and Include moves on to the next record. You can also continue without pressing."
+  },
+  "guideExt_tour_fulltext_page_reason_info": {
+    "message": "Choosing \"Exclude\" shows the list of exclusion reasons (Maybe shows a note box instead). When more than one applies, choose the one higher up (the smaller number). A number key also picks a reason."
+  },
+  "guideExt_tour_fulltext_page_reason": {
+    "message": "Choose the exclusion reason. When more than one applies, choose the one higher up (the smaller number). Clicking or pressing a number key saves and moves on. The note box is optional; Enter in it saves and moves on."
+  },
+  "guideExt_tour_fulltext_page_context": {
+    "message": "Open this to see the abstract and your own TiAb decision. After the key is opened, the other reviewers' decisions and notes are listed here too."
+  },
+  "guideExt_tour_fulltext_page_evidence": {
+    "message": "If the AI has judged the full text, its supporting quotes are listed here. Click one to jump to that place in the PDF; \"Show on PDF\" turns the highlights on or off. Without an AI decision, the list stays empty."
+  },
+  "guideExt_tour_fulltext_page_navigate": {
+    "message": "\"To undecided (u)\" jumps to the next record you have not decided yet. After you decide the last record, this tab closes by itself after a short wait (any action cancels it)."
+  },
+  "guideExt_tour_fulltext_page_finish": {
+    "message": "That is all. This \"?\" opens the matching page of the help. To see this tour again, press the \"Tour\" button next to it."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."

@@ -16,6 +16,7 @@ import type { Decision } from '../lib/types';
 import { session, effectiveEvidenceLevel } from './session';
 import { refreshEvidenceDisplay, findAiFulltext, countActiveRoundAiVotesForRef } from './evidence-controller';
 import { showFeedback } from './page-helpers';
+import { emitGuideEvent } from './guide';
 
 interface Dependencies {
     advanceToNext: () => void;
@@ -282,6 +283,7 @@ export async function chooseDecision(decision: 'include' | 'exclude' | 'maybe'):
     if (decision === 'exclude') {
         focusReasonSelect();     // キーボードで理由を選べるようフォーカス
         showFeedback(t('ftPage_excludeReasonHelp'));
+        emitGuideEvent('fulltext-exclude-chosen');
         return;                  // 理由確定で保存して advanceToNext する
     }
 
@@ -507,6 +509,7 @@ async function handleSave(): Promise<boolean> {
         platform().emitMessage({ type: 'team-progress:decision-saved', spreadsheetId: session.spreadsheetId, decision: decisionObj });
 
         showFeedback(t('ftPage_saved'));
+        emitGuideEvent('fulltext-decision-saved');
         return true;
     } catch (err) {
         showFeedback(t('ftPage_saveFailed', (err as Error).message), true);

@@ -15,6 +15,7 @@ import {
     startTour,
     suppressSuggestions,
     tourToSuggestOnEvent,
+    visibleStepPosition,
     type GuideSuggestContext,
 } from '../src/lib/guide/tour-progress';
 import { GUIDE_TOURS } from '../src/lib/guide/tours';
@@ -176,7 +177,9 @@ test('shouldSuggest: 使えるツアーのどれかが済・却下なら出さ�
 
 test('shouldSuggest: Web 版・作成権限なしではツアー1を数えない', () => {
     const doneFirst = completeTour(createEmptyGuideProgress(), 'first-project', NOW);
-    assert.deepEqual(availableTours(ctx({ platform: 'web' })).map((t) => t.id), ['join-project']);
+    const webIds = availableTours(ctx({ platform: 'web' })).map((t) => t.id);
+    assert.equal(webIds.includes('first-project'), false);
+    assert.equal(webIds.includes('join-project'), true);
     assert.equal(shouldSuggest(doneFirst, ctx({ platform: 'web' })), true);
     assert.equal(shouldSuggest(doneFirst, ctx({ capabilities: { createProject: false } })), true);
     const doneJoin = completeTour(createEmptyGuideProgress(), 'join-project', NOW);
@@ -218,14 +221,19 @@ test('shouldAdvance: optional な events の手順も、該当イベントで進
 });
 
 test('availableTours: draft の枠は含めず、渡した定義の中から選ぶ', () => {
-    const real = availableTours(ctx()).map((t) => t.id);
-    assert.deepEqual(real.sort(), ['first-project', 'join-project']);
-    for (const tour of Object.values(GUIDE_TOURS)) {
-        if (tour.draft) assert.equal(real.includes(tour.id), false, tour.id);
-    }
     const base = GUIDE_TOURS['join-project'];
     const draft: TourDefinition = { ...base, id: 'ml-start', draft: true, steps: [] };
     assert.deepEqual(availableTours(ctx(), [base, draft]).map((t) => t.id), ['join-project']);
+    assert.deepEqual(availableTours(ctx(), [draft]), []);
+});
+
+test('availableTours: 実在の定義では、draft が1本も返らず、draft でない拡張版のツアーは全部返る', () => {
+    const real = availableTours(ctx());
+    for (const tour of real) assert.equal(tour.draft, undefined, tour.id);
+    const expected = Object.values(GUIDE_TOURS)
+        .filter((tour) => !tour.draft && tour.platforms.includes('extension'))
+        .map((tour) => tour.id);
+    assert.deepEqual(real.map((t) => t.id).sort(), expected.sort());
 });
 
 /** 仕組みの確認用の架空のツアー（実際のツアーは draft のため、提案の純関数はこの定義で検査する）。 */
@@ -243,8 +251,10 @@ test('tourToSuggestOnEvent: suggestOn が一致し、まだ済・却下でなけ
     assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-llm', ctx(), [tour]), null);
     // suggestOn の無いツアーは対象外
     assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx(), [fakeTour({ suggestOn: undefined })]), null);
-    // 既定では実在のツアー（suggestOn を持つものが無い）から選ぶ
-    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx()), null);
+    // 既定では実在のツアーから選ぶ（draft でなく、拡張版の suggestOn が一致するもの。実在のツアーが増えても変わらない書き方）
+    const expectedReal = Object.values(GUIDE_TOURS)
+        .find((t) => !t.draft && t.platforms.includes('extension') && t.suggestOn === 'tab-opened-ml');
+    assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx())?.id ?? null, expectedReal?.id ?? null);
 });
 
 test('tourToSuggestOnEvent: 済・却下・実行中・今後表示しない・draft・プラットフォーム外・権限なしでは返さない', () => {
@@ -259,4 +269,37 @@ test('tourToSuggestOnEvent: 済・却下・実行中・今後表示しない・d
     assert.equal(tourToSuggestOnEvent(empty, 'tab-opened-ml', ctx({ capabilities: { createProject: false } }), [tour]), null);
     // 別のツアーの済・却下は影響しない
     assert.equal(tourToSuggestOnEvent(completeTour(empty, 'first-project', NOW), 'tab-opened-ml', ctx(), [tour]), tour);
+});
+
+const fakeSteps = (skips: Array<GuideCondition | undefined>) => ({
+    steps: skips.map((skipIf, i) => ({ id: `s${i}`, target: 't', textKey: 'k', advance: { type: 'next' as const }, skipIf })),
+});
+
+test('visibleStepPosition: 飛ばす手順が無ければ「添字 + 1 / 全部」', () => {
+    const tour = fakeSteps([undefined, undefined, undefined]);
+    assert.deepEqual(visibleStepPosition(tour, 0, {}), { position: 1, total: 3 });
+    assert.deepEqual(visibleStepPosition(tour, 2, {}), { position: 3, total: 3 });
+});
+
+test('visibleStepPosition: 前・後ろ・連続して飛ばされる手順は数えない', () => {
+    const tour = fakeSteps(['is-admin', undefined, 'no-assignment-sets', 'no-assignment-sets', undefined, 'is-admin']);
+    const cond = { 'is-admin': true, 'no-assignment-sets': true } as const;
+    assert.deepEqual(visibleStepPosition(tour, 1, cond), { position: 1, total: 2 });
+    assert.deepEqual(visibleStepPosition(tour, 4, cond), { position: 2, total: 2 });
+});
+
+test('visibleStepPosition: 条件が変わると分母が変わる', () => {
+    const tour = fakeSteps([undefined, 'is-admin', undefined, undefined]);
+    assert.deepEqual(visibleStepPosition(tour, 2, {}), { position: 3, total: 4 });
+    assert.deepEqual(visibleStepPosition(tour, 2, { 'is-admin': true }), { position: 2, total: 3 });
+    assert.deepEqual(visibleStepPosition(tour, 2, new Set<GuideCondition>(['is-admin'])), { position: 2, total: 3 });
+});
+
+test('visibleStepPosition: 飛ばされる手順そのものを渡すと、そこまでに出る手順の数（最低 1）。全部飛ぶなら 0 / 0', () => {
+    const tour = fakeSteps([undefined, 'is-admin', undefined]);
+    assert.deepEqual(visibleStepPosition(tour, 1, { 'is-admin': true }), { position: 1, total: 2 });
+    const leading = fakeSteps(['is-admin', undefined]);
+    assert.deepEqual(visibleStepPosition(leading, 0, { 'is-admin': true }), { position: 1, total: 1 });
+    const all = fakeSteps(['is-admin', 'is-admin']);
+    assert.deepEqual(visibleStepPosition(all, 0, { 'is-admin': true }), { position: 0, total: 0 });
 });

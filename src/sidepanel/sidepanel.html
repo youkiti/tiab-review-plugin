@@ -17,10 +17,10 @@
                 <span class="build-version">Build: 2026-09-18</span>
             </div>
             <div class="header-tabs hidden">
-                <button id="tab-screening" class="tab-btn active" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
-                <button id="tab-ml" class="tab-btn" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
-                <button id="tab-llm" class="tab-btn" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
-                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
+                <button id="tab-screening" class="tab-btn active" data-tour="tab-screening" data-i18n-title="nav_tabManualTitle" data-i18n="nav_tabManual"></button>
+                <button id="tab-ml" class="tab-btn" data-tour="ml-tab" data-i18n-title="nav_tabMlTitle" data-i18n="nav_tabMl"></button>
+                <button id="tab-llm" class="tab-btn" data-tour="tab-llm" data-i18n-title="nav_tabAiTitle" data-i18n="nav_tabAi"></button>
+                <button id="tab-fulltext" class="tab-btn tab-btn-fulltext" data-tour="tab-fulltext" data-i18n-title="nav_tabFulltextTitle"><span data-i18n="nav_tabFulltext"></span><span id="tab-fulltext-badge" class="tab-badge hidden"></span></button>
             </div>
             <div class="progress">
                 <span id="progress-text">0 / 0</span>
@@ -126,24 +126,24 @@
                     </div>
                 </div>
                 <div class="share-container">
-                    <button id="share-btn" class="btn btn-secondary btn-small" data-i18n="screening_share">
+                    <button id="share-btn" class="btn btn-secondary btn-small" data-tour="share-btn" data-i18n="screening_share">
                     </button>
                     <div id="share-input-area" class="share-input-area hidden">
                         <input type="email" id="share-email-input" data-i18n-placeholder="share_emailPlaceholder"
                             class="share-email-input" list="share-email-suggestions">
                         <datalist id="share-email-suggestions"></datalist>
-                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-i18n="share_add"></button>
+                        <button id="share-submit-btn" class="btn btn-primary btn-xsmall" data-tour="share-submit-btn" data-i18n="share_add"></button>
                         <button id="share-cancel-btn" class="btn btn-outline btn-xsmall">✕</button>
                         <button type="button" class="guide-help-btn" data-help="share" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                         <div id="share-suggestion-area" class="share-suggestion-area hidden">
                             <div class="share-suggestion-label" data-i18n="share_recentContacts"></div>
                             <div id="share-suggestion-chips" class="share-suggestion-chips"></div>
                         </div>
-                        <div class="shared-users-section">
+                        <div class="shared-users-section" data-tour="shared-users">
                             <h5 data-i18n="share_sharedUsers"></h5>
                             <div id="shared-users-list" class="shared-users-list"></div>
                         </div>
-                        <button id="share-copy-invite-btn" class="btn btn-primary btn-xsmall share-copy-invite-btn"
+                        <button id="share-copy-invite-btn" class="btn btn-primary btn-xsmall share-copy-invite-btn" data-tour="share-copy-invite-btn"
                             data-i18n="share_copyInvite" data-i18n-title="share_copyInviteHint"></button>
                     </div>
                 </div>
@@ -153,7 +153,7 @@
                         <span data-i18n="filter_aiHighlight"></span>
                     </label>
                 </div>
-                <div id="consensus-mode-container" class="consensus-mode-container hidden">
+                <div id="consensus-mode-container" class="consensus-mode-container hidden" data-tour="consensus-mode">
                     <label class="reviewer-label" style="font-weight: bold;" data-i18n-title="consensus_modeTooltip">
                         <input type="checkbox" id="consensus-mode-checkbox">
                         <span data-i18n="consensus_modeLabel"></span>
@@ -166,11 +166,11 @@
                 </div>
                 <button id="criteria-btn-screening" class="btn btn-icon" data-i18n-title="criteria_buttonTitle">📋<span
                         class="btn-icon-text" data-i18n="criteria_buttonLabel"></span></button>
-                <button id="settings-btn-screening" class="btn btn-icon" data-i18n-title="common_settings">⚙️<span
+                <button id="settings-btn-screening" class="btn btn-icon" data-tour="settings-open" data-i18n-title="common_settings">⚙️<span
                         class="btn-icon-text" data-i18n="common_settings"></span></button>
                 <button type="button" class="btn btn-icon btn-help" data-help="screening-toolbar" data-tour="tour-list" data-i18n-title="common_help">❓</button>
                 <!-- チーム進捗（全レビュアーの判定件数・最終判定日時） -->
-                <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden"></div>
+                <div id="team-progress-host" class="team-progress-host team-progress-host--toolbar hidden" data-tour="team-progress-host"></div>
                 <!-- 未送信キューバッジ（オフラインキューに件数がある間だけ表示。クリックで送信を試みる） -->
                 <button id="unsent-queue-badge" class="unsent-queue-badge hidden" type="button"></button>
                 <span id="import-status" class="import-status"></span>
@@ -188,7 +188,7 @@
 
             <!-- フィルター -->
             <div class="filters">
-                <select id="status-filter">
+                <select id="status-filter" data-tour="conflict-filter">
                     <optgroup label="自分の判定" data-i18n-label="filter_group_my">
                         <option value="pending" data-i18n="filter_pending"></option>
                         <option value="include" data-i18n="filter_include"></option>
@@ -220,7 +220,7 @@
                 <div id="tiab-done-banner" class="tiab-done-banner hidden"></div>
 
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
-                <div id="all-decisions" class="all-decisions hidden"></div>
+                <div id="all-decisions" class="all-decisions hidden" data-tour="all-decisions"></div>
 
                 <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
                 <div id="record-count-above" class="record-count-display hidden"></div>
@@ -349,7 +349,7 @@
                     <h2 data-i18n="settings_title"></h2>
                     <button type="button" class="guide-help-btn" data-help="settings" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 </div>
-                <button id="close-settings-btn" class="btn btn-outline btn-small" data-i18n="settings_close"></button>
+                <button id="close-settings-btn" class="btn btn-outline btn-small" data-tour="settings-close" data-i18n="settings_close"></button>
             </div>
 
             <div class="settings-content">
@@ -415,7 +415,7 @@
                             <p id="assignment-settings-status" class="setting-description"></p>
                         </div>
                         <button id="assignment-reset-btn" class="btn btn-secondary btn-small hidden"></button>
-                        <button id="assignment-reshuffle-btn" class="btn btn-secondary btn-small hidden"></button>
+                        <button id="assignment-reshuffle-btn" class="btn btn-secondary btn-small hidden" data-tour="assignment-reshuffle"></button>
                     </div>
                     <!-- 未設定時の案内カード -->
                     <div id="assignment-banner" class="assignment-banner hidden">
@@ -427,12 +427,12 @@
                             </div>
                             <p id="assignment-banner-desc" class="assignment-banner-desc"></p>
                             <div class="assignment-banner-actions">
-                                <button id="assignment-banner-open-btn" class="btn btn-primary btn-small"
+                                <button id="assignment-banner-open-btn" class="btn btn-primary btn-small" data-tour="assignment-banner-open"
                                     data-i18n="assignment_bannerOpen"></button>
                             </div>
                         </div>
                     </div>
-                    <div id="assignment-reviewer-map" class="assignment-reviewer-map hidden"></div>
+                    <div id="assignment-reviewer-map" class="assignment-reviewer-map hidden" data-tour="assignment-reviewer-map"></div>
                     <button id="assignment-save-btn" class="btn btn-primary btn-small hidden" data-i18n="assignment_settingsSaveMap"></button>
                 </div>
             </div>
@@ -449,10 +449,10 @@
             </div>
 
             <!-- 使うモデル -->
-            <div id="llm-model-card" class="llm-card">
+            <div id="llm-model-card" class="llm-card" data-tour="ai-model">
                 <h4 class="card-title">
                     <span id="llm-model-title" data-i18n="llm_modelCardTitle"></span>
-                    <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model">?</span>
+                    <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model" data-tour="tour-list">?</span>
                 </h4>
                 <div class="model-select-row">
                     <select id="llm-model-select" aria-labelledby="llm-model-title">
@@ -474,7 +474,7 @@
             </div>
 
             <!-- APIキー -->
-            <div id="llm-providers-card" class="llm-card">
+            <div id="llm-providers-card" class="llm-card" data-tour="ai-keys">
                 <h4 class="card-title"><span data-i18n="llm_apiKeysCardTitle"></span><button type="button" class="guide-help-btn" data-help="ai-keys" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button></h4>
                 <div class="provider-rows">
                     <div id="provider-row-gemini" class="provider-row" data-provider="gemini">
@@ -624,17 +624,18 @@
                     <button id="import-review-criteria-btn"
                         class="btn btn-outline btn-small protocol-import-btn hidden"
                         data-i18n="llm_importReviewCriteriaButton"></button>
-                    <textarea id="protocol-text-input" rows="6"
+                    <textarea id="protocol-text-input" rows="6" data-tour="ai-protocol"
                         data-i18n-placeholder="llm_protocolPlaceholder"></textarea>
                 </div>
 
-                <button id="optimize-criteria-btn" class="btn btn-primary btn-full" data-i18n="llm_optimizeBtn">
+                <button id="optimize-criteria-btn" class="btn btn-primary btn-full" data-tour="ai-optimize" data-i18n="llm_optimizeBtn">
                 </button>
                 <div id="optimize-status" class="optimize-status hidden"></div>
 
+                <div data-tour="ai-prompt">
                 <div class="criteria-section">
                     <label data-i18n="llm_optimizedLabel"></label>
-                    <div id="optimized-criteria-display" class="optimized-criteria-display">
+                    <div id="optimized-criteria-display" class="optimized-criteria-display" data-tour="ai-optimized">
                         <p class="placeholder-text" data-i18n="llm_optimizedPlaceholder"></p>
                     </div>
                     <textarea id="screening-prompt-input" rows="4" data-i18n-placeholder="llm_screeningPromptPlaceholder"
@@ -643,6 +644,7 @@
 
                 <button id="save-criteria-btn" class="btn btn-secondary btn-full hidden" data-i18n="llm_saveCriteria">
                 </button>
+                </div>
             </div>
 
             <!-- 一括実行 -->
@@ -653,6 +655,7 @@
                 </div>
 
                 <!-- 対象: 既定は全件。人間のお試しスクリーニングと同じ集合をAIに投げたいときに限定する -->
+                <div data-tour="ai-batch-settings">
                 <div class="setting-row batch-target-row">
                     <label data-i18n="llm_targetLabel"></label>
                     <span class="help-icon" data-i18n-tooltip="llm_tip_target" tabindex="0">?</span>
@@ -672,6 +675,7 @@
                         <option value="all" data-i18n="llm_batchMaxCountAll"></option>
                     </select>
                 </div>
+                </div>
 
                 <div id="batch-info" class="batch-info">
                     <span data-i18n="llm_batchPending"></span> <span id="batch-target-count">0</span>
@@ -684,9 +688,9 @@
                     <button type="button" id="batch-restart-run-btn" class="btn btn-outline btn-xsmall"></button>
                 </div>
 
-                <button id="start-batch-btn" class="btn btn-primary btn-full" data-i18n="llm_batchStart">
+                <button id="start-batch-btn" class="btn btn-primary btn-full" data-tour="ai-batch-run" data-i18n="llm_batchStart">
                 </button>
-                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-i18n="llm_batchStop">
+                <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-tour="ai-batch-run" data-i18n="llm_batchStop">
                 </button>
 
                 <div id="batch-progress" class="batch-progress hidden">
@@ -709,7 +713,7 @@
             </div>
 
             <!-- 閾値調整（実行完了後に表示） -->
-            <div id="threshold-section" class="llm-card hidden">
+            <div id="threshold-section" class="llm-card hidden" data-tour="ai-threshold">
                 <div class="guide-heading-row">
                     <h4 data-i18n="llm_thresholdTitle"></h4>
                     <button type="button" class="guide-help-btn" data-help="ai-threshold" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
@@ -750,7 +754,7 @@
             </div>
 
             <!-- LLM実行履歴 -->
-            <div class="llm-card collapsible">
+            <div class="llm-card collapsible" data-tour="ai-history">
                 <h4 class="collapsible-header">
                     <span data-i18n="llm_historyTitle"></span>
                     <span class="collapse-icon">▼</span>
@@ -769,7 +773,7 @@
             <div class="llm-toolbar">
                 <button id="ml-back-btn" class="btn btn-nav btn-small" data-i18n="screening_back"></button>
                 <span class="llm-title" data-i18n="ml_title"></span>
-                <button type="button" class="guide-help-btn" data-help="ml" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
+                <button type="button" class="guide-help-btn" data-help="ml" data-tour="tour-list" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 <button id="ml-settings-btn" class="btn btn-icon" data-i18n-title="common_settings">⚙️</button>
                 <div class="ml-status-badge" id="ml-status-badge">
                     <span class="status-indicator">●</span> <span id="ml-status-text" data-i18n="ml_statusIdle"></span>
@@ -783,7 +787,7 @@
                     <span class="collapse-icon">▼</span>
                 </h4>
                 <div class="collapsible-content">
-                    <div class="ml-stats-row">
+                    <div class="ml-stats-row" data-tour="ml-stats">
                         <div class="ml-stat-item">
                             <span class="label">Include</span>
                             <span class="value include" id="ml-count-include">0</span>
@@ -798,7 +802,7 @@
                         </div>
                     </div>
 
-                    <div class="stopping-rule-container">
+                    <div class="stopping-rule-container" data-tour="ml-stopping">
                         <div class="stopping-header">
                             <span class="stopping-label-group">
                                 <span class="label" data-i18n="ml_stoppingLabel"></span>
@@ -843,7 +847,7 @@
             </article>
 
             <!-- 判定ボタン -->
-            <div class="decision-buttons">
+            <div class="decision-buttons" data-tour="ml-decision-buttons">
                 <button id="ml-btn-include" class="btn btn-include" title="Include (i)">✓ Include (i)</button>
                 <button id="ml-btn-exclude" class="btn btn-exclude" title="Exclude (e)">✕ Exclude (e)</button>
             </div>
@@ -903,19 +907,19 @@
         <section id="fulltext-section" class="section hidden">
             <div class="llm-toolbar">
                 <button id="fulltext-back-btn" class="btn btn-nav btn-small" data-i18n-title="nav_backToProject" data-i18n="screening_back"></button>
-                <button type="button" class="guide-help-btn" data-help="fulltext-views" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
+                <button type="button" class="guide-help-btn" data-help="fulltext-views" data-tour="tour-list" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
             </div>
 
             <!-- ビュー切替: 候補リスト / AI判定 / 判定後レビュー -->
-            <div class="fulltext-viewmode-row" role="tablist">
-                <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-mode="list" data-i18n="fulltext_modeList"></button>
+            <div class="fulltext-viewmode-row" role="tablist" data-tour="fulltext-views">
+                <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-tour="fulltext-mode-list" data-mode="list" data-i18n="fulltext_modeList"></button>
                 <button id="fulltext-mode-ai" class="fulltext-mode-btn" data-mode="ai" data-i18n="fulltext_modeAi"></button>
                 <button id="fulltext-mode-results" class="fulltext-mode-btn" data-mode="results" data-i18n="fulltext_modeResults"></button>
             </div>
 
             <!-- ① 候補ルール + 判定進捗 -->
             <div class="fulltext-summary">
-                <div class="fulltext-rule-row">
+                <div class="fulltext-rule-row" data-tour="fulltext-rule">
                     <div id="fulltext-rule-line" class="fulltext-rule-line"></div>
                     <button id="fulltext-rule-edit-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_ruleEdit"></button>
                     <button type="button" class="guide-help-btn" data-help="fulltext-candidates" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
@@ -929,7 +933,7 @@
                 </div>
                 <div id="fulltext-reason-editor" class="fulltext-reason-editor hidden"></div>
                 <!-- 担当割り振り（候補プール確定後の再分割・レビュアー追加） -->
-                <div class="fulltext-rule-row">
+                <div class="fulltext-rule-row" data-tour="fulltext-assignment">
                     <div id="fulltext-assignment-line" class="fulltext-rule-line"></div>
                     <button id="fulltext-assignment-edit-btn" class="btn btn-small btn-secondary hidden"></button>
                     <button type="button" class="guide-help-btn" data-help="fulltext-assignment" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
@@ -945,10 +949,10 @@
             </div>
 
             <!-- ⓪ セットアップチェックリスト（各自がつまずきやすい3点を状態から自動判定。fulltext-checklist.ts） -->
-            <div id="fulltext-checklist" class="fulltext-checklist hidden"></div>
+            <div id="fulltext-checklist" class="fulltext-checklist hidden" data-tour="fulltext-checklist"></div>
 
             <!-- ② 全文の入手状況 + 一括OA検索 -->
-            <div class="fulltext-retrieval">
+            <div class="fulltext-retrieval" data-tour="fulltext-retrieval">
                 <div id="fulltext-obtained-line" class="fulltext-obtained-line"></div>
                 <div class="fulltext-status-bar">
                     <div id="fulltext-status-bar-fill" class="fulltext-status-bar-fill"></div>
@@ -977,12 +981,12 @@
                 </select>
                 <button type="button" class="guide-help-btn" data-help="fulltext-registry" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
             </div>
-            <div id="fulltext-list" class="fulltext-list">
+            <div id="fulltext-list" class="fulltext-list" data-tour="fulltext-list">
                 <!-- 候補カードがここに入る -->
             </div>
 
             <!-- ④ Driveへ直接置かれたPDFの取り込み（Pickerで選択→対応付けUI→files.copyで取り込み） -->
-            <div class="fulltext-drive-import">
+            <div class="fulltext-drive-import" data-tour="fulltext-drive-import">
                 <button id="fulltext-import-drive-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_importDriveBtn"></button>
                 <button type="button" class="guide-help-btn" data-help="fulltext-drive-import" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
                 <div id="fulltext-import-drive-status" class="fulltext-drive-import-status hidden"></div>

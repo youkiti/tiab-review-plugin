@@ -1,7 +1,10 @@
 // シナリオ1回ぶんの実行状態（ページ・拡張機能 ID・スクリーンショット連番）と、シナリオが使う操作・待ちの道具。
 
 import path from 'node:path';
-import { OUT_DIR, REPO_ROOT, STEP_TIMEOUT, ACTION_TIMEOUT, NEGATIVE_WAIT, DEMO_SHEET_URL, sleep } from './constants.mjs';
+import {
+    OUT_DIR, REPO_ROOT, STEP_TIMEOUT, ACTION_TIMEOUT, NEGATIVE_WAIT, DEMO_SHEET_URL, DEMO_SPREADSHEET_ID,
+    DEMO_SIGNED_IN_STORAGE_KEY, sleep,
+} from './constants.mjs';
 
 export class Run {
     constructor(name, page, extId, lang) {
@@ -149,6 +152,42 @@ export class Run {
 
     sidepanelUrl(query = '') {
         return `chrome-extension://${this.extId}/sidepanel/sidepanel.html${query}`;
+    }
+
+    fulltextUrl(refId, query = '') {
+        return `chrome-extension://${this.extId}/fulltext/fulltext.html?ref_id=${encodeURIComponent(refId)}${query}`;
+    }
+
+    /**
+     * 全文の判定ページ（fulltext.html）を開く。このページはサイドパネルの接続フローが保存した
+     * プロジェクト ID を読み、デモのサインイン済みフラグがないと認証できないため、先に拡張機能の
+     * ページ（popup.html。chrome.* が使える）でその2つを chrome.storage.local へ書いてから開く。
+     * page を渡すと、そのページで開く（既定は run.page）。レビュー基準の自動表示（未読のとき）が開いていれば閉じる。
+     */
+    async openFulltextPage(refId, { query = '', page = this.page } = {}) {
+        await page.goto(`chrome-extension://${this.extId}/popup/popup.html`);
+        await page.evaluate(
+            ({ signedKey, spreadsheetId }) => chrome.storage.local.set({ [signedKey]: true, spreadsheetId }),
+            { signedKey: DEMO_SIGNED_IN_STORAGE_KEY, spreadsheetId: DEMO_SPREADSHEET_ID },
+        );
+        await page.goto(this.fulltextUrl(refId, query));
+        try {
+            await page.locator('#ft-biblio:not(.hidden)').waitFor({ state: 'visible', timeout: STEP_TIMEOUT });
+        } catch (err) {
+            await this.fail('open-fulltext', '全文の判定ページの書誌バー（#ft-biblio）が表示されること', err);
+        }
+        // レビュー基準は未読のとき、読み込みの終わりに自動で開く（非同期）。少し待ってから、開いていれば閉じる
+        await sleep(1000);
+        await this.closeCriteriaModal(page);
+    }
+
+    /** 全文の判定ページのレビュー基準モーダルが開いていれば閉じる。 */
+    async closeCriteriaModal(page = this.page) {
+        const open = await page.locator('#ft-criteria-backdrop:not(.hidden)').count().catch(() => 0);
+        if (open > 0) {
+            await page.locator('#ft-criteria-close-btn').click({ timeout: 3000 }).catch(() => {});
+            await sleep(200);
+        }
     }
 
     /** 未サインインで開き、ダイアログを一括処理する設定を入れてから、ログインボタンでサインインする。 */
