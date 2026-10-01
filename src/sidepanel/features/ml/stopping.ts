@@ -4,16 +4,15 @@ import {
     calculateThresholdFromPercent,
     STOPPING_PRESETS,
     canUseCmhStopping,
-    isCmhStoppingReached,
     getCmhStoppingProgressPercent
 } from '../../../lib/ml/stopping-rules';
+import { LEGACY_CMH_SAVED_THRESHOLD, type StoppingRuleKind } from '../../../lib/ml/stopping-restore';
 import {
     createStoppingRule,
-    createCmhStoppingRule,
     CmhStoppingRule,
     isCmhStoppingRule
 } from '../../../lib/ml/types';
-import { CMH_DEFAULTS } from '../../../lib/ml/cmh';
+import { CMH_DEFAULTS } from '../../../lib/ml/cmh-defaults';
 import { showModal, hideModal } from '../../ui/modal';
 import { renderMlStats } from './render';
 import { bulkExcludeRemaining, getMlStats, resetAndStartNewMlReview } from './operations';
@@ -24,11 +23,18 @@ import { emitGuideEvent } from '../guide/lazy';
 // Store互換レイヤー（Phase 5）
 import { setMlState as syncSetMlState } from '../../store/compat';
 
+/** 初回ダイアログで確定した停止基準。 */
+export interface InitialStoppingChoice {
+    ruleType: StoppingRuleKind;
+    /** CMH のときは旧形式の保存値との互換を保つ固定値。 */
+    threshold: number;
+}
+
 /**
  * 初回セットアップダイアログを表示（CMH対応）
  */
 export function showInitialStoppingRuleDialog(
-    onConfirm: (threshold: number) => void
+    onConfirm: (choice: InitialStoppingChoice) => void
 ) {
     const totalRecords = state.references.length;
     const canUseCmh = canUseCmhStopping(totalRecords);
@@ -45,39 +51,29 @@ export function showInitialStoppingRuleDialog(
 /**
  * CMH セットアップダイアログ
  */
-function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
-    const totalRecords = state.references.length;
-
+function showCmhSetupDialog(onConfirm: (choice: InitialStoppingChoice) => void) {
     const body = document.createElement('div');
     body.innerHTML = `
         <div style="margin-bottom: 16px;">
             <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
                 <p style="margin: 0; font-size: 14px; line-height: 1.6;">
-                    <strong>📊 統計的停止基準（CMH）</strong><br>
-                    目標リコール <strong>${(CMH_DEFAULTS.targetRecall * 100).toFixed(0)}%</strong> を
-                    信頼水準 <strong>${(CMH_DEFAULTS.confidence * 100).toFixed(0)}%</strong> で達成したと判断できた時点で
-                    停止を提案します。
+                    <strong>${t('ml_cmhTitle')}</strong><br>
+                    ${t('ml_cmhDescription', [(CMH_DEFAULTS.targetRecall * 100).toFixed(0), (CMH_DEFAULTS.confidence * 100).toFixed(0)])}
                 </p>
             </div>
             
             <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <p style="margin: 0 0 8px 0; font-weight: 500;">スクリーニング手順:</p>
+                <p style="margin: 0 0 8px 0; font-weight: 500;">${t('ml_screeningProcedure')}</p>
                 <ol style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8;">
-                    <li>最初の <strong>${CMH_DEFAULTS.initialRandomSize}件</strong> はランダムに提示</li>
-                    <li>その後は ML の優先順位に従って提示</li>
-                    <li>統計基準を満たしたら停止を提案</li>
+                    <li>${t('ml_priorityOrder')}</li>
+                    <li>${t('ml_minimumBeforeStop', [String(CMH_DEFAULTS.warmupSize + CMH_DEFAULTS.minAdditionalScreened), String(CMH_DEFAULTS.minIncludedForStop)])}</li>
+                    <li>${t('ml_stopProposal')}</li>
                 </ol>
             </div>
             
             <div style="font-size: 12px; color: #666; line-height: 1.5;">
                 <p style="margin: 0;">
-                    ⓘ 詳しくは
-                    <a href="https://doi.org/10.1186/s13643-020-01521-4" 
-                       target="_blank" 
-                       style="color: #1a73e8; text-decoration: underline;">
-                       Callaghan & Müller-Hansen (2020)
-                    </a>
-                    を参照してください。
+                    ${t('ml_cmhReference', '<a href="https://doi.org/10.1186/s13643-020-01521-4" target="_blank" style="color: #1a73e8; text-decoration: underline;">Callaghan & Müller-Hansen (2020)</a>')}
                 </p>
             </div>
         </div>
@@ -92,16 +88,9 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
     let confirmed = false;
     confirmBtn.onclick = () => {
         confirmed = true;
-        // CMH ルールを作成して state に設定
-        const cmhRule = createCmhStoppingRule();
-        syncSetMlState({
-            ...state.mlState,
-            stoppingRule: cmhRule,
-            screeningPhase: 'initial_random',
-        });
-
-        // 後方互換性のため threshold も渡す
-        onConfirm(cmhRule.initialRandomSize);
+        // 基準の作成と state への設定は onConfirm 側（保存と同じ経路）で行う。
+        // threshold は旧形式の保存値との互換のため、固定の目印を渡す。
+        onConfirm({ ruleType: 'cmh', threshold: LEGACY_CMH_SAVED_THRESHOLD });
         hideModal();
     };
     footer.appendChild(confirmBtn);
@@ -121,7 +110,7 @@ function showCmhSetupDialog(onConfirm: (threshold: number) => void) {
  * 旧停止基準ダイアログ（N < 1000 の場合）
  */
 function showLegacyStoppingRuleDialog(
-    onConfirm: (threshold: number) => void,
+    onConfirm: (choice: InitialStoppingChoice) => void,
     totalRecords: number
 ) {
     const body = document.createElement('div');
@@ -165,7 +154,7 @@ function showLegacyStoppingRuleDialog(
     confirmBtn.textContent = t('ml_startWithSettings');
     confirmBtn.onclick = () => {
         const threshold = parseInt(select.value, 10);
-        onConfirm(threshold);
+        onConfirm({ ruleType: 'consecutive', threshold });
         hideModal();
     };
     footer.appendChild(confirmBtn);
@@ -285,7 +274,7 @@ export function showStoppingSettingsDialog() {
         });
 
         // ブラウザストレージに永続化
-        saveStoppingRuleToStorage(currentThreshold);
+        saveStoppingRuleToStorage(currentThreshold, 'consecutive');
 
         renderMlStats(); // Update UI
         hideModal();
@@ -443,23 +432,22 @@ function showCmhStoppingReachedDialog(
             <div style="font-size: 48px; margin-bottom: 8px;">✅</div>
             <p style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">${t('ml_cmhCriteriaMet')}</p>
             <p style="color: #666; font-size: 14px; line-height: 1.6;">
-                目標リコール <strong>${(rule.targetRecall * 100).toFixed(0)}%</strong> を<br>
-                信頼水準 <strong>${(rule.confidence * 100).toFixed(0)}%</strong> で達成したと推定されます。
+                ${t('ml_cmhMetDescription', [(rule.targetRecall * 100).toFixed(0), (rule.confidence * 100).toFixed(0)])}
             </p>
         </div>
         
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>${t('ml_screenedCount')}</span>
-                <strong>${rule.screened} 件</strong>
+                <strong>${t('ml_recordCount', String(rule.screened))}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Include:</span>
-                <strong style="color: #34a853;">${rule.included} 件</strong>
+                <strong style="color: #34a853;">${t('ml_recordCount', String(rule.included))}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>${t('ml_remainingUnread')}</span>
-                <strong>${remaining} 件</strong>
+                <strong>${t('ml_recordCount', String(remaining))}</strong>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span>${t('ml_pValue')}</span>
@@ -467,18 +455,10 @@ function showCmhStoppingReachedDialog(
             </div>
         </div>
         
-        <div class="list-item-btn" id="action-audit">
-            <span class="list-item-icon">🔍</span>
-            <div class="list-item-content">
-                <span class="list-item-primary">${t('ml_auditSamplingRecommended')}</span>
-                <span class="list-item-secondary">${t('ml_auditRandomSample', String(CMH_DEFAULTS.auditSampleSize))}</span>
-            </div>
-        </div>
-
         <div class="list-item-btn" id="action-finish">
             <span class="list-item-icon">🏁</span>
             <div class="list-item-content">
-                <span class="list-item-primary">${t('ml_finishWithoutAudit')}</span>
+                <span class="list-item-primary">${t('ml_finishExcludeRest')}</span>
                 <span class="list-item-secondary">${t('ml_saveAllExclude')}</span>
             </div>
         </div>
@@ -493,11 +473,6 @@ function showCmhStoppingReachedDialog(
     `;
 
     // Bind actions
-    body.querySelector('#action-audit')!.addEventListener('click', () => {
-        hideModal();
-        showAuditSamplingDialog(rule, totalRecords, onContinue, onFinish);
-    });
-
     body.querySelector('#action-finish')!.addEventListener('click', () => {
         hideModal();
         showBulkExcludeConfirmDialog(onFinish);
@@ -517,71 +492,6 @@ function showCmhStoppingReachedDialog(
 
     showModal({
         title: t('ml_stopRecommendedTitle'),
-        body: body,
-        footer: footer
-    });
-}
-
-/**
- * 監査サンプリングダイアログ
- */
-function showAuditSamplingDialog(
-    rule: CmhStoppingRule,
-    totalRecords: number,
-    onContinue: (addCount: number) => void,
-    onFinish: () => void
-) {
-    const remaining = totalRecords - rule.screened;
-    const auditSize = Math.min(CMH_DEFAULTS.auditSampleSize, remaining);
-
-    const body = document.createElement('div');
-    body.innerHTML = `
-        <div style="margin-bottom: 16px;">
-            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
-                残り <strong>${remaining}件</strong> から
-                <strong>${auditSize}件</strong> をランダムに抽出してレビューします。
-            </p>
-            
-            <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
-                <p style="margin: 0; font-size: 13px; line-height: 1.5;">
-                    ✅ 監査で <strong>0件</strong> の Include が見つかった場合：<br>
-                    → スクリーニング完了を確定
-                </p>
-            </div>
-            
-            <div style="background: #fff3e0; padding: 12px; border-radius: 6px;">
-                <p style="margin: 0; font-size: 13px; line-height: 1.5;">
-                    ⚠️ 監査で <strong>1件以上</strong> の Include が見つかった場合：<br>
-                    → スクリーニング続行を強く推奨
-                </p>
-            </div>
-        </div>
-    `;
-
-    const footer = document.createElement('div');
-    footer.style.display = 'flex';
-    footer.style.gap = '8px';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.className = 'btn btn-outline btn-small';
-    cancelBtn.textContent = t('common_cancel');
-    cancelBtn.onclick = () => hideModal();
-
-    const startBtn = document.createElement('button');
-    startBtn.className = 'btn btn-primary btn-small';
-    startBtn.textContent = t('ml_startAudit');
-    startBtn.onclick = () => {
-        hideModal();
-        // TODO: 監査サンプリングを実行
-        showToast(t('ml_auditStartMessage', String(auditSize)));
-        onContinue(auditSize);
-    };
-
-    footer.appendChild(cancelBtn);
-    footer.appendChild(startBtn);
-
-    showModal({
-        title: t('ml_auditTitle'),
         body: body,
         footer: footer
     });

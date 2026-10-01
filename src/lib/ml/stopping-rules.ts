@@ -6,7 +6,7 @@
  */
 
 import { StoppingRule, CmhStoppingRule, ConsecutiveStoppingRule, isCmhStoppingRule } from './types';
-import { calculateCmhStopping } from './cmh';
+import { CMH_DEFAULTS } from './cmh-defaults';
 
 // ========================================
 // 旧方式（連続除外）の関数群
@@ -48,74 +48,17 @@ export function getConsecutiveStoppingProgressPercent(rule: ConsecutiveStoppingR
 // ========================================
 
 /**
- * CMH 停止基準を更新する
- * 
- * @param rule - 現在の CMH ルール
- * @param decision - ラベル判定
- * @param totalRecords - 総レコード数
- * @returns 更新後の CMH ルール
- */
-export function updateCmhStoppingProgress(
-    rule: CmhStoppingRule,
-    decision: 'include' | 'exclude',
-    totalRecords: number
-): CmhStoppingRule {
-    const newDecision: 0 | 1 = decision === 'include' ? 1 : 0;
-    const newRecentDecisions = [...rule.recentDecisions, newDecision];
-
-    const newScreened = rule.screened + 1;
-    const newIncluded = decision === 'include' ? rule.included + 1 : rule.included;
-
-    // 初期フェーズ完了判定
-    const newInitialPhaseComplete = rule.initialPhaseComplete ||
-        newScreened >= rule.initialRandomSize;
-
-    // CMH 計算（初期フェーズ完了後、updateInterval ごとに更新）
-    let canStop = rule.canStop;
-    let probUnderTarget = rule.probUnderTarget;
-
-    if (newInitialPhaseComplete && newScreened % rule.updateInterval === 0) {
-        const result = calculateCmhStopping(
-            totalRecords,
-            newScreened,
-            newIncluded,
-            newRecentDecisions,
-            rule.targetRecall,
-            rule.confidence
-        );
-        canStop = result.canStop;
-        probUnderTarget = result.minProbTarget;
-    }
-
-    return {
-        ...rule,
-        screened: newScreened,
-        included: newIncluded,
-        initialPhaseComplete: newInitialPhaseComplete,
-        canStop,
-        probUnderTarget,
-        recentDecisions: newRecentDecisions,
-    };
-}
-
-/**
  * CMH 停止基準に到達したかどうか
  */
 export function isCmhStoppingReached(rule: CmhStoppingRule): boolean {
-    // ガード条件:
-    // 1. 初期フェーズ完了
-    // 2. 最小 include 数 (10)
-    // 3. 初期後の追加スクリーニング (100)
-    const minIncludeCount = 10;
-    const minAdditionalScreening = 100;
-
-    if (!rule.initialPhaseComplete) {
+    // ウォームアップと最低限の Include・追加判定件数を満たすまで停止しない。
+    if (!rule.warmupComplete) {
         return false;
     }
-    if (rule.included < minIncludeCount) {
+    if (rule.included < CMH_DEFAULTS.minIncludedForStop) {
         return false;
     }
-    if (rule.screened < rule.initialRandomSize + minAdditionalScreening) {
+    if (rule.screened < rule.warmupSize + CMH_DEFAULTS.minAdditionalScreened) {
         return false;
     }
 
@@ -128,9 +71,9 @@ export function isCmhStoppingReached(rule: CmhStoppingRule): boolean {
  * 信頼度ベース: probUnderTarget が 1-confidence に近づくほど 100% に近づく
  */
 export function getCmhStoppingProgressPercent(rule: CmhStoppingRule): number {
-    if (!rule.initialPhaseComplete) {
-        // 初期フェーズ中は初期フェーズの進捗を返す
-        return Math.min(100, Math.round((rule.screened / rule.initialRandomSize) * 100));
+    if (!rule.warmupComplete) {
+        // ウォームアップ中はウォームアップの進捗を返す
+        return Math.min(100, Math.round((rule.screened / rule.warmupSize) * 100));
     }
 
     // 停止閾値 = 1 - confidence (例: 0.05)
@@ -148,26 +91,6 @@ export function getCmhStoppingProgressPercent(rule: CmhStoppingRule): number {
 // ========================================
 // 汎用関数（型に応じて振り分け）
 // ========================================
-
-/**
- * 停止進捗を更新する（汎用）
- * 
- * @deprecated CMH に移行後は updateCmhStoppingProgress を直接使用
- */
-export function updateStoppingProgress(
-    rule: StoppingRule,
-    decision: 'include' | 'exclude',
-    totalRecords?: number
-): StoppingRule {
-    if (isCmhStoppingRule(rule)) {
-        if (totalRecords === undefined) {
-            throw new Error('totalRecords is required for CMH stopping rule');
-        }
-        return updateCmhStoppingProgress(rule, decision, totalRecords);
-    } else {
-        return updateConsecutiveStoppingProgress(rule, decision);
-    }
-}
 
 /**
  * 停止基準に到達したかどうか（汎用）
