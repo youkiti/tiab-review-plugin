@@ -17,6 +17,7 @@ import { t } from '../../lib/i18n';
 import { handleAssignmentResetClick, handleAssignmentReshuffleClick, handleAssignmentSaveMap, renderAssignmentManager } from './assignment';
 import { platform } from '../../platform';
 import { perfSpanSync } from '../../lib/perf';
+import { emitGuideEvent } from './guide/lazy';
 
 // Store互換レイヤー（Phase 3）
 import {
@@ -48,6 +49,7 @@ export function showSettings() {
     return perfSpanSync('tiab:settings.show', () => {
         renderAssignmentManager();
         changeView('settings');
+        emitGuideEvent('settings-opened');
     });
 }
 
@@ -60,6 +62,7 @@ export function hideSettings() {
     } else {
         changeView('project');
     }
+    emitGuideEvent('settings-closed');
 }
 
 /**

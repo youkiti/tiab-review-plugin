@@ -1773,6 +1773,48 @@
   "guideExt_tour_assignment_setup_desc": {
     "message": "Walks you through having everyone screen the same records to calibrate, then splitting the rest."
   },
+  "guideExt_tour_assignment_setup_open_settings": {
+    "message": "Press the ⚙️ at the top right to open Settings. The assignment settings are near the bottom of that screen."
+  },
+  "guideExt_tour_assignment_setup_banner": {
+    "message": "When assignments are not set up yet, this card appears. If several people will share the work, press \"Split references now\". If you screen alone, you do not need to split."
+  },
+  "guideExt_tour_assignment_setup_wizard_numbers": {
+    "message": "Use the two fields above to choose how many records everyone screens together (calibration) and how many teams to split the rest into. The preview below shows the number of records per team as you change them. Press Next when you are done."
+  },
+  "guideExt_tour_assignment_setup_wizard_reviewers": {
+    "message": "Enter each team's reviewer email addresses, separated by commas. For independent screening by two people, that is usually two. You can leave this empty and fill it in later in Settings."
+  },
+  "guideExt_tour_assignment_setup_wizard_create": {
+    "message": "Pressing \"Create sets\" writes an assignment set to every record in the sheet. If you are not ready, \"Not now\" is fine too. You can also move on with \"Skip this step\" without pressing anything here."
+  },
+  "guideExt_tour_assignment_setup_reopen_settings": {
+    "message": "The sets have been created. Press ⚙️ again to open Settings and see where reviewers are saved."
+  },
+  "guideExt_tour_assignment_setup_save_map": {
+    "message": "Settings now shows a field for each team's reviewers. After entering their email addresses, press \"Save reviewer assignments\". You can also move on with \"Skip this step\" without saving now."
+  },
+  "guideExt_tour_assignment_setup_reshuffle": {
+    "message": "\"Re-split (redo)\" reassigns every record to a set from scratch. Once screening has started, the results would no longer match, so it cannot be pressed here. Use it only when you want to redo the split before screening begins. Press Next."
+  },
+  "guideExt_tour_assignment_setup_close_settings": {
+    "message": "Press \"Close\" to return to the Manual tab. If you split the records, an Assignment Sets panel appears lower on the screen."
+  },
+  "guideExt_tour_assignment_setup_sets": {
+    "message": "Each team's assignment set and reviewers are listed here. Toggle a checkbox to narrow the records you see. Each member sees only their own sets plus the calibration set shared by everyone."
+  },
+  "guideExt_tour_assignment_setup_finish": {
+    "message": "That covers setting up assignments. The ? on each card explains the idea any time. This ❓ also opens the other guided tours."
+  },
+  "guideExt_tour_assignment_setup_open_manual_tab": {
+    "message": "Assignments are set up from Settings on the Manual tab. First, open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_back_to_manual_tab": {
+    "message": "The Assignment Sets panel appears on the Manual tab. Open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_not_admin": {
+    "message": "The project administrator sets up assignments. You can see your own assignments in the Assignment Sets panel below the Manual tab."
+  },
   "guideExt_tour_share_invite_title": {
     "message": "Share and invite"
   },
@@ -1973,6 +2015,30 @@
   },
   "guideExt_tour_ml_start_desc": {
     "message": "Shows how to use ML to learn from your decisions and rank the remaining records by priority."
+  },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "Press the ML tab. ML learns from the records you have decided on and reorders the remaining ones so the likely relevant records come first. It is available only for projects with 1,000 or more records."
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "The first time you open it, a confirmation of the stopping rule (a guide for when to stop) appears. Review it and press \"Start with these settings\". This only confirms the setup for starting ML; your decision data is not changed. Afterwards you can check the current rule and your progress in the stopping rule display on the ML screen."
+  },
+  "guideExt_tour_ml_start_stopping_reopen": {
+    "message": "You closed the confirmation, so ML has not started yet. Switch to another tab such as the Manual tab, then press the ML tab again and the confirmation appears again. Review it and press \"Start with these settings\"."
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Press Include or Exclude to decide (the i / e keys work too). Your decision is actually saved. Once you have one Include and one Exclude, learning starts, and the order of the remaining records is updated after each decision. You can also move on without pressing."
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Here you can see the counts of Include, Exclude and Remaining (undecided) records. The badge at the top right shows the learning state (Not trained, Training, Ready). While it still says \"Not trained\", decide one Include and one Exclude."
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "This ? (the ❓ in the toolbar on the Manual tab) opens the explanation and the list of guided tours. You can start this tour again from there."
   },
   "guideExt_tour_fulltext_page_title": {
     "message": "Full-text screening page"

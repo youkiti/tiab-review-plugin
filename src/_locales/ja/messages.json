@@ -1773,6 +1773,48 @@
   "guideExt_tour_assignment_setup_desc": {
     "message": "全員で同じ文献を判定して基準をそろえ、残りを分担する設定を案内します。"
   },
+  "guideExt_tour_assignment_setup_open_settings": {
+    "message": "右上の ⚙️ を押して、設定画面を開きます。担当分けの設定は、設定画面の下のほうにあります。"
+  },
+  "guideExt_tour_assignment_setup_banner": {
+    "message": "担当分けが未設定のときは、この案内カードが出ます。複数人で分担するなら「今すぐ文献を分割する」を押してください。1人で判定するなら、分割は不要です。"
+  },
+  "guideExt_tour_assignment_setup_wizard_numbers": {
+    "message": "上の2つの欄で、全員で同じ文献を判定する件数（キャリブレーション）と、残りを分けるチーム数を決めます。入力を変えると、下のプレビューに1チームあたりの件数が出ます。決めたら「次へ」を押してください。"
+  },
+  "guideExt_tour_assignment_setup_wizard_reviewers": {
+    "message": "各チームの担当者のメールアドレスを、カンマ区切りで入れます。独立に2名で判定するなら、通常は2名です。空のままでも作成でき、あとで設定画面から入れられます。"
+  },
+  "guideExt_tour_assignment_setup_wizard_create": {
+    "message": "「セットを作成」を押すと、シートの全文献に担当セットが書き込まれます。まだ決められないときは「今回は分割しない」を選んでも構いません。ここは押さずに、「押さずに次へ」でも進めます。"
+  },
+  "guideExt_tour_assignment_setup_reopen_settings": {
+    "message": "担当セットができました。担当者の保存を見るために、もう一度 ⚙️ を押して設定画面を開きます。"
+  },
+  "guideExt_tour_assignment_setup_save_map": {
+    "message": "設定画面に、チームごとの担当者の欄が出ています。メールアドレスを入れたら、下の「担当者設定を保存」を押します。今は押さずに、「押さずに次へ」でも進めます。"
+  },
+  "guideExt_tour_assignment_setup_reshuffle": {
+    "message": "「再分割してやり直す」は、全文献の担当セットを最初から振り直します。判定が始まっていると結果が食い違うので、ここでは押せません。使うのは、判定を始める前にやり直したいときだけです。「次へ」を押してください。"
+  },
+  "guideExt_tour_assignment_setup_close_settings": {
+    "message": "「閉じる」を押して、手動タブへ戻ります。分割した場合は、画面の下のほうに担当セットの欄が出ます。"
+  },
+  "guideExt_tour_assignment_setup_sets": {
+    "message": "チームごとの担当セットと担当者が、ここに並びます。チェックを切り替えると、見る文献を絞れます。メンバーには、自分の担当セットと、全員共通のキャリブレーションだけが表示されます。"
+  },
+  "guideExt_tour_assignment_setup_finish": {
+    "message": "分担の設定は以上です。担当分けの考え方は、各カードの「?」でいつでも読めます。この ❓ から、ほかの操作ツアーも開けます。"
+  },
+  "guideExt_tour_assignment_setup_open_manual_tab": {
+    "message": "担当分けは、手動タブの設定から行います。まず「手動」タブを開いてください。"
+  },
+  "guideExt_tour_assignment_setup_back_to_manual_tab": {
+    "message": "担当セットの欄は、手動タブに出ます。「手動」タブを開いてください。"
+  },
+  "guideExt_tour_assignment_setup_not_admin": {
+    "message": "担当分けはプロジェクトの管理者が設定します。あなたの担当は、手動タブの下の担当セットの欄で確認できます。"
+  },
   "guideExt_tour_share_invite_title": {
     "message": "共有と招待"
   },
@@ -1973,6 +2015,30 @@
   },
   "guideExt_tour_ml_start_desc": {
     "message": "判定済みの文献から学習して、残りを優先度順に並べる ML の使い方を案内します。"
+  },
+  "guideExt_tour_ml_start_open_tab": {
+    "message": "「ML」タブを押してください。ML は、あなたが判定した文献から学習して、残りを関連していそうな順に並べ替える機能です。文献が1,000件以上のプロジェクトでだけ使えます。"
+  },
+  "guideExt_tour_ml_start_stopping_dialog": {
+    "message": "初めて開くと、停止基準（やめどきの目安）の確認が出ます。内容を確認して「この設定で開始」を押してください。ML を始めるための確認で、判定のデータは変わりません。あとから ML 画面の停止基準の表示で、今の基準と進み具合を確かめられます。"
+  },
+  "guideExt_tour_ml_start_stopping_reopen": {
+    "message": "確認を閉じたので、ML はまだ始まっていません。手動タブなど別のタブへ移ってから、もう一度「ML」タブを押すと、確認がまた出ます。内容を確認して「この設定で開始」を押してください。"
+  },
+  "guideExt_tour_ml_start_decide": {
+    "message": "Include か Exclude を押して判定します（i / e キーでも押せます）。実際に判定が保存されます。Include と Exclude が1件ずつそろうと学習が始まり、以降は判定のたびに残りの並び順が更新されます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_ml_start_learning_state": {
+    "message": "Include・Exclude・Remaining（未判定）の件数が見られます。右上のバッジは、学習の状態（未学習 → 学習中 → Ready）です。まだ「未学習」のときは、Include と Exclude を1件ずつ判定してください。"
+  },
+  "guideExt_tour_ml_start_stopping_progress": {
+    "message": "ここが停止基準の進み具合です。バーが満たされると、やめどきの案内（次の手順）が出ます。ボタンを押すと、設定の内容を確認できます。"
+  },
+  "guideExt_tour_ml_start_stopping_reached": {
+    "message": "停止基準に到達すると、「停止推奨」のダイアログが出ます。選べるのは、「20件追加でレビュー」（しきい値を20件増やして続ける）、「終了して残りを除外」（未判定の文献をすべて Exclude として保存して終える）、「閉じる (何もしない)」の3つです。「終了して残りを除外」は取り消せないので、慎重に選んでください。"
+  },
+  "guideExt_tour_ml_start_finish": {
+    "message": "この「?」（手動タブではツールバーの ❓）から、説明と操作ツアーの一覧を開けます。このツアーもそこからもう一度始められます。"
   },
   "guideExt_tour_fulltext_page_title": {
     "message": "全文の判定ページ"
