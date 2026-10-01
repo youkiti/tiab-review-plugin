@@ -44,6 +44,7 @@ import type { Reference, DuplicateCandidate, Decision } from '../../lib/types';
 import type { DuplicateMatchType } from '../../lib/duplicate-detect';
 import type { BulkApplyCandidateInput } from '../../lib/duplicate-review';
 import { createGuideHelpButton } from './guide/button';
+import { emitGuideEvent } from './guide/lazy';
 
 // ---------------------------------------------------------------------------
 // 依存注入（project.loadDataAndShowScreening への依存を回避する。循環import回避）
@@ -78,6 +79,8 @@ const MAX_RENDERED_PAIRS = 50;
 let pendingCount: number | null = null;
 let pendingCountFailed = false;
 let loadingPendingCount = false;
+/** 直近の未確認件数の読み込み（再スキャン後に、件数が確定してから案内ツアーへ知らせるため） */
+let pendingLoad: Promise<void> = Promise.resolve();
 /** プロジェクト切替・ログアウトでキャッシュが古いまま残らないようにするための直前値 */
 let cachedSpreadsheetId: string | null = null;
 
@@ -252,7 +255,7 @@ export function renderDuplicateReviewSection(): void {
     }
 
     if (pendingCount === null && !loadingPendingCount && !pendingCountFailed) {
-        void loadPendingCount();
+        pendingLoad = loadPendingCount();
     }
 }
 
@@ -264,6 +267,9 @@ function sectionCountText(): string {
 
 function renderSectionBody(section: HTMLElement): void {
     section.innerHTML = '';
+    section.dataset.tour = 'duplicate-section';
+    // 案内ツアーが「候補が0件か」を読む印（読み込み中・失敗のときは空）
+    section.dataset.pending = pendingCount === null ? '' : String(pendingCount);
 
     const heading = document.createElement('h4');
     heading.textContent = t('dupReview_sectionTitle');
@@ -284,6 +290,7 @@ function renderSectionBody(section: HTMLElement): void {
     openBtn.type = 'button';
     openBtn.className = 'btn btn-secondary btn-small';
     openBtn.textContent = t('dupReview_openBtn');
+    openBtn.dataset.tour = 'duplicate-open';
     openBtn.addEventListener('click', () => {
         void openDuplicateReviewModal();
     });
@@ -293,6 +300,7 @@ function renderSectionBody(section: HTMLElement): void {
     rescanBtn.type = 'button';
     rescanBtn.className = 'btn btn-secondary btn-small';
     rescanBtn.textContent = t('dupReview_rescanBtn');
+    rescanBtn.dataset.tour = 'duplicate-rescan';
     rescanBtn.addEventListener('click', () => {
         void rescanDuplicates();
     });
@@ -415,6 +423,7 @@ function renderReviewModal(refs: Reference[], candidates: DuplicateCandidate[], 
         body,
         footer,
     });
+    emitGuideEvent('duplicate-review-opened');
 }
 
 function buildModalFooter(): HTMLElement {
@@ -1052,6 +1061,9 @@ export async function rescanDuplicates(): Promise<void> {
                 : t('dupReview_rescanNone'),
             4000
         );
+        // 件数の読み直しが終わってから案内ツアーへ知らせる（0件かどうかで次の手順が変わるため）
+        await pendingLoad;
+        emitGuideEvent('duplicates-rescanned');
     } catch (err) {
         console.error('[duplicate-review] 再スキャンに失敗:', err);
         showToast(t('dupReview_rescanError', (err as Error).message), 6000);

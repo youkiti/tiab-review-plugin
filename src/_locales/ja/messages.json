@@ -1785,6 +1785,36 @@
   "guideExt_tour_duplicate_review_desc": {
     "message": "重複と判定された文献を確認し、残すものを決める手順を案内します。"
   },
+  "guideExt_tour_duplicate_review_open_tab": {
+    "message": "重複の確認は「手動」タブの下の方にあります。まず「手動」タブを開いてください。"
+  },
+  "guideExt_tour_duplicate_review_section": {
+    "message": "ここが「重複の確認」です。「未確認の重複候補 n件」は、まだ人が確認していない組の数です。文献を取り込むと、PMID・DOI・タイトルなどが一致する組が自動で候補になります。"
+  },
+  "guideExt_tour_duplicate_review_rescan": {
+    "message": "「重複を再スキャン」は、いまの全文献をもう一度調べて新しい候補を探します。文献そのものは変わらず、見つかった候補が増えるだけです。押さずに次へ進んでもかまいません。"
+  },
+  "guideExt_tour_duplicate_review_no_candidates": {
+    "message": "いまは未確認の重複候補が0件です。取り込み直しや再スキャンで候補が見つかると、ここの件数が増えて比較画面を開けます。候補ができたら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いて、続きを確認してください。"
+  },
+  "guideExt_tour_duplicate_review_compare_info": {
+    "message": "「重複を確認」を押すと開く比較画面では、候補を1組ずつ左右に並べて見られます。色の付いた行が2つで違う項目で、上のバッジは何が一致して候補になったか（PMID・DOI・タイトルなど）、下の件数は各文献に付いている人の判定の数です。"
+  },
+  "guideExt_tour_duplicate_review_choose_info": {
+    "message": "比較画面では「左を残す」「右を残す」で、残す文献を選びます。もう一方は重複として除外されます（行は消えず、重複の印が付くだけです）。除外する側に人の判定が付いているときは確認が出て、その判定は集計に使われなくなります。別の文献なら「別々の文献」を選びます。"
+  },
+  "guideExt_tour_duplicate_review_bulk_info": {
+    "message": "比較画面の下には「自動判定ぶんをすべて適用」と「あとでまとめて確認」があります。前者は PMID や DOI が一致した組などを、人の判定が多い側を残して一度にまとめて統合します。全部の組に効くので、内容を確かめてから使ってください。後者は閉じて、あとでここから続けます。"
+  },
+  "guideExt_tour_duplicate_review_open_review": {
+    "message": "比較画面を開いて、実際の候補を見てみましょう。開くだけでは何も変わりません。開いている間はこのツアーはひと休みし、閉じると続きに戻ります。押さずに次へ進んでもかまいません。"
+  },
+  "guideExt_tour_duplicate_review_after_review": {
+    "message": "判定した組は、未確認の件数から減ります。「あとでまとめて確認」で閉じた組や、まだ見ていない組は、この件数に残ります。いつでも、ここの「重複を確認」から続きを開けます。"
+  },
+  "guideExt_tour_duplicate_review_finish": {
+    "message": "重複の確認の案内は以上です。もう一度見たいときは、この ❓ の「操作ツアーの一覧」からいつでも開けます。"
+  },
   "guideExt_tour_fulltext_setup_title": {
     "message": "全文の準備"
   },
