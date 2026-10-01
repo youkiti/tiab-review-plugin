@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TiAb Review - Full-text Screening</title>
+    <!-- ツアーのカード・強調枠・提案の帯の見た目（サイドパネルと共通。src/guide-ui/ のツアー本体が使う） -->
+    <link rel="stylesheet" href="../sidepanel/styles/guide.css">
     <link rel="stylesheet" href="fulltext.css">
 </head>
 
@@ -15,8 +17,10 @@
             <div class="ft-header-left">
                 <button id="ft-close-btn" class="ft-close-btn" data-i18n-title="ftPage_closeBtnTitle" data-i18n="ftPage_closeBtn"></button>
                 <h1 class="ft-title">Full-text Screening</h1>
-                <button id="ft-criteria-btn" class="btn btn-secondary" data-i18n-title="ftPage_criteriaTitle" data-i18n="ftPage_criteriaBtn"></button>
-                <a id="ft-help-link" class="ft-help-link" href="https://youkiti.github.io/tiab-review-plugin/help.html#fulltext-decisions" target="_blank" rel="noopener" data-i18n-title="ftPage_helpTitle" data-i18n-aria-label="ftPage_helpTitle">?</a>
+                <button id="ft-criteria-btn" class="btn btn-secondary" data-tour="ft-criteria-btn" data-i18n-title="ftPage_criteriaTitle" data-i18n="ftPage_criteriaBtn"></button>
+                <a id="ft-help-link" class="ft-help-link" data-tour="ft-help" href="https://youkiti.github.io/tiab-review-plugin/help.html#fulltext-decisions" target="_blank" rel="noopener" data-i18n-title="ftPage_helpTitle" data-i18n-aria-label="ftPage_helpTitle">?</a>
+                <!-- このページの操作ツアーを始める。「?」リンクの挙動は変えず、隣に置く -->
+                <button id="ft-tour-btn" type="button" class="ft-tour-btn" data-guide-action="start-tour" data-i18n="guideExt_fulltextTourBtn" data-i18n-title="guideExt_fulltextTourBtnTitle"></button>
             </div>
             <div class="ft-header-right">
                 <span id="ft-overall" class="ft-overall" data-i18n-title="ftPage_overallTitle">
@@ -31,12 +35,12 @@
             <!-- 左ペイン: PDFビュワー -->
             <section class="ft-pdf-pane" id="ft-pdf-pane">
                 <!-- 書誌情報バー: PDF本文と照合して誤りPDFでないか確認できる -->
-                <div id="ft-biblio" class="ft-biblio hidden">
+                <div id="ft-biblio" class="ft-biblio hidden" data-tour="ft-biblio">
                     <div id="ft-biblio-title" class="ft-biblio-title"></div>
                     <div id="ft-biblio-meta" class="ft-biblio-meta"></div>
                     <div id="ft-biblio-ids" class="ft-biblio-ids"></div>
                 </div>
-                <div id="ft-pdf-toolbar" class="ft-pdf-toolbar">
+                <div id="ft-pdf-toolbar" class="ft-pdf-toolbar" data-tour="ft-pdf-toolbar">
                     <span id="ft-pdf-url-label" class="ft-pdf-url-label"></span>
                     <!-- PDF未保存時に表示: ローカルPDFをアップロードする導線
                          （論文ページ埋め込み中でも手元のPDFを保存できる） -->
@@ -116,12 +120,12 @@
                 <!-- 決断パネル -->
                 <section class="ft-panel ft-decision-panel">
                     <h2 class="ft-panel-title" data-i18n="ftPage_decisionPanelTitle"></h2>
-                    <div class="ft-decision-buttons">
+                    <div class="ft-decision-buttons" data-tour="ft-decision-buttons">
                         <button id="ft-btn-include" class="btn btn-include" data-decision="include" data-i18n-title="ftPage_includeBtn" data-i18n="ftPage_includeBtn"></button>
                         <button id="ft-btn-exclude" class="btn btn-exclude" data-decision="exclude" data-i18n-title="ftPage_excludeBtn" data-i18n="ftPage_excludeBtn"></button>
                         <button id="ft-btn-maybe" class="btn btn-maybe" data-decision="maybe" data-i18n-title="ftPage_maybeBtn" data-i18n="ftPage_maybeBtn"></button>
                     </div>
-                    <div id="ft-reason-area" class="ft-reason-area hidden">
+                    <div id="ft-reason-area" class="ft-reason-area hidden" data-tour="ft-reason-area">
                         <label class="ft-reason-label" data-i18n="ftPage_reasonLabel"></label>
                         <div class="ft-reason-priority-note" data-i18n-html="ftPage_reasonPriorityNote"></div>
                         <!--
@@ -139,7 +143,7 @@
 
                 <!-- 文脈参照: 抄録・自分のTiAb判定・他レビュアーの判定（PDF取り違え確認・文脈想起・不一致の見直し用）
                      見出しは Blind 状態で変わるため fulltext.ts の renderContextPanel() が実行時に書き換える -->
-                <section class="ft-panel ft-context-panel">
+                <section class="ft-panel ft-context-panel" data-tour="ft-context">
                     <details id="ft-context-details">
                         <summary id="ft-context-summary" class="ft-context-summary" data-i18n="ftPage_contextSummaryDefault"></summary>
                         <div id="ft-context-body" class="ft-context-body"></div>
@@ -147,7 +151,7 @@
                 </section>
 
                 <!-- アノテーション一覧 -->
-                <section class="ft-panel ft-annotations-panel">
+                <section class="ft-panel ft-annotations-panel" data-tour="ft-annotations">
                     <h2 class="ft-panel-title">
                         <span data-i18n="ftPage_highlightsPanelTitle"></span>
                         <label class="ft-highlight-toggle" data-i18n-title="ftPage_highlightToggleTitle">
@@ -161,7 +165,7 @@
                 </section>
 
                 <!-- ナビゲーション -->
-                <div class="ft-nav">
+                <div class="ft-nav" data-tour="ft-nav">
                     <button id="ft-prev-btn" class="btn btn-secondary" data-i18n="ftPage_prevBtn"></button>
                     <button id="ft-next-undecided-btn" class="btn btn-secondary"
                         data-i18n-title="ftPage_nextUndecidedBtnTitle" data-i18n="ftPage_nextUndecidedBtn"></button>

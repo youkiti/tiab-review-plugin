@@ -41,6 +41,7 @@ import { DEFAULT_SCREENING_PROMPT } from '../../../../lib/prompt-templates';
 import { getModelConfig, AVAILABLE_MODELS } from '../../../../lib/gemini-api';
 import { showToast } from '../../../ui/feedback';
 import { t } from '../../../../lib/i18n';
+import { emitGuideEvent } from '../../guide/lazy';
 import {
     setReferences as syncSetReferences,
     setCurrentBatchDecisions as syncSetCurrentBatchDecisions,
@@ -362,6 +363,7 @@ export async function handleStartBatch() {
 
             // 履歴を再読み込み
             await loadExecutionHistory();
+            emitGuideEvent('ai-batch-finished');
 
             // フォールバック発生時はトーストでも明示
             if (result.fallbackCount > 0) {

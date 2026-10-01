@@ -57,6 +57,7 @@ import { t } from '../../../lib/i18n';
 import type { ApiTier, ManualTier } from '../../../lib/types';
 import type { LlmProviderId } from '../../../lib/llm-provider';
 import { isImeComposing } from '../../../lib/ime-composition';
+import { emitGuideEvent } from '../guide/lazy';
 
 /**
  * API キー変更時にモデル選択肢を再構築するためのコールバック。
@@ -361,6 +362,7 @@ export async function verifyProviderKey(provider: LlmProviderId): Promise<void> 
         adapter.status().textContent = t(shouldSave ? 'llm_apiKeySaved' : 'llm_apiKeySessionOnly');
         adapter.status().className = 'api-key-status success';
         await notifyApiKeyChanged();
+        emitGuideEvent('ai-key-saved');
     } catch {
         adapter.status().textContent = t('llm_apiKeyInvalid');
         adapter.status().className = 'api-key-status error';

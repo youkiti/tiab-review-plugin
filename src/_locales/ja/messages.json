@@ -1686,6 +1686,12 @@
   "guideExt_tourOpenFulltextHint": {
     "message": "全文タブで文献を開くと始められます"
   },
+  "guideExt_fulltextTourBtn": {
+    "message": "ツアー"
+  },
+  "guideExt_fulltextTourBtnTitle": {
+    "message": "このページの操作ツアーを始める"
+  },
   "guide_suggestTitle": {
     "message": "はじめての方へ"
   },
@@ -1890,6 +1896,45 @@
   "guideExt_tour_ai_first_run_desc": {
     "message": "AI のモデルと基準を設定して、はじめて判定を実行するまでを案内します。"
   },
+  "guideExt_tour_ai_first_run_open_tab": {
+    "message": "ここを押して AI タブを開いてください。"
+  },
+  "guideExt_tour_ai_first_run_model": {
+    "message": "AI 判定に使うモデルを選びます。迷ったら初期のままで構いません。モデルによって、料金と判定の速さ・精度が変わります。"
+  },
+  "guideExt_tour_ai_first_run_keys": {
+    "message": "選んだモデルの会社の欄に API キーを入れて「確認して保存」を押してください。キーはモデルの提供元で発行します。Gemini の無料キーは、処理の速さが制限されます。キーが済んでいれば「押さずに次へ」で進めます。"
+  },
+  "guideExt_tour_ai_first_run_protocol": {
+    "message": "プロトコルの組み入れ基準・除外基準をここへ貼り付けます。人が使うレビュー基準があるときは、「抄録レビューの基準をコピー」で入れられます。"
+  },
+  "guideExt_tour_ai_first_run_optimize": {
+    "message": "「基準を最適化」を押すと、貼った文章から AI 用の基準とプロンプトを作ります。ここで API を使うので、試すだけなら「押さずに次へ」で進めてください。"
+  },
+  "guideExt_tour_ai_first_run_prompt": {
+    "message": "できたプロンプトです。内容を確かめて、足りない点は直接書き換えられます。「基準をGoogleスプレッドシートに保存」を押すとシートに残ります（保存しても費用はかかりません）。"
+  },
+  "guideExt_tour_ai_first_run_prompt_wait": {
+    "message": "ここには、基準を最適化するとプロンプトが出ます。まだ基準が無いので、先へ進みます。基準を作ったあとは、❓ の「操作ツアーの一覧」からこのツアーをもう一度開くと、この続きを案内します。"
+  },
+  "guideExt_tour_ai_first_run_batch_settings": {
+    "message": "AI にかける文献を決めます。「対象」は初期では全件です。「実行上限」で件数を絞れるので、はじめは 10 件など少ない件数で試すと費用を抑えられます。"
+  },
+  "guideExt_tour_ai_first_run_batch_run": {
+    "message": "「一括実行開始」を押すと AI の判定が始まり、実行した件数だけ費用がかかります。終わるまで案内は待ちます（途中で止めるときは同じ場所の「実行を中止」）。実行しないなら「押さずに次へ」で進めます。"
+  },
+  "guideExt_tour_ai_first_run_threshold": {
+    "message": "実行が終わると、ここで閾値を決めます。スライダーを動かすと Include と Exclude の件数の見込みが変わります。迷ったら 0.5 が標準です。「閾値を確定して判断をGoogleスプレッドシートに保存」を押すと判定がシートに記録されます。確定の少しあとに、手動タブへ切り替えるかの確認が出ます。切り替えた場合、ツアーを続けるには AI タブに戻ってください。"
+  },
+  "guideExt_tour_ai_first_run_threshold_wait": {
+    "message": "実行が終わると、ここ（一括実行の下）に閾値の確定が出ます。まだ実行していないので、先へ進みます。実行したあとは、❓ の「操作ツアーの一覧」からこのツアーをもう一度開くと、閾値の見方を案内します。"
+  },
+  "guideExt_tour_ai_first_run_history": {
+    "message": "AI タブの下にある「実行履歴」です。実行のたびに履歴が残ります。同じ基準・モデルの実行は 1 つの Run にまとまり、採用した Run の判定が使われます。採用する Run は、ここのラジオボタンで選べます。"
+  },
+  "guideExt_tour_ai_first_run_finish": {
+    "message": "AI 判定の初回の流れは以上です。AI の判定は、独立した判定者の 1 人として記録されます。結果は手動タブで、人の判定と見比べられます。各カードの「?」で説明を、このモデルの「?」から操作ツアーの一覧を開けます。"
+  },
   "guideExt_tour_ml_start_title": {
     "message": "ML の開始"
   },
@@ -1900,7 +1945,37 @@
     "message": "全文の判定ページ"
   },
   "guideExt_tour_fulltext_page_desc": {
-    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。"
+    "message": "PDF を開いて全文を判定する別タブの使い方を案内します。書誌と PDF の確認、判定、除外理由、次の候補への移動までを説明します。"
+  },
+  "guideExt_tour_fulltext_page_biblio": {
+    "message": "ここに文献のタイトル・著者・DOI が出ます。判定の前に、下の PDF と見比べて、取り違えた PDF が保存されていないかを確かめます。"
+  },
+  "guideExt_tour_fulltext_page_pdf": {
+    "message": "PDF はこの下に表示されます。PDF がまだ無いときは「PDFをアップロード」で手元のファイルを保存でき、あるときは「別のPDFをアップロード」で差し替えられます。"
+  },
+  "guideExt_tour_fulltext_page_criteria": {
+    "message": "「基準」を押す（c キーでも開閉）と、レビュー基準の組み入れ・除外基準を読めます。判定に迷ったときに確かめます。"
+  },
+  "guideExt_tour_fulltext_page_decision": {
+    "message": "読み終えたら、組み入れ (i)・除外 (e)・保留 (m) を選びます。押すと判定が本当に保存され、組み入れは次の候補へ進みます。押さずに次へ進むこともできます。"
+  },
+  "guideExt_tour_fulltext_page_reason_info": {
+    "message": "「除外」を選ぶと除外理由の一覧が出ます（保留では補足メモの欄が出ます）。複数当てはまるときは上（番号が小さい方）を選びます。理由は数字キーでも選べます。"
+  },
+  "guideExt_tour_fulltext_page_reason": {
+    "message": "除外理由を選びます。複数当てはまるときは、上（番号が小さい方）を選んでください。クリックか数字キーで選ぶと保存して次の候補へ進みます。メモ欄は任意で、Enter で保存して次へ進みます。"
+  },
+  "guideExt_tour_fulltext_page_context": {
+    "message": "ここを開くと、抄録と自分の TiAb 判定が見られます。キーを開封したあとは、他のレビュアーの判定とメモも並びます。"
+  },
+  "guideExt_tour_fulltext_page_evidence": {
+    "message": "AI が全文を判定していると、その根拠の引用がここに並びます。押すと PDF の該当箇所へ飛び、「PDF上に表示」でハイライトを切り替えられます。AI 判定が無い文献では空のままです。"
+  },
+  "guideExt_tour_fulltext_page_navigate": {
+    "message": "「未判定へ (u)」で、まだ判定していない次の候補へ移れます。最後の候補を判定し終えると、このタブは少し待って自動で閉じます（操作すると取り消せます）。"
+  },
+  "guideExt_tour_fulltext_page_finish": {
+    "message": "以上です。この「?」はヘルプの該当ページを開きます。このツアーをもう一度見るときは、隣の「ツアー」ボタンを押してください。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"
