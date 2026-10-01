@@ -13,6 +13,9 @@ export async function withFreshBrowser(name, lang, fn) {
     let context;
     try {
         context = await chromium.launchPersistentContext(profileDir, {
+            // 同梱の Chromium と Playwright の版が合わない環境（Claude Code web のコンテナなど）では、
+            // video/scripts/config.mjs と同じく PLAYWRIGHT_CHROMIUM_PATH で実行ファイルを指定できる
+            executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
             headless: false,
             viewport: config.viewport,
             deviceScaleFactor: DEVICE_SCALE_FACTOR,

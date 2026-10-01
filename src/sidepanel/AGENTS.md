@@ -303,6 +303,7 @@
   6. `scripts/guide-tour-check/scenarios/<ID>.mjs` にシナリオを1本足す（書き方は `scripts/guide-tour-check/lib/scenario.mjs` のコメント）
   7. `draft: true` を外す。外すと、一覧・提案・開始・テストの照合の対象になる（`draft` のツアーは手順が空、`draft` でないツアーは手順が1つ以上、とテストが検査する）
   8. `npm test`（定義と HTML・文言の照合）と、`npm run build:demo && npm run check:tours`（デモビルドでの通し検証）を回す。`check:tours` はブラウザが要るので CI には入っていない。UI やツアーを変えたら手元で回すこと
+  9. 解説動画が要るツアーなら `npm run video:tours -- <ID>` で作れる（映像も原稿もツアーから作る。手順は `video/README.md` の「操作ツアーの解説動画」）。文言に新しい英字を入れたら、読み上げ用の読み替え（`video/scripts/tour-videos.mjs` の `READINGS`）にも足す
 - 並列で足すときに触ってよいファイル: 自分の `tours/<ID>.ts`、自分の `features/guide/conditions/<ID>.ts`、自分の `scenarios/<ID>.mjs`、`messages.json`（ja/en）の自分の区画、`data-tour` を付ける画面（HTML・TypeScript）と `emitGuideEvent` を足す操作の完了箇所。**`tours/index.ts`・`tours/types.ts`・`topics.ts`（「?」とツアーの対応 `tourId` は入力済みなので触らない。吹き出しの開始ボタンは draft を外すと自動で出る）・`tour-conditions.ts`・`tour-progress.ts`・ランナー・`lib/` の検証道具は共有部分なので、触るなら別の変更として分ける**（共通のイベント・条件・ランナーの挙動を足すとき）
 - 文言の置き場所: `messages.json` は**ツアーごとに title → desc → 手順の本文の順の1つの区画**で、区画と区画の間は必ず次のツアーの `_title`・`_desc` の2キーで区切られる。自分のツアーの `_desc` の直後に手順のキーを足す（区画が離れているので、並列の変更が git のマージで衝突しない）。テストがこの並び（連続・title 始まり・区画の非重複）を検査する
 - `TourDefinition` の項目:
