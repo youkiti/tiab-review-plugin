@@ -1806,6 +1806,15 @@
   "guideExt_tour_assignment_setup_finish": {
     "message": "That covers setting up assignments. The ? on each card explains the idea any time. This ❓ also opens the other guided tours."
   },
+  "guideExt_tour_assignment_setup_open_manual_tab": {
+    "message": "Assignments are set up from Settings on the Manual tab. First, open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_back_to_manual_tab": {
+    "message": "The Assignment Sets panel appears on the Manual tab. Open the \"Manual\" tab."
+  },
+  "guideExt_tour_assignment_setup_not_admin": {
+    "message": "The project administrator sets up assignments. You can see your own assignments in the Assignment Sets panel below the Manual tab."
+  },
   "guideExt_tour_share_invite_title": {
     "message": "Share and invite"
   },

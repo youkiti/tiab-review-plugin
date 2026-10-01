@@ -1,8 +1,9 @@
 /**
- * ツアー「assignment-setup」固有の条件（手順の skipIf）の計算。
- * 条件名は src/lib/guide/tours/assignment-setup.ts の AssignmentSetupCondition に足し、ここで全部の真偽を返す
- * （返す型が条件名を網羅していないとコンパイルが通らない）。遅延チャンク `guide-feature` に入る。
+ * ツアー「assignment-setup」固有の条件（手順の skipIf・unavailableIf）の計算。
+ * 条件名は src/lib/guide/tours/assignment-setup.ts の AssignmentSetupCondition に足し、真偽の計算は同じファイルの
+ * 純関数 assignmentSetupConditions に書く（ここは画面の状態を読んで渡すだけ）。遅延チャンク `guide-feature` に入る。
  */
+import { assignmentSetupConditions } from '../../../../lib/guide/tours/assignment-setup';
 import type { AssignmentSetupCondition } from '../../../../lib/guide/tours/assignment-setup';
 import { state } from '../../../state';
 import { getState } from '../../../store';
@@ -13,14 +14,14 @@ function isWizardOpen(): boolean {
 }
 
 export function computeAssignmentSetupConditions(): Record<AssignmentSetupCondition, boolean> {
-    const onSettings = getState().ui.view === 'settings';
-    const configured = state.assignmentConfig.status === 'configured';
-    const wizardOpen = isWizardOpen();
-    return {
-        'settings-screen-or-wizard-open': onSettings || wizardOpen,
-        'wizard-open-or-configured': wizardOpen || configured,
-        'wizard-closed': !wizardOpen,
-        'settings-screen-or-unconfigured': onSettings || !configured,
-        'assignment-unconfigured': !configured,
-    };
+    const ui = getState().ui;
+    return assignmentSetupConditions({
+        view: ui.view,
+        currentTab: ui.currentTab,
+        spreadsheetId: state.spreadsheetId || '',
+        isAdmin: state.isAdmin,
+        configured: state.assignmentConfig.status === 'configured',
+        assignmentSetCount: state.assignmentSets.size,
+        wizardOpen: isWizardOpen(),
+    });
 }

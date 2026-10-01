@@ -1806,6 +1806,15 @@
   "guideExt_tour_assignment_setup_finish": {
     "message": "分担の設定は以上です。担当分けの考え方は、各カードの「?」でいつでも読めます。この ❓ から、ほかの操作ツアーも開けます。"
   },
+  "guideExt_tour_assignment_setup_open_manual_tab": {
+    "message": "担当分けは、手動タブの設定から行います。まず「手動」タブを開いてください。"
+  },
+  "guideExt_tour_assignment_setup_back_to_manual_tab": {
+    "message": "担当セットの欄は、手動タブに出ます。「手動」タブを開いてください。"
+  },
+  "guideExt_tour_assignment_setup_not_admin": {
+    "message": "担当分けはプロジェクトの管理者が設定します。あなたの担当は、手動タブの下の担当セットの欄で確認できます。"
+  },
   "guideExt_tour_share_invite_title": {
     "message": "共有と招待"
   },
