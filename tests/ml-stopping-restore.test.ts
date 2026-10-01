@@ -94,6 +94,22 @@ test('CMH の更新: 境界の間では続行後の canStop と確率を引き�
     assert.equal(rule.probUnderTarget, 0.42);
 });
 
+test('CMH の更新: 「停止可能」は引き継がず、区切りの間の Include で計算し直す', () => {
+    // 再訪で「停止可能」と復元されたあと、次の区切りまでに Include を付けた場合。
+    // 古い結果を引き継ぐと、基準を満たさないのに停止と残りの一括 Exclude を提案してしまう。
+    const before = decisions(1046, 30);
+    const restored = rebuildCmhRule(before, CMH_OK);
+    assert.equal(restored.canStop, true);
+    const interval = restored.updateInterval;
+    assert.equal(Math.floor(1047 / interval), Math.floor(1046 / interval)); // 区切りをまたがない
+    const list = [...before, decision(1046, 'include')];
+    const rule = advanceStoppingRule(restored, { decision: 'include', rejudged: false }, list, CMH_OK);
+    assert.ok(isCmhStoppingRule(rule));
+    assert.deepEqual(rule, rebuildCmhRule(list, CMH_OK));
+    assert.equal(rule.canStop, false);
+    assert.ok(rule.probUnderTarget > 1 - rule.confidence);
+});
+
 for (const [before, after] of [[599, 600], [598, 602]]) {
     test(`CMH の更新: ${before} 件から ${after} 件への境界越えで計算する`, () => {
         const list = decisions(after, 30);

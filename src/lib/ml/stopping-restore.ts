@@ -124,6 +124,9 @@ function rebuildCmhProgress(
         rule.canStop = false;
         rule.probUnderTarget = 1.0;
     } else if (forceCalculation || rule.screened <= previous.screened ||
+        // 「停止可能」は引き継がない。区切りの間に Include が増えると、前の結果では
+        // 基準を満たさないのに停止を提案してしまう（引き継ぐのは「まだ停止できない」だけ）。
+        previous.canStop ||
         Math.floor(rule.screened / rule.updateInterval) > Math.floor(previous.screened / rule.updateInterval)) {
         const result = calculateCmhStopping(
             totalRecords,
