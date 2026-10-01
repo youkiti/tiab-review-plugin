@@ -1779,6 +1779,30 @@
   "guideExt_tour_resolve_conflicts_desc": {
     "message": "Shows how to find records where reviewers disagree and reach a consensus."
   },
+  "guideExt_tour_resolve_conflicts_blind": {
+    "message": "This is the Blind switch. Until everyone has finished their independent decisions, other reviewers' decisions stay hidden. When everyone is done, an admin turns it on to \"open the key\". It affects the whole project, so you cannot press it in this tour."
+  },
+  "guideExt_tour_resolve_conflicts_key_closed": {
+    "message": "Decisions are still blinded, so conflicts are not visible yet. Once an admin opens the key, open this tour again from ❓ → \"List of guided tours\" and the remaining steps will appear."
+  },
+  "guideExt_tour_resolve_conflicts_filter": {
+    "message": "Choose \"Conflict\" in this filter to list only the records where reviewers disagree. Give it a try."
+  },
+  "guideExt_tour_resolve_conflicts_no_conflict": {
+    "message": "The record on screen is not a conflict. Set the filter to \"Conflict\" to step through only the records where decisions differ."
+  },
+  "guideExt_tour_resolve_conflicts_others": {
+    "message": "For a conflicting record, a warning appears above and every reviewer's decision and note is listed here. Read who decided what, and why, as the basis for your discussion."
+  },
+  "guideExt_tour_resolve_conflicts_consensus": {
+    "message": "When reviewers meet to reconcile, turn on 🤝 Consensus mode. Decisions saved while it is on are recorded as consensus decisions, separate from the independent first-pass decisions. You can turn it off again at any time."
+  },
+  "guideExt_tour_resolve_conflicts_redecide": {
+    "message": "Once you agree, decide again here. With Consensus mode on, the decision is saved as a consensus decision. This changes the record, so you may also continue without pressing. Turn Consensus mode off when you are done."
+  },
+  "guideExt_tour_resolve_conflicts_finish": {
+    "message": "Conflicts in the Full text tab are settled in \"Post-decision review\" (not covered in this tour). You can reopen the tour list anytime from this ❓."
+  },
   "guideExt_tour_duplicate_review_title": {
     "message": "Review duplicates"
   },
