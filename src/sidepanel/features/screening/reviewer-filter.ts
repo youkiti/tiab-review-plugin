@@ -14,6 +14,7 @@ import {
 } from '../../store/compat';
 import { getReviewerLabel, isActiveConfirmedLlmDecision, isLlmReviewerKey, isMlReviewerKey } from './reviewer-utils';
 import { isHumanDecision, isConfirmedMlDecision } from '../../../lib/client-version';
+import { emitGuideEvent } from '../guide/lazy';
 
 const ML_REVIEWER_SUFFIX = '::ml';
 
@@ -305,5 +306,6 @@ export function initConsensusModeListener() {
     checkbox.addEventListener('change', () => {
         state.setConsensusMode(checkbox.checked);
         renderConsensusModeToggle();
+        if (checkbox.checked) emitGuideEvent('consensus-mode-on');
     });
 }

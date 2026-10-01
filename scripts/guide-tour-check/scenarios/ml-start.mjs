@@ -57,12 +57,12 @@ export default defineScenario({
         await run.waitStep(T, 'stopping-reached');
         await run.clickNext('stopping-reached');
 
-        // 使えないプロジェクト向けの手順は、使えるので飛ばされる。ML タブにいる間は、画面内の「?」を指して終える
-        await run.waitStep(T, 'finish-ml');
-        await expectCardClearOfTarget(run, 'finish-ml', '[data-tour="ml-help"]', 'ML 画面の「?」');
-        await run.clickNext('finish-ml');
-        await run.waitCardGone('finish-ml');
-        await run.waitTourStatus(T, 'done', 'finish-ml');
+        // ML タブにいる間は、ML タブの「?」（data-tour="tour-list"）を指して終える
+        await run.waitStep(T, 'finish');
+        await expectCardClearOfTarget(run, 'finish', '#ml-section [data-tour="tour-list"]', 'ML 画面の「?」');
+        await run.clickNext('finish');
+        await run.waitCardGone('finish');
+        await run.waitTourStatus(T, 'done', 'finish');
         run.log('guide_progress: ml-start が done');
         // ❓ はスクリーニング画面のツールバーにあるので、手動タブへ戻ってから一覧を確かめる
         await run.click('#tab-screening', 'tour-list', '手動タブ');

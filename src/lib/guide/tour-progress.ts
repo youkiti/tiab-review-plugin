@@ -104,6 +104,33 @@ export function nextStepIndex(
     return null;
 }
 
+export interface VisibleStepPosition {
+    /** 今の手順が、飛ばされない手順の中で何番目か（1 始まり） */
+    position: number;
+    /** 飛ばされない手順の数 */
+    total: number;
+}
+
+/**
+ * カードに出す「n / m」。conditions で飛ばされる手順は数えない。
+ * index が飛ばされる手順そのものなら、その位置までに出る手順の数（最低 1。出る手順が1つも無ければ 0 / 0）。
+ * 条件は途中で変わりうるので、手順を描画するたびに計算し直す。
+ */
+export function visibleStepPosition(
+    tour: Pick<TourDefinition, 'steps'>,
+    index: number,
+    conditions: GuideConditionValues,
+): VisibleStepPosition {
+    let position = 0;
+    let total = 0;
+    tour.steps.forEach((step, i) => {
+        if (step.skipIf !== undefined && isConditionTrue(conditions, step.skipIf)) return;
+        total += 1;
+        if (i <= index) position += 1;
+    });
+    return { position: total === 0 ? 0 : Math.max(1, position), total };
+}
+
 /** イベントでこの手順が進むか。'next' で進む手順はイベントでは進まない。 */
 export function shouldAdvance(step: Pick<TourStep, 'advance'>, event: GuideEventName): boolean {
     return step.advance.type === 'events' && step.advance.events.includes(event);
@@ -125,13 +152,20 @@ export interface GuideSuggestContext {
 export function availableTours(
     context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
     tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+    conditions?: GuideConditionValues,
 ): TourDefinition[] {
     return tours.filter((tour) => {
         if (tour.draft) return false;
         if (!tour.platforms.includes(context.platform)) return false;
         if (tour.audience === 'admin' && !context.capabilities.createProject) return false;
+        if (conditions !== undefined && isTourUnavailable(tour, conditions)) return false;
         return true;
     });
+}
+
+/** 今の状態ではこのツアーを使えないか（unavailableIf が真）。ツアーが unavailableIf を持たなければ偽。 */
+export function isTourUnavailable(tour: Pick<TourDefinition, 'unavailableIf'>, conditions: GuideConditionValues): boolean {
+    return tour.unavailableIf !== undefined && isConditionTrue(conditions, tour.unavailableIf);
 }
 
 /** 自動提案を出すか。使えるツアーのどれも済・却下でなく、実行中でもなく、止められても延期されてもいないとき。 */
@@ -154,9 +188,51 @@ export function tourToSuggestOnEvent(
     event: GuideEventName,
     context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
     tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+    conditions?: GuideConditionValues,
 ): TourDefinition | null {
     if (progress.suppressSuggestions || progress.active) return null;
-    return availableTours(context, tours).find(tour => tour.suggestOn === event && progress.tours[tour.id] === undefined) ?? null;
+    return availableTours(context, tours, conditions).find(tour => tour.suggestOn === event && progress.tours[tour.id] === undefined) ?? null;
+}
+
+/**
+ * 別の画面（全文の判定ページ）を初めて開いたときに、その画面の上部の提案の帯に出すツアー（無ければ null）。
+ * page が一致する使えるツアーのうち、まだ済・却下でなく、ほかのツアーが実行中でなく、
+ * 全体の「今後表示しない」でないときだけ返す。tours を渡すと、その中から選ぶ（テスト用。省略時は GUIDE_TOURS）。
+ */
+export function tourToSuggestOnPage(
+    progress: GuideProgress,
+    page: TourDefinition['page'],
+    context: Pick<GuideSuggestContext, 'platform' | 'capabilities'>,
+    tours: ReadonlyArray<TourDefinition> = Object.values(GUIDE_TOURS),
+    conditions?: GuideConditionValues,
+): TourDefinition | null {
+    if (progress.suppressSuggestions || progress.active) return null;
+    return availableTours(context, tours, conditions).find(tour => tour.page === page && progress.tours[tour.id] === undefined) ?? null;
+}
+
+/** 別の画面から保存値が変わったと知らされたとき、この画面の表示がすべきこと。 */
+export type ProgressSyncAction =
+    | { type: 'none' }
+    | { type: 'close' }
+    | { type: 'switch'; stepIndex: number };
+
+/**
+ * 保存値を正として、複数の画面が同じツアーの同じ手順を表示するための判断（純関数）。
+ * shown はこの画面で今表示しているツアーと手順（表示していなければ null）。
+ * - 表示していない: 何もしない。
+ * - 保存値の active が無い、または別のツアー: 片づける（別の画面でツアーが終わった・置き換わった）。
+ * - active が自分のツアーで手順が違う: その手順に切り替える（保存はしない。保存し直すと通知が往復する）。
+ * - 同じ: 何もしない。
+ * 切り替え先がこの画面の条件で飛ばされる手順でも、保存値は変えず、そのまま表示する（対象が見えなければ待機表示になる）。
+ */
+export function decideProgressSync(
+    active: GuideActiveTour | null,
+    shown: { tourId: GuideTourId; stepIndex: number } | null,
+): ProgressSyncAction {
+    if (shown === null) return { type: 'none' };
+    if (active === null || active.tourId !== shown.tourId) return { type: 'close' };
+    if (active.stepIndex === shown.stepIndex) return { type: 'none' };
+    return { type: 'switch', stepIndex: active.stepIndex };
 }
 
 function stepIdAt(tourId: GuideTourId, stepIndex: number): string {

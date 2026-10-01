@@ -15,7 +15,7 @@ import {
     type GuideTopicId,
 } from '../../../lib/guide/topics';
 import { placeNear } from './anchor-placement';
-import { currentGuidePlatform } from './tour-conditions';
+import { computeGuideConditions, currentGuidePlatform } from './tour-conditions';
 import { toggleGuideTourList } from './tour-entry';
 import { startGuideTour } from './tour-runner';
 
@@ -63,7 +63,9 @@ function buildActions(topicId: GuideTopicId, anchor: HTMLElement): GuideAction[]
     }
     // このトピックに対応するツアーが、このプラットフォームで使えるときだけ開始ボタンを足す
     const tourId = topic.tourId;
-    if (tourId && availableTours(currentGuidePlatform()).some(tour => tour.id === tourId)) {
+    // 今の状態では使えないツアー（unavailableIf）は出さない
+    if (tourId && availableTours(currentGuidePlatform()).some(tour => tour.id === tourId)
+        && availableTours(currentGuidePlatform(), undefined, computeGuideConditions()).some(tour => tour.id === tourId)) {
         actions.push({
             id: 'tour',
             label: t('guide_startTourHere'),
@@ -71,7 +73,7 @@ function buildActions(topicId: GuideTopicId, anchor: HTMLElement): GuideAction[]
         });
     }
     // 一覧に出せるツアーが1本でもあるときだけ、ツアー一覧を開くボタンを足す
-    if (topic.tourList && availableTours(currentGuidePlatform()).length > 0) {
+    if (topic.tourList && availableTours(currentGuidePlatform(), undefined, computeGuideConditions()).length > 0) {
         actions.push({
             id: 'tour-list',
             label: t('guide_tourListAction'),

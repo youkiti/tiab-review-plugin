@@ -16,10 +16,7 @@ export function computeMlStartConditions(): Record<MlStartCondition, boolean> {
     const onMlTab = onScreening && state.currentTab === 'ml';
     return {
         'ml-unusable': unusable,
-        'ml-usable': !unusable,
-        'ml-tab-open-or-unusable': onMlTab || unusable,
         'ml-tab-open': onMlTab,
-        'ml-tab-closed': !onMlTab,
-        'ml-dialog-not-needed': unusable || state.mlState.stoppingRule !== null,
+        'ml-dialog-not-needed': state.mlState.stoppingRule !== null,
     };
 }

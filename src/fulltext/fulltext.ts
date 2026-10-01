@@ -53,6 +53,7 @@ import { wireCriteriaModal, maybeShowCriteriaNotice, renderContextPanel } from '
 import { openLinkedInline, setDocumentLoaderDependencies } from './document-loader';
 import { showRegistrySnapshot } from './registry-snapshot';
 import { clearPdfPrefetch } from './pdf-prefetch';
+import { setupFulltextGuide } from './guide';
 
 document.addEventListener('DOMContentLoaded', () => {
     initFulltextPage().catch(err => {
@@ -157,6 +158,8 @@ async function initFulltextPage(): Promise<void> {
     setupAiRevealToggle();
     wireCriteriaModal();
     document.addEventListener('keydown', handleKeydown);
+    // 操作ツアー: 「ツアー」ボタンの結線と、続きの再開・初回の提案（ツアー本体は必要になるまで読み込まない）
+    setupFulltextGuide();
 
     // サイドパネルでキー状態（Blind開放/復帰）が変わったことを別ウィンドウ間で受け取る。
     // 別ウィンドウでPDF判定画面を開いたままキーがBlindへ戻された場合、購読していないと

@@ -44,10 +44,10 @@ export default defineScenario({
             await run.waitStep(T, step);
             await run.clickNext(step);
         }
-        await run.waitStep(T, 'finish-ml');
-        await run.clickNext('finish-ml');
-        await run.waitCardGone('finish-ml');
-        await run.waitTourStatus(T, 'done', 'finish-ml');
+        await run.waitStep(T, 'finish');
+        await run.clickNext('finish');
+        await run.waitCardGone('finish');
+        await run.waitTourStatus(T, 'done', 'finish');
         run.log('guide_progress: ml-start が done');
     },
 });

@@ -158,6 +158,15 @@
     z-index: 2100;
 }
 
+/* 対象がダイアログの中にあるときは、強調の枠と押せなくする覆いもダイアログの前面に出す（カードの 2100 より下） */
+.guide-tour-highlight--over-modal {
+    z-index: 2090;
+}
+
+.guide-tour-block--over-modal {
+    z-index: 2091;
+}
+
 /* ダイアログの上にも下にも収まらないときの小さい表示。クリックは下のダイアログへ通し、「ツアーを終える」だけ押せる */
 .guide-tour-card--compact {
     display: flex;

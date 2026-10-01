@@ -15,6 +15,7 @@ import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
 import { CRITERIA_FIELD_LABELS } from '../../../lib/review-criteria';
+import { emitGuideEvent } from '../guide/lazy';
 
 // Store互換レイヤー（Phase 5）
 import { setLlmConfig as syncSetLlmConfig } from '../../store/compat';
@@ -119,6 +120,7 @@ export async function handleOptimizeCriteria() {
         await updateBatchTargetCount().catch(err =>
             console.error('[handleOptimizeCriteria] Failed to refresh batch target count:', err)
         );
+        emitGuideEvent('ai-criteria-optimized');
     } catch (error) {
         console.error('[handleOptimizeCriteria] Error:', error);
         dom.optimizeStatusDiv.textContent = t('llm_optimizeError', (error as Error).message);
@@ -190,6 +192,7 @@ export async function handleSaveCriteria() {
 
         // 保存成功時：確定状態のスタイルを適用
         dom.criteriaCard.classList.add('confirmed');
+        emitGuideEvent('ai-criteria-saved');
     } catch (error) {
         console.error('[handleSaveCriteria] Error:', error);
         showToast(t('llm_criteriaSaveError'));

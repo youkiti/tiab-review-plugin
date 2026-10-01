@@ -12,32 +12,23 @@ import {
     suppressSuggestions,
     tourToSuggestOnEvent,
 } from '../../../lib/guide/tour-progress';
-import { currentGuidePlatform } from './tour-conditions';
-import { placeNear } from './anchor-placement';
-import { startGuideTour } from './tour-runner';
+import { buildTourSuggestBand, createGuideButton } from '../../../guide-ui/suggest-band';
 import {
     getGuideProgress,
     isGuidePostponed,
     loadGuideProgress,
     postponeGuideSuggestions,
     updateGuideProgress,
-} from './tour-store';
+} from '../../../guide-ui/tour-store';
+import { computeGuideConditions, currentGuidePlatform } from './tour-conditions';
+import { placeNear } from './anchor-placement';
+import { startGuideTour } from './tour-runner';
 
 const BANNER_ID = 'guide-suggest-banner';
 const LIST_ID = 'guide-tour-list';
 const TAB_SUGGEST_ID = 'guide-tab-suggest';
 /** 参加ツアーのうち、Picker の「Googleで許可する」を説明する手順 */
 const PICKER_STEP_ID = 'allow';
-
-function createButton(action: string, label: string, className: string, onClick: () => void): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = className;
-    button.dataset.guideAction = action;
-    button.textContent = label;
-    button.addEventListener('click', onClick);
-    return button;
-}
 
 // ---------- 自動提案バナー ----------
 
@@ -62,20 +53,20 @@ function buildBanner(): HTMLElement {
         void startGuideTour(tourId);
     };
     if (availableTours(context).some(tour => tour.id === 'first-project')) {
-        starts.append(createButton('start-first-project', t('guideExt_suggestFirstProject'),
+        starts.append(createGuideButton('start-first-project', t('guideExt_suggestFirstProject'),
             'btn btn-primary btn-small', startFor('first-project')));
     }
-    starts.append(createButton('start-join-project', t('guide_suggestJoinProject'),
+    starts.append(createGuideButton('start-join-project', t('guide_suggestJoinProject'),
         'btn btn-secondary btn-small', startFor('join-project')));
 
     const dismissals = document.createElement('div');
     dismissals.className = 'guide-suggest-dismissals';
     dismissals.append(
-        createButton('later', t('guide_suggestLater'), 'btn btn-outline btn-xsmall', () => {
+        createGuideButton('later', t('guide_suggestLater'), 'btn btn-outline btn-xsmall', () => {
             postponeGuideSuggestions();
             removeBanner();
         }),
-        createButton('never', t('guide_suggestNever'), 'btn btn-outline btn-xsmall', () => {
+        createGuideButton('never', t('guide_suggestNever'), 'btn btn-outline btn-xsmall', () => {
             updateGuideProgress(suppressSuggestions);
             removeBanner();
         }),
@@ -114,7 +105,7 @@ async function addPickerTourButton(): Promise<void> {
     if (progress.active?.tourId === 'join-project') return;
     const actions = document.querySelector<HTMLElement>('#status-message .status-actions');
     if (!actions || actions.querySelector('[data-guide-action="start-join-from-picker"]')) return;
-    actions.append(createButton('start-join-from-picker', t('guide_joinFromPicker'),
+    actions.append(createGuideButton('start-join-from-picker', t('guide_joinFromPicker'),
         'btn btn-secondary', () => { void startGuideTour('join-project', PICKER_STEP_ID); }));
 }
 
@@ -135,29 +126,18 @@ function removeTabSuggestion(): void {
 }
 
 function buildTabSuggestion(tour: TourDefinition): HTMLElement {
-    const band = document.createElement('div');
-    band.id = TAB_SUGGEST_ID;
-    band.className = 'guide-suggest-banner guide-tab-suggest';
-    band.dataset.guideTour = tour.id;
-
-    const title = document.createElement('div');
-    title.className = 'guide-suggest-title';
-    title.textContent = t(tour.titleKey);
-
-    const actions = document.createElement('div');
-    actions.className = 'guide-suggest-dismissals';
-    actions.append(
-        createButton('dismiss', t('guide_tabSuggestDismiss'), 'btn btn-outline btn-xsmall', () => {
+    return buildTourSuggestBand({
+        id: TAB_SUGGEST_ID,
+        tour,
+        onDismiss: () => {
             updateGuideProgress(progress => dismissTour(progress, tour.id, new Date().toISOString()));
             removeTabSuggestion();
-        }),
-        createButton('start', t('guide_tabSuggestStart'), 'btn btn-primary btn-xsmall', () => {
+        },
+        onStart: () => {
             removeTabSuggestion();
             void startGuideTour(tour.id);
-        }),
-    );
-    band.append(title, actions);
-    return band;
+        },
+    });
 }
 
 /** タブを開いたとき、前の帯を消し、そのタブに提案するツアーがあれば上部に帯を出す（帯は1つだけ）。 */
@@ -168,7 +148,7 @@ async function showTabSuggestion(name: GuideEventName): Promise<void> {
     if (!sectionId) return;
     const progress = await loadGuideProgress();
     if (seq !== tabSuggestSeq) return;
-    const tour = tourToSuggestOnEvent(progress, name, currentGuidePlatform());
+    const tour = tourToSuggestOnEvent(progress, name, currentGuidePlatform(), undefined, computeGuideConditions());
     if (!tour) return;
     const section = document.getElementById(sectionId);
     if (!section || section.classList.contains('hidden')) return;
@@ -225,7 +205,7 @@ function buildListItem(tour: TourDefinition): HTMLElement {
         item.append(head, description, hint);
         return item;
     }
-    const start = createButton('start', t(done ? 'guide_tourAgain' : 'guide_tourStart'),
+    const start = createGuideButton('start', t(done ? 'guide_tourAgain' : 'guide_tourStart'),
         'btn btn-secondary btn-xsmall', () => {
             closeGuideTourList();
             void startGuideTour(tourId);
@@ -245,9 +225,9 @@ function buildList(): HTMLElement {
     header.className = 'guide-tour-list-header';
     const title = document.createElement('span');
     title.textContent = t('guide_tourListTitle');
-    header.append(title, createButton('close-list', '✕', 'btn btn-outline btn-xsmall', closeGuideTourList));
+    header.append(title, createGuideButton('close-list', '✕', 'btn btn-outline btn-xsmall', closeGuideTourList));
     panel.append(header);
-    for (const tour of availableTours(currentGuidePlatform())) {
+    for (const tour of availableTours(currentGuidePlatform(), undefined, computeGuideConditions())) {
         panel.append(buildListItem(tour));
     }
     return panel;
