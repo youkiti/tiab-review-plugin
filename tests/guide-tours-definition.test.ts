@@ -11,13 +11,14 @@ const tours = allTours.filter((t) => !t.draft);
 const original = [GUIDE_TOURS['first-project'], GUIDE_TOURS['join-project']];
 const underscore = (s: string): string => s.replace(/-/g, '_');
 
-test('ツアー定義: キーと id が一致し、10本ある', () => {
+test('ツアー定義: キーと id が一致し、11本ある', () => {
     assert.deepEqual([...GUIDE_TOUR_IDS].sort(), [
         'ai-first-run',
         'assignment-setup',
         'duplicate-review',
         'first-project',
         'fulltext-page',
+        'fulltext-results',
         'fulltext-setup',
         'join-project',
         'ml-start',

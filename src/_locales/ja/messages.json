@@ -2076,6 +2076,45 @@
   "guideExt_tour_fulltext_page_finish": {
     "message": "以上です。この「?」はヘルプの該当ページを開きます。このツアーをもう一度見るときは、隣の「ツアー」ボタンを押してください。"
   },
+  "guideExt_tour_fulltext_results_title": {
+    "message": "判定後レビュー"
+  },
+  "guideExt_tour_fulltext_results_desc": {
+    "message": "判定者の選択、PRISMA の集計、不一致の裁定、CSV/RIS のエクスポートまでの流れを案内します。"
+  },
+  "guideExt_tour_fulltext_results_open_tab": {
+    "message": "まず「全文」タブを押してください。"
+  },
+  "guideExt_tour_fulltext_results_open_results": {
+    "message": "全文タブの「判定後レビュー」を押してください。判定の集計、不一致の解消、結果のエクスポートは、この表示にあります。"
+  },
+  "guideExt_tour_fulltext_results_judges": {
+    "message": "集計に使う判定者を選びます。選んだ判定者の判定だけが集計に含まれ、組み入れは選んだ判定者の OR（1人でも組み入れと判定すれば組み入れ）で決まります。AI も判定者として選べます。"
+  },
+  "guideExt_tour_fulltext_results_prisma": {
+    "message": "PRISMA の全文相の数値（候補・全文入手済・組み入れ・除外・保留・未判定）が自動で集計されます。判定者の選択を変えると数値も変わります。未解消の不一致があると、その件数も出ます。"
+  },
+  "guideExt_tour_fulltext_results_key_closed": {
+    "message": "今は Blind 中なので、集計されるのは自分の判定だけで、不一致の解消も出ません。管理者がキーを開封したら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。続きの手順が出ます。"
+  },
+  "guideExt_tour_fulltext_results_no_conflict": {
+    "message": "裁定が必要な不一致は今ありません（判定者間で割れた項目が無いか、すべて裁定済みです）。判定が割れると、この下に「不一致の解消」が出て、裁定する項目が並びます。"
+  },
+  "guideExt_tour_fulltext_results_conflicts": {
+    "message": "ここ「不一致の解消」に、判定者間で割れた文献が並びます。組み入れと除外で割れた「判定不一致」と、どちらも除外だが理由が違う「理由不一致」の2種類があり、未解消のものが先に出ます。"
+  },
+  "guideExt_tour_fulltext_results_open_item": {
+    "message": "未解消の項目を1つ押して開いてください。各判定者の判定・理由・メモが並ぶので、読み比べて裁定の材料にします。"
+  },
+  "guideExt_tour_fulltext_results_adjudicate": {
+    "message": "話し合いで決まったら、ここで確定します。「組み入れで確定」「保留で確定」「除外で確定」のどれでも選べ、除外は理由が必須です。どの確定でも裁定メモに根拠を残せます。確定し直すと最新が有効で、履歴は残ります。記録が変わるので、押さずに次へ進んでもかまいません。"
+  },
+  "guideExt_tour_fulltext_results_export": {
+    "message": "「CSVエクスポート」「RISエクスポート」で結果を書き出せます。CSV には裁定メモの列も入ります。未解消の不一致が残っているときは、エクスポートの前に確認が出ます。"
+  },
+  "guideExt_tour_fulltext_results_finish": {
+    "message": "判定後レビューは以上です。わからなくなったときは、この「?」から、説明と操作ツアーの一覧を開けます。"
+  },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"
   },

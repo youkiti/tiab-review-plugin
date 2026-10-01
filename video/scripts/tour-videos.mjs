@@ -60,7 +60,8 @@ const READINGS = [
     ['Remaining', 'リメイニング'], ['Include', 'インクルード'], ['Exclude', 'エクスクルード'],
     ['Google', 'グーグル'], ['Blind', 'ブラインド'], ['Ready', 'レディ'], ['Enter', 'エンター'],
     ['TiAb', 'タイアブ'], ['URL', 'ユーアールエル'], ['PDF', 'ピーディーエフ'], ['DOI', 'ディーオーアイ'],
-    ['ML', 'エムエル'], ['AI', 'エーアイ'],
+    ['PRISMA', 'プリズマ'], ['CSV', 'シーエスブイ'], ['RIS', 'アールアイエス'],
+    ['ML', 'エムエル'], ['AI', 'エーアイ'], ['OR', 'オア'],
 ];
 
 export function toReading(text) {

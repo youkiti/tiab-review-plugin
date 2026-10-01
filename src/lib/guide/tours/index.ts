@@ -10,6 +10,7 @@ import { AI_FIRST_RUN_TOUR, type AiFirstRunCondition, type AiFirstRunEvent } fro
 import { DUPLICATE_REVIEW_TOUR, type DuplicateReviewCondition, type DuplicateReviewEvent } from './duplicate-review';
 import { FIRST_PROJECT_TOUR, type FirstProjectCondition, type FirstProjectEvent } from './first-project';
 import { FULLTEXT_PAGE_TOUR, type FulltextPageCondition, type FulltextPageEvent } from './fulltext-page';
+import { FULLTEXT_RESULTS_TOUR, type FulltextResultsCondition, type FulltextResultsEvent } from './fulltext-results';
 import { FULLTEXT_SETUP_TOUR, type FulltextSetupCondition, type FulltextSetupEvent } from './fulltext-setup';
 import { JOIN_PROJECT_TOUR, type JoinProjectCondition, type JoinProjectEvent } from './join-project';
 import { ML_START_TOUR, type MlStartCondition, type MlStartEvent } from './ml-start';
@@ -34,6 +35,7 @@ export type GuideEventName =
     | ResolveConflictsEvent
     | DuplicateReviewEvent
     | FulltextSetupEvent
+    | FulltextResultsEvent
     | AiFirstRunEvent
     | MlStartEvent
     | FulltextPageEvent
@@ -48,6 +50,7 @@ export type GuideCondition =
     | ResolveConflictsCondition
     | DuplicateReviewCondition
     | FulltextSetupCondition
+    | FulltextResultsCondition
     | AiFirstRunCondition
     | MlStartCondition
     | FulltextPageCondition
@@ -69,6 +72,7 @@ export const GUIDE_TOURS: Record<GuideTourId, TourDefinition> = {
     'ai-first-run': AI_FIRST_RUN_TOUR,
     'ml-start': ML_START_TOUR,
     'fulltext-page': FULLTEXT_PAGE_TOUR,
+    'fulltext-results': FULLTEXT_RESULTS_TOUR,
 };
 
 export const GUIDE_TOUR_IDS = Object.keys(GUIDE_TOURS) as GuideTourId[];

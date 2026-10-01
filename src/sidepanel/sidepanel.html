@@ -914,7 +914,7 @@
             <div class="fulltext-viewmode-row" role="tablist" data-tour="fulltext-views">
                 <button id="fulltext-mode-list" class="fulltext-mode-btn active" data-tour="fulltext-mode-list" data-mode="list" data-i18n="fulltext_modeList"></button>
                 <button id="fulltext-mode-ai" class="fulltext-mode-btn" data-mode="ai" data-i18n="fulltext_modeAi"></button>
-                <button id="fulltext-mode-results" class="fulltext-mode-btn" data-mode="results" data-i18n="fulltext_modeResults"></button>
+                <button id="fulltext-mode-results" class="fulltext-mode-btn" data-tour="fulltext-mode-results" data-mode="results" data-i18n="fulltext_modeResults"></button>
             </div>
 
             <!-- ① 候補ルール + 判定進捗 -->
@@ -1060,7 +1060,7 @@
                 </div>
 
                 <!-- 判定者選択 -->
-                <div class="fulltext-results-judges">
+                <div class="fulltext-results-judges" data-tour="fulltext-judges">
                     <div class="guide-heading-row">
                         <div class="fulltext-results-judges-head" data-i18n="fulltext_resultsJudgesHead"></div>
                         <button type="button" class="guide-help-btn" data-help="fulltext-results" data-i18n-title="guide_helpBtnTitle" data-i18n-aria-label="guide_helpBtnTitle">?</button>
@@ -1070,17 +1070,17 @@
                 </div>
 
                 <!-- PRISMA 集計 -->
-                <div id="fulltext-prisma" class="fulltext-prisma"></div>
+                <div id="fulltext-prisma" class="fulltext-prisma" data-tour="fulltext-prisma"></div>
 
                 <!-- 不一致の解消: キー開封後のみ表示（ブラインド中は他人の票がクライアントに来ないため） -->
-                <div id="fulltext-conflicts" class="fulltext-conflicts hidden">
+                <div id="fulltext-conflicts" class="fulltext-conflicts hidden" data-tour="fulltext-conflicts">
                     <div class="fulltext-conflicts-head" data-i18n="fulltext_conflictsHead"></div>
                     <div id="fulltext-conflicts-summary" class="fulltext-conflicts-summary"></div>
                     <div id="fulltext-conflicts-list" class="fulltext-conflicts-list"></div>
                 </div>
 
                 <!-- エクスポート -->
-                <div class="fulltext-results-export">
+                <div class="fulltext-results-export" data-tour="fulltext-export">
                     <button id="fulltext-export-csv-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportCsv"></button>
                     <button id="fulltext-export-ris-btn" class="btn btn-small btn-secondary" data-i18n="fulltext_exportRis"></button>
                     <button id="fulltext-manuscript-btn" class="btn btn-small btn-secondary" data-i18n="manuscript_menuItem"></button>

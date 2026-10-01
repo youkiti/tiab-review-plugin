@@ -424,6 +424,11 @@ function buildConflictItem(
 ): HTMLElement {
     const details = document.createElement('details');
     details.className = `fulltext-conflict-item ${consensus.unresolved ? 'unresolved' : 'resolved'}`;
+    // ツアーの対象は未解消の項目だけ（裁定が要るもの）。開いたことをツアーへ知らせる
+    if (consensus.unresolved) details.dataset.tour = 'fulltext-conflict-item';
+    details.addEventListener('toggle', () => {
+        if (details.open) emitGuideEvent('fulltext-conflict-opened');
+    });
 
     const summary = document.createElement('summary');
     summary.className = 'fulltext-conflict-summary';
@@ -658,6 +663,7 @@ export function setFulltextMode(mode: FulltextViewMode): void {
     resultsMode = mode === 'results';
     applyModeVisibility();
     if (mode === 'list') emitGuideEvent('fulltext-list-shown');
+    if (mode === 'results') emitGuideEvent('fulltext-results-shown');
     if (mode === 'results') renderFulltextResults();
     else if (mode === 'ai') renderFulltextAi();
 }

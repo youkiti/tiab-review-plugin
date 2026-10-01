@@ -9,7 +9,8 @@ export type GuideTourId =
     | 'fulltext-setup'
     | 'ai-first-run'
     | 'ml-start'
-    | 'fulltext-page';
+    | 'fulltext-page'
+    | 'fulltext-results';
 
 export interface GuideTopic {
     /** docs/help.html 内の id（# は付けない） */
@@ -58,7 +59,7 @@ export const GUIDE_TOPICS = {
     'fulltext-drive-import': { helpAnchor: 'fulltext-drive-import', tourId: 'fulltext-setup', extensionOnly: true },
     'fulltext-registry': { helpAnchor: 'fulltext-registry', extensionOnly: true },
     'fulltext-ai': { helpAnchor: 'fulltext-ai', extensionOnly: true },
-    'fulltext-results': { helpAnchor: 'fulltext-results', extensionOnly: true },
+    'fulltext-results': { helpAnchor: 'fulltext-results', tourId: 'fulltext-results', extensionOnly: true },
     'web-app': { helpAnchor: 'web-version' },
 } as const satisfies Record<string, GuideTopic>;
 
