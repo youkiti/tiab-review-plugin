@@ -93,6 +93,14 @@ test('ツアー定義: blockTarget は blind 手順だけ', () => {
     }
 });
 
+test('ツアー定義: scroll は start / if-hidden のどちらか', () => {
+    for (const tour of tours) {
+        for (const step of tour.steps) {
+            assert.ok(step.scroll === undefined || step.scroll === 'start' || step.scroll === 'if-hidden', `${tour.id}/${step.id}`);
+        }
+    }
+});
+
 test('ツアー定義: 担当セットの手順は no-assignment-sets で飛ばす', () => {
     const step = GUIDE_TOURS['join-project'].steps.find((s) => s.id === 'assignment');
     assert.equal(step?.skipIf, 'no-assignment-sets');

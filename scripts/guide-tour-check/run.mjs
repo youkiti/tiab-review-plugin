@@ -3,11 +3,13 @@
 //
 // 使い方:
 //   npm run build:demo
-//   npm run check:tours -- [--only 1|2] [--lang ja|en]
+//   npm run check:tours -- [--only 1|2|3] [--lang ja|en] [--size 幅x高さ]
 //
 //   --only 1  ツアー1（first-project）だけ実行する
 //   --only 2  ツアー2（join-project, ?demoPickerRequired=1）だけ実行する
+//   --only 3  長い抄録の文献で、ツアー2の read・decide の配置だけ確かめる
 //   --lang    ブラウザとUIの言語（既定 ja）
+//   --size    ビューポート（既定 500x1000。狭い画面は 400x700 など）
 //
 // CI には入れていない。headed の Chrome で拡張機能を読み込むため、ブラウザの動く環境が要る。
 // 拡張機能のロード方式は scripts/doc-screenshots/capture.mjs と同じ
@@ -35,7 +37,7 @@ const DEMO_SPREADSHEET_ID = 'demo-spreadsheet-001';
 const DEMO_SHEET_URL = `https://docs.google.com/spreadsheets/d/${DEMO_SPREADSHEET_ID}/edit`;
 
 // サイドパネルの実寸に近い縦長ビューポート（capture.mjs と同じ）
-const VIEWPORT = { width: 500, height: 1000 };
+let VIEWPORT = { width: 500, height: 1000 };
 const DEVICE_SCALE_FACTOR = 1;
 
 const STEP_TIMEOUT = 20000; // 手順が切り替わるまでの待ち
@@ -46,12 +48,16 @@ const NEGATIVE_WAIT = 4000; // 「現れないこと」を確かめる待ち
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function parseArgs(argv) {
-    const args = { only: null, lang: 'ja' };
+    const args = { only: null, lang: 'ja', size: null };
     for (let i = 0; i < argv.length; i += 1) {
         if (argv[i] === '--only') {
             const value = argv[++i];
-            if (value !== '1' && value !== '2') throw new Error('--only には 1 または 2 を指定してください');
+            if (value !== '1' && value !== '2' && value !== '3') throw new Error('--only には 1・2・3 のどれかを指定してください');
             args.only = Number(value);
+        } else if (argv[i] === '--size') {
+            const match = /^(\d+)x(\d+)$/.exec(argv[++i] ?? '');
+            if (!match) throw new Error('--size には 400x700 のような形式で指定してください');
+            args.size = { width: Number(match[1]), height: Number(match[2]) };
         } else if (argv[i] === '--lang') {
             const value = argv[++i];
             if (value !== 'ja' && value !== 'en') throw new Error('--lang には ja または en を指定してください');
@@ -271,10 +277,13 @@ async function withFreshBrowser(name, lang, fn) {
     }
 }
 
-/** 🧭 の一覧を開き、tourId の行が済みになっていることを確かめて閉じる。 */
+/** ❓ の吹き出しの「操作ツアーの一覧」からツアー一覧を開き、tourId の行が済みになっていることを確かめて閉じる。 */
 async function expectTourListDone(run, tourId) {
-    // 表示中の 🧭 ボタンを選ぶ（プロジェクト選択画面とスクリーニング画面に1つずつある）
-    await run.click('[data-tour="tour-list"]:visible', 'tour-list', '🧭 ツアー一覧ボタン');
+    // 表示中の ❓ ボタンを選ぶ（プロジェクト選択画面とスクリーニング画面に1つずつある）
+    await run.click('[data-tour="tour-list"]:visible', 'tour-list', '❓ ボタン');
+    await run.waitVisible('.guide-popover [data-guide-action="tour-list"]', 'tour-list', '吹き出しの「操作ツアーの一覧」ボタン');
+    await run.shot('tour-list-popover');
+    await run.click('.guide-popover [data-guide-action="tour-list"]', 'tour-list', '吹き出しの「操作ツアーの一覧」ボタン');
     await run.waitVisible('#guide-tour-list', 'tour-list', 'ツアー一覧パネル');
     try {
         await run.page.locator(`[data-guide-tour-item="${tourId}"][data-guide-done="true"]`).waitFor({ state: 'attached', timeout: ACTION_TIMEOUT });
@@ -307,10 +316,12 @@ async function scenario1(run) {
     if (dialogShown) await expectDialogButtonClickableInLowViewport(run, 'read');
     await run.closeModal(); // 取り込み後の確認・案内が出ていれば閉じる
     await expectDialogWaitingEnded(run, 'read');
+    await expectCardClearOfTarget(run, 'read', '#ref-title', '文献のタイトル');
     await run.clickNext('read');
 
     // 判定 → ここで1回リロードし、同じ手順から再開することを確かめる
     await run.waitStep(T, 'decide');
+    await expectCardClearOfTarget(run, 'decide', '.decision-buttons', '判定ボタン');
     await expectCardStaysInViewportWhileScrolling(run, 'decide');
     await reloadAndExpectResume(run, T, 'decide');
     await run.click('#btn-include', 'decide', '判定ボタン（Include）');
@@ -398,6 +409,36 @@ async function expectDialogButtonClickableInLowViewport(run, stepLabel) {
     } finally {
         if (original) await run.page.setViewportSize(original);
     }
+}
+
+/**
+ * 手順に入った直後の、カードと文献カードの位置関係を確かめる。
+ * read: 文献カードのタイトル（#ref-title）が画面内に見え、カードがタイトルと重ならない。
+ * decide: 判定ボタン（.decision-buttons）が画面内に見え、カードが判定ボタンと重ならない。
+ */
+async function expectCardClearOfTarget(run, stepLabel, selector, what) {
+    await sleep(700); // スクロールと位置合わせ（400ms 間隔の補助を含む）を待つ
+    const check = await run.page.evaluate((sel) => {
+        const card = document.getElementById('guide-tour-card');
+        const el = document.querySelector(sel);
+        if (!card || !el) return { ok: false, reason: 'カードまたは対象の要素が無い' };
+        const vw = document.documentElement.clientWidth;
+        const vh = window.innerHeight;
+        const c = card.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const visible = r.top >= 0 && r.bottom <= vh && r.left >= 0 && r.right <= vw && r.height > 0;
+        const overlap = c.left < r.right && c.right > r.left && c.top < r.bottom && c.bottom > r.top;
+        return {
+            ok: visible && !overlap,
+            reason: `${visible ? '' : '対象が画面内に見えない '}${overlap ? 'カードが対象に重なっている ' : ''}` +
+                `card=${JSON.stringify(c)} target=${JSON.stringify(r)} viewport=${vw}x${vh}`,
+        };
+    }, selector);
+    if (!check.ok) {
+        await run.fail(stepLabel, `${what}（${selector}）が画面内に見え、カードが重ならないこと（${check.reason}）`);
+    }
+    run.log(`${what}が画面内に見え、カードと重ならないことを確認`);
+    await run.shot(`${stepLabel}-placement`);
 }
 
 /** ページをスクロールしても、カードと「ツアーを終える」ボタンが常に画面内にあること。 */
@@ -499,14 +540,20 @@ async function scenario2(run) {
     await run.click('[data-tour="picker-open"]', 'allow', 'Picker 案内の「Googleで許可する」ボタン');
 
     // 3秒ごとのポーリングで自動的に接続し直す。担当の手順は出ても飛ばされてもよい。
-    const reached = await run.waitStep(T, ['assignment', 'decide'], POLL_STEP_TIMEOUT);
+    const reached = await run.waitStep(T, ['assignment', 'read'], POLL_STEP_TIMEOUT);
     if (reached === 'assignment') {
         run.log('assignment の手順が出ました（「次へ」で進めます）');
         await run.clickNext('assignment');
-        await run.waitStep(T, 'decide');
+        await run.waitStep(T, 'read');
     } else {
         run.log('assignment の手順は飛ばされました（担当セットが無い）');
     }
+
+    // 読む → 「次へ」で判定へ
+    await expectCardClearOfTarget(run, 'read', '#ref-title', '文献のタイトル');
+    await run.clickNext('read');
+    await run.waitStep(T, 'decide');
+    await expectCardClearOfTarget(run, 'decide', '.decision-buttons', '判定ボタン');
 
     await run.click('#btn-include', 'decide', '判定ボタン（Include）');
 
@@ -518,9 +565,72 @@ async function scenario2(run) {
 }
 
 // ---------------------------------------------------------------------------
+// シナリオ3: 長い抄録の文献で、ツアー2（join-project）の read・decide の配置を確かめる
+// ---------------------------------------------------------------------------
+async function scenario3(run) {
+    const T = 'join-project';
+    await run.openAndLogin();
+    // 新規作成の取り込み（抄録なし）ではなく、デモの既定データ（抄録つきの文献を含む）に接続する
+    await run.page.locator('#spreadsheet-input').fill(DEMO_SHEET_URL);
+    await run.click('#connect-btn', 'setup', '接続ボタン');
+    await run.waitVisible('#ref-title', 'setup', '文献のタイトル');
+    await sleep(1000);
+    await run.closeModal();
+
+    // 抄録がいちばん長い文献を探して、そこへ移る
+    const lengths = [];
+    for (let i = 0; i < 10; i += 1) {
+        lengths.push(await run.page.evaluate(() => document.getElementById('ref-abstract').textContent.length));
+        const next = run.page.locator('#btn-next');
+        if (await next.isDisabled().catch(() => true)) break;
+        await next.click();
+        await sleep(300);
+    }
+    const longest = lengths.indexOf(Math.max(...lengths));
+    run.log(`抄録の文字数: ${lengths.join(', ')}（最大は ${longest + 1} 件目）`);
+    if (lengths[longest] < 1500) throw new Error('抄録が1500字以上の文献が見つかりません（検証の前提が崩れている）');
+    // 一周して戻ってくることもあるので、位置を数えず、抄録の長さが最大に一致するまで進める
+    const maxLength = lengths[longest];
+    for (let i = 0; i < lengths.length + 2; i += 1) {
+        const now = await run.page.evaluate(() => document.getElementById('ref-abstract').textContent.length);
+        if (now === maxLength) break;
+        await run.page.locator('#btn-next').click();
+        await sleep(300);
+    }
+    await run.page.evaluate(() => window.scrollTo(0, 0));
+
+    // ❓ → 操作ツアーの一覧 → 「参加」ツアーを始める（接続の手順は画面がスクリーニングなので飛ばされる）
+    await run.click('[data-tour="tour-list"]:visible', 'start', '❓ ボタン');
+    await run.click('.guide-popover [data-guide-action="tour-list"]', 'start', '吹き出しの「操作ツアーの一覧」ボタン');
+    await run.waitVisible('#guide-tour-list', 'start', 'ツアー一覧パネル');
+    await run.click(`#guide-tour-list [data-guide-tour-item="${T}"] [data-guide-action="start"]`, 'start', 'ツアー2の開始ボタン');
+
+    const reached = await run.waitStep(T, ['assignment', 'read']);
+    if (reached === 'assignment') {
+        await run.clickNext('assignment');
+        await run.waitStep(T, 'read');
+    }
+    await expectCardClearOfTarget(run, 'read', '#ref-title', '文献のタイトル');
+    await run.clickNext('read');
+    await run.waitStep(T, 'decide');
+    await expectCardClearOfTarget(run, 'decide', '.decision-buttons', '判定ボタン');
+    // 抄録が画面に残っていること（カードが抄録の本文を丸ごと覆わない）は、保存したスクリーンショットで目視する
+    await run.click('#btn-include', 'decide', '判定ボタン（Include）');
+    await run.waitStep(T, 'finish');
+    await run.clickNext('finish');
+    await run.waitCardGone('finish');
+
+    // スクリーニング画面のツールバーの ❓ の吹き出しにも「操作ツアーの一覧」がある
+    await run.click('[data-tour="tour-list"]:visible', 'toolbar-popover', 'ツールバーの ❓ ボタン');
+    await run.waitVisible('.guide-popover [data-guide-action="tour-list"]', 'toolbar-popover', '吹き出しの「操作ツアーの一覧」ボタン');
+    await run.shot('toolbar-popover');
+}
+
+// ---------------------------------------------------------------------------
 
 async function main() {
-    const { only, lang } = parseArgs(process.argv.slice(2));
+    const { only, lang, size } = parseArgs(process.argv.slice(2));
+    if (size) VIEWPORT = size;
     if (!existsSync(DIST_DEMO_DIR) || readdirSync(DIST_DEMO_DIR).length === 0) {
         throw new Error(`dist-demo/ がありません。先に \`npm run build:demo\` を実行してください: ${DIST_DEMO_DIR}`);
     }
@@ -533,7 +643,8 @@ async function main() {
     const scenarios = [
         { no: 1, name: 'scenario1', title: 'ツアー1 first-project', fn: scenario1 },
         { no: 2, name: 'scenario2', title: 'ツアー2 join-project', fn: scenario2 },
-    ].filter((s) => only === null || s.no === only);
+        { no: 3, name: 'scenario3', title: '長い抄録でのツアー2（read・decide の配置）', fn: scenario3, onlyExplicit: true },
+    ].filter((s) => (only === null ? !s.onlyExplicit : s.no === only));
 
     const results = [];
     const allShots = [];

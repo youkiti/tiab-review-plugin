@@ -298,6 +298,8 @@
   4. 文言を ja/en の `messages.json` に同じキーで入れる。拡張版だけのツアーの文言は `guideExt_` 接頭辞にする（Web 版ビルドの messages.json から落とすため。`scripts/webpack/strip-locale-keys.cjs`）
   5. `npm test`（定義と HTML・文言の照合）と、`npm run build:demo && npm run check:tours`（デモビルドでの通し検証）を回す。`check:tours` はブラウザが要るので CI には入っていない。UI やツアーを変えたら手元で回すこと
 - UI を変えるときの注意: `data-tour` / `data-help` の付いた要素を消す・id を変えると照合テストが落ちる。落ちたらテストを緩めず、ツアーの定義か属性のほうを直す（テストを緩めると、利用者の画面でツアーが黙って止まる）
+- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この2つの ❓ には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）
+- 手順に入ったときのスクロールは `TourStep.scroll` で指定する。`'start'`（文献カードの先頭＝タイトルを見せる。`read`）、`'if-hidden'`（対象が画面内に全部見えているならスクロールしない。`decide` で、直前まで読んでいた抄録を画面に残す）。省略時は対象が高ければ上端、そうでなければ中央へ寄せる
 - 取り消せない操作・プロジェクト全体に効く操作（Blind の切り替え、再シャッフルなど）をツアーの手順にするときは、`blockTarget: true` で押せないようにし、進む条件は「次へ」（`advance: { type: 'next' }`）にする。実際に押させると、練習のつもりが本番のデータを変えてしまうため
 - デモビルドでの再現: 新規作成は `POST /v4/spreadsheets` のモックがデモのシートストアを空に初期化する（`src/demo/fetch-mock.ts`）。共有シートの初回許可（Picker）は URL に `?demoPickerRequired=1` を付けると再現できる（`src/demo/fetch-mock.ts` と `src/platform/demo/index.ts`）
 - 保存: 進行状態は `platform().storageGet/storageSet` のキー `guide_progress`（`GUIDE_PROGRESS_STORAGE_KEY`）。壊れた値は既定値に戻して読み、保存形式の検証は `tour-progress.ts` に置く。「あとで」はそのセッションの中だけで保存しない（次回また提案するため）。「今後表示しない」と、ツアーごとの完了・中止は保存する

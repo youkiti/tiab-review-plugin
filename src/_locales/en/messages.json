@@ -1394,7 +1394,7 @@
     "message": "Review sheet: $1"
   },
   "share_inviteTemplate": {
-    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\nWhen you open the sheet in the extension (or the web app), a guided tour of the joining steps appears the first time. You can reopen it any time from the 🧭 at the top right.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "You're invited to join a systematic review in the TiAb Review Plugin.\n\n0. Google Chrome is required\n1. Install the extension (Chrome Web Store):\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Click the puzzle-piece icon (extensions button) at the top right of Chrome and click \"TiAb Review Plugin\" in the list to launch it.\n   Then paste the following into the \"Spreadsheet URL\" field on the project selection screen and connect:\n   $1\n\n3. The first time only, an \"Allow with Google\" button may appear when you connect. Click it, and a Google screen opens in a new tab — select the sheet above there. The panel reconnects automatically.\n\nWhen you open the sheet in the extension (or the web app), a guided tour of the joining steps appears the first time. You can reopen it any time from the ❓ at the top right.\n\n* If a full-text PDF won't open, run \"Check access\" in the Fulltext tab.\n\nUsage guide:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "Invite message copied"
@@ -1557,6 +1557,12 @@
   "guide_topic_project_connect": {
     "message": "Connect to a project"
   },
+  "guide_topic_overview": {
+    "message": "Help"
+  },
+  "guide_tourListAction": {
+    "message": "🧭 List of guided tours"
+  },
   "guide_topic_screening_toolbar": {
     "message": "Toolbar"
   },
@@ -1699,7 +1705,7 @@
     "message": "Import record files such as PubMed .nbib or RIS. Choose the file from this button instead of opening the download directly. Duplicates are removed automatically."
   },
   "guideExt_tour_first_project_read": {
-    "message": "Read the title and abstract, using the green and red keywords as cues."
+    "message": "Read the title and abstract, using the green and red keywords as cues. If the abstract is long, scroll up and down to read it to the end. Press Next when you have finished reading."
   },
   "guideExt_tour_first_project_decide": {
     "message": "Press Include, Maybe, or Exclude. The i / m / e keys work too. The next record appears once it is saved."
@@ -1714,7 +1720,7 @@
     "message": "Blind is on by default, so other reviewers' decisions are hidden. Do not open the key until everyone has finished screening independently. The switch affects the whole project, so it is disabled during this tour."
   },
   "guideExt_tour_first_project_finish": {
-    "message": "The ? on each card opens an explanation any time. You can replay tours from this 🧭. Invite collaborators with Share in the toolbar."
+    "message": "The ? on each card opens an explanation any time. This ❓ opens the explanation for each screen and the list of guided tours. Invite collaborators with Share in the toolbar."
   },
   "guide_tour_join_project_title": {
     "message": "Join as a collaborator"
@@ -1734,11 +1740,14 @@
   "guide_tour_join_project_assignment": {
     "message": "Only your assigned records are shown."
   },
+  "guide_tour_join_project_read": {
+    "message": "First, read the title and abstract. If the abstract is long, scroll up and down to read it to the end. Press Next when you have finished reading."
+  },
   "guide_tour_join_project_decide": {
-    "message": "While Blind is on, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
+    "message": "When you have finished reading, decide with the buttons below. While Blind is on, you cannot see others' decisions, so judge independently. The i / m / e keys work too."
   },
   "guide_tour_join_project_finish": {
-    "message": "The ? opens an explanation any time. To fix a decision, go back to the previous record and press again."
+    "message": "The ? on each card opens an explanation any time. This ❓ opens the explanation for each screen and the list of guided tours. To fix a decision, go back to the previous record and press again."
   },
   "error_quotaExceeded": {
     "message": "Too many requests right now. Please wait about a minute and try again."

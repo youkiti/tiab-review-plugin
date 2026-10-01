@@ -13,13 +13,16 @@ export interface GuideTopic {
      * 見出しのキーが `guideExt_topic_*` になり、Web 版ビルドの messages.json から落とされる。
      */
     extensionOnly?: true;
+    /** 吹き出しに「操作ツアーの一覧」を開くボタンを足す（ツアーが1本も使えないプラットフォームでは出ない） */
+    tourList?: true;
 }
 
 export const GUIDE_TOPICS = {
     'login': { helpAnchor: 'login' },
     'project-create': { helpAnchor: 'login-create-project', tourId: 'first-project', extensionOnly: true },
     'project-connect': { helpAnchor: 'login-connect-project', tourId: 'join-project' },
-    'screening-toolbar': { helpAnchor: 'screening-toolbar' },
+    'overview': { helpAnchor: 'getting-started', tourList: true },
+    'screening-toolbar': { helpAnchor: 'screening-toolbar', tourList: true },
     'share': { helpAnchor: 'sharing-dialog' },
     'blind': { helpAnchor: 'sharing-blind' },
     'screening-filters': { helpAnchor: 'screening-filters' },
