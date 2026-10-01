@@ -532,8 +532,8 @@
                     <span class="en">You can stop at any time with "End tour". If you close the panel partway through, the tour resumes where you left off when you reopen it.</span>
                 </p>
                 <p>
-                    <span class="ja">AI の一括実行や共有の追加のように、費用がかかる操作や実際のデータが変わる操作の手順は、ボタンを押せば次へ進みますが、「押さずに次へ」で説明だけ読んで進むこともできます。Blind の切り替え（キー開封）や担当の「再分割してやり直す」のように、取り消せずプロジェクト全体に効く操作は、ツアー中は説明だけで押せないようにしてあります。</span>
-                    <span class="en">For steps that cost money or change real data, such as running an AI batch or adding a collaborator, pressing the button moves the tour forward, but you can also press "Skip this step" to read the explanation and continue without doing it. Actions that cannot be undone and affect the whole project, such as the Blind switch (opening the key) or "Re-split (redo)" for assignments, are only explained during a tour and cannot be clicked.</span>
+                    <span class="ja">AI の一括実行や共有の追加のように、費用がかかる操作や実際のデータが変わる操作の手順は、ボタンを押せば次へ進みますが、「押さずに次へ」で説明だけ読んで進むこともできます。他者の判定の表示切り替え（キー開封）や担当の「再分割してやり直す」のように、取り消せずプロジェクト全体に効く操作は、ツアー中は説明だけで押せないようにしてあります。</span>
+                    <span class="en">For steps that cost money or change real data, such as running an AI batch or adding a collaborator, pressing the button moves the tour forward, but you can also press "Skip this step" to read the explanation and continue without doing it. Actions that cannot be undone and affect the whole project, such as the switch that shows others' decisions (opening the key) or "Re-split (redo)" for assignments, are only explained during a tour and cannot be clicked.</span>
                 </p>
 <p>
                     <span class="ja">各カードの「?」を押すと、そのカードの説明（このヘルプページの該当する節）を開けます。</span>
@@ -634,10 +634,10 @@
                             where it is view-only</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>Blind on/off</strong>: スイッチOFF（既定）がブラインドレビュー（他のレビュアーの判定を非表示）、スイッチONがキー開封（ブラインド解除）です。管理者にのみ表示されます。詳細は「<a
+                        <span class="ja"><strong>他者の判定の表示スイッチ</strong>: スイッチOFF（既定）では他のレビュアーの判定が非表示になり（各自が独立に判定します）、スイッチONでキー開封です。管理者にのみ表示されます。詳細は「<a
                                 href="#sharing">共有とチーム運用</a>」章を参照してください</span>
-                        <span class="en"><strong>Blind on/off</strong>: OFF (default) means blind review — other
-                            reviewers' decisions stay hidden; turning the switch ON opens the key (lifts the blind).
+                        <span class="en"><strong>The switch that shows others' decisions</strong>: OFF (default) means independent review — other
+                            reviewers' decisions stay hidden; turning the switch ON opens the key.
                             Shown to admins only. See "<a href="#sharing">Sharing and Team Workflow</a>" for
                             details</span>
                     </li>
@@ -655,11 +655,11 @@
                 <p>
                     <span class="ja">キー開封中は、最後に表示していた文献とステータスフィルターがこのブラウザに記憶され、次にプロジェクトを
                         開いたときに同じフィルター・同じ文献から再開します（不一致の見直しを途中でやめても続きから始められます）。
-                        記憶はブラウザごとです（端末を変えると引き継がれません）。Blind中は従来どおり未判定の先頭から始まります。</span>
+                        記憶はブラウザごとです（端末を変えると引き継がれません）。他者の判定が非表示の間は従来どおり未判定の先頭から始まります。</span>
                     <span class="en">While the key is open, the last reference you viewed and its status filter are
                         remembered in this browser, so reopening the project resumes from the same filter and the
                         same reference (useful when you stop partway through reviewing conflicts). This memory is
-                        per-browser (it does not carry over to another device). During blind review, screening still
+                        per-browser (it does not carry over to another device). While others' decisions are hidden, screening still
                         starts from the top of the pending filter as before.</span>
                 </p>
                 <p>
@@ -806,9 +806,9 @@
                 </p>
                 <ul>
                     <li>
-                        <span class="ja">不一致（コンフリクト）が残っている場合の件数表示と「不一致を確認」ボタン（キーオープン時のみ件数表示。Blind中は件数を伏せた案内のみ）</span>
+                        <span class="ja">不一致（コンフリクト）が残っている場合の件数表示と「不一致を確認」ボタン（キー開封時のみ件数表示。他者の判定が非表示の間は件数を伏せた案内のみ）</span>
                         <span class="en">A count of remaining conflicts and a "Review conflicts" button (the count is
-                            only shown when the key is open; while blind, only a generic notice is shown)</span>
+                            only shown when the key is open; while others' decisions are hidden, only a generic notice is shown)</span>
                     </li>
                     <li>
                         <span class="ja">保留（Maybe）が残っている場合の件数表示と「保留を確認」ボタン</span>
@@ -831,11 +831,11 @@
                     <span class="en">Team Progress Panel (TiAb Tab)</span>
                 </h3>
                 <p>
-                    <span class="ja">ツールバーの⚙️ボタンの右側に👥アイコンのチップが表示され、クリックするとチームメンバー全員の進捗（判定件数と最終判定日時）を確認できます。ブラインディングを保つため、Include/Exclude等の内訳は表示されません。🔄ボタンで最新の状態に更新できます。プロジェクトメンバーが自分1人だけの場合は、このチップ自体が表示されません。詳細は「<a
+                    <span class="ja">ツールバーの⚙️ボタンの右側に👥アイコンのチップが表示され、クリックするとチームメンバー全員の進捗（判定件数と最終判定日時）を確認できます。判定の独立性を保つため、Include/Exclude等の内訳は表示されません。🔄ボタンで最新の状態に更新できます。プロジェクトメンバーが自分1人だけの場合は、このチップ自体が表示されません。詳細は「<a
                             href="#sharing">共有とチーム運用</a>」章を参照してください。</span>
                     <span class="en">A 👥 chip appears to the right of the ⚙️ button in the toolbar; clicking it shows
-                        every team member's progress (decision count and the time of their last decision). To preserve
-                        blinding, the Include/Exclude breakdown is never shown. Use the 🔄 button to refresh. The chip is
+                        every team member's progress (decision count and the time of their last decision). To keep
+                        decisions independent, the Include/Exclude breakdown is never shown. Use the 🔄 button to refresh. The chip is
                         hidden entirely on single-member projects. See "<a href="#sharing">Sharing and Team
                             Workflow</a>" for details.</span>
                 </p>
@@ -1208,14 +1208,14 @@
                 </p>
                 <p>
                     <span class="ja">選択内容は個人ごとではなく<strong>プロジェクト共有の設定としてスプレッドシートのConfigへ保存され</strong>、実行のたびに再利用されます。そのため、他のメンバーが対象を絞ると自分の一括実行の対象も変わります。実行時には、選択したもののうち「このプロジェクトに見つからない」「この
-                        Runで判定済み」のものは自動的に除外され、その件数が注記されます。選択件数が上限（1,000件）を超えると警告が表示され、それ以上は選択できません。Blind中はこのモーダルに他レビュアーの判定状況が表示されません。また、同じ設定（モデル・プロンプト・基準）で既に一部を判定済みの場合、対象欄は「全件（未判定
+                        Runで判定済み」のものは自動的に除外され、その件数が注記されます。選択件数が上限（1,000件）を超えると警告が表示され、それ以上は選択できません。キーが開封されていない間はこのモーダルに他レビュアーの判定状況が表示されません。また、同じ設定（モデル・プロンプト・基準）で既に一部を判定済みの場合、対象欄は「全件（未判定
                         N / M件）」と表示され、開始すると未判定分だけが処理されます。</span>
                     <span class="en">The selection is not per-user — it is saved to the spreadsheet's Config as a
                         <strong>project-wide, shared setting</strong> and reused across runs. This means if another
                         member narrows the target, it also changes the target of your own batch run. At run time, any
                         selected items that are "not found in this project" or "already judged in this run" are
                         automatically excluded, with a note showing how many. Selecting more than the limit (1,000
-                        items) shows a warning and blocks further selection. While blinded, this modal does not show
+                        items) shows a warning and blocks further selection. While the key is closed, this modal does not show
                         other reviewers' decision status. Also, if some references have already been judged with the
                         same settings (model, prompt, criteria), the target field shows "All (pending N / M items)",
                         and starting the run processes only the pending ones.</span>
@@ -1333,27 +1333,27 @@
                     <span class="en">How Candidates Are Determined</span>
                 </h3>
                 <p>
-                    <span class="ja">フルテキストの対象となる文献（候補）は、既定ではTiAbでIncludeと判定された文献です。プロジェクトで「候補ルール」が設定されている場合は、それに従います（例：指定した3人の判定者のうち2人以上がIncludeと判定した文献のみを候補にする、など）。候補ルールは候補リスト上部のボタン（未設定時は「ルールを設定」、設定済みの場合は「✎ 編集」）から編集できます。編集にはブラインド解除（キーオープン）が必要で、キーが未開封の場合に開封できるのは管理者のみですが、開封後の編集自体は誰でも行えます。ルールが未設定の間は、管理者には全レビュアーの誰か1人でもIncludeした文献、非管理者には自分がIncludeした文献が仮の候補として表示されます。</span>
+                    <span class="ja">フルテキストの対象となる文献（候補）は、既定ではTiAbでIncludeと判定された文献です。プロジェクトで「候補ルール」が設定されている場合は、それに従います（例：指定した3人の判定者のうち2人以上がIncludeと判定した文献のみを候補にする、など）。候補ルールは候補リスト上部のボタン（未設定時は「ルールを設定」、設定済みの場合は「✎ 編集」）から編集できます。編集にはキー開封が必要で、キーが未開封の場合に開封できるのは管理者のみですが、開封後の編集自体は誰でも行えます。ルールが未設定の間は、管理者には全レビュアーの誰か1人でもIncludeした文献、非管理者には自分がIncludeした文献が仮の候補として表示されます。</span>
                     <span class="en">By default, references that were marked Include during TiAb screening become
                         full-text candidates. If the project has a "candidate rule" configured, that rule is used
                         instead (for example, only including references where at least 2 of 3 designated reviewers
                         marked Include). The candidate rule can be edited from the button above the candidate list
-                        (labeled "Set rule" when unset, "✎ Edit" once configured). Editing requires the blind to be
-                        lifted (the key to be open) first — only admins can open the key when it's closed, but once
+                        (labeled "Set rule" when unset, "✎ Edit" once configured). Editing requires the key to be
+                        opened first — only admins can open the key when it's closed, but once
                         it's open, anyone can edit the rule. Until a rule is set, admins provisionally see any
                         reference Included by any loaded reviewer, while non-admins see only references they
                         personally Included.</span>
                 </p>
                 <p>
                     <span class="ja"><strong>担当割り振りが設定済みの場合</strong>、候補は割り振り時に確定した集合（References の
-                        fulltext_set 列）から直接決まります。この集合は判定票に依存しないため、Blind中でも全メンバーに同じ候補リストが
-                        表示されます（他のレビュアーの判定内容は Blind 解除まで表示されません）。候補が0件のときは、その理由
-                        （Blind中で候補ルールを評価できない・絞り込みで0件・まだ候補が無い等）が空欄の代わりに表示されます。</span>
+                        fulltext_set 列）から直接決まります。この集合は判定票に依存しないため、他者の判定が非表示の間も全メンバーに同じ候補リストが
+                        表示されます（他のレビュアーの判定内容はキー開封まで表示されません）。候補が0件のときは、その理由
+                        （他者の判定が非表示のため候補ルールを評価できない・絞り込みで0件・まだ候補が無い等）が空欄の代わりに表示されます。</span>
                     <span class="en"><strong>Once an assignment is configured</strong>, candidates are derived directly
                         from the set fixed at assignment time (the fulltext_set column in References). Because this set
-                        does not depend on screening votes, every member sees the same candidate list even while Blind
-                        is on (other reviewers' decisions remain hidden until the blind is lifted). When the list is
-                        empty, the reason (rule not evaluable during Blind, filtered out, no candidates yet, etc.) is
+                        does not depend on screening votes, every member sees the same candidate list even while others' decisions
+                        are hidden (other reviewers' decisions remain hidden until the key is opened). When the list is
+                        empty, the reason (rule not evaluable while others' decisions are hidden, filtered out, no candidates yet, etc.) is
                         shown instead of a blank message.</span>
                 </p>
                 <h3 id="fulltext-setup">
@@ -1564,15 +1564,15 @@
                     </li>
                     <li>
                         <span class="ja"><strong>抄録・自分のTiAb判定・他レビュアーの判定</strong>：右ペインの折りたたみを開くと、抄録と自分のTiAb判定（メモ含む）を確認できます。
-                            <strong>ブラインド解除（キーオープン）後は、同じ文献に対する他レビュアーのフルテキスト判定・除外理由・メモもここに表示されます</strong>
+                            <strong>キー開封後は、同じ文献に対する他レビュアーのフルテキスト判定・除外理由・メモもここに表示されます</strong>
                             （見出しに件数が出ます）。不一致をPDFで読み直すときに、サイドパネルの「不一致の解消」へ戻らなくても相手の言い分を確認できます。
-                            ブラインド中は他レビュアーの判定はこの画面に一切表示されません。</span>
+                            キーが開封されるまで、他レビュアーの判定はこの画面に一切表示されません。</span>
                         <span class="en"><strong>Abstract, your TiAb decision, and other reviewers' decisions</strong>: Expanding the
                             collapsible section in the right pane shows the abstract and your own TiAb decision (including its note).
-                            <strong>Once blinding is lifted (key opened), other reviewers' full-text decisions, exclusion reasons and notes
+                            <strong>Once the key is opened, other reviewers' full-text decisions, exclusion reasons and notes
                             for the same reference are shown here too</strong> (the heading shows how many). This lets you read the other
                             reviewer's reasoning while re-reading the PDF, without going back to "Resolving conflicts" in the side panel.
-                            While blinded, no other reviewer's decision is shown on this screen.</span>
+                            Until the key is opened, no other reviewer's decision is shown on this screen.</span>
                     </li>
                     <li>
                         <span class="ja"><strong>除外理由</strong>：Excludeを選ぶと、理由を選ぶエリアが表示されます。理由をクリック（または数字キーで確定）すると、保存されてそのまま自動的に次の候補へ進みます。
@@ -1609,12 +1609,12 @@
                             (press Enter to advance to the next candidate).</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>AI判定のハイライト</strong>：AI一括判定を実行済みの文献では、AIが根拠として挙げた本文中の箇所がPDF上にハイライト表示され、右側に根拠カードの一覧が並びます（プロジェクトの共有設定によっては非表示になる場合もあります）。ブラインド中は、含む/除外どちらの判断かが分からない中立表示になります。ブラインド解除後は、管理者が画面内のトグルで色分き表示とAI判断サマリの開示を切り替えられます（AI判断サマリは非管理者には表示されません）。カードをクリックするとPDF上の該当箇所へジャンプします。PDF上のハイライト表示自体はチェックボックスでON/OFFできます。スキャン画像PDF（テキストレイヤーが無いPDF）では、AIが推定した領域をもとにハイライトされるため精度が落ちる場合がある旨が表示されます。</span>
+                        <span class="ja"><strong>AI判定のハイライト</strong>：AI一括判定を実行済みの文献では、AIが根拠として挙げた本文中の箇所がPDF上にハイライト表示され、右側に根拠カードの一覧が並びます（プロジェクトの共有設定によっては非表示になる場合もあります）。他者の判定が非表示の間は、含む/除外どちらの判断かが分からない中立表示になります。キー開封後は、管理者が画面内のトグルで色分け表示とAI判断サマリの開示を切り替えられます（AI判断サマリは非管理者には表示されません）。カードをクリックするとPDF上の該当箇所へジャンプします。PDF上のハイライト表示自体はチェックボックスでON/OFFできます。スキャン画像PDF（テキストレイヤーが無いPDF）では、AIが推定した領域をもとにハイライトされるため精度が落ちる場合がある旨が表示されます。</span>
                         <span class="en"><strong>AI evidence highlighting</strong>: For references already batch
                             AI-screened, the passages the AI cited as evidence are highlighted directly on the PDF,
                             with a matching list of evidence cards on the right (these may be hidden depending on the
-                            project's sharing settings). While blind, they are shown in a neutral style that does not
-                            reveal whether the AI judged include or exclude. After the blind is lifted, admins can
+                            project's sharing settings). While others' decisions are hidden, they are shown in a neutral style that does not
+                            reveal whether the AI judged include or exclude. After the key is opened, admins can
                             toggle color-coded display and disclosure of the AI's decision summary from an in-page
                             toggle (the AI decision summary is never shown to non-admins). Clicking a card jumps to
                             that spot on the PDF. A checkbox toggles the on-PDF highlight overlay on/off. For
@@ -1696,12 +1696,12 @@
                         the existing columns and is followed by the <code>adjudication_memo</code> column.</span>
                 </p>
                 <p>
-                    <span class="ja">このビューの先頭には「Blind on/off」スイッチがあります（管理者にのみ表示）。スイッチをONにするとキー開封（ブラインド解除）となり、全レビュアー＋AIの判定を集計できます。ブラインド中は自分の判定のみが集計対象で、その旨の注記が判定者選択の下に表示されます。詳細は「<a
-                            href="#sharing">共有とチーム運用</a>」章のBlind on/offを参照してください。</span>
-                    <span class="en">A "Blind on/off" switch sits at the top of this view (admins only). Turning it ON
-                        opens the key (lifts the blind) so that decisions from all reviewers and the AI can be
-                        aggregated. While blinded, only your own decisions are aggregated, and a note saying so appears
-                        under the judge selector. See "Blind on/off" in the "<a href="#sharing">Sharing and Team
+                    <span class="ja">このビューの先頭には他者の判定の表示スイッチがあります（管理者にのみ表示）。スイッチをONにするとキー開封となり、全レビュアー＋AIの判定を集計できます。他者の判定が非表示の間は自分の判定のみが集計対象で、その旨の注記が判定者選択の下に表示されます。詳細は「<a
+                            href="#sharing">共有とチーム運用</a>」章の「他者の判定の表示／非表示（キー開封）」を参照してください。</span>
+                    <span class="en">The switch that shows others' decisions sits at the top of this view (admins only). Turning it ON
+                        opens the key so that decisions from all reviewers and the AI can be
+                        aggregated. While others' decisions are hidden, only your own decisions are aggregated, and a note saying so appears
+                        under the judge selector. See "Showing or hiding others' decisions (opening the key)" in the "<a href="#sharing">Sharing and Team
                             Workflow</a>" section for details.</span>
                 </p>
                 <p>
@@ -1787,20 +1787,20 @@
                 </ul>
 
                 <h3 id="sharing-blind">
-                    <span class="ja">Blind on/off（Blind中／キー開封中）</span>
-                    <span class="en">Blind On/Off (Blinded / Key opened)</span>
+                    <span class="ja">他者の判定の表示／非表示（キー開封）</span>
+                    <span class="en">Showing or hiding others' decisions (opening the key)</span>
                 </h3>
                 <p>
-                    <span class="ja">画面のラベルは、現在の状態に応じて「🙈 Blind中（他者の判定は非表示）」または「🔓 キー開封中（全員の判定を表示）」に切り替わります。</span>
-                    <span class="en">The on-screen label reflects the current state: "🙈 Blinded (others' decisions hidden)" or "🔓 Key opened (all decisions shown)".</span>
+                    <span class="ja">画面のラベルは、現在の状態に応じて「他者の判定は非表示」または「他者の判定を表示中」に切り替わります。</span>
+                    <span class="en">The on-screen label reflects the current state: "Others' decisions hidden" or "Others' decisions shown".</span>
                 </p>
                 <p>
-                    <span class="ja">スイッチOFF（既定）が「Blind on」の状態で、他のレビュアーの判定を非表示にします（ブラインドレビュー）。スイッチをONにするとキー開封（ブラインド解除）となり、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。切り替え時には確認ダイアログが表示されます。スイッチは管理者にのみ表示され、ブラインド状態の切り替えはプロジェクト全体で共有されます。</span>
-                    <span class="en">The switch is OFF by default, which is the blinded state: other reviewers'
-                        decisions are hidden (blind review). Turning the switch ON "opens the key" (lifts the blind),
+                    <span class="ja">スイッチOFF（既定）の状態では、他のレビュアーの判定を非表示にします（各自が独立に判定するため）。スイッチをONにするとキー開封となり、他レビュアーの判定や不一致（コンフリクト）バナーが表示されるようになり、フルテキストのAI判断サマリの開示（管理者が画面内トグルで切り替え）も可能になります。切り替え時には確認ダイアログが表示されます。スイッチは管理者にのみ表示され、他者の判定の表示／非表示の切り替えはプロジェクト全体で共有されます。</span>
+                    <span class="en">The switch is OFF by default, so other reviewers'
+                        decisions are hidden (independent review). Turning the switch ON "opens the key",
                         revealing other reviewers' decisions and the conflict banner, and also enabling disclosure of
                         the full-text AI decision summary (toggled by an admin from an in-page control). A confirmation
-                        dialog is shown when you flip the switch. The switch is shown to admins only, and the blind
+                        dialog is shown when you flip the switch. The switch is shown to admins only, and the decision visibility
                         state is shared across the whole project.</span>
                 </p>
                 <p>
@@ -1819,10 +1819,10 @@
                     </li>
                 </ul>
                 <p>
-                    <span class="ja">このほか、フルテキストの候補リストがブラインドのため0件になっている場合の「Blindを解除する」ボタンや、候補ルールエディタの「キー開封（ブラインド解除）を実行」ボタンからも、同じ解除操作を実行できます（いずれも管理者のみ）。全文閲覧ウィンドウ（PDF画面）には切り替えスイッチが無いため、サイドパネル側から操作してください。</span>
-                    <span class="en">The same unblinding action is also available from the "Turn off Blind" button
-                        shown when the full-text candidate list is empty because of blinding, and from the "Open the
-                        key (lift blinding)" button in the candidate rule editor (both admin-only). The full-text
+                    <span class="ja">このほか、フルテキストの候補リストが、他者の判定が非表示のため0件になっている場合の「キーを開封する」ボタンや、候補ルールエディタの「キー開封（他者の判定を表示）を実行」ボタンからも、同じキー開封操作を実行できます（いずれも管理者のみ）。全文閲覧ウィンドウ（PDF画面）には切り替えスイッチが無いため、サイドパネル側から操作してください。</span>
+                    <span class="en">The same action of opening the key is also available from the "Open the key" button
+                        shown when the full-text candidate list is empty because others' decisions are hidden, and from the "Open the key (show others' decisions)"
+                        button in the candidate rule editor (both admin-only). The full-text
                         viewer window (the PDF screen) has no switch of its own, so use the side panel.</span>
                 </p>
 
@@ -1831,21 +1831,21 @@
                     <span class="en">🤝 Consensus Mode</span>
                 </h3>
                 <p>
-                    <span class="ja">レビュアー同士が集まって不一致を話し合い、判定をすり合わせる「合議」のためのチェックボックスです。TiAbタブ（手動タブ）の判定者フィルター付近にあり、<strong>キー開封中（ブラインド解除後）のみ表示されます</strong>（合議はブラインド中には成立しないため）。ONにしている間に保存した判定は「合議による判定」として記録され、各レビュアーが独立に付けた初回判定と区別できるようになります。ONの間は判定ボタンの上に「🤝 合議モードで判定中」のバッジが出るので、切り忘れたまま通常の判定を続ける事故を防げます。</span>
+                    <span class="ja">レビュアー同士が集まって不一致を話し合い、判定をすり合わせる「合議」のためのチェックボックスです。TiAbタブ（手動タブ）の判定者フィルター付近にあり、<strong>キー開封中のみ表示されます</strong>（合議は他者の判定が非表示の間には成立しないため）。ONにしている間に保存した判定は「合議による判定」として記録され、各レビュアーが独立に付けた初回判定と区別できるようになります。ONの間は判定ボタンの上に「🤝 合議モードで判定中」のバッジが出るので、切り忘れたまま通常の判定を続ける事故を防げます。</span>
                     <span class="en">A checkbox for "consensus" sessions, where reviewers meet to discuss
                         disagreements and reconcile their decisions. It sits near the judge filter on the TiAb
-                        (Manual) tab and is <strong>shown only while the key is open (after blinding is
-                            lifted)</strong>, because consensus cannot happen during blind review. Decisions saved
+                        (Manual) tab and is <strong>shown only while the key is open</strong>,
+                        because consensus cannot happen while others' decisions are hidden. Decisions saved
                         while it is ON are recorded as consensus decisions, distinguishable from the independent
                         first-pass decision each reviewer made on their own. While it is ON, a "🤝 Deciding in
                         consensus mode" badge appears above the decision buttons, so you will not keep making
                         ordinary decisions with the mode left on by mistake.</span>
                 </p>
                 <p>
-                    <span class="ja">合議モードは、Blindへ戻したとき・別のプロジェクトへ切り替えたとき・ログアウトしたときに自動でOFFに戻ります。また、キーが開いていない状態では、たとえ内部的にONのままであっても判定は通常の判定として保存されるため、ブラインド中の初回判定が誤って合議判定として記録されることはありません。判定を伴わないメモだけの保存は判定イベントではないため、合議モードのON/OFFに関わらず常に通常の記録になります。</span>
-                    <span class="en">Consensus mode turns itself OFF when you go back to Blind, switch to another
+                    <span class="ja">合議モードは、他者の判定を非表示に戻したとき・別のプロジェクトへ切り替えたとき・ログアウトしたときに自動でOFFに戻ります。また、キーが開いていない状態では、たとえ内部的にONのままであっても判定は通常の判定として保存されるため、他者の判定が非表示の間の初回判定が誤って合議判定として記録されることはありません。判定を伴わないメモだけの保存は判定イベントではないため、合議モードのON/OFFに関わらず常に通常の記録になります。</span>
+                    <span class="en">Consensus mode turns itself OFF when you hide others' decisions again, switch to another
                         project, or sign out. In addition, while the key is not open, decisions are saved as ordinary
-                        decisions even if the mode is somehow still on internally, so a blinded first-pass decision
+                        decisions even if the mode is somehow still on internally, so a first-pass decision made while others' decisions are hidden
                         can never be mis-recorded as a consensus decision. Saving a note without making a decision is
                         not a decision event, so it is always recorded as ordinary regardless of this mode.</span>
                 </p>
@@ -1866,7 +1866,7 @@
                     <span class="en">Every team member's progress can be checked both from the TiAb tab (the chip to
                         the right of the ⚙️ button) and the Full-text tab (shown inline below the candidate-rule
                         row). Only each member's decision count and the time of their last decision are shown — the
-                        Include/Exclude breakdown is never shown, to preserve blinding. Only human decisions and
+                        Include/Exclude breakdown is never shown, to keep decisions independent. Only human decisions and
                         confirmed ML decisions count toward these numbers; AI (LLM) decisions and unconfirmed
                         (pending) rows are excluded. Data is refreshed with the 🔄
                         button (your own saved decisions are reflected immediately). Members with remaining work and
@@ -1928,8 +1928,8 @@
                         <span class="en">TiAb Include/Exclude/Maybe decisions and notes</span>
                     </li>
                     <li>
-                        <span class="ja">キーワードハイライトの表示・編集、Blind on/off、不一致（コンフリクト）表示</span>
-                        <span class="en">Keyword highlight display/editing, Blind on/off, conflict display</span>
+                        <span class="ja">キーワードハイライトの表示・編集、他者の判定の表示スイッチ、不一致（コンフリクト）表示</span>
+                        <span class="en">Keyword highlight display/editing, the switch that shows others' decisions, conflict display</span>
                     </li>
                     <li>
                         <span class="ja">チーム進捗の確認、AI判定結果の閲覧（確信度・理由・エビデンスハイライトの表示のみ。実行はできません）</span>
@@ -2141,8 +2141,8 @@
                         <span class="en">Q: I can't see other reviewers' decisions</span>
                     </h4>
                     <p>
-                        <span class="ja">A: 「Blind on/off」スイッチがOFF（ブラインド中）です。管理者がスイッチをONにしてキーを開封すると、他のレビュアーの判定が表示されます。スイッチは手動タブのツールバー、またはフルテキストタブの「判定後レビュー」ビューの先頭にあります。</span>
-                        <span class="en">A: The "Blind on/off" switch is OFF (still blinded). An admin can turn it ON
+                        <span class="ja">A: 他者の判定の表示スイッチがOFF（他者の判定は非表示）です。管理者がスイッチをONにしてキーを開封すると、他のレビュアーの判定が表示されます。スイッチは手動タブのツールバー、またはフルテキストタブの「判定後レビュー」ビューの先頭にあります。</span>
+                        <span class="en">A: The switch that shows others' decisions is OFF (others' decisions are hidden). An admin can turn it ON
                             to open the key and reveal other reviewers' decisions. The switch is in the Manual tab
                             toolbar, or at the top of the "Post-decision review" view in the Full-text tab.</span>
                     </p>

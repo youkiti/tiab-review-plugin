@@ -177,7 +177,7 @@ function buildTiabMethods(id: IdentificationData): string {
 
     const paragraphs: string[] = [];
     // レビュアー1名のときは blinded 節が意味を成さないので省く
-    const blindClause = nReviewers > 1 ? ", blinded to each other's decisions" : '';
+    const blindClause = nReviewers > 1 ? ", without access to each other's decisions" : '';
     paragraphs.push(
         `Records exported from each database (${fileList}) were imported into TiAb Review (version ${extensionVersion()}) and deduplicated automatically. ` +
         `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} ${plural(nReviewers, 'reviewer')}${blindClause}.`
