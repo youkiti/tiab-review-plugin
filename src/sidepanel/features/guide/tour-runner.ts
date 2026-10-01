@@ -52,7 +52,7 @@ function isVisible(element: HTMLElement): boolean {
     return element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
 }
 
-/** 同じ data-tour 値の要素が複数ある（🧭 など）ときは、表示中のものを選ぶ。 */
+/** 同じ data-tour 値の要素が複数ある（❓ など）ときは、表示中のものを選ぶ。 */
 function findTarget(name: string): HTMLElement | null {
     const candidates = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`));
     return candidates.find(isVisible) ?? null;
@@ -241,8 +241,14 @@ function reposition(): void {
 
     if (needsScroll) {
         needsScroll = false;
-        const tall = target.getBoundingClientRect().height > viewportHeight * 0.6;
-        target.scrollIntoView({ block: tall ? 'start' : 'center', inline: 'nearest' });
+        const box = target.getBoundingClientRect();
+        const fullyVisible = box.top >= 0 && box.bottom <= viewportHeight;
+        if (step.scroll === 'start') {
+            target.scrollIntoView({ block: 'start', inline: 'nearest' });
+        } else if (!(step.scroll === 'if-hidden' && fullyVisible)) {
+            const tall = box.height > viewportHeight * 0.6;
+            target.scrollIntoView({ block: tall ? 'start' : 'center', inline: 'nearest' });
+        }
     }
 
     const rect = target.getBoundingClientRect();

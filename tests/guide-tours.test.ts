@@ -192,3 +192,43 @@ test('ツアーの手順 ID はツアー内で重複しない', () => {
         assert.equal(new Set(ids).size, ids.length, `${tour.id} に重複した手順 ID がある`);
     }
 });
+
+test('data-tour="tour-list" は ❓ の「?」吹き出しボタン（data-help 付き）にだけ付き、画面上部に 🧭 のボタンを置かない', () => {
+    const buttons = [...html.matchAll(/<button\b[^>]*\bdata-tour="tour-list"[^>]*>[^<]*<\/button>/g)].map(m => m[0]);
+    assert.ok(buttons.length >= 2, 'ツアー一覧の入口の ❓ が2つ（プロジェクト選択画面・ツールバー）無い');
+    for (const button of buttons) {
+        const helpId = /\bdata-help="([^"]+)"/.exec(button)?.[1];
+        assert.ok(helpId, `data-tour="tour-list" の要素が data-help を持たない: ${button}`);
+        const topic: GuideTopic | undefined = (GUIDE_TOPICS as Record<string, GuideTopic>)[helpId];
+        assert.equal(topic?.tourList, true, `トピック "${helpId}" に tourList: true が無い`);
+        assert.doesNotMatch(button, /🧭/, '🧭 を画面のボタンにしてはいけない');
+    }
+    // data-tour="tour-list" を持つ要素は、ボタン以外（リンク等）では書かない
+    assert.equal([...html.matchAll(/\bdata-tour="tour-list"/g)].length, buttons.length);
+    assert.doesNotMatch(html, /🧭/);
+});
+
+test('tourList: true のトピックは、プロジェクト選択画面とツールバーの ❓ に使われ、吹き出しのボタンの文言が ja/en にある', () => {
+    const topicIds = Object.entries<GuideTopic>(GUIDE_TOPICS).filter(([, topic]) => topic.tourList).map(([id]) => id);
+    assert.deepEqual(topicIds.sort(), ['overview', 'screening-toolbar']);
+    for (const id of topicIds) {
+        assert.match(html, new RegExp(`data-help="${id}"[^>]*data-tour="tour-list"`), `${id} の ❓ に data-tour="tour-list" が無い`);
+    }
+    for (const lang of ['ja', 'en']) {
+        const messages = JSON.parse(read('src', '_locales', lang, 'messages.json')) as Record<string, { message: string }>;
+        assert.ok(messages.guide_tourListAction?.message, `${lang} に guide_tourListAction が無い`);
+    }
+});
+
+test('join-project は decide の前に、文献カードを「次へ」で読ませる read 手順を持つ', () => {
+    for (const tourId of ['first-project', 'join-project'] as const) {
+        const steps = GUIDE_TOURS[tourId].steps;
+        const read = steps.findIndex(step => step.id === 'read');
+        const decide = steps.findIndex(step => step.id === 'decide');
+        assert.ok(read >= 0 && read < decide, `${tourId}: read が decide の前に無い`);
+        assert.equal(steps[read].target, 'reference-card');
+        assert.equal(steps[read].advance.type, 'next');
+        assert.equal(steps[read].scroll, 'start', `${tourId}/read は文献カードの先頭へスクロールする`);
+        assert.equal(steps[decide].scroll, 'if-hidden', `${tourId}/decide は判定ボタンが見えているならスクロールしない`);
+    }
+});

@@ -1394,7 +1394,7 @@
     "message": "レビュー対象のシート: $1"
   },
   "share_inviteTemplate": {
-    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Chromeの右上にあるパズルピースのアイコン（拡張機能ボタン）をクリックし、一覧の「TiAb Review Plugin」をクリックして立ち上げます。\n   プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n3. 初回のみ、接続時に「Googleで許可する」ボタンが表示されることがあります。押すと別のタブでGoogleの画面が開くので、そこで上記のシートを選択してください。パネルは自動で再接続します。\n\n拡張機能（またはWeb版）でシートを開くと、初回は参加手順の案内（ツアー）が表示されます。右上の 🧭 からいつでも開けます。\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
+    "message": "TiAb Review Plugin で系統的レビューに参加してください。\n\n0. Google Chromeブラウザが必要です\n1. 拡張機能をインストール（Chrome ウェブストア）:\n   https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij?hl=ja\n\n2. Chromeの右上にあるパズルピースのアイコン（拡張機能ボタン）をクリックし、一覧の「TiAb Review Plugin」をクリックして立ち上げます。\n   プロジェクト選択画面の「スプレッドシートURL」欄に以下を貼り付けて接続してください:\n   $1\n\n3. 初回のみ、接続時に「Googleで許可する」ボタンが表示されることがあります。押すと別のタブでGoogleの画面が開くので、そこで上記のシートを選択してください。パネルは自動で再接続します。\n\n拡張機能（またはWeb版）でシートを開くと、初回は参加手順の案内（ツアー）が表示されます。右上の ❓ からいつでも開けます。\n\n※ 全文PDFが開けない場合は、フルテキストタブの『読み取り権限を確認』を実行してください。\n\n操作方法・使い方はこちら:\n   https://youkiti.github.io/tiab-review-plugin/"
   },
   "share_inviteCopied": {
     "message": "招待文をコピーしました"
@@ -1557,6 +1557,12 @@
   "guide_topic_project_connect": {
     "message": "既存プロジェクトへの接続"
   },
+  "guide_topic_overview": {
+    "message": "ヘルプ"
+  },
+  "guide_tourListAction": {
+    "message": "🧭 操作ツアーの一覧"
+  },
   "guide_topic_screening_toolbar": {
     "message": "ツールバー"
   },
@@ -1699,7 +1705,7 @@
     "message": "PubMed の .nbib や RIS などの文献ファイルを取り込みます。ダウンロードしたファイルを直接開くのではなく、このボタンから選んでください。重複は自動で除外されます。"
   },
   "guideExt_tour_first_project_read": {
-    "message": "タイトルと抄録を読み、緑・赤のキーワードを手がかりに判断します。"
+    "message": "タイトルと抄録を読み、緑・赤のキーワードを手がかりに判断します。抄録が長いときは、上下にスクロールして最後まで確認してください。読み終えたら「次へ」を押します。"
   },
   "guideExt_tour_first_project_decide": {
     "message": "Include / Maybe / Exclude のどれかを押してください。キーボードの i / m / e でも押せます。保存されると次の文献へ進みます。"
@@ -1714,7 +1720,7 @@
     "message": "既定は Blind 中で、他のレビュアーの判定は見えません。全員の独立した判定が終わるまで、キーは開封しないでください。切り替えはプロジェクト全体に効くので、ツアー中は押せないようにしています。"
   },
   "guideExt_tour_first_project_finish": {
-    "message": "各カードの「?」でいつでも説明を開けます。ツアーはこの 🧭 からやり直せます。共同研究者はツールバーの「共有」から招待します。"
+    "message": "各カードの「?」でいつでも説明を開けます。この ❓ から、各画面の説明と操作ツアーの一覧を開けます。共同研究者はツールバーの「共有」から招待します。"
   },
   "guide_tour_join_project_title": {
     "message": "共同研究者として参加"
@@ -1734,11 +1740,14 @@
   "guide_tour_join_project_assignment": {
     "message": "あなたの担当分だけが表示されています。"
   },
+  "guide_tour_join_project_read": {
+    "message": "まずタイトルと抄録を読みます。抄録が長いときは、上下にスクロールして最後まで確認してください。読み終えたら「次へ」を押します。"
+  },
   "guide_tour_join_project_decide": {
-    "message": "Blind 中は他の人の判定は見えません。自分の判断で独立に判定してください。i / m / e キーでも押せます。"
+    "message": "読み終えたら、下のボタンで判定します。Blind 中は他の人の判定は見えないので、自分の判断で独立に判定してください。i / m / e キーでも押せます。"
   },
   "guide_tour_join_project_finish": {
-    "message": "「?」でいつでも説明を開けます。判定を直したいときは、前の文献に戻って押し直してください。"
+    "message": "各カードの「?」でいつでも説明を開けます。この ❓ から、各画面の説明と操作ツアーの一覧を開けます。判定を直したいときは、前の文献に戻って押し直してください。"
   },
   "error_quotaExceeded": {
     "message": "アクセスが集中しています。1分ほど待ってから再試行してください。"

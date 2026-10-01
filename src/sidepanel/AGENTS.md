@@ -298,8 +298,11 @@
   4. 文言を ja/en の `messages.json` に同じキーで入れる。拡張版だけのツアーの文言は `guideExt_` 接頭辞にする（Web 版ビルドの messages.json から落とすため。`scripts/webpack/strip-locale-keys.cjs`）
   5. `npm test`（定義と HTML・文言の照合）と、`npm run build:demo && npm run check:tours`（デモビルドでの通し検証）を回す。`check:tours` はブラウザが要るので CI には入っていない。UI やツアーを変えたら手元で回すこと
 - UI を変えるときの注意: `data-tour` / `data-help` の付いた要素を消す・id を変えると照合テストが落ちる。落ちたらテストを緩めず、ツアーの定義か属性のほうを直す（テストを緩めると、利用者の画面でツアーが黙って止まる）
+- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この2つの ❓ には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）
+- 手順に入ったときのスクロールは `TourStep.scroll` で指定する。`'start'`（文献カードの先頭＝タイトルを見せる。`read`）、`'if-hidden'`（対象が画面内に全部見えているならスクロールしない。`decide` で、直前まで読んでいた抄録を画面に残す）。省略時は対象が高ければ上端、そうでなければ中央へ寄せる
 - 取り消せない操作・プロジェクト全体に効く操作（Blind の切り替え、再シャッフルなど）をツアーの手順にするときは、`blockTarget: true` で押せないようにし、進む条件は「次へ」（`advance: { type: 'next' }`）にする。実際に押させると、練習のつもりが本番のデータを変えてしまうため
 - デモビルドでの再現: 新規作成は `POST /v4/spreadsheets` のモックがデモのシートストアを空に初期化する（`src/demo/fetch-mock.ts`）。共有シートの初回許可（Picker）は URL に `?demoPickerRequired=1` を付けると再現できる（`src/demo/fetch-mock.ts` と `src/platform/demo/index.ts`）
+- 実行中のツアーは手順の ID（`active.stepId`）で保存しているので、手順を足す・並べ替えても再開位置はずれない。手順の ID を改名・削除すると、その手順で止まっていた人のツアーは再開されない（`active` は捨てる。済み・却下の記録は残る）。`stepId` の無い旧版の保存値だけは添字で読む
 - 保存: 進行状態は `platform().storageGet/storageSet` のキー `guide_progress`（`GUIDE_PROGRESS_STORAGE_KEY`）。壊れた値は既定値に戻して読み、保存形式の検証は `tour-progress.ts` に置く。「あとで」はそのセッションの中だけで保存しない（次回また提案するため）。「今後表示しない」と、ツアーごとの完了・中止は保存する
 - アプリのダイアログ（`#modal-backdrop`）が開いていて、今の手順の対象がその中に無い間は、カードは「ダイアログ待ち」の表示（`data-guide-waiting-reason="modal"`、枠・覆い・「次へ」なし、ダイアログの前面）になり、閉じると元の表示に戻る（ウィザード専用ではなく、ランナーの一般規則）
 - 照合: `tests/guide-tours.test.ts`（定義と画面・文言の照合: 対象の `data-tour` の実在・動的対象の付与コードの実在・文言キーの実在・Web 版で隠れる要素への非依存・`tourId` の実在・イベント送出元の実在）、`tests/guide-tours-definition.test.ts`（定義そのもの）、`tests/guide-tour-progress.test.ts`（進行状態の純関数）。`emitGuideEvent` は `src/sidepanel/features/guide/lazy.ts`。デモビルドでの通し検証は `scripts/guide-tour-check/run.mjs`（`npm run check:tours`）

@@ -52,7 +52,7 @@ function mayNeedGuide(name: GuideEventName, saved: StoredProgress): boolean {
 }
 
 /**
- * `[data-help]` 要素（「?」ボタン）と `[data-tour="tour-list"]`（🧭）のクリックを document で一括して拾う。
+ * `[data-help]` 要素（「?」ボタン）のクリックを document で一括して拾う。
  * チーム進捗のヘッダーのように、内側で伝播を止める既存ハンドラの中に置いた「?」でも
  * 拾えるよう、キャプチャ段階で受け取る。
  */
@@ -60,15 +60,14 @@ export function setupGuideListeners(): void {
     document.addEventListener('click', event => {
         const target = event.target;
         if (!(target instanceof Element)) return;
-        const button = target.closest<HTMLElement>('[data-help],[data-tour="tour-list"]');
+        const button = target.closest<HTMLElement>('[data-help]');
         if (!button) return;
         event.preventDefault();
         event.stopPropagation();
-        const isTourList = !button.dataset.help;
-        withGuide(feature => (isTourList ? feature.toggleGuideTourList(button) : feature.toggleGuidePopover(button)))
+        withGuide(feature => feature.toggleGuidePopover(button))
             .catch(error => {
                 reportFeatureLoadError(error, 'guide');
-                if (!isTourList) platform().openExternal(HELP_TOP_URL);
+                platform().openExternal(HELP_TOP_URL);
             });
     }, true);
 

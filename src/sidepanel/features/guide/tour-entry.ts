@@ -183,7 +183,7 @@ function attachListListeners(): void {
     document.addEventListener('click', event => {
         const target = event.target;
         if (!(target instanceof Element)) return;
-        if (target.closest(`#${LIST_ID}, [data-tour="tour-list"]`)) return;
+        if (target.closest(`#${LIST_ID}`)) return;
         closeGuideTourList();
     }, true);
     document.addEventListener('keydown', event => {
@@ -196,7 +196,7 @@ function attachListListeners(): void {
     window.addEventListener('resize', closeGuideTourList);
 }
 
-/** 🧭 ボタンのツアー一覧を開く。同じボタンをもう一度押すと閉じる。 */
+/** ❓ の吹き出しの「操作ツアーの一覧」から、ツアー一覧をその ❓ の近くに開く。同じ ❓ から開き直すと閉じる。 */
 export async function toggleGuideTourList(anchor: HTMLElement): Promise<void> {
     const wasOpenOnAnchor = listAnchor === anchor;
     closeGuideTourList();

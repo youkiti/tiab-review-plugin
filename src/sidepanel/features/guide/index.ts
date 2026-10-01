@@ -16,10 +16,10 @@ import {
 } from '../../../lib/guide/topics';
 import { placeNear } from './anchor-placement';
 import { currentGuidePlatform } from './tour-conditions';
+import { toggleGuideTourList } from './tour-entry';
 import { startGuideTour } from './tour-runner';
 
 export { initGuide, handleGuideEvent, resumeGuide } from './tour-lifecycle';
-export { toggleGuideTourList } from './tour-entry';
 
 /** 吹き出しに並べるボタン。ツアー開始など、後から項目を足せるよう配列で持つ。 */
 interface GuideAction {
@@ -44,7 +44,7 @@ function topicTitle(topicId: GuideTopicId): string {
     return t(guideTopicTitleKey(topicId));
 }
 
-function buildActions(topicId: GuideTopicId): GuideAction[] {
+function buildActions(topicId: GuideTopicId, anchor: HTMLElement): GuideAction[] {
     const topic: GuideTopic = GUIDE_TOPICS[topicId];
     const actions: GuideAction[] = [
         {
@@ -70,10 +70,18 @@ function buildActions(topicId: GuideTopicId): GuideAction[] {
             run: () => { void startGuideTour(tourId); },
         });
     }
+    // 一覧に出せるツアーが1本でもあるときだけ、ツアー一覧を開くボタンを足す
+    if (topic.tourList && availableTours(currentGuidePlatform()).length > 0) {
+        actions.push({
+            id: 'tour-list',
+            label: t('guide_tourListAction'),
+            run: () => { void toggleGuideTourList(anchor); },
+        });
+    }
     return actions;
 }
 
-function buildPopover(topicId: GuideTopicId): HTMLElement {
+function buildPopover(topicId: GuideTopicId, anchor: HTMLElement): HTMLElement {
     const popover = document.createElement('div');
     popover.className = 'guide-popover';
     popover.setAttribute('role', 'dialog');
@@ -87,15 +95,16 @@ function buildPopover(topicId: GuideTopicId): HTMLElement {
 
     const list = document.createElement('div');
     list.className = 'guide-popover-actions';
-    for (const action of buildActions(topicId)) {
+    for (const action of buildActions(topicId, anchor)) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'guide-popover-action';
         button.dataset.guideAction = action.id;
         button.textContent = action.label;
         button.addEventListener('click', () => {
-            action.run();
+            // 先に閉じる（閉じるときに anchor の aria-expanded を戻すので、一覧を開く run の後だと上書きされる）
             closeGuidePopover();
+            action.run();
         });
         list.appendChild(button);
     }
@@ -145,7 +154,7 @@ export function toggleGuidePopover(anchor: HTMLElement): void {
     if (!isGuideTopicId(topicId)) return;
 
     attachListeners();
-    const element = buildPopover(topicId);
+    const element = buildPopover(topicId, anchor);
     document.body.appendChild(element);
     placeNear(element, anchor);
     anchor.setAttribute('aria-expanded', 'true');

@@ -33,6 +33,12 @@ export interface TourStep {
     skipIf?: GuideCondition;
     /** 真なら対象の要素を押せないようにする（危険な操作の説明用） */
     blockTarget?: boolean;
+    /**
+     * 手順に入ったときのスクロールの仕方。省略時は、対象が高ければ上端、そうでなければ画面の中央へ寄せる。
+     * 'start': 対象の上端を画面の上端へ寄せる（読ませたい文献カードの先頭を見せる）。
+     * 'if-hidden': 対象が画面内に全部見えているならスクロールしない（直前まで読んでいた内容を画面に残す）。
+     */
+    scroll?: 'start' | 'if-hidden';
 }
 
 export interface TourDefinition {
@@ -84,12 +90,14 @@ export const GUIDE_TOURS: Record<GuideTourId, TourDefinition> = {
                 target: 'reference-card',
                 textKey: stepKey(FIRST_PROJECT_BASE, 'read'),
                 advance: { type: 'next' },
+                scroll: 'start',
             },
             {
                 id: 'decide',
                 target: 'decision-buttons',
                 textKey: stepKey(FIRST_PROJECT_BASE, 'decide'),
                 advance: { type: 'events', events: ['decision-saved'] },
+                scroll: 'if-hidden',
             },
             {
                 id: 'go-back',
@@ -102,6 +110,7 @@ export const GUIDE_TOURS: Record<GuideTourId, TourDefinition> = {
                 target: 'decision-buttons',
                 textKey: stepKey(FIRST_PROJECT_BASE, 'redecide'),
                 advance: { type: 'events', events: ['decision-saved'] },
+                scroll: 'if-hidden',
             },
             {
                 id: 'blind',
@@ -155,10 +164,18 @@ export const GUIDE_TOURS: Record<GuideTourId, TourDefinition> = {
                 skipIf: 'no-assignment-sets',
             },
             {
+                id: 'read',
+                target: 'reference-card',
+                textKey: stepKey(JOIN_PROJECT_BASE, 'read'),
+                advance: { type: 'next' },
+                scroll: 'start',
+            },
+            {
                 id: 'decide',
                 target: 'decision-buttons',
                 textKey: stepKey(JOIN_PROJECT_BASE, 'decide'),
                 advance: { type: 'events', events: ['decision-saved'] },
+                scroll: 'if-hidden',
             },
             {
                 id: 'finish',
