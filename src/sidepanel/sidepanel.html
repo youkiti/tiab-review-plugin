@@ -153,7 +153,7 @@
                         <span data-i18n="filter_aiHighlight"></span>
                     </label>
                 </div>
-                <div id="consensus-mode-container" class="consensus-mode-container hidden">
+                <div id="consensus-mode-container" class="consensus-mode-container hidden" data-tour="consensus-mode">
                     <label class="reviewer-label" style="font-weight: bold;" data-i18n-title="consensus_modeTooltip">
                         <input type="checkbox" id="consensus-mode-checkbox">
                         <span data-i18n="consensus_modeLabel"></span>
@@ -188,7 +188,7 @@
 
             <!-- フィルター -->
             <div class="filters">
-                <select id="status-filter">
+                <select id="status-filter" data-tour="conflict-filter">
                     <optgroup label="自分の判定" data-i18n-label="filter_group_my">
                         <option value="pending" data-i18n="filter_pending"></option>
                         <option value="include" data-i18n="filter_include"></option>
@@ -220,7 +220,7 @@
                 <div id="tiab-done-banner" class="tiab-done-banner hidden"></div>
 
                 <!-- 全レビュアーの判定一覧（キーオープン後のみ表示） -->
-                <div id="all-decisions" class="all-decisions hidden"></div>
+                <div id="all-decisions" class="all-decisions hidden" data-tour="all-decisions"></div>
 
                 <!-- レコード件数表示（タイトル上：設定でOFFの場合） -->
                 <div id="record-count-above" class="record-count-display hidden"></div>
