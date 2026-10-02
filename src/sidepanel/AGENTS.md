@@ -285,6 +285,7 @@
 - 実行時に描画する領域（チーム進捗パネル・重複の確認・セットアップチェックリスト）の「?」は `features/guide/button.ts` の `createGuideHelpButton('<ID>')` で作る。既存の `.help-icon`（ツールチップ付き）に `data-help` を付けて、クリックで吹き出しも開くようにしてもよい
 - 構成: 初期バンドルには `features/guide/lazy.ts`（document へのクリック委譲と本体の遅延読み込みだけ）。吹き出し本体は `features/guide/index.ts`（チャンク `guide-feature`）で、`topics.ts` もここに入る。`lazy.ts` から `topics.ts` を静的 import しない（初期バンドルの予算のため）
 - 吹き出しのボタン列は `buildActions()` が配列から描画する。後続のツアー開始ボタンなどはここへ足す
+- 吹き出しの「▶ 動画で見る」は `src/lib/guide/topics.ts` の `video` があるトピックだけに出る。長編の ID と章の開始秒の正本は `GUIDE_VIDEO_ID`・`GUIDE_VIDEO_CHAPTERS`。長編で扱っていない画面には付けない。`tests/guide-topics.test.ts` がサイトの埋め込みとの一致を検査する
 - フルテキスト判定ページ（`fulltext.html`）は別バンドルのため吹き出しを持たず、ヘッダーの「?」リンクがヘルプの該当節（`#fulltext-decisions`）を直接開く
 - 照合は `tests/guide-topics.test.ts`（対応表のアンカー実在・`data-help` の過不足・`help.html#id` リンクの実在・見出しの日英 span・ja/en のキーとプレースホルダ一致）
 

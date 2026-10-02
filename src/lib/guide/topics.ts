@@ -28,39 +28,61 @@ export interface GuideTopic {
     tourList?: true;
 }
 
+/** 解説動画（長編）の YouTube ID。上げ直したら docs/index.html・docs/help.html の埋め込みと一緒に直す */
+export const GUIDE_VIDEO_ID = 'SJxUTnLyZI4';
+
+/** 解説動画（長編）の章の開始秒。撮り直したら video/build/chapters.txt に合わせて直す */
+export const GUIDE_VIDEO_CHAPTERS = {
+    intro: 0,
+    login: 33,
+    manual: 94,
+    shortcuts: 179,
+    ml: 214,
+    ai: 270,
+    fulltext: 340,
+    sharing: 458,
+    web: 525,
+    settings: 564,
+    outro: 604,
+} as const;
+
+function chapterVideo(chapter: keyof typeof GUIDE_VIDEO_CHAPTERS) {
+    return { youtubeId: GUIDE_VIDEO_ID, startSec: GUIDE_VIDEO_CHAPTERS[chapter] };
+}
+
 export const GUIDE_TOPICS = {
-    'login': { helpAnchor: 'login' },
-    'project-create': { helpAnchor: 'login-create-project', tourId: 'first-project', extensionOnly: true },
-    'project-connect': { helpAnchor: 'login-connect-project', tourId: 'join-project' },
-    'overview': { helpAnchor: 'getting-started', tourList: true },
-    'screening-toolbar': { helpAnchor: 'screening-toolbar', tourList: true },
-    'share': { helpAnchor: 'sharing-dialog', tourId: 'share-invite' },
-    'blind': { helpAnchor: 'sharing-blind', tourId: 'resolve-conflicts' },
-    'screening-filters': { helpAnchor: 'screening-filters' },
+    'login': { helpAnchor: 'login', video: chapterVideo('login') },
+    'project-create': { helpAnchor: 'login-create-project', tourId: 'first-project', extensionOnly: true, video: chapterVideo('login') },
+    'project-connect': { helpAnchor: 'login-connect-project', tourId: 'join-project', video: chapterVideo('login') },
+    'overview': { helpAnchor: 'getting-started', tourList: true, video: chapterVideo('intro') },
+    'screening-toolbar': { helpAnchor: 'screening-toolbar', tourList: true, video: chapterVideo('manual') },
+    'share': { helpAnchor: 'sharing-dialog', tourId: 'share-invite', video: chapterVideo('sharing') },
+    'blind': { helpAnchor: 'sharing-blind', tourId: 'resolve-conflicts', video: chapterVideo('sharing') },
+    'screening-filters': { helpAnchor: 'screening-filters', video: chapterVideo('manual') },
     'screening-duplicates': { helpAnchor: 'screening-duplicates', tourId: 'duplicate-review' },
-    'screening-decisions': { helpAnchor: 'screening-decisions' },
-    'highlight': { helpAnchor: 'screening-highlight' },
-    'notes': { helpAnchor: 'screening-notes' },
-    'team-progress': { helpAnchor: 'sharing-team-progress', tourId: 'share-invite' },
+    'screening-decisions': { helpAnchor: 'screening-decisions', video: chapterVideo('manual') },
+    'highlight': { helpAnchor: 'screening-highlight', video: chapterVideo('manual') },
+    'notes': { helpAnchor: 'screening-notes', video: chapterVideo('manual') },
+    'team-progress': { helpAnchor: 'sharing-team-progress', tourId: 'share-invite', video: chapterVideo('sharing') },
     'assignment': { helpAnchor: 'screening-filters', tourId: 'assignment-setup' },
-    'consensus': { helpAnchor: 'sharing-consensus', tourId: 'resolve-conflicts' },
-    'settings': { helpAnchor: 'settings' },
-    'ml': { helpAnchor: 'ml-screening-interface', tourId: 'ml-start', extensionOnly: true, tourList: true },
-    'ai-model': { helpAnchor: 'ai-screening-models', tourId: 'ai-first-run', extensionOnly: true, tourList: true },
-    'ai-keys': { helpAnchor: 'ai-screening-api-keys', tourId: 'ai-first-run', extensionOnly: true },
-    'ai-criteria': { helpAnchor: 'ai-screening-criteria', tourId: 'ai-first-run', extensionOnly: true },
-    'ai-batch': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true },
-    'ai-threshold': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true },
-    'fulltext-views': { helpAnchor: 'fulltext-views', tourId: 'fulltext-setup', extensionOnly: true, tourList: true },
-    'fulltext-candidates': { helpAnchor: 'fulltext-candidates', tourId: 'fulltext-setup', extensionOnly: true },
-    'fulltext-setup': { helpAnchor: 'fulltext-setup', tourId: 'fulltext-setup', extensionOnly: true },
+    'consensus': { helpAnchor: 'sharing-consensus', tourId: 'resolve-conflicts', video: chapterVideo('sharing') },
+    'settings': { helpAnchor: 'settings', video: chapterVideo('settings') },
+    'ml': { helpAnchor: 'ml-screening-interface', tourId: 'ml-start', extensionOnly: true, tourList: true, video: chapterVideo('ml') },
+    'ai-model': { helpAnchor: 'ai-screening-models', tourId: 'ai-first-run', extensionOnly: true, tourList: true, video: chapterVideo('ai') },
+    'ai-keys': { helpAnchor: 'ai-screening-api-keys', tourId: 'ai-first-run', extensionOnly: true, video: chapterVideo('ai') },
+    'ai-criteria': { helpAnchor: 'ai-screening-criteria', tourId: 'ai-first-run', extensionOnly: true, video: chapterVideo('ai') },
+    'ai-batch': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true, video: chapterVideo('ai') },
+    'ai-threshold': { helpAnchor: 'ai-screening-batch', tourId: 'ai-first-run', extensionOnly: true, video: chapterVideo('ai') },
+    'fulltext-views': { helpAnchor: 'fulltext-views', tourId: 'fulltext-setup', extensionOnly: true, tourList: true, video: chapterVideo('fulltext') },
+    'fulltext-candidates': { helpAnchor: 'fulltext-candidates', tourId: 'fulltext-setup', extensionOnly: true, video: chapterVideo('fulltext') },
+    'fulltext-setup': { helpAnchor: 'fulltext-setup', tourId: 'fulltext-setup', extensionOnly: true, video: chapterVideo('fulltext') },
     'fulltext-assignment': { helpAnchor: 'fulltext-assignment', tourId: 'fulltext-setup', extensionOnly: true },
-    'fulltext-pdf': { helpAnchor: 'fulltext-pdf', tourId: 'fulltext-setup', extensionOnly: true },
+    'fulltext-pdf': { helpAnchor: 'fulltext-pdf', tourId: 'fulltext-setup', extensionOnly: true, video: chapterVideo('fulltext') },
     'fulltext-drive-import': { helpAnchor: 'fulltext-drive-import', tourId: 'fulltext-setup', extensionOnly: true },
     'fulltext-registry': { helpAnchor: 'fulltext-registry', extensionOnly: true },
     'fulltext-ai': { helpAnchor: 'fulltext-ai', extensionOnly: true },
-    'fulltext-results': { helpAnchor: 'fulltext-results', tourId: 'fulltext-results', extensionOnly: true },
-    'web-app': { helpAnchor: 'web-version' },
+    'fulltext-results': { helpAnchor: 'fulltext-results', tourId: 'fulltext-results', extensionOnly: true, video: chapterVideo('fulltext') },
+    'web-app': { helpAnchor: 'web-version', video: chapterVideo('web') },
 } as const satisfies Record<string, GuideTopic>;
 
 export type GuideTopicId = keyof typeof GUIDE_TOPICS;

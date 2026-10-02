@@ -203,6 +203,14 @@ Windows では xvfb は不要で、`node video/scripts/tour-videos.mjs fulltext-
 - Playwright 同梱の Chromium と版が合わない環境（Claude Code web のコンテナなど）では、
   `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` を付ける（`check:tours` も同じ変数を見る）
 
+## YouTube に上げ直したあとに直す場所
+
+YouTube は公開済み動画のファイルを差し替えられないため、上げ直すと動画の ID が変わる。
+
+- 長編: `docs/index.html`・`docs/help.html` の埋め込みと YouTube リンク、`src/lib/guide/topics.ts` の `GUIDE_VIDEO_ID` を更新する。
+- 章の時刻が変わった場合: `video/build/chapters.txt` を出どころとして、`GUIDE_VIDEO_CHAPTERS` の開始秒を更新する。
+- ツアー動画: `docs/help.html` の `#getting-started-tours` の一覧で、該当するツアーの動画リンクと長さ（日英の両方）を更新する。
+
 ## 生成物一覧（`video/build/`, git 管理外）
 
 | パス | 内容 |
