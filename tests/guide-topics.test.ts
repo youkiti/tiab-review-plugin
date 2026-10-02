@@ -4,6 +4,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
     GUIDE_TOPICS,
+    GUIDE_VIDEO_ID,
+    GUIDE_VIDEO_CHAPTERS,
     HELP_PAGE_URL,
     buildHelpUrl,
     buildVideoUrl,
@@ -46,6 +48,81 @@ const helpIds = new Set([...helpHtml.matchAll(/\bid="([^"]+)"/g)].map(m => m[1])
 type Messages = Record<string, { message: string }>;
 const jaMessages = JSON.parse(read('src', '_locales', 'ja', 'messages.json')) as Messages;
 const enMessages = JSON.parse(read('src', '_locales', 'en', 'messages.json')) as Messages;
+
+test('video を持つトピックは、長編の ID と章の開始秒を指す', () => {
+    const starts = new Set<number>(Object.values(GUIDE_VIDEO_CHAPTERS));
+    for (const [topicId, topic] of Object.entries<GuideTopic>(GUIDE_TOPICS)) {
+        if (!topic.video) continue;
+        assert.equal(topic.video.youtubeId, GUIDE_VIDEO_ID, topicId);
+        assert.ok(starts.has(topic.video.startSec), topicId);
+    }
+});
+
+test('トピックと章の対応', () => {
+    const expected = {
+        'overview': 'intro',
+        'login': 'login',
+        'project-create': 'login',
+        'project-connect': 'login',
+        'screening-toolbar': 'manual',
+        'screening-filters': 'manual',
+        'screening-decisions': 'manual',
+        'highlight': 'manual',
+        'notes': 'manual',
+        'ml': 'ml',
+        'ai-model': 'ai',
+        'ai-keys': 'ai',
+        'ai-criteria': 'ai',
+        'ai-batch': 'ai',
+        'ai-threshold': 'ai',
+        'fulltext-views': 'fulltext',
+        'fulltext-candidates': 'fulltext',
+        'fulltext-setup': 'fulltext',
+        'fulltext-pdf': 'fulltext',
+        'fulltext-results': 'fulltext',
+        'share': 'sharing',
+        'blind': 'sharing',
+        'team-progress': 'sharing',
+        'consensus': 'sharing',
+        'web-app': 'web',
+        'settings': 'settings',
+    } as const satisfies Partial<Record<GuideTopicId, keyof typeof GUIDE_VIDEO_CHAPTERS>>;
+    const videos = Object.entries<GuideTopic>(GUIDE_TOPICS).filter(([, topic]) => topic.video);
+    assert.deepEqual(videos.map(([id]) => id).sort(), Object.keys(expected).sort());
+    for (const [topicId, topic] of Object.entries<GuideTopic>(GUIDE_TOPICS)) {
+        if (Object.prototype.hasOwnProperty.call(expected, topicId)) {
+            const chapter = expected[topicId as keyof typeof expected];
+            assert.equal(topic.video?.startSec, GUIDE_VIDEO_CHAPTERS[chapter], topicId);
+        } else {
+            assert.equal(topic.video, undefined, topicId);
+        }
+    }
+});
+
+test('サイトの埋め込みは GUIDE_VIDEO_ID を指す', () => {
+    for (const file of ['help.html', 'index.html']) {
+        const html = read('docs', file);
+        assert.ok(html.includes('https://www.youtube.com/embed/' + GUIDE_VIDEO_ID), file);
+        assert.ok(html.includes('https://youtu.be/' + GUIDE_VIDEO_ID), file);
+    }
+});
+
+test('ヘルプのツアー一覧は、ツアーごとに動画へのリンクを1つ持つ', () => {
+    const start = helpHtml.indexOf('<h3 id="getting-started-tours">');
+    assert.ok(start >= 0, 'ツアー一覧の見出しが無い');
+    const end = helpHtml.indexOf('</ul>', start);
+    assert.ok(end > start, 'ツアー一覧の終端が無い');
+    const section = helpHtml.slice(start, end + '</ul>'.length);
+    const items = [...section.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/g)];
+    assert.equal(items.length, 11);
+    const ids = items.map(([, item]) => {
+        const links = [...item.matchAll(/<a\b[^>]*\bhref="https:\/\/youtu\.be\/([^"]+)"/g)];
+        assert.equal(links.length, 1, item);
+        assert.notEqual(links[0][1], GUIDE_VIDEO_ID);
+        return links[0][1];
+    });
+    assert.equal(new Set(ids).size, 11);
+});
 
 test('GUIDE_TOPICS の helpAnchor はすべて docs/help.html に id として実在する', () => {
     for (const [topicId, topic] of Object.entries(GUIDE_TOPICS)) {
