@@ -444,7 +444,7 @@ function buildDescription(chaptersText, version) {
         'ヘルプ: https://youkiti.github.io/tiab-review-plugin/help.html',
         'Web版: https://youkiti.github.io/tiab-review-plugin/app/',
         'GitHub: https://github.com/youkiti/tiab-review-plugin',
-        'Chrome Web Store: [ストアURLを記入]',
+        'Chrome Web Store: https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij',
         '',
         '【チャプター】',
         chaptersText.trim(),
