@@ -26,6 +26,7 @@
 | 列の末尾追加・ヘッダー導出 | [「スプレッドシート構造」](src/lib/sheets/AGENTS.md)の References / LLM_Executions タブ、「テスト・作業ツリーの落とし穴」のヘッダーミラー・References読み取り範囲 |
 | 判定保存・履歴の追記専用契約 | [「スプレッドシート構造」](src/lib/sheets/AGENTS.md)の Decisions タブ、[「判定保存フロー」](src/lib/sheets/AGENTS.md)[「κ（Cohen's kappa）の算出手順」](src/lib/sheets/AGENTS.md) |
 | OAuth・認証の変更禁止事項 | [「OAuth スコープ」](src/platform/AGENTS.md)[「OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）」](src/platform/AGENTS.md)「Web版（ブラウザ版）」 |
+| コマンドラインからのプロジェクト作成 | [「Node（コマンドライン）用のアダプタと認証（Issue #245）」](src/platform/AGENTS.md)、[scripts/create-project/README.md](scripts/create-project/README.md) |
 | オフライン同期 | [「オフライン同期の方針」](src/lib/AGENTS.md) |
 | テスト・作業ツリー | 「テスト・作業ツリーの落とし穴」「`.env` が無い環境（git worktree 等）で production ビルドを検証する」 |
 | 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
@@ -119,6 +120,8 @@ tiab-review-plugin/
 ├── scripts/                   # データ分析・ユーティリティスクリプト (Python)
 │   ├── check-structure.mjs     # 依存方向・循環・800行超の回帰検査
 │   ├── structure-baseline.json # 既存の構造上の改善対象
+│   ├── create-project.mjs      # コマンドラインからのプロジェクト作成（src/cli を tsc でコンパイルして実行）
+│   ├── create-project/README.md # 上記の使い方・OAuth クライアントの作り方・AI アシスタント向けの手順
 │   ├── check-bundle-budget.mjs # 初期JS量の予算検査
 │   ├── bundle-budget.json     # 実測値と上限（実測の101%）
 │   ├── analyze_llm_datasets.py
@@ -127,7 +130,9 @@ tiab-review-plugin/
 ├── src/
 │   ├── manifest.json          # Chrome Extension Manifest V3
 │   ├── background/
+│   ├── cli/                   # コマンドラインからのプロジェクト作成（Node 専用。webpack のエントリには入れない）
 │   ├── platform/
+│   │   ├── node/              # Node 用の PlatformAdapter（src/cli から使う）
 │   │   └── AGENTS.md          # OAuth・共有フロー
 │   ├── popup/
 │   ├── sidepanel/             # TiAb スクリーニング（サイドパネル）
