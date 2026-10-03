@@ -7,7 +7,7 @@ import { parseRIS } from '../lib/ris-parser';
 import { partitionIncomingReferences } from '../lib/duplicate-import-filter';
 import { isAbstractTruncated } from '../lib/import-helpers';
 import { createSpreadsheet, addReferences, saveImportStats, saveDuplicateCandidates } from '../lib/sheets-api';
-import { setupProjectFolder } from '../lib/drive-api';
+import { setupProjectFolder, ensureFulltextFolder } from '../lib/drive-api';
 import { addPermission } from '../lib/drive-permissions';
 import { buildInviteMessage, buildSpreadsheetUrl } from '../lib/share-invite';
 
@@ -86,6 +86,7 @@ export interface CreateProjectResult {
  * 順序は画面側の handleCreateNew()（sidepanel/features/project.ts）・handleRISImport()
  * （sidepanel/features/import-export.ts）・handleShare()（sidepanel/features/sharing.ts）と
  * 揃えてある。画面側かこちらの手順を変えたら、もう片方も確認すること。
+ * フルテキスト保存用フォルダの先行作成だけは、画面側に無い CLI 固有の手順である。
  */
 export async function runCreateProject(input: {
     title: string;
@@ -111,6 +112,16 @@ export async function runCreateProject(input: {
         result.folderId = await setupProjectFolder(spreadsheetId, title);
     } catch (error) {
         result.warnings.push(`プロジェクトフォルダを整理できませんでした: ${formatError(error)}`);
+    }
+    if (result.folderId) {
+        try {
+            // Issue #245: CLI が作ったプロジェクトフォルダは拡張機能からは未付与になりうる。
+            // フルテキストフォルダIDが Config に無いと、初回 PDF 保存が ensureProjectFolder() の inaccessible で止まる。
+            // 記録済みなら未付与でもそのIDでアップロードできるため、CLI で先に作成・保存する。
+            await ensureFulltextFolder(spreadsheetId);
+        } catch (error) {
+            result.warnings.push(`フルテキスト保存用フォルダを作成できませんでした: ${formatError(error)}`);
+        }
     }
     for (let i = 0; i < plan.toImport.length; i += IMPORT_BATCH_SIZE) {
         const chunk = plan.toImport.slice(i, i + IMPORT_BATCH_SIZE);

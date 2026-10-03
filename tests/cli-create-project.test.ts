@@ -11,16 +11,17 @@ import { main, PICKER_GUIDANCE } from '../src/cli/main';
 import { saveCredentials } from '../src/cli/oauth';
 import { truncateAbstract, isAbstractTruncated } from '../src/lib/import-helpers';
 
-interface Call { method: string; url: string; body: { values?: unknown[][]; emailAddress?: string } }
+interface Call { method: string; url: string; body: { values?: unknown[][]; emailAddress?: string; parents?: string[] } }
 const originalFetch = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = originalFetch; });
 
-function fakeApi(options: { failBatch?: number; folderFails?: boolean; shareFails?: string; folderShareFails?: boolean; statsFails?: boolean } = {}) {
+function fakeApi(options: { failBatch?: number; folderFails?: boolean; fulltextFolderFails?: boolean; shareFails?: string; folderShareFails?: boolean; statsFails?: boolean } = {}) {
     setPlatform(createNodePlatform({
         getAccessToken: async () => 'fake-access-value', forceReauth: async () => 'fake-access-value', clearAuth: async () => {},
         messages: ja, fallbackMessages: ja, version: 'cli-test',
     }));
     const calls: Call[] = [];
+    const configRows: unknown[][] = [];
     let batches = 0;
     globalThis.fetch = async (input, init) => {
         const url = input.toString();
@@ -36,7 +37,12 @@ function fakeApi(options: { failBatch?: number; folderFails?: boolean; shareFail
         if (url.endsWith('/v4/spreadsheets')) return respond({ spreadsheetId: 'sheet-test' });
         if (url.includes('fields=ownedByMe')) return respond({ ownedByMe: !options.folderFails });
         if (url.includes('/drive/v3/files?') && call.method === 'GET') return respond({ files: [{ id: 'root-test' }] });
+        if (isFulltextFolderCreation(call)) {
+            if (options.fulltextFolderFails) return respond({ error: { message: '全文フォルダ作成失敗' } }, 400);
+            return respond({ id: 'fulltext-test' });
+        }
         if (url.includes('/drive/v3/files?') && call.method === 'POST') return respond({ id: 'folder-test' });
+        if (url.includes('/drive/v3/files/folder-test?fields=id,trashed')) return respond({ id: 'folder-test', trashed: false });
         if (url.includes('fields=parents')) return respond({ parents: ['root'] });
         if (url.includes('/permissions')) {
             if ((url.includes('/sheet-test/') && call.body.emailAddress === options.shareFails) ||
@@ -45,6 +51,8 @@ function fakeApi(options: { failBatch?: number; folderFails?: boolean; shareFail
             }
         }
         if (options.statsFails && call.body.values?.[0]?.[0] === 'import_stats') return respond({ error: { message: '保存失敗' } }, 500);
+        if (call.method === 'GET' && decodeURIComponent(url).includes('/values/Config!A:B')) return respond({ values: configRows });
+        if (call.method === 'POST' && url.includes('/values/Config:append')) configRows.push(...(call.body.values ?? []));
         return respond({ values: [] });
     };
     return calls;
@@ -52,6 +60,11 @@ function fakeApi(options: { failBatch?: number; folderFails?: boolean; shareFail
 
 function isDataAppend(call: Call): boolean {
     return call.url.includes('/values/References:append') && call.body.values?.[0]?.[0] !== 'ref_id';
+}
+
+function isFulltextFolderCreation(call: Call): boolean {
+    return call.method === 'POST' && call.url.includes('/drive/v3/files?') &&
+        call.body.parents?.length === 1 && call.body.parents[0] === 'folder-test';
 }
 
 function plan(count = 1): ImportPlan {
@@ -87,6 +100,19 @@ test('共有先が空なら permissions は呼ばない', async () => {
     const calls = fakeApi();
     await run();
     assert.equal(calls.filter(c => c.url.includes('/permissions')).length, 0);
+});
+
+test('フルテキスト保存用フォルダを文献追記前に作成して Config に保存する', async () => {
+    const calls = fakeApi();
+    const result = await run();
+    const fulltextFolders = calls.filter(isFulltextFolderCreation);
+    assert.equal(fulltextFolders.length, 1);
+    const creation = calls.indexOf(fulltextFolders[0]);
+    const saved = calls.findIndex(c => c.method === 'POST' && c.url.includes('/values/Config:append') &&
+        c.body.values?.[0]?.[0] === 'fulltext_drive_folder');
+    assert.deepEqual(calls[saved]?.body.values, [['fulltext_drive_folder', 'fulltext-test']]);
+    assert.ok(creation < saved && saved < calls.findIndex(isDataAppend));
+    assert.deepEqual(result.warnings, []);
 });
 
 test('1201 件を 500・500・201 件で追記する', async () => {
@@ -126,6 +152,7 @@ test('フォルダ整理が失敗しても取り込みとシート共有を続�
     const calls = fakeApi({ folderFails: true });
     const result = await run(plan(), ['a@example.com']);
     assert.equal(result.folderId, null);
+    assert.equal(calls.filter(isFulltextFolderCreation).length, 0);
     assert.equal(result.importedCount, 1);
     assert.equal(result.warnings.length, 1);
     assert.equal(calls.filter(c => c.url.includes('/permissions')).length, 1);
@@ -138,6 +165,22 @@ test('フォルダ共有と統計保存の失敗は警告に留める', async ()
     assert.equal(result.shareFailures.length, 0);
     assert.equal(result.folderShareFailures.length, 1);
     assert.equal(result.warnings.length, 1);
+});
+
+test('フルテキスト保存用フォルダの作成が失敗しても取り込みと共有を続ける', async () => {
+    const calls = fakeApi({ fulltextFolderFails: true });
+    const result = await runCreateProject({
+        title: '試験', fileName: 'input.ris', plan: plan(), share: ['a@example.com'],
+        formatError: error => (error as Error).message,
+    });
+    assert.equal(calls.filter(isFulltextFolderCreation).length, 1);
+    assert.equal(calls.filter(isDataAppend).length, 1);
+    assert.equal(result.importedCount, 1);
+    assert.deepEqual(result.shared, ['a@example.com']);
+    assert.equal(calls.filter(c => c.url.includes('/permissions')).length, 2);
+    assert.deepEqual(result.warnings, [
+        'フルテキスト保存用フォルダを作成できませんでした: Driveフォルダの作成に失敗しました: 全文フォルダ作成失敗',
+    ]);
 });
 
 test('空の取り込みでは API を呼ばない', async () => {
