@@ -11,13 +11,24 @@ export function truncateAuthors(authors: string[]): string {
     return authors.slice(0, 10).join('; ') + '; et al.';
 }
 
+/** 抄録の上限文字数（切り詰めと切り詰め判定で共有する） */
+export const ABSTRACT_MAX_LENGTH = 15000;
+
 /**
  * Abstract を 15,000 文字に切り詰め
  */
 export function truncateAbstract(abstract?: string): string | undefined {
     if (!abstract) return undefined;
-    if (abstract.length <= 15000) return abstract;
-    return abstract.substring(0, 15000) + '...';
+    if (abstract.length <= ABSTRACT_MAX_LENGTH) return abstract;
+    return abstract.substring(0, ABSTRACT_MAX_LENGTH) + '...';
+}
+
+/**
+ * truncateAbstract() が切り詰めた結果かどうかを、長さがちょうど上限+3 で末尾が `...` かで判定する。
+ * 元の抄録がたまたまその形だった場合は区別できない。
+ */
+export function isAbstractTruncated(abstract?: string): boolean {
+    return abstract?.length === ABSTRACT_MAX_LENGTH + 3 && abstract.endsWith('...');
 }
 
 /**
