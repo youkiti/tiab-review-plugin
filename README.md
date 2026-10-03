@@ -69,6 +69,7 @@ gcloud services enable drive.googleapis.com
 | `WEB_OAUTH_CLIENT_ID`  | GitHub Pages Web版 / Pickerページ用 OAuth Client ID | `build:web` 本番ビルド時 |
 | `PICKER_API_KEY`      | Google Picker API key（HTTPリファラーとPicker APIに制限） | `build:web` 本番ビルド時 |
 | `GCP_PROJECT_NUMBER`  | Picker `setAppId` に渡すGCPプロジェクト番号 | `build:web` 本番ビルド時 |
+| `CLI_OAUTH_CLIENT_ID` / `CLI_OAUTH_CLIENT_SECRET` | コマンドラインからのプロジェクト作成用 OAuth クライアント（デスクトップ アプリ型） | `scripts/create-project.mjs` 実行時 |
 | `GEMINI_API_KEY`       | Gemini API キー                      | Gemini モデル使用時   |
 | `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 | `TYPE_SAFE_API_KEY`    | TypeSafe API キー（実験用CLIのみ） | 実験スクリプト実行時  |
@@ -122,6 +123,33 @@ npm run watch
 | `npm run lint`      | ESLint実行（`.tmp/eslint/` にキャッシュ） |
 | `npm run typecheck` | 型チェック         |
 | `npm test`          | 全テスト実行（`npm test -- doi` でファイル名の部分一致に絞り込み） |
+| `npm run create-project -- --title ... --ris ...` | コマンドラインからプロジェクトを作成（下記） |
+
+## コマンドラインからプロジェクトを作る
+
+プロジェクトの新規作成（スプレッドシート作成 → RIS 取り込み → 招待）を、拡張機能の画面を開かずにコマンド1回で実行できます。判定を依頼する側がプロジェクトを作って判定者を招待する運用で、RIS をスクリプトで生成している場合に使います。
+
+```bash
+# まず解釈結果だけを確認する（Google には接続しない）
+node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/records.ris --dry-run
+
+# 作成と取り込み
+node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/records.ris
+
+# 作成・取り込み・招待（指定した相手に Google から招待メールが届く）
+node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/records.ris --share a@example.com,b@example.com
+```
+
+初回のみ、Google Cloud Console で OAuth クライアントを作ります。
+
+1. 「API とサービス」→「ライブラリ」で **Google Sheets API** と **Google Drive API** を有効にする（「セットアップ」の手順3を済ませていれば不要）
+2. 「API とサービス」→「認証情報」→「認証情報を作成」→「OAuth クライアント ID」
+3. アプリケーションの種類: **デスクトップ アプリ**（リダイレクト URI の登録は不要）
+4. 作成されたクライアント ID とクライアント シークレットを `.env` の `CLI_OAUTH_CLIENT_ID` / `CLI_OAUTH_CLIENT_SECRET` に設定する
+
+拡張機能・Web版と同じ Google Cloud プロジェクトに作ってください。ログイン情報（リフレッシュトークン）はリポジトリの外の `~/.tiab-review-plugin/cli-credentials.json` に保存されます。
+
+オプションの一覧、同意画面の設定、うまくいかないときの対処、**自分の Google Cloud プロジェクトでこのコマンドを使いたい人向けの手順（AI アシスタントに手伝わせるときの進め方を含む）**は [scripts/create-project/README.md](scripts/create-project/README.md) にあります。
 
 ## 最短手順
 

@@ -209,3 +209,24 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 - Google は `response_type=token` の停止時期を告知していない（2026-07 時点。廃止告知が出ているのは旧 Google Sign-In JS ライブラリで、Google は OAuth 2.0 の認可自体には影響しないと明記）。**実際に停止された場合は上記①②③の三択を迫られる**ため、その時点で再評価する。
 - 実装のみ完成済みで使えない PKCE 版: ブランチ `feat/oauth-pkce-code-flow` / PR #31（マージ不可）。
 
+### Node（コマンドライン）用のアダプタと認証（Issue #245）
+
+`scripts/create-project.mjs`（プロジェクトの新規作成 → RIS 取り込み → 招待）は、拡張機能・Web版と同じ `src/lib` の関数を Node から呼ぶ。そのための `PlatformAdapter` が `src/platform/node/index.ts` の `createNodePlatform()`。使い方は [scripts/create-project/README.md](../../scripts/create-project/README.md)。
+
+| 項目 | 内容 |
+| --- | --- |
+| アダプタ | `src/platform/node/index.ts`。`node:` モジュールにも `src/lib` にも依存せず、トークン取得・文言・バージョンを引数で受け取る。ストレージはプロセス内の `Map`（永続化しない） |
+| 認証 | `src/cli/oauth.ts`。**デスクトップ アプリ型**クライアント + ループバック（`http://127.0.0.1:<空きポート>`）+ 認可コード + PKCE（S256） |
+| クライアント | `.env` の `CLI_OAUTH_CLIENT_ID` / `CLI_OAUTH_CLIENT_SECRET`。**ビルドには使わない**（webpack の DefinePlugin に渡さない。成果物へ埋め込まれない） |
+| スコープ | `userinfo.email` と `drive.file` の2つ。拡張版・Web版と同じで、増やさない |
+| トークン | アクセストークンはメモリのみ。リフレッシュトークンはリポジトリ外の `~/.tiab-review-plugin/cli-credentials.json`（`TIAB_CLI_CREDENTIALS_PATH` で変更可）に保存する |
+| 処理の調整 | `src/cli/create-project.ts`（`runCreateProject()`）。順序は画面側の `handleCreateNew()` / `handleRISImport()` / `handleShare()` と同じ。**片方を変えたらもう片方も見ること** |
+
+- **拡張版で却下したデスクトップ アプリ型を、ここでは使ってよい理由**: 上の「却下した代替案③」の却下理由は「拡張機能はループバックを listen できない」ことだけで、Node のプロセスは listen できる。デスクトップ アプリ型は認可コードの交換に `client_secret` が要るが、Google はこの種別のシークレットを秘密として扱わない前提にしている（配布物に入る前提のため）。それでもこのリポジトリでは**シークレットをコミットせず、使う人が自分のクライアントを作る**運用にしている（リポジトリが公開のため）。
+- **この経路を拡張版・Web版の認証へ持ち込まないこと。** 拡張版が implicit である理由（上の節）は何も変わっていない。
+- **書き込みの途中で失敗したら再試行しない。** `addReferences()` は追記なので、失敗したバッチは「入っていない」ではなく「入ったかどうか不明」。`runCreateProject()` は `ImportInterruptedError` で止まり、スプレッドシートのIDと確認できた件数を出す。429 だけは `fetchWithQuotaRetry()` が待って再試行する（応答が 429 のときは書き込まれていないため）。
+- **`--share` を付けたときだけ招待する。** 招待は相手にメールが届き、取り消せない操作のため。
+- トークン・クライアントシークレット・認可コードをログや例外メッセージに出さない。トークンエンドポイントの失敗で出してよいのは HTTP ステータスと応答の `error` / `error_description` だけ。
+
+**未実測（実測待ち）**: デスクトップ アプリ型クライアントで作ったスプレッドシートを、**同じ GCP プロジェクトの**拡張版・Web版のトークンでそのまま読めるかどうか。`drive.file` の付与単位「アプリ × ユーザー × ファイル」の「アプリ」が OAuth クライアント単位か GCP プロジェクト単位かで結果が変わる。測り方は `scripts/drive-file-probe/` の `desktop-client-created-file` シナリオ。結果が出るまで、コマンドは「拡張機能で開けないときは『Googleで許可する』から1回選ぶ」案内を常に出す。**別の GCP プロジェクトに作ったクライアントの場合は、作成者も必ず Picker で1回選ぶ必要がある**（別アプリのため。こちらは実測を待たずに言える）。
+

@@ -57,6 +57,14 @@ Google Drive OAuth スコープ `drive.file` の付与挙動を実機で測定�
   測定する（GitHub Issue #80 フェーズ0）。必要な `--input`: `folderId`（共有ドライブ上の**空の**未付与
   フォルダのID）, `sourceFileId`（**マイドライブ上の**未付与PDFのID）。
 
+- **`desktop-client-created-file`**（`scenarios/desktop-client-created-file.mjs`）: デスクトップ アプリ型
+  クライアント（`scripts/create-project.mjs`）で作ったスプレッドシートを、同じ GCP プロジェクトの
+  Web版クライアントのトークンでそのまま読めるかを測定する（GitHub Issue #245）。`drive.file` の付与単位の
+  「アプリ」が OAuth クライアント単位か GCP プロジェクト単位かを確定させる。必要な `--input`: `fileId`
+  （`scripts/create-project.mjs` が出力した `spreadsheet_id`）。**このシナリオだけはフィクスチャを
+  Drive UI ではなく `scripts/create-project.mjs` で作る**（デスクトップ型クライアント経由で作られた
+  ファイルであることが測定の前提のため）。サインインは、そのシートを作ったのと同じアカウントで行うこと。
+
 ## 前提
 
 - リポジトリルートの `.env` に次の3つが設定されていること（`.env.example` 参照）。
