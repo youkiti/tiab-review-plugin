@@ -147,7 +147,7 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 3. アプリケーションの種類: **デスクトップ アプリ**（リダイレクト URI の登録は不要）
 4. 作成されたクライアント ID とクライアント シークレットを `.env` の `CLI_OAUTH_CLIENT_ID` / `CLI_OAUTH_CLIENT_SECRET` に設定する
 
-拡張機能・Web版と同じ Google Cloud プロジェクトに作ってください。ログイン情報（リフレッシュトークン）はリポジトリの外の `~/.tiab-review-plugin/cli-credentials.json` に保存されます。
+拡張機能・Web版と同じ Google Cloud プロジェクトに作ってください（同じプロジェクトなら、作ったプロジェクトを拡張機能でそのまま開けます。招待された判定者は、初回に「Googleで許可する」からシートを1回選びます）。ログイン情報（リフレッシュトークン）はリポジトリの外の `~/.tiab-review-plugin/cli-credentials.json` に保存されます。
 
 オプションの一覧、同意画面の設定、うまくいかないときの対処、**自分の Google Cloud プロジェクトでこのコマンドを使いたい人向けの手順（AI アシスタントに手伝わせるときの進め方を含む）**は [scripts/create-project/README.md](scripts/create-project/README.md) にあります。
 
