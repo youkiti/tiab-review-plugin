@@ -193,7 +193,7 @@ tiab-review-plugin/
 3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定だと本番と同様に fail-fast する。認証を触らないローカル作業では `ALLOW_NO_AUTH=1 npm run dev` で警告のみに格下げできる）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
-6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`
+6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`（push・審査提出まで行う場合は `npm run release:submit` / `npm run release:submit:major`）
 
 ### 開発規約（依存方向・ファイル規模・CI 回帰条件）
 
@@ -261,11 +261,17 @@ npm run release:minor   # 修正・小変更 0.33.2 → 0.33.3 + ストア用ビ
 npm run release:major   # 機能追加     0.33.2 → 0.34.0 + 同上
 ```
 
+API による状況確認・審査提出も利用できる（詳細: [tools/release/README.md](tools/release/README.md)）。
+
+- `npm run store:status`: 公開中・審査中の状況を確認する。
+- `npm run store:submit`: 再ビルドせず、既存の `dist.zip` をアップロードして審査提出する。
+- `npm run release:submit` / `npm run release:submit:major`: `main` 上でクリーンかつ `origin/main` と一致するとき、版上げ・ビルド・push・提出を順に行う。この経路だけが push まで行い、`main` に push するのは規則1の例外で許容するバージョンバンプ commit だけ。
+
 バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` の4ファイルを更新し、スクリプト自身がその4ファイルだけをステージしてローカル commit まで行う（**push は手動**）。後続の `npm run build:release` が失敗した場合は `git reset --hard HEAD~1` で戻せる（差分は version と Build 日付のみ）。
 
 1.0.0 など先頭の数字を動かす場合のみ `./scripts/bump-version.ps1 -SetVersion "1.0.0"` で明示指定する。
 
-生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。**ファイル名は `dist.zip` 固定**（バージョン付きの名前ではアップロードできない）。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
+生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへ手でアップロードするか、`npm run store:submit` で API から提出する。**ファイル名は `dist.zip` 固定**（バージョン付きの名前ではアップロードできない）。ストア用ビルドは manifest の `key` を削除し（ストアがID `alejln…` を付与）、OAuth クライアントID (`.env` の `WEBAUTH_CLIENT_ID`) は webpack DefinePlugin 経由でコードに埋め込む（manifest には含めない）。
 
 **`dist.zip` から source map を除外している（Issue #126）。** 拡張ビルドの `devtool` は本番のみ `hidden-source-map`（`webpack.config.js`）。変わらないのは development ビルド（`npm run dev` / `npm run watch`）の方で、こちらは `devtool: 'source-map'` のままで `//# sourceMappingURL=` も出るため、従来どおり TypeScript のソースにマップされる（デバッグは通常こちらで行う）。一方、本番ビルドの `dist/` は変わる：`.map` ファイル自体は出力され続けるが `sourceMappingURL` コメントを出さないため、DevTools は `dist/` に置かれた `.map` を自動では読み込まない（必要なら手動で "Add source map…" する）。これにより `.map` を含まない `dist.zip` を配布しても DevTools が参照先を探して 404 警告を出すことはない。本番でも `.map` を生成し続けているのは、`scripts/pack-release.ps1` が「0件なら devtool 設定が壊れている」と検知するカナリアに使うのと、手動 attach 用に残すためでもある。`build:release` は `scripts/pack-release.ps1` を呼び、`dist/` を `.tmp/release/` へコピーしてから `.map` を削除して zip 化するステージング方式を取る（`Compress-Archive -Path` にファイルの配列を渡すとディレクトリ構造が失われフラットな zip になり、`sidepanel/sidepanel.js` のような相対パス前提の拡張機能が壊れるため）。`.map` の削除は拡張子の厳密一致で行うこと。`Get-ChildItem -Filter "*.map"` は Windows の8.3短縮名によるワイルドカードマッチの影響を受け、拡張子が `.map` でなくても短縮名の拡張子部分が「MAP」になるファイル（例: `routes.mapping`, `data.mapx`）を誤って巻き込みうる（PR #127 レビュー指摘：Windows PowerShell 5.1・8.3短縮名有効の環境で実測して確認）。`dist/cmaps/` には pdf.js の `.bcmap` が168本入っており、これは一部PDFの描画に必要なので消してはいけない。拡張子の厳密一致（`-eq '.map'`）で絞り込むこと。`scripts/pack-release.ps1` も `scripts/bump-version.ps1` と同じく UTF-8 BOM 付きで保存すること（理由は上記バンプスクリプトの節と同じ）。
 
