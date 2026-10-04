@@ -15,8 +15,12 @@ import { parseCliArgs, usageText } from './args';
 import { planImport, runCreateProject, ImportInterruptedError, safeApiErrorMessage } from './create-project';
 import { createTokenProvider, OAuthError } from './oauth';
 
-/** 作成したシートを拡張機能で開く際の Picker 操作を案内する。 */
-export const PICKER_GUIDANCE = '拡張機能でこのプロジェクトを開いたときに「このシートを使うには、Googleの画面で一度だけこのシートを選ぶ必要があります」と表示されたら、「Googleで許可する」を押してこのシートを1回選んでください。招待された判定者は、初回に必ずこの操作が要ります。';
+/**
+ * 作成したシートを拡張機能で開く際の Picker 操作を案内する。
+ * Issue #245: drive.file の付与は GCP プロジェクト単位と実測で確定したため（src/platform/AGENTS.md）、
+ * 作成者は同じ GCP プロジェクトのクライアントならそのまま開ける。招待された判定者は初回に選ぶ必要がある。
+ */
+export const PICKER_GUIDANCE = '招待された判定者は、拡張機能でこのプロジェクトを初めて開くときに「Googleで許可する」を押してこのシートを1回選ぶ必要があります。作成者は、拡張機能と同じ Google Cloud プロジェクトのクライアントを使っていれば、そのまま開けます（別のプロジェクトのクライアントを使った場合は、作成者も同じ操作が要ります）。';
 
 function openBrowser(url: string, log: (message: string) => void): void {
     const failed = () => log('ブラウザを開けませんでした。表示された認可 URL を手で開いてください。');
