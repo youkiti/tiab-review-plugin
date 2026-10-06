@@ -363,6 +363,8 @@ export interface FulltextLlmDecisionNote {
     evidence: FulltextEvidence[];
     /** スキャン(画像only)PDFだったか。ハイライト精度の注意表示に使う。 */
     image_only?: boolean;
+    /** Gemini が引用を途中で打ち切り（finishReason=RECITATION）、根拠の一部が欠けているとき true（Issue #254）。欠けていなければキー自体を持たない。 */
+    evidence_truncated?: boolean;
     prompt_version: string;
     usageMetadata?: UsageMetadata;
     parse_error?: boolean;

@@ -26,6 +26,14 @@ export interface GeminiModelConfig {
 }
 
 interface GeminiApiErrorOptions {
+    /**
+     * 途中で打ち切られた応答本文（code が 'recitation_truncated' のときだけ載せる。Issue #254）。
+     * 呼び出し側が完結している部分を取り出せるように、使用量・応答情報と一緒に運ぶ。
+     */
+    partialText?: string;
+    finishReason?: string;
+    usageMetadata?: UsageMetadata;
+    responseMetadata?: LlmModelResponseMetadata;
     status?: number;
     code: string;
     retryable: boolean;
@@ -38,6 +46,10 @@ interface GeminiApiErrorOptions {
 }
 
 export class GeminiApiError extends Error {
+    partialText?: string;
+    finishReason?: string;
+    usageMetadata?: UsageMetadata;
+    responseMetadata?: LlmModelResponseMetadata;
     status?: number;
     code: string;
     retryable: boolean;
@@ -48,6 +60,10 @@ export class GeminiApiError extends Error {
     constructor(message: string, options: GeminiApiErrorOptions) {
         super(message);
         this.name = 'GeminiApiError';
+        this.partialText = options.partialText;
+        this.finishReason = options.finishReason;
+        this.usageMetadata = options.usageMetadata;
+        this.responseMetadata = options.responseMetadata;
         this.status = options.status;
         this.code = options.code;
         this.retryable = options.retryable;
@@ -472,7 +488,14 @@ export async function callGeminiApiWithParts<T>(
             });
         }
 
+        const recitationError = finishReason === 'RECITATION'
+            ? new GeminiApiError(t('error_geminiRecitation'), {
+                code: 'recitation_truncated', retryable: true,
+                partialText: fullText, finishReason, usageMetadata, responseMetadata,
+            }) : undefined;
+
         if (!fullText) {
+            if (recitationError) throw recitationError;
             throw new GeminiApiError(t('error_geminiNoText'), {
                 code: 'no_text',
                 retryable: true,
@@ -489,12 +512,14 @@ export async function callGeminiApiWithParts<T>(
                 try {
                     return { result: JSON.parse(jsonMatch[0]) as T, usageMetadata, responseMetadata };
                 } catch (e2) {
+                    if (recitationError) throw recitationError;
                     throw new GeminiApiError(t('error_geminiJsonParseFailed'), {
                         code: 'json_parse_failed',
                         retryable: true,
                     });
                 }
             }
+            if (recitationError) throw recitationError;
             throw new GeminiApiError(t('error_geminiJsonParseFailed') + ': ' + fullText.substring(0, 100), {
                 code: 'json_parse_failed',
                 retryable: true,

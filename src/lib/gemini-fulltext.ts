@@ -14,6 +14,7 @@ import type {
 } from './types';
 import {
     callGeminiApiWithParts,
+    GeminiApiError,
     DEFAULT_MODEL_CONFIG,
     type GeminiModelConfig,
     type GeminiPart,
@@ -22,6 +23,7 @@ import { PROMPT_VERSION } from './prompt-templates';
 import { DEFAULT_EXCLUDE_REASON_ITEMS } from './exclude-reasons';
 import type { ExcludeReasonItem } from './exclude-reasons';
 import { PdfTooLargeError } from './fulltext-ai-failures';
+import { salvageTruncatedFulltextJudge } from './fulltext-judge-salvage';
 
 // inline_data でPDFを送る場合のサイズ上限（リクエスト全体が約20MB制限のため余裕を見て18MB）。
 // これを超えるPDFは Files API 経由が必要だが、まずは inline で運用しガードする。
@@ -143,7 +145,7 @@ export async function judgeFulltext(
     outputLanguage: string = 'ja',
     timeoutMs: number = 180000,
     reasonItems: readonly ExcludeReasonItem[] = DEFAULT_EXCLUDE_REASON_ITEMS
-): Promise<{ output: FulltextJudgeOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
+): Promise<{ output: FulltextJudgeOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata; evidenceTruncated: boolean }> {
     const bytes = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
     if (bytes.byteLength > MAX_INLINE_PDF_BYTES) {
         // Gemini呼び出し（fetch）に至る前の、PDF側の検証失敗。GeminiApiError と見分けが付くように
@@ -158,14 +160,28 @@ export async function judgeFulltext(
         { inline_data: { mime_type: 'application/pdf', data: base64 } },
     ];
 
-    const { result, usageMetadata, responseMetadata } = await callGeminiApiWithParts<FulltextJudgeOutput>(
-        parts,
-        buildFulltextJudgeSchema(reasonItems),
-        config,
-        timeoutMs
-    );
-
-    return { output: normalizeJudgeOutput(result), usageMetadata, responseMetadata };
+    try {
+        const { result, usageMetadata, responseMetadata } = await callGeminiApiWithParts<FulltextJudgeOutput>(
+            parts,
+            buildFulltextJudgeSchema(reasonItems),
+            config,
+            timeoutMs
+        );
+        return { output: normalizeJudgeOutput(result), usageMetadata, responseMetadata, evidenceTruncated: false };
+    } catch (err) {
+        if (!(err instanceof GeminiApiError) || err.code !== 'recitation_truncated') throw err;
+        const recovered = salvageTruncatedFulltextJudge(err.partialText ?? '');
+        if (!recovered) throw err;
+        return {
+            output: normalizeJudgeOutput(recovered),
+            usageMetadata: err.usageMetadata ?? {
+                promptTokenCount: 0, candidatesTokenCount: 0, thoughtsTokenCount: 0,
+                totalTokenCount: 0, cachedInputTokens: 0,
+            },
+            responseMetadata: err.responseMetadata ?? {},
+            evidenceTruncated: true,
+        };
+    }
 }
 
 /** 出力を軽く正規化する（範囲外確率のクランプ、evidence の page を整数化等） */

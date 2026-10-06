@@ -149,7 +149,9 @@ export function renderAiCardsFallback(): void {
 
     const note = findAiFulltextNote(session.currentRef.ref_id);
     if (!note || !Array.isArray(note.evidence) || note.evidence.length === 0) {
-        renderAnnotationsList([], false, { emptyMessage: evidenceEmptyMessage() });
+        renderAnnotationsList([], false, {
+            emptyMessage: evidenceEmptyMessage(), evidenceTruncated: note?.evidence_truncated ?? false,
+        });
         return;
     }
 
@@ -166,6 +168,7 @@ export function renderAiCardsFallback(): void {
     renderAnnotationsList(items, note.image_only ?? false, {
         clickable: false,
         notice: t('ftPage_evidenceFallbackNotice'),
+        evidenceTruncated: note?.evidence_truncated ?? false,
     });
 }
 
@@ -220,6 +223,7 @@ function applyHighlightsForCurrentRefImpl(): void {
 
     renderAnnotationsList(items, note?.image_only ?? session.currentPdfInfo?.isImageOnly ?? false, {
         emptyMessage: evidenceEmptyMessage(),
+        evidenceTruncated: note?.evidence_truncated ?? false,
     });
     session.pdfRenderer.setHighlightsVisible(session.highlightEnabled);
 }
@@ -301,6 +305,12 @@ export function jumpToEvidence(delta: number): void {
 }
 
 interface AnnotationListOptions {
+    /**
+     * Gemini が引用を途中で打ち切り、根拠の一部が欠けている判定か（Issue #254）。
+     * true なら根拠が0件でも注意書きを出す。表示レベル none の経路からは渡さないこと
+     * （AI判定が存在すること自体が漏れるため）。
+     */
+    evidenceTruncated?: boolean;
     /** カードクリックでのスクロールを有効にするか（PDF.js 描画時のみ true）。既定 true */
     clickable?: boolean;
     /** 一覧先頭に出す注意書き（フォールバック表示モードの説明など） */
@@ -324,7 +334,16 @@ function renderAnnotationsList(
     session.evidenceItems = items;
     session.evidenceCursor = -1;
 
+    const appendTruncatedNotice = () => {
+        if (!opts.evidenceTruncated) return;
+        const notice = document.createElement('div');
+        notice.className = 'ft-annotation-imageonly';
+        notice.textContent = t('ftPage_evidenceTruncatedNotice');
+        list.appendChild(notice);
+    };
+
     if (items.length === 0) {
+        appendTruncatedNotice();
         const empty = document.createElement('div');
         empty.className = 'ft-annotation-empty';
         // 理由別メッセージは導線案内を含み複数行になるため、改行を <br> として描画する
@@ -346,6 +365,8 @@ function renderAnnotationsList(
         note.textContent = t('ftPage_imageOnlyNotice');
         list.appendChild(note);
     }
+
+    appendTruncatedNotice();
 
     for (const item of items) {
         const card = document.createElement('div');

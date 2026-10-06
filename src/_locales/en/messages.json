@@ -761,6 +761,9 @@
   "fulltext_aiStarted": {
     "message": "Started AI judging of $1 item(s)"
   },
+  "fulltext_aiEvidenceTruncated": {
+    "message": "Gemini stopped partway through a quotation, so some evidence is missing"
+  },
   "fulltext_aiCancelled": {
     "message": "Cancelled"
   },
@@ -3123,6 +3126,9 @@
   "error_geminiJsonParseFailed": {
     "message": "Failed to parse Gemini API response as JSON"
   },
+  "error_geminiRecitation": {
+    "message": "Gemini stopped partway through quoting the source text (RECITATION), so the response is incomplete"
+  },
   "error_geminiTimeout": {
     "message": "Gemini API timeout ($1ms)"
   },
@@ -4594,6 +4600,9 @@
   },
   "ftPage_imageOnlyNotice": {
     "message": "⚠ Because this is a scanned-image PDF, highlight positions are based on the AI's estimated region (accuracy may be reduced)."
+  },
+  "ftPage_evidenceTruncatedNotice": {
+    "message": "⚠ Gemini stopped partway through a quotation, so some of the AI's evidence is missing."
   },
   "ftPage_polarityAiNote": {
     "message": "AI-highlighted area"
