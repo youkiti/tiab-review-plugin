@@ -5,6 +5,7 @@ import {
     collectAiJudgedRefIds,
     countFulltextAiTargets,
     hasCachedFulltext,
+    isLinkOnlyFulltext,
     parseFulltextAiScope,
     selectFulltextAiTargets,
     type FulltextAiDecisionRow,
@@ -122,6 +123,8 @@ test('countFulltextAiTargets: 対象・全文確保済み・判定済み除外�
         target: 1,
         cached: 3,
         alreadyJudged: 2,
+        linkOnly: 0,
+        noFulltext: 2,
     });
 });
 
@@ -130,6 +133,49 @@ test('countFulltextAiTargets: 候補が空なら全て0', () => {
         target: 0,
         cached: 0,
         alreadyJudged: 0,
+        linkOnly: 0,
+        noFulltext: 0,
+    });
+});
+
+test('isLinkOnlyFulltext: retrieved かつ空白以外のURLがある場合だけリンクのみとする', () => {
+    assert.equal(isLinkOnlyFulltext(makeRef({ ref_id: 'linked', fulltext_status: 'retrieved' })), true);
+    for (const fulltext_status of ['cached', 'unavailable', 'not_retrieved', undefined] as const) {
+        assert.equal(isLinkOnlyFulltext(makeRef({ ref_id: 'other', fulltext_status })), false);
+    }
+    for (const fulltext_url of ['', '   ', undefined]) {
+        assert.equal(isLinkOnlyFulltext(makeRef({ ref_id: 'empty', fulltext_status: 'retrieved', fulltext_url })), false);
+    }
+});
+
+test('countFulltextAiTargets: 全取得状態を分類し内訳の和は候補数と一致する', () => {
+    const candidates = [
+        makeRef({ ref_id: 'cached' }),
+        makeRef({ ref_id: 'cached-empty', fulltext_url: '' }),
+        makeRef({ ref_id: 'linked', fulltext_status: 'retrieved' }),
+        makeRef({ ref_id: 'linked-empty', fulltext_status: 'retrieved', fulltext_url: '   ' }),
+        makeRef({ ref_id: 'unavailable', fulltext_status: 'unavailable' }),
+        makeRef({ ref_id: 'not-retrieved', fulltext_status: 'not_retrieved' }),
+        makeRef({ ref_id: 'undefined', fulltext_status: undefined }),
+    ];
+    const counts = countFulltextAiTargets(candidates, new Set<string>());
+    assert.equal(counts.cached, 1);
+    assert.equal(counts.linkOnly, 1);
+    assert.equal(counts.noFulltext, 5);
+    assert.equal(counts.cached + counts.linkOnly + counts.noFulltext, candidates.length);
+});
+
+test('countFulltextAiTargets: リンクのみは判定済み集合にあっても判定済み除外に数えない', () => {
+    const candidates = [
+        makeRef({ ref_id: 'cached' }),
+        makeRef({ ref_id: 'linked', fulltext_status: 'retrieved' }),
+    ];
+    assert.deepEqual(countFulltextAiTargets(candidates, new Set(['cached', 'linked'])), {
+        target: 0,
+        cached: 1,
+        alreadyJudged: 1,
+        linkOnly: 1,
+        noFulltext: 0,
     });
 });
 

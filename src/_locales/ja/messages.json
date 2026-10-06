@@ -740,6 +740,12 @@
   "fulltext_aiTargetJudged": {
     "message": "採用ラウンドで判定済みのため除外: $1 件（別ラウンドとしてやり直すには「判定ラウンド」で「採用なし」を選ぶ）"
   },
+  "fulltext_aiTargetLinkOnly": {
+    "message": "リンクのみでPDFが未保存のため対象外: $1 件（候補リストの表示切替「未入手」で確認し、PDFをアップロードすると対象になります）"
+  },
+  "fulltext_aiTargetNoFulltext": {
+    "message": "全文が未入手（未取得・入手不可）のため対象外: $1 件"
+  },
   "fulltext_aiTargetAssignedShare": {
     "message": "うち自分の担当分: $1 件"
   },

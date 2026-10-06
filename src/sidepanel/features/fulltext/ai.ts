@@ -442,6 +442,17 @@ function updateAiTargetCount(): void {
         );
     }
 
+    if (counts.linkOnly > 0) {
+        lines.push(
+            `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetLinkOnly', String(counts.linkOnly)))}</span>`
+        );
+    }
+    if (counts.noFulltext > 0) {
+        lines.push(
+            `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetNoFulltext', String(counts.noFulltext)))}</span>`
+        );
+    }
+
     // プロジェクト全体を対象にしているとき、そのうち自分の担当分が何件かを併記する
     // （担当割り振りをしていて件数が変わる場合のみ）
     if (aiScope === 'project') {

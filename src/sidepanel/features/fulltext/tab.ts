@@ -15,6 +15,7 @@ import { escapeHtml } from '../../utils/text';
 import { getFulltextCandidateList, getVisibleFulltextCandidateList } from '../screening/filters';
 import { handleKeyToggle } from '../screening/actions';
 import { explainEmptyFulltextCandidates } from '../../../lib/fulltext-empty-reason';
+import { hasCachedFulltext } from '../../../lib/fulltext-ai-target';
 import { setupFulltextResultsListeners, renderFulltextResults, renderFulltextKeyStatus, setFulltextResultsDeps } from './results';
 import { setupFulltextAiListeners } from './ai';
 import {
@@ -204,8 +205,9 @@ function retrievalStatus(ref: ReferenceWithStatus): FulltextStatus {
 }
 
 function isObtained(ref: ReferenceWithStatus): boolean {
-    const s = retrievalStatus(ref);
-    return (s === 'cached' || s === 'retrieved') && !!ref.fulltext_url;
+    // AI判定は Drive のPDFしか読めないため、リンクのみは入手済みに数えない。
+    // AI判定タブの全文確保済み件数と同じ条件に揃える。
+    return hasCachedFulltext(ref);
 }
 
 /**
@@ -283,7 +285,7 @@ function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
     const linked = candidates.filter(r => retrievalStatus(r) === 'retrieved' && r.fulltext_url).length;
     const unavailable = candidates.filter(r => retrievalStatus(r) === 'unavailable').length;
     const missing = total - cached - linked - unavailable;
-    const obtained = cached + linked;
+    const obtained = candidates.filter(isObtained).length;
 
     dom.fulltextObtainedLine.textContent = t('fulltext_obtainedLine', [String(obtained), String(total)]);
     dom.fulltextStatusBarFill.style.width = total > 0 ? `${Math.round((obtained / total) * 100)}%` : '0%';

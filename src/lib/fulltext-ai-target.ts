@@ -46,6 +46,11 @@ export function hasCachedFulltext(ref: FulltextAiTargetRef): boolean {
     return ref.fulltext_status === 'cached' && (ref.fulltext_url || '').trim() !== '';
 }
 
+/** リンクのみ記録され、全文PDFが Drive に保存されていないか */
+export function isLinkOnlyFulltext(ref: FulltextAiTargetRef): boolean {
+    return ref.fulltext_status === 'retrieved' && (ref.fulltext_url || '').trim() !== '';
+}
+
 /** 判定済み ref_id の抽出に必要な Decision の最小形（Decisions 1行分） */
 export interface FulltextAiDecisionRow {
     reviewer_id?: string;
@@ -97,6 +102,10 @@ export interface FulltextAiTargetCounts {
     cached: number;
     /** 全文確保済みだが採用ラウンドで判定済みのため除外された件数 */
     alreadyJudged: number;
+    /** リンクのみでPDFが Drive に未保存のため対象外の件数 */
+    linkOnly: number;
+    /** 全文が未入手（未取得・入手不可・URL欠落）のため対象外の件数 */
+    noFulltext: number;
 }
 
 /** 対象件数の内訳を数える（UI表示用。selectFulltextAiTargets と同じ条件） */
@@ -106,9 +115,12 @@ export function countFulltextAiTargets<T extends FulltextAiTargetRef>(
 ): FulltextAiTargetCounts {
     const cachedRefs = candidates.filter(hasCachedFulltext);
     const target = cachedRefs.filter(ref => !judgedRefIds.has(ref.ref_id)).length;
+    const linkOnly = candidates.filter(isLinkOnlyFulltext).length;
     return {
         target,
         cached: cachedRefs.length,
         alreadyJudged: cachedRefs.length - target,
+        linkOnly,
+        noFulltext: candidates.length - cachedRefs.length - linkOnly,
     };
 }
