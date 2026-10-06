@@ -63,9 +63,9 @@ export interface BuildImportedPublicationReferenceInput {
  *   optional なため、欠落時は空文字にフォールバックする（他の任意フィールドと同じ `|| ''` の流儀。
  *   実運用では esummary/EuropePMC が必ず title を返す想定で、空になるのは異常系のみ）。
  * - url は external-record-url.ts の buildDoiUrl() / buildPubmedUrl() で組み立てる。優先順位は
- *   doi優先 → pmid → どちらも無ければ空文字（fulltext-tab.ts の recordPageUrl() と同じ規則を
- *   再利用している。あちらは文献カードのDOI/PubMedボタン用に同じ2関数を呼ぶ薄いラッパーへ
- *   切り出し済みで、ここで独自の組み立てロジックを新設すると実装が二重化するため揃えた）。
+ *   doi優先 → pmid → どちらも無ければ空文字（URLの組み立て自体は文献カードのDOI/PubMedボタン
+ *   （features/fulltext/tab.ts）と同じ2関数を使う。ここで独自の組み立てロジックを新設すると
+ *   実装が二重化するため揃えた）。
  * - screening_set は発見元 registration 行の screening_set を無条件でコピーする
  *   （担当割り振りの状態 `assignmentConfig.status` では分岐しない）。理由:
  *   担当割り振り未設定（'none'）のプロジェクトでは screening_set 列自体が使われないので
@@ -96,7 +96,7 @@ export function buildImportedPublicationReference(
     // 括弧を二重にしないよう中身の「不明」だけを持たせる。
     const trialLabel = trialId?.id || '不明';
 
-    // doi優先 → pmid → どちらも無ければ空文字（fulltext-tab.ts の recordPageUrl() と同じ規則）。
+    // doi優先 → pmid → どちらも無ければ空文字。
     const url = candidate.doi
         ? buildDoiUrl(candidate.doi)
         : candidate.pmid

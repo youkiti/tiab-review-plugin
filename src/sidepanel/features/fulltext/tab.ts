@@ -3,7 +3,7 @@
  * 候補プール（共通ルール準拠）に対して以下を提供する:
  *  - 候補ルールのインライン編集（fulltext-rule-editor 共通コンポーネント）
  *  - 全文の入手状況サマリと一括OA検索（PDFはDriveに保存）
- *  - 文献ごとの単発取得・PDF手動アップロード・DOI/PubMedへの導線
+ *  - 文献ごとの単発取得・PDF手動アップロード・DOI・PubMed・Google Scholarへの導線
  *  - 各文献のフルテキストページ（新規タブ）への導線
  */
 
@@ -45,6 +45,7 @@ import {
     extractTrialId,
     parseRegistryFieldsFromAbstract,
     extractSecondaryTrialIds,
+    isSafeHttpUrl,
 } from '../../../lib/registry-record';
 import { discoverPublicationCandidates } from '../../../lib/publication-suggest';
 import type { PublicationCandidateDraft } from '../../../lib/publication-suggest';
@@ -59,7 +60,7 @@ import {
     selectSuggestedPublicationCandidates,
     countSuggestedPublicationCandidatesByRef,
 } from '../../../lib/publication-candidate-panel';
-import { buildDoiUrl, buildPubmedUrl } from '../../../lib/external-record-url';
+import { buildDoiUrl, buildPubmedUrl, buildGoogleScholarUrl } from '../../../lib/external-record-url';
 import {
     decoratePublicationCandidateCard,
     setPublicationCandidatesDeps,
@@ -345,17 +346,6 @@ function badgeFor(ref: ReferenceWithStatus): { cls: string; label: string } {
     }
 }
 
-/**
- * URL組み立てそのものは src/lib/external-record-url.ts の buildDoiUrl/buildPubmedUrl へ
- * 一般化した（Issue #118 チャンク3b。候補パネル側でも同じ形式のURLをPubMed/DOI別々に
- * 組み立てたいため、重複実装を避けた）。ここでの doi優先・1本のURLだけを返す挙動は変えていない。
- */
-function recordPageUrl(ref: ReferenceWithStatus): string | null {
-    if (ref.doi) return buildDoiUrl(ref.doi);
-    if (ref.pmid) return buildPubmedUrl(ref.pmid);
-    return null;
-}
-
 function renderList(candidates: ReferenceWithStatus[]): void {
     const listDiv = dom.fulltextListDiv;
     listDiv.innerHTML = '';
@@ -473,7 +463,6 @@ function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<str
     // 状態に応じたアクションボタンを付ける
     const footer = card.querySelector('.fulltext-card-footer')!;
     const rStatus = retrievalStatus(ref);
-    const recordUrl = recordPageUrl(ref);
 
     // ① 全文への直接導線を最優先で出す（リンクのみでも必ずワンクリックで開ける）
     if (rStatus === 'cached' && ref.fulltext_url) {
@@ -493,11 +482,20 @@ function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<str
         ));
     }
 
-    // ② DOI/PubMed は Drive保存済み以外で常に出す（OAリンクが当てにならない時の保険）
-    if (rStatus !== 'cached' && recordUrl) {
-        footer.appendChild(buildLinkBtn(
-            t('fulltext_actionDoi'), t('fulltext_actionDoiTitle'), recordUrl
-        ));
+    // ② DOI・PubMed・Google Scholar は Drive保存済み以外で常に出す（OAリンクが当てにならない時の保険）。
+    // DOI・PubMed はそれぞれの ID があるときだけ出す。組み立てたURLは chrome.tabs.create() へ渡す前に
+    // isSafeHttpUrl() を通す。
+    if (rStatus !== 'cached') {
+        const externalLinks: Array<{ url: string | null; labelKey: string; titleKey: string }> = [
+            { url: ref.doi ? buildDoiUrl(ref.doi) : null, labelKey: 'fulltext_actionDoi', titleKey: 'fulltext_actionDoiTitle' },
+            { url: ref.pmid ? buildPubmedUrl(ref.pmid) : null, labelKey: 'fulltext_actionPubmed', titleKey: 'fulltext_actionPubmedTitle' },
+            { url: buildGoogleScholarUrl(ref), labelKey: 'fulltext_actionScholar', titleKey: 'fulltext_actionScholarTitle' },
+        ];
+        for (const link of externalLinks) {
+            if (link.url && isSafeHttpUrl(link.url)) {
+                footer.appendChild(buildLinkBtn(t(link.labelKey), t(link.titleKey), link.url));
+            }
+        }
     }
 
     // ③ 手元PDFでの差し替えは Drive保存済み以外で可能
@@ -521,7 +519,7 @@ function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<str
     return card;
 }
 
-/** URLを新規タブで開くだけのリンクボタン（全文・DOI/PubMed導線） */
+/** URLを新規タブで開くだけのリンクボタン（全文・DOI/PubMed/Google Scholar導線） */
 function buildLinkBtn(label: string, title: string, url: string): HTMLButtonElement {
     return buildActionBtn(label, title, () => { chrome.tabs.create({ url }); }, true);
 }
