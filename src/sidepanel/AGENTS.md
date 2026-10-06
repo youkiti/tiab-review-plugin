@@ -170,6 +170,9 @@
    - **UI**: フルテキストタブを3分割（候補リスト / **AI判定** / 判定後レビュー）。AI判定タブは**一括処理専用**
    - **対象**: `fulltext_status='cached'`（Drive保存済み）かつ採用ラウンドで未AI判定の候補。PDFを inline_data で丸ごと送信。
      対象決定ロジックは `src/lib/fulltext-ai-target.ts`（純粋関数）に集約する
+     候補リストの「入手済み」判定も同じ `hasCachedFulltext` を使い、リンクのみ（`retrieved`）は未入手扱いにする。
+     結果タブの PRISMA 集計（`src/lib/fulltext-results-summary.ts` の `isFulltextObtained`）では、
+     リンクのみも入手済みに数えたままとする。
      - **対象範囲の既定はプロジェクト全体**（`scope='project'` = `getProjectFulltextCandidateList()`）。
        AIは人間とは独立した判定者なので、人間側の分業（フルテキスト担当割り振り・担当セット絞り込み）では対象を狭めない。
        管理者が自分では読まない文献も含めて一括AI判定できる必要がある（2026-08 の要望）。

@@ -740,6 +740,12 @@
   "fulltext_aiTargetJudged": {
     "message": "Excluded because the adopted round already judged them: $1 (choose \"None\" under Judging rounds to redo them as a new round)"
   },
+  "fulltext_aiTargetLinkOnly": {
+    "message": "Not targeted because only a link is recorded (no PDF saved to Drive): $1 (find them with the \"Not obtained\" view in the candidate list; uploading the PDF makes them eligible)"
+  },
+  "fulltext_aiTargetNoFulltext": {
+    "message": "Not targeted because no full text has been obtained (not retrieved or unavailable): $1"
+  },
   "fulltext_aiTargetAssignedShare": {
     "message": "Of which assigned to me: $1"
   },
