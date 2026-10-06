@@ -761,6 +761,9 @@
   "fulltext_aiStarted": {
     "message": "$1 件のAI判定を開始しました"
   },
+  "fulltext_aiEvidenceTruncated": {
+    "message": "Gemini が引用を途中で打ち切ったため、根拠の一部が欠けています"
+  },
   "fulltext_aiCancelled": {
     "message": "中断しました"
   },
@@ -3123,6 +3126,9 @@
   "error_geminiJsonParseFailed": {
     "message": "Gemini APIからの応答をJSONとしてパースできませんでした"
   },
+  "error_geminiRecitation": {
+    "message": "Gemini が原文の引用を途中で打ち切ったため（RECITATION）、応答を最後まで受け取れませんでした"
+  },
   "error_geminiTimeout": {
     "message": "Gemini API タイムアウト ($1ms)"
   },
@@ -4594,6 +4600,9 @@
   },
   "ftPage_imageOnlyNotice": {
     "message": "⚠ スキャン画像PDFのため、ハイライト位置はAIの領域推定に基づきます（精度が落ちる場合があります）。"
+  },
+  "ftPage_evidenceTruncatedNotice": {
+    "message": "⚠ Gemini が引用を途中で打ち切ったため、AIの根拠の一部が欠けています。"
   },
   "ftPage_polarityAiNote": {
     "message": "AI注目箇所"

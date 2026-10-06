@@ -600,10 +600,11 @@ async function handleStartAiBatch(): Promise<void> {
                 break;
             }
             try {
-                const decision = await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
+                const { decision, evidenceTruncated } = await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
                 ok++;
                 decisionCounts[decision]++;
-                appendLog(`✓ ${ref.title || ref.ref_id}`, 'log-ok');
+                appendLog(`✓ ${ref.title || ref.ref_id}${evidenceTruncated ? ` — ${t('fulltext_aiEvidenceTruncated')}` : ''}`,
+                    evidenceTruncated ? 'log-warn' : 'log-ok');
             } catch (err) {
                 ng++;
                 if (err instanceof DriveAccessDeniedError) driveDenied++;
@@ -678,7 +679,7 @@ async function handleStartAiBatch(): Promise<void> {
     }
 }
 
-/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。保存した最終判定を返す */
+/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。最終判定と根拠の欠けの有無を返す */
 async function judgeOne(
     ref: ReferenceWithStatus,
     screeningPrompt: string,
@@ -687,7 +688,7 @@ async function judgeOne(
     executionId: string,
     requestedModel: string,
     spreadsheetId: string
-): Promise<'include' | 'exclude' | 'maybe'> {
+): Promise<{ decision: 'include' | 'exclude' | 'maybe'; evidenceTruncated: boolean }> {
     const fileId = ref.fulltext_url ? extractDriveFileId(ref.fulltext_url) : null;
     // i18n文言（t()）に依存したエラーだと表示言語が変わったときに分類が壊れるため、
     // 専用のエラークラス（classifyFulltextAiFailure で判別）を投げる。UI表示文言は
@@ -719,8 +720,9 @@ async function judgeOne(
     let output: JudgeFulltextResult['output'];
     let usageMetadata: JudgeFulltextResult['usageMetadata'];
     let responseMetadata: JudgeFulltextResult['responseMetadata'];
+    let evidenceTruncated: boolean;
     try {
-        ({ output, usageMetadata, responseMetadata } = await judgeFulltext(
+        ({ output, usageMetadata, responseMetadata, evidenceTruncated } = await judgeFulltext(
             bytes, screeningPrompt, modelConfig, 'ja', undefined, state.excludeReasonItems
         ));
     } catch (err) {
@@ -762,6 +764,7 @@ async function judgeOne(
             : undefined,
         evidence: output.evidence,
         image_only: imageOnly,
+        evidence_truncated: evidenceTruncated ? true : undefined,
         prompt_version: FULLTEXT_PROMPT_VERSION,
         usageMetadata,
     };
@@ -781,7 +784,7 @@ async function judgeOne(
     };
 
     await saveDecision(spreadsheetId, decision);
-    return normalizedDecision;
+    return { decision: normalizedDecision, evidenceTruncated };
 }
 
 /** 出力の decision を最終決定に正規化（maybe はそのまま保持） */

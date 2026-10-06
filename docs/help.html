@@ -1662,7 +1662,7 @@
                             (press Enter to advance to the next candidate).</span>
                     </li>
                     <li>
-                        <span class="ja"><strong>AI判定のハイライト</strong>：AI一括判定を実行済みの文献では、AIが根拠として挙げた本文中の箇所がPDF上にハイライト表示され、右側に根拠カードの一覧が並びます（プロジェクトの共有設定によっては非表示になる場合もあります）。他者の判定が非表示の間は、含む/除外どちらの判断かが分からない中立表示になります。キー開封後は、管理者が画面内のトグルで色分け表示とAI判断サマリの開示を切り替えられます（AI判断サマリは非管理者には表示されません）。カードをクリックするとPDF上の該当箇所へジャンプします。PDF上のハイライト表示自体はチェックボックスでON/OFFできます。スキャン画像PDF（テキストレイヤーが無いPDF）では、AIが推定した領域をもとにハイライトされるため精度が落ちる場合がある旨が表示されます。</span>
+                        <span class="ja"><strong>AI判定のハイライト</strong>：AI一括判定を実行済みの文献では、AIが根拠として挙げた本文中の箇所がPDF上にハイライト表示され、右側に根拠カードの一覧が並びます（プロジェクトの共有設定によっては非表示になる場合もあります）。他者の判定が非表示の間は、含む/除外どちらの判断かが分からない中立表示になります。キー開封後は、管理者が画面内のトグルで色分け表示とAI判断サマリの開示を切り替えられます（AI判断サマリは非管理者には表示されません）。カードをクリックするとPDF上の該当箇所へジャンプします。PDF上のハイライト表示自体はチェックボックスでON/OFFできます。スキャン画像PDF（テキストレイヤーが無いPDF）では、AIが推定した領域をもとにハイライトされるため精度が落ちる場合がある旨が表示されます。Geminiが本文の引用を途中で打ち切った文献では（原文の丸写しと判断したときに起こります）、そこまでに出力された判定・理由・引用を採用し、根拠の一部が欠けている旨が表示されます。</span>
                         <span class="en"><strong>AI evidence highlighting</strong>: For references already batch
                             AI-screened, the passages the AI cited as evidence are highlighted directly on the PDF,
                             with a matching list of evidence cards on the right (these may be hidden depending on the
@@ -1672,7 +1672,7 @@
                             toggle (the AI decision summary is never shown to non-admins). Clicking a card jumps to
                             that spot on the PDF. A checkbox toggles the on-PDF highlight overlay on/off. For
                             scanned, image-only PDFs (no text layer), a notice explains that highlight positions are
-                            based on the AI's estimated region and may be less accurate.</span>
+                            based on the AI's estimated region and may be less accurate. For a reference where Gemini stopped partway through a quotation (this happens when it judges that it is reproducing the source verbatim), the judgment, reason and quotations produced up to that point are kept, and a notice says that some evidence is missing.</span>
                     </li>
                     <li>
                         <span class="ja"><strong>PDFが表示できないとき</strong>：「このPDFを表示できません」というパネルが、原因に応じた文面とともに表示されます。多いのは、他のメンバーがアップロードしたPDFで、Driveで共有されていても
@@ -1694,7 +1694,7 @@
                     <span class="en">Batch AI Screening</span>
                 </h3>
                 <p>
-                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/TypeSafeは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。</span>
+                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/TypeSafeは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。Geminiが引用を途中で打ち切った文献は、そこまでの出力から判定を採用し、実行ログの該当行に「根拠の一部が欠けています」と添えます。</span>
                     <span class="en">The "AI judge" view sends the full PDF of each candidate that is saved to
                         Drive (cached) and not yet AI-screened to Gemini, and returns a batch Include/Exclude/Maybe
                         decision. Batch AI screening for full text only supports Gemini — unlike TiAb AI screening,
@@ -1703,7 +1703,7 @@
                         round is adopted automatically (a cancelled run is not adopted). When multiple rounds exist,
                         you can switch which round is adopted later using radio buttons (including "None adopted"),
                         and this is not limited to admins. Only the adopted round's decisions drive PDF highlighting
-                        and the post-decision review aggregation.</span>
+                        and the post-decision review aggregation. When Gemini stops partway through a quotation, the judgment is taken from the output up to that point, and the run log marks that line with "some evidence is missing".</span>
                 </p>
                 <p>
                     <span class="ja">ラウンド一覧の各カードには「実行: 実行者」と「処理済み N/M件」が表示され、途中で中断した実行は「（未完了）」付きで区別されます。失敗があった場合は「失敗
