@@ -639,10 +639,22 @@
     "message": "手元のPDFをDriveに保存して、この文献に紐づけます"
   },
   "fulltext_actionDoi": {
-    "message": "🔗 DOI/PubMed"
+    "message": "🔗 DOI"
   },
   "fulltext_actionDoiTitle": {
-    "message": "出版社ページ（DOI/PubMed）を開いてPDFを探します"
+    "message": "出版社ページ（DOI）を開いてPDFを探します"
+  },
+  "fulltext_actionPubmed": {
+    "message": "🔗 PubMed"
+  },
+  "fulltext_actionPubmedTitle": {
+    "message": "PubMed の記録ページを開きます"
+  },
+  "fulltext_actionScholar": {
+    "message": "🔗 Google Scholar"
+  },
+  "fulltext_actionScholarTitle": {
+    "message": "Google Scholar で検索します（DOI、無ければタイトル完全一致）"
   },
   "fulltext_actionOpenPdf": {
     "message": "📄 PDFを開く"
@@ -1954,7 +1966,7 @@
     "message": "候補がまだありません。手動タブで TiAb の判定を進めるか、キーを開封して候補ルールを決めると、ここに全文の候補が並びます。候補ができたら、❓ →「操作ツアーの一覧」からこのツアーをもう一度開いてください。"
   },
   "guideExt_tour_fulltext_setup_missing": {
-    "message": "全文が取れなかった候補には、補う手段が出ます。「PDFアップロード」で手元の PDF を入れる、「DOI/PubMed」で記録のページを開いて入手する、のどれかで補います。"
+    "message": "全文が取れなかった候補には、補う手段が出ます。「PDFアップロード」で手元の PDF を入れる、「DOI」「PubMed」「Google Scholar」で記録のページや検索結果を開いて入手する、のどれかで補います。"
   },
   "guideExt_tour_fulltext_setup_drive_import": {
     "message": "PDF を Drive のフォルダに直接置いたときは、ここから取り込みます。選んだ PDF を文献に対応付けて、プロジェクトのフォルダへ保存します。この説明が終わったあとに押してください。"
@@ -4555,6 +4567,9 @@
   },
   "ftPage_openPubmedBtn": {
     "message": "↗ PubMed で開く"
+  },
+  "ftPage_openScholarBtn": {
+    "message": "↗ Google Scholar で探す"
   },
   "ftPage_evidenceEmptyNoEvidence": {
     "message": "このPDFのAI判定根拠はまだありません。"

@@ -9,6 +9,7 @@ import type { Reference } from '../lib/types';
 import { session } from './session';
 import { renderAiCardsFallback } from './evidence-controller';
 import { buildExternalAnchor, appendTextWithBreaks } from './page-helpers';
+import { buildGoogleScholarUrl } from '../lib/external-record-url';
 
 interface Dependencies {
     openLinkedInline: (url: string, source: OaSource | 'cached' | 'linked') => Promise<void>;
@@ -432,6 +433,10 @@ function showArticleFallback(url: string): void {
     if (session.currentRef?.pmid) {
         const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(session.currentRef.pmid)}/`;
         links.appendChild(buildExternalAnchor(pubmedUrl, t('ftPage_openPubmedBtn'), 'btn btn-secondary'));
+    }
+    const scholarUrl = session.currentRef ? buildGoogleScholarUrl(session.currentRef) : null;
+    if (scholarUrl) {
+        links.appendChild(buildExternalAnchor(scholarUrl, t('ftPage_openScholarBtn'), 'btn btn-secondary'));
     }
 
     panel.append(message, links);

@@ -639,10 +639,22 @@
     "message": "Save a local PDF to Drive and link it to this reference"
   },
   "fulltext_actionDoi": {
-    "message": "🔗 DOI/PubMed"
+    "message": "🔗 DOI"
   },
   "fulltext_actionDoiTitle": {
-    "message": "Open the publisher page (DOI/PubMed) to find the PDF"
+    "message": "Open the publisher page (DOI) to find the PDF"
+  },
+  "fulltext_actionPubmed": {
+    "message": "🔗 PubMed"
+  },
+  "fulltext_actionPubmedTitle": {
+    "message": "Open the PubMed record page"
+  },
+  "fulltext_actionScholar": {
+    "message": "🔗 Google Scholar"
+  },
+  "fulltext_actionScholarTitle": {
+    "message": "Search Google Scholar (by DOI, or by exact title if there is no DOI)"
   },
   "fulltext_actionOpenPdf": {
     "message": "📄 Open PDF"
@@ -1954,7 +1966,7 @@
     "message": "There are no candidates yet. Keep screening in the Manual tab, or open the key and set the candidate rule, and the full-text candidates will appear here. Once you have candidates, start this tour again from ❓ > \"List of guided tours\"."
   },
   "guideExt_tour_fulltext_setup_missing": {
-    "message": "A candidate without a full text shows ways to fill it in. Add your own PDF with \"Upload PDF\", or open the publisher page with \"DOI/PubMed\" and get it there."
+    "message": "A candidate without a full text shows ways to fill it in. Add your own PDF with \"Upload PDF\", or open the record page or search results with \"DOI\", \"PubMed\" or \"Google Scholar\" and get it there."
   },
   "guideExt_tour_fulltext_setup_drive_import": {
     "message": "If you put PDFs straight into the Drive folder, import them from here. You match each chosen PDF to a record, and it is saved to the project folder. Press it after this tour ends."
@@ -4555,6 +4567,9 @@
   },
   "ftPage_openPubmedBtn": {
     "message": "↗ Open in PubMed"
+  },
+  "ftPage_openScholarBtn": {
+    "message": "↗ Search on Google Scholar"
   },
   "ftPage_evidenceEmptyNoEvidence": {
     "message": "There is no AI judgment evidence for this PDF yet."
