@@ -87,7 +87,7 @@ gcloud services enable drive.googleapis.com
 共有された既存スプレッドシートは、最小権限の `drive.file` スコープで扱うため、ユーザーが Google Picker で明示的に選択したファイルのみアクセス対象になります。
 
 1. Google Cloud Console で **Google Picker API** を有効化します。
-2. API key を発行し、HTTPリファラーを `https://youkiti.github.io/*`（ローカル検証時は `http://localhost:8080/*` も追加）に制限します。
+2. API key を発行し、HTTPリファラーを `https://youkiti.github.io/*` と `https://docs.google.com/*`（ローカル検証時は `http://localhost:8080/*` も追加）に制限します。Picker は `docs.google.com` の iframe で描画されるため、`https://docs.google.com/*` が無いと Picker 内に「API デベロッパー キーが無効です」と表示されることがあります。
 3. API制限は **Google Picker API のみ** にします。
 4. GitHub Pages のWebビルド用に repository variables へ `PICKER_API_KEY` と `GCP_PROJECT_NUMBER` を設定します。
 5. ローカル `.env` にも同じ値を設定します。

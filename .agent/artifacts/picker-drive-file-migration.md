@@ -37,7 +37,7 @@
 
 ### Step 0: GCPコンソール作業 ✅ **完了（2026-07-16）**
 
-実績: プロジェクト `tiab-review-plugin-2024`（番号 451307229828）で `picker.googleapis.com` を有効化。APIキー「TiAb Picker (web)」を発行し、リファラー（`https://youkiti.github.io/*` / `http://localhost:8080/*`）とAPI制限（Picker APIのみ）を**発行時に同時指定**（無制限キーが存在する隙を作らないため）。repository variables に `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を登録し、`.env` にも設定済み。
+実績: プロジェクト `tiab-review-plugin-2024`（番号 451307229828）で `picker.googleapis.com` を有効化。APIキー「TiAb Picker (web)」を発行し、リファラー（`https://youkiti.github.io/*` / `http://localhost:8080/*`）とAPI制限（Picker APIのみ）を**発行時に同時指定**（無制限キーが存在する隙を作らないため）。repository variables に `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を登録し、`.env` にも設定済み。2026-10-08 にリファラーへ `https://docs.google.com/*` を追加（Picker 内に「API デベロッパー キーが無効です」と出る利用者報告への対応。追加前は `docs.google.com` リファラーが `API_KEY_HTTP_REFERRER_BLOCKED`、追加後は通ることを実測）。
 
 - ⚠️ コンソールで探すと `photospicker.googleapis.com`（Google Photos Picker API）が並ぶ。**別物**。正しいのは `picker.googleapis.com`。
 - ⚠️ `PICKER_API_KEY` は **secret ではなく variable** に置く（`deploy-web.yml` が `${{ vars.PICKER_API_KEY }}` を参照）。picker.js にバンドルされ公開配信されるため構造上秘匿できず、リファラー＋API制限で守る前提。
@@ -46,7 +46,7 @@
 （以下は当初の計画。参考用に残置）
 
 1. Google Picker API を有効化（プロジェクト 451307229828）
-2. API key 新規発行: HTTPリファラー制限 `https://youkiti.github.io/*`（+ ローカル検証用 `http://localhost:8080/*`）、API制限 = Picker API のみ
+2. API key 新規発行: HTTPリファラー制限 `https://youkiti.github.io/*` と `https://docs.google.com/*`（+ ローカル検証用 `http://localhost:8080/*`）、API制限 = Picker API のみ。`https://docs.google.com/*` は Picker が `docs.google.com` の iframe で描画されるために要る（無いと Picker 内に「API デベロッパー キーが無効です」と出ることがある。2026-10-08 の利用者報告で判明）
 3. 両クライアントが同一プロジェクトの認証情報一覧に並んでいることを目視確認
 4. GitHub repository variables に `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を追加
 5. ローカル `.env` にも同2変数を追記
