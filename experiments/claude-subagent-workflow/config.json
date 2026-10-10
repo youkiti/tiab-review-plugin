@@ -1,0 +1,15 @@
+{
+    "description": "Claude Code の Workflow サブエージェントに 25 件ずつ読ませる depression の簡易評価。API 経由でも 1 件 1 呼び出しでもない。",
+    "dataset": {
+        "name": "depression",
+        "path": "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
+        "labelField": "label_included",
+        "expected": { "n": 1993, "positives": 280 }
+    },
+    "batchSize": 25,
+    "conditions": [
+        { "id": "WH", "model": "claude-haiku-5-5", "agentModel": "haiku", "effort": "low" },
+        { "id": "WS", "model": "claude-sonnet-5-5", "agentModel": "sonnet", "effort": "low" }
+    ],
+    "thresholds": [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+}

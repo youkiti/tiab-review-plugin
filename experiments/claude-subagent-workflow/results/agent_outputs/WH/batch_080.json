@@ -1,0 +1,20 @@
+[
+ {"ref_id": "Depression-SLIM-1976", "include_probability": 0.92, "reasons": ["雌のカニクイザルを用いた非ヒト霊長類のうつ病モデルでの抗うつ薬の行動評価であり、動物研究の対象に該当する。", "抑うつ様行動は有意に変化しなかったが、不安様行動の変化が報告されており、うつ病モデルの研究として含める。"]},
+ {"ref_id": "Depression-SLIM-1977", "include_probability": 0.03, "reasons": ["マウスを用いた研究だが、「depression」は腫瘍による免疫反応の抑制を指しており、うつ病のモデルではない。", "抑うつ症状に関する研究ではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1978", "include_probability": 0.02, "reasons": ["健康な成人男性を対象としたヒト研究であり、動物モデルの研究ではない。", "オキシトシンと愛着の記憶に関する研究で、うつ病モデルではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1979", "include_probability": 0.04, "reasons": ["マウスを用いた研究だが、対象は長期抑圧（LTD）というシナプス可塑性と空間学習であり、うつ病のモデルではない。", "抑うつ症状の評価がないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1980", "include_probability": 0.03, "reasons": ["ウサギの研究だが、「depression」は放射線照射後のヘモリジン反応の低下を指しており、うつ病ではない。", "タイトルのみで抄録がなく、うつ病モデルの研究とは判断できないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1981", "include_probability": 0.05, "reasons": ["バルビツール酸系薬と抱水クロラールの背根電位への作用を調べた動物の神経生理研究で、「depression」は中枢抑制の意味で使われている。", "うつ病のモデルではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1982", "include_probability": 0.06, "reasons": ["タイトルから、中枢抑制薬（鎮静作用）の構造活性相関を扱う研究と読める。うつ病ではなく中枢抑制の意味で使われている。", "抄録がなく、動物のうつ病モデルとは判断できないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1983", "include_probability": 0.6, "reasons": ["ラットへの慢性的なエタノールと抗うつ薬デシプラミンの投与を調べた動物研究で、動物実験の条件を満たす。", "抑うつモデルとしての明示はないが、抗うつ薬の作用を扱うため、判断に迷う場合として含める。"]},
+ {"ref_id": "Depression-SLIM-1984", "include_probability": 0.03, "reasons": ["マウスの研究だが、「depression」は創傷治癒の強度低下を指しており、うつ病ではない。", "抗がん剤の創傷治癒への影響を扱うため除外する。"]},
+ {"ref_id": "Depression-SLIM-1985", "include_probability": 0.02, "reasons": ["酵母のミトコンドリアのタンパク質合成に関する研究で、動物モデルでもうつ病でもない。", "対象が基礎的な生化学研究であるため除外する。"]},
+ {"ref_id": "Depression-SLIM-1986", "include_probability": 0.03, "reasons": ["マウスの研究だが、「depression」は白血球減少や造血の低下を指しており、うつ病ではない。", "抗がん剤による骨髄毒性の防御を扱うため除外する。"]},
+ {"ref_id": "Depression-SLIM-1987", "include_probability": 0.03, "reasons": ["敗血症のラットモデルだが、「depression」は肝細胞機能の低下を指しており、うつ病ではない。", "うつ病と無関係の病態研究であるため除外する。"]},
+ {"ref_id": "Depression-SLIM-1988", "include_probability": 0.03, "reasons": ["ラットの研究だが、「depression」は精巣の生検スコアの低下を指しており、うつ病ではない。", "精巣損傷に関する研究であり、うつ病モデルではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1989", "include_probability": 0.02, "reasons": ["マウスのエリスロポエチン投与による免疫反応と白血球の変化を調べた研究で、うつ病とは無関係。", "うつ病モデルの研究ではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1990", "include_probability": 0.95, "reasons": ["ラットの早期生育期ストレス（母子分離）モデルで、抑うつ様行動を扱った動物研究であり、対象に該当する。", "ベンラファキシンによる抑うつ様行動と神経新生の改善を扱うため含める。"]},
+ {"ref_id": "Depression-SLIM-1991", "include_probability": 0.02, "reasons": ["ハムスターの血管を用いた in vitro の血管拡張研究で、「depression」は血管反応性の低下を指しており、うつ病ではない。", "うつ病のモデルではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1992", "include_probability": 0.03, "reasons": ["ラットの神経細胞と海馬スライドを用いたベンゾジアゼピン拮抗薬の電気生理研究で、うつ病の評価はない。", "うつ病モデルの研究ではないため除外する。"]},
+ {"ref_id": "Depression-SLIM-1993", "include_probability": 0.02, "reasons": ["初代培養のラット肝細胞を用いた in vitro の研究で、「depression」はビタミン量の低下を指しており、うつ病ではない。", "in vivo のうつ病モデルではないため除外する。"]}
+]

@@ -1,0 +1,30 @@
+{
+    "description": "Claude Code CLI の契約枠による文献単位の参照評価",
+    "ledgerVersion": "v1",
+    "dataset": {
+        "name": "depression",
+        "path": "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
+        "labelField": "label_included",
+        "expected": { "n": 1993, "positives": 280, "emptyAbstracts": 394 },
+        "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "outputLanguage": "ja",
+    "conditions": [
+        { "id": "H1", "model": "claude-haiku-5-5", "effort": "low" },
+        { "id": "S1", "model": "claude-sonnet-5-5", "effort": "low" }
+    ],
+    "cli": { "bin": "claude", "timeoutMs": 180000 },
+    "concurrency": 4,
+    "retry": { "maxAttempts": 4, "baseDelayMs": 5000, "maxDelayMs": 120000 },
+    "abortAfterConsecutiveFailures": 8,
+    "smokeSampleFile": "experiments/typesafe-jev/results/smoke_sample_depression_50.json",
+    "thresholds": [0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
+    "primaryThreshold": 0.5,
+    "baselines": [
+        { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 96.1, "specificity": 86.3, "precision": 53.4, "fBeta7": 95.2, "source": "experiments/gpt-5.6/report.md" },
+        { "model": "gpt-5.6-luna", "condition": "effort none", "threshold": 0.5, "recall": 92.9, "specificity": 84.3, "precision": 49.1, "fBeta7": 91.2, "source": "experiments/gpt-5.6/report.md" },
+        { "model": "gemini-3.1-flash-lite", "condition": "Temp 0", "threshold": 0.5, "recall": 93.6, "specificity": null, "precision": 61.6, "fBeta7": 92.6, "source": "README.md" },
+        { "model": "qwen/qwen3-235b-a22b-2507", "condition": "Temp 0", "threshold": 0.5, "recall": 93.9, "specificity": null, "precision": 47.9, "fBeta7": 92.2, "source": "README.md" }
+    ]
+}
