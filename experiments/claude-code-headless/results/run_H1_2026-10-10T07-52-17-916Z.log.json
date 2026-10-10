@@ -1,0 +1,27 @@
+{
+    "arguments": [
+        "--condition",
+        "H1",
+        "--smoke",
+        "--limit",
+        "3"
+    ],
+    "condition": {
+        "id": "H1",
+        "model": "claude-haiku-5-5",
+        "effort": "low"
+    },
+    "config_sha256": "257f6272a161760e2b86dfc2e757e7827e6fa4418acfefb567b6987e8bd8246e",
+    "cli_version": "2.1.289 (Claude Code)",
+    "node_version": "v22.21.0",
+    "started_at": "2026-10-10T07:52:17.916Z",
+    "finished_at": "2026-10-10T07:52:31.165Z",
+    "wall_clock_ms": 13249,
+    "target": 3,
+    "alreadyDone": 0,
+    "succeeded": 3,
+    "failedRecords": 0,
+    "failedAttempts": 0,
+    "aborted": false,
+    "abortReason": null
+}

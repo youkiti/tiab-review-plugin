@@ -1,0 +1,271 @@
+{
+    "scope": "smoke",
+    "summaries": [
+        {
+            "condition": "H1",
+            "model": "claude-haiku-5-5",
+            "target": 50,
+            "n": 50,
+            "partial": false,
+            "positives": 10,
+            "threshold": 0.5,
+            "confusion": {
+                "tp": 10,
+                "fp": 5,
+                "tn": 35,
+                "fn": 0
+            },
+            "recall": 1,
+            "specificity": 0.875,
+            "precision": 0.6666666666666666,
+            "fBeta7": 0.9900990099009901,
+            "sweep": [
+                {
+                    "threshold": 0.05,
+                    "tp": 10,
+                    "fp": 18,
+                    "tn": 22,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.55,
+                    "precision": 0.35714285714285715,
+                    "fBeta7": 0.9652509652509652
+                },
+                {
+                    "threshold": 0.1,
+                    "tp": 10,
+                    "fp": 11,
+                    "tn": 29,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.725,
+                    "precision": 0.47619047619047616,
+                    "fBeta7": 0.9784735812133072
+                },
+                {
+                    "threshold": 0.2,
+                    "tp": 10,
+                    "fp": 7,
+                    "tn": 33,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.825,
+                    "precision": 0.5882352941176471,
+                    "fBeta7": 0.9861932938856016
+                },
+                {
+                    "threshold": 0.3,
+                    "tp": 10,
+                    "fp": 6,
+                    "tn": 34,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.85,
+                    "precision": 0.625,
+                    "fBeta7": 0.9881422924901185
+                },
+                {
+                    "threshold": 0.4,
+                    "tp": 10,
+                    "fp": 6,
+                    "tn": 34,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.85,
+                    "precision": 0.625,
+                    "fBeta7": 0.9881422924901185
+                },
+                {
+                    "threshold": 0.5,
+                    "tp": 10,
+                    "fp": 5,
+                    "tn": 35,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.875,
+                    "precision": 0.6666666666666666,
+                    "fBeta7": 0.9900990099009901
+                }
+            ],
+            "usage": {
+                "input_tokens": 100,
+                "cache_creation_input_tokens": 76211,
+                "cache_read_input_tokens": 36284,
+                "output_tokens": 86549,
+                "thinking_tokens": 69409
+            },
+            "total_cost_usd": 2.4272397999999997,
+            "mean_duration_ms": 7582.24,
+            "median_duration_ms": 6663.5,
+            "retried_records": 0,
+            "failed_attempts": 0,
+            "models_reported": [
+                [
+                    "claude-haiku-4-5-20251001",
+                    "claude-haiku-5-5"
+                ],
+                [
+                    "claude-haiku-5-5"
+                ]
+            ],
+            "skipped_partial_lines": 0
+        },
+        {
+            "condition": "S1",
+            "model": "claude-sonnet-5-5",
+            "target": 50,
+            "n": 50,
+            "partial": false,
+            "positives": 10,
+            "threshold": 0.5,
+            "confusion": {
+                "tp": 10,
+                "fp": 2,
+                "tn": 38,
+                "fn": 0
+            },
+            "recall": 1,
+            "specificity": 0.95,
+            "precision": 0.8333333333333334,
+            "fBeta7": 0.9960159362549801,
+            "sweep": [
+                {
+                    "threshold": 0.05,
+                    "tp": 10,
+                    "fp": 13,
+                    "tn": 27,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.675,
+                    "precision": 0.43478260869565216,
+                    "fBeta7": 0.9746588693957114
+                },
+                {
+                    "threshold": 0.1,
+                    "tp": 10,
+                    "fp": 8,
+                    "tn": 32,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.8,
+                    "precision": 0.5555555555555556,
+                    "fBeta7": 0.984251968503937
+                },
+                {
+                    "threshold": 0.2,
+                    "tp": 10,
+                    "fp": 5,
+                    "tn": 35,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.875,
+                    "precision": 0.6666666666666666,
+                    "fBeta7": 0.9900990099009901
+                },
+                {
+                    "threshold": 0.3,
+                    "tp": 10,
+                    "fp": 4,
+                    "tn": 36,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.9,
+                    "precision": 0.7142857142857143,
+                    "fBeta7": 0.9920634920634921
+                },
+                {
+                    "threshold": 0.4,
+                    "tp": 10,
+                    "fp": 4,
+                    "tn": 36,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.9,
+                    "precision": 0.7142857142857143,
+                    "fBeta7": 0.9920634920634921
+                },
+                {
+                    "threshold": 0.5,
+                    "tp": 10,
+                    "fp": 2,
+                    "tn": 38,
+                    "fn": 0,
+                    "recall": 1,
+                    "specificity": 0.95,
+                    "precision": 0.8333333333333334,
+                    "fBeta7": 0.9960159362549801
+                }
+            ],
+            "usage": {
+                "input_tokens": 106,
+                "cache_creation_input_tokens": 80897,
+                "cache_read_input_tokens": 41696,
+                "output_tokens": 13268,
+                "thinking_tokens": 547
+            },
+            "total_cost_usd": 0.5353002,
+            "mean_duration_ms": 2607.76,
+            "median_duration_ms": 2435,
+            "retried_records": 0,
+            "failed_attempts": 0,
+            "models_reported": [
+                [
+                    "claude-haiku-4-5-20251001",
+                    "claude-sonnet-5-5"
+                ],
+                [
+                    "claude-sonnet-5-5"
+                ]
+            ],
+            "skipped_partial_lines": 0
+        }
+    ],
+    "disagreement": {
+        "common_records": 50,
+        "disagreeing_records": 3,
+        "threshold": 0.5
+    },
+    "baselines": [
+        {
+            "model": "gemini-3-flash-preview",
+            "condition": "B4 / Think LOW",
+            "threshold": 0.5,
+            "recall": 96.1,
+            "specificity": 86.3,
+            "precision": 53.4,
+            "fBeta7": 95.2,
+            "source": "experiments/gpt-5.6/report.md"
+        },
+        {
+            "model": "gpt-5.6-luna",
+            "condition": "effort none",
+            "threshold": 0.5,
+            "recall": 92.9,
+            "specificity": 84.3,
+            "precision": 49.1,
+            "fBeta7": 91.2,
+            "source": "experiments/gpt-5.6/report.md"
+        },
+        {
+            "model": "gemini-3.1-flash-lite",
+            "condition": "Temp 0",
+            "threshold": 0.5,
+            "recall": 93.6,
+            "specificity": null,
+            "precision": 61.6,
+            "fBeta7": 92.6,
+            "source": "README.md"
+        },
+        {
+            "model": "qwen/qwen3-235b-a22b-2507",
+            "condition": "Temp 0",
+            "threshold": 0.5,
+            "recall": 93.9,
+            "specificity": null,
+            "precision": 47.9,
+            "fBeta7": 92.2,
+            "source": "README.md"
+        }
+    ],
+    "markdown": "| 条件・モデル | 件数 | 閾値 | 再現率 % | 特異度 % | 適合率 % | Fβ(7) % |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n| H1 claude-haiku-5-5 | 50 | 0.5 | 100.00 | 87.50 | 66.67 | 99.01 |\n| S1 claude-sonnet-5-5 | 50 | 0.5 | 100.00 | 95.00 | 83.33 | 99.60 |\n| 参考 gemini-3-flash-preview B4 / Think LOW | — | 0.5 | 96.1 | 86.3 | 53.4 | 95.2 |\n| 参考 gpt-5.6-luna effort none | — | 0.5 | 92.9 | 84.3 | 49.1 | 91.2 |\n| 参考 gemini-3.1-flash-lite Temp 0 | — | 0.5 | 93.6 | — | 61.6 | 92.6 |\n| 参考 qwen/qwen3-235b-a22b-2507 Temp 0 | — | 0.5 | 93.9 | — | 47.9 | 92.2 |\nH1 集計詳細: {\"condition\":\"H1\",\"model\":\"claude-haiku-5-5\",\"target\":50,\"n\":50,\"partial\":false,\"positives\":10,\"threshold\":0.5,\"confusion\":{\"tp\":10,\"fp\":5,\"tn\":35,\"fn\":0},\"recall\":1,\"specificity\":0.875,\"precision\":0.6666666666666666,\"fBeta7\":0.9900990099009901,\"sweep\":[{\"threshold\":0.05,\"tp\":10,\"fp\":18,\"tn\":22,\"fn\":0,\"recall\":1,\"specificity\":0.55,\"precision\":0.35714285714285715,\"fBeta7\":0.9652509652509652},{\"threshold\":0.1,\"tp\":10,\"fp\":11,\"tn\":29,\"fn\":0,\"recall\":1,\"specificity\":0.725,\"precision\":0.47619047619047616,\"fBeta7\":0.9784735812133072},{\"threshold\":0.2,\"tp\":10,\"fp\":7,\"tn\":33,\"fn\":0,\"recall\":1,\"specificity\":0.825,\"precision\":0.5882352941176471,\"fBeta7\":0.9861932938856016},{\"threshold\":0.3,\"tp\":10,\"fp\":6,\"tn\":34,\"fn\":0,\"recall\":1,\"specificity\":0.85,\"precision\":0.625,\"fBeta7\":0.9881422924901185},{\"threshold\":0.4,\"tp\":10,\"fp\":6,\"tn\":34,\"fn\":0,\"recall\":1,\"specificity\":0.85,\"precision\":0.625,\"fBeta7\":0.9881422924901185},{\"threshold\":0.5,\"tp\":10,\"fp\":5,\"tn\":35,\"fn\":0,\"recall\":1,\"specificity\":0.875,\"precision\":0.6666666666666666,\"fBeta7\":0.9900990099009901}],\"usage\":{\"input_tokens\":100,\"cache_creation_input_tokens\":76211,\"cache_read_input_tokens\":36284,\"output_tokens\":86549,\"thinking_tokens\":69409},\"total_cost_usd\":2.4272397999999997,\"mean_duration_ms\":7582.24,\"median_duration_ms\":6663.5,\"retried_records\":0,\"failed_attempts\":0,\"models_reported\":[[\"claude-haiku-4-5-20251001\",\"claude-haiku-5-5\"],[\"claude-haiku-5-5\"]],\"skipped_partial_lines\":0}\nS1 集計詳細: {\"condition\":\"S1\",\"model\":\"claude-sonnet-5-5\",\"target\":50,\"n\":50,\"partial\":false,\"positives\":10,\"threshold\":0.5,\"confusion\":{\"tp\":10,\"fp\":2,\"tn\":38,\"fn\":0},\"recall\":1,\"specificity\":0.95,\"precision\":0.8333333333333334,\"fBeta7\":0.9960159362549801,\"sweep\":[{\"threshold\":0.05,\"tp\":10,\"fp\":13,\"tn\":27,\"fn\":0,\"recall\":1,\"specificity\":0.675,\"precision\":0.43478260869565216,\"fBeta7\":0.9746588693957114},{\"threshold\":0.1,\"tp\":10,\"fp\":8,\"tn\":32,\"fn\":0,\"recall\":1,\"specificity\":0.8,\"precision\":0.5555555555555556,\"fBeta7\":0.984251968503937},{\"threshold\":0.2,\"tp\":10,\"fp\":5,\"tn\":35,\"fn\":0,\"recall\":1,\"specificity\":0.875,\"precision\":0.6666666666666666,\"fBeta7\":0.9900990099009901},{\"threshold\":0.3,\"tp\":10,\"fp\":4,\"tn\":36,\"fn\":0,\"recall\":1,\"specificity\":0.9,\"precision\":0.7142857142857143,\"fBeta7\":0.9920634920634921},{\"threshold\":0.4,\"tp\":10,\"fp\":4,\"tn\":36,\"fn\":0,\"recall\":1,\"specificity\":0.9,\"precision\":0.7142857142857143,\"fBeta7\":0.9920634920634921},{\"threshold\":0.5,\"tp\":10,\"fp\":2,\"tn\":38,\"fn\":0,\"recall\":1,\"specificity\":0.95,\"precision\":0.8333333333333334,\"fBeta7\":0.9960159362549801}],\"usage\":{\"input_tokens\":106,\"cache_creation_input_tokens\":80897,\"cache_read_input_tokens\":41696,\"output_tokens\":13268,\"thinking_tokens\":547},\"total_cost_usd\":0.5353002,\"mean_duration_ms\":2607.76,\"median_duration_ms\":2435,\"retried_records\":0,\"failed_attempts\":0,\"models_reported\":[[\"claude-haiku-4-5-20251001\",\"claude-sonnet-5-5\"],[\"claude-sonnet-5-5\"]],\"skipped_partial_lines\":0}\nH1 / S1: 判定不一致 3 件（共通 50 件）"
+}
