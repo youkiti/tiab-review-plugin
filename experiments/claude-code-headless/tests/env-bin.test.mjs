@@ -25,7 +25,10 @@ test('コマンド名だけの指定は PATH 検索に任せ、パス指定は�
     const root = path.resolve('repo-root');
     assert.equal(resolveBin('claude', root), 'claude');
     assert.equal(resolveBin('./tools/claude.exe', root), path.join(root, 'tools', 'claude.exe'));
-    assert.equal(resolveBin('tools\\claude.exe', root), path.join(root, 'tools', 'claude.exe'));
+    if (process.platform === 'win32') {
+        // バックスラッシュを区切りとして扱うのは Windows の path だけ。
+        assert.equal(resolveBin('tools\\claude.exe', root), path.join(root, 'tools', 'claude.exe'));
+    }
     const absolute = path.resolve('elsewhere', 'claude.exe');
     assert.equal(resolveBin(absolute, root), absolute);
 });
