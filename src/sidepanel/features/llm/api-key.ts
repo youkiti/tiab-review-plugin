@@ -35,6 +35,15 @@ import {
     setSessionOpenAiApiKey,
     getOpenAiApiKeySavePreference,
     setOpenAiApiKeySavePreference,
+    // Anthropic
+    getAnthropicApiKey,
+    getSessionAnthropicApiKey,
+    saveAnthropicApiKey,
+    removeAnthropicApiKey,
+    hasAnthropicApiKey,
+    setSessionAnthropicApiKey,
+    getAnthropicApiKeySavePreference,
+    setAnthropicApiKeySavePreference,
     getTypeSafeApiKey,
     getSessionTypeSafeApiKey,
     saveTypeSafeApiKey,
@@ -46,11 +55,13 @@ import {
     getEffectiveApiKey,
     getEffectiveOpenRouterApiKey,
     getEffectiveOpenAiApiKey,
+    getEffectiveAnthropicApiKey,
     getEffectiveTypeSafeApiKey,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
 import { testOpenAiApiKey } from '../../../lib/providers/openai';
+import { testAnthropicApiKey } from '../../../lib/providers/anthropic';
 import { testTypeSafeApiKey } from '../../../lib/providers/typesafe';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
@@ -186,6 +197,7 @@ export async function getEffectiveApiKeyForProvider(provider: LlmProviderId): Pr
         gemini: getEffectiveApiKey,
         openrouter: getEffectiveOpenRouterApiKey,
         openai: getEffectiveOpenAiApiKey,
+        anthropic: getEffectiveAnthropicApiKey,
         typesafe: getEffectiveTypeSafeApiKey,
     };
     return getters[provider]();
@@ -196,11 +208,12 @@ export function missingApiKeyMessageKey(provider: LlmProviderId): string {
         gemini: 'llm_apiKeyRequired',
         openrouter: 'llm_openRouterApiKeyRequired',
         openai: 'llm_openAiApiKeyRequired',
+        anthropic: 'llm_anthropicApiKeyRequired',
         typesafe: 'llm_typeSafeApiKeyRequired',
     }[provider];
 }
 
-const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai', 'typesafe'];
+const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai', 'anthropic', 'typesafe'];
 const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
     gemini: {
         input: () => dom.geminiApiKeyInput,
@@ -249,6 +262,20 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
         setSavePreference: setOpenAiApiKeySavePreference,
         test: testOpenAiApiKey,
     },
+    anthropic: {
+        input: () => dom.anthropicApiKeyInput,
+        toggleBtn: () => dom.toggleAnthropicApiKeyVisibilityBtn,
+        status: () => dom.anthropicApiKeyStatus,
+        hasKey: hasAnthropicApiKey,
+        getKey: getAnthropicApiKey,
+        getSessionKey: getSessionAnthropicApiKey,
+        saveKey: saveAnthropicApiKey,
+        removeKey: removeAnthropicApiKey,
+        setSessionKey: setSessionAnthropicApiKey,
+        getSavePreference: getAnthropicApiKeySavePreference,
+        setSavePreference: setAnthropicApiKeySavePreference,
+        test: testAnthropicApiKey,
+    },
     typesafe: {
         input: () => dom.typeSafeApiKeyInput,
         toggleBtn: () => dom.toggleTypeSafeApiKeyVisibilityBtn,
@@ -265,9 +292,9 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
     },
 };
 
-const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, typesafe: false };
-const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null, typesafe: null };
-const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, typesafe: false };
+const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
+const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null, anthropic: null, typesafe: null };
+const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
 
 export function setProviderRowOpen(provider: LlmProviderId, open: boolean): void {
     dom.providerRow(provider).classList.toggle('open', open);

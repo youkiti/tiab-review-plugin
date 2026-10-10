@@ -11,6 +11,8 @@ const models = [
     { id: 'deepseek/deepseek-v4-flash', provider: 'openrouter' as const },
     { id: 'gpt-5.6-terra', provider: 'openai' as const },
     { id: 'gpt-5.6-luna', provider: 'openai' as const },
+    { id: 'claude-haiku-5-5', provider: 'anthropic' as const },
+    { id: 'claude-sonnet-5-5', provider: 'anthropic' as const },
 ];
 
 test('resolveProviderId picks gemini for Gemini IDs', () => {
@@ -36,6 +38,11 @@ test('resolveProviderId falls back to gemini for unknown plain IDs', () => {
 test('resolveProviderId picks openai for GPT IDs', () => {
     assert.equal(resolveProviderId('gpt-5.6-terra', models), 'openai');
     assert.equal(resolveProviderId('gpt-5.6-luna', models), 'openai');
+});
+
+test('resolveProviderId は登録された Claude モデルを anthropic に解決する', () => {
+    assert.equal(resolveProviderId('claude-haiku-5-5', models), 'anthropic');
+    assert.equal(resolveProviderId('claude-sonnet-5-5', models), 'anthropic');
 });
 
 // ===== convertCriteriaWithProvider (OpenRouter 経路) =====

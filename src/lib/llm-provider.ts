@@ -1,16 +1,16 @@
 // llm-provider.ts - LLM プロバイダ抽象化
 //
-// Gemini / OpenRouter / OpenAI / TypeSafe を共通インタフェースで呼び分ける薄いディスパッチ層。
+// Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe を共通インタフェースで呼び分ける薄いディスパッチ層。
 // llm-processor.ts はこのレイヤだけを叩き、プロバイダ実装の詳細を知らない。
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { isOpenRouterJevModel } from './openrouter-model';
 
-export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'typesafe';
+export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe';
 
 /**
  * プロバイダ非依存のスクリーニング入力
- * （Gemini の thinkingLevel と OpenRouter / OpenAI の reasoningEffort はそれぞれ対応プロバイダのみで参照される）
+ * （Gemini の thinkingLevel と OpenRouter / OpenAI / Anthropic の reasoningEffort はそれぞれ対応プロバイダのみで参照される）
  */
 export interface LlmScreenParams {
     title: string;
@@ -37,7 +37,7 @@ export interface LlmScreenResult {
 
 /**
  * モデル ID から所属プロバイダを判定する。
- * AVAILABLE_MODELS に登録されていれば `provider` フィールド（gemini / openrouter / openai / typesafe）を優先し、
+ * AVAILABLE_MODELS に登録されていれば `provider` フィールド（gemini / openrouter / openai / anthropic / typesafe）を優先し、
  * 未登録ならスラッシュを含む ID（`qwen/...`, `deepseek/...` 等の OpenRouter 形式）を
  * openrouter として扱い、それ以外を gemini にフォールバックする。
  *
@@ -76,7 +76,7 @@ export interface ConvertCriteriaParams {
     temperature?: number;
     topP?: number;
     thinkingLevel?: string;                                  // Gemini 専用
-    reasoningEffort?: 'none' | 'low' | 'medium' | 'high';    // OpenRouter / OpenAI 専用
+    reasoningEffort?: 'none' | 'low' | 'medium' | 'high';    // OpenRouter / OpenAI / Anthropic 専用
     maxOutputTokens?: number;
     outputLanguage: string;
 }
@@ -96,7 +96,8 @@ export interface ConvertCriteriaOptions {
  * 基準最適化のディスパッチ
  *
  * Gemini は responseSchema による JSON 強制、OpenRouter はプロンプト指示 + フォールバックパース。
- * 失敗時は両者ともリトライ後にエラーを投げる（呼び出し側でユーザーへ再試行可能）。
+ * OpenAI / Anthropic は JSON Schema による構造化出力を使う。
+ * 失敗時はいずれもリトライ後にエラーを投げる（呼び出し側でユーザーへ再試行可能）。
  */
 export async function convertCriteriaWithProvider(
     providerId: LlmProviderId,
@@ -113,6 +114,10 @@ export async function convertCriteriaWithProvider(
     if (providerId === 'openai') {
         const { convertCriteriaViaOpenAi } = await import(/* webpackChunkName: "llm-feature" */ './providers/openai');
         return convertCriteriaViaOpenAi(params, options);
+    }
+    if (providerId === 'anthropic') {
+        const { convertCriteriaViaAnthropic } = await import(/* webpackChunkName: "llm-feature" */ './providers/anthropic');
+        return convertCriteriaViaAnthropic(params, options);
     }
     const { convertCriteria } = await import('./gemini-api');
     return convertCriteria(
@@ -132,7 +137,7 @@ export async function convertCriteriaWithProvider(
 /**
  * スクリーニング呼び出しのディスパッチ
  *
- * Gemini / OpenRouter / OpenAI / TypeSafe の実装モジュールを動的 import することで、
+ * Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe の実装モジュールを動的 import することで、
  * Sidepanel ビルドサイズや循環依存を最小化する。
  */
 export async function screenWithProvider(
@@ -150,6 +155,10 @@ export async function screenWithProvider(
     if (providerId === 'openai') {
         const { screenViaOpenAi } = await import(/* webpackChunkName: "llm-feature" */ './providers/openai');
         return screenViaOpenAi(params);
+    }
+    if (providerId === 'anthropic') {
+        const { screenViaAnthropic } = await import(/* webpackChunkName: "llm-feature" */ './providers/anthropic');
+        return screenViaAnthropic(params);
     }
     // Gemini はデフォルト
     const { screenReference } = await import('./gemini-api');

@@ -3343,7 +3343,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.13.0: 確率を直接返す System One モデル。判定理由の文章は返りません（閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0%）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
+    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ Anthropic (Anthropic キー必要)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: このツールのベンチマークは未実施です。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.13.0: 確率を直接返す System One モデル。判定理由の文章は返りません（閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0%）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 ベンチマークで比べる"
@@ -3366,6 +3366,12 @@
   "llm_modelName_gpt_5_6_luna": {
     "message": "GPT-5.6 Luna"
   },
+  "llm_modelName_claude_haiku_5_5": {
+    "message": "Claude Haiku 5.5（未評価）"
+  },
+  "llm_modelName_claude_sonnet_5_5": {
+    "message": "Claude Sonnet 5.5（未評価）"
+  },
   "llm_modelName_jev_1_13_0": {
     "message": "TypeSafe Jev 1.13.0 — Recall 96.1%（閾値0.3）"
   },
@@ -3381,11 +3387,14 @@
   "llm_openAiApiKeyRequired": {
     "message": "OpenAI APIキーを設定してください"
   },
+  "llm_anthropicApiKeyRequired": {
+    "message": "Anthropic APIキーを設定してください"
+  },
   "llm_typeSafeApiKeyRequired": {
     "message": "TypeSafe APIキーを設定してください"
   },
   "llm_typeSafeCriteriaUnsupported": {
-    "message": "TypeSafe のモデルは基準の最適化に使えません。Gemini・OpenRouter・OpenAI のモデルを選んで実行してください。"
+    "message": "TypeSafe のモデルは基準の最適化に使えません。Gemini・OpenRouter・OpenAI・Anthropic のモデルを選んで実行してください。"
   },
   "llm_customModelDescription": {
     "message": "<a href=\"https://openrouter.ai/models\" target=\"_blank\" rel=\"noopener noreferrer\">OpenRouter の任意のモデルID</a>を試してから保存します。テストに成功したモデルはブラウザに保存され、次回以降モデル選択肢として表示されます（ベンチマーク未検証）。"
@@ -4230,6 +4239,9 @@
   "llm_providerCaptionOpenAi": {
     "message": "GPT 系モデル"
   },
+  "llm_providerCaptionAnthropic": {
+    "message": "Claude 系モデル"
+  },
   "llm_providerCaptionTypeSafe": {
     "message": "確率を直接返す System One モデル"
   },
@@ -4251,6 +4263,9 @@
   "llm_apiKeyPlaceholderOpenAi": {
     "message": "sk-… で始まるキーを貼り付け"
   },
+  "llm_apiKeyPlaceholderAnthropic": {
+    "message": "sk-ant-… で始まるキーを貼り付け"
+  },
   "llm_apiKeyPlaceholderTypeSafe": {
     "message": "TypeSafe のキーを貼り付け"
   },
@@ -4262,6 +4277,9 @@
   },
   "llm_providerHintOpenAi": {
     "message": "<a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"
+  },
+  "llm_providerHintAnthropic": {
+    "message": "<a href=\"https://console.anthropic.com/settings/keys\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"
   },
   "llm_providerHintTypeSafe": {
     "message": "TiAb の AI 判定専用です。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。 <a href=\"https://console.typesafe.ai/settings/keys\" target=\"_blank\" rel=\"noopener noreferrer\">キーを取得する ↗</a>"

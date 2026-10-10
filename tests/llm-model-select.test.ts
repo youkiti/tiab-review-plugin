@@ -41,6 +41,16 @@ test('filterModelsByConfiguredProviders: 両方未設定 → 空配列', () => {
     assert.deepEqual(result, []);
 });
 
+test('filterModelsByConfiguredProviders: Anthropic鍵のみ設定済み → Claudeモデルのみ残る', () => {
+    const allModels = [
+        ...models,
+        { id: 'claude-haiku-5-5', provider: 'anthropic' as LlmProviderId },
+        { id: 'claude-sonnet-5-5', provider: 'anthropic' as LlmProviderId },
+    ];
+    const result = filterModelsByConfiguredProviders(allModels, new Set<LlmProviderId>(['anthropic']));
+    assert.deepEqual(result.map(model => model.id), ['claude-haiku-5-5', 'claude-sonnet-5-5']);
+});
+
 test('filterModelsByConfiguredProviders: 元配列を変更しない（純関数）', () => {
     const snapshot = [...models];
     filterModelsByConfiguredProviders(models, new Set<LlmProviderId>(['gemini']));

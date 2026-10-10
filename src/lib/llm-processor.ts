@@ -207,8 +207,8 @@ type ProcessOutcome =
  * 空白区切りの `rate limit` はこれらに誤ってマッチしてしまう（ハイフン付きの
  * `rate-limiting` はマッチしないので実際に踏んだ実例あり）。そのため、抄録には出てこない
  * アンダースコア付きのコード名・明示的な HTTP シグナルだけに絞る:
- * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI/TypeSafe 実装
- *   (providers/openrouter.ts, providers/openai.ts, providers/typesafe.ts) が投げる形
+ * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI/Anthropic/TypeSafe 実装
+ *   (providers/openrouter.ts, providers/openai.ts, providers/anthropic.ts, providers/typesafe.ts) が投げる形
  * - `RESOURCE_EXHAUSTED`: Gemini のステータス文字列
  * - `rate_limit_exceeded`: providers/openai.ts が投げる
  *   `OpenAI: リクエストが失敗しました (code=rate_limit_exceeded): ...` の形
@@ -263,7 +263,7 @@ async function sleepOrAbort(
  * エラーオブジェクトに載っていればそのまま返す（11番: gemini-api.ts は 5xx にも
  * RetryInfo 由来の retryAfterMs を詰めることがあるため、429 以外のバックオフにも使う）。
  *
- * GeminiApiError（gemini-api.ts）は status / retryAfterMs をフィールドとして直接持つので
+ * GeminiApiError（gemini-api.ts）と Anthropic の HTTP エラーは status / retryAfterMs をフィールドとして直接持つので
  * そのまま拾える。OpenRouter/OpenAI/TypeSafe 実装は status を持たない Error しか投げないため、
  * メッセージ中の明示的なレート制限シグナル（RATE_LIMIT_MESSAGE_PATTERN）を最後の手段として
  * 拾う（この場合 retryAfterMs は取れない）。
@@ -373,9 +373,12 @@ async function processWithRetry(
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
             const errorCode = (error as { code?: string } | null)?.code;
-            // TypeSafe（OpenRouter 経由を含む）の再試行不可エラーは即座にフォールバックへ進む。
+            // TypeSafe（OpenRouter 経由を含む）と Anthropic の再試行不可エラーは即座にフォールバックへ進む。
+            // どちらもプロバイダ内部で再試行しないため、ここで見ないと認証エラーや打ち切り・拒否の応答を
+            // 同じ条件で送り直すことになる（Anthropic の打ち切りは出力上限まで生成した分が毎回課金される）。
             const nonRetryable = errorCode === 'max_tokens_truncated'
-                || ((providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
+                || ((providerId === 'typesafe' || providerId === 'anthropic'
+                    || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
                     && (error as { retryable?: boolean } | null)?.retryable === false);
             if (nonRetryable) {
                 console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);

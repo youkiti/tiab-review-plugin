@@ -30,6 +30,11 @@ export const dom = {
     get toggleOpenAiApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-openai-api-key-visibility'); },
     get openAiApiKeyStatus() { return getElement<HTMLElement>('openai-api-key-status'); },
 
+    // LLM APIキー (Anthropic)
+    get anthropicApiKeyInput() { return getElement<HTMLInputElement>('anthropic-api-key'); },
+    get toggleAnthropicApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-anthropic-api-key-visibility'); },
+    get anthropicApiKeyStatus() { return getElement<HTMLElement>('anthropic-api-key-status'); },
+
     // LLM APIキー (TypeSafe)
     get typeSafeApiKeyInput() { return getElement<HTMLInputElement>('typesafe-api-key'); },
     get toggleTypeSafeApiKeyVisibilityBtn() { return getElement<HTMLButtonElement>('toggle-typesafe-api-key-visibility'); },
