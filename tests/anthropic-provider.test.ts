@@ -6,6 +6,7 @@ import { setSessionAnthropicApiKey, clearSessionAnthropicApiKey } from '../src/l
 import { screenWithProvider, convertCriteriaWithProvider, resolveProviderId } from '../src/lib/llm-provider';
 import { AVAILABLE_MODELS, SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA } from '../src/lib/gemini-api';
 import { buildScreeningPrompt, buildCriteriaPrompt } from '../src/lib/providers/structured-prompts';
+import { processBatch } from '../src/lib/llm-processor';
 
 const API_KEY = 'test-anthropic-key';
 const params = {
@@ -238,6 +239,58 @@ test('タイムアウトは AbortSignal で通信1回を中止する', async () 
         await assert.rejects(screenViaAnthropic(params, 5), /中止/);
     });
     assert.equal(calls, 1);
+});
+
+// プロバイダ内部で再試行しないので、再試行不可の印は一括判定側（processWithRetry）が見る。
+// 見落とすと、打ち切り・拒否・認証エラーを同じ条件で3回送ることになる。
+for (const [label, makeResponse] of [
+    ['max_tokens の打ち切り', () => response({ stop_reason: 'max_tokens', content: [] })],
+    ['refusal', () => response({ stop_reason: 'refusal', content: [] })],
+    ['HTTP 401', () => new Response('', { status: 401 })],
+] as const) {
+    test(`一括判定は Anthropic の再試行不可エラー（${label}）を送り直さない`, async () => {
+        let calls = 0;
+        const waits: number[] = [];
+        await withFetch(async () => {
+            calls++;
+            return makeResponse();
+        }, async () => {
+            const result = await processBatch([{ ref_id: 'ref-1', title: '対象文献' }], {
+                batchSize: 1,
+                model: params.model,
+                screeningPrompt: params.screeningPrompt,
+                outputLanguage: params.outputLanguage,
+                rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+                sleepFn: async (ms) => {
+                    waits.push(ms);
+                },
+                random: () => 0,
+            });
+            assert.equal(result.fallbackCount, 1);
+        });
+        assert.equal(calls, 1);
+        assert.deepEqual(waits.filter(ms => ms > 0), []);
+    });
+}
+
+test('一括判定は Anthropic の HTTP 400 を再試行する（4xx を恒久的な失敗と決めつけない）', async () => {
+    let calls = 0;
+    await withFetch(async () => {
+        calls++;
+        return new Response('', { status: 400 });
+    }, async () => {
+        const result = await processBatch([{ ref_id: 'ref-1', title: '対象文献' }], {
+            batchSize: 1,
+            model: params.model,
+            screeningPrompt: params.screeningPrompt,
+            outputLanguage: params.outputLanguage,
+            rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+            sleepFn: async () => {},
+            random: () => 0,
+        });
+        assert.equal(result.fallbackCount, 1);
+    });
+    assert.equal(calls, 3);
 });
 
 test('基準変換は再試行して正規化し、medium effort と共通プロンプトを使う', async () => {

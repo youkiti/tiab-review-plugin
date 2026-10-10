@@ -373,9 +373,12 @@ async function processWithRetry(
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
             const errorCode = (error as { code?: string } | null)?.code;
-            // TypeSafe（OpenRouter 経由を含む）の再試行不可エラーは即座にフォールバックへ進む。
+            // TypeSafe（OpenRouter 経由を含む）と Anthropic の再試行不可エラーは即座にフォールバックへ進む。
+            // どちらもプロバイダ内部で再試行しないため、ここで見ないと認証エラーや打ち切り・拒否の応答を
+            // 同じ条件で送り直すことになる（Anthropic の打ち切りは出力上限まで生成した分が毎回課金される）。
             const nonRetryable = errorCode === 'max_tokens_truncated'
-                || ((providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
+                || ((providerId === 'typesafe' || providerId === 'anthropic'
+                    || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
                     && (error as { retryable?: boolean } | null)?.retryable === false);
             if (nonRetryable) {
                 console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);
