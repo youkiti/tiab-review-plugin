@@ -7,6 +7,11 @@ export const experimentRoot = fileURLToPath(new URL('../', import.meta.url));
 export const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 export const resultsRoot = path.join(experimentRoot, 'results');
 
+/** パス区切りを含む指定はリポジトリルート基準で絶対化し、コマンド名だけの指定は PATH 検索に任せる。 */
+export function resolveBin(bin, root = repoRoot) {
+    return /[\\/]/.test(bin) ? path.resolve(root, bin) : bin;
+}
+
 export function parseArgs(argv, summarize = false) {
     const options = { conditions: [] };
     const flags = summarize ? ['--smoke', '--all', '--allow-partial'] : ['--smoke', '--all', '--dry-run'];

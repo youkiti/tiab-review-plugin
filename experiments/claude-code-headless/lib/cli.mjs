@@ -12,7 +12,29 @@ export function buildCliArgs(condition, schema) {
     ];
 }
 
-export function invokeClaude({ bin, args, prompt, timeoutMs, cwd }) {
+// 認証情報の置き場所を指す変数だけは残す（消すとログイン済みの認証を見つけられなくなる）。
+const KEPT_ENV = new Set(['CLAUDE_CONFIG_DIR']);
+
+/**
+ * 子プロセスに渡す環境変数を作る。ANTHROPIC_* と CLAUDE* を除く。
+ * 親に API キーがあると、サブスクリプションではなく API 課金で走る。親が Claude Code のセッションだと、
+ * その effort などの設定が判定に混ざる。除いた変数の名前だけを返す（値は記録しない）。
+ */
+export function buildChildEnv(env) {
+    const childEnv = {};
+    const removed = [];
+    for (const [key, value] of Object.entries(env)) {
+        const upper = key.toUpperCase();
+        if (!KEPT_ENV.has(upper) && (upper.startsWith('ANTHROPIC_') || upper.startsWith('CLAUDE'))) {
+            removed.push(key);
+        } else {
+            childEnv[key] = value;
+        }
+    }
+    return { env: childEnv, removed: removed.sort() };
+}
+
+export function invokeClaude({ bin, args, prompt, timeoutMs, cwd, env }) {
     return new Promise((resolve) => {
         const raw = { exitCode: null, stdout: '', stderr: '', timedOut: false, spawnError: null };
         let child;
@@ -29,7 +51,7 @@ export function invokeClaude({ bin, args, prompt, timeoutMs, cwd }) {
             resolve(raw);
         };
         try {
-            child = spawn(bin, args, { shell: false, cwd, windowsHide: true });
+            child = spawn(bin, args, { shell: false, cwd, windowsHide: true, env: env ?? buildChildEnv(process.env).env });
             child.stdout.setEncoding('utf8');
             child.stderr.setEncoding('utf8');
             child.stdout.on('data', (data) => {

@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { parseArgs, loadInputs, resultsRoot } from './lib/inputs.mjs';
-import { buildCliArgs, invokeClaude } from './lib/cli.mjs';
+import { parseArgs, loadInputs, resolveBin, resultsRoot } from './lib/inputs.mjs';
+import { buildChildEnv, buildCliArgs, invokeClaude } from './lib/cli.mjs';
 import { buildScreeningPrompt, SCREENING_SCHEMA, sha256Hex } from './lib/prompt.mjs';
 import { ledgerPaths, readJsonl, compactByRefId } from './lib/ledger.mjs';
 import { runCondition } from './lib/run-core.mjs';
@@ -22,7 +22,9 @@ async function main() {
     const { config, configText, records, conditions } = inputs;
     const condition = conditions[0];
     config.concurrency = options['--concurrency'] ?? config.concurrency;
-    config.cli.bin = options['--claude-bin'] ?? config.cli.bin;
+    config.cli.bin = resolveBin(options['--claude-bin'] ?? config.cli.bin);
+    const child = buildChildEnv(process.env);
+    const invoke = (call) => invokeClaude({ ...call, env: child.env });
     const paths = ledgerPaths(resultsRoot, condition.id);
     const alreadyDone = () => {
         const done = new Set(compactByRefId(readJsonl(paths.items)).map((row) => row.ref_id));
@@ -41,7 +43,7 @@ async function main() {
     paths.cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-headless-'));
     let result;
     try {
-        const version = await invokeClaude({
+        const version = await invoke({
             bin: config.cli.bin, args: ['--version'], prompt: '', timeoutMs: config.cli.timeoutMs, cwd: paths.cwd,
         });
         if (version.spawnError || version.timedOut || version.exitCode !== 0 || !version.stdout.trim()) {
@@ -49,7 +51,7 @@ async function main() {
         }
         config.cliVersion = version.stdout.trim();
         result = await runCondition({
-            records, condition, config, paths, invoke: invokeClaude, sleep, now: Date.now, log: console.log,
+            records, condition, config, paths, invoke, sleep, now: Date.now, log: console.log,
         });
     } catch (error) {
         result = {
@@ -66,7 +68,7 @@ async function main() {
     const logPath = path.join(resultsRoot, `run_${condition.id}_${startedAt.replace(/[:.]/g, '-')}.log.json`);
     fs.writeFileSync(logPath, JSON.stringify({
         arguments: process.argv.slice(2), condition, config_sha256: sha256Hex(configText),
-        cli_version: config.cliVersion ?? null, node_version: process.version,
+        cli_version: config.cliVersion ?? null, node_version: process.version, removed_env: child.removed,
         started_at: startedAt, finished_at: new Date(ended).toISOString(), wall_clock_ms: ended - started,
         ...result,
     }, null, 4) + '\n', 'utf8');
