@@ -74,7 +74,7 @@ gcloud services enable drive.googleapis.com
 | `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 | `TYPE_SAFE_API_KEY`    | TypeSafe API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 
-> **LLM プロバイダ**: v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「OpenRouter APIキー」カードから登録します（環境変数は実験ランナー用途のみ）。
+> **LLM プロバイダ**: Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe に対応。v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「🔑 APIキー」カードの OpenRouter 行から登録します（環境変数は実験ランナー用途のみ）。
 
 > **TypeSafe**（2026-09 採用）: `jev-1.13.0` を選べます。キーは https://console.typesafe.ai/settings/keys で発行し、サイドパネル「🔑 APIキー」カードの TypeSafe 行に貼り付けて「確認して保存」を押します（環境変数 `TYPE_SAFE_API_KEY` は実験ランナー用途のみ）。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。
 > OpenRouter のキーだけでも `typesafe/jev-1.13`（OpenRouter 経由）を選べます。単価は入力 $0.042/100万トークン・出力無料（2026-09-18 時点の OpenRouter 表示）。
@@ -256,6 +256,7 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
   - **Gemini**: `gemini-3.1-flash-lite` (既定 / depression Recall 93.6%) / `gemini-3-flash-preview` (Recall 96.1%)
   - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
   - **OpenAI**: `gpt-5.6-terra` / `gpt-5.6-luna`
+  - **Anthropic**: `claude-haiku-5-5` / `claude-sonnet-5-5`（depression 1,993件のベンチマークは未実施。同梱基準の Recall ≥ 90% は未確認）
   - **TypeSafe** (2026-09 採用): `jev-1.13.0`（OpenRouter 経由は `typesafe/jev-1.13`。拡張の既定閾値0.3で depression Recall 96.1% / CQ1〜5 合算 95.0%（246/259）。判定理由の文章は返らず、基準の要素別確率を記録）
 - OpenRouter モデルは [experiments/openrouter-bench/](experiments/openrouter-bench/) の depression データセット全件 (N=1,993) ベンチで採用基準 (Recall ≥ 0.90) を満たした 2 モデルのみを同梱しています。
 - TypeSafe `jev-1.13.0` は [experiments/typesafe-jev/](experiments/typesafe-jev/) で拡張の既定閾値0.3に固定して depression（Recall 96.1%）と CQ1〜5（合算 95.0%）を全件評価し、上と同じ同梱の採用基準 (Recall ≥ 0.90) を満たすため採用しています。

@@ -448,6 +448,78 @@ export async function getEffectiveOpenAiApiKey(): Promise<string | null> {
     return await getOpenAiApiKey();
 }
 
+// ========== Anthropic API キー ==========
+// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
+
+const ANTHROPIC_API_KEY_STORAGE_KEY = 'anthropic_api_key';
+const ANTHROPIC_API_KEY_SAVE_PREFERENCE = 'anthropic_api_key_save_preference';
+
+export async function saveAnthropicApiKey(apiKey: string): Promise<void> {
+    const encoded = await encryptApiKey(apiKey);
+    await chrome.storage.local.set({ [ANTHROPIC_API_KEY_STORAGE_KEY]: encoded });
+}
+
+export async function getAnthropicApiKey(): Promise<string | null> {
+    const result = await chrome.storage.local.get([ANTHROPIC_API_KEY_STORAGE_KEY]);
+    const encoded = result[ANTHROPIC_API_KEY_STORAGE_KEY];
+    if (!encoded) return null;
+    try {
+        return await decryptApiKey(encoded);
+    } catch {
+        return null;
+    }
+}
+
+export async function removeAnthropicApiKey(): Promise<void> {
+    await chrome.storage.local.remove([ANTHROPIC_API_KEY_STORAGE_KEY]);
+}
+
+export async function hasAnthropicApiKey(): Promise<boolean> {
+    const key = await getAnthropicApiKey();
+    return key !== null && key.length > 0;
+}
+
+export async function setAnthropicApiKeySavePreference(save: boolean): Promise<void> {
+    await chrome.storage.local.set({ [ANTHROPIC_API_KEY_SAVE_PREFERENCE]: save });
+}
+
+export async function getAnthropicApiKeySavePreference(): Promise<boolean> {
+    const result = await chrome.storage.local.get([ANTHROPIC_API_KEY_SAVE_PREFERENCE]);
+    return result[ANTHROPIC_API_KEY_SAVE_PREFERENCE] === true;
+}
+
+// セッション保持（保存しない設定時のメモリ保持）
+let sessionAnthropicApiKey: string | null = null;
+
+export function setSessionAnthropicApiKey(apiKey: string): void {
+    sessionAnthropicApiKey = apiKey;
+}
+
+export function getSessionAnthropicApiKey(): string | null {
+    return sessionAnthropicApiKey;
+}
+
+export function clearSessionAnthropicApiKey(): void {
+    sessionAnthropicApiKey = null;
+}
+
+/** 有効な Anthropic API キーを取得（セッション > 環境変数 > 保存値） */
+export async function getEffectiveAnthropicApiKey(): Promise<string | null> {
+    if (sessionAnthropicApiKey) {
+        return sessionAnthropicApiKey;
+    }
+    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
+    if (isNodeEnv) {
+        if (process.env.ANTHROPIC_API_KEY) {
+            return process.env.ANTHROPIC_API_KEY;
+        }
+    }
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return null;
+    }
+    return await getAnthropicApiKey();
+}
+
 // ========== TypeSafe API キー ==========
 // Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
 

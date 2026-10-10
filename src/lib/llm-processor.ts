@@ -207,8 +207,8 @@ type ProcessOutcome =
  * 空白区切りの `rate limit` はこれらに誤ってマッチしてしまう（ハイフン付きの
  * `rate-limiting` はマッチしないので実際に踏んだ実例あり）。そのため、抄録には出てこない
  * アンダースコア付きのコード名・明示的な HTTP シグナルだけに絞る:
- * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI/TypeSafe 実装
- *   (providers/openrouter.ts, providers/openai.ts, providers/typesafe.ts) が投げる形
+ * - `API error 429` / `Too Many Requests`: OpenRouter/OpenAI/Anthropic/TypeSafe 実装
+ *   (providers/openrouter.ts, providers/openai.ts, providers/anthropic.ts, providers/typesafe.ts) が投げる形
  * - `RESOURCE_EXHAUSTED`: Gemini のステータス文字列
  * - `rate_limit_exceeded`: providers/openai.ts が投げる
  *   `OpenAI: リクエストが失敗しました (code=rate_limit_exceeded): ...` の形
@@ -263,7 +263,7 @@ async function sleepOrAbort(
  * エラーオブジェクトに載っていればそのまま返す（11番: gemini-api.ts は 5xx にも
  * RetryInfo 由来の retryAfterMs を詰めることがあるため、429 以外のバックオフにも使う）。
  *
- * GeminiApiError（gemini-api.ts）は status / retryAfterMs をフィールドとして直接持つので
+ * GeminiApiError（gemini-api.ts）と Anthropic の HTTP エラーは status / retryAfterMs をフィールドとして直接持つので
  * そのまま拾える。OpenRouter/OpenAI/TypeSafe 実装は status を持たない Error しか投げないため、
  * メッセージ中の明示的なレート制限シグナル（RATE_LIMIT_MESSAGE_PATTERN）を最後の手段として
  * 拾う（この場合 retryAfterMs は取れない）。

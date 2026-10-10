@@ -7,12 +7,12 @@ import { t } from './i18n';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
- * LLM モデル設定（Gemini / OpenRouter 共通）
+ * LLM モデル設定（Gemini / OpenRouter / OpenAI / Anthropic 共通）
  *
  * 名前は歴史的経緯で `GeminiModelConfig` を維持しているが、
- * OpenRouter モデル用フィールド (`reasoningEffort`) もここに同居させ、
+ * OpenRouter / OpenAI / Anthropic モデル用フィールド (`reasoningEffort`) もここに同居させ、
  * batch.ts などからは provider に関係なく同じ型で扱えるようにしている。
- * Gemini 実装は `reasoningEffort` を無視し、OpenRouter 実装は `thinkingLevel` を無視する。
+ * Gemini 実装は `reasoningEffort` を無視し、OpenRouter / OpenAI / Anthropic 実装は `thinkingLevel` を無視する。
  */
 export interface GeminiModelConfig {
     model: string;
@@ -22,7 +22,7 @@ export interface GeminiModelConfig {
     maxOutputTokens?: number;
     topP?: number;
     thinkingLevel?: string;                          // Gemini 専用: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH'
-    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter 専用
+    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter / OpenAI / Anthropic 専用
 }
 
 interface GeminiApiErrorOptions {
@@ -815,23 +815,24 @@ export async function testApiKey(apiKey: string): Promise<boolean> {
 /**
  * モデルオプション（UI表示 + パラメータ）
  *
- * `config` は Gemini / OpenRouter で共通のパラメータ集合。
+ * `config` は Gemini / OpenRouter / OpenAI / Anthropic で共通のパラメータ集合。
  * - Gemini 専用: `thinkingLevel`
- * - OpenRouter 専用: `reasoningEffort`
+ * - OpenRouter / OpenAI / Anthropic 専用: `reasoningEffort`
  * いずれもプロバイダ実装側でフィールド存在チェックして参照する。
  */
 export interface ModelOption {
     id: string;
     name: string;        // フォールバック表示 (i18n 未取得時)
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
-    provider: 'gemini' | 'openrouter' | 'openai' | 'typesafe';
+    provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe';
     config: Omit<GeminiModelConfig, 'model'>;
     /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
     custom?: boolean;
 }
 
 /**
- * 利用可能なモデル一覧
+ * 利用可能なモデル一覧（Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe）
+ * Anthropic の2モデルは depression 1,993件のベンチマーク未実施で、同梱基準（Recall ≥ 90%）は未確認。
  * latest エイリアスではなく、ベンチマーク済みの固定バージョン ID を採用する。
  * (2026-05 判断: `gemini-flash-latest` が `gemini-3.5-flash` に切り替わると
  *  Recall が 96.1% → 93.2% に低下するリスクを回避するため)
@@ -890,6 +891,24 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         provider: 'openai',
         // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
         config: { temperature: 0, reasoningEffort: 'medium' }
+    },
+    {
+        id: 'claude-haiku-5-5',
+        name: 'Claude Haiku 5.5',
+        nameKey: 'llm_modelName_claude_haiku_5_5',
+        provider: 'anthropic',
+        // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
+        // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
+        config: { temperature: 0, reasoningEffort: 'low' }
+    },
+    {
+        id: 'claude-sonnet-5-5',
+        name: 'Claude Sonnet 5.5',
+        nameKey: 'llm_modelName_claude_sonnet_5_5',
+        provider: 'anthropic',
+        // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
+        // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
+        config: { temperature: 0, reasoningEffort: 'low' }
     },
     {
         // latest エイリアスではなく固定版 ID を使う既存方針に従う（ベンチマークは experiments/typesafe-jev/）。
