@@ -4,6 +4,7 @@
 
 import { updateReferenceFulltextUrl, getFulltextDriveFolderId } from '../lib/sheets-api';
 import { platform } from '../platform';
+import { buildFulltextRefUpdatedMessage } from '../lib/fulltext-ref-update';
 import { retrieveAndCacheFulltext, fetchPdfResult } from '../lib/fulltext-retriever';
 import {
     ensureFulltextFolder,
@@ -125,6 +126,9 @@ async function handleResolve(token?: number): Promise<void> {
         if (outcome.kind === 'cached') {
             ref.fulltext_url = outcome.url;
             ref.fulltext_status = 'cached';
+            platform().emitMessage(buildFulltextRefUpdatedMessage(
+                session.spreadsheetId, ref.ref_id, outcome.url, 'cached',
+            ));
             updateReferenceFulltextUrl(session.spreadsheetId, ref.ref_id, outcome.url, 'cached', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             // registration行はここでも showCachedPdf() (PDF.js経路) へ入れず、
@@ -140,12 +144,18 @@ async function handleResolve(token?: number): Promise<void> {
         } else if (outcome.kind === 'linked') {
             ref.fulltext_url = outcome.url;
             ref.fulltext_status = 'retrieved';
+            platform().emitMessage(buildFulltextRefUpdatedMessage(
+                session.spreadsheetId, ref.ref_id, outcome.url, 'retrieved',
+            ));
             updateReferenceFulltextUrl(session.spreadsheetId, ref.ref_id, outcome.url, 'retrieved', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             if (!stale()) showResolvedUrl(outcome.url, outcome.source);
         } else {
             // OA全文は無い → 論文ページ（出版社/PubMed）を枠内に埋め込み表示
             ref.fulltext_status = 'unavailable';
+            platform().emitMessage(buildFulltextRefUpdatedMessage(
+                session.spreadsheetId, ref.ref_id, '', 'unavailable',
+            ));
             updateReferenceFulltextUrl(session.spreadsheetId, ref.ref_id, '', 'unavailable', null)
                 .catch(err => console.warn('[fulltext] URL 保存失敗:', err));
             if (!stale()) await showArticlePage();
@@ -185,6 +195,9 @@ export async function openLinkedInline(url: string, source: OaSource | 'cached' 
             // クリックされたリンクの自動保存はDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
             session.currentRef.fulltext_drive_source_id = undefined;
             session.currentRef.fulltext_drive_copy_id = undefined;
+            platform().emitMessage(buildFulltextRefUpdatedMessage(
+                session.spreadsheetId, session.currentRef.ref_id, info.webViewLink, 'cached',
+            ));
             await showCachedPdf(info.webViewLink);
             updateToolbarMode();
             showFeedback(t('ftPage_pdfSavedToDrive'));

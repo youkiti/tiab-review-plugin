@@ -29,6 +29,7 @@ import {
     addMlKeyword, renderMlSection, reportMlLoadError,
 } from './features/ml/lazy';
 import * as fulltext from './features/fulltext/lazy';
+import { setupFulltextRefUpdateListener } from './features/fulltext/ref-update-listener';
 import { initModal } from './ui/modal';
 import { wireCollapsibleCards } from './ui/collapsible';
 import { toggleExportMenu, closeExportMenu } from './store/compat';
@@ -106,9 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.tabLlmBtn?.addEventListener('click', () => llm.switchToTab('llm'));
 
     // ========== フルテキストタブ ==========
-    // 本体は features/fulltext/lazy.ts が初回タブ選択時に読み込む。ここではタブボタンの
-    // クリック登録のみ行う（LLMタブと同じ形。fulltext.setupFulltextTabListeners() はno-op）。
+    // 本体は features/fulltext/lazy.ts が初回タブ選択時に読み込む。ここではタブボタンと
+    // 全文状態更新通知を登録する（fulltext.setupFulltextTabListeners() はno-op）。
     fulltext.setupFulltextTabListeners();
+    setupFulltextRefUpdateListener();
     dom.tabFulltextBtn?.addEventListener('click', () => fulltext.activateFulltextTab());
     // TiAb完了バナーの「全文タブへ進む」ボタンから遷移できるように登録
     // （render.tsからfeatures/fulltext/**を直接importすると循環依存になるため依存注入で渡す）
