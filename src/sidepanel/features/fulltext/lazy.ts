@@ -9,6 +9,11 @@ import { reportFeatureLoadError } from '../../ui/lazy-feature-feedback';
 type FulltextFeatureModule = typeof import('./tab');
 let feature: FulltextFeatureModule | undefined;
 
+/** 本体が読み込み済みの場合だけ全文一覧を更新する。 */
+export function rerenderFulltextTabIfLoaded(): void {
+    feature?.renderFulltextTab();
+}
+
 /** 本体を1チャンクへ集約し、リスナー登録は成功時の一度だけ行う。 */
 export const loadFulltextFeature = createLazyFeatureLoader(async () => {
     const loaded = await import(/* webpackChunkName: "fulltext-feature" */ './tab');

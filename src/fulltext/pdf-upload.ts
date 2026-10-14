@@ -3,6 +3,8 @@
 // Issue #156: 関数本体と実行順序を保った責務分割。
 
 import { updateReferenceFulltextUrl } from '../lib/sheets-api';
+import { buildFulltextRefUpdatedMessage } from '../lib/fulltext-ref-update';
+import { platform } from '../platform';
 import {
     ensureFulltextFolder,
     extractDriveFileId,
@@ -132,6 +134,9 @@ async function handleDeletePdf(): Promise<void> {
         // 削除時はDrive取り込み元/コピーIDも必ずクリアする（ゴミ箱送りのコピーを取り込み済みと誤判定させないため）
         session.currentRef.fulltext_drive_source_id = undefined;
         session.currentRef.fulltext_drive_copy_id = undefined;
+        platform().emitMessage(buildFulltextRefUpdatedMessage(
+            session.spreadsheetId, session.currentRef.ref_id, '', 'not_retrieved',
+        ));
         showPlaceholder(t('ftPage_pdfDeleted'));
     } catch (err) {
         window.alert(t('ftPage_deleteFailed', (err as Error).message));
@@ -173,6 +178,9 @@ async function uploadPdfFile(file: File): Promise<void> {
         // ローカルPDFの手動アップロードはDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
         ref.fulltext_drive_source_id = undefined;
         ref.fulltext_drive_copy_id = undefined;
+        platform().emitMessage(buildFulltextRefUpdatedMessage(
+            session.spreadsheetId, ref.ref_id, info.webViewLink, 'cached',
+        ));
         // アップロード中に別文献へ移っていたら描画はせず、状態更新のみ
         if (ref === session.currentRef) {
             await showCachedPdf(info.webViewLink);

@@ -487,6 +487,12 @@ codex exec \
   This is a full implementation turn, not a query.
 - `warning: Codex could not find bubblewrap on PATH` is noise — it falls back to a bundled
   copy. Do not chase it.
+- **Run the full test suite yourself, not inside the codex sandbox.** Tests that open a local
+  server can fail under `workspace-write` (in tiab-review-plugin, `tests/cli-oauth.test.ts`
+  failed six cases under codex and passed in the commander's shell, 2026-10-14; the exact
+  cause was not pinned down). Tell codex to run only
+  typecheck, lint, and the test files it added, and treat a server-start failure in its report
+  as a sandbox artifact to re-run, not a regression.
 - One `codex exec` per delegation round. It spends the user's ChatGPT quota, so finish the
   brief before you spend it.
 
@@ -495,6 +501,7 @@ its own reasoning, so a Step 5 fix round only has to say what must change:
 
 ```bash
 cd <worktree> && codex exec resume <session-id> \
+  -m gpt-6-astra \
   -c sandbox_mode='"workspace-write"' \
   -c model_reasoning_effort='"high"' \
   -o /tmp/codex-fix1-report.md \
@@ -512,6 +519,10 @@ from silent to fatal:
 - **Reasoning effort does not carry over.** A session started at `high` and resumed without
   the flag resumes at `none` (observed 2026-09-07). Re-pass `-c model_reasoning_effort` on
   every resume, and re-read the header line every time.
+- **The model does not carry over either.** A session started with `-m gpt-6-astra` and
+  resumed without `-m` ran its fix round on the install's default (`gpt-6.1-sol`, observed
+  2026-10-14). Re-pass `-m gpt-6-astra` on every resume (`resume` accepts `-m`), and read the header's `model:` line
+  alongside `reasoning effort:`.
 - **Drop `--ephemeral` on the first run whenever fix rounds are plausible** — an ephemeral
   session is not recorded, so there is nothing left to resume. Capture the `session id:`
   line from the first run's header at the time, rather than hunting for it later.
