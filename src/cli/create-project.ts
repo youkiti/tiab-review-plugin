@@ -8,8 +8,9 @@ import { partitionIncomingReferences } from '../lib/duplicate-import-filter';
 import { isAbstractTruncated } from '../lib/import-helpers';
 import { createSpreadsheet, addReferences, saveImportStats, saveDuplicateCandidates } from '../lib/sheets-api';
 import { setupProjectFolder, ensureFulltextFolder } from '../lib/drive-api';
-import { addPermission } from '../lib/drive-permissions';
-import { buildInviteMessage, buildSpreadsheetUrl } from '../lib/share-invite';
+import { safeApiErrorMessage } from './api-error';
+import { inviteReviewers } from './share';
+import { buildSpreadsheetUrl } from '../lib/share-invite';
 
 /** 文献を一度に追記する件数の上限。 */
 export const IMPORT_BATCH_SIZE = 500;
@@ -51,13 +52,7 @@ export class ImportInterruptedError extends Error {
     }
 }
 
-/** 外部のエラー本文は認証値や URL を含みうるため、そのまま表示しない（Issue #245）。 */
-export function safeApiErrorMessage(error: unknown): string {
-    const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
-    return typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599
-        ? `API 処理に失敗しました（HTTP ${status}）。`
-        : 'API 処理に失敗しました。通信状態とアクセス権限を確認してください。';
-}
+export { safeApiErrorMessage } from './api-error';
 
 export interface CreateProjectResult {
     spreadsheetId: string;
@@ -151,21 +146,6 @@ export async function runCreateProject(input: {
             result.warnings.push(`重複候補を保存できませんでした: ${formatError(error)}`);
         }
     }
-    for (const email of share) {
-        try {
-            await addPermission(spreadsheetId, email, 'writer', buildInviteMessage(spreadsheetId, title));
-        } catch (error) {
-            result.shareFailures.push({ email, message: formatError(error) });
-            continue;
-        }
-        result.shared.push(email);
-        if (result.folderId) {
-            try {
-                await addPermission(result.folderId, email, 'writer', undefined, { sendNotificationEmail: false });
-            } catch (error) {
-                result.folderShareFailures.push({ email, message: formatError(error) });
-            }
-        }
-    }
+    Object.assign(result, await inviteReviewers(spreadsheetId, title, result.folderId, share, formatError));
     return result;
 }

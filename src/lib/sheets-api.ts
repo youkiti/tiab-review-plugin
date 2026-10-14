@@ -40,6 +40,12 @@ export {
     validateReferencesManagedHeaders,
     invalidateDecisionRowCache,
 };
+// CLI の検査・読み戻しも既存の公開窓口を通す。
+export { appendImportedDecisions } from './sheets/cli-project';
+export { getSheetValues } from './sheets/transport';
+export { CONFIG_SHEET } from './sheets/schema';
+export { getDecisionsRaw, collapseToLatestDecisions } from './sheets/decisions';
+export { parseConfigBundle } from './sheets/config-schema';
 export { isQuotaExceededError } from './sheets/transport';
 export type { ReferencesHeaderConflict, ReferencesManagedHeadersCheck } from './sheets/schema';
 export {

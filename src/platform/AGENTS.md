@@ -211,6 +211,12 @@ Issue #80 のフェーズ0として `scripts/drive-file-probe/` の `shared-driv
 
 ### Node（コマンドライン）用のアダプタと認証（Issue #245）
 
+- `scripts/tiab.mjs` は `create` / `seed` / `share` / `status` を提供する。コンパイル・`.env` 読み込み・版の設定は `scripts/create-project.mjs` と共有し、従来のサブコマンドなしの作成も維持する。
+- `--help` / `--dry-run` は資格情報を読まず API も呼ばない。`seed --dry-run` は CSV のみ検査し、References・既存判定との照合は本実行時に行う。`share --dry-run` は招待先一覧のみ。
+- 判定の取り込みは `src/lib/sheets/cli-project.ts` で `DECISIONS_HEADERS` から列を組み立て、RAW で一度だけ追記する（429を含め再試行なし）。読み戻し不一致や失敗時は件数を出して停止し、後続のキー開封・案内非表示・招待へ進まない。既存の LLM バッチ用 `appendDecisions()` は変更しない。
+- `status` は読み取り専用。`getLlmHistory(..., true)` は旧形式の移行を保存せず計算する。集計は `src/lib/decision-summary.ts` と `src/lib/decision-conflict.ts` を画面と共有し、チーム集計と画面の不一致件数を区別する。個人設定は読まず `DEFAULT_USER_SETTINGS.treatMlAsManual` を使う。
+- 担当セット案内の非表示保存は `src/lib/assignment-dismiss.ts` を画面と CLI で共有する。CLI は `none` のみ保存し、`dismissed` はそのまま、`configured` は維持して通知する。
+
 `scripts/create-project.mjs`（プロジェクトの新規作成 → RIS 取り込み → 招待）は、拡張機能・Web版と同じ `src/lib` の関数を Node から呼ぶ。そのための `PlatformAdapter` が `src/platform/node/index.ts` の `createNodePlatform()`。使い方は [scripts/create-project/README.md](../../scripts/create-project/README.md)。
 
 | 項目 | 内容 |

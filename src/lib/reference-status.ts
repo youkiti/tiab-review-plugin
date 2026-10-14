@@ -22,14 +22,15 @@ import { buildMyFulltextDecisionMap, buildAllFulltextDecisionsMap, detectConflic
 export function mergeReferencesWithStatus(
     allReferences: Reference[],
     decisionsData: { decision: Decision; rowIndex: number }[],
-    reviewerEmail: string
+    reviewerEmail: string,
+    log: typeof console.log = console.log
 ): ReferenceWithStatus[] {
     const references = allReferences.filter((ref) => !isLogicallyDeleted(ref)).map(ref => {
         const refId = (ref.ref_id || '').trim();
         return refId && refId !== ref.ref_id ? { ...ref, ref_id: refId } : ref;
     });
 
-    console.log('[mergeReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
+    log('[mergeReferencesWithStatus] References:', references.length, 'Decisions:', decisionsData.length);
 
     // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
     const tiabDecisionsData = decisionsData.filter(
@@ -64,7 +65,7 @@ export function mergeReferencesWithStatus(
         }
     });
 
-    console.log('[mergeReferencesWithStatus] My decisions count:', myDecisions.size);
+    log('[mergeReferencesWithStatus] My decisions count:', myDecisions.size);
 
     return references.map(ref => {
         const myDecision = myDecisions.get(ref.ref_id);
@@ -93,14 +94,15 @@ export function mergeReferencesWithAllDecisions(
     decisionsData: { decision: Decision; rowIndex: number }[],
     reviewerEmail: string,
     activeBatchIds: Set<string>,
-    fulltextAiActiveRound: string | null
+    fulltextAiActiveRound: string | null,
+    log: typeof console.log = console.log
 ): ReferenceWithStatus[] {
     const references = allReferences.filter((ref) => !isLogicallyDeleted(ref)).map(ref => {
         const refId = (ref.ref_id || '').trim();
         return refId && refId !== ref.ref_id ? { ...ref, ref_id: refId } : ref;
     });
 
-    console.log('[mergeReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
+    log('[mergeReferencesWithAllDecisions] References:', references.length, 'Decisions:', decisionsData.length);
 
     // TiAb 画面用の集計のため、fulltext フェーズの判定は除外する（省略時は tiab 扱い）
     const tiabDecisionsData = decisionsData.filter(
@@ -113,10 +115,10 @@ export function mergeReferencesWithAllDecisions(
 
     // デバッグ: ref_idのサンプルを表示
     if (decisionsData.length > 0) {
-        console.log('[mergeReferencesWithAllDecisions] Sample decision ref_ids:', decisionsData.slice(0, 3).map(d => d.decision.ref_id));
+        log('[mergeReferencesWithAllDecisions] Sample decision ref_ids:', decisionsData.slice(0, 3).map(d => d.decision.ref_id));
     }
     if (references.length > 0) {
-        console.log('[mergeReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
+        log('[mergeReferencesWithAllDecisions] Sample reference ref_ids:', references.slice(0, 3).map(r => r.ref_id));
     }
 
     // 有効な LLM 判定 = active Run 配下の Batch IDs に含まれる reviewer_id のもの
@@ -126,7 +128,7 @@ export function mergeReferencesWithAllDecisions(
     // 全レビュアー（+採用ラウンドのAI）のフルテキスト判定マップ（結果集計用）
     const allFulltextDecisionsMap = buildAllFulltextDecisionsMap(decisionsData, fulltextAiActiveRound);
 
-    console.log('[mergeReferencesWithAllDecisions] activeBatchIds:', Array.from(validLlmExecutionIds));
+    log('[mergeReferencesWithAllDecisions] activeBatchIds:', Array.from(validLlmExecutionIds));
 
     // 全判定をref_id別にグループ化（有効なLLM判定のみを含める）
     const allDecisionsMap = new Map<string, Decision[]>();
@@ -173,17 +175,17 @@ export function mergeReferencesWithAllDecisions(
         }
     });
 
-    console.log('[mergeReferencesWithAllDecisions] allDecisionsMap size:', allDecisionsMap.size, 'addedDecisions:', addedDecisions, 'skippedLlm:', skippedLlm);
-    console.log('[mergeReferencesWithAllDecisions] addedHuman:', addedHuman, 'addedLlm:', addedLlm);
+    log('[mergeReferencesWithAllDecisions] allDecisionsMap size:', allDecisionsMap.size, 'addedDecisions:', addedDecisions, 'skippedLlm:', skippedLlm);
+    log('[mergeReferencesWithAllDecisions] addedHuman:', addedHuman, 'addedLlm:', addedLlm);
 
     // デバッグ: ref_idのマッチング状況
     const refIdsInDecisions = new Set(Array.from(allDecisionsMap.keys()));
     const refIdsInReferences = new Set(references.map(r => r.ref_id));
     const matchedRefIds = [...refIdsInDecisions].filter(id => refIdsInReferences.has(id));
     const unmatchedDecisionRefIds = [...refIdsInDecisions].filter(id => !refIdsInReferences.has(id));
-    console.log('[mergeReferencesWithAllDecisions] ref_id matching: matched=', matchedRefIds.length, 'unmatched decisions=', unmatchedDecisionRefIds.length);
+    log('[mergeReferencesWithAllDecisions] ref_id matching: matched=', matchedRefIds.length, 'unmatched decisions=', unmatchedDecisionRefIds.length);
     if (unmatchedDecisionRefIds.length > 0) {
-        console.log('[mergeReferencesWithAllDecisions] Sample unmatched decision ref_ids:', unmatchedDecisionRefIds.slice(0, 3));
+        log('[mergeReferencesWithAllDecisions] Sample unmatched decision ref_ids:', unmatchedDecisionRefIds.slice(0, 3));
     }
 
     return references.map(ref => {
