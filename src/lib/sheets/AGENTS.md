@@ -58,7 +58,7 @@
 | client_version  | 拡張機能バージョン                     |      |
 | source_url      | 判定時に見ていたURL                    |      |
 | screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
-| context_json    | 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON（`DecisionContextV1`、`src/lib/decision-context.ts`）。human判定（TiAb/フルテキストの `handleDecision`/`handleSave`）の保存時のみ設定する。**書くだけの列で、読み手（既存のUI・集計）の挙動は一切変えない**。将来「人間の判定はAIから独立していたか」を遡って検証するための記録専用列 |      |
+| context_json    | 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON（`DecisionContextV1`、`src/lib/decision-context.ts`）。human判定（TiAb/フルテキストの `handleDecision`/`handleSave`）の保存時に設定する。CLI で本人の既存判定を移す場合は、AI暴露情報ではなく取り込み由来 `{"imported":true,"by":"cli","source":"CSVのファイル名"}` を保存する。**書くだけの列で、読み手（既存のUI・集計）の挙動は一切変えない**。将来「人間の判定はAIから独立していたか」を遡って検証するための記録専用列 |      |
 
 **重要**（2026-08 追記専用化。詳細は「κ（Cohen's kappa）の算出」参照）:
 

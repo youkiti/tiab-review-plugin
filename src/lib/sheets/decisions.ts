@@ -21,7 +21,7 @@ import { parseDecisionValues } from './codecs';
  * Decisions タブから生の全行を取得する（畳み込みなし）。
  * 追記専用化（human / ML手動確認の判定は append のみ）により同一キーの行が複数残るため、
  * 判定イベントの履歴そのものが必要な箇所（deleteFulltextAiRound など）だけがこれを使うこと。
- * 通常の読み取りは getDecisions() の畳み込み結果を使う。外部へは export しない。
+ * 通常の読み取りは getDecisions() の畳み込み結果を使う。CLI の履歴検査・取り込み確認でも生行を使う。
  */
 export async function getDecisionsRaw(spreadsheetId: string): Promise<{ decision: Decision; rowIndex: number }[]> {
     const values = await getSheetValues(spreadsheetId, `${DECISIONS_SHEET}!A:${DECISIONS_LAST_COLUMN}`);

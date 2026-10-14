@@ -1,4 +1,5 @@
-import { DEFAULT_ASSIGNMENT_CONFIG, resolveReferenceAssignmentSet } from '../../lib/assignment-set';
+import { dismissAssignment } from '../../lib/assignment-dismiss';
+import { DEFAULT_ASSIGNMENT_CONFIG, createDefaultAssignmentConfig, resolveReferenceAssignmentSet } from '../../lib/assignment-set';
 import type { AssignmentConfig, ReferenceWithStatus } from '../../lib/types';
 import { getAssignmentConfig, saveAssignmentConfig, updateReferenceScreeningSets } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
@@ -54,9 +55,7 @@ function normalizeReviewerMap(reviewerMap: Record<string, string[]>): Record<str
     return normalized;
 }
 
-export function createDefaultAssignmentConfig(): AssignmentConfig {
-    return { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
-}
+export { createDefaultAssignmentConfig } from '../../lib/assignment-set';
 
 export function getReferenceAssignmentSet(ref: ReferenceWithStatus): string {
     return resolveReferenceAssignmentSet(ref, state.assignmentConfig);
@@ -614,12 +613,7 @@ function showAssignmentWizard() {
 async function dismissAssignmentWizard() {
     try {
         showLoading(true);
-        const nextConfig: AssignmentConfig = {
-            ...createDefaultAssignmentConfig(),
-            status: 'dismissed',
-            dismissedAt: new Date().toISOString(),
-        };
-        await saveAssignmentConfig(state.spreadsheetId, nextConfig);
+        const nextConfig = await dismissAssignment(state.spreadsheetId);
         storeSetAssignmentConfig(nextConfig);
         renderAssignmentManager();
         hideModal();

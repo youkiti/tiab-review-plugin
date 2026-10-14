@@ -1,4 +1,4 @@
-# コマンドラインからプロジェクトを作る（`scripts/create-project.mjs`）
+# コマンドラインでプロジェクトを作成・管理する
 
 プロジェクトの新規作成（スプレッドシート作成 → RIS 取り込み → 招待）を、拡張機能の画面を開かずにコマンド1回で行うためのスクリプトです（Issue #245）。画面を自動操作するのではなく、拡張機能と同じ `src/lib` の関数から Google Sheets / Drive の API を呼びます。
 
@@ -90,6 +90,76 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 | `--help` | 使い方を表示 |
 
 `npm run create-project -- --title ... --ris ...` でも同じです。
+
+## サブコマンド
+
+`node scripts/tiab.mjs`（または `npm run tiab --`）で次の操作ができます。
+従来の `create-project.mjs --title ... --ris ...` も同じ作成処理を使います。
+
+```bash
+node scripts/tiab.mjs create --title "付け直し" --ris conflicts.ris --decisions decisions.csv --open-key
+node scripts/tiab.mjs seed <spreadsheet_id> --decisions decisions.csv --open-key
+node scripts/tiab.mjs status <spreadsheet_id>
+node scripts/tiab.mjs status <spreadsheet_id> --json
+node scripts/tiab.mjs share <spreadsheet_id> --share a@example.com,b@example.com --lang ja --dry-run
+```
+
+- `create`: 従来の作成オプションに `--decisions <CSV>` と `--open-key` を追加。判定の読み戻しを確認してから招待します。
+- `seed`: 既存プロジェクトへ判定を取り込みます。`--open-key` があれば互いの判定・メモを表示する状態にします。指定が無ければ開閉状態を変えません。
+- `seed` / `create --decisions`: 担当セット案内を非表示にします。未設定（`none`）だけを `dismissed` に保存し、既に `dismissed` なら保存不要、作成済み（`configured`）なら維持してその旨を表示します。
+- `share`: シートへ通知付きの編集権限、Config に記録されたプロジェクトフォルダへ通知なしの編集権限を付与します。失敗した相手・フォルダ共有の警告は作成時と同じです。**dry-run を外すと取り消せない招待メールが届きます。**
+- `status`: プロジェクト名、文献数と取り込み元別件数、キー・担当セットの状態、人の最新判定とメモの件数、チーム集計、画面の「不一致」件数、共有済みユーザーと役割を表示します。文献ごとの PMID / DOI、最新判定・メモ・チーム判定・合議行の有無は `--json` のときだけ出力し、テキストでは「文献ごとの詳細は --json で出力」と案内します。`--json` は集計と文献ごとの詳細を JSON のみで出力します。抄録は出しません。
+
+対象は **この CLI で作ったプロジェクト**です。`drive.file` の制約により、別の人・別のアプリが作ったシートの読み書きには使えません。
+
+### 判定 CSV
+
+UTF-8、見出しありで、次の列を使います。BOM、引用符で囲んだ改行・カンマ・二重引用符にも対応します。
+
+```csv
+pmid,reviewer_id,decision,note,decided_at
+12345678,a@example.com,include,対象に合う,2026-10-01T12:00:00Z
+12345678,b@example.com,exclude,対象を再確認したい,2026-10-01T12:05:00Z
+```
+
+- `pmid` の代わりに `doi` も使えます。両方ある行は両方が同じ References 行に一致する必要があります。
+- `reviewer_id` は小文字のメールアドレス、`decision` は `include` / `exclude` / `maybe`。`note` は空でも構いません。`decided_at` はタイムゾーン付き ISO 8601 です。
+- 照合できない文献、曖昧な識別子、CSV 内の同じ文献・判定者の重複、既存の同じ文献・判定者の人の判定（履歴・全文判定を含む）、不正なメール・判定値・日時を検出したら、書き込まずに止めます。
+- **本人が別の場所で付けた判定を移す用途に限ります。** 他人の判断を代作する機能ではありません。`client_version` は既存の関数で `-human` を付け、合議後の `-human-consensus` にはしません。`context_json` に `{"imported":true,"by":"cli","source":"decisions.csv"}` を保存するので、取り込み行を後から識別できます。
+- メモは数式として解釈せず文字列のまま保存します。追記後に取り込み行の件数と文献・判定者ごとの判定・メモを読み戻して照合します。
+
+```bash
+node scripts/tiab.mjs seed dummy --decisions decisions.csv --dry-run
+```
+
+`--dry-run` は **CSV の検査結果だけ**（行数、CSV の識別子で数えた文献数、判定者ごとの内訳、メモあり件数）を表示します。References との照合や既存判定の検査はしません。PMID と DOI が同じ文献を指していても、dry-run の文献数では別々に数える場合があります。API・認証・`.env`・保存済み資格情報にはアクセスしません。`share --dry-run` は相手の一覧だけを表示し、招待しません。
+
+追記は冪等ではありません。途中で失敗しても自動再試行しません（判定の追記は429でも再送しません）。読み戻せた行数、または読み戻し不能なら「不明」を表示して停止します。全件入っていても、内容不一致の場合があります。判定の保存・照合が完了した後にキー開封や担当セット案内の非表示が失敗した場合は、判定は全件書き込み・照合済みであることと、失敗した後続処理を別のエラーで表示します。**そのまま seed を再実行せず**、表示されたシートの Decisions / Config を確認してください。同時に他の画面や CLI から判定を保存しないでください（検査と追記は Sheets 上のトランザクションではありません）。
+
+### 不一致件数の読み方
+
+チーム集計は担当人数を考慮するため、担当者の一部しか判定していない文献は `incomplete` です。画面の「不一致」は有効な判定者の票の違いを調べます。両者が異なるときは明示します。キー未開封時は画面と同じ可視範囲の票で「不一致」を計算し、チーム集計・文献別出力は管理用として全判定を対象にします。
+
+画面と比較する値は **`filter_conflict`（画面の「不一致」）** です。`status` は個人の表示設定を読み込まず、画面の既定値 `treatMlAsManual=true` と、開封後は全判定者＋ログイン本人を有効にした条件を使います。担当セット・取り込み元・検索など追加の絞り込みを外して比較してください。References の総数は論理削除済みも含み、画面対象件数はそれを除きます。人の件数は TiAb の最新判定を対象にします。AI の旧形式履歴がある場合も `status` は移行を書き込まず、読み取り専用で計算します。
+
+### 付け直し用プロジェクトを準備する一連の手順
+
+```bash
+# 1. 食い違った文献だけの RIS から、招待なしで作る
+node scripts/tiab.mjs create --title "不一致の付け直し" --ris conflicts.ris
+
+# 2. 表示された ID へ、本人が付けた判定とメモを移してキーを開封する
+node scripts/tiab.mjs seed <spreadsheet_id> --decisions decisions.csv --open-key
+
+# 3. 画面の不一致件数、メモ、担当セット案内の非表示を確認する
+node scripts/tiab.mjs status <spreadsheet_id> --json
+
+# 4. 相手を確認してから通知付きで招待する
+node scripts/tiab.mjs share <spreadsheet_id> --share a@example.com,b@example.com --dry-run
+node scripts/tiab.mjs share <spreadsheet_id> --share a@example.com,b@example.com
+```
+
+手順1・2は `create --decisions decisions.csv --open-key` にまとめられます。判定者は拡張機能でプロジェクトを開き、合議モードで「不一致」を選んで付け直します。初回の許可操作は下記「拡張機能で開く」を参照してください。
 
 ## 作られるもの
 

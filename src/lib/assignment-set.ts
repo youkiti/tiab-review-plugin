@@ -8,6 +8,11 @@ export const DEFAULT_ASSIGNMENT_CONFIG: AssignmentConfig = {
     reviewerMap: {},
 };
 
+/** 呼び出し側で変更できる担当セットの初期値を返す。 */
+export function createDefaultAssignmentConfig(): AssignmentConfig {
+    return { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} };
+}
+
 export function resolveReferenceAssignmentSet(ref: Reference, assignmentConfig: AssignmentConfig): string {
     const normalized = (ref.screening_set || '').trim();
     if (normalized) {

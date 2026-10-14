@@ -21,7 +21,7 @@ function run(args) {
     return result.status ?? 1;
 }
 
-function main() {
+export function runCli(argv = process.argv.slice(2)) {
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
     const configured = config.compilerOptions?.outDir;
     if (typeof configured !== 'string' || !configured.trim()) {
@@ -37,7 +37,6 @@ function main() {
     if (compiled !== 0) {
         return compiled;
     }
-    const argv = process.argv.slice(2);
     // Issue #245: 非通信経路では .env も資格情報も読み込まない。
     if (!argv.some(arg => ['--dry-run', '--help', '-h'].includes(arg))) {
         const envPath = path.join(root, '.env');
@@ -49,10 +48,17 @@ function main() {
     return run([path.join(output, 'src/cli/bin.js'), ...argv]);
 }
 
-try {
-    process.exitCode = main();
-} catch (error) {
-    console.error('CLI の準備に失敗しました。ビルド環境とファイル権限を確認してください。');
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    process.exitCode = launchCli();
+}
+
+/** 両方の入口で準備失敗の表示も揃える。 */
+export function launchCli() {
+    try {
+        return runCli();
+    } catch (error) {
+        console.error('CLI の準備に失敗しました。ビルド環境とファイル権限を確認してください。');
+        console.error(error instanceof Error ? error.message : String(error));
+        return 1;
+    }
 }

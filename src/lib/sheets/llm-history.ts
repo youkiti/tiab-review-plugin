@@ -238,15 +238,18 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
  *
  * 動的にヘッダーから列範囲を決めるため、シートに後から追加された列にも追従する。
  */
-export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecution[]> {
+export async function getLlmExecutions(spreadsheetId: string, readOnly = false): Promise<LlmExecution[]> {
     try {
         let values: string[][];
         try {
-            values = await readLlmExecutionsValues(spreadsheetId);
+            values = readOnly ? await getSheetValues(spreadsheetId, LLM_EXECUTIONS_SHEET)
+                : await readLlmExecutionsValues(spreadsheetId);
         } catch (error) {
             if (!isSheetMissingError(error)) throw error;
+            if (readOnly) return [];
             await ensureLlmExecutionsSheet(spreadsheetId);
-            values = await readLlmExecutionsValues(spreadsheetId);
+            values = readOnly ? await getSheetValues(spreadsheetId, LLM_EXECUTIONS_SHEET)
+                : await readLlmExecutionsValues(spreadsheetId);
         }
 
         if (values.length <= 1) {
@@ -307,6 +310,7 @@ export async function getLlmExecutions(spreadsheetId: string): Promise<LlmExecut
             return execution as unknown as LlmExecution;
         });
     } catch (error) {
+        if (readOnly) throw error;
         console.error('[getLlmExecutions] Error:', error);
         return [];
     }
@@ -440,14 +444,17 @@ function serializeLlmRunRow(run: LlmRun): string[] {
 /**
  * LLM_Runs シートの全 Run 行を生データのまま取得（移行を起こさない内部関数）
  */
-async function getLlmRunsRaw(spreadsheetId: string): Promise<LlmRun[]> {
+async function getLlmRunsRaw(spreadsheetId: string, readOnly = false): Promise<LlmRun[]> {
     let values: string[][];
     try {
-        values = await readLlmRunsValues(spreadsheetId);
+        values = readOnly ? await getSheetValues(spreadsheetId, LLM_RUNS_SHEET)
+            : await readLlmRunsValues(spreadsheetId);
     } catch (error) {
         if (!isSheetMissingError(error)) throw error;
+        if (readOnly) return [];
         await ensureLlmRunsSheet(spreadsheetId);
-        values = await readLlmRunsValues(spreadsheetId);
+        values = readOnly ? await getSheetValues(spreadsheetId, LLM_RUNS_SHEET)
+            : await readLlmRunsValues(spreadsheetId);
     }
     if (values.length <= 1) return [];
     const headers = values[0];
@@ -574,7 +581,8 @@ async function updateExecutionRunIds(
 async function migrateLegacyExecutionsToRuns(
     spreadsheetId: string,
     existingRuns: LlmRun[],
-    allBatches: LlmExecution[]
+    allBatches: LlmExecution[],
+    readOnly = false
 ): Promise<{ runs: LlmRun[]; newRuns: LlmRun[]; assignments: Array<{ executionId: string; runId: string }> }> {
     const targets = allBatches.filter(
         b => b.execution_type === 'batch_screening' && !b.run_id
@@ -670,11 +678,11 @@ async function migrateLegacyExecutionsToRuns(
     }
 
     // 永続化
-    if (newRuns.length > 0) {
+    if (!readOnly && newRuns.length > 0) {
         const rows = newRuns.map(serializeLlmRunRow);
         await appendRows(spreadsheetId, LLM_RUNS_SHEET, rows);
     }
-    if (assignments.length > 0) {
+    if (!readOnly && assignments.length > 0) {
         await updateExecutionRunIds(spreadsheetId, assignments);
     }
 
@@ -700,21 +708,23 @@ export async function getLlmRuns(spreadsheetId: string): Promise<LlmRun[]> {
  * 履歴を一度ずつ読み、移行後の所属情報も同じロード内のスナップショットへ反映する。
  * 各タブの本体取得の1回（ヘッダー確認は本体の1行目で兼ねる。タブ欠落時だけensureして読み直す）。内容はモジュールに保持しない。
  * 旧形式移行が必要な場合は、所属を書き込む直前の行位置確認の取得も従来どおり行う。
+ * readOnly のときはシート作成・ヘッダー移行・所属保存を行わず、取得エラーを呼び出し側へ返す。
  */
-export async function getLlmHistory(spreadsheetId: string): Promise<{
+export async function getLlmHistory(spreadsheetId: string, readOnly = false): Promise<{
     llmRuns: LlmRun[]; llmExecutions: LlmExecution[];
 }> {
-    const executionsPromise = getLlmExecutions(spreadsheetId);
+    const executionsPromise = getLlmExecutions(spreadsheetId, readOnly);
     try {
         const [existingRuns, allBatches] = await Promise.all([
-            getLlmRunsRaw(spreadsheetId),
+            getLlmRunsRaw(spreadsheetId, readOnly),
             executionsPromise,
         ]);
 
         const { runs, assignments } = await migrateLegacyExecutionsToRuns(
             spreadsheetId,
             existingRuns,
-            allBatches
+            allBatches,
+            readOnly
         );
 
         const runIds = new Map(assignments.map(a => [a.executionId, a.runId]));
@@ -726,6 +736,7 @@ export async function getLlmHistory(spreadsheetId: string): Promise<{
             }),
         };
     } catch (error) {
+        if (readOnly) throw error;
         console.error('[getLlmRuns] Error:', error);
         return { llmRuns: [], llmExecutions: await executionsPromise };
     }
