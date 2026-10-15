@@ -76,8 +76,8 @@ gcloud services enable drive.googleapis.com
 
 > **LLM プロバイダ**: Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe に対応。v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「🔑 APIキー」カードの OpenRouter 行から登録します（環境変数は実験ランナー用途のみ）。
 
-> **TypeSafe**（2026-09 採用）: `jev-1.13.0` を選べます。キーは https://console.typesafe.ai/settings/keys で発行し、サイドパネル「🔑 APIキー」カードの TypeSafe 行に貼り付けて「確認して保存」を押します（環境変数 `TYPE_SAFE_API_KEY` は実験ランナー用途のみ）。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。
-> OpenRouter のキーだけでも `typesafe/jev-1.13`（OpenRouter 経由）を選べます。単価は入力 $0.042/100万トークン・出力無料（2026-09-18 時点の OpenRouter 表示）。
+> **TypeSafe**（2026-10 更新）: `jev-1.14.0` を選べます。キーは https://console.typesafe.ai/settings/keys で発行し、サイドパネル「🔑 APIキー」カードの TypeSafe 行に貼り付けて「確認して保存」を押します（環境変数 `TYPE_SAFE_API_KEY` は実験ランナー用途のみ）。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。
+> OpenRouter のキーだけでも `typesafe/jev-1.14`（OpenRouter 経由）を選べます。単価は入力 $0.042/100万トークン・出力無料（2026-09-18 時点の OpenRouter 表示）。
 
 > **`WEBAUTH_CLIENT_ID` は dev/ストア共通の単一クライアントです。**
 > リダイレクトURIが拡張機能IDから実行時に導出されるため、同じクライアントIDのまま2件のリダイレクトURI（上記手順4）を登録しておけば dev ビルド・ストアビルドの双方で動作します。
@@ -257,9 +257,9 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
   - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
   - **OpenAI**: `gpt-5.6-terra` / `gpt-5.6-luna`
   - **Anthropic**: `claude-haiku-5-5` / `claude-sonnet-5-5`（depression 1,993件のベンチマークは未実施。同梱基準の Recall ≥ 90% は未確認）
-  - **TypeSafe** (2026-09 採用): `jev-1.13.0`（OpenRouter 経由は `typesafe/jev-1.13`。拡張の既定閾値0.3で depression Recall 96.1% / CQ1〜5 合算 95.0%（246/259）。判定理由の文章は返らず、基準の要素別確率を記録）
+  - **TypeSafe** (2026-10 更新): `jev-1.14.0`（OpenRouter 経由は `typesafe/jev-1.14`。拡張の既定閾値0.3で depression Recall 96.8% / CQ1〜5 合算 97.3%（252/259）。判定理由の文章は返らず、基準の要素別確率を記録）
 - OpenRouter モデルは [experiments/openrouter-bench/](experiments/openrouter-bench/) の depression データセット全件 (N=1,993) ベンチで採用基準 (Recall ≥ 0.90) を満たした 2 モデルのみを同梱しています。
-- TypeSafe `jev-1.13.0` は [experiments/typesafe-jev/](experiments/typesafe-jev/) で拡張の既定閾値0.3に固定して depression（Recall 96.1%）と CQ1〜5（合算 95.0%）を全件評価し、上と同じ同梱の採用基準 (Recall ≥ 0.90) を満たすため採用しています。
+- TypeSafe `jev-1.14.0` は [experiments/typesafe-jev/](experiments/typesafe-jev/) で拡張の既定閾値0.3に固定して depression（Recall 96.8%）と CQ1〜5（合算 97.3%）を全件評価し、上と同じ同梱の採用基準 (Recall ≥ 0.90) を満たすため採用しています。アプリの一括判定では、TypeSafe は直 API・OpenRouter 経由とも手動 tier の設定に関係なく並列64で動作します。
 - **OpenRouter カスタムモデル**: 上記同梱モデル以外の OpenRouter モデル（例: `anthropic/claude-3.7-sonnet`、`openai/gpt-4o-mini` 等）も、サイドパネルの「OpenRouter カスタムモデル」カードからモデル ID を手入力できます。「テストして保存」を押すと実 API を 1 回叩き、スクリーニング用 JSON 出力が返ったモデルだけがブラウザに保存され、以降モデル選択肢に出現します（最大 20 件）。カスタムモデルは当ツールのベンチマーク対象外のため、組入精度は各自で必ず検証してください。
 - **2026-05 以降は `latest` エイリアス (`gemini-flash-lite-latest` / `gemini-flash-latest`) ではなく、ベンチマーク済みの固定バージョン ID を採用しています**。Google がエイリアス実体を更新した際の挙動変化 (Recall・コスト) を防ぐためです。例として `gemini-3.5-flash` (depression Recall 93.2%) が将来 `gemini-flash-latest` の実体になった場合でも、UI 上のユーザー設定は影響を受けません。
 - 既存ユーザーの設定 (`llm_model = gemini-flash-lite-latest` 等) は、Config シート読み込み時に自動で固定 ID へマイグレーションされます ([src/lib/gemini-api.ts](src/lib/gemini-api.ts) の `MODEL_ID_MIGRATIONS`)。
@@ -269,7 +269,7 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 
 ## LLMスクリーニング精度ベンチマーク
 
-`experiments/` 配下で複数モデルを 7 データセット (depression / cq1–cq5 / wilson、計約 22,000 件) で評価しています。threshold=0.5 固定（TypeSafe `jev-1.13.0` のみ拡張の既定閾値 0.3 で固定し、0.5 を併記）、主指標は Recall (Sensitivity)。
+`experiments/` 配下で複数モデルを 7 データセット (depression / cq1–cq5 / wilson、計約 22,000 件) で評価しています。threshold=0.5 固定（TypeSafe `jev-1.14.0` のみ拡張の既定閾値 0.3 で固定し、0.5 を併記）、主指標は Recall (Sensitivity)。
 
 ### depression データセットでの代表的結果 (n=1,993, 陽性 280 件)
 
@@ -283,12 +283,12 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 | `gemini-3.5-flash-lite` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think LOW | 91.8% | 64.4% | 91.0% | 5 | $0.41 |
 | `gemini-3.7-flash` (参考・採用見送り) | Temp 1.0 / TopP 0.95 / Think MEDIUM | 91.1% | 65.6% | 90.4% | 57 | $3.27 |
 | `gemini-3.8-flash` (参考・採用見送り) | サンプリング未指定 / Think LOW | 88.9% | 72.2% | 88.5% | 41 | $0.98 |
-| `jev-1.13.0` (TypeSafe, 採用) | 総合 Noul 1問 / **閾値0.3**（他の行は0.5） | 96.1% | 36.9% | 93.1% | ≈70 | 約 $0.03（OpenRouter） |
+| `jev-1.14.0` (TypeSafe, 採用) | 総合 Noul 1問 / **閾値0.3**（他の行は0.5） | 96.8% | 36.6% | 93.7% | ≈70 | 約 $0.03（OpenRouter） |
 
 **所見**:
 - `gemini-3.7-flash` は入力/出力単価が前世代比半額（2026-12-31まで、以降は同額に改定予定）だが、Recall は 91.1%（最良条件）に留まり前世代・現行デフォルトのいずれにも届かず却下。thinking を上げても Recall はほぼ動かずコストだけ増える。詳細は [experiments/gemini-3.7-flash/report.md](experiments/gemini-3.7-flash/report.md)。
 - `gemini-3.8-flash` は $0.98/1K件と B4 の 0.58 倍まで安くなった（思考トークンが 3.7 LOW の約1/5）が、Recall は 88.9% と 4 世代で最低。「Recall↓・Precision↑（除外方向へ寄る）」の傾向が最も強く出ており却下。threshold を 0.05 まで下げれば Recall 97.5% に届くが Precision が 38.9% まで落ち、同 Recall 帯の B4（96.1% / 53.4%）に劣る。詳細は [experiments/gemini-3.8-flash/report.md](experiments/gemini-3.8-flash/report.md)。
-- `jev-1.13.0`（TypeSafe、2026-09）は、確率を直接返す System One API に「組み入れるべきか」の Noul 1問を投げ、拡張の既定閾値 **0.3 で固定**して評価した（過去モデルとの比較のため 0.5 も併記）。depression では Recall 96.1%（B4 と同値）だが Precision は 36.9% で、同 Recall 帯の B4（53.4%）に劣る。閾値0.5なら Recall 93.6% / Precision 53.3%。確率は0〜1に広く分布して順位付けも良い（ROC AUC 0.956、陽性280件中208件が 0.9 以上）。CQ1〜5 の結果は下の「全データセット Recall」を参照。1件あたり出力20トークン、入力は depression 約723・CQ 約950〜1,210 トークン、応答時間の中央値は約220〜240ms、全6データセット18,638件で失敗0件。OpenRouter 経由の単価（入力 $0.042/100万トークン、出力無料）で換算すると depression 約 $0.03/1K件、CQ 約 $0.04〜0.05/1K件。詳細は [experiments/typesafe-jev/report.md](experiments/typesafe-jev/report.md)。
+- `jev-1.14.0`（TypeSafe、2026-10）は、確率を直接返す System One API に「組み入れるべきか」の Noul 1問を投げ、拡張の既定閾値 **0.3 で固定**して評価した（過去モデルとの比較のため 0.5 も併記）。depression では Recall 96.8% / Specificity 72.6% / Precision 36.6% / Fβ(7) 93.7%。Precision は B4（53.4%）に劣る。閾値0.5なら Recall 92.9% / Specificity 85.6% / Precision 51.3% / Fβ(7) 91.4%。確率は0〜1に広く分布し、ROC AUC は0.959（1.13.0は0.956）、陽性280件中219件が0.9以上（1.13.0は208件）。Recall 95%を保つ最大閾値は0.4（Precision 44.6%、WSS@95 65.0%）。CQ1〜5 の結果は下の「全データセット Recall」を参照。1件あたり出力20トークン、入力平均は depression 723・CQ 947〜1,214トークン。応答時間の中央値は並列64で約150〜180ms（149〜183ms、depression 165ms）、全6データセット18,638件で失敗0件。OpenRouter 経由の単価（入力 $0.042/100万トークン、出力無料）で換算すると depression 約 $0.03/1K件、CQ 約 $0.04〜0.05/1K件。詳細は [experiments/typesafe-jev/report.md](experiments/typesafe-jev/report.md)。1.13.0 の評価記録は [experiments/typesafe-jev/report-jev-1.13.0.md](experiments/typesafe-jev/report-jev-1.13.0.md) に残してある。
 
 ### OpenRouter モデル評価 (2026-05, depression 全1,993件)
 
@@ -327,19 +327,19 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 
 ### 全データセット Recall (最良条件比較)
 
-| データセット | n | 陽性率 | `gemini-3-flash-preview` (B4) | `gemini-3.1-flash-lite` (GA) | `jev-1.13.0` (TypeSafe, 閾値0.3) |
+| データセット | n | 陽性率 | `gemini-3-flash-preview` (B4) | `gemini-3.1-flash-lite` (GA) | `jev-1.14.0` (TypeSafe, 閾値0.3) |
 |---|---|---|---|---|---|
-| depression | 1,993 | 14.1% | **96.1%** | 93.6% | 96.1% |
-| cq1 | 5,628 | 2.0% | **99.1%** | 83.2% | 91.2% |
+| depression | 1,993 | 14.1% | 96.1% | 93.6% | **96.8%** |
+| cq1 | 5,628 | 2.0% | **99.1%** | 83.2% | 96.5% |
 | cq2 | 3,400 | 0.5% | **100.0%** | 100.0% | 100.0% |
 | cq3 | 1,038 | 1.5% | **100.0%** | 87.5% | 87.5% |
 | cq4 | 4,326 | 1.7% | **100.0%** | 98.6% | 100.0% |
 | cq5 | 2,253 | 1.8% | **97.6%** | 97.6% | 97.6% |
-| CQ1〜5 合算 | 16,645 | 1.6% | **99.2%** | 91.1% | 95.0% |
+| CQ1〜5 合算 | 16,645 | 1.6% | **99.2%** | 91.1% | 97.3% |
 | wilson | 3,451 | 5.0% | N/A | 45.7% | 未実施 |
 
 - B4 と flash-lite の列は閾値0.5、TypeSafe の列は閾値0.3 の値。CQ1〜5 合算は5データセットの混同行列を足したマイクロ平均で、B4 の合算は各 CQ の Recall と陽性数から逆算した値（257/259）。
-- `jev-1.13.0` は CQ1〜5 合算で Recall 94.98%（246/259、見落とし13件）で、既定モデルの置き換え基準（Recall ≥ 95%）にはわずかに届かないが、同梱の採用基準（Recall ≥ 90%）は満たすため選択肢として採用。flash-lite GA（91.1%）は上回るが、B4（99.2%）には届かない。見落としは cq1（10件）と cq3（2件）に集中し、cq2・cq4 は見落とし0件。合算の Specificity は 67.2%（flash-lite GA 71.7%）、Precision は 4.4%（同 4.8%）。cq2（陽性17件）・cq3（陽性16件）は見落とし1件で Recall が約6pt 動く。
+- `jev-1.14.0` は CQ1〜5 合算で Recall 97.3%（252/259、見落とし7件）となり、既定モデルの置き換え基準（Recall ≥ 95%）にも届いた。ただし既定モデルは変更していない。flash-lite GA（91.1%）を上回るが、B4（99.2%）には届かない。見落としは cq1 4件・cq3 2件・cq5 1件で、cq2・cq4 は0件。1.13.0から合算 Recall は94.98%→97.3%、主に cq1 が91.2%→96.5%へ改善した一方、合算 Specificity は67.2%→64.8%、Precision は4.4%→4.2%となった（flash-lite GA はそれぞれ71.7%、4.8%）。cq2（陽性17件）・cq3（陽性16件）は見落とし1件で Recall が約6pt 動く。
 
 ### コスト参考 (公式公表値, 2026-05 時点)
 
@@ -356,7 +356,7 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 **現時点の推奨**:
 - 既定モデル: 速度・コスト優先で `gemini-3.1-flash-lite` (GA, Temp 0)。低 prevalence データセット (cq1 / cq3) や wilson では Recall が大きく低下する点に留意。
 - Recall を最重視したい場合のオプション: `gemini-3-flash-preview` (上表 B4 構成 = Temp 1.0 / TopP 0.95 / Thinking LOW)。
-- 速度と閾値の調整しやすさを重視する場合の選択肢（2026-09 採用）: TypeSafe `jev-1.13.0`（拡張の既定閾値0.3）。1件あたりの応答時間の中央値は約220〜240ms。確率が0〜1に広く分布するので、閾値で Recall と Precision を調整しやすい。depression Recall 96.1%・CQ1〜5 合算 95.0% だが、cq1（91.2%）・cq3（87.5%）で見落としが出る点、判定理由の文章を返さない点、単価が公開されていない点に留意。詳細は [experiments/typesafe-jev/report.md](experiments/typesafe-jev/report.md)。
+- 速度と閾値の調整しやすさを重視する場合の選択肢（2026-10 更新）: TypeSafe `jev-1.14.0`（拡張の既定閾値0.3）。1件あたりの応答時間の中央値は並列64で約150〜180ms。確率が0〜1に広く分布するので、閾値で Recall と Precision を調整しやすい。depression Recall 96.8%・CQ1〜5 合算97.3%だが、cq1（96.5%）・cq3（87.5%）・cq5（97.6%）で見落としが出る点、判定理由の文章を返さない点に留意。OpenRouter 単価は入力 $0.042/100万トークン・出力無料（depression 約 $0.03/1K件）。詳細は [experiments/typesafe-jev/report.md](experiments/typesafe-jev/report.md)。
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 - OpenRouter 系 (Kimi K2 / Qwen3 235B / DeepSeek V4 / Grok 4.3) は 2026-05 評価でいずれも depression 全件 Recall 95% 未満で、既定モデルの差し替え候補にはならず。`qwen3-235b-a22b-2507` のみ「コスト最重視の予算オプション」として `experiments/openrouter-bench/` で再現可能。
 - OpenAI `gpt-5.6-luna` は 2026-07 評価で depression 全件 Recall 95% 未満 (none 92.9% / low・medium 91.4%)、B4 を上回らず差し替え候補にならず。詳細は `experiments/gpt-5.6/`。

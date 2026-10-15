@@ -105,7 +105,7 @@
      水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
      蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
      既定で効いており、**実装すべきものは無い**
-   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) + OpenAI 2 種 (GPT-5.6 Terra, GPT-5.6 Luna) + Anthropic 2 種 (Claude Haiku 5.5, Claude Sonnet 5.5、未評価) + TypeSafe (`jev-1.13.0`) から選択
+   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) + OpenAI 2 種 (GPT-5.6 Terra, GPT-5.6 Luna) + Anthropic 2 種 (Claude Haiku 5.5, Claude Sonnet 5.5、未評価) + TypeSafe (`jev-1.14.0`) から選択
    - **OpenRouter カスタムモデル**: キー設定済みの OpenRouter 行内の「＋ 一覧にないモデルを追加」からフォームを開く（一覧も同じ行内に表示）。任意のモデル ID を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: LLMによる自動判定（バッチ処理）。対象の決定ロジックは `src/lib/llm-batch-target.ts`（純粋関数）に集約

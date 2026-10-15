@@ -552,6 +552,25 @@ export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, 
             saveBatchSize: 50,
         },
     },
+    // TypeSafe Jev: tier の概念がないため、直 API・OpenRouter とも全 tier で同値。
+    // 2026-10-15 の jev-1.14.0 実測（各段で並列数×4件）:
+    // 直 API は並列4/8/16/32/64で21/52/96/171/293件/秒。
+    // 並列64は256件すべて200・エラー0件、p95 305ms。
+    // 並列128は512件すべて200・エラー0件で335件/秒だが、p95 851msへ増大。
+    // 伸びが小さく遅延が増えるため128は採らず64とする。
+    // OpenRouter は並列16で24件/秒、64で132件/秒（256件すべて200・エラー0件、p95 539ms）。
+    'jev-1.14.0': {
+        free: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier1: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier2: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier3: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+    },
+    'typesafe/jev-1.14': {
+        free: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier1: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier2: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+        tier3: { rate: { concurrency: 64, delayBetweenRequests: 0 }, saveBatchSize: 64 },
+    },
     // OpenRouter 系: tier の概念がないため、全 tier 値で同じ固定プロファイルを返す。
     // 値は experiments/openrouter-bench/config.json の openrouter_default と揃える
     // (concurrency 10 / delay 200ms / saveBatchSize 10)。

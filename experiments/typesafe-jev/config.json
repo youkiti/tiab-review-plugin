@@ -1,6 +1,6 @@
 {
-    "description": "TypeSafe jev-1.13.0 の総合 Noul 1問による depression・cq1〜cq5 評価。成功した記録を逐次保存し、未処理分だけ再開する。",
-    "model": "jev-1.13.0",
+    "description": "TypeSafe jev-1.14.0 の総合 Noul 1問による depression・cq1〜cq5 評価。成功した記録を逐次保存し、未処理分だけ再開する。",
+    "model": "jev-1.14.0",
     "questionDesign": "overall-noul",
     "ledgerVersion": "v1",
     "datasets": {
@@ -43,7 +43,7 @@
     },
     "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
     "outputLanguage": "en",
-    "concurrency": 4,
+    "concurrency": 64,
     "retry": { "maxAttempts": 5, "baseDelayMs": 2000, "maxDelayMs": 60000 },
     "smokeSampleSize": 50,
     "sampleSeed": 2026,
@@ -54,32 +54,39 @@
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 96.1, "specificity": 86.3, "precision": 53.4, "fBeta7": 95.2, "source": "experiments/gpt-5.6/report.md" },
             { "model": "gpt-5.6-luna", "condition": "effort none", "threshold": 0.5, "recall": 92.9, "specificity": 84.3, "precision": 49.1, "fBeta7": 91.2, "source": "experiments/gpt-5.6/report.md" },
             { "model": "gemini-3.1-flash-lite", "condition": "Temp 0", "threshold": 0.5, "recall": 93.6, "specificity": null, "precision": 61.6, "fBeta7": 92.6, "source": "README.md" },
-            { "model": "qwen/qwen3-235b-a22b-2507", "condition": "Temp 0", "threshold": 0.5, "recall": 93.9, "specificity": null, "precision": 47.9, "fBeta7": 92.2, "source": "README.md" }
+            { "model": "qwen/qwen3-235b-a22b-2507", "condition": "Temp 0", "threshold": 0.5, "recall": 93.9, "specificity": null, "precision": 47.9, "fBeta7": 92.2, "source": "README.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 96.1, "specificity": 73.1, "precision": 36.9, "fBeta7": 93.1, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ],
         "cq1": [
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 99.1, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 83.2, "specificity": 60.6, "precision": 4.1, "fBeta7": 60.2, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 83.2, "specificity": 60.6, "precision": 4.1, "fBeta7": 60.2, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 91.2, "specificity": 55.0, "precision": 4.0, "fBeta7": 63.4, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ],
         "cq2": [
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 100.0, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 100.0, "specificity": 69.9, "precision": 1.6, "fBeta7": 45.5, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 100.0, "specificity": 69.9, "precision": 1.6, "fBeta7": 45.5, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 100.0, "specificity": 67.9, "precision": 1.5, "fBeta7": 43.9, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ],
         "cq3": [
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 100.0, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 87.5, "specificity": 64.6, "precision": 3.7, "fBeta7": 60.3, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 87.5, "specificity": 64.6, "precision": 3.7, "fBeta7": 60.3, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 87.5, "specificity": 61.3, "precision": 3.4, "fBeta7": 58.6, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ],
         "cq4": [
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 100.0, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 98.6, "specificity": 79.0, "precision": 7.3, "fBeta7": 79.0, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 98.6, "specificity": 79.0, "precision": 7.3, "fBeta7": 79.0, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 100.0, "specificity": 71.9, "precision": 5.7, "fBeta7": 75.1, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ],
         "cq5": [
             { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW", "threshold": 0.5, "recall": 97.6, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 97.6, "specificity": 91.7, "precision": 17.9, "fBeta7": 89.6, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+            { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0", "threshold": 0.5, "recall": 97.6, "specificity": 91.7, "precision": 17.9, "fBeta7": 89.6, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+            { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問", "threshold": 0.3, "recall": 97.6, "specificity": 90.5, "precision": 15.9, "fBeta7": 88.5, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
         ]
     },
     "pooledGroup": ["cq1", "cq2", "cq3", "cq4", "cq5"],
     "pooledComparison": [
         { "model": "gemini-3-flash-preview", "condition": "B4 / Think LOW（TP 257 / 陽性259）", "threshold": 0.5, "recall": 99.2, "specificity": null, "precision": null, "fBeta7": null, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
-        { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0（TP/FP/TN/FN: 236/4631/11755/23）", "threshold": 0.5, "recall": 91.1, "specificity": 71.7, "precision": 4.8, "fBeta7": 67.2, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" }
+        { "model": "gemini-3.1-flash-lite", "condition": "GA C1 / Temp 0（TP/FP/TN/FN: 236/4631/11755/23）", "threshold": 0.5, "recall": 91.1, "specificity": 71.7, "precision": 4.8, "fBeta7": 67.2, "source": "experiments/gemini-3.1-flash-lite-ga/report.md" },
+        { "model": "jev-1.13.0", "condition": "前版・総合 Noul 1問（TP 246 / 陽性259）", "threshold": 0.3, "recall": 95.0, "specificity": 67.2, "precision": 4.4, "fBeta7": 67.2, "source": "experiments/typesafe-jev/report-jev-1.13.0.md" }
     ]
 }

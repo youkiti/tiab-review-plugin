@@ -841,7 +841,7 @@ export interface ModelOption {
  * 全件ベンチ結果に基づき採用したもののみを載せる:
  *  - qwen/qwen3-235b-a22b-2507 : Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件
  *  - deepseek/deepseek-v4-flash : Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件
- * TypeSafe Jev 1.13.0 は確率を直接返すモデル（拡張の既定閾値0.3で depression Recall 96.1%、CQ1〜5 合算 95.0% で、同梱基準（Recall ≥ 90%）を満たし採用。experiments/typesafe-jev/）。
+ * TypeSafe Jev 1.14.0 は確率を直接返すモデル（拡張の既定閾値0.3で depression Recall 96.8%、CQ1〜5 合算 97.3% で、同梱基準（Recall ≥ 90%）を満たし採用。experiments/typesafe-jev/）。
  * 同じ版を OpenRouter の Decisions API 経由でも利用できる。
  *
  * `nameKey` は i18n キー (未定義時は `name` をフォールバック表示)。
@@ -912,21 +912,21 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     },
     {
         // latest エイリアスではなく固定版 ID を使う既存方針に従う（ベンチマークは experiments/typesafe-jev/）。
-        // 2026-09-17 時点で jev-latest / jev-preview は jev-1.13.0 を返し、
-        // 旧版 jev-1.12.0 は 400 Unknown model。新版公開時は ID の差し替えが必要。
-        id: 'jev-1.13.0',
-        name: 'TypeSafe Jev 1.13.0',
-        nameKey: 'llm_modelName_jev_1_13_0',
+        // 2026-10-15 時点で jev-latest は 1.13.0、jev-preview は 1.14.0 を返す。
+        // 旧版 jev-1.12.0 は新版公開後に 400 Unknown model となった前例があるため、固定版 ID を更新する。
+        id: 'jev-1.14.0',
+        name: 'TypeSafe Jev 1.14.0',
+        nameKey: 'llm_modelName_jev_1_14_0',
         provider: 'typesafe',
         // temperature は型の都合で置くだけで、typesafe プロバイダでは送らない。
         config: { temperature: 0 }
     },
     {
-        // 直 API の jev-1.13.0 と同じ版（応答の model は typesafe/jev-1.13-20260917）。ベンチマークは直 API で取得した。
+        // 直 API の jev-1.14.0 と同じ版（応答の model は typesafe/jev-1.14-20261014）。ベンチマークは直 API で取得した。
         // latest エイリアスではなく固定 ID を使い、評価した版を維持する。
-        id: 'typesafe/jev-1.13',
-        name: 'TypeSafe Jev 1.13 (OpenRouter)',
-        nameKey: 'llm_modelName_jev_1_13_openrouter',
+        id: 'typesafe/jev-1.14',
+        name: 'TypeSafe Jev 1.14 (OpenRouter)',
+        nameKey: 'llm_modelName_jev_1_14_openrouter',
         provider: 'openrouter',
         config: { temperature: 0 }
     },
