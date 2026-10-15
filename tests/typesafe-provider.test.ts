@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { getBatchProfile } from '../src/lib/types';
 import { AVAILABLE_MODELS } from '../src/lib/gemini-api';
 import { resolveProviderId, screenWithProvider, convertCriteriaWithProvider } from '../src/lib/llm-provider';
 import type { LlmScreenParams } from '../src/lib/llm-provider';
@@ -8,7 +9,7 @@ import { setSessionTypeSafeApiKey, clearSessionTypeSafeApiKey } from '../src/lib
 import { processBatch, parseLlmDecisionNote } from '../src/lib/llm-processor';
 
 const params: LlmScreenParams = {
-    title: '対象文献', abstract: '抄録', screeningPrompt: '判定基準', model: 'jev-1.13.0', outputLanguage: 'ja',
+    title: '対象文献', abstract: '抄録', screeningPrompt: '判定基準', model: 'jev-1.14.0', outputLanguage: 'ja',
     criteria: { template: 'pico', fields: { P: '成人', I: '介入A', C: '', O: '死亡' } },
 };
 const payload = {
@@ -121,6 +122,7 @@ for (const { status, message, nonRetryable } of [
     { status: 429, message: 'Too Many Requests', nonRetryable: false },
     { status: 529, message: 'Overloaded', nonRetryable: false },
     { status: 401, message: 'Unauthorized', nonRetryable: true },
+    { status: 402, message: 'Your organization has no available TypeSafe API credits.', nonRetryable: true },
     { status: 403, message: 'Forbidden', nonRetryable: true },
     { status: 400, message: `Unknown model: ${params.model}`, nonRetryable: true },
     { status: 400, message: 'Bad Request', nonRetryable: false },
@@ -241,4 +243,15 @@ for (const status of [429, 529]) {
             assert.equal(rateLimitHits, status === 429 ? 1 : 0);
         });
     });
+}
+
+for (const model of ['jev-1.14.0', 'typesafe/jev-1.14']) {
+    for (const tier of ['free', 'tier1', 'tier2', 'tier3'] as const) {
+        test(`Jev のバッチ設定は ${model} / ${tier} で並列64・待機なし・64件保存になる`, () => {
+            assert.deepEqual(getBatchProfile(tier, model), {
+                rate: { concurrency: 64, delayBetweenRequests: 0 },
+                saveBatchSize: 64,
+            });
+        });
+    }
 }

@@ -10,7 +10,7 @@ import { setSessionOpenRouterApiKey, clearSessionOpenRouterApiKey } from '../src
 import { processBatch, parseLlmDecisionNote, formatBatchCostUsd } from '../src/lib/llm-processor';
 
 const params: LlmScreenParams = {
-    title: '対象文献', abstract: '抄録', screeningPrompt: '判定基準', model: 'typesafe/jev-1.13', outputLanguage: 'ja',
+    title: '対象文献', abstract: '抄録', screeningPrompt: '判定基準', model: 'typesafe/jev-1.14', outputLanguage: 'ja',
     criteria: { template: 'pico', fields: { P: '成人' } },
 };
 // 実測応答を固定フィクスチャとして使い、外部 API には通信しない。
@@ -27,14 +27,14 @@ async function withFetch(stub: typeof fetch, run: () => Promise<void>) {
 }
 
 test('OpenRouter の固定版・カスタム Jev を判別し、モデル一覧の所属と順序を維持する', () => {
-    for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) assert.equal(isOpenRouterJevModel(model), true);
-    for (const model of ['qwen/qwen3-235b-a22b-2507', 'jev-1.13.0']) assert.equal(isOpenRouterJevModel(model), false);
+    for (const model of ['typesafe/jev-1.14', '~typesafe/jev-latest']) assert.equal(isOpenRouterJevModel(model), true);
+    for (const model of ['qwen/qwen3-235b-a22b-2507', 'jev-1.14.0']) assert.equal(isOpenRouterJevModel(model), false);
     assert.equal(resolveProviderId(params.model, AVAILABLE_MODELS), 'openrouter');
-    const directIndex = AVAILABLE_MODELS.findIndex(m => m.id === 'jev-1.13.0');
+    const directIndex = AVAILABLE_MODELS.findIndex(m => m.id === 'jev-1.14.0');
     assert.equal(AVAILABLE_MODELS[directIndex + 1].id, params.model);
 });
 
-for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
+for (const model of ['typesafe/jev-1.14', '~typesafe/jev-latest']) {
     test(`${model} は Decisions へ直 API と同じ質問形式で送る`, async () => {
         let calls = 0;
         await withFetch(async (url, init) => {
@@ -43,7 +43,7 @@ for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
             assert.equal(init?.method, 'POST');
             assert.deepEqual(init?.headers, { Authorization: 'Bearer test-openrouter-key', 'Content-Type': 'application/json' });
             const body = JSON.parse(String(init?.body));
-            const direct = buildTypeSafeScreeningRequest({ ...params, model: 'jev-1.13.0' }).body;
+            const direct = buildTypeSafeScreeningRequest({ ...params, model: 'jev-1.14.0' }).body;
             assert.deepEqual(body, { ...direct, model });
             return Response.json(payload);
         }, async () => {
@@ -57,7 +57,7 @@ for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
     });
 }
 
-for (const model of ['typesafe/jev-1.13', '~typesafe/jev-latest']) {
+for (const model of ['typesafe/jev-1.14', '~typesafe/jev-latest']) {
     test(`${model} のカスタムモデル検証は Decisions に1回だけ送って成功する`, async () => {
         let calls = 0;
         await withFetch(async (url, init) => {

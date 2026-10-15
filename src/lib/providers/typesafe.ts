@@ -147,9 +147,10 @@ export async function screenViaTypeSafe(
                 : text.slice(0, 200);
             const error = new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`);
             // 4xx を恒久的な失敗と決めつけない。負荷時の 400 は直後に通ることがあるため、
-            // キー不正・権限なし・モデル不明と、OpenRouter の残高不足だけを再試行不可にする。
-            if (response.status === 401 || response.status === 403
-                || (viaOpenRouter && response.status === 402) || unknownModel) Object.assign(error, { retryable: false });
+            // キー不正・権限なし・モデル不明と、残高不足（402）だけを再試行不可にする。
+            // 直 API もクレジットが尽きると 402 billing_error を返す（2026-10-15 実測）。再試行しても通らない。
+            if (response.status === 401 || response.status === 402 || response.status === 403
+                || unknownModel) Object.assign(error, { retryable: false });
             throw error;
         }
         // JSON として読めない場合も通常の Error のまま外側のリトライへ渡す。

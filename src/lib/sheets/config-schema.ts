@@ -368,8 +368,8 @@ export function parseLlmConfig(values: string[][]): LlmConfig {
                 config.llm_enabled = value.toLowerCase() === 'true';
                 break;
             case 'llm_model':
-                // latest エイリアスを固定バージョン ID へマイグレーション
-                // (2026-05 以降の保存値は固定 ID。既存シートの latest 値はここで透過的に変換)
+                // latest エイリアスや旧固定版を移行先の固定バージョン ID へマイグレーション
+                // 移行表にある保存値を透過的に変換し、表にないモデル ID は維持する
                 config.llm_model = MODEL_ID_MIGRATIONS[value] || value;
                 break;
             case 'llm_temperature':

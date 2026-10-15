@@ -81,3 +81,7 @@ WSS@95 = (TN+FN)/完了件数 − 0.05、ROC AUC は同順位を0.5とする順�
 CQ の比較は [flash-lite GA レポートの Phase 2 結果](../gemini-3.1-flash-lite-ga/report.md) に基づく。
 合算の B4 Recall は各CQの Recall と陽性数から TP を逆算した257/259、flash-lite は混同行列の合計236/4631/11755/23による。
 レポートには考察を自動生成しない。暫定値や偽応答による判定は最終採用判断に使用しない。
+
+## 2026-10-15: jev-1.14.0 の再評価
+
+jev-1.14.0 を同じデータ・プロンプト・閾値・手順で評価した。[runner.ts](runner.ts) に各データセットを指定し、並列数のみ `--concurrency 64` とした（[config.json](config.json) の既定値も64）。全6データセット18,638件を約1分半で完了し、失敗0件。元データは上表のリンク、成功記録は [results/](results/)、現行の集計は [report.md](report.md)、旧版の評価は [report-jev-1.13.0.md](report-jev-1.13.0.md) を参照。上記の1.13.0の既存記録・ハッシュは旧版の手順として残す。

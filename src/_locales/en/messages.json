@@ -3343,7 +3343,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.13.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.1%, CQ1–5 pooled 95.0%).\n\nConfigure the selected model’s key in the matching row of the API keys card below. See the latest benchmark via the link beside the model."
+    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.14.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.8%, CQ1–5 pooled 97.3%).\n\nConfigure the selected model’s key in the matching row of the API keys card below. See the latest benchmark via the link beside the model."
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 Compare on the benchmark"
@@ -3372,11 +3372,11 @@
   "llm_modelName_claude_sonnet_5_5": {
     "message": "Claude Sonnet 5.5 (not benchmarked)"
   },
-  "llm_modelName_jev_1_13_0": {
-    "message": "TypeSafe Jev 1.13.0 — Recall 96.1% (threshold 0.3)"
+  "llm_modelName_jev_1_14_0": {
+    "message": "TypeSafe Jev 1.14.0 — Recall 96.8% (threshold 0.3)"
   },
-  "llm_modelName_jev_1_13_openrouter": {
-    "message": "TypeSafe Jev 1.13 (OpenRouter) — Recall 96.1% (threshold 0.3)"
+  "llm_modelName_jev_1_14_openrouter": {
+    "message": "TypeSafe Jev 1.14 (OpenRouter) — Recall 96.8% (threshold 0.3)"
   },
   "llm_batchCost": {
     "message": " (estimated cost: $1 USD)"
