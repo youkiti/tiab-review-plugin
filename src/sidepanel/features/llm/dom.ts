@@ -52,7 +52,7 @@ export const dom = {
     get criteriaCard() { return getElement<HTMLElement>('criteria-card'); },
 
     // LLM 設定
-    get llmModelSelect() { return getElement<HTMLSelectElement>('llm-model-select'); },
+    get llmModelSelect() { return getElement<HTMLInputElement>('llm-model-select'); },
     get llmLanguageSelect() { return getElement<HTMLSelectElement>('llm-language-select'); },
     get protocolTextInput() { return getElement<HTMLTextAreaElement>('protocol-text-input'); },
     get importReviewCriteriaBtn() { return getElement<HTMLButtonElement>('import-review-criteria-btn'); },

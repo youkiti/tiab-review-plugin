@@ -2,12 +2,12 @@
   "version": 1,
   "entries": {
     "sidepanel/sidepanel": {
-      "measuredBytes": 323302,
-      "maxBytes": 326536
+      "measuredBytes": 326620,
+      "maxBytes": 329887
     },
     "app": {
-      "measuredBytes": 430218,
-      "maxBytes": 434521
+      "measuredBytes": 433706,
+      "maxBytes": 438044
     }
   }
 }

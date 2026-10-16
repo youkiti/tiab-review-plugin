@@ -455,17 +455,12 @@
                     <span class="help-icon help-icon--align-right" data-i18n-tooltip="llm_tip_model" tabindex="0" data-help="ai-model" data-tour="tour-list">?</span>
                 </h4>
                 <div class="model-select-row">
-                    <select id="llm-model-select" aria-labelledby="llm-model-title">
-                        <!-- populateModelSelect() で動的に置換される。これは JS 実行前のフォールバック -->
-                        <optgroup label="Gemini">
-                            <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash-Lite</option>
-                            <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
-                        </optgroup>
-                        <optgroup label="OpenRouter">
-                            <option value="qwen/qwen3-235b-a22b-2507">Qwen3 235B Instruct</option>
-                            <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
-                        </optgroup>
-                    </select>
+                    <div class="model-combobox">
+                        <input id="llm-model-select" type="text" role="combobox" aria-labelledby="llm-model-title"
+                               aria-autocomplete="list" aria-controls="llm-model-list" aria-expanded="false" autocomplete="off" spellcheck="false">
+                        <button id="llm-model-toggle" type="button" aria-controls="llm-model-list" data-i18n-aria-label="llm_toggleModels">▾</button>
+                        <ul id="llm-model-list" class="model-combobox-list hidden" role="listbox" aria-labelledby="llm-model-title"></ul>
+                    </div>
                     <a id="llm-benchmark-link"
                        href="https://github.com/youkiti/tiab-review-plugin#llmスクリーニング精度ベンチマーク"
                        target="_blank" rel="noopener noreferrer" data-i18n="llm_benchmarkLinkLabel"></a>

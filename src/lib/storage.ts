@@ -1,6 +1,7 @@
 // storage.ts - ローカルストレージ管理（APIキー等）
 
 import { platform } from '../platform';
+import type { OpenRouterModel, OpenRouterModelsCache } from './openrouter-models';
 import { parseScreeningPosition, type ScreeningPosition } from './screening-position';
 
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
@@ -14,6 +15,7 @@ const OPENROUTER_API_KEY_SAVE_PREFERENCE = 'openrouter_api_key_save_preference';
 
 // ユーザーが手動追加した OpenRouter モデル ID 一覧。実 API 試行に成功したもののみ保存する
 const OPENROUTER_CUSTOM_MODELS_KEY = 'openrouter_custom_models';
+const OPENROUTER_MODELS_CACHE_KEY = 'openrouter_models_cache';
 /** カスタム OpenRouter モデルの上限（chrome.storage.local 5MB 制限に余裕を持たせた値） */
 export const OPENROUTER_CUSTOM_MODELS_LIMIT = 20;
 
@@ -613,6 +615,27 @@ export async function getCustomOpenRouterModels(): Promise<CustomOpenRouterModel
             addedAt: typeof obj.addedAt === 'string' ? obj.addedAt : new Date().toISOString(),
         }];
     });
+}
+
+/** 公開モデル一覧は取得時刻と一緒に保存する。 */
+export async function saveOpenRouterModels(models: OpenRouterModel[], fetchedAt = Date.now()): Promise<void> {
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return;
+    }
+    await chrome.storage.local.set({ [OPENROUTER_MODELS_CACHE_KEY]: { models, fetchedAt } });
+}
+
+export async function getOpenRouterModels(): Promise<OpenRouterModelsCache | null> {
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+        return null;
+    }
+    const result = await chrome.storage.local.get([OPENROUTER_MODELS_CACHE_KEY]);
+    const raw = result[OPENROUTER_MODELS_CACHE_KEY] as Partial<OpenRouterModelsCache> | null;
+    if (!raw || !Array.isArray(raw.models) || typeof raw.fetchedAt !== 'number' || !Number.isFinite(raw.fetchedAt)) {
+        return null;
+    }
+    const models = raw.models.filter(model => model && typeof model.id === 'string' && model.id.length > 0);
+    return { models, fetchedAt: raw.fetchedAt };
 }
 
 /**
