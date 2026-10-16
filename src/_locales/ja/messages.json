@@ -1996,7 +1996,7 @@
     "message": "ここを押して AI タブを開いてください。"
   },
   "guideExt_tour_ai_first_run_model": {
-    "message": "AI 判定に使うモデルを選びます。迷ったら初期のままで構いません。モデルによって、料金と判定の速さ・精度が変わります。"
+    "message": "AI 判定に使うモデルを選びます。文字を打って絞り込め、キー設定後は OpenRouter の取得した一覧からも直接選べます。一覧にないIDは Enter で確定します。候補に一致しない入力は、欄から離れると元に戻ります。迷ったら初期のままで構いません。モデルによって、料金と判定の速さ・精度が変わります。"
   },
   "guideExt_tour_ai_first_run_keys": {
     "message": "選んだモデルの会社の欄に API キーを入れて「確認して保存」を押してください。キーはモデルの提供元で発行します。Gemini の無料キーは、処理の速さが制限されます。キーが済んでいれば「押さずに次へ」で進めます。"
@@ -2573,6 +2573,15 @@
   },
   "llm_unknownModel": {
     "message": "モデル「$1」は使えません。モデル欄で選び直してください。"
+  },
+  "llm_fetchedModels": {
+    "message": "OpenRouter（取得した一覧）"
+  },
+  "llm_noMatchingModels": {
+    "message": "該当するモデルがありません"
+  },
+  "llm_toggleModels": {
+    "message": "モデル候補を開閉"
   },
   "llm_retrying": {
     "message": "$1件をリトライ中..."

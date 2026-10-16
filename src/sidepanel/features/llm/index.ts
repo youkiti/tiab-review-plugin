@@ -4,11 +4,12 @@
  */
 
 import { dom } from './dom';
+import { populateModelSelect, refreshOpenRouterModels, setSelectedModel, wireModelCombobox } from './model-combobox';
 import { dom as sharedDom } from '../../dom';
 import { wireCollapsibleCards } from '../../ui/collapsible';
 import { state } from '../../state';
 import { getLlmConfig } from '../../../lib/sheets-api';
-import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG, getAllAvailableModels } from '../../../lib/gemini-api';
+import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG, findModelConfig } from '../../../lib/gemini-api';
 import { t } from '../../../lib/i18n';
 import { showSettings } from '../settings';
 import { hideToast, showToast } from '../../ui/feedback';
@@ -111,75 +112,6 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
 }
 
 /**
- * モデル選択のオプションを動的に生成
- *
- * ビルトイン AVAILABLE_MODELS + ユーザー登録カスタム OpenRouter モデルを合成 (getAllAvailableModels) し、
- * API キーの設定状態にかかわらず全プロバイダのモデルを表示する。
- *
- * カスタムモデルは OpenRouter optgroup 末尾に「(カスタム)」バッジ付きで並ぶ。
- *
- * 戻り値: 現在選択中のカスタムモデルが削除された等で別モデルに切り替わった場合 true。
- */
-export async function populateModelSelect(isCurrent: () => boolean = () => true): Promise<boolean> {
-    const select = dom.llmModelSelect;
-    const previousValue = select.value;
-    select.innerHTML = '';
-
-    const allModels = await getAllAvailableModels();
-    if (!isCurrent()) return false;
-
-    const groups: Record<LlmProviderId, HTMLOptGroupElement> = {
-        gemini: document.createElement('optgroup'),
-        openrouter: document.createElement('optgroup'),
-        openai: document.createElement('optgroup'),
-        anthropic: document.createElement('optgroup'),
-        typesafe: document.createElement('optgroup'),
-    };
-    groups.gemini.label = 'Gemini';
-    groups.openrouter.label = 'OpenRouter';
-    groups.openai.label = 'OpenAI';
-    groups.anthropic.label = 'Anthropic';
-    groups.typesafe.label = 'TypeSafe';
-
-    for (const model of allModels) {
-        const option = document.createElement('option');
-        option.value = model.id;
-        const baseLabel = model.nameKey ? t(model.nameKey) : model.name;
-        // カスタムモデルは末尾にバッジ風サフィックスを付与（select 内では HTML 不可のためテキストで表現）
-        option.textContent = model.custom
-            ? `${baseLabel}  •  ${t('llm_customModelBadge')}`
-            : baseLabel;
-        option.dataset.provider = model.provider;
-        if (model.custom) option.dataset.custom = 'true';
-        if (model.id === DEFAULT_MODEL_CONFIG.model) {
-            option.selected = true;
-        }
-        groups[model.provider].appendChild(option);
-    }
-
-    if (groups.gemini.childElementCount > 0) select.appendChild(groups.gemini);
-    if (groups.openrouter.childElementCount > 0) select.appendChild(groups.openrouter);
-    if (groups.openai.childElementCount > 0) select.appendChild(groups.openai);
-    if (groups.anthropic.childElementCount > 0) select.appendChild(groups.anthropic);
-    if (groups.typesafe.childElementCount > 0) select.appendChild(groups.typesafe);
-
-    const hasAnyOption = select.options.length > 0;
-
-    // 以前の選択値をできるだけ維持。消えた場合は最初のオプションへフォールバック。
-    let switched = false;
-    if (hasAnyOption) {
-        const stillPresent = Array.from(select.options).some(o => o.value === previousValue);
-        if (stillPresent && previousValue) {
-            select.value = previousValue;
-        } else if (previousValue && previousValue !== select.options[0]?.value) {
-            select.value = select.options[0].value;
-            switched = true;
-        }
-    }
-    return switched;
-}
-
-/**
  * 選択中モデルに必要なキーの案内とプロバイダ行を更新
  */
 export async function refreshModelKeyNote(): Promise<void> {
@@ -246,6 +178,8 @@ export function setupLlmEventListeners() {
     wireCustomModelToggle();
     dom.testSaveCustomModelBtn?.addEventListener('click', handleTestSaveCustomModel);
 
+    wireModelCombobox();
+
     // モデル選択: 選択 provider に応じて該当プロバイダ行と注記を更新
     dom.llmModelSelect?.addEventListener('change', handleModelSelectChange);
     // モデル・プロンプトを変えると別 Run になり対象件数も変わるので再計算する
@@ -296,6 +230,9 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
         await populateModelSelect(isCurrent);
         if (!isCurrent()) return;
 
+        setSelectedModel(dom.llmModelSelect.value || DEFAULT_MODEL_CONFIG.model);
+        void refreshOpenRouterModels(false, isCurrent);
+
         // LLM設定を読み込み
         if (spreadsheetId) {
             const llmConfig = await getLlmConfig(spreadsheetId);
@@ -307,14 +244,12 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
             state.setLlmTargetMode(llmConfig.llm_target_mode);
             state.setLlmTargetRefIds(new Set(parseTargetRefIds(llmConfig.llm_target_ref_ids)));
 
-            // UI更新: 保存済みカスタムモデルが削除されている場合は先頭にフォールバック
+            // 一覧の取得状態に依存せず、保存済みのモデルIDを復元する。
             const savedModel = llmConfig.llm_model;
-            const isSavedModelAvailable =
-                Array.from(dom.llmModelSelect.options).some(o => o.value === savedModel);
-            if (isSavedModelAvailable) {
-                dom.llmModelSelect.value = savedModel;
-            } else if (dom.llmModelSelect.options.length > 0) {
-                dom.llmModelSelect.value = dom.llmModelSelect.options[0].value;
+            if (findModelConfig(savedModel)) {
+                setSelectedModel(savedModel);
+            } else {
+                setSelectedModel(DEFAULT_MODEL_CONFIG.model);
                 showToast(t('llm_modelFallbackToast'), 4000);
             }
             await refreshModelKeyNote();

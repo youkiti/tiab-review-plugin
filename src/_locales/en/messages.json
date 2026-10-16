@@ -1996,7 +1996,7 @@
     "message": "Press here to open the AI tab."
   },
   "guideExt_tour_ai_first_run_model": {
-    "message": "Pick the model used for AI screening. If unsure, the default is fine. Cost, speed and accuracy differ by model."
+    "message": "Pick the model used for AI screening. Type to filter; after setting a key, you can also pick directly from the fetched OpenRouter list. Press Enter to confirm an unlisted ID. Leaving the field restores the previous selection unless the input exactly matches a candidate. If unsure, the default is fine. Cost, speed and accuracy differ by model."
   },
   "guideExt_tour_ai_first_run_keys": {
     "message": "Enter an API key in the row for your model's provider and press \"Verify and save\". You get the key from the provider. Free Gemini keys limit the processing speed. If a key is already set, use \"Skip this step\" to move on."
@@ -2573,6 +2573,15 @@
   },
   "llm_unknownModel": {
     "message": "Model \"$1\" cannot be used. Please select another model in the model field."
+  },
+  "llm_fetchedModels": {
+    "message": "OpenRouter (fetched list)"
+  },
+  "llm_noMatchingModels": {
+    "message": "No matching models"
+  },
+  "llm_toggleModels": {
+    "message": "Toggle model list"
   },
   "llm_retrying": {
     "message": "Retrying $1 items..."

@@ -28,6 +28,18 @@ export default defineScenario({
 
         await run.waitStep(T, 'model');
         await expectCardClearOfTarget(run, 'model', '#llm-model-select', 'モデルの選択欄');
+        await run.click('#llm-model-toggle', 'model', 'モデルの候補リスト');
+        await run.waitVisible('#llm-model-list', 'model', 'モデルの候補リスト');
+        // 最下部の候補までリスト内をスクロールし、ツアーの覆いに遮られないことを確かめる。
+        const lastOption = run.page.locator('#llm-model-list [role="option"]').last();
+        await lastOption.scrollIntoViewIfNeeded();
+        const reachable = await lastOption.evaluate(option => {
+            const rect = option.getBoundingClientRect();
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return hit !== null && option.contains(hit);
+        });
+        if (!reachable) run.fail('model', '候補リストの一番下の候補の中心を押せること');
+        await run.page.locator('#llm-model-select').press('Escape');
         await run.clickNext('model');
 
         // キー: 未設定なので手順が出る。実際に入れて保存する

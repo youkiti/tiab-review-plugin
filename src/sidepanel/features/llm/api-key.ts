@@ -3,6 +3,7 @@
  */
 
 import { dom } from './dom';
+import { refreshOpenRouterModels } from './model-combobox';
 import {
     getGeminiApiKey,
     getSessionApiKey,
@@ -247,6 +248,7 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
         getSavePreference: getOpenRouterApiKeySavePreference,
         setSavePreference: setOpenRouterApiKeySavePreference,
         test: testOpenRouterApiKey,
+        afterValid: async () => { void refreshOpenRouterModels(true); },
     },
     openai: {
         input: () => dom.openAiApiKeyInput,

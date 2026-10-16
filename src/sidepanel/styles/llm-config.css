@@ -139,8 +139,7 @@
     white-space: nowrap;
 }
 
-.setting-row select,
-.model-select-row select {
+.setting-row select {
     flex: 1;
     padding: 6px 10px;
     border: 1px solid #ddd;
@@ -149,8 +148,7 @@
     background: #fff;
 }
 
-.setting-row select:focus,
-.model-select-row select:focus {
+.setting-row select:focus {
     outline: none;
     border-color: #1a73e8;
 }
@@ -244,9 +242,101 @@
 }
 
 /* 260px を切るならベンチマークリンクを次の行へ送る（サイドパネル幅では常に折り返す） */
-.model-select-row select {
+.model-combobox {
+    --model-background: #fff;
+    --model-text: #333;
+    --model-muted: #666;
+    --model-border: #ddd;
+    --model-highlight: #e8f0fe;
+    --model-accent: #1a73e8;
+    position: relative;
+    display: flex;
     flex: 1 0 260px;
     min-width: 0;
+    max-width: 100%;
+}
+
+.model-combobox input {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 36px 8px 10px;
+    border: 1px solid var(--model-border);
+    border-radius: 6px;
+    background: var(--model-background);
+    color: var(--model-text);
+    font-size: 13px;
+}
+
+.model-combobox input:focus {
+    outline: 1px solid var(--model-accent);
+}
+
+#llm-model-toggle {
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--model-background);
+    color: var(--model-text);
+    cursor: pointer;
+}
+
+.model-combobox-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    /* guide.css の .guide-tour-block (1091)・.guide-tour-card (1095) より前、.guide-popover (1100) より後ろで候補を押せるようにする。 */
+    z-index: 1096;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--model-border);
+    border-radius: 6px;
+    background: var(--model-background);
+    color: var(--model-text);
+    font-size: 13px;
+}
+
+.model-combobox-list,
+.model-combobox-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.model-combobox-heading,
+.model-combobox-list [role="option"] {
+    padding: 7px 10px;
+    overflow-wrap: anywhere;
+}
+
+.model-combobox-heading {
+    font-weight: 600;
+    color: var(--model-muted);
+}
+
+.model-combobox-list [role="option"] {
+    cursor: pointer;
+}
+
+.model-combobox-list [role="option"]:hover,
+.model-combobox-list .active {
+    background: var(--model-highlight);
+}
+
+.model-combobox-list small {
+    color: var(--model-muted);
+}
+
+.model-combobox-badge {
+    margin-left: 6px;
+    padding: 1px 4px;
+    border: 1px solid var(--model-border);
+    border-radius: 4px;
+    font-size: 11px;
 }
 
 /* 共通の .btn-primary は width: 100% なので、入力欄と同じ行に置くときだけ幅を内容に合わせる */
