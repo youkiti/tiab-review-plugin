@@ -248,7 +248,7 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
         getSavePreference: getOpenRouterApiKeySavePreference,
         setSavePreference: setOpenRouterApiKeySavePreference,
         test: testOpenRouterApiKey,
-        afterValid: async () => { await refreshOpenRouterModels(true); },
+        afterValid: async () => { void refreshOpenRouterModels(true); },
     },
     openai: {
         input: () => dom.openAiApiKeyInput,

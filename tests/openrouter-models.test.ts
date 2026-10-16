@@ -7,7 +7,9 @@ import type { ModelOption } from '../src/lib/gemini-api';
 function mockFetch(data: unknown[]): typeof fetch {
     return async (url, init) => {
         assert.equal(url, 'https://openrouter.ai/api/v1/models');
-        assert.equal(init, undefined);
+        assert.ok(init?.signal instanceof AbortSignal);
+        assert.equal(init.signal.aborted, false);
+        assert.equal(init.headers, undefined);
         return new Response(JSON.stringify({ data }));
     };
 }
@@ -59,6 +61,17 @@ test('HTTPエラーと不正な応答は例外にする', async () => {
     await assert.rejects(fetchOpenRouterModels(async () => {
         throw new Error('通信失敗');
     }), /通信失敗/);
+});
+
+test('応答しない公開一覧の取得は指定時間で中止する', async () => {
+    let signal: AbortSignal | null | undefined;
+    const pendingFetch: typeof fetch = (_url, init) => new Promise((_resolve, reject) => {
+        signal = init?.signal;
+        assert.ok(signal instanceof AbortSignal);
+        signal.addEventListener('abort', () => reject(signal?.reason), { once: true });
+    });
+    await assert.rejects(fetchOpenRouterModels(pendingFetch, 5), /タイムアウト/);
+    assert.equal(signal?.aborted, true);
 });
 
 function model(id: string, provider: ModelOption['provider'], custom = false): ModelOption {

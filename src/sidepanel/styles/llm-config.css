@@ -289,7 +289,8 @@
     top: 100%;
     left: 0;
     right: 0;
-    z-index: 20;
+    /* guide.css の .guide-tour-block (1091)・.guide-tour-card (1095) より前、.guide-popover (1100) より後ろで候補を押せるようにする。 */
+    z-index: 1096;
     max-height: 320px;
     overflow-y: auto;
     border: 1px solid var(--model-border);

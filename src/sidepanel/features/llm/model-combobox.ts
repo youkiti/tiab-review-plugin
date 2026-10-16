@@ -14,7 +14,7 @@ let query = '';
 let activeIndex = -1;
 let visibleModels: ModelOption[] = [];
 let population = 0;
-let refreshInFlight: Promise<void> | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
 
 function list(): HTMLUListElement {
     return document.getElementById('llm-model-list') as HTMLUListElement;
@@ -206,28 +206,34 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
 
 /** 取得失敗時は保存済み一覧を維持し、キー検証の成功状態にも影響させない。 */
 export async function refreshOpenRouterModels(force = false, isCurrent: () => boolean = () => true): Promise<void> {
-    if (refreshInFlight) {
-        return refreshInFlight;
-    }
-    refreshInFlight = (async () => {
-        try {
-            if (!force) {
-                const configured = !!getSessionOpenRouterApiKey() || await hasOpenRouterApiKey();
-                const cache = await getOpenRouterModels();
-                if (!configured || (cache && Date.now() - cache.fetchedAt <= 24 * 60 * 60 * 1000)) {
-                    return;
-                }
-            }
-            const models = await fetchOpenRouterModels();
-            await saveOpenRouterModels(models);
-            await populateModelSelect(isCurrent);
-        } catch {
-            console.warn('OpenRouter モデル一覧を更新できませんでした。保存済みの一覧を保持します。');
-        }
-    })();
     try {
-        await refreshInFlight;
-    } finally {
-        refreshInFlight = null;
+        // 合流先が取得を省略した場合も、キー検証後の強制更新は実行する。
+        if (refreshInFlight) {
+            const saved = await refreshInFlight;
+            if (saved) {
+                if (isCurrent()) await populateModelSelect(isCurrent);
+                return;
+            }
+            if (!force) return;
+        }
+        if (!refreshInFlight) {
+            refreshInFlight = (async () => {
+                if (!force) {
+                    const configured = !!getSessionOpenRouterApiKey() || await hasOpenRouterApiKey();
+                    const cache = await getOpenRouterModels();
+                    if (!configured || (cache && Date.now() - cache.fetchedAt <= 24 * 60 * 60 * 1000)) {
+                        return false;
+                    }
+                }
+                const models = await fetchOpenRouterModels();
+                await saveOpenRouterModels(models);
+                return true;
+            })().finally(() => { refreshInFlight = null; });
+        }
+        // 通信と保存だけを共有し、描画は呼び出しごとの有効性で判定する。
+        const saved = await refreshInFlight;
+        if (saved && isCurrent()) await populateModelSelect(isCurrent);
+    } catch {
+        console.warn('OpenRouter モデル一覧を更新できませんでした。保存済みの一覧を保持します。');
     }
 }
