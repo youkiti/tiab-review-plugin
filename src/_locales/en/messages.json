@@ -2571,6 +2571,9 @@
   "llm_retryNoRefs": {
     "message": "No references found to retry"
   },
+  "llm_unknownModel": {
+    "message": "Model \"$1\" cannot be used. Please select another model in the model field."
+  },
   "llm_retrying": {
     "message": "Retrying $1 items..."
   },

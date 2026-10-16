@@ -38,7 +38,7 @@ import {
     generateLlmReviewerId,
 } from '../../../../lib/llm-processor';
 import { DEFAULT_SCREENING_PROMPT } from '../../../../lib/prompt-templates';
-import { getModelConfig, AVAILABLE_MODELS } from '../../../../lib/gemini-api';
+import { findModelConfig, AVAILABLE_MODELS } from '../../../../lib/gemini-api';
 import { showToast } from '../../../ui/feedback';
 import { t } from '../../../../lib/i18n';
 import { emitGuideEvent } from '../../guide/lazy';
@@ -131,6 +131,11 @@ export async function handleStartBatch() {
     // 選択中モデルの provider に応じて該当 API キーを確認する
     // (Gemini モデル選択中なのに OpenRouter キーしか無い、等のケースで誤ったエラーを出さない)
     const selectedModelId = dom.llmModelSelect.value;
+    const modelConfig = findModelConfig(selectedModelId);
+    if (!modelConfig) {
+        showToast(t('llm_unknownModel', selectedModelId));
+        return;
+    }
     const providerId = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
     const apiKey = await getEffectiveApiKeyForProvider(providerId);
     if (!apiKey) {
@@ -145,7 +150,6 @@ export async function handleStartBatch() {
     }
 
     const spreadsheetId = state.spreadsheetId;
-    const modelConfig = getModelConfig(dom.llmModelSelect.value);
     // 「新規にやり直す」モードでは既存 Run を再利用せず、新しい Run として全文献を対象にする
     const isRestart = state.forceNewLlmRun;
 
@@ -447,6 +451,12 @@ export async function handleRetryFailed() {
         return;
     }
 
+    const modelId = dom.llmModelSelect.value;
+    if (!findModelConfig(modelId)) {
+        showToast(t('llm_unknownModel', modelId));
+        return;
+    }
+
     showToast(t('llm_retrying', String(targetRefs.length)));
 
     // リトライボタンを非表示にしてから再処理
@@ -454,7 +464,7 @@ export async function handleRetryFailed() {
     syncClearFailedRefIds();
 
     // 通常のバッチ処理と同様に処理
-    const providerId = resolveProviderId(dom.llmModelSelect.value, AVAILABLE_MODELS);
+    const providerId = resolveProviderId(modelId, AVAILABLE_MODELS);
     const apiKey = await getEffectiveApiKeyForProvider(providerId);
     if (!apiKey) {
         showToast(t(missingApiKeyMessageKey(providerId)));
@@ -476,7 +486,6 @@ export async function handleRetryFailed() {
     state.setBatchAbortController(abortController);
 
     try {
-        const modelId = dom.llmModelSelect.value;
         const profile = await resolveBatchProfile(modelId);
         const spreadsheetId = state.spreadsheetId;
 

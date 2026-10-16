@@ -8,7 +8,7 @@ import type { LlmCriteria } from '../../../lib/types';
 import { updateLlmConfig } from '../../../lib/sheets-api';
 import { updateBatchTargetCount } from './batch';
 import { getEffectiveApiKeyForProvider, missingApiKeyMessageKey } from './api-key';
-import { getStandardCriteriaFields, AVAILABLE_MODELS, getModelConfig } from '../../../lib/gemini-api';
+import { getStandardCriteriaFields, AVAILABLE_MODELS, findModelConfig } from '../../../lib/gemini-api';
 import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
 import { isOpenRouterJevModel } from '../../../lib/openrouter-model';
 import { showToast } from '../../ui/feedback';
@@ -52,6 +52,11 @@ export async function handleOptimizeCriteria() {
 
     // 選択中のモデルから provider を判定し、必要な API キーを取得
     const selectedModelId = dom.llmModelSelect.value;
+    const baseConfig = findModelConfig(selectedModelId);
+    if (!baseConfig) {
+        showToast(t('llm_unknownModel', selectedModelId));
+        return;
+    }
     const selectedProvider = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
     if (selectedProvider === 'typesafe' || (selectedProvider === 'openrouter' && isOpenRouterJevModel(selectedModelId))) {
         showToast(t('llm_typeSafeCriteriaUnsupported'));
@@ -70,7 +75,6 @@ export async function handleOptimizeCriteria() {
         dom.optimizeStatusDiv.classList.remove('hidden');
 
         // 選択中モデルの既定設定を取得し、criteria 用に出力上限だけ上書きする
-        const baseConfig = getModelConfig(selectedModelId);
         const params = {
             protocolText,
             model: baseConfig.model,

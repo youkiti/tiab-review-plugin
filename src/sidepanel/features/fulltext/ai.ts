@@ -48,7 +48,7 @@ import {
 import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../../lib/gemini-fulltext';
 import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
 import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
-import { getModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
+import { getModelConfig, findModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../../lib/storage';
 import { getClientVersion } from '../../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
@@ -487,6 +487,14 @@ function updateProgress(done: number, total: number, ok: number, ng: number): vo
 async function handleStartAiBatch(): Promise<void> {
     if (aiAbort) return; // 二重起動防止
 
+    // セレクトが未描画で空のときは、従来どおり先頭の Gemini モデルを使う
+    const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
+    const modelConfig = findModelConfig(modelId);
+    if (!modelConfig) {
+        showToast(t('llm_unknownModel', modelId));
+        return;
+    }
+
     const apiKey = await getEffectiveApiKey();
     if (!apiKey) {
         showToast(t('llm_apiKeyRequired'));
@@ -494,8 +502,6 @@ async function handleStartAiBatch(): Promise<void> {
     }
 
     const screeningPrompt = dom.fulltextAiPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
-    const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
-    const modelConfig = getModelConfig(modelId);
 
     const spreadsheetId = state.spreadsheetId;
 
