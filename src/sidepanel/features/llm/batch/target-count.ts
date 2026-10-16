@@ -122,10 +122,9 @@ export async function updateBatchTargetCount(isCurrent: () => boolean = () => tr
         dom.batchCostEstimate.textContent = t('llm_costUnavailable');
     } else {
         const amount = cost < 0.01 ? t('llm_costBelowCent') : `$${cost.toFixed(2)}`;
-        const isFreeGemini = AVAILABLE_MODELS.some(model => model.id === modelId && model.provider === 'gemini')
-            && dom.tierSelect.value === 'free';
+        const isGemini = AVAILABLE_MODELS.some(model => model.id === modelId && model.provider === 'gemini');
         dom.batchCostEstimate.textContent = t('llm_costEstimate', [
-            amount + (isFreeGemini ? t('llm_costFreeTier') : ''),
+            amount + (isGemini ? t('llm_costFreeTier') : ''),
             String(plannedCount),
         ]);
     }

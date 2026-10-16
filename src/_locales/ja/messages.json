@@ -2455,7 +2455,7 @@
     "message": "$$0.01 未満"
   },
   "llm_costFreeTier": {
-    "message": "（無料枠では課金されません）"
+    "message": "（無料枠のキーなら課金されません）"
   },
   "llm_costUnavailable": {
     "message": "このモデルは費用を概算できません"

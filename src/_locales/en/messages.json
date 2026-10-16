@@ -2455,7 +2455,7 @@
     "message": "less than $$0.01"
   },
   "llm_costFreeTier": {
-    "message": " (no charge on the free tier)"
+    "message": " (no charge with a free-tier key)"
   },
   "llm_costUnavailable": {
     "message": "Cost cannot be estimated for this model"

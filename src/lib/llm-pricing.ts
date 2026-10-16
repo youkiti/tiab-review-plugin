@@ -1,4 +1,3 @@
-import { AVAILABLE_MODELS } from './gemini-api';
 import type { OpenRouterModel } from './openrouter-models';
 
 /** 米ドル / 100万トークンの有料枠単価。 */
@@ -52,16 +51,26 @@ export function estimateInputTokens(prompt: string, ref: PricingReference): numb
     return Math.ceil((prompt.length + ref.title.length + (ref.abstract ?? '').length) / 4) + 400;
 }
 
-/** 思考しない組み込み設定は160、それ以外は思考分を含めて600とする。 */
+const OUTPUT_TOKENS_BY_MODEL: ReadonlyMap<string, number> = new Map([
+    // experiments/openrouter-bench/report.md: Qwen は completion 401,739 / 1,993件（約202/件、reasoning 0）。
+    // experiments/gpt-5.6/report.md: none は305,905 / 1,993件（約153/件）。両実測を上回る220を採る。
+    ['gemini-3.1-flash-lite', 220],
+    ['qwen/qwen3-235b-a22b-2507', 220],
+    // experiments/openrouter-bench/report.md: DeepSeek は completion 1,735,288 / 1,993件（約871/件、reasoning 1,412,316）。
+    ['deepseek/deepseek-v4-flash', 900],
+    // experiments/gpt-5.6/report.md: low は441,587 / 1,993件（約222/件）。
+    // experiments/gemini-3.5-flash/report.md: LOW は思考約400/件。思考を指定するモデルは600と見積もる。
+    ['gemini-3-flash-preview', 600],
+    ['gpt-5.6-terra', 600],
+    ['gpt-5.6-luna', 600],
+    ['claude-haiku-5-5', 600],
+    ['claude-sonnet-5-5', 600],
+]);
+
+/** モデル別の実測を参考に、思考を含む出力トークンを見積もる。 */
 export function estimateOutputTokens(modelId: string): number {
-    // experiments/gpt-5.6/report.md: completion は none 305,905（約153/件）、low 441,587（約222/件）。
-    // experiments/gemini-3.5-flash/report.md: LOW は約400思考トークン/件。
-    // 取得一覧・カスタムなど思考量が不明なモデルは、費用を少なく見せないよう多めに見積もる。
-    const model = AVAILABLE_MODELS.find(candidate => candidate.id === modelId);
-    if (model && model.config.thinkingLevel === undefined && model.config.reasoningEffort === undefined) {
-        return 160;
-    }
-    return 600;
+    // 表に無いモデルは、上記OpenRouter実測で最大のDeepSeek（約871/件）に合わせて900とする。
+    return OUTPUT_TOKENS_BY_MODEL.get(modelId) ?? 900;
 }
 
 /** 文献ごとの入力と、思考を含む出力の米ドル概算を合計する。 */

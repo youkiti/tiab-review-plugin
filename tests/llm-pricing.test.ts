@@ -47,25 +47,34 @@ test('入力は各文献の文字数を切り上げて固定分を加える', ()
     assert.equal(estimateInputTokens('日本語', { title: '題名', abstract: '' }), 402);
 });
 
-test('出力は思考なし・思考あり・不明の設定から見積もる', () => {
-    assert.equal(estimateOutputTokens('gemini-3.1-flash-lite'), 160);
-    assert.equal(estimateOutputTokens('qwen/qwen3-235b-a22b-2507'), 160);
-    assert.equal(estimateOutputTokens('jev-1.14.0'), 160);
+test('出力はモデルIDごとの実測に基づく表から見積もる', () => {
+    assert.equal(estimateOutputTokens('gemini-3.1-flash-lite'), 220);
+    assert.equal(estimateOutputTokens('qwen/qwen3-235b-a22b-2507'), 220);
     assert.equal(estimateOutputTokens('gemini-3-flash-preview'), 600);
     assert.equal(estimateOutputTokens('gpt-5.6-terra'), 600);
+    assert.equal(estimateOutputTokens('gpt-5.6-luna'), 600);
     assert.equal(estimateOutputTokens('claude-haiku-5-5'), 600);
-    assert.equal(estimateOutputTokens('vendor/fetched'), 600);
-    assert.equal(estimateOutputTokens('vendor/custom'), 600);
+    assert.equal(estimateOutputTokens('claude-sonnet-5-5'), 600);
+});
+
+test('思考設定が省略されたDeepSeekの出力も900と見積もる', () => {
+    assert.equal(estimateOutputTokens('deepseek/deepseek-v4-flash'), 900);
+});
+
+test('表に無いモデルの出力は900と見積もる', () => {
+    for (const id of ['jev-1.14.0', 'typesafe/jev-1.14', 'vendor/fetched', 'vendor/custom', 'unknown']) {
+        assert.equal(estimateOutputTokens(id), 900);
+    }
 });
 
 test('概算費用は文献ごとに切り上げた入力と出力の手計算に一致する', () => {
     const refs = [{ title: 'a', abstract: 'b' }, { title: 'abcde' }];
     const pricing = { inputPerMillion: 2, outputPerMillion: 10 };
-    // プロンプト4文字を含め、入力は402 + 403、出力は160 × 2。
-    assert.equal(estimateBatchCost(refs, 'test', 'gemini-3.1-flash-lite', pricing), 0.00481);
-    // 思考するモデル・不明なモデルは出力600 × 2。
+    // プロンプト4文字を含め、入力は402 + 403、出力は220 × 2。
+    assert.equal(estimateBatchCost(refs, 'test', 'gemini-3.1-flash-lite', pricing), 0.00161 + 0.0044);
+    // 思考を指定するモデルは出力600 × 2、不明なモデルは900 × 2。
     assert.equal(estimateBatchCost(refs, 'test', 'gpt-5.6-terra', pricing), 0.01361);
-    assert.equal(estimateBatchCost(refs, 'test', 'vendor/custom', pricing), 0.01361);
+    assert.equal(estimateBatchCost(refs, 'test', 'vendor/custom', pricing), 0.01961);
     assert.equal(estimateBatchCost([], 'test', 'vendor/custom', pricing), 0);
     assert.equal(estimateBatchCost(refs, 'test', 'jev-1.14.0', null), null);
 });

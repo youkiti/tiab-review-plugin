@@ -173,7 +173,6 @@ export function setupLlmEventListeners() {
     wireProviderRows();
     dom.saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
     dom.tierSelect?.addEventListener('change', handleTierChange);
-    dom.tierSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
 
     // OpenRouter カスタムモデル
     wireCustomModelToggle();
