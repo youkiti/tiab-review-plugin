@@ -943,9 +943,9 @@ export { MODEL_ID_MIGRATIONS } from './model-migrations';
  *  1. スラッシュ含む（`provider/model` 形式）→ OpenRouter カスタムモデルとみなし
  *     `{ model: modelId, temperature: 0 }` を返す。ユーザー登録カスタムモデルでも
  *     batch / criteria フローが正しく動くようにする。
- *  2. それ以外 → Gemini の DEFAULT_MODEL_CONFIG。
+ *  2. それ以外 → null（利用できないモデル）。
  */
-export function getModelConfig(modelId: string): GeminiModelConfig {
+export function findModelConfig(modelId: string): GeminiModelConfig | null {
     const modelOption = AVAILABLE_MODELS.find(m => m.id === modelId);
     if (modelOption) {
         return {
@@ -956,7 +956,22 @@ export function getModelConfig(modelId: string): GeminiModelConfig {
     if (modelId.includes('/')) {
         return { model: modelId, temperature: 0 };
     }
-    return DEFAULT_MODEL_CONFIG;
+    return null;
+}
+
+/** 利用できないモデルIDを保持するエラー。 */
+export class UnknownModelError extends Error {
+    constructor(public readonly modelId: string) {
+        super(`モデル「${modelId}」は使えません。`);
+        this.name = 'UnknownModelError';
+    }
+}
+
+/** モデルIDから設定を取得し、未知のIDでは UnknownModelError を投げる。 */
+export function getModelConfig(modelId: string): GeminiModelConfig {
+    const config = findModelConfig(modelId);
+    if (!config) throw new UnknownModelError(modelId);
+    return config;
 }
 
 /**

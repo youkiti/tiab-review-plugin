@@ -2571,6 +2571,9 @@
   "llm_retryNoRefs": {
     "message": "リトライ対象の文献が見つかりません"
   },
+  "llm_unknownModel": {
+    "message": "モデル「$1」は使えません。モデル欄で選び直してください。"
+  },
   "llm_retrying": {
     "message": "$1件をリトライ中..."
   },

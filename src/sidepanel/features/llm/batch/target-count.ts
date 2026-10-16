@@ -11,7 +11,7 @@ import { dom } from '../dom';
 import { state } from '../../../state';
 import type { LlmRun } from '../../../../lib/types';
 import { computeConfigHash } from '../../../../lib/llm-config-hash';
-import { getModelConfig } from '../../../../lib/gemini-api';
+import { findModelConfig } from '../../../../lib/gemini-api';
 import { DEFAULT_SCREENING_PROMPT } from '../../../../lib/prompt-templates';
 import { t } from '../../../../lib/i18n';
 import {
@@ -35,10 +35,11 @@ export function getBatchBaseRefs() {
 
 /**
  * 現在の UI 設定から config_hash を計算する
- * screeningPrompt は handleStartBatch と同じ既定値解決を行う
+ * screeningPrompt は handleStartBatch と同じ既定値解決を行う。未知モデルでは null を返す。
  */
-async function computeCurrentConfigHash(): Promise<string> {
-    const modelConfig = getModelConfig(dom.llmModelSelect.value);
+async function computeCurrentConfigHash(): Promise<string | null> {
+    const modelConfig = findModelConfig(dom.llmModelSelect.value);
+    if (!modelConfig) return null;
     const screeningPrompt = dom.screeningPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
     return computeConfigHash({
         model: modelConfig.model,
@@ -65,6 +66,7 @@ async function resolveTargetRun(): Promise<{ run: LlmRun | null; judgedBatchIds:
 
     try {
         const configHash = await computeCurrentConfigHash();
+        if (configHash === null) return { run: null, judgedBatchIds: new Set() };
         const run = pickRunByConfigHash(state.llmRuns, configHash);
         if (!run) return { run: null, judgedBatchIds: new Set() };
 
