@@ -11,7 +11,9 @@ import { dom } from '../dom';
 import { state } from '../../../state';
 import type { LlmRun } from '../../../../lib/types';
 import { computeConfigHash } from '../../../../lib/llm-config-hash';
-import { findModelConfig } from '../../../../lib/gemini-api';
+import { AVAILABLE_MODELS, findModelConfig } from '../../../../lib/gemini-api';
+import { getOpenRouterModels } from '../../../../lib/storage';
+import { estimateBatchCost, resolveModelPricing } from '../../../../lib/llm-pricing';
 import { DEFAULT_SCREENING_PROMPT } from '../../../../lib/prompt-templates';
 import { t } from '../../../../lib/i18n';
 import {
@@ -89,20 +91,44 @@ async function resolveTargetRun(): Promise<{ run: LlmRun | null; judgedBatchIds:
  * 対象は「これから実行する Run でまだ判定していない文献」。
  * 設定（モデル・プロンプト・基準）を変えると別 Run になるため、対象は全文献に戻る。
  */
+let targetCountGeneration = 0;
+
 export async function updateBatchTargetCount(isCurrent: () => boolean = () => true) {
-    const { run, judgedBatchIds } = await resolveTargetRun();
-    if (!isCurrent()) return;
+    const generation = ++targetCountGeneration;
+    const [{ run, judgedBatchIds }, cache] = await Promise.all([
+        resolveTargetRun(),
+        getOpenRouterModels().catch(() => null),
+    ]);
+    if (!isCurrent() || generation !== targetCountGeneration) return;
     const isSelectionMode = state.llmTargetMode === 'selection';
 
     const baseRefs = getBatchBaseRefs();
-    const eligibleCount = baseRefs.filter(ref => isBatchEligible(ref, judgedBatchIds)).length;
+    const eligibleRefs = baseRefs.filter(ref => isBatchEligible(ref, judgedBatchIds));
+    const eligibleCount = eligibleRefs.length;
     dom.batchTargetCount.textContent = eligibleCount.toString();
 
     // 選択モードでは実行上限を適用しない（選んだ分は全部投げる）
     const limit = isSelectionMode ? null : resolveBatchLimit(dom.batchMaxCountSelect.value);
-    const plannedCount = limit === null ? eligibleCount : Math.min(eligibleCount, limit);
+    const plannedRefs = limit === null ? eligibleRefs : eligibleRefs.slice(0, limit);
+    const plannedCount = plannedRefs.length;
     dom.batchPlannedCount.textContent = plannedCount.toString();
     dom.batchMaxCountSelect.disabled = isSelectionMode;
+
+    const modelId = dom.llmModelSelect.value;
+    const prompt = dom.screeningPromptInput.value.trim() || DEFAULT_SCREENING_PROMPT;
+    const cost = estimateBatchCost(plannedRefs, prompt, modelId, resolveModelPricing(modelId, cache?.models ?? []));
+    dom.batchCostEstimate.classList.toggle('hidden', plannedCount === 0);
+    if (cost === null) {
+        dom.batchCostEstimate.textContent = t('llm_costUnavailable');
+    } else {
+        const amount = cost < 0.01 ? t('llm_costBelowCent') : `$${cost.toFixed(2)}`;
+        const isFreeGemini = AVAILABLE_MODELS.some(model => model.id === modelId && model.provider === 'gemini')
+            && dom.tierSelect.value === 'free';
+        dom.batchCostEstimate.textContent = t('llm_costEstimate', [
+            amount + (isFreeGemini ? t('llm_costFreeTier') : ''),
+            String(plannedCount),
+        ]);
+    }
 
     // 対象サマリ・解除ボタン
     // judgedCount は下の renderBatchRunMode に渡す値と同じ式。Run 行を出す条件（run が非 null かつ

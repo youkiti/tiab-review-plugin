@@ -6,6 +6,7 @@ import { getOpenRouterModels, saveOpenRouterModels, hasOpenRouterApiKey, getSess
 import { isImeComposing } from '../../../lib/ime-composition';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
+import { updateBatchTargetCount } from './batch/target-count';
 
 let groups: ModelGroup[] = [];
 let committedValue = DEFAULT_MODEL_CONFIG.model;
@@ -202,6 +203,7 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
     }
     groups = buildModelGroups(AVAILABLE_MODELS, models.filter(model => model.custom), cache?.models ?? []);
     render();
+    await updateBatchTargetCount(() => isCurrent() && generation === population);
 }
 
 /** 取得失敗時は保存済み一覧を維持し、キー検証の成功状態にも影響させない。 */
