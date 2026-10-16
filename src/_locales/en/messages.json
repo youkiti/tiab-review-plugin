@@ -2014,7 +2014,7 @@
     "message": "The prompt appears here once you optimize the criteria. There are none yet, so we move on. After you create them, open this tour again from the ❓ \"List of guided tours\" and it will continue from here."
   },
   "guideExt_tour_ai_first_run_batch_settings": {
-    "message": "Choose which records go to the AI. \"Target\" is all records by default. \"Run limit\" caps the count, so try a small number such as 10 first to keep the cost down."
+    "message": "Choose which records go to the AI. \"Target\" is all records by default. \"Run limit\" caps the count, so try a small number such as 10 first to keep the cost down. Estimated cost appears below the planned count (it varies with reasoning; unknown prices cannot be estimated)."
   },
   "guideExt_tour_ai_first_run_batch_run": {
     "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
@@ -2447,6 +2447,18 @@
   },
   "llm_batchPlanned": {
     "message": "This run:"
+  },
+  "llm_costEstimate": {
+    "message": "Estimated about $1 ($2 records; varies with reasoning)"
+  },
+  "llm_costBelowCent": {
+    "message": "less than $$0.01"
+  },
+  "llm_costFreeTier": {
+    "message": " (no charge with a free-tier key)"
+  },
+  "llm_costUnavailable": {
+    "message": "Cost cannot be estimated for this model"
   },
   "llm_batchRunResume": {
     "message": "$1 items already judged in this run. Starting will resume where it left off"

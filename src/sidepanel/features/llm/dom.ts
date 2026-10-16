@@ -74,6 +74,7 @@ export const dom = {
     get batchMaxCountSelect() { return getElement<HTMLSelectElement>('batch-max-count-select'); },
     get batchTargetCount() { return getElement<HTMLElement>('batch-target-count'); },
     get batchPlannedCount() { return getElement<HTMLElement>('batch-planned-count'); },
+    get batchCostEstimate() { return getElement<HTMLElement>('batch-cost-estimate'); },
     get batchRunMode() { return getElement<HTMLElement>('batch-run-mode'); },
     get batchRunModeText() { return getElement<HTMLElement>('batch-run-mode-text'); },
     get batchRestartRunBtn() { return getElement<HTMLButtonElement>('batch-restart-run-btn'); },
