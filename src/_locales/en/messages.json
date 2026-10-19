@@ -2020,7 +2020,7 @@
     "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
   },
   "guideExt_tour_ai_first_run_threshold": {
-    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; 0.5 is the standard if unsure. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
+    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; use the default 0.3 if unsure. Miss rates for the bundled models were measured at this threshold. Raising it increases Exclude decisions and missed eligible records. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
   },
   "guideExt_tour_ai_first_run_threshold_wait": {
     "message": "Once a run finishes, the threshold confirmation appears here, below the batch controls. You have not run it yet, so we move on. After a run, open this tour again from the ❓ \"List of guided tours\" and it will explain the threshold."
@@ -2622,8 +2622,15 @@
   "llm_thresholdLabel": {
     "message": "Include threshold:"
   },
+  "llm_modelMigrationNotice": {
+    "message": "The saved model $OLD_MODEL$ has been switched to $NEW_MODEL$ because its availability has ended or is expected to end. Screening behavior may change. Before using it in your review, compare its decisions with human decisions on a small set of records.",
+    "placeholders": {
+      "old_model": { "content": "$1" },
+      "new_model": { "content": "$2" }
+    }
+  },
   "llm_thresholdHelp": {
-    "message": "Choose how broadly AI should collect include candidates. If unsure, use 0.5. Guide: 0.3=broad / 0.5=standard / 0.7=strict"
+    "message": "If unsure, use the default 0.3. Miss rates for the bundled models were measured at this threshold. Raising it increases Exclude decisions and missed eligible records. Consider 0.5 / 0.7 only if more missed eligible records are acceptable."
   },
   "llm_showDistribution": {
     "message": "📈 Show Distribution"
@@ -2972,7 +2979,7 @@
     "message": "Screened:"
   },
   "ml_stoppingProbability": {
-    "message": "Stop probability:"
+    "message": "Progress toward the stopping criterion:"
   },
   "ml_canStop": {
     "message": "✅ Can stop"
@@ -3514,7 +3521,7 @@
     "message": "Maximum number of pending references to process in this run.\nFor example, if 10,000 references are pending and you choose 100, only the first 100 will be processed and the remaining 9,900 will be carried over to subsequent runs.\nChoose \"All\" to process every pending reference."
   },
   "llm_tip_threshold": {
-    "message": "Choose how broadly AI should collect include candidates.\n0.3: broad\n0.5: standard. Use this if unsure\n0.7: strict\nYou can adjust while checking the distribution graph below."
+    "message": "0.3: default. Use this if unsure; miss rates for the bundled models were measured at this threshold.\nRaising the threshold increases Exclude decisions and missed eligible records.\n0.5 / 0.7: consider only if more missed eligible records are acceptable.\nYou can adjust while checking the distribution graph below."
   },
   "ml_tip_stopping": {
     "message": "The stopping rule tells you when screening can end. In projects with 1,000 or more records, stopping is suggested by a statistical rule (target recall 99% / confidence 95%)."

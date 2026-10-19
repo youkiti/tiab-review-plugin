@@ -371,6 +371,9 @@ export function parseLlmConfig(values: string[][]): LlmConfig {
                 // latest エイリアスや旧固定版を移行先の固定バージョン ID へマイグレーション
                 // 移行表にある保存値を透過的に変換し、表にないモデル ID は維持する
                 config.llm_model = MODEL_ID_MIGRATIONS[value] || value;
+                if (config.llm_model !== value) {
+                    config.llm_model_migrated_from = value;
+                }
                 break;
             case 'llm_temperature':
                 config.llm_temperature = parseFloat(value) || 0;

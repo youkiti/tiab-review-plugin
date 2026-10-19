@@ -644,6 +644,9 @@ export function buildBenchLlmRound(size: number): BenchLlmRound {
 
     const execution: LlmExecution = {
         execution_id: BENCH_LLM_EXECUTION_ID,
+        // 合成データには実送信がないため、送信記録の追加列は空欄にする。
+        reasoning_effort: undefined, max_output_tokens: undefined,
+        prompt_version: undefined, prompt_sha256: undefined, full_prompt_template: undefined,
         execution_type: 'batch_screening',
         timestamp: BENCH_LLM_TIMESTAMP,
         model: BENCH_LLM_MODEL,

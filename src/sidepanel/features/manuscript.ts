@@ -13,6 +13,8 @@
  */
 
 import { state } from '../state';
+import { buildManuscriptAiSentence } from '../../lib/manuscript-ai';
+import { isLogicallyDeleted } from '../../lib/duplicate-detect';
 import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
@@ -109,19 +111,6 @@ function llmModelFromReviewerId(reviewerId: string): string {
     return at > 0 ? body.slice(0, at) : body;
 }
 
-/** TiAb 相で使われた LLM モデル名（重複除去） */
-function collectTiabLlmModels(): string[] {
-    const models = new Set<string>();
-    for (const r of state.allReferences) {
-        for (const d of collectRefDecisions(r)) {
-            if (!isTiabDecision(d)) continue;
-            const id = (d.reviewer_id || '').trim();
-            if (id.startsWith('llm:')) models.add(llmModelFromReviewerId(id));
-        }
-    }
-    return [...models].sort();
-}
-
 /** TiAb 相で ML 判定（確定/自動）が使われたか */
 function wasMlUsedInTiab(): boolean {
     for (const r of state.allReferences) {
@@ -187,21 +176,20 @@ function buildTiabMethods(id: IdentificationData): string {
         let sentence = 'Records were prioritized for screening by an active-learning model.';
         const rule = state.mlState.stoppingRule;
         if (rule && isCmhStoppingRule(rule)) {
-            sentence += ` Screening was stopped when the Callaghan–Müller-Hansen statistical stopping criterion indicated that a recall of ${rule.targetRecall} had been reached with ${Math.round(rule.confidence * 100)}% confidence.`;
+            sentence += ` Screening was stopped when the Callaghan–Müller-Hansen stopping criterion (target recall ${rule.targetRecall}, confidence level ${Math.round(rule.confidence * 100)}%) was met; this criterion estimates, but does not guarantee, the recall achieved.`;
         } else if (rule) {
-            sentence += ` Screening was stopped after ${rule.threshold} consecutive excluded records.`;
+            sentence += ` Screening was stopped after ${rule.threshold} consecutive excluded records, a heuristic rule that provides no statistical estimate of recall.`;
         }
         paragraphs.push(sentence);
     }
 
-    const llmModels = collectTiabLlmModels();
-    if (llmModels.length > 0) {
-        const cfg = state.llmConfig;
-        paragraphs.push(
-            `A large language model (${llmModels.join(', ')}; temperature = ${cfg.llm_temperature}) screened all records against the same eligibility criteria as an additional independent screener (inclusion threshold ${cfg.llm_include_threshold}).`
-        );
+    const { database } = splitByIdentificationRoute(state.allReferences);
+    const aiSentence = buildManuscriptAiSentence(
+        database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions), id.screened, state.llmConfig.llm_include_threshold,
+    );
+    if (aiSentence) {
+        paragraphs.push(aiSentence);
     }
-
     const rule = state.fulltextPoolRule;
     const threshold = rule ? rule.threshold : 1;
     paragraphs.push(

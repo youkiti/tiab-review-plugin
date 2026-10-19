@@ -28,7 +28,7 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function buildPrompt(title: string, abstract: string, screeningPrompt: string, outputLanguage: string): string {
+export function buildPrompt(title: string, abstract: string, screeningPrompt: string, outputLanguage: string): string {
     // OpenRouter は json_object モードを使わず、プロンプトで JSON 形式を明示的に指示する。
     return `${screeningPrompt}
 

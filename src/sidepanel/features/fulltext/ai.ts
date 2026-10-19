@@ -45,13 +45,15 @@ import {
     describeDriveAccessError,
     DriveAccessDeniedError,
 } from '../../../lib/drive-api';
-import { judgeFulltext, FULLTEXT_PROMPT_VERSION } from '../../../lib/gemini-fulltext';
+import { judgeFulltext, buildFulltextPrompt, FULLTEXT_PROMPT_VERSION } from '../../../lib/gemini-fulltext';
 import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
 import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
 import { getModelConfig, findModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../../lib/storage';
 import { getClientVersion } from '../../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
+import { recordPromptTemplate } from '../../../lib/llm-prompt-record';
+import { sentGenerationSettings } from '../../../lib/model-generation-settings';
 import {
     DEFAULT_FULLTEXT_AI_SCOPE,
     collectAiJudgedRefIds,
@@ -550,9 +552,8 @@ async function handleStartAiBatch(): Promise<void> {
         timestamp: batchTimestamp.toISOString(),
         model: modelConfig.model,
         requested_model: modelId,
-        temperature: modelConfig.temperature,
-        topP: modelConfig.topP,
-        thinkingLevel: modelConfig.thinkingLevel,
+        ...sentGenerationSettings(modelConfig.model, modelConfig),
+        ...await recordPromptTemplate(buildFulltextPrompt(screeningPrompt, 'ja', state.excludeReasonItems), FULLTEXT_PROMPT_VERSION),
         // フルテキストAI判定の判定基準は TiAb の criteria_snapshot（LlmCriteria）とそのまま
         // 対応しない。buildEffectivePrompt() は llm_criteria をプロンプト生成の入力の1つとして
         // 使っているため、それが読み込み済みならスナップショットとして入れる。無ければ

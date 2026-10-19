@@ -33,7 +33,9 @@ export const LLM_EXECUTIONS_HEADERS = [
     // フルテキストAI一括判定の実行履歴用（Issue #62）。ここより前には絶対に挿入しないこと。
     'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
     // フルテキストAI判定時点の除外理由リストのスナップショット（PR #110）。末尾に追加。
-    'exclude_reasons_snapshot'
+    'exclude_reasons_snapshot',
+    // 実送信した生成設定と全文の雛形。ハッシュは切り詰め前の全文の SHA-256 先頭12桁。
+    'reasoning_effort', 'max_output_tokens', 'prompt_version', 'prompt_sha256', 'full_prompt_template'
 ];
 
 // LLM_Runs シートのヘッダー（Run = config_hash 単位の論理実行）

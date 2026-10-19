@@ -228,6 +228,11 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
         execution.failed_count?.toString() ?? '',
         execution.failure_breakdown ?? '',
         execution.exclude_reasons_snapshot ?? '',
+        execution.reasoning_effort ?? '',
+        execution.max_output_tokens?.toString() ?? '',
+        execution.prompt_version ?? '',
+        execution.prompt_sha256 ?? '',
+        execution.full_prompt_template ?? '',
     ];
 
     await appendRows(spreadsheetId, LLM_EXECUTIONS_SHEET, [row]);
@@ -289,6 +294,7 @@ export async function getLlmExecutions(spreadsheetId: string, readOnly = false):
                         execution[header] = value || undefined;
                         break;
                     case 'target_selected_count':
+                    case 'max_output_tokens':
                     case 'maybe_count':
                     case 'failed_count':
                         // 0 と未設定を区別したいので `|| 0` にはしない

@@ -67,6 +67,7 @@ const LLM_EXECUTIONS_HEADERS = [
     'target_mode', 'target_sets', 'target_selected_count',
     'executed_by', 'maybe_count', 'failed_count', 'failure_breakdown',
     'exclude_reasons_snapshot',
+    'reasoning_effort', 'max_output_tokens', 'prompt_version', 'prompt_sha256', 'full_prompt_template',
 ];
 
 const LLM_RUNS_HEADERS = [

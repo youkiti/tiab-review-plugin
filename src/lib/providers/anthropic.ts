@@ -2,6 +2,7 @@
 // スクリーニングの再試行は llm-processor.ts の processWithRetry に任せる。
 // 内部で待つとガバナーから待ち時間が見えなくなるため、1回だけ通信する。
 
+import { anthropicMaxOutputTokens } from '../model-generation-settings';
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from '../types';
 import { getEffectiveAnthropicApiKey } from '../storage';
 import { SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA, normalizeCriteriaConversionResult } from '../gemini-api';
@@ -59,10 +60,7 @@ interface AnthropicResponse {
 }
 
 const MESSAGES_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-const DEFAULT_OUTPUT_TOKENS = 16000;
 // max_tokens は本文と思考の合計なので、本文の希望量に思考の取り分を加え、対応上限で頭打ちにする。
-const THINKING_TOKEN_ALLOWANCE = 4000;
-const MAX_TOTAL_TOKENS = 64000;
 
 /** 任意プロパティを維持しつつ、すべての object ノードで追加プロパティを禁止する。 */
 export function toAnthropicSchema<T extends object>(schema: T): T {
@@ -103,7 +101,7 @@ function buildRequest(params: AnthropicParams, prompt: string, schema: object, e
     // temperature は両モデルが HTTP 400 で拒否する。top_p・top_k・thinking も送らず effort のみ指定する。
     return {
         model: params.model,
-        max_tokens: Math.min((params.maxOutputTokens ?? DEFAULT_OUTPUT_TOKENS) + THINKING_TOKEN_ALLOWANCE, MAX_TOTAL_TOKENS),
+        max_tokens: anthropicMaxOutputTokens(params.maxOutputTokens),
         messages: [{ role: 'user', content: prompt }],
         output_config: {
             effort,

@@ -134,6 +134,7 @@ export interface Config {
  * LLM設定（Configシートに保存）
  */
 export interface LlmConfig {
+    llm_model_migrated_from?: string;
     llm_enabled: boolean;
     llm_model: string;
     llm_temperature: number;
@@ -167,6 +168,11 @@ export interface LlmCriteria {
  *   既存データ・他ツール互換のため列のみ残す（書き込みは停止予定）
  */
 export interface LlmExecution {
+    reasoning_effort?: string;
+    max_output_tokens?: number;
+    prompt_version?: string;
+    prompt_sha256?: string;
+    full_prompt_template?: string;
     execution_id: string;
     execution_type: 'prompt_generation' | 'batch_screening' | 'fulltext_batch_screening';
     timestamp: string;
