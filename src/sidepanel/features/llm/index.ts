@@ -121,6 +121,21 @@ export async function refreshModelKeyNote(): Promise<void> {
     const configured = await getConfiguredProviders();
     if (dom.llmModelSelect.value !== modelId) return;
     const provider = resolveProviderId(modelId, AVAILABLE_MODELS);
+    let dataNotice = document.getElementById('llm-gemini-data-notice');
+    if (!dataNotice) {
+        dataNotice = document.createElement('p');
+        dataNotice.id = 'llm-gemini-data-notice';
+        dataNotice.className = 'model-key-note warn';
+        dom.llmModelKeyNote.after(dataNotice);
+    }
+    dataNotice.hidden = provider !== 'gemini';
+    dataNotice.textContent = t('llmExt_geminiDataNotice');
+    const helpLink = document.createElement('a');
+    helpLink.href = 'https://youkiti.github.io/tiab-review-plugin/help.html#ai-limitations';
+    helpLink.target = '_blank';
+    helpLink.rel = 'noopener noreferrer';
+    helpLink.textContent = t('common_help');
+    dataNotice.append(' ', helpLink);
     const names: Record<LlmProviderId, string> = {
         gemini: 'Gemini', openrouter: 'OpenRouter', openai: 'OpenAI', anthropic: 'Anthropic', typesafe: 'TypeSafe',
     };

@@ -123,6 +123,26 @@ export function getFulltextConsensus(
     return computeFulltextConsensus(buildFulltextVotesForConsensus(ref, judges), excludeReasonItems);
 }
 
+/** 選択中の有効票に人の判定が無い文献を数える。人の裁定票があれば対象外。 */
+export function countAiOnlyConsensus(
+    refs: ReferenceWithStatus[],
+    judges: Set<string>
+): { total: number; excluded: number } {
+    let total = 0;
+    let excluded = 0;
+    for (const ref of refs) {
+        const votes = buildFulltextVotesForConsensus(ref, judges).filter(v => v.decision !== 'pending');
+        if (votes.length === 0 || votes.some(v => !v.judge.startsWith('llm:'))) {
+            continue;
+        }
+        total++;
+        if (computeFulltextConsensus(votes).decision === 'exclude') {
+            excluded++;
+        }
+    }
+    return { total, excluded };
+}
+
 /**
  * フルテキスト相の集計サマリ（結果ビューのPRISMA表示・論文用テキスト生成で共用）
  *

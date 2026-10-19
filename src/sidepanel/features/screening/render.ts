@@ -373,6 +373,9 @@ function renderReferenceDetails(ref: ReferenceWithStatus, totalFiltered: number,
 
     const myStatus = (ref.myDecision?.decision || 'pending') as DecisionStatus | 'pending';
     renderDecisionChip(dom.refDecisionChip, dom.refDecisionStatusRow, myStatus);
+    if (myStatus === 'exclude' && isMlAutoDecision(ref.myDecision?.client_version)) {
+        dom.refDecisionChip.textContent = t('ml_stoppingExcludedUnread');
+    }
 
     // ナビゲーション更新
     if (isHistoryView) {

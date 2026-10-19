@@ -40,6 +40,7 @@ import {
     judgeDecisionMap,
     collectFulltextJudges,
     effectiveFulltextJudges,
+    countAiOnlyConsensus,
     buildFulltextVotesForConsensus as buildVotesForConsensus,
     getFulltextConsensus,
     summarizeFulltextCandidates as summarize,
@@ -224,6 +225,10 @@ function renderPrisma(candidates: ReferenceWithStatus[], judges: Set<string>): v
     const { sought: total, obtained, include: inc, exclude: exc, maybe, pending: pend, unresolved } = s;
 
     const lines: string[] = [];
+    const aiOnly = countAiOnlyConsensus(candidates, judges);
+    if (aiOnly.total > 0 || (judges.size > 0 && [...judges].every(j => j.startsWith('llm:')))) {
+        lines.push(`<p role="alert" class="fulltext-prisma-reasons-head">${escapeHtml(t('ftPage_aiOnlyWarning', [String(aiOnly.total), String(aiOnly.excluded)]))}</p>`);
+    }
     lines.push(`<div class="fulltext-prisma-title">${escapeHtml(t('fulltext_prismaTitle'))}</div>`);
     lines.push('<div class="fulltext-prisma-grid">');
     lines.push(prismaCell(t('fulltext_prismaCandidates', String(total))));

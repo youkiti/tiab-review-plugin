@@ -222,6 +222,27 @@ test('status は未開封と担当不足でチーム集計と画面の差を明�
     }
 });
 
+test('status はML停止基準の未読除外があってもチーム状態の内訳を変えない', async () => {
+    for (const opened of [false, true]) {
+        const calls = fakeApi({
+            decisions: [
+                dec('r1', 'a@example.com', 'exclude', { client_version: '1-ml-auto' }),
+                dec('r2', 'a@example.com', 'exclude', { client_version: '1-ml-auto' }),
+                dec('r2', 'b@example.com', 'exclude'),
+            ],
+            config: [['key_opened', String(opened)]],
+        });
+        const result = await runStatus('sheet', 'a@example.com');
+        // r1 は a の一括除外だけで b の判定待ち（従来どおり incomplete）、r2 は2人そろって除外
+        assert.equal(result.team.exclude, 1);
+        assert.equal(result.team.pending, 0);
+        assert.equal(result.team.incomplete, 1);
+        assert.equal(result.rows.find(row => row.ref_id === 'r1')?.team_status, 'incomplete');
+        assert.equal(result.rows.find(row => row.ref_id === 'r2')?.team_status, 'exclude');
+        assert.equal(writes(calls).length, 0);
+    }
+});
+
 test('status は旧形式の AI 履歴を保存せずに解決する', async () => {
     const calls = fakeApi({ decisions: [dec('r1', 'a@example.com', 'include'), dec('r1', 'llm:old', 'exclude', { client_version: '1-llm' })],
         config: [['key_opened', 'true']], legacyAi: true });

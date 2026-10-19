@@ -118,23 +118,21 @@ function showLegacyStoppingRuleDialog(
         <div style="margin-bottom: 16px;">
             <div style="background: #fff3e0; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
                 <p style="margin: 0; font-size: 13px; color: #e65100;">
-                    ⚠️ レコード数が ${totalRecords} 件のため、統計的停止基準は使用できません。<br>
-                    連続除外ルールを使用します。
+                    ${t('mlDialog_legacyStoppingNotice', String(totalRecords))}
                 </p>
             </div>
             
             <p style="margin-bottom: 12px; line-height: 1.6;">
-                連続で <strong><span id="threshold-display">50</span>件</strong> Excludeされたら<br>
-                スクリーニング終了を提案します。
+                ${t('mlDialog_legacyStoppingDescription', '<strong><span id="threshold-display">50</span></strong>')}
             </p>
             
             <div style="margin: 16px 0;">
-                <label style="font-weight: 500;">推奨値: </label>
+                <label style="font-weight: 500;">${t('mlDialog_recommendedThreshold')}</label>
                 <select id="initial-threshold-select" style="padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc;">
-                    <option value="30">30件</option>
-                    <option value="50" selected>50件（推奨）</option>
-                    <option value="100">100件</option>
-                    <option value="200">200件</option>
+                    <option value="30">${t('ml_recordCount', '30')}</option>
+                    <option value="50" selected>${t('mlDialog_recommendedRecordCount', '50')}</option>
+                    <option value="100">${t('ml_recordCount', '100')}</option>
+                    <option value="200">${t('ml_recordCount', '200')}</option>
                 </select>
             </div>
         </div>
@@ -455,19 +453,18 @@ function showCmhStoppingReachedDialog(
             </div>
         </div>
         
-        <div class="list-item-btn" id="action-finish">
-            <span class="list-item-icon">🏁</span>
-            <div class="list-item-content">
-                <span class="list-item-primary">${t('ml_finishExcludeRest')}</span>
-                <span class="list-item-secondary">${t('ml_saveAllExclude')}</span>
-            </div>
-        </div>
-        
         <div class="list-item-btn" id="action-continue">
             <span class="list-item-icon">📄</span>
             <div class="list-item-content">
                 <span class="list-item-primary">${t('ml_continueScreening')}</span>
                 <span class="list-item-secondary">${t('ml_continueNoStop')}</span>
+            </div>
+        </div>
+        <div class="list-item-btn" id="action-finish">
+            <span class="list-item-icon">🏁</span>
+            <div class="list-item-content">
+                <span class="list-item-primary">${t('ml_finishExcludeRest')}</span>
+                <span class="list-item-secondary">${t('ml_saveAllExclude')}</span>
             </div>
         </div>
     `;
@@ -508,17 +505,15 @@ function showBulkExcludeConfirmDialog(onComplete: () => void) {
     body.innerHTML = `
         <div style="text-align: center; margin-bottom: 16px;">
             <p style="font-size: 14px; margin-bottom: 8px;">
-                残り <strong>${stats.remaining}件</strong> の未判定文献を<br>
-                すべて <span style="color: #ea4335; font-weight: bold;">Exclude</span> として保存します。
+                ${t('mlDialog_bulkStoppingWarning', String(stats.remaining))}
             </p>
             <p style="color: #666; font-size: 12px;">
-                この操作は取り消せません。<br>
-                個別に変更する場合はレビュー画面から行ってください。
+                ${t('mlDialog_bulkStoppingChangeHint')}
             </p>
         </div>
         <div id="bulk-progress" style="display: none;">
             <div style="text-align: center; margin-bottom: 8px;">
-                <span id="bulk-progress-text">処理中... 0 / ${stats.remaining}</span>
+                <span id="bulk-progress-text">${t('ml_processingProgress', ['0', String(stats.remaining)])}</span>
             </div>
             <div style="background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden;">
                 <div id="bulk-progress-bar" style="background: #1a73e8; height: 100%; width: 0%; transition: width 0.3s;"></div>

@@ -49,6 +49,12 @@ export function shouldWarnBlindRule(rule: FulltextPoolRule, keyOpened: boolean):
     return rule.voters.some(v => v.startsWith('human:'));
 }
 
+/** 人の票を含まず、AI の票だけで候補を決めるルールか。 */
+export function shouldWarnAiOnlyRule(rule: FulltextPoolRule): boolean {
+    return !rule.voters.some(v => v.startsWith('human:'))
+        && rule.voters.some(v => v.startsWith('llm:'));
+}
+
 /** rule.voters から human voter のメールアドレスを取り出す（表示用） */
 function humanVoterEmails(rule: FulltextPoolRule): string[] {
     return rule.voters
@@ -144,6 +150,12 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
     preview.className = 'ft-rule-preview';
     form.appendChild(preview);
 
+    const aiWarning = document.createElement('p');
+    aiWarning.className = 'ft-rule-preview-note';
+    aiWarning.setAttribute('role', 'alert');
+    aiWarning.textContent = t('ftRule_aiOnlyWarning');
+    form.appendChild(aiWarning);
+
     const actions = document.createElement('div');
     actions.className = 'ft-rule-actions';
     const saveBtn = document.createElement('button');
@@ -230,6 +242,7 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
     }
 
     function renderPreview(): void {
+        aiWarning.hidden = !shouldWarnAiOnlyRule(buildRuleFromState());
         if (selected.size === 0) {
             preview.textContent = t('ftRule_selectVoter');
             return;
@@ -287,6 +300,8 @@ export function mountRuleEditor(opts: RuleEditorOptions): void {
                 return;
             }
         }
+        // 保存は妨げず、編集中と同じ警告を保存直前にも表示する。
+        renderPreview();
         saveBtn.disabled = true;
         saveBtn.textContent = t('ftRule_saving');
         opts.onSave(rule)

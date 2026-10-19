@@ -173,6 +173,19 @@ async function prefillPrompt(): Promise<void> {
 /** AI判定タブを描画する */
 export function renderFulltextAi(): void {
     populateModelSelect();
+    if (!document.getElementById('fulltext-ai-copyright-notice')) {
+        const notice = document.createElement('p');
+        notice.id = 'fulltext-ai-copyright-notice';
+        notice.className = 'model-key-note warn';
+        notice.textContent = t('ftPage_aiCopyrightNotice');
+        const helpLink = document.createElement('a');
+        helpLink.href = 'https://youkiti.github.io/tiab-review-plugin/help.html#ai-limitations';
+        helpLink.target = '_blank';
+        helpLink.rel = 'noopener noreferrer';
+        helpLink.textContent = t('common_help');
+        notice.append(' ', helpLink);
+        dom.fulltextAiStartBtn.parentElement!.before(notice);
+    }
     if (!aiInitialized) {
         aiInitialized = true;
         void prefillPrompt();

@@ -20,6 +20,15 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 - 閾値の説明を、既定値 0.3（同梱モデルの見落とし率を測った値）を推す内容に揃えた。既定値そのものは変わらない。
   The threshold guidance now recommends the default 0.3, at which the bundled models' miss rates were measured. The default itself is unchanged.
 
+### 人の監督と注意の表示 / Human oversight and notices
+
+- 全文の候補ルールで、人の判定者を選ばず AI だけで候補を決めるときに警告を出す。全文の結果にも、人の票が無く AI だけで決まった文献の件数（うち除外）を警告として出す。保存も合議の規則（OR）も変えない。
+  The full-text candidate rule now warns when candidates are decided by AI alone, with no human voters. Full-text results now warn with the number of reports decided by AI alone (and how many were excluded). Saving and the OR consensus rule are unchanged.
+- ML の停止基準で残りを一括除外した文献を「ML の停止基準で除外（未読）」と表示し、人が判定した人数には数えない。論文用テキストでは、人が読まずに除外した件数を人の除外と分けて書く。チームの状態（除外・判定待ちなど）の決め方と保存形式は変えない。停止時のダイアログでは「続ける」を上に置いた。
+  Records bulk-excluded by the ML stopping criterion are now shown as "Excluded by the ML stopping criterion (unread)" and are not counted as judged by a reviewer. The manuscript text reports the number excluded without reviewer screening separately from reviewer exclusions. How team status is determined and how decisions are stored are unchanged. The stopping dialog now lists "Continue" first.
+- AI タブで Gemini を選んだとき、無料枠では送った内容が Google の改善に使われうることを表示する。フルテキストの AI 判定には、PDF を AI に送るときの著作権の注意を表示する。
+  The AI tab now notes, when a Gemini model is selected, that free-tier content may be used to improve Google's products. Full-text AI screening now shows a copyright notice about sending PDFs to AI.
+
 ### 記録と論文用テキスト / Records and manuscript text
 
 - AI の実行ごとに、送信した全文の雛形・その SHA-256・プロンプトの版・推論の強さ・最大出力トークン数を LLM_Executions に記録する。送っていない temperature などは空欄にする。TiAb の一括判定にも実行者を記録する。
