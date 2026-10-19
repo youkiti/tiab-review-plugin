@@ -13,8 +13,8 @@
  */
 
 import { state } from '../state';
-import { buildManuscriptAiSentence } from '../../lib/manuscript-ai';
-import { collectReviewerKeys, summarizeTeamDecision } from '../../lib/decision-summary';
+import { buildManuscriptAiSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions } from '../../lib/manuscript-ai';
+import { collectReviewerKeys } from '../../lib/decision-summary';
 import { isLogicallyDeleted } from '../../lib/duplicate-detect';
 import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
@@ -103,13 +103,6 @@ function countTiabHumanReviewers(): number {
         }
     }
     return Math.max(reviewers.size, 1);
-}
-
-/** reviewer_id `llm:{model}@{timestamp}` からモデル名を抽出 */
-function llmModelFromReviewerId(reviewerId: string): string {
-    const body = reviewerId.slice('llm:'.length);
-    const at = body.lastIndexOf('@');
-    return at > 0 ? body.slice(0, at) : body;
 }
 
 /** TiAb 相で ML 判定（確定/自動）が使われたか */
@@ -214,12 +207,9 @@ function countStoppingRuleExclusions(): number {
     const refs = database.filter(ref => !isLogicallyDeleted(ref))
         .map(ref => ({ ...ref, allDecisions: collectRefDecisions(ref) }));
     const keys = collectReviewerKeys(refs, new Set(), state.treatMlAsManual);
-    return refs.filter(ref => {
-        if (candidates.has(ref.ref_id)) return false;
-        const summary = summarizeTeamDecision(ref, keys, state.treatMlAsManual);
-        // 他の担当者の判定待ち（incomplete）の文献は、まだ除外として数えない
-        return summary.teamStatus === 'exclude' && summary.excludedByStoppingRule === true;
-    }).length;
+    return countManuscriptStoppingRuleExclusions(
+        refs.filter(ref => !candidates.has(ref.ref_id)), keys, state.treatMlAsManual, state.assignmentConfig
+    );
 }
 
 function buildTiabResults(id: IdentificationData, sought: number): string {
@@ -248,12 +238,8 @@ function buildTiabResults(id: IdentificationData, sought: number): string {
 
 function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
     const humanJudges = summary.judges.filter(j => !j.startsWith('llm:'));
-    const aiModels = [...new Set(
-        summary.judges.filter(j => j.startsWith('llm:')).map(llmModelFromReviewerId)
-    )].sort();
-
     const paragraphs: string[] = [];
-    // ヒト判定者が0の場合は、AIだけで評価したことを明記する。
+    // 通常の人判定者数を示し、AI評価と人の裁定の関与は後続の文に記す。
     const reviewerClause = humanJudges.length > 0
         ? ` by ${humanJudges.length} ${plural(humanJudges.length, 'reviewer')}`
         : '';
@@ -264,12 +250,9 @@ function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: 
         `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review (version ${extensionVersion()}), with reasons for exclusion recorded.`
     );
 
-    if (aiModels.length > 0) {
-        paragraphs.push(
-            humanJudges.length === 0
-                ? `Full texts were assessed by ${aiModels.join(', ')} only, without human screening.`
-                : `Retrieved PDFs were additionally assessed by ${aiModels.join(', ')} as an independent screener.`
-        );
+    const aiSentence = buildFulltextAiMethodsSentence(summary);
+    if (aiSentence) {
+        paragraphs.push(aiSentence);
     }
 
     paragraphs.push(

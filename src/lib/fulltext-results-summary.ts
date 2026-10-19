@@ -161,6 +161,7 @@ export interface FulltextResultsSummary {
     pending: number;
     conflict: number;       // 判定不一致のみ（裁定済みも含む生の件数）
     reasonConflict: number; // 理由不一致のみ（裁定済みも含む生の件数）。conflict とは合算しない
+    adjudicated: number;   // 人の裁定が最終判定に採用された文献数
     unresolved: number;     // うち未解消（(conflict||reasonConflict) && !adjudicated）
     reasons: Array<{ reason: string; count: number }>;  // 除外理由（件数降順、生キー）
     judges: string[];      // 集計に使った判定者キー
@@ -174,9 +175,13 @@ export function summarizeFulltextCandidates(
     const obtained = candidates.filter(isFulltextObtained).length;
 
     let inc = 0, exc = 0, maybe = 0, pend = 0, conflict = 0, reasonConflict = 0, unresolved = 0;
+    let adjudicated = 0;
     const reasonCounts = new Map<string, number>();
     for (const r of candidates) {
         const c = getFulltextConsensus(r, judges, excludeReasonItems);
+        if (c.adjudicated) {
+            adjudicated++;
+        }
         if (c.conflict) conflict++;
         if (c.reasonConflict) reasonConflict++;
         if (c.unresolved) unresolved++;
@@ -202,6 +207,7 @@ export function summarizeFulltextCandidates(
         conflict,
         reasonConflict,
         unresolved,
+        adjudicated,
         reasons: [...reasonCounts.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([reason, count]) => ({ reason, count })),

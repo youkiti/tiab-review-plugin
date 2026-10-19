@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions } from '../src/lib/manuscript-ai';
 import { shouldWarnAiOnlyRule } from '../src/lib/fulltext-rule-editor';
-import { countAiOnlyConsensus } from '../src/lib/fulltext-results-summary';
+import { countAiOnlyConsensus, summarizeFulltextCandidates } from '../src/lib/fulltext-results-summary';
 import { collectReviewerKeys, summarizeTeamDecision } from '../src/lib/decision-summary';
 import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 
@@ -119,4 +120,55 @@ test('人とML停止基準の票が別担当者で混在してもチーム状態
     assert.ok(!result.excludedByStoppingRule);
     ref.allDecisions![1].decision = 'include';
     assert.equal(summarizeTeamDecision(ref, ['a::ml', 'b'], true).teamStatus, 'conflict');
+});
+
+test('論文用の未読除外件数はプロジェクト全体の実績より担当セットの人数を優先する', () => {
+    const refs: ReferenceWithStatus[] = [
+        { ref_id: 'single', title: '担当1人', status: 'exclude', screening_set: 'group1',
+            allDecisions: [decision('a', 'exclude', '1-ml-auto')] },
+        { ref_id: 'pair', title: '担当2人', status: 'exclude', screening_set: 'group2',
+            allDecisions: [decision('b', 'exclude', '1-ml-auto')] },
+    ];
+    for (const manual of [true, false]) {
+        const keys = collectReviewerKeys(refs, new Set(), manual);
+        assert.equal(countManuscriptStoppingRuleExclusions(refs, keys, manual, null), 0);
+        const config = {
+            status: 'configured' as const, calibrationSize: 0, groupCount: 2,
+            reviewerMap: { group1: ['a'], group2: ['b', 'c'] },
+        };
+        assert.equal(countManuscriptStoppingRuleExclusions(refs, keys, manual, config), 1);
+        refs[1].allDecisions!.push(decision('c', 'exclude', '1-ml-auto'));
+        const completeKeys = collectReviewerKeys(refs, new Set(), manual);
+        assert.equal(countManuscriptStoppingRuleExclusions(refs, completeKeys, manual, config), 2);
+        refs[1].allDecisions!.pop();
+    }
+});
+
+test('全文の論文用文案は人の判定も裁定も無ければAIのみと記す', () => {
+    const summary = summarizeFulltextCandidates([fulltext(decision('llm:model@run', 'exclude'))], new Set(['llm:model@run']), []);
+    assert.equal(summary.adjudicated, 0);
+    assert.equal(buildFulltextAiMethodsSentence(summary), 'Full texts were assessed by model only, without human screening.');
+});
+
+test('全文の論文用文案は人の裁定が採用された件数と残りのAI評価を記す', () => {
+    const adjudicated = fulltext(decision('llm:model@run', 'exclude'), decision('adjudication:human', 'include'));
+    const judges = new Set(['llm:model@run']);
+    for (const n of [1, 2]) {
+        const summary = summarizeFulltextCandidates([
+            ...Array.from({ length: n }, () => adjudicated), fulltext(decision('llm:model@run', 'exclude')),
+        ], judges, []);
+        assert.equal(summary.adjudicated, n);
+        assert.equal(summary.include, n);
+        assert.equal(summary.exclude, 1);
+        assert.equal(buildFulltextAiMethodsSentence(summary),
+            `Full texts were assessed by model; a reviewer adjudicated ${n} ${n === 1 ? 'report' : 'reports'}, and the remaining decisions were made by the model without human screening.`);
+    }
+});
+
+test('全文の論文用文案は通常の人判定者がいれば従来の追加AI評価文を使う', () => {
+    const summary = summarizeFulltextCandidates([
+        fulltext(decision('llm:model@run', 'exclude'), decision('human', 'include'), decision('adjudication:human', 'include')),
+    ], new Set(['human', 'llm:model@run']), []);
+    assert.equal(buildFulltextAiMethodsSentence(summary), 'Retrieved PDFs were additionally assessed by model as an independent screener.');
+    assert.equal(buildFulltextAiMethodsSentence({ judges: ['human'], adjudicated: 1 }), '');
 });
