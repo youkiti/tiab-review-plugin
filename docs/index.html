@@ -560,9 +560,11 @@
                         <span class="en">Secure</span>
                     </h3>
                     <p class="bilingual">
-                        <span class="ja">基本データは Google Drive に保存。AI機能利用時は Gemini API と通信しますが、それ以外のデータ送信はありません。</span>
-                        <span class="en">Basic data stored in Google Drive. Data is sent to Gemini API only when using
-                            AI features.</span>
+                        <span class="ja">データは利用者の Google Drive に保存し、開発者のサーバーには送りません。AI 判定や全文 PDF の検索を使ったときだけ、選んだ AI プロバイダやオープンアクセスの検索サービスと通信します（<a href="privacy-policy.html">プライバシーポリシー</a>）。</span>
+                        <span class="en">Data is stored in your own Google Drive and never sent to the developer's
+                            servers. Data goes to the AI provider you choose or to open-access search services only when
+                            you use AI screening or full-text PDF search (see the <a href="privacy-policy.html">Privacy
+                                Policy</a>).</span>
                     </p>
                 </div>
                 <div class="feature-card">
@@ -572,11 +574,14 @@
                         <span class="en">AI Screening Support</span>
                     </h3>
                     <p class="bilingual">
-                        <span class="ja">Gemini APIを利用した自動判定。<a href="https://ai.google.dev/gemini-api/docs/api-key"
-                                target="_blank">APIキーの設定</a>が必要です。</span>
-                        <span class="en">Automated screening using Gemini API. Requires <a
-                                href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">API Key
-                                setup</a>.</span>
+                        <span class="ja">Gemini・OpenRouter・OpenAI・Anthropic・TypeSafe の AI を、人と並ぶもう1人の判定者として使えます。利用には各プロバイダの API キーが必要です（<a href="https://ai.google.dev/gemini-api/docs/api-key"
+                                target="_blank">Gemini の API キー</a>）。AI の判定はレビューごとに人の判定と突き合わせて確かめてから使ってください（<a href="help.html#ai-limitations">AI 判定の検証と限界</a>）。</span>
+                        <span class="en">Use AI from Gemini, OpenRouter, OpenAI, Anthropic, or TypeSafe as an additional
+                            screener alongside human reviewers. Each provider needs its own API key (<a
+                                href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">Gemini API
+                                key</a>). Check the AI's decisions against human decisions in each review before relying
+                            on them (<a href="help.html#ai-limitations">Validation and limitations of AI
+                                screening</a>).</span>
                     </p>
                 </div>
             </div>
@@ -686,10 +691,20 @@
                         <span class="ja">利用規約</span><span class="lang-sep"> / </span><span class="en">Terms of Service</span>
                     </a>
                     <a href="https://github.com/youkiti/tiab-review-plugin">GitHub</a>
+                    <a href="https://github.com/youkiti/tiab-review-plugin/blob/main/CHANGELOG.md" target="_blank" rel="noopener">
+                        <span class="ja">変更履歴</span><span class="lang-sep"> / </span><span class="en">Changelog</span>
+                    </a>
                 </div>
                 <div class="copyright">
                     © 2025 SRWS-PSG. MIT License.
                 </div>
+                <p class="bilingual">
+                    <span class="ja">JSPS 科研費 25K13585（基盤研究(C)「大規模言語モデルが加速するエビデンスの統合」）の助成を受けて開発しています。無料・非営利で提供しており、開発者は本ツールで使える AI サービスの提供元から報酬や資金を受けていません。</span>
+                    <span class="en">Developed with support from JSPS KAKENHI Grant Number 25K13585 (Grant-in-Aid for
+                        Scientific Research (C), "Accelerating Evidence Synthesis with Large Language Models"). Provided
+                        free of charge and not for profit; the developer receives no payment or funding from the
+                        providers of the AI services that can be used with this tool.</span>
+                </p>
             </div>
         </div>
     </footer>

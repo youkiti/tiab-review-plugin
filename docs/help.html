@@ -251,8 +251,8 @@
                 <span class="en">Help Guide</span>
             </h1>
             <p class="last-updated">
-                <span class="ja">最終更新: 2026年10月1日</span>
-                <span class="en">Last updated: October 1, 2026</span>
+                <span class="ja">最終更新: 2026年10月20日</span>
+                <span class="en">Last updated: October 20, 2026</span>
             </p>
 
             <!-- Web版への導線 -->
@@ -1346,6 +1346,78 @@
                             policy when handling sensitive data.</span>
                     </p>
                 </div>
+
+                <h3 id="ai-limitations">
+                    <span class="ja">AI 判定の検証と限界</span>
+                    <span class="en">Validation and Limitations of AI Screening</span>
+                </h3>
+                <p>
+                    <span class="ja">モデル一覧に出る Recall（見落とさずに拾えた割合）は、開発者が手元のデータで測った値です。あなたのレビューでも同じ性能が出るとは限りません。次の限界を踏まえ、AI の判定はレビューごとに人の判定と突き合わせて確かめてから使ってください。</span>
+                    <span class="en">The Recall figures shown in the model list (the share of eligible records the AI
+                        picked up) were measured by the developer on the developer's own datasets. Your review may not
+                        get the same performance. With the limitations below in mind, check the AI's decisions against
+                        human decisions in each review before relying on them.</span>
+                </p>
+                <ul>
+                    <li>
+                        <span class="ja"><strong>評価は開発者自身によるものです。</strong>第三者による独立した検証は、まだ行われていません。</span>
+                        <span class="en"><strong>The evaluations were run by the developer.</strong> No independent
+                            third-party validation has been done yet.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>評価に使ったデータは限られています。</strong>主な指標に使った depression データセットは、うつ病の動物実験を集めた前臨床の系統的レビューです。ほかに、日本の診療ガイドライン作成のための系統的レビュー5件（CQ1〜5）などを使いました。抄録はほぼ英語で、ほかの分野や言語での性能は確かめていません。</span>
+                        <span class="en"><strong>The evaluation data are limited.</strong> The depression dataset behind the
+                            headline figures is a preclinical systematic review of animal models of depression. Other
+                            datasets include five systematic reviews prepared for Japanese clinical practice guidelines
+                            (CQ1–5). The abstracts are almost all in English; performance in other fields or languages
+                            has not been checked.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>同じデータで条件を調整し、評価もしています。</strong>depression データセットはプロンプトや設定の調整にも使ったため、その値は実際より良く出ている可能性があります。</span>
+                        <span class="en"><strong>The same data were used for tuning and for evaluation.</strong> The
+                            depression dataset was also used to tune prompts and settings, so its figures may be
+                            optimistic.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>AI が評価データを学習済みの可能性があります。</strong>評価には公開済みの系統的レビューのデータを使っています。AI モデルが学習の段階でこれらの論文や判定結果を見ている場合、性能が高めに出ます。</span>
+                        <span class="en"><strong>The AI may have seen the evaluation data during training.</strong> The
+                            evaluations use data from published systematic reviews. If a model saw these articles or the
+                            review decisions during training, its performance will look better than it is.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>組み入れる文献が少ないレビューでは見落としが増えました。</strong>組み入れの割合が 2% 前後のデータセットの一部では、Recall が大きく下がるモデルがありました。</span>
+                        <span class="en"><strong>Misses increased when few records were eligible.</strong> On some
+                            datasets where about 2% of records were eligible, Recall dropped sharply for some
+                            models.</span>
+                    </li>
+                    <li>
+                        <span class="ja"><strong>性能は時間とともに変わりえます。</strong>AI の提供元がモデルを更新・終了すると、判定の傾向が変わります。名前に preview と付くモデルは、とくに変わりやすいものです。実際に応答したモデルの版は、判定ごとに記録しています。</span>
+                        <span class="en"><strong>Performance can change over time.</strong> When a provider updates or
+                            retires a model, its decisions can shift. Models with "preview" in their name are especially
+                            likely to change. The model version that actually responded is recorded with each
+                            decision.</span>
+                    </li>
+                </ul>
+                <p>
+                    <span class="ja"><strong>レビューの中で確かめる方法：</strong>人が判定し終えた文献（または人が判定した一部の文献）を AI にも判定させ、人の判定で組み入れた文献のうち AI が除外したものの割合（見落とし率）を確かめます。実行の前に「見落とし率が何%以下なら使う」という基準を決めて記録しておき、基準を満たさないときは AI を判定に使わないでください。論文には、使ったモデルとその版、プロンプトの版、閾値、確かめた件数と結果を書いてください（エクスポートメニューの「論文用テキスト」に下書きが出ます）。</span>
+                    <span class="en"><strong>How to check within your review:</strong> Have the AI screen records that
+                        humans have already screened (all of them or a subset), and see what share of the records the
+                        humans included were excluded by the AI (the miss rate). Before running it, decide and record
+                        the miss rate you will accept, and do not use the AI for decisions if it does not meet that
+                        criterion. In your paper, report the model and its version, the prompt version, the threshold,
+                        and the number of records checked with the result (the "Manuscript text" item in the export menu
+                        drafts this).</span>
+                </p>
+                <p>
+                    <span class="ja"><strong>データの送信と著作権：</strong>AI 判定は、文献のタイトル・抄録（フルテキストの AI 判定では PDF 全体）を、選んだ AI プロバイダへ送ります。Gemini API の無料枠では、送った内容が Google の製品の改善に使われ、人が読むこともあります。未公開の原稿や機密の文書には、有料の API キーを使うか、AI 判定を使わないでください。PDF を AI に送ってよいかは、出版社の利用条件と所属機関の契約によります。詳しくは<a href="privacy-policy.html">プライバシーポリシー</a>をご覧ください。</span>
+                    <span class="en"><strong>Data sent and copyright:</strong> AI screening sends titles and abstracts
+                        (the whole PDF for full-text AI screening) to the AI provider you choose. On the Gemini API free
+                        tier, what you send may be used to improve Google's products and may be read by people. For
+                        unpublished manuscripts or confidential documents, use a paid API key or do not use AI
+                        screening. Whether you may send a PDF to an AI depends on the publisher's terms and your
+                        institution's license. See the <a href="privacy-policy.html">Privacy Policy</a> for
+                        details.</span>
+                </p>
             </section>
 
             <!-- フルテキストスクリーニング -->
@@ -2230,13 +2302,17 @@
                         <span class="en">Q: Where is my data stored?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。AI機能を使わなければ、データが外部へ送信されることはありません。</span>
+                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。フルテキストの取得やレジストリ連携を使うと、文献の DOI・PMID・試験登録番号などがオープンアクセスの検索サービスや試験登録サイトへ送られ、Unpaywall と OpenAlex にはログイン中のメールアドレスも送られます。AI 判定もフルテキストの取得もレジストリ連携も使わなければ、レビューデータが Google 以外へ送信されることはありません（<a href="privacy-policy.html">プライバシーポリシー</a>）。</span>
                         <span class="en">A: Your review data (references, decisions, notes, etc.) is stored in your
                             Google Drive. However, if you use AI screening, the title/abstract of each reference
                             being screened (or the full PDF, for full-text AI screening) is sent to the API of
                             whichever provider you configured (Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe). API keys are stored in your
-                            browser's local storage. If you don't use the AI features, no data is sent
-                            externally.</span>
+                            browser's local storage. Full-text retrieval and registry linkage send identifiers such as DOI,
+                            PMID, and trial registration numbers to open-access search services and trial registries,
+                            and also send the signed-in email address to Unpaywall and OpenAlex. If you use none of AI
+                            screening, full-text retrieval, or registry linkage, no review data is sent
+                            anywhere other than Google (see the <a href="privacy-policy.html">Privacy
+                                Policy</a>).</span>
                     </p>
                 </div>
 
@@ -2358,10 +2434,23 @@
                             repository</a>.</span>
                 </p>
                 <p>
-                    <span class="ja">最新の変更履歴は <a href="https://github.com/youkiti/tiab-review-plugin/commits/main"
-                            target="_blank">コミット履歴</a> をご確認ください。</span>
-                    <span class="en">See the <a href="https://github.com/youkiti/tiab-review-plugin/commits/main"
-                            target="_blank">commit history</a> for the latest changes.</span>
+                    <span class="ja">版ごとの変更（とくに AI のモデル・プロンプト・既定の閾値の変更）は <a
+                            href="https://github.com/youkiti/tiab-review-plugin/blob/main/CHANGELOG.md"
+                            target="_blank">変更履歴</a> に載せています。それより前の変更は <a
+                            href="https://github.com/youkiti/tiab-review-plugin/commits/main" target="_blank">コミット履歴</a>
+                        をご確認ください。</span>
+                    <span class="en">Per-version changes, especially changes to AI models, prompts, and default
+                        thresholds, are listed in the <a
+                            href="https://github.com/youkiti/tiab-review-plugin/blob/main/CHANGELOG.md"
+                            target="_blank">changelog</a>. For earlier changes, see the <a
+                            href="https://github.com/youkiti/tiab-review-plugin/commits/main" target="_blank">commit
+                            history</a>.</span>
+                </p>
+                <p>
+                    <span class="ja">本ツールは JSPS 科研費 25K13585 の助成を受けて開発しており、無料・非営利で提供しています。開発者は、本ツールで使える AI サービスの提供元から報酬や資金を受けていません。</span>
+                    <span class="en">This tool is developed with support from JSPS KAKENHI Grant Number 25K13585 and is
+                        provided free of charge and not for profit. The developer receives no payment or funding from
+                        the providers of the AI services that can be used with this tool.</span>
                 </p>
             </div>
         </div>
