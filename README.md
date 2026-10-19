@@ -363,6 +363,19 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `gemini-3.6-flash` は 2026-07 評価で depression Recall 94.6%（最良 D1, Think LOW）。現行デフォルト `gemini-3.1-flash-lite` (93.6%) と B4 (96.1%) の中間で、fallback/budget-tier の候補ではあるが採用基準の Recall ≥95% には届かず。コストは B4 とほぼ同水準（約1.0倍）で、UI公開・デフォルト切替は見送り。詳細は `experiments/gemini-3.6-flash/`。
 - `gemini-3.5-flash-lite` は 2026-07 評価で depression Recall 91.8%（最良 C4, Think LOW）にとどまり、現行 lite 既定 (93.6%) を下回るため却下。B4 よりコストは低い（約0.24倍）が、Recall 不足が採用のボトルネック。詳細は `experiments/gemini-3.5-flash-lite/`。
 
+### 評価の限界
+
+上の数値を読むときは、次の限界に注意してください。利用者向けの同じ説明はアプリ内ヘルプの「[AI 判定の検証と限界](https://youkiti.github.io/tiab-review-plugin/help.html#ai-limitations)」にあります。
+
+- **評価は開発者自身によるもの**で、第三者による独立した検証はまだありません。
+- **主指標の depression データセットは前臨床の系統的レビュー**（うつ病の動物モデル、[データセットの説明](experiments/data/datasets/zenodo_151190_depression.md)）です。CQ1〜5 は日本の診療ガイドライン作成のための系統的レビュー由来です（[説明](experiments/data/datasets/cq_datasets.md)）。抄録はほぼ英語で、他の分野・言語での性能は確かめていません。
+- **depression は条件の調整にも使った**ため（[experiments/report_verification.md](experiments/report_verification.md)）、その値は楽観的になりえます。他のデータセットでの値も併せて見てください。
+- **評価データは公開済みの系統的レビュー**なので、LLM が学習の段階でこれらの論文や判定を見ている可能性があり（データの汚染）、性能が高めに出ることがあります。
+- 外部検証（TITAN-SR の22レビュー、[experiments/typesafe-jev/titan-external/report.md](experiments/typesafe-jev/titan-external/report.md)）は `jev-1.13.0` で行いました。アプリが今使う `jev-1.14.0` での外部検証はまだありません。
+- モデルの提供元が更新すると性能は変わりえます。とくに `gemini-3-flash-preview` は preview 版です。
+
+そのため、利用者には、レビューごとに人の判定と突き合わせて見落とし率を確かめてから AI の判定を使うよう案内しています。
+
 ### 詳細レポート
 
 - 初期評価 (B1–B4 比較): [experiments/report.md](experiments/report.md)
@@ -451,4 +464,14 @@ This project is supported by the following research grant.
 | 配分区分 / Funding Type     | 基金 / Fund                                            |
 | 研究期間 / Period           | 2025-04-01 – 2028-03-31                               |
 |                             |                                                        |
+
+## 利益相反 / Conflicts of Interest
+
+本ツールは無料・非営利で提供しています。開発者は、本ツールで使える AI サービスの提供元（Google、OpenRouter、OpenAI、Anthropic、TypeSafe）から報酬や資金を受けていません。
+
+This tool is provided free of charge and not for profit. The developer receives no payment or funding from the providers of the AI services that can be used with this tool (Google, OpenRouter, OpenAI, Anthropic, TypeSafe).
+
+## 変更履歴 / Changelog
+
+版ごとの変更は [CHANGELOG.md](CHANGELOG.md) にあります。AI のモデル・プロンプト・既定の閾値など、判定の結果に影響しうる変更はここに必ず載せます。
 
