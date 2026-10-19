@@ -63,6 +63,7 @@ function makeState(params: {
             activeLlmExecutionIds: new Set(),
             currentBatchDecisions: [],
             failedRefIds: [],
+            failedSourceExecutionId: null,
         },
         ui: {
             view: 'screening',

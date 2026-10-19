@@ -38,6 +38,7 @@ export const initialState: AppState = {
         activeLlmExecutionIds: new Set(),
         currentBatchDecisions: [],
         failedRefIds: [],
+        failedSourceExecutionId: null,
     },
     ui: {
         view: 'login',

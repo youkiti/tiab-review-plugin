@@ -66,6 +66,7 @@ export interface AppState {
         activeLlmExecutionIds: Set<string>;
         currentBatchDecisions: Decision[];
         failedRefIds: string[];
+        failedSourceExecutionId: string | null;
     };
 
     // UI層: 画面表示に直結する状態
@@ -142,7 +143,7 @@ export type Action =
     | { type: 'data/toggleReviewer'; reviewerId: string }
     | { type: 'data/addReviewer'; reviewerId: string }
     | { type: 'data/removeReviewer'; reviewerId: string }
-    | { type: 'data/setFailedRefIds'; ids: string[] }
+    | { type: 'data/setFailedRefIds'; ids: string[]; sourceExecutionId: string | null }
     | { type: 'data/setCurrentBatchDecisions'; decisions: Decision[] }
     | { type: 'data/addActiveLlmExecutionId'; id: string }
     | { type: 'data/clearActiveLlmExecutionIds' }

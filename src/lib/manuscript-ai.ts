@@ -1,6 +1,6 @@
 // 論文用の記述は採用された判定と実送信設定から組み立てる。
-import type { Decision } from './types';
-import { getModelGenerationSettings, sentGenerationSettings } from './model-generation-settings';
+import type { Decision, LlmExecution } from './types';
+import { getModelGenerationSettings } from './model-generation-settings';
 import { PROMPT_VERSION } from './prompt-templates';
 
 function noteVersions(note: string): { model?: string; prompt?: string } {
@@ -18,44 +18,61 @@ function noteVersions(note: string): { model?: string; prompt?: string } {
     return {};
 }
 
-export function buildManuscriptAiSentence(decisions: readonly Decision[], total: number, threshold: number): string {
+function recordedSettings(model: string, row?: LlmExecution): string {
+    if (!row) {
+        return 'generation settings not recorded';
+    }
+    const provider = getModelGenerationSettings(model).provider;
+    const modern = Boolean(row.prompt_sha256);
+    const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/');
+    const sampling = modern || (!typeSafe && (provider === 'gemini' || provider === 'openrouter'));
+    const settings: string[] = [];
+    if (sampling && row.temperature !== undefined) {
+        settings.push(`temperature ${row.temperature}`);
+    }
+    if (sampling && row.topP !== undefined) {
+        settings.push(`top-p ${row.topP}`);
+    }
+    if (sampling && row.thinkingLevel) {
+        settings.push(`thinking level ${row.thinkingLevel.toLowerCase()}`);
+    }
+    const effort = modern ? row.reasoning_effort
+        : provider === 'openai' || provider === 'anthropic' ? 'low' : undefined;
+    if (effort) {
+        settings.push(`${provider === 'anthropic' ? 'effort' : 'reasoning effort'} ${effort}`);
+    }
+    return settings.join(', ');
+}
+
+export function buildManuscriptAiSentence(
+    decisions: readonly Decision[], total: number, threshold: number, executions: readonly LlmExecution[],
+): string {
     const judged = decisions.filter(d => (d.screening_phase ?? 'tiab') === 'tiab'
         && d.reviewer_id.startsWith('llm:') && d.decision !== 'pending');
     if (!judged.length) {
         return '';
     }
-    const models = new Map<string, Set<string>>();
+    const rows = new Map(executions.map(row => [row.execution_id, row]));
+    const models = new Map<string, { versions: Set<string>; settings: Set<string> }>();
     const prompts = new Set<string>();
     for (const decision of judged) {
         const body = decision.reviewer_id.slice(4);
         const at = body.lastIndexOf('@');
         const model = at > 0 ? body.slice(0, at) : body;
-        const versions = models.get(model) ?? new Set<string>();
+        const entry = models.get(model) ?? { versions: new Set<string>(), settings: new Set<string>() };
         const note = noteVersions(decision.note ?? '');
+        const row = rows.get(decision.reviewer_id);
         if (note.model) {
-            versions.add(note.model);
+            entry.versions.add(note.model);
         }
-        prompts.add(note.prompt || PROMPT_VERSION);
-        models.set(model, versions);
+        entry.settings.add(recordedSettings(model, row));
+        prompts.add(note.prompt || row?.prompt_version || PROMPT_VERSION);
+        models.set(model, entry);
     }
-    const descriptions = [...models].sort(([a], [b]) => a.localeCompare(b)).map(([model, versions]) => {
-        const config = getModelGenerationSettings(model);
-        const sent = sentGenerationSettings(model, config);
-        const settings: string[] = [];
-        if (sent.temperature !== undefined) {
-            settings.push(`temperature ${sent.temperature}`);
-        }
-        if (sent.topP !== undefined) {
-            settings.push(`top-p ${sent.topP}`);
-        }
-        if (sent.thinkingLevel) {
-            settings.push(`thinking level ${sent.thinkingLevel.toLowerCase()}`);
-        }
-        if (sent.reasoning_effort) {
-            settings.push(`${config.provider === 'anthropic' ? 'effort' : 'reasoning effort'} ${sent.reasoning_effort}`);
-        }
-        const version = versions.size ? ` [model version reported by the API: ${[...versions].sort().join(', ')}]` : '';
-        return model + version + (settings.length ? ` (${settings.join(', ')})` : '');
+    const descriptions = [...models].sort(([a], [b]) => a.localeCompare(b)).map(([model, entry]) => {
+        const version = entry.versions.size ? ` [model version reported by the API: ${[...entry.versions].sort().join(', ')}]` : '';
+        const settings = [...entry.settings].sort().map(value => value || 'no generation parameters sent').join('; ');
+        return model + version + ` (${settings})`;
     });
     const count = new Set(judged.map(d => d.ref_id)).size;
     const coverage = count === total ? 'all records' : `${count} of the ${total} records`;

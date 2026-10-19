@@ -26,10 +26,10 @@ import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
-import { getSpreadsheetInfo, getReferences } from '../../lib/sheets-api';
+import { getSpreadsheetInfo, getReferences, getLlmExecutions } from '../../lib/sheets-api';
 import { computeIdentification } from '../../lib/prisma-identification';
 import type { IdentificationData } from '../../lib/prisma-identification';
-import type { Decision, ReferenceWithStatus } from '../../lib/types';
+import type { Decision, ReferenceWithStatus, LlmExecution } from '../../lib/types';
 import { excludeReasonLabelEn, EXCLUDE_REASON_LABELS_EN } from '../../lib/exclude-reasons';
 
 export type ManuscriptPhase = 'tiab' | 'fulltext';
@@ -160,7 +160,7 @@ function wasWere(n: number): string {
     return n === 1 ? 'was' : 'were';
 }
 
-function buildTiabMethods(id: IdentificationData): string {
+function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecution[]): string {
     const fileList = id.files.map(f => f.file).join('; ');
     const nReviewers = countTiabHumanReviewers();
 
@@ -186,6 +186,7 @@ function buildTiabMethods(id: IdentificationData): string {
     const { database } = splitByIdentificationRoute(state.allReferences);
     const aiSentence = buildManuscriptAiSentence(
         database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions), id.screened, state.llmConfig.llm_include_threshold,
+        executions,
     );
     if (aiSentence) {
         paragraphs.push(aiSentence);
@@ -410,6 +411,12 @@ function buildSectionElement(label: string, text: string): HTMLElement {
  * @param phase 'tiab' = TiAb相まで / 'fulltext' = フルテキスト相を含む全体
  */
 export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void> {
+    let executions: LlmExecution[] = [];
+    try {
+        executions = await getLlmExecutions(state.spreadsheetId, true);
+    } catch {
+        // 履歴を取得できない場合は設定未記録として文を組み立てる。
+    }
     // プロジェクト名（PRISMAブロックの見出し用。取得失敗時はフォールバック）
     let projectTitle = 'TiAb Review project';
     try {
@@ -457,7 +464,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
 
     const methods = summaryByRoute
         ? buildFulltextMethods(summaryByRoute.database, summaryByRoute.registryLinkage)
-        : buildTiabMethods(id);
+        : buildTiabMethods(id, executions);
     const results = summaryByRoute
         ? buildFulltextResults(summaryByRoute.database, summaryByRoute.registryLinkage)
         : buildTiabResults(id, sought);

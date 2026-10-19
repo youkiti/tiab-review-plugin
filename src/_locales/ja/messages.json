@@ -2580,6 +2580,12 @@
   "llm_retryNoTarget": {
     "message": "リトライ対象がありません"
   },
+  "llm_retryMissingExecution": {
+    "message": "失敗元の実行記録を取得できないためリトライできません。実行履歴を読み直してください。"
+  },
+  "llm_retryUnavailableModel": {
+    "message": "失敗元のモデルは現在利用できないためリトライできません。"
+  },
   "llm_retryNoRefs": {
     "message": "リトライ対象の文献が見つかりません"
   },

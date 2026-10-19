@@ -205,6 +205,7 @@ export const state = {
     setLlmTargetRefIds(refIds: Set<string>) { _llmTargetRefIds = refIds; },
 
     get failedRefIds() { return getState().data.failedRefIds; },
+    get failedSourceExecutionId() { return getState().data.failedSourceExecutionId; },
 
     // ----- Reviewer Filtering -----
     get enabledReviewers() { return getState().data.enabledReviewers; },

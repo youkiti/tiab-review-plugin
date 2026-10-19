@@ -1288,6 +1288,13 @@
                     <span class="en">If unsure, use the default threshold of 0.3. Miss rates for the bundled models were measured at this value. Raising it increases Exclude decisions and missed eligible records. Consider 0.5 / 0.7 only if more missed eligible records are acceptable.</span>
                 </p>
 
+                <p>
+                    <span class="ja">「失敗分をリトライ」は、失敗した実行と同じモデル・設定で続きを判定し、その実行の判定として記録します（モデル欄を変えていても元のモデルを使います）。</span>
+                    <span class="en">"Retry failed" screens the remaining records with the same model and settings as the run
+                        that failed, and records them as part of that run (it uses the original model even if you have
+                        changed the model field).</span>
+                </p>
+
                 <h3 id="ai-screening-pending">
                     <span class="ja">AI判定が画面に出ないとき（pendingのまま）</span>
                     <span class="en">When AI Decisions Don't Show Up (Stuck as "pending")</span>

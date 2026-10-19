@@ -238,7 +238,11 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
         case 'data/setFailedRefIds':
             return {
                 ...state,
-                data: { ...state.data, failedRefIds: action.ids },
+                data: {
+                    ...state.data,
+                    failedRefIds: action.ids,
+                    failedSourceExecutionId: action.ids.length > 0 ? action.sourceExecutionId : null,
+                },
             };
 
         case 'data/setCurrentBatchDecisions':

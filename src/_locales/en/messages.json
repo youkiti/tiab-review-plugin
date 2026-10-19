@@ -2580,6 +2580,12 @@
   "llm_retryNoTarget": {
     "message": "No items to retry"
   },
+  "llm_retryMissingExecution": {
+    "message": "Cannot retry because the original execution record could not be loaded. Reload the execution history."
+  },
+  "llm_retryUnavailableModel": {
+    "message": "Cannot retry because the original model is no longer available."
+  },
   "llm_retryNoRefs": {
     "message": "No references found to retry"
   },

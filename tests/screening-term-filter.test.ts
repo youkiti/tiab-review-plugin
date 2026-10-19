@@ -352,6 +352,7 @@ function makeState(overrides: {
             activeLlmExecutionIds: new Set<string>(),
             currentBatchDecisions: [],
             failedRefIds: [],
+            failedSourceExecutionId: null,
         },
         ui: {
             view: 'screening',

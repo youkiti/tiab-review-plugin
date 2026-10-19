@@ -289,8 +289,8 @@ export function setCurrentBatchDecisions(decisions: Decision[]): void {
 /**
  * リトライ対象の失敗ref_idリストを設定（Storeのみ）
  */
-export function setFailedRefIds(ids: string[]): void {
-    dispatch({ type: 'data/setFailedRefIds', ids });
+export function setFailedRefIds(ids: string[], sourceExecutionId: string | null): void {
+    dispatch({ type: 'data/setFailedRefIds', ids, sourceExecutionId });
 }
 
 /**
@@ -299,7 +299,7 @@ export function setFailedRefIds(ids: string[]): void {
  * setFailedRefIdsに空配列を渡す。
  */
 export function clearFailedRefIds(): void {
-    dispatch({ type: 'data/setFailedRefIds', ids: [] });
+    dispatch({ type: 'data/setFailedRefIds', ids: [], sourceExecutionId: null });
 }
 
 /**
