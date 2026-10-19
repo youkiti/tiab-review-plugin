@@ -134,6 +134,7 @@ export interface BatchProcessOptions {
     temperature?: number;
     topP?: number;
     thinkingLevel?: string;
+    reasoningEffort?: GeminiModelConfig['reasoningEffort'];
     maxOutputTokens?: number;
     outputLanguage: string;
     rateLimitConfig?: RateLimitConfig; // レート制限設定（無料版/有料版）
@@ -672,6 +673,7 @@ export async function processBatch(
         topP: options.topP,
         thinkingLevel: options.thinkingLevel,
         maxOutputTokens: options.maxOutputTokens,
+        reasoningEffort: options.reasoningEffort,
     };
 
     const rateLimit = options.rateLimitConfig || RATE_LIMIT_PAID;

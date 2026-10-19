@@ -3,6 +3,7 @@
 import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, DetectedTier, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { getEffectiveApiKey } from './storage';
 import { t } from './i18n';
+import { getModelGenerationConfig } from './model-generation-settings';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -22,7 +23,7 @@ export interface GeminiModelConfig {
     maxOutputTokens?: number;
     topP?: number;
     thinkingLevel?: string;                          // Gemini 専用: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH'
-    reasoningEffort?: 'low' | 'medium' | 'high';     // OpenRouter / OpenAI / Anthropic 専用
+    reasoningEffort?: 'none' | 'low' | 'medium' | 'high';     // OpenRouter / OpenAI / Anthropic 専用
 }
 
 interface GeminiApiErrorOptions {
@@ -590,14 +591,8 @@ export function normalizeCriteriaConversionResult(result: { criteria: LlmCriteri
 /**
  * 文献をスクリーニング
  */
-export async function screenReference(
-    title: string,
-    abstract: string,
-    screeningPrompt: string,
-    config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
-    outputLanguage: string = 'ja'
-): Promise<{ output: LlmScreeningOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
-    const prompt = `${screeningPrompt}
+export function buildGeminiScreeningPrompt(title: string, abstract: string, screeningPrompt: string, outputLanguage: string): string {
+    return `${screeningPrompt}
 
 ## 対象文献
 
@@ -613,6 +608,16 @@ ${abstract || '(抄録なし)'}
 - evidence: タイトルまたは抄録から判断根拠となる部分を正確に抜粋（quote）し、その開始位置（start_char）と終了位置（end_char）を指定
 
 注意: quoteはtitleまたはabstract内の正確な部分文字列でなければなりません。`;
+}
+
+export async function screenReference(
+    title: string,
+    abstract: string,
+    screeningPrompt: string,
+    config: GeminiModelConfig = DEFAULT_MODEL_CONFIG,
+    outputLanguage: string = 'ja'
+): Promise<{ output: LlmScreeningOutput; usageMetadata: UsageMetadata; responseMetadata: LlmModelResponseMetadata }> {
+    const prompt = buildGeminiScreeningPrompt(title, abstract, screeningPrompt, outputLanguage);
 
     const { result, usageMetadata, responseMetadata } = await callGeminiApi<LlmScreeningOutput>(
         prompt,
@@ -853,44 +858,44 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         name: 'Gemini 3.1 Flash-Lite',
         nameKey: 'llm_modelName_3_1_flash_lite',
         provider: 'gemini',
-        config: { temperature: 0 }
+        config: getModelGenerationConfig('gemini-3.1-flash-lite')
     },
     {
         id: 'gemini-3-flash-preview',
         name: 'Gemini 3 Flash Preview',
         nameKey: 'llm_modelName_3_flash_preview',
         provider: 'gemini',
-        config: { temperature: 1.0, topP: 0.95, thinkingLevel: 'LOW' }
+        config: getModelGenerationConfig('gemini-3-flash-preview')
     },
     {
         id: 'qwen/qwen3-235b-a22b-2507',
         name: 'Qwen3 235B Instruct (2507)',
         nameKey: 'llm_modelName_qwen3_235b_2507',
         provider: 'openrouter',
-        config: { temperature: 0 }
+        config: getModelGenerationConfig('qwen/qwen3-235b-a22b-2507')
     },
     {
         id: 'deepseek/deepseek-v4-flash',
         name: 'DeepSeek V4 Flash',
         nameKey: 'llm_modelName_deepseek_v4_flash',
         provider: 'openrouter',
-        config: { temperature: 0 }
+        config: getModelGenerationConfig('deepseek/deepseek-v4-flash')
     },
     {
         id: 'gpt-5.6-terra',
         name: 'GPT-5.6 Terra',
         nameKey: 'llm_modelName_gpt_5_6_terra',
         provider: 'openai',
-        // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
-        config: { temperature: 0, reasoningEffort: 'medium' }
+        // temperature は既存 Run の照合用に保持するが openai プロバイダでは送らない
+        config: getModelGenerationConfig('gpt-5.6-terra')
     },
     {
         id: 'gpt-5.6-luna',
         name: 'GPT-5.6 Luna',
         nameKey: 'llm_modelName_gpt_5_6_luna',
         provider: 'openai',
-        // temperature は GeminiModelConfig の必須フィールドだが openai プロバイダでは無視される
-        config: { temperature: 0, reasoningEffort: 'medium' }
+        // temperature は既存 Run の照合用に保持するが openai プロバイダでは送らない
+        config: getModelGenerationConfig('gpt-5.6-luna')
     },
     {
         id: 'claude-haiku-5-5',
@@ -899,7 +904,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         provider: 'anthropic',
         // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
         // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
-        config: { temperature: 0, reasoningEffort: 'low' }
+        config: getModelGenerationConfig('claude-haiku-5-5')
     },
     {
         id: 'claude-sonnet-5-5',
@@ -908,7 +913,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         provider: 'anthropic',
         // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
         // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
-        config: { temperature: 0, reasoningEffort: 'low' }
+        config: getModelGenerationConfig('claude-sonnet-5-5')
     },
     {
         // latest エイリアスではなく固定版 ID を使う既存方針に従う（ベンチマークは experiments/typesafe-jev/）。
@@ -919,7 +924,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         nameKey: 'llm_modelName_jev_1_14_0',
         provider: 'typesafe',
         // temperature は型の都合で置くだけで、typesafe プロバイダでは送らない。
-        config: { temperature: 0 }
+        config: getModelGenerationConfig('jev-1.14.0')
     },
     {
         // 直 API の jev-1.14.0 と同じ版（応答の model は typesafe/jev-1.14-20261014）。ベンチマークは直 API で取得した。
@@ -928,7 +933,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         name: 'TypeSafe Jev 1.14 (OpenRouter)',
         nameKey: 'llm_modelName_jev_1_14_openrouter',
         provider: 'openrouter',
-        config: { temperature: 0 }
+        config: getModelGenerationConfig('typesafe/jev-1.14')
     },
 ];
 

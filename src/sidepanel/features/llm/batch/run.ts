@@ -22,6 +22,8 @@ import {
     updateLlmRun,
     setSingleActiveRun,
     getRunForBatchId,
+    getLlmExecutions,
+    getDecisionsByReviewerId,
     getBatchIdsForRun,
     findRunByConfigHash,
     getJudgedRefIdsForBatches,
@@ -34,8 +36,6 @@ import {
     processBatch,
     formatBatchCostUsd,
     previewThresholdCounts,
-    createLlmExecution,
-    generateLlmReviewerId,
 } from '../../../../lib/llm-processor';
 import { DEFAULT_SCREENING_PROMPT } from '../../../../lib/prompt-templates';
 import { findModelConfig, AVAILABLE_MODELS } from '../../../../lib/gemini-api';
@@ -57,6 +57,7 @@ import { collectSetIdsForRefs } from '../../../../lib/llm-target-selection';
 import { handleThresholdChange } from './threshold';
 import { loadExecutionHistory } from './history';
 import { getBatchBaseRefs, updateBatchTargetCount } from './target-count';
+import { buildBatchExecutionRecord, resolveBatchRetry, countExecutionReferences } from './execution-record';
 
 /**
  * 現在の手動 tier 設定とモデル ID からバッチ実行プロファイルを取得
@@ -258,34 +259,23 @@ export async function handleStartBatch() {
         // Decisions シートに書かれた LLM 判定が「Batch 行のない孤立データ」になるのを防げる。
         // Run/Batch 分離後は閾値・status・is_active は LLM_Runs 側が正なので、
         // ここでは固定値（threshold=0, status='pending', is_active=false）で書き、後段で読み飛ばされる。
-        const timestamp = new Date();
-        executionId = generateLlmReviewerId(modelConfig.model, timestamp);
-        state.setCurrentExecutionId(executionId);
-
-        const initialExecution = createLlmExecution(
-            executionId,
-            'batch_screening',
-            modelConfig.model,
-            llmConfig.llm_criteria,
-            dom.screeningPromptInput.value,
-            0,
-            targetRefs.length,      // target_count は実件数で finally に再更新
-            0,
-            0,
-            'pending',
-            false,                  // Batch 行の is_active は Run 側が管理するため常に false
-            modelConfig.temperature,
-            modelConfig.topP,
-            modelConfig.thinkingLevel,
-            {
+        const record = await buildBatchExecutionRecord({
+            modelConfig,
+            criteria: llmConfig.llm_criteria,
+            screeningPrompt,
+            outputLanguage: dom.llmLanguageSelect.value,
+            runId,
+            executedBy: state.userEmail,
+            targetCount: targetRefs.length,
+            targetMeta: {
                 mode: state.llmTargetMode,
                 sets: collectSetIdsForRefs(targetRefs, getReferenceAssignmentSet).join(','),
                 selectedCount: state.llmTargetMode === 'selection' ? state.llmTargetRefIds.size : undefined,
             },
-        );
-        // execution_id 内の timestamp とシート上の timestamp 列を揃えておく
-        initialExecution.timestamp = timestamp.toISOString();
-        initialExecution.run_id = runId;
+        });
+        const { timestamp, execution: initialExecution } = record;
+        executionId = record.executionId;
+        state.setCurrentExecutionId(executionId);
         await saveLlmExecution(spreadsheetId, initialExecution);
         // 履歴UIに「pending」として即時反映
         await loadExecutionHistory();
@@ -298,6 +288,8 @@ export async function handleStartBatch() {
             temperature: modelConfig.temperature,
             topP: modelConfig.topP,
             thinkingLevel: modelConfig.thinkingLevel,
+            reasoningEffort: modelConfig.reasoningEffort,
+            maxOutputTokens: modelConfig.maxOutputTokens,
 
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig: profile.rate,
@@ -318,7 +310,7 @@ export async function handleStartBatch() {
         batchResult = result;
 
         // 失敗したref_idを保存
-        syncSetFailedRefIds(result.failedRefIds);
+        syncSetFailedRefIds(result.failedRefIds, executionId);
 
         // 失敗があればリトライボタンを表示
         if (result.failedRefIds.length > 0) {
@@ -383,29 +375,7 @@ export async function handleStartBatch() {
         // pre-write した履歴行の target_count を、実際に保存できた判定件数で更新する。
         // 中断・エラー・成功のいずれでもここに来るので、履歴行と Decisions シートの件数が
         // 食い違わないようにする最後の保険。失敗しても黙って続行する。
-        if (executionId) {
-            try {
-                const savedCount = state.currentBatchDecisions.length;
-                await updateLlmExecution(spreadsheetId, executionId, {
-                    target_count: savedCount,
-                    model_version: batchResult?.resolvedModelVersion,
-                    response_id: batchResult?.latestResponseId,
-                });
-                const resolvedModelVersion = batchResult?.resolvedModelVersion;
-                if (resolvedModelVersion) {
-                    const run = await getRunForBatchId(spreadsheetId, executionId);
-                    if (run) {
-                        await updateLlmRun(spreadsheetId, run.run_id, {
-                            model_version: resolvedModelVersion,
-                            response_id: batchResult?.latestResponseId,
-                        });
-                    }
-                }
-                await loadExecutionHistory();
-            } catch (err) {
-                console.warn('[handleStartBatch] target_count update failed:', err);
-            }
-        }
+        await finalizeBatchExecution(spreadsheetId, executionId, batchResult);
 
         // バッチで判定済みになった文献を「未判定」カウントから除外するため再読込
         // （中断・エラー時も部分的に保存されている可能性があるので必ず実行）
@@ -415,6 +385,33 @@ export async function handleStartBatch() {
         await refreshReferencesAfterBatch(spreadsheetId);
         state.setBatchAbortController(null);
         dom.startBatchBtn.classList.remove('hidden');
+    }
+}
+
+async function finalizeBatchExecution(spreadsheetId: string, executionId: string | null, batchResult: Awaited<ReturnType<typeof processBatch>> | null): Promise<void> {
+    if (!executionId) {
+        return;
+    }
+    try {
+        const savedCount = countExecutionReferences(state.currentBatchDecisions, executionId);
+        await updateLlmExecution(spreadsheetId, executionId, {
+            target_count: savedCount,
+            model_version: batchResult?.resolvedModelVersion,
+            response_id: batchResult?.latestResponseId,
+        });
+        const resolvedModelVersion = batchResult?.resolvedModelVersion;
+        if (resolvedModelVersion) {
+            const run = await getRunForBatchId(spreadsheetId, executionId);
+            if (run) {
+                await updateLlmRun(spreadsheetId, run.run_id, {
+                    model_version: resolvedModelVersion,
+                    response_id: batchResult?.latestResponseId,
+                });
+            }
+        }
+        await loadExecutionHistory();
+    } catch (err) {
+        console.warn('[finalizeBatchExecution] target_count update failed:', err);
     }
 }
 
@@ -451,17 +448,25 @@ export async function handleRetryFailed() {
         return;
     }
 
-    const modelId = dom.llmModelSelect.value;
-    if (!findModelConfig(modelId)) {
-        showToast(t('llm_unknownModel', modelId));
+    const sourceExecutionId = state.failedSourceExecutionId;
+    let executions = state.llmExecutions;
+    if (!executions.some(row => row.execution_id === sourceExecutionId)) {
+        try {
+            executions = await getLlmExecutions(state.spreadsheetId, true);
+        } catch {
+            showToast(t('llm_retryMissingExecution'));
+            return;
+        }
+    }
+    const retry = resolveBatchRetry({ failedSourceExecutionId: sourceExecutionId }, executions);
+    if (retry.error) {
+        showToast(t(retry.error));
         return;
     }
+    const { execution: sourceExecution, modelConfig, executionId, timestamp } = retry;
+    const modelId = modelConfig.model;
 
     showToast(t('llm_retrying', String(targetRefs.length)));
-
-    // リトライボタンを非表示にしてから再処理
-    dom.retryFailedBtn.classList.add('hidden');
-    syncClearFailedRefIds();
 
     // 通常のバッチ処理と同様に処理
     const providerId = resolveProviderId(modelId, AVAILABLE_MODELS);
@@ -471,7 +476,8 @@ export async function handleRetryFailed() {
         return;
     }
 
-    const screeningPrompt = dom.screeningPromptInput.value.trim();
+    // 旧形式の行は入力欄の生の値（空なら既定プロンプトで実行）を記録していたため、空なら既定で補う。
+    const screeningPrompt = sourceExecution.screening_prompt || DEFAULT_SCREENING_PROMPT;
     if (!screeningPrompt) {
         showToast(t('llm_screeningPromptRequired'));
         return;
@@ -485,16 +491,38 @@ export async function handleRetryFailed() {
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
 
+    let retryStarted = false;
+    let batchResult: Awaited<ReturnType<typeof processBatch>> | null = null;
+
     try {
         const profile = await resolveBatchProfile(modelId);
         const spreadsheetId = state.spreadsheetId;
 
+        const run = await getRunForBatchId(spreadsheetId, executionId);
+        if (!run) {
+            throw new Error('リトライ元の実行に対応する Run が見つかりません。実行履歴を読み直してください。');
+        }
+        const saved = await getDecisionsByReviewerId(spreadsheetId, executionId);
+        syncSetCurrentBatchDecisions(saved.map(row => row.decision));
+        retryStarted = true;
+        state.setCurrentExecutionId(executionId);
+        dom.retryFailedBtn.classList.add('hidden');
+        syncClearFailedRefIds();
+        // 同じ reviewer_id で新しい decided_at を保存する。
+        // buildReviewerDecisionMap が最新の票を採るため、元の仮の票と二重採用されない。
         const result = await processBatch(targetRefs, {
             batchSize: profile.saveBatchSize,
             screeningPrompt,
             model: modelId,
-            criteria: state.llmConfig.llm_criteria,
-            temperature: 0,
+            criteria: sourceExecution.criteria_snapshot,
+            temperature: modelConfig.temperature,
+            topP: modelConfig.topP,
+            thinkingLevel: modelConfig.thinkingLevel,
+            reasoningEffort: modelConfig.reasoningEffort,
+            maxOutputTokens: modelConfig.maxOutputTokens,
+            executionId,
+            timestamp,
+            applyThreshold: run.status === 'confirmed' ? run.include_threshold : undefined,
 
             outputLanguage: dom.llmLanguageSelect.value,
             rateLimitConfig: profile.rate,
@@ -507,8 +535,10 @@ export async function handleRetryFailed() {
             },
         });
 
+        batchResult = result;
+
         // リトライ結果を更新
-        syncSetFailedRefIds(result.failedRefIds);
+        syncSetFailedRefIds(result.failedRefIds, executionId);
 
         if (result.failedRefIds.length > 0) {
             dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
@@ -527,8 +557,13 @@ export async function handleRetryFailed() {
         handleThresholdChange();
     } catch (error) {
         console.error('[handleRetryFailed] Error:', error);
+        syncSetFailedRefIds(failedRefIds, sourceExecutionId);
+        dom.retryFailedBtn.classList.remove('hidden');
         showToast(t('llm_retryError', (error as Error).message));
     } finally {
+        if (retryStarted) {
+            await finalizeBatchExecution(state.spreadsheetId, executionId, batchResult);
+        }
         dom.stopBatchBtn.classList.add('hidden');
         // refresh 完了後にまとめて解放（handleStartBatch 側の guard と対になっている）
         await refreshReferencesAfterBatch(state.spreadsheetId);

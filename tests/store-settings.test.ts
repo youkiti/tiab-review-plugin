@@ -126,7 +126,7 @@ test('LLM/MLバッチ領域はlegacy setterを持たずcompat経由でStoreだ�
         compat.setMlState(mlState);
         compat.setActiveLlmExecutionIds(new Set(['exec-1', 'exec-2']));
         compat.setCurrentBatchDecisions([decision]);
-        compat.setFailedRefIds(['r-failed']);
+        compat.setFailedRefIds(['r-failed'], 'test-execution');
         assert.equal(store.getState().ui.settings, settings);
 
         // compatラッパーはStoreを更新し、state.Xのgetterで直ちに同じ値が読める。
@@ -154,7 +154,7 @@ test('reset/back後はLLM/MLバッチ領域のうちmlStateだけが初期化さ
             decision_id: 'd1', ref_id: 'r1', reviewer_id: 'llm:test',
             decision: 'include' as const, decided_at: '2026-01-01T00:00:00.000Z',
         }]);
-        compat.setFailedRefIds(['r-failed']);
+        compat.setFailedRefIds(['r-failed'], 'test-execution');
 
         store.dispatch({ type: 'reset/back' });
 
@@ -180,7 +180,7 @@ test('reset/logout後はLLM/MLバッチ領域が全て既定値に戻る', () =>
             decision_id: 'd1', ref_id: 'r1', reviewer_id: 'llm:test',
             decision: 'include' as const, decided_at: '2026-01-01T00:00:00.000Z',
         }]);
-        compat.setFailedRefIds(['r-failed']);
+        compat.setFailedRefIds(['r-failed'], 'test-execution');
 
         store.dispatch({ type: 'reset/logout' });
 

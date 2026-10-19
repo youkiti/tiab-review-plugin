@@ -41,6 +41,7 @@ const executionHeaders = [
     'exclude_count', 'status', 'is_active', 'run_id', 'requested_model', 'model_version', 'response_id',
     'target_mode', 'target_sets', 'target_selected_count', 'executed_by', 'maybe_count', 'failed_count',
     'failure_breakdown', 'exclude_reasons_snapshot',
+    'reasoning_effort', 'max_output_tokens', 'prompt_version', 'prompt_sha256', 'full_prompt_template',
 ];
 const runHeaders = [
     'run_id', 'config_hash', 'created_at', 'model', 'temperature', 'topP', 'thinkingLevel',

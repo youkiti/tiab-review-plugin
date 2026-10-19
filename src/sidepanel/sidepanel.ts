@@ -20,7 +20,6 @@ import { bootstrapCommon } from './bootstrap';
 import * as project from './features/project';
 import * as settings from './features/settings';
 import * as importExport from './features/import-export';
-import { showManuscriptModal } from './features/manuscript';
 import * as llm from './features/llm/lazy';
 import * as screeningRender from './features/screening/render';
 import * as reviewerFilter from './features/screening/reviewer-filter';
@@ -84,13 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
         closeExportMenu();
         importExport.handleExportRIS();
     });
-    // 論文用テキスト（Methods/Results/PRISMA数値）モーダル
+    // 論文用テキスト（Methods/Results/PRISMA数値）モーダル。
+    // 押したときにしか使わないので、モデルの送信設定表などと一緒に初期バンドルから外す。
+    const openManuscript = async (phase: 'tiab' | 'fulltext') => {
+        const { showManuscriptModal } = await import(/* webpackChunkName: "manuscript-feature" */ './features/manuscript');
+        await showManuscriptModal(phase);
+    };
     dom.exportManuscriptBtn?.addEventListener('click', () => {
         closeExportMenu();
-        void showManuscriptModal('tiab');
+        void openManuscript('tiab');
     });
     dom.fulltextManuscriptBtn?.addEventListener('click', () => {
-        void showManuscriptModal('fulltext');
+        void openManuscript('fulltext');
     });
 
     // ========== フルテキストを開く ==========

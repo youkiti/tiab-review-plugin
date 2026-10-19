@@ -9,6 +9,30 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 ## 未リリース / Unreleased
 
+### AI 判定に影響する変更 / Changes that affect AI screening
+
+- GPT-5.6 Terra / Luna の推論の強さ（reasoning effort）の設定を low にした。これまでも一括判定では low が送られており、設定の medium は使われていなかった。送る値は変わらない。
+  The reasoning effort setting for GPT-5.6 Terra / Luna is now low. Batch screening already sent low (the medium setting was never used), so the value sent does not change.
+- 「失敗分をリトライ」が temperature 0 で送っていたのを、通常の実行と同じ生成設定で送るようにした（Gemini 3 Flash Preview は temperature 1.0・top-p 0.95・思考レベル low）。
+  "Retry failed" used to send temperature 0; it now uses the same generation settings as a normal run (for Gemini 3 Flash Preview: temperature 1.0, top-p 0.95, thinking level low).
+- フルテキストの AI 判定のプロンプトの版を、TiAb と分けて `fulltext-v2.0.0` とした。v0.54.0 以前のフルテキストの判定に記録された `v1.0.0` は、TiAb の版の値が入っていたもので、フルテキストのプロンプトの文面は版の記録なしに変わっていた。TiAb のプロンプトの版は `v1.0.0` のまま。
+  Full-text AI screening now has its own prompt version, `fulltext-v2.0.0`. Full-text decisions up to v0.54.0 recorded `v1.0.0`, which was the TiAb version; the full-text prompt text had changed without a version change. The TiAb prompt version stays `v1.0.0`.
+- 閾値の説明を、既定値 0.3（同梱モデルの見落とし率を測った値）を推す内容に揃えた。既定値そのものは変わらない。
+  The threshold guidance now recommends the default 0.3, at which the bundled models' miss rates were measured. The default itself is unchanged.
+
+### 記録と論文用テキスト / Records and manuscript text
+
+- AI の実行ごとに、送信した全文の雛形・その SHA-256・プロンプトの版・推論の強さ・最大出力トークン数を LLM_Executions に記録する。送っていない temperature などは空欄にする。TiAb の一括判定にも実行者を記録する。
+  Each AI run now records the full prompt template sent, its SHA-256, the prompt version, reasoning effort, and maximum output tokens in LLM_Executions. Settings not sent (such as temperature) are left blank. TiAb batch runs now record who ran them.
+- 「失敗分をリトライ」の判定も実行の記録に残し、記録の無い孤立した判定にならないようにした。
+  "Retry failed" runs are now recorded like normal runs, so their decisions are no longer orphaned.
+- 論文用テキストの AI の文を、実際に送った設定・API が返したモデルの版・プロンプトの版で書くようにした。AI が一部の文献だけを判定したときは件数を書く。ML の停止基準の文から、再現率への到達の言い切りを外した。
+  The manuscript text now describes AI screening with the settings actually sent, the model version reported by the API, and the prompt version, and gives the count when the AI screened only some records. The ML stopping sentences no longer claim that a recall level was reached.
+- ML 画面の「停止可能性」を「停止基準までの進み具合」に改めた（確率ではないため）。
+  The ML panel's "Stop probability" is now "Progress toward the stopping criterion" (it was never a probability).
+- 保存されていたモデルが提供終了などで新しい版に置き換わったとき、AI タブに注記を出す。
+  The AI tab now shows a note when a saved model was replaced by a newer version.
+
 ### 文書 / Documentation
 
 - プライバシーポリシーに、AI 判定の送信先（Gemini・OpenRouter・OpenAI・Anthropic・TypeSafe）、フルテキストの AI 判定で PDF 全体を送ること、全文検索とレジストリ連携の送信先（Unpaywall と OpenAlex にはメールアドレスも送ること）、各社のデータの扱い（Gemini API の無料枠では送った内容が Google の改善に使われうること）、PDF を AI に送るときの著作権の注意を書いた。

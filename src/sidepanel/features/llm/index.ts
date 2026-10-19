@@ -66,6 +66,7 @@ import {
 import { handleRecoverOrphans } from './recovery';
 import { openTargetPicker, handleClearTargetSelection } from './target-picker';
 import { parseTargetRefIds } from '../../../lib/llm-target-selection';
+import { showModelMigrationNotice } from './model-migration-notice';
 
 /**
  * プロンプト入力中の対象件数再計算をデバウンスする
@@ -239,6 +240,7 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
             if (!isCurrent()) return;
             // Store経由で更新
             syncSetLlmConfig(llmConfig);
+            showModelMigrationNotice(spreadsheetId, llmConfig, dom.llmModelKeyNote);
 
             // AI一括判定の対象選択（担当セット・個別選択）を復元
             state.setLlmTargetMode(llmConfig.llm_target_mode);

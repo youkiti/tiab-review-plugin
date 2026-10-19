@@ -19,7 +19,6 @@ import {
     type GeminiModelConfig,
     type GeminiPart,
 } from './gemini-api';
-import { PROMPT_VERSION } from './prompt-templates';
 import { DEFAULT_EXCLUDE_REASON_ITEMS } from './exclude-reasons';
 import type { ExcludeReasonItem } from './exclude-reasons';
 import { PdfTooLargeError } from './fulltext-ai-failures';
@@ -231,4 +230,4 @@ function bytesToBase64(bytes: Uint8Array): string {
     return btoa(binary);
 }
 
-export const FULLTEXT_PROMPT_VERSION = PROMPT_VERSION;
+export const FULLTEXT_PROMPT_VERSION = 'fulltext-v2.0.0';
