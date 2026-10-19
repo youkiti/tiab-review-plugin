@@ -27,8 +27,8 @@
             <h1><span class="ja">プライバシーポリシー</span><span class="lang-sep"> / </span><span class="en">Privacy Policy</span>
             </h1>
             <p class="last-updated">
-                <span class="ja">最終更新日: 2026年7月16日</span><span class="lang-sep"> / </span><span class="en">Last
-                    Updated: July 16, 2026</span>
+                <span class="ja">最終更新日: 2026年10月20日</span><span class="lang-sep"> / </span><span class="en">Last
+                    Updated: October 20, 2026</span>
             </p>
 
             <section>
@@ -63,16 +63,25 @@
                             Drive (e.g., project folders and retrieved full-text PDFs)</span>
                     </li>
                     <li>
-                        <strong class="ja">LLM（Gemini）機能（任意）</strong><span class="lang-sep"> / </span><strong class="en">LLM (Gemini) Feature
+                        <strong class="ja">AI（LLM）判定機能（任意）</strong><span class="lang-sep"> / </span><strong class="en">AI (LLM) Screening Feature
                             (Optional)</strong><span class="ja">：</span><span class="en">: </span>
-                        <span class="ja">ユーザーが明示的に実行した場合に、文献のタイトル・抄録などを Gemini API に送信し、判定支援を行います。</span><span class="lang-sep"> / </span><span class="en">When explicitly enabled by the user, the Service sends reference titles,
-                            abstracts, etc. to the Gemini API to assist screening.</span>
+                        <span class="ja">ユーザーが明示的に実行した場合に、ユーザーが選んだ AI プロバイダ（Google Gemini、OpenRouter、OpenAI、Anthropic、TypeSafe のいずれか）の API へ、文献のタイトル・抄録と判定基準・プロンプトを送信します。フルテキストの AI 判定では、PDF ファイル全体を Gemini API に送信します。</span><span class="lang-sep"> / </span><span class="en">When explicitly run by the user, the Service sends reference titles and
+                            abstracts, together with the review criteria and prompt, to the API of the AI provider the
+                            user selected (Google Gemini, OpenRouter, OpenAI, Anthropic, or TypeSafe). For full-text AI
+                            screening, the entire PDF file is sent to the Gemini API.</span>
+                    </li>
+                    <li>
+                        <strong class="ja">全文 PDF の検索・レジストリ連携（任意）</strong><span class="lang-sep"> / </span><strong class="en">Full-Text PDF Search and Registry Linkage
+                            (Optional)</strong><span class="ja">：</span><span class="en">: </span>
+                        <span class="ja">フルテキストの取得やレジストリ連携を実行した場合に、文献の DOI・PMID・試験登録番号などの識別子を、オープンアクセスの検索サービスや試験登録サイトへ送信します。Unpaywall と OpenAlex には、各サービスの利用規約に従い、ログイン中の Google アカウントのメールアドレスも送信します。</span><span class="lang-sep"> / </span><span class="en">When full-text retrieval or registry linkage is run, identifiers such as
+                            DOI, PMID, and trial registration numbers are sent to open-access search services and trial
+                            registries. For Unpaywall and OpenAlex, the email address of the signed-in
+                            Google account is also sent, as those services' terms require.</span>
                     </li>
                     <li>
                         <strong class="ja">拡張機能のローカル保存データ</strong><span class="lang-sep"> / </span><strong class="en">Extension Local Storage</strong><span class="ja">：</span><span class="en">: </span>
-                        <span class="ja">設定（スプレッドシートID、UI設定等）、オフライン同期用の判定キュー、（任意）Gemini
-                            APIキーをユーザー端末内に保存します。</span><span class="lang-sep"> / </span><span class="en">We store settings (spreadsheet ID, UI preferences, etc.), an offline decision
-                            queue for synchronization, and (optionally) the Gemini API key on the user's device.</span>
+                        <span class="ja">設定（スプレッドシートID、UI設定等）、オフライン同期用の判定キュー、（任意）AI プロバイダの API キーをユーザー端末内に保存します。</span><span class="lang-sep"> / </span><span class="en">We store settings (spreadsheet ID, UI preferences, etc.), an offline decision
+                            queue for synchronization, and (optionally) AI provider API keys on the user's device.</span>
                     </li>
                 </ul>
             </section>
@@ -88,8 +97,10 @@
                             management</span></li>
                     <li><span class="ja">スプレッドシートの共有機能の提供</span><span class="lang-sep"> / </span><span class="en">Providing spreadsheet sharing
                             functionality</span></li>
-                    <li><span class="ja">（任意）LLM（Gemini）による判定支援</span><span class="lang-sep"> / </span><span class="en">(Optional) Decision support via
-                            LLM (Gemini)</span></li>
+                    <li><span class="ja">（任意）AI（LLM）による判定支援</span><span class="lang-sep"> / </span><span class="en">(Optional) Decision support via
+                            AI (LLM)</span></li>
+                    <li><span class="ja">（任意）オープンアクセスの全文 PDF の検索</span><span class="lang-sep"> / </span><span class="en">(Optional) Searching for open-access
+                            full-text PDFs</span></li>
                 </ul>
             </section>
 
@@ -104,9 +115,12 @@
                 <p class="ja">また、本拡張機能の設定やオフライン同期用の判定キューは、ユーザー端末内（Chrome 拡張機能のストレージ / IndexedDB）に保存される場合があります。</p>
                 <p class="en">In addition, the extension's settings and offline decision queue may be stored on the
                     user's device (Chrome extension storage / IndexedDB).</p>
-                <p class="ja">Gemini APIキーは、ユーザーが「保存」を選択した場合に限り、ユーザー端末内に保存されます（開発者のサーバーには送信・保存しません）。</p>
-                <p class="en">The Gemini API key is stored only on the user's device if the user chooses to save it (we
-                    do not send or store it on developer servers).</p>
+                <p class="ja">AI プロバイダの API キーは、ユーザーが「保存」を選択した場合に限り、ユーザー端末内に保存されます（開発者のサーバーには送信・保存しません）。</p>
+                <p class="en">AI provider API keys are stored only on the user's device if the user chooses to save them
+                    (we do not send or store them on developer servers).</p>
+                <p class="ja">開発者は、ユーザーが本サービスに取り込んだ文献情報・判定・PDF の内容について権利を主張せず、AI モデルの学習を含むいかなる目的にも利用しません。</p>
+                <p class="en">The developer claims no rights to the references, decisions, or PDF content that users bring
+                    into the Service, and does not use them for any purpose, including training AI models.</p>
             </section>
 
             <section>
@@ -120,11 +134,46 @@
                 <ul>
                     <li><span class="ja">Google Sheets API / Google Drive API / Google Picker API（スプレッドシートの読み書き、作成・選択のため）</span><span class="lang-sep"> / </span><span class="en">Google Sheets API / Google Drive API / Google Picker API (to read/write, create, and select
                             spreadsheets)</span></li>
-                    <li><span class="ja">Google Generative Language API（Gemini）※任意機能（判定支援のため）</span><span class="lang-sep"> / </span><span
-                            class="en">Google Generative Language API (Gemini) *optional feature (for decision
-                            support)</span></li>
+                    <li><span class="ja">AI プロバイダ（ユーザーが選んだもの）※任意機能（判定支援のため）：Google Generative Language API（Gemini）、OpenRouter、OpenAI API、Anthropic API、TypeSafe API</span><span class="lang-sep"> / </span><span
+                            class="en">AI providers (the one the user selects) *optional feature (for decision
+                            support): Google Generative Language API (Gemini), OpenRouter, OpenAI API, Anthropic API,
+                            TypeSafe API</span></li>
+                    <li><span class="ja">オープンアクセス検索・書誌サービス ※任意機能（全文 PDF の検索と試験登録情報の取得のため）：NCBI（PubMed Central、E-utilities）、Europe PMC、Unpaywall、OpenAlex、ClinicalTrials.gov、および全文 PDF の配布元のウェブサイト</span><span class="lang-sep"> / </span><span
+                            class="en">Open-access search and bibliographic services *optional feature (for finding
+                            full-text PDFs and trial registration records): NCBI (PubMed Central, E-utilities), Europe
+                            PMC, Unpaywall, OpenAlex, ClinicalTrials.gov, and the websites that host the full-text
+                            PDFs</span></li>
                     <li><span class="ja">法令に基づく開示要求がある場合</span><span class="lang-sep"> / </span><span class="en">When required by law</span></li>
                 </ul>
+                <p class="ja">送信したデータは、送信先の各社の規約に従って扱われます。とくに次の点にご注意ください。</p>
+                <p class="en">Data sent to these services is handled under each provider's own terms. In particular:</p>
+                <ul>
+                    <li><span class="ja">Gemini API の無料枠では、送信した内容と応答が Google の製品・サービスの提供・改善・開発に使われることがあり、人が読むこともあります。有料の利用ではプロンプトと応答は製品の改善に使われません（<a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API 追加利用規約</a>）。未公開の原稿や機密の文書を扱うときは、有料の API キーを使うか、AI 判定を使わないでください。</span><span class="lang-sep"> / </span><span
+                            class="en">On the Gemini API free tier, submitted content and responses may be used to
+                            provide, improve, and develop Google products and services, and human reviewers may read
+                            them. On paid use, prompts and responses are not used to improve Google's products (<a
+                                href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Gemini API
+                                Additional Terms of Service</a>). When handling unpublished manuscripts or confidential
+                            documents, use a paid API key or do not use AI screening.</span></li>
+                    <li><span class="ja">OpenRouter は既定では入力と出力をモデルの学習に使いませんが、OpenRouter が中継する先の各プロバイダは独自のデータの扱いを持ちます（<a href="https://openrouter.ai/docs/guides/privacy/provider-logging" target="_blank" rel="noopener">OpenRouter のプロバイダのログ記録</a>）。</span><span class="lang-sep"> / </span><span
+                            class="en">OpenRouter does not use inputs or outputs for model training by default, but
+                            each provider that OpenRouter routes to has its own data handling policies (<a
+                                href="https://openrouter.ai/docs/guides/privacy/provider-logging" target="_blank"
+                                rel="noopener">OpenRouter provider logging</a>).</span></li>
+                    <li><span class="ja">OpenAI API と Anthropic API は、既定では API で送った内容をモデルの学習に使わないとしています（<a href="https://developers.openai.com/api/docs/guides/your-data" target="_blank" rel="noopener">OpenAI</a>、<a href="https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training" target="_blank" rel="noopener">Anthropic</a>）。</span><span class="lang-sep"> / </span><span
+                            class="en">OpenAI and Anthropic state that, by default, content sent through their APIs is
+                            not used to train their models (<a href="https://developers.openai.com/api/docs/guides/your-data"
+                                target="_blank" rel="noopener">OpenAI</a>, <a
+                                href="https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training"
+                                target="_blank" rel="noopener">Anthropic</a>).</span></li>
+                    <li><span class="ja">各社の規約は変わることがあります。利用前に、ご自身が使うプロバイダの最新の規約と、所属機関の方針を確認してください。</span><span class="lang-sep"> / </span><span
+                            class="en">Provider terms may change. Before use, check the current terms of the provider
+                            you use and your institution's policy.</span></li>
+                </ul>
+                <p class="ja"><strong>著作権について：</strong>フルテキストの AI 判定は、論文の PDF を AI プロバイダへ送信します。出版社の利用条件によっては、閲覧の許諾があっても AI への送信が認められていないことがあります。送信してよいかは、ご自身で出版社の利用条件と所属機関の契約を確認してください。</p>
+                <p class="en"><strong>Copyright:</strong> Full-text AI screening sends article PDFs to an AI provider. Some
+                    publishers' terms do not permit sending content to AI systems even when you are licensed to read it.
+                    Check the publisher's terms and your institution's license before sending a PDF.</p>
             </section>
 
             <section>
@@ -151,8 +200,8 @@
                 <p class="ja">本拡張機能は、外部から JavaScript / Wasm をダウンロードして実行することはありません（いわゆるリモートコードは使用しません）。</p>
                 <p class="en">The extension does not download and execute external JavaScript/Wasm (i.e., we do not use
                     remote code).</p>
-                <p class="ja">Gemini APIキーを保存する場合、ユーザー端末内に暗号化して保存します。</p>
-                <p class="en">If the Gemini API key is saved, it is stored encrypted on the user's device.</p>
+                <p class="ja">AI プロバイダの API キーを保存する場合、ユーザー端末内に暗号化して保存します。</p>
+                <p class="en">If an AI provider API key is saved, it is stored encrypted on the user's device.</p>
             </section>
 
             <section>

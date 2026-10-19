@@ -254,6 +254,8 @@ WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=00
 
 バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。
 
+**利用者に見える変更は `CHANGELOG.md` の「未リリース」に書き足し、リリース時にその見出しを版番号と日付に書き換える。** AI 判定の結果に影響しうる変更（AI モデルとその版、プロンプトとその版、既定の閾値、判定の集計方法）は小さくても必ず載せる。利用規約がこのファイルを AI 判定に影響する変更の告知先として名指ししているため、載せ漏れは規約違反になる。
+
 **リリース前に作業ツリーがクリーンである必要がある。** `npm run bump`（`scripts/bump-version.ps1`）は冒頭で `git status --porcelain --ignore-submodules=dirty` を確認し、未コミットの変更が残っていれば何も書き換えずに停止する。`scripts/bump-version.ps1` は UTF-8 BOM 付きで保存すること（Windows PowerShell 5.1 が BOM 無しを CP932 として読むため）。
 
 ```bash
