@@ -1,6 +1,7 @@
 /** チーム判定の集計。画面と CLI で共有する DOM 非依存の純粋関数。 */
 import type { AssignmentConfig, Decision, ReferenceWithStatus } from './types';
 import { computeReviewerKey } from './decision-conflict';
+import { isMlAutoDecision } from './client-version';
 import { getExpectedReviewersForRef } from './assignment-roster';
 
 export type TeamStatus = 'include' | 'exclude' | 'maybe' | 'conflict' | 'incomplete' | 'pending' | 'blinded';
@@ -107,8 +108,10 @@ function personsOf(keys: Iterable<string>): Set<string> {
 
 export interface TeamDecisionSummary {
     teamStatus: TeamStatus;
-    /** この文献を判定した「人」の数。AI(llm:)は含まない。ML判定は本人に畳む */
+    /** この文献を判定した「人」の数。AI・ML自動判定は含まない。確認済みML判定は本人に畳む */
     nJudged: number;
+    /** 人の判定が無く、ML停止基準による未読除外だけで除外された文献 */
+    excludedByStoppingRule?: boolean;
     /** 分母。0 は「分母が決められない」を意味し、incomplete 判定を行わない */
     nExpected: number;
     /** 列・decision_notes 出力用。AI・ML を含む全キー（従来どおり） */
@@ -121,8 +124,8 @@ export interface TeamDecisionSummary {
  * | 条件                                          | teamStatus  |
  * |------------------------------------------------|-------------|
  * | byReviewer.size === 0                          | pending     |
- * | nJudged === 0                                   | pending     |
- * | nJudged < nExpected                             | incomplete  |
+ * | 停止基準の除外を含む有効人数が0                 | pending     |
+ * | 停止基準の除外を含む有効人数 < nExpected         | incomplete  |
  * | byReviewer の全判定値（AI・ML含む）が2種類以上 | conflict    |
  * | 上記以外（全員一致）                            | その判定値  |
  *
@@ -133,7 +136,11 @@ export interface TeamDecisionSummary {
  * （生の enabledReviewers で再フィルタすると、collectReviewerKeys がフォールバックした場合に
  * 判定が実際にはあるのに 0 人扱いになってしまうため）。
  *
- * `nJudged` / `nExpected` は「人」単位（AIを除き、ML判定は本人に畳む）で数える。
+ * `nJudged` はAI・ML自動判定を除き、確認済みML判定は本人に畳む。
+ * `nExpected` は従来どおり「人」単位（AIを除き、ML判定は本人に畳む）で数える。
+ * 状態の判定（teamStatus）では停止基準の除外も本人の票として数え、従来の規則を変えない
+ * （担当者の一部だけが一括除外した文献は、残りの担当者を待つ incomplete のまま）。
+ * `excludedByStoppingRule` は、人の票が ML の停止基準による未読の一括除外だけの文献で true になる。
  * 分母（`nExpected`）は `assignmentConfig` から名簿（`ref.screening_set` の担当者）が
  * 決まればそれを使い、決まらない場合（未設定のプロジェクト・名簿に無いセットなど）は
  * `reviewerKeys` から得られる「判定実績のある人間」の集合にフォールバックする。
@@ -154,32 +161,36 @@ export function summarizeTeamDecision(
     const expected = (roster && roster.size > 0) ? roster : personsOf(reviewerKeys);
     const nExpected = expected.size;
 
-    const judgedPersons = personsOf(byReviewer.keys());
+    const judgedPersons = personsOf([...byReviewer]
+        .filter(([, d]) => !isMlAutoDecision(d.client_version))
+        .map(([key]) => key));
     let nJudged = 0;
     for (const person of judgedPersons) {
         if (expected.has(person)) nJudged++;
     }
+    const nEffective = [...personsOf(byReviewer.keys())].filter(person => expected.has(person)).length;
+    const status = teamStatusOf(byReviewer, nEffective, nExpected);
 
-    if (byReviewer.size === 0) {
-        return { teamStatus: 'pending', nJudged, nExpected, byReviewer };
-    }
+    const humanVotes = [...byReviewer].filter(([key]) => !key.startsWith('llm:')).map(([, d]) => d);
+    const excludedByStoppingRule = humanVotes.length > 0
+        && humanVotes.every(d => isMlAutoDecision(d.client_version) && d.decision === 'exclude');
+    return excludedByStoppingRule
+        ? { teamStatus: status, nJudged, nExpected, byReviewer, excludedByStoppingRule }
+        : { teamStatus: status, nJudged, nExpected, byReviewer };
+}
+
+/** teamStatus の規則（上の表）。nEffective は停止基準の除外も本人の票として数えた人数。 */
+function teamStatusOf(byReviewer: Map<string, Decision>, nEffective: number, nExpected: number): TeamStatus {
+    if (byReviewer.size === 0) return 'pending';
     // 人間が誰も判定していない（AIだけが判定している場合を含む）
-    if (nJudged === 0) {
-        return { teamStatus: 'pending', nJudged, nExpected, byReviewer };
-    }
-    // nExpected === 0 のときは nJudged も必ず 0 になり、上の分岐で return 済みのため、
+    if (nEffective === 0) return 'pending';
+    // nExpected === 0 のときは nEffective も必ず 0 になり、上の分岐で return 済みのため、
     // ここに到達する時点で nExpected > 0 が保証されている（ガード不要）
-    if (nJudged < nExpected) {
-        return { teamStatus: 'incomplete', nJudged, nExpected, byReviewer };
-    }
+    if (nEffective < nExpected) return 'incomplete';
 
     const uniqueDecisions = new Set([...byReviewer.values()].map(d => d.decision));
-    if (uniqueDecisions.size > 1) {
-        return { teamStatus: 'conflict', nJudged, nExpected, byReviewer };
-    }
-
-    const only = [...uniqueDecisions][0] as TeamStatus;
-    return { teamStatus: only, nJudged, nExpected, byReviewer };
+    if (uniqueDecisions.size > 1) return 'conflict';
+    return [...uniqueDecisions][0] as TeamStatus;
 }
 
 /**

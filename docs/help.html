@@ -1022,6 +1022,10 @@
                     <span class="ja">後半フェーズの運用</span>
                     <span class="en">Late-Phase Workflow</span>
                 </h3>
+                <p>
+                    <span class="ja">停止到達時は「続ける」が先に表示されます。残りを一括除外した文献は「ML の停止基準で除外（未読）」として人の判定人数には数えず、除外件数には残し、論文用テキストで件数を分けて報告します。停止基準は見落としが無いことを保証しません。</span>
+                    <span class="en">When a stopping criterion is reached, Continue appears first. Bulk exclusions are marked as excluded by the ML stopping criterion (unread): they remain in exclusion totals, do not count as human judgments, and are reported separately in manuscript text. Stopping criteria do not guarantee that no eligible records are missed.</span>
+                </p>
                 <ul>
                     <li>
                         <span class="ja"><strong>前半</strong>：モデル構築を助けるため、Include/Exclude を丁寧に判断。特に境界例は慎重に。</span>
@@ -1210,6 +1214,10 @@
                     <span class="ja">モデル選択とカスタムモデル</span>
                     <span class="en">Model Selection and Custom Models</span>
                 </h3>
+                <p>
+                    <span class="ja">Gemini 選択時はモデル欄の近くに、無料枠で送信内容が製品改善や人による閲覧に使われ得ることを表示します。無料枠かどうかはこの注記では判定しません。未公開原稿・機密文書には有料の API キーを使い、<a href="#ai-limitations">AI の制約</a>を確認してください。</span>
+                    <span class="en">When Gemini is selected, a notice near the model field explains that free-tier submissions may be used for product improvement and read by humans. The notice does not determine your tier. Use a paid API key for unpublished or confidential documents and see <a href="#ai-limitations">AI limitations</a>.</span>
+                </p>
                 <p>
                     <span class="ja">「使うモデル」カードでは、キーの設定状態にかかわらず全プロバイダの標準モデルと登録済みカスタムモデルを選べます。文字を打って候補を絞り込め、OpenRouter のキー設定後は取得した公開一覧から登録・テストなしで直接選べます（一覧にない provider/model 形式のIDは入力後に Enter で確定します。候補に一致しない入力は、欄から離れると直前の確定値に戻ります）。キー未設定のモデルを選ぶと注記が表示され、対応する行が開きます。カスタムモデルは、キー設定済みの OpenRouter 行にある「＋ 一覧にないモデルを追加」からフォームを開き、任意のモデルIDを入力して「テストして保存」を実行します。実 API テスト成功時のみブラウザに保存され、選択肢に追加されます（最大20件）。カスタムモデルはベンチマーク未検証である旨を表示します。</span>
                     <span class="en">The "Model" card lists all providers’ built-in models and registered custom models, regardless of key configuration. Type to filter candidates; after configuring an OpenRouter key, you can select directly from its fetched public list without registration or testing (or enter an unlisted provider/model ID and press Enter to confirm; leaving the field restores the previous selection unless the input exactly matches a candidate). Selecting a model without a key displays a note and opens the matching row. Once an OpenRouter key is configured, open "+ Add a model not in the list" in the OpenRouter row, enter a model ID, and click "Test and save". Only models that pass a live API test are saved to your browser and added to the list (up to 20). The UI notes that custom models have not been benchmarked.</span>
@@ -1470,6 +1478,10 @@
                     <span class="ja">候補（対象文献）の決まり方</span>
                     <span class="en">How Candidates Are Determined</span>
                 </h3>
+                <p>
+                    <span class="ja">人の voter が無く AI の voter があるルールでは、編集・保存時に警告が出ますが保存はできます。AI が除外した文献は人の目を通らないため、レビュー内で AI の見落とし率を確かめてから使ってください。</span>
+                    <span class="en">Rules with AI voters and no human voters show a warning during editing and saving, but can still be saved. Records excluded by AI will not be seen by a human; evaluate the AI miss rate within your review before using such rules.</span>
+                </p>
                 <p>
                     <span class="ja">フルテキストの対象となる文献（候補）は、既定ではTiAbでIncludeと判定された文献です。プロジェクトで「候補ルール」が設定されている場合は、それに従います（例：指定した3人の判定者のうち2人以上がIncludeと判定した文献のみを候補にする、など）。候補ルールは候補リスト上部のボタン（未設定時は「ルールを設定」、設定済みの場合は「✎ 編集」）から編集できます。編集にはキー開封が必要で、キーが未開封の場合に開封できるのは管理者のみですが、開封後の編集自体は誰でも行えます。ルールが未設定の間は、管理者には全レビュアーの誰か1人でもIncludeした文献、非管理者には自分がIncludeした文献が仮の候補として表示されます。</span>
                     <span class="en">By default, references that were marked Include during TiAb screening become
@@ -1784,6 +1796,10 @@
                     <span class="en">Batch AI Screening</span>
                 </h3>
                 <p>
+                    <span class="ja">実行ボタンの近くに PDF の送信と著作権の注記を表示します。閲覧の許諾があっても出版社の利用条件によって AI への送信が認められていないことがあるため、<a href="#ai-limitations">AI の制約</a>も確認してください。</span>
+                    <span class="en">A notice near the run button explains PDF transmission and copyright. Permission to read may not permit sending a PDF to AI under publisher terms; also see <a href="#ai-limitations">AI limitations</a>.</span>
+                </p>
+                <p>
                     <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFをGeminiへ丸ごと渡し、Include/Exclude/Maybeを一括で判定します。フルテキストのAI一括判定はGeminiのみに対応しており、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/Anthropic/TypeSafeは選べません。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。Geminiが引用を途中で打ち切った文献は、そこまでの出力から判定を採用し、実行ログの該当行に「根拠の一部が欠けています」と添えます。</span>
                     <span class="en">The "AI judge" view sends the full PDF of each candidate that is saved to
                         Drive (cached) and not yet AI-screened to Gemini, and returns a batch Include/Exclude/Maybe
@@ -1812,6 +1828,10 @@
                     <span class="ja">判定後レビュー</span>
                     <span class="en">Post-Decision Review</span>
                 </h3>
+                <p>
+                    <span class="ja">AI のみを判定者に選んだ場合や、選択した判定者の人の票が無い文献がある場合は、AI だけで決まった件数と、そのうちの除外件数を警告に表示します。合議の OR ルールは変わりません。論文用テキストでは、通常の人の判定が無い場合、人の裁定が採用された文献数と残りの AI のみの評価を区別します。裁定も無ければ AI のみの評価と記します。</span>
+                    <span class="en">When only AI judges are selected, or reports have no human votes among the selected judges, a warning shows the number decided by AI alone and the number excluded. The OR consensus rule is unchanged. When there are no regular human judges, manuscript text distinguishes reports with an adopted human adjudication from the remaining model-only decisions. With no adjudications, it identifies assessment by AI alone.</span>
+                </p>
                 <p>
                     <span class="ja">各判定者（人間・AI）の判定を一覧化し、集計に含める判定者をチェックボックスで選べます。組み入れ判定は選択した判定者のOR合議（誰か1人でもIncludeならInclude扱い）で決まります。PRISMAのフルテキスト相の数値（候補数・入手済数・Include/Exclude/Maybe数・除外理由の内訳）が自動集計され、CSV/RISエクスポートや論文用テキストの生成もここから行えます。</span>
                     <span class="en">Lists each judge's (human or AI) decisions, with checkboxes to choose which

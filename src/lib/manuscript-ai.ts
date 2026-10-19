@@ -1,5 +1,7 @@
 // 論文用の記述は採用された判定と実送信設定から組み立てる。
-import type { Decision, LlmExecution } from './types';
+import type { AssignmentConfig, Decision, LlmExecution, ReferenceWithStatus } from './types';
+import type { FulltextResultsSummary } from './fulltext-results-summary';
+import { summarizeTeamDecision } from './decision-summary';
 import { getModelGenerationSettings } from './model-generation-settings';
 import { PROMPT_VERSION } from './prompt-templates';
 
@@ -77,4 +79,37 @@ export function buildManuscriptAiSentence(
     const count = new Set(judged.map(d => d.ref_id)).size;
     const coverage = count === total ? 'all records' : `${count} of the ${total} records`;
     return `A large language model (${descriptions.join('; ')}) screened ${coverage} against the same eligibility criteria as an additional independent screener (inclusion threshold ${threshold}), using TiAb Review's screening prompt version ${[...prompts].sort().join(', ')}.`;
+}
+
+/** 担当セットの必要人数を満たし、未読除外だけで除外が確定した文献を数える。 */
+export function countManuscriptStoppingRuleExclusions(
+    refs: ReferenceWithStatus[], reviewerKeys: string[], treatMlAsManual: boolean,
+    assignmentConfig: AssignmentConfig | null,
+): number {
+    return refs.filter(ref => {
+        const summary = summarizeTeamDecision(ref, reviewerKeys, treatMlAsManual, assignmentConfig);
+        return summary.teamStatus === 'exclude' && summary.excludedByStoppingRule === true;
+    }).length;
+}
+
+/** 全文のAI評価文に、通常の人判定と採用済みの人の裁定を反映する。 */
+export function buildFulltextAiMethodsSentence(
+    summary: Pick<FulltextResultsSummary, 'judges' | 'adjudicated'>,
+): string {
+    const models = [...new Set(summary.judges.filter(j => j.startsWith('llm:')).map(j => {
+        const body = j.slice('llm:'.length);
+        const at = body.lastIndexOf('@');
+        return at > 0 ? body.slice(0, at) : body;
+    }))].sort().join(', ');
+    if (!models) {
+        return '';
+    }
+    if (summary.judges.some(j => !j.startsWith('llm:'))) {
+        return `Retrieved PDFs were additionally assessed by ${models} as an independent screener.`;
+    }
+    if (summary.adjudicated > 0) {
+        const reports = summary.adjudicated === 1 ? 'report' : 'reports';
+        return `Full texts were assessed by ${models}; a reviewer adjudicated ${summary.adjudicated} ${reports}, and the remaining decisions were made by the model without human screening.`;
+    }
+    return `Full texts were assessed by ${models} only, without human screening.`;
 }

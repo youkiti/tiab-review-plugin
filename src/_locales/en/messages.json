@@ -1,4 +1,37 @@
 {
+  "ftRule_aiOnlyWarning": {
+    "message": "This rule contains no human votes. AI decisions alone determine which records proceed to full text, and records excluded by AI will not be seen by a human. Guidelines such as RAISE call for human verification of AI decisions. Evaluate the AI miss rate within your review before using this rule."
+  },
+  "ftPage_aiOnlyWarning": {
+    "message": "Reports decided by AI alone without human votes: $1 ($2 excluded). Selecting only AI judges, or reports with no human votes, leaves decisions without human verification. Evaluate the AI miss rate within your review before relying on these decisions."
+  },
+  "ml_stoppingExcludedUnread": {
+    "message": "Excluded by ML stopping criterion (unread)"
+  },
+  "mlDialog_legacyStoppingNotice": {
+    "message": "⚠️ Statistical stopping is unavailable for $1 records. The consecutive-exclusion rule will be used."
+  },
+  "mlDialog_legacyStoppingDescription": {
+    "message": "Stopping will be suggested after $1 consecutive exclusions."
+  },
+  "mlDialog_recommendedThreshold": {
+    "message": "Recommended threshold: "
+  },
+  "mlDialog_recommendedRecordCount": {
+    "message": "$1 records (recommended)"
+  },
+  "mlDialog_bulkStoppingWarning": {
+    "message": "The remaining $1 unread records will be saved as exclusions by the ML stopping criterion. No reviewer has read them; report this count separately from reviewer exclusions in your manuscript. The stopping criterion does not guarantee that no eligible records are missed."
+  },
+  "mlDialog_bulkStoppingChangeHint": {
+    "message": "This cannot be undone in bulk. Individual decisions can be changed on the screening screen."
+  },
+  "llmExt_geminiDataNotice": {
+    "message": "On the Gemini API free tier, submitted content may be used to improve Google products and may be read by humans. Use a paid API key for unpublished manuscripts or confidential documents."
+  },
+  "ftPage_aiCopyrightNotice": {
+    "message": "The article PDF will be sent to the AI provider. Publisher terms may prohibit sending it to AI even when you have permission to read it."
+  },
   "extName": {
     "message": "TiAb Review Plugin"
   },
@@ -1957,7 +1990,7 @@
     "message": "The full-text status and the candidate list are in the \"Candidates\" view. Click \"Candidates\"."
   },
   "guideExt_tour_fulltext_setup_rule": {
-    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.)"
+    "message": "The candidate rule decides how many TiAb Include votes make a record a full-text candidate. Change it with the button on the right (you set it after the key is opened). (Saving the rule changes everyone's candidate list, so the button is disabled during the tour. To change it, finish the tour and then press the button.) AI candidate rules without human votes show a warning. Evaluate the AI miss rate within your review."
   },
   "guideExt_tour_fulltext_setup_rule_pending": {
     "message": "For now, your own TiAb Includes are shown as provisional candidates. The candidate rule is set after the admin opens the key. Once it is open, start this tour again from ❓ > \"List of guided tours\". (Opening the key affects the whole project, so the button is disabled during the tour as well.)"
@@ -1996,7 +2029,7 @@
     "message": "Press here to open the AI tab."
   },
   "guideExt_tour_ai_first_run_model": {
-    "message": "Pick the model used for AI screening. Type to filter; after setting a key, you can also pick directly from the fetched OpenRouter list. Press Enter to confirm an unlisted ID. Leaving the field restores the previous selection unless the input exactly matches a candidate. If unsure, the default is fine. Cost, speed and accuracy differ by model."
+    "message": "Pick the model used for AI screening. Type to filter; after setting a key, you can also pick directly from the fetched OpenRouter list. Press Enter to confirm an unlisted ID. Leaving the field restores the previous selection unless the input exactly matches a candidate. If unsure, the default is fine. Cost, speed and accuracy differ by model. For Gemini, read the free-tier data-use notice and use a paid API key for unpublished or confidential documents."
   },
   "guideExt_tour_ai_first_run_keys": {
     "message": "Enter an API key in the row for your model's provider and press \"Verify and save\". You get the key from the provider. Free Gemini keys limit the processing speed. If a key is already set, use \"Skip this step\" to move on."
@@ -2056,7 +2089,7 @@
     "message": "This is how far you are toward the stopping rule. When the bar fills, you are told it is time to stop (next step). Press the button to review the settings."
   },
   "guideExt_tour_ml_start_stopping_reached": {
-    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully."
+    "message": "When the stopping rule is reached, a \"Stop recommended\" dialog appears. You can choose \"Review 20 more\" (raise the threshold by 20 and continue), \"Finish and exclude remaining\" (save every undecided record as Exclude and end the review), or \"Close (no action)\". \"Finish and exclude remaining\" cannot be undone, so choose carefully. Continue appears first in the dialog. Excluding the remainder records unread exclusions by the stopping criterion; report these separately from reviewer exclusions. Stopping criteria do not guarantee that nothing is missed."
   },
   "guideExt_tour_ml_start_finish": {
     "message": "This ? (the ❓ in the toolbar on the Manual tab) opens the explanation and the list of guided tours. You can start this tour again from there."
@@ -2110,7 +2143,7 @@
     "message": "Click \"Review\" in the Full-text tab. The counts, conflict resolution, and export are all in this view."
   },
   "guideExt_tour_fulltext_results_judges": {
-    "message": "Choose the judges to aggregate. Only the judges you select are counted, and inclusion is the OR of the selected judges (included if any one of them includes). AI can be selected as a judge too."
+    "message": "Choose the judges to aggregate. Only the judges you select are counted, and inclusion is the OR of the selected judges (included if any one of them includes). AI can be selected as a judge too. A warning counts reports decided by AI alone without human votes, including exclusions."
   },
   "guideExt_tour_fulltext_results_prisma": {
     "message": "The PRISMA full-text counts (candidates, full text obtained, included, excluded, maybe, undecided) are tallied automatically. Changing the selected judges changes the numbers. If conflicts are unresolved, their count appears too."
