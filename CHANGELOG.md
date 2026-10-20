@@ -22,6 +22,7 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 ### 人の監督と注意の表示 / Human oversight and notices
 
+- キー未開封の間はレビュー内検証を比較不能と表示し、閾値確定時に検証列を保存・上書きしない。人の組み入れが0件でも比較件数があれば、論文用テキストに比較件数と見落とし率を評価できないことを書く。
 - TiAb の AI 判定を人の合議と比べ、閾値に連動して見落とし率と合否を表示する。実行前に合格基準（既定 5%）を保存でき、確定時の検証記録を論文用テキストに反映する。
   TiAb AI screening now shows the miss rate and acceptance result against reviewer consensus as the threshold changes. An acceptable miss rate (default 5%) can be saved before the run, and validation records at confirmation are included in manuscript text.
 - 全文の候補ルールで、人の判定者を選ばず AI だけで候補を決めるときに警告を出す。全文の結果にも、人の票が無く AI だけで決まった文献の件数（うち除外）を警告として出す。保存も合議の規則（OR）も変えない。

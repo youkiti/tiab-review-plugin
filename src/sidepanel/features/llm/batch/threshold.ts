@@ -37,6 +37,7 @@ import {
 import { setCurrentBatchDecisions as syncSetCurrentBatchDecisions } from '../../../store/compat';
 import { loadExecutionHistory } from './history';
 import { computeCurrentValidation, renderValidationResult } from '../validation';
+import { buildThresholdConfirmationUpdates } from '../validation-model';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -228,18 +229,9 @@ export async function handleConfirmThreshold() {
 
         // Run を確定状態に更新（閾値・status・is_active）
         const validation = computeCurrentValidation(validationDecisions, threshold);
-        await updateLlmRun(spreadsheetId, run.run_id, {
-            include_threshold: threshold,
-            status: 'confirmed',
-            is_active: true,
-            validation_compared: validation.compared,
-            validation_human_includes: validation.humanIncludes,
-            validation_missed: validation.missed,
-            validation_false_includes: validation.falseIncludes,
-            validation_max_miss_rate: state.llmConfig.llm_validation_max_miss_rate ?? 0.05,
-            validation_criterion_set_at: state.llmConfig.llm_validation_criterion_set_at ?? '',
-            validation_evaluated_at: new Date().toISOString(),
-        });
+        await updateLlmRun(spreadsheetId, run.run_id, buildThresholdConfirmationUpdates(
+            threshold, validation, state.llmConfig, new Date().toISOString(),
+        ));
 
         // この Run のみを active に。他の Run は false に切り替える
         await setSingleActiveRun(spreadsheetId, run.run_id);

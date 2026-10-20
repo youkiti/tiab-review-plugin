@@ -37,10 +37,21 @@ test('基準を満たさない場合は明記し、事後の基準を事前と�
     assert.doesNotMatch(sentence, /prespecified/);
 });
 
-test('人の組み入れゼロは比較なしと記述し、検証記録の無い Run には何も書かない', () => {
+test('比較ゼロは比較なしと記述し、検証記録の無い Run には何も書かない', () => {
     const noComparison = "The model's decisions were not compared with reviewers' decisions within this review.";
-    assert.equal(buildManuscriptValidationSentence(run({ validation_human_includes: 0 })), noComparison);
+    assert.equal(buildManuscriptValidationSentence(run({ validation_compared: 0 })), noComparison);
     assert.equal(buildManuscriptValidationSentence(run({ validation_compared: undefined })), noComparison);
     // 機能の導入前に確定した Run は、比較したかどうかが分からないので断定しない
     assert.equal(buildManuscriptValidationSentence(run({ validation_evaluated_at: undefined })), '');
+});
+
+test('人の組み入れゼロでも比較件数があれば比較したことと見落とし率の評価不能を記述する', () => {
+    for (const setAt of ['2026-10-19T00:00:00Z', '2026-10-22T00:00:00Z', undefined]) {
+        const sentence = buildManuscriptValidationSentence(run({
+            validation_compared: 12,
+            validation_human_includes: 0,
+            validation_criterion_set_at: setAt,
+        }));
+        assert.equal(sentence, "Before the large language model's decisions were used, they were compared with the reviewers' consensus decisions for 12 records, none of which were included by the reviewers, so the miss rate could not be assessed.");
+    }
 });

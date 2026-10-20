@@ -1,7 +1,7 @@
 import type { Decision } from '../../../lib/types';
-import { computeLlmValidation, judgeValidation } from '../../../lib/llm-validation';
+import { judgeValidation } from '../../../lib/llm-validation';
 import type { LlmValidationResult } from '../../../lib/llm-validation';
-import { collectReviewerKeys } from '../../../lib/decision-summary';
+import { computeReviewValidation, validationUnavailableMessageKey } from './validation-model';
 import { updateLlmConfig } from '../../../lib/sheets-api';
 import { t } from '../../../lib/i18n';
 import { state } from '../../state';
@@ -9,12 +9,12 @@ import { setLlmConfig } from '../../store/compat';
 import { showToast } from '../../ui/feedback';
 import { dom } from './dom';
 
-export function computeCurrentValidation(decisions: Decision[], threshold: number): LlmValidationResult {
-    return computeLlmValidation({
+export function computeCurrentValidation(decisions: Decision[], threshold: number): LlmValidationResult | null {
+    return computeReviewValidation({
+        isKeyOpened: state.isKeyOpened,
         refs: state.allReferences,
         aiDecisions: decisions,
         threshold,
-        reviewerKeys: collectReviewerKeys(state.allReferences, new Set(), state.treatMlAsManual),
         treatMlAsManual: state.treatMlAsManual,
         assignmentConfig: state.assignmentConfig,
     });
@@ -29,7 +29,18 @@ function percent(value: number | null): string {
  * 閾値の欄が縦に長くなると操作ツアーの吹き出しが確定ボタンに重なるため、
  * 見出し（合否、または比べられた件数）だけを常に出し、内訳と指標は折りたたむ。
  */
-export function renderValidationResult(result: LlmValidationResult): void {
+export function renderValidationResult(result: LlmValidationResult | null): void {
+    const unavailableKey = validationUnavailableMessageKey(result);
+    if (unavailableKey !== null) {
+        const paragraph = document.createElement('p');
+        paragraph.className = 'help-text';
+        paragraph.textContent = t(unavailableKey);
+        dom.validationResult.replaceChildren(paragraph);
+        return;
+    }
+    if (result === null) {
+        return;
+    }
     const maxMissRate = state.llmConfig.llm_validation_max_miss_rate ?? 0.05;
     const counts = t('llm_validationCounts', [
         String(result.compared), String(result.humanIncludes), String(result.humanExcludes),

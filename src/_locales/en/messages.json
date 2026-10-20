@@ -1,4 +1,7 @@
 {
+  "llm_validationKeyUnopened": {
+    "message": "Comparison with reviewers' decisions is unavailable because other reviewers' decisions are hidden (the key has not been opened). Comparison becomes available when an administrator opens the key."
+  },
   "llm_validationCriterion": {
     "message": "Acceptance criterion: miss rate"
   },

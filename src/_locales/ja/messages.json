@@ -1,4 +1,7 @@
 {
+  "llm_validationKeyUnopened": {
+    "message": "他者の判定が非表示（キー未開封）のため、人の判定と比べられません。管理者がキーを開封すると比べられます。"
+  },
   "llm_validationCriterion": {
     "message": "合格基準: 見落とし率"
   },

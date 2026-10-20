@@ -15,7 +15,13 @@ export function buildManuscriptValidationSentence(run: LlmRun): string {
     if (!run.validation_evaluated_at) {
         return '';
     }
-    if (!compared || !included || missed === undefined || criterion === undefined) {
+    if (!compared) {
+        return "The model's decisions were not compared with reviewers' decisions within this review.";
+    }
+    if (included === 0) {
+        return `Before the large language model's decisions were used, they were compared with the reviewers' consensus decisions for ${compared} records, none of which were included by the reviewers, so the miss rate could not be assessed.`;
+    }
+    if (included === undefined || missed === undefined || criterion === undefined) {
         return "The model's decisions were not compared with reviewers' decisions within this review.";
     }
     const setAt = Date.parse(run.validation_criterion_set_at || '');
