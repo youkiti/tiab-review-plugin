@@ -397,6 +397,13 @@ function parseLlmRunRow(row: string[], headers: string[]): LlmRun {
     headers.forEach((header, i) => {
         const value = row[i] || '';
         switch (header) {
+            case 'validation_compared':
+            case 'validation_human_includes':
+            case 'validation_missed':
+            case 'validation_false_includes':
+            case 'validation_max_miss_rate':
+                obj[header] = value ? Number(value) : undefined;
+                break;
             case 'include_threshold':
                 obj[header] = parseFloat(value) || 0;
                 break;

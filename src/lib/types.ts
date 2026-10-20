@@ -143,6 +143,8 @@ export interface LlmConfig {
     llm_criteria: LlmCriteria | null;
     llm_screening_prompt: string;
     llm_include_threshold: number;
+    llm_validation_max_miss_rate?: number;
+    llm_validation_criterion_set_at?: string;
     llm_max_output_tokens: number;
     llm_output_language: string;
     llm_target_mode: LlmTargetMode;    // AI一括判定の対象の決め方（'all' | 'selection'）
@@ -240,6 +242,13 @@ export interface LlmRun {
     include_threshold: number;
     status: 'pending' | 'confirmed';
     is_active: boolean;
+    validation_compared?: number;
+    validation_human_includes?: number;
+    validation_missed?: number;
+    validation_false_includes?: number;
+    validation_max_miss_rate?: number;
+    validation_criterion_set_at?: string;
+    validation_evaluated_at?: string;
 }
 
 /**

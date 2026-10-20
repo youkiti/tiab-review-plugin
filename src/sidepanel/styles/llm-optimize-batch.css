@@ -192,3 +192,14 @@
     margin: 8px 0 0;
 }
 
+/* レビュー内検証の合格基準: 入力欄・単位・保存ボタンを1行に並べる */
+.llm-validation-criterion-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group .llm-validation-criterion-row input {
+    width: 6em;
+    flex: 0 0 auto;
+}

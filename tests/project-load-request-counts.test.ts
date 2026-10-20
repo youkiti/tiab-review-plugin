@@ -47,6 +47,8 @@ const runHeaders = [
     'run_id', 'config_hash', 'created_at', 'model', 'temperature', 'topP', 'thinkingLevel',
     'criteria_snapshot', 'screening_prompt', 'include_threshold', 'status', 'is_active',
     'requested_model', 'model_version', 'response_id',
+    'validation_compared', 'validation_human_includes', 'validation_missed', 'validation_false_includes',
+    'validation_max_miss_rate', 'validation_criterion_set_at', 'validation_evaluated_at',
 ];
 const decisionHeaders = [
     'decision_id', 'ref_id', 'reviewer_id', 'decision', 'reason', 'labels', 'note',

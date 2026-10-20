@@ -1295,6 +1295,10 @@
                     <span class="ja">閾値に迷ったら既定の 0.3 を使ってください。同梱モデルの見落とし率はこの値で測っています。閾値を上げると Exclude と、本来組み入れる文献の見落としが増えます。0.5 / 0.7 は見落としが増えてもよいときだけの目安です。</span>
                     <span class="en">If unsure, use the default threshold of 0.3. Miss rates for the bundled models were measured at this value. Raising it increases Exclude decisions and missed eligible records. Consider 0.5 / 0.7 only if more missed eligible records are acceptable.</span>
                 </p>
+                <p>
+                    <span class="ja">閾値カードのすぐ上の「人の判定との比較（レビュー内検証）」カードに、人の合議との比較結果と合否が表示されます（見出しの行を押すと内訳を開けます）。一括実行前に合格基準を保存し、<a href="#ai-limitations">レビューの中での検証</a>を確認してから閾値を確定してください。</span>
+                    <span class="en">The "Comparison with reviewers (within-review validation)" card just above the threshold card compares AI with reviewer consensus and shows whether the criterion is met (click its headline to see the breakdown). Save the criterion before running and check <a href="#ai-limitations">validation within your review</a> before confirming the threshold.</span>
+                </p>
 
                 <p>
                     <span class="ja">「失敗分をリトライ」は、失敗した実行と同じモデル・設定で続きを判定し、その実行の判定として記録します（モデル欄を変えていても元のモデルを使います）。</span>
@@ -1414,14 +1418,8 @@
                     </li>
                 </ul>
                 <p>
-                    <span class="ja"><strong>レビューの中で確かめる方法：</strong>人が判定し終えた文献（または人が判定した一部の文献）を AI にも判定させ、人の判定で組み入れた文献のうち AI が除外したものの割合（見落とし率）を確かめます。実行の前に「見落とし率が何%以下なら使う」という基準を決めて記録しておき、基準を満たさないときは AI を判定に使わないでください。論文には、使ったモデルとその版、プロンプトの版、閾値、確かめた件数と結果を書いてください（エクスポートメニューの「論文用テキスト」に下書きが出ます）。</span>
-                    <span class="en"><strong>How to check within your review:</strong> Have the AI screen records that
-                        humans have already screened (all of them or a subset), and see what share of the records the
-                        humans included were excluded by the AI (the miss rate). Before running it, decide and record
-                        the miss rate you will accept, and do not use the AI for decisions if it does not meet that
-                        criterion. In your paper, report the model and its version, the prompt version, the threshold,
-                        and the number of records checked with the result (the "Manuscript text" item in the export menu
-                        drafts this).</span>
+                    <span class="ja"><strong>レビューの中で確かめる方法：</strong>AI タブの一括実行カードで「合格基準: 見落とし率 … % 以下」（既定 5%）を入力し、実行前に「合格基準を保存」を押します。人が判定し終えた文献を AI の対象にも含め、閾値カードの上の「人の判定との比較」カードで、人の合議と比べた件数・見落とし率・特異度・一致率・合否を確認してください。キー未開封の間は他者の判定が非表示のため比較できず、閾値を確定しても検証結果は記録・上書きされません。管理者がキーを開封すると比較できます。人どうしの不一致・保留・担当者の判定待ち・人の判定なしは比較から外して内訳を表示します。閾値を動かすと結果も変わります。人の組み入れが少ない場合、見落とし率は大きくぶれます。無作為標本ではないため信頼区間は表示しません。基準を満たさないときは AI を判定に使わないでください。閾値の確定時に結果と基準・時刻が記録され、エクスポートメニューの「論文用テキスト」に入ります。基準の事前設定・事後設定・記録なしも書き分けられます。比べた文献があっても人の組み入れが0件なら、比較した件数と見落とし率を評価できないことを記述します。</span>
+                    <span class="en"><strong>How to check within your review:</strong> In the AI batch card, enter the maximum acceptable miss rate (default 5%) and click "Save acceptance criterion" before running. Include records already screened by reviewers in the AI target. The "Comparison with reviewers" card above the threshold card compares AI with reviewer consensus and shows counts, miss rate, specificity, agreement and whether the criterion is met. While the key is unopened, comparison is unavailable because reviewer decisions are hidden; confirming the threshold does not record or overwrite validation results. Comparison becomes available when an administrator opens the key. Disagreements, Maybe decisions, incomplete assignments and records without human decisions are excluded and counted separately. Moving the slider updates the results. With few reviewer inclusions, the miss rate can vary substantially. No confidence interval is shown because these are not randomly sampled records. Do not use AI decisions if they fail the criterion. Confirming the threshold records the results, criterion and timestamps for "Manuscript text" in the export menu, distinguishing criteria set before or after the run and those not recorded in advance. If records were compared but none were included by reviewers, the text reports the comparison count and explains that the miss rate could not be assessed.</span>
                 </p>
                 <p>
                     <span class="ja"><strong>データの送信と著作権：</strong>AI 判定は、文献のタイトル・抄録（フルテキストの AI 判定では PDF 全体）を、選んだ AI プロバイダへ送ります。Gemini API の無料枠では、送った内容が Google の製品の改善に使われ、人が読むこともあります。未公開の原稿や機密の文書には、有料の API キーを使うか、AI 判定を使わないでください。PDF を AI に送ってよいかは、出版社の利用条件と所属機関の契約によります。詳しくは<a href="privacy-policy.html">プライバシーポリシー</a>をご覧ください。</span>

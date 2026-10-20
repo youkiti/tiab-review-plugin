@@ -67,6 +67,9 @@ export const dom = {
     get tierSelect() { return getElement<HTMLSelectElement>('tier-select'); },
 
     // LLM 一括判定
+    get validationMaxMissRate() { return getElement<HTMLInputElement>('llm-validation-max-miss-rate'); },
+    get validationSaveBtn() { return getElement<HTMLButtonElement>('llm-validation-save-btn'); },
+    get validationResult() { return getElement<HTMLElement>('llm-validation-result'); },
     get batchTargetSummary() { return getElement<HTMLElement>('batch-target-summary'); },
     get batchTargetEditBtn() { return getElement<HTMLButtonElement>('batch-target-edit-btn'); },
     get batchTargetClearBtn() { return getElement<HTMLButtonElement>('batch-target-clear-btn'); },

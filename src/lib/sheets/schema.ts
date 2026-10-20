@@ -44,7 +44,9 @@ export const LLM_RUNS_HEADERS = [
     'temperature', 'topP', 'thinkingLevel',
     'criteria_snapshot', 'screening_prompt',
     'include_threshold', 'status', 'is_active',
-    'requested_model', 'model_version', 'response_id'
+    'requested_model', 'model_version', 'response_id',
+    'validation_compared', 'validation_human_includes', 'validation_missed', 'validation_false_includes',
+    'validation_max_miss_rate', 'validation_criterion_set_at', 'validation_evaluated_at'
 ];
 
 // Publication_Candidates タブのヘッダー（Issue #118 チャンク2 パスB）。
