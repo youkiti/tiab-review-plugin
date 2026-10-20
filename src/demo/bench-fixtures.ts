@@ -629,6 +629,8 @@ export function buildBenchLlmRound(size: number): BenchLlmRound {
     const run: LlmRun = {
         run_id: BENCH_LLM_RUN_ID,
         config_hash: 'v1:bench-fixture',
+        validation_compared: undefined, validation_human_includes: undefined, validation_missed: undefined, validation_false_includes: undefined,
+        validation_max_miss_rate: undefined, validation_criterion_set_at: undefined, validation_evaluated_at: undefined,
         created_at: BENCH_LLM_TIMESTAMP,
         model: BENCH_LLM_MODEL,
         requested_model: BENCH_LLM_MODEL,

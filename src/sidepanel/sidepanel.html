@@ -701,6 +701,16 @@
                     <button type="button" id="batch-restart-run-btn" class="btn btn-outline btn-xsmall"></button>
                 </div>
 
+                <div class="form-group llm-validation-criterion">
+                    <label for="llm-validation-max-miss-rate" data-i18n="llm_validationCriterion"></label>
+                    <div class="llm-validation-criterion-row">
+                        <input type="number" id="llm-validation-max-miss-rate" min="0" max="100" step="any" value="5" aria-describedby="llm-validation-help">
+                        <span data-i18n="llm_validationCriterionUnit"></span>
+                        <button type="button" id="llm-validation-save-btn" class="btn btn-outline btn-small" data-i18n="llm_validationSave"></button>
+                    </div>
+                    <p id="llm-validation-help" class="help-text" data-i18n="llm_validationHelp"></p>
+                </div>
+
                 <button id="start-batch-btn" class="btn btn-primary btn-full" data-tour="ai-batch-run" data-i18n="llm_batchStart">
                 </button>
                 <button id="stop-batch-btn" class="btn btn-danger btn-full hidden" data-tour="ai-batch-run" data-i18n="llm_batchStop">
@@ -725,6 +735,13 @@
                 </button>
             </div>
 
+            <!-- レビュー内検証の結果。閾値の欄（操作ツアーの対象）の外かつ直前に置き、欄とその下の高さを変えない
+                 （欄やその下が伸びると、ツアーの吹き出しを欄の上に置けなくなり確定ボタンに重なる）。
+                 閾値の欄が隠れているときは CSS の :has() で一緒に隠す。 -->
+            <div id="llm-validation-card" class="llm-card llm-validation-card">
+                <h4 data-i18n="llm_validationTitle"></h4>
+                <div id="llm-validation-result" aria-live="polite"></div>
+            </div>
             <!-- 閾値調整（実行完了後に表示） -->
             <div id="threshold-section" class="llm-card hidden" data-tour="ai-threshold">
                 <div class="guide-heading-row">
@@ -765,6 +782,7 @@
                 </button>
                 <p class="threshold-note" data-i18n="llm_thresholdNote"></p>
             </div>
+
 
             <!-- LLM実行履歴 -->
             <div class="llm-card collapsible" data-tour="ai-history">

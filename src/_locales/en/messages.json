@@ -1,4 +1,52 @@
 {
+  "llm_validationCriterion": {
+    "message": "Acceptance criterion: miss rate"
+  },
+  "llm_validationCriterionUnit": {
+    "message": "% or less"
+  },
+  "llm_validationHelp": {
+    "message": "Before using AI decisions, compare them with reviewers' decisions to check whether the miss rate is within this limit. Save it before the run to report it as a prespecified criterion."
+  },
+  "llm_validationSave": {
+    "message": "Save acceptance criterion"
+  },
+  "llm_validationSaved": {
+    "message": "Acceptance criterion and timestamp recorded"
+  },
+  "llm_validationSaveError": {
+    "message": "Could not save the acceptance criterion: $1"
+  },
+  "llm_validationInvalid": {
+    "message": "Enter a number between 0 and 100%"
+  },
+  "llm_validationTitle": {
+    "message": "Comparison with reviewers (within-review validation)"
+  },
+  "llm_validationCounts": {
+    "message": "Compared: $1 records ($2 included and $3 excluded by reviewers)."
+  },
+  "llm_validationUnresolved": {
+    "message": "Not compared: $1 with reviewer disagreements, $2 marked Maybe, $3 awaiting assigned reviewers, and $4 with no human decisions."
+  },
+  "llm_validationMetrics": {
+    "message": "Missed: $1 (miss rate $2%). Records excluded by reviewers and included by AI: $3 (specificity $4%). Agreement $5%."
+  },
+  "llm_validation_pass": {
+    "message": "Meets the acceptance criterion (miss rate at most $1%)."
+  },
+  "llm_validation_fail": {
+    "message": "Does not meet the acceptance criterion (miss rate at most $1%). At this threshold, AI misses $2% of the records included by reviewers."
+  },
+  "llm_validation_insufficient": {
+    "message": "Cannot assess the criterion because there are no records included by reviewers yet."
+  },
+  "llm_validationSmallSample": {
+    "message": "Few records were included by reviewers, so the miss rate can vary substantially."
+  },
+  "llm_validationNoComparison": {
+    "message": "No records have complete human decisions yet. Include records already screened by reviewers in the AI target to compare them (Limit AI batch screening targets)."
+  },
   "ftRule_aiOnlyWarning": {
     "message": "This rule contains no human votes. AI decisions alone determine which records proceed to full text, and records excluded by AI will not be seen by a human. Guidelines such as RAISE call for human verification of AI decisions. Evaluate the AI miss rate within your review before using this rule."
   },
@@ -2053,7 +2101,7 @@
     "message": "\"Start Batch\" starts the AI screening, and you pay for every record it processes. This guide waits until it finishes (use \"Stop\" in the same place to halt it). If you do not want to run it, use \"Skip this step\"."
   },
   "guideExt_tour_ai_first_run_threshold": {
-    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; use the default 0.3 if unsure. Miss rates for the bundled models were measured at this threshold. Raising it increases Exclude decisions and missed eligible records. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
+    "message": "When the run finishes, you set the threshold here. Moving the slider changes the expected Include and Exclude counts; use the default 0.3 if unsure. Raising it increases Exclude decisions and missed eligible records. \"Confirm Threshold & Save to Google Spreadsheet\" records the decisions in the sheet. A moment later you will be asked whether to switch to the Manual tab; if you switch, return to the AI tab to continue this tour."
   },
   "guideExt_tour_ai_first_run_threshold_wait": {
     "message": "Once a run finishes, the threshold confirmation appears here, below the batch controls. You have not run it yet, so we move on. After a run, open this tour again from the ❓ \"List of guided tours\" and it will explain the threshold."

@@ -13,7 +13,7 @@
  */
 
 import { state } from '../state';
-import { buildManuscriptAiSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions } from '../../lib/manuscript-ai';
+import { buildManuscriptAiSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions, buildManuscriptValidationSentence } from '../../lib/manuscript-ai';
 import { collectReviewerKeys } from '../../lib/decision-summary';
 import { isLogicallyDeleted } from '../../lib/duplicate-detect';
 import { t } from '../../lib/i18n';
@@ -27,7 +27,7 @@ import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
-import { getSpreadsheetInfo, getReferences, getLlmExecutions } from '../../lib/sheets-api';
+import { getSpreadsheetInfo, getReferences, getLlmExecutions, getLlmRuns } from '../../lib/sheets-api';
 import { computeIdentification } from '../../lib/prisma-identification';
 import type { IdentificationData } from '../../lib/prisma-identification';
 import type { Decision, ReferenceWithStatus, LlmExecution } from '../../lib/types';
@@ -154,7 +154,7 @@ function wasWere(n: number): string {
     return n === 1 ? 'was' : 'were';
 }
 
-function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecution[]): string {
+function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecution[], validationSentence: string): string {
     const fileList = id.files.map(f => f.file).join('; ');
     const nReviewers = countTiabHumanReviewers();
 
@@ -189,6 +189,9 @@ function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecut
     );
     if (aiSentence) {
         paragraphs.push(aiSentence);
+    }
+    if (validationSentence) {
+        paragraphs.push(validationSentence);
     }
     const rule = state.fulltextPoolRule;
     const threshold = rule ? rule.threshold : 1;
@@ -422,6 +425,16 @@ function buildSectionElement(label: string, text: string): HTMLElement {
  * @param phase 'tiab' = TiAb相まで / 'fulltext' = フルテキスト相を含む全体
  */
 export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void> {
+    let validationSentence = '';
+    if (phase === 'tiab') {
+        try {
+            const runs = await getLlmRuns(state.spreadsheetId);
+            validationSentence = runs.filter(run => run.is_active && run.status === 'confirmed')
+                .map(buildManuscriptValidationSentence).filter(Boolean).join('\n\n');
+        } catch {
+            // 検証記録の取得失敗を「比較なし」と断定しない。
+        }
+    }
     let executions: LlmExecution[] = [];
     try {
         executions = await getLlmExecutions(state.spreadsheetId, true);
@@ -475,7 +488,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
 
     const methods = summaryByRoute
         ? buildFulltextMethods(summaryByRoute.database, summaryByRoute.registryLinkage)
-        : buildTiabMethods(id, executions);
+        : buildTiabMethods(id, executions, validationSentence);
     const results = summaryByRoute
         ? buildFulltextResults(summaryByRoute.database, summaryByRoute.registryLinkage)
         : buildTiabResults(id, sought);

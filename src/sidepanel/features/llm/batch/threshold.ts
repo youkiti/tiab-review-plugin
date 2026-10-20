@@ -36,6 +36,7 @@ import {
 } from '../../../../lib/llm-processor';
 import { setCurrentBatchDecisions as syncSetCurrentBatchDecisions } from '../../../store/compat';
 import { loadExecutionHistory } from './history';
+import { computeCurrentValidation, renderValidationResult } from '../validation';
 
 // loadDataAndShowScreeningへの参照（循環依存回避）
 let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
@@ -94,6 +95,7 @@ export function handleThresholdChange() {
     // プレビューを更新
     const currentDecisions = state.currentBatchDecisions;
     const counts = previewThresholdCounts(currentDecisions, threshold);
+    renderValidationResult(computeCurrentValidation(currentDecisions, threshold));
     const total = counts.includeCount + counts.excludeCount;
 
     dom.previewIncludeCount.textContent = counts.includeCount.toString();
@@ -191,12 +193,14 @@ export async function handleConfirmThreshold() {
         // Run 配下の全 Batch を対象に Decisions を取得し、閾値を適用
         const batchIds = await getBatchIdsForRun(spreadsheetId, run.run_id);
         const allDecisionsWithRow: { rowIndex: number; decision: Decision }[] = [];
+        const validationDecisions: Decision[] = [];
         let aggregatedInclude = 0;
         let aggregatedExclude = 0;
 
         for (const batchId of batchIds) {
             const decisionsForBatch = await getDecisionsByReviewerId(spreadsheetId, batchId);
             const decisionObjs = decisionsForBatch.map(d => d.decision);
+            validationDecisions.push(...decisionObjs);
             const updated = applyThresholdToDecisions(decisionObjs, threshold);
             const counts = previewThresholdCounts(decisionObjs, threshold);
             aggregatedInclude += counts.includeCount;
@@ -223,10 +227,18 @@ export async function handleConfirmThreshold() {
         }
 
         // Run を確定状態に更新（閾値・status・is_active）
+        const validation = computeCurrentValidation(validationDecisions, threshold);
         await updateLlmRun(spreadsheetId, run.run_id, {
             include_threshold: threshold,
             status: 'confirmed',
             is_active: true,
+            validation_compared: validation.compared,
+            validation_human_includes: validation.humanIncludes,
+            validation_missed: validation.missed,
+            validation_false_includes: validation.falseIncludes,
+            validation_max_miss_rate: state.llmConfig.llm_validation_max_miss_rate ?? 0.05,
+            validation_criterion_set_at: state.llmConfig.llm_validation_criterion_set_at ?? '',
+            validation_evaluated_at: new Date().toISOString(),
         });
 
         // この Run のみを active に。他の Run は false に切り替える

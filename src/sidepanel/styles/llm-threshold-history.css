@@ -187,3 +187,7 @@
     cursor: pointer;
 }
 
+/* レビュー内検証の結果: 閾値の欄が隠れている間は一緒に隠す */
+.llm-validation-card:has(+ #threshold-section.hidden) {
+    display: none;
+}

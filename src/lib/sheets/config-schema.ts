@@ -329,6 +329,8 @@ export const DEFAULT_LLM_CONFIG: LlmConfig = {
     llm_criteria: null,
     llm_screening_prompt: '',
     llm_include_threshold: 0.3,
+    llm_validation_max_miss_rate: 0.05,
+    llm_validation_criterion_set_at: '',
     llm_max_output_tokens: 2048,
     llm_output_language: 'ja',
     llm_target_mode: 'all',
@@ -347,6 +349,8 @@ export const LLM_CONFIG_KEYS = [
     'llm_criteria',
     'llm_screening_prompt',
     'llm_include_threshold',
+    'llm_validation_max_miss_rate',
+    'llm_validation_criterion_set_at',
     'llm_max_output_tokens',
     'llm_output_language',
     'llm_target_mode',
@@ -396,6 +400,18 @@ export function parseLlmConfig(values: string[][]): LlmConfig {
                 break;
             case 'llm_include_threshold':
                 config.llm_include_threshold = parseFloat(value) || 0.3;
+                break;
+            case 'llm_validation_max_miss_rate': {
+                const rate = Number(value);
+                if (Number.isFinite(rate) && rate >= 0 && rate <= 1) {
+                    config.llm_validation_max_miss_rate = rate;
+                }
+                break;
+            }
+            case 'llm_validation_criterion_set_at':
+                if (Number.isFinite(Date.parse(value))) {
+                    config.llm_validation_criterion_set_at = value;
+                }
                 break;
             case 'llm_max_output_tokens':
                 config.llm_max_output_tokens = parseInt(value, 10) || 2048;

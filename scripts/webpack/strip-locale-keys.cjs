@@ -14,9 +14,9 @@
  * トピック見出し `guideExt_`（src/lib/guide/topics.ts の `extensionOnly`）。将来 ML/LLM 設定画面など、他の
  * 拡張専用画面のキーが増えたときにここへ追記できるよう配列にしてある。
  */
-// 全文候補ルールのAI単独警告、ML停止ダイアログ、AIタブのデータ利用注記も拡張版専用。
+// 全文候補ルールのAI単独警告、ML停止ダイアログ、AIタブのデータ利用注記とレビュー内検証も拡張版専用。
 // 既存キーの扱いは維持し、候補ルールでは追加した警告だけを除く。
-const WEB_EXCLUDED_KEY_PREFIXES = ['ftPage_', 'guideExt_', 'ftRule_aiOnly', 'mlDialog_', 'llmExt_'];
+const WEB_EXCLUDED_KEY_PREFIXES = ['ftPage_', 'guideExt_', 'ftRule_aiOnly', 'mlDialog_', 'llmExt_', 'llm_validation'];
 
 /**
  * messages（chrome.i18n 形式の messages.json をパースしたオブジェクト）から、

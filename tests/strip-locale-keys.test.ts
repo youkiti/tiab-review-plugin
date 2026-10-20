@@ -32,7 +32,7 @@ test('入力オブジェクトは変更されない', async () => {
 
 test('実際の en/messages.json では ftPage_ が全て消え、fulltext_ は同数残る（Web版のTiAb画面を誤って落とさない担保）', async () => {
     const { stripLocaleKeys, WEB_EXCLUDED_KEY_PREFIXES } = await modulePromise;
-    assert.deepEqual(WEB_EXCLUDED_KEY_PREFIXES, ['ftPage_', 'guideExt_', 'ftRule_aiOnly', 'mlDialog_', 'llmExt_']);
+    assert.deepEqual(WEB_EXCLUDED_KEY_PREFIXES, ['ftPage_', 'guideExt_', 'ftRule_aiOnly', 'mlDialog_', 'llmExt_', 'llm_validation']);
 
     const messages = JSON.parse(
         require('node:fs').readFileSync(path.resolve('src/_locales/en/messages.json'), 'utf8')
@@ -50,6 +50,7 @@ test('実際の en/messages.json では ftPage_ が全て消え、fulltext_ は�
     assert.ok(!('ftRule_aiOnlyWarning' in result));
     assert.ok(!Object.keys(result).some(k => k.startsWith('mlDialog_')));
     assert.ok(!Object.keys(result).some(k => k.startsWith('llmExt_')));
+    assert.ok(!Object.keys(result).some(k => k.startsWith('llm_validation')));
     assert.ok('ftRule_blindWarnConfirm' in result, '既存の候補ルールの文言は残す');
     assert.ok('ml_stoppingExcludedUnread' in result, 'Web版の状態チップの文言は残す');
 });

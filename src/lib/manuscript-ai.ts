@@ -1,9 +1,37 @@
 // 論文用の記述は採用された判定と実送信設定から組み立てる。
-import type { AssignmentConfig, Decision, LlmExecution, ReferenceWithStatus } from './types';
+import type { AssignmentConfig, Decision, LlmExecution, LlmRun, ReferenceWithStatus } from './types';
 import type { FulltextResultsSummary } from './fulltext-results-summary';
 import { summarizeTeamDecision } from './decision-summary';
 import { getModelGenerationSettings } from './model-generation-settings';
 import { PROMPT_VERSION } from './prompt-templates';
+
+/** 確定時の記録だけを使い、後から変えた設定で過去の検証を書き換えない。 */
+export function buildManuscriptValidationSentence(run: LlmRun): string {
+    const compared = run.validation_compared;
+    const included = run.validation_human_includes;
+    const missed = run.validation_missed;
+    const criterion = run.validation_max_miss_rate;
+    // 検証の記録が無い Run（この機能より前に確定した Run など）は、比較したかどうかが分からないので何も書かない
+    if (!run.validation_evaluated_at) {
+        return '';
+    }
+    if (!compared || !included || missed === undefined || criterion === undefined) {
+        return "The model's decisions were not compared with reviewers' decisions within this review.";
+    }
+    const setAt = Date.parse(run.validation_criterion_set_at || '');
+    const createdAt = Date.parse(run.created_at);
+    const timing = !Number.isFinite(setAt) || !Number.isFinite(createdAt)
+        ? 'not recorded in advance'
+        : setAt <= createdAt ? 'specified before the run' : 'specified after the run';
+    const missRate = missed / included;
+    const failure = missRate > criterion
+        ? timing === 'specified before the run'
+            ? ', which did not meet the prespecified criterion'
+            : ', which did not meet the specified criterion'
+        : '';
+    return `Before the large language model's decisions were used, they were compared with the reviewers' consensus decisions for ${compared} records (${included} included by the reviewers). ` +
+        `At the inclusion threshold of ${run.include_threshold}, the model missed ${missed} of the ${included} included records (miss rate ${(missRate * 100).toFixed(1)}%), against an acceptable miss rate of ${(criterion * 100).toFixed(1)}% that was ${timing}${failure}.`;
+}
 
 function noteVersions(note: string): { model?: string; prompt?: string } {
     try {

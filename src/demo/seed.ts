@@ -76,6 +76,8 @@ const LLM_RUNS_HEADERS = [
     'criteria_snapshot', 'screening_prompt',
     'include_threshold', 'status', 'is_active',
     'requested_model', 'model_version', 'response_id',
+    'validation_compared', 'validation_human_includes', 'validation_missed', 'validation_false_includes',
+    'validation_max_miss_rate', 'validation_criterion_set_at', 'validation_evaluated_at',
 ];
 
 // src/lib/sheets/schema.ts の PUBLICATION_CANDIDATES_HEADERS と完全一致させること（末尾追記のみ許容）。
