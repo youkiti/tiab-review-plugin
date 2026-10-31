@@ -4,7 +4,7 @@ import { buildModelGroups, filterModelGroups, filterModelGroupsByProvider, pickP
 import { resolveProviderId, type LlmProviderId } from '../../../lib/llm-provider';
 import { providers, providerNames, providerCaptionKeys } from './providers';
 import { fetchOpenRouterModels } from '../../../lib/openrouter-models';
-import { getOpenRouterModels, saveOpenRouterModels, hasOpenRouterApiKey, getSessionOpenRouterApiKey } from '../../../lib/storage';
+import { getOpenRouterModels, saveOpenRouterModels, hasOpenRouterApiKey, getSessionOpenRouterApiKey, getLocalLlmModels } from '../../../lib/storage';
 import { isImeComposing } from '../../../lib/ime-composition';
 import { t } from '../../../lib/i18n';
 import { showToast } from '../../ui/feedback';
@@ -126,6 +126,7 @@ function refreshProviderSelection(): void {
         dom.providerBody(provider).hidden = provider !== selected;
     }
     dom.providerCaption.textContent = t(providerCaptionKeys[selected]);
+    dom.saveApiKeyCheckbox.closest<HTMLElement>('label')!.classList.toggle('hidden', selected === 'local_llm');
     render();
 }
 
@@ -235,11 +236,11 @@ export function wireModelCombobox(): void {
 /** 候補だけを更新し、入力中・選択済みのモデルIDは変更しない。 */
 export async function populateModelSelect(isCurrent: () => boolean = () => true): Promise<void> {
     const generation = ++population;
-    const [models, cache] = await Promise.all([getAllAvailableModels(), getOpenRouterModels()]);
+    const [models, cache, localModels] = await Promise.all([getAllAvailableModels(), getOpenRouterModels(), getLocalLlmModels()]);
     if (!isCurrent() || generation !== population) {
         return;
     }
-    allGroups = buildModelGroups(AVAILABLE_MODELS, models.filter(model => model.custom), cache?.models ?? []);
+    allGroups = buildModelGroups(AVAILABLE_MODELS, models.filter(model => model.custom), cache?.models ?? [], localModels);
     refreshProviderSelection();
     await updateBatchTargetCount(() => isCurrent() && generation === population);
 }

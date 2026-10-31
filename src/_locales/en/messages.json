@@ -1,4 +1,17 @@
 {
+  "llmExt_localName": { "message": "Local LLM" },
+  "llmExt_localCaption": { "message": "Connect to an OpenAI-compatible server on this computer. No API key is required." },
+  "llmExt_localHelp": { "message": "Use an LLM running on your computer, such as Ollama or LM Studio. The Ollama and LM Studio buttons fill in the URL. Only localhost, 127.0.0.1, and [::1] URLs are allowed. No API key is required." },
+  "llmExt_localCaution": { "message": "Data sent to the AI stays on this computer. Processing is much slower than cloud APIs, and no benchmark results are available for these models. Check accuracy using within-review validation." },
+  "llmExt_localUrl": { "message": "API endpoint URL" },
+  "llmExt_localSaveTest": { "message": "Save and test connection" },
+  "llmExt_localMissing": { "message": "The local LLM URL or this computer's model list is not configured. Click Save and test connection." },
+  "llmExt_localReady": { "message": "The local LLM URL is saved." },
+  "llmExt_localPermissionDenied": { "message": "Permission to connect to the local LLM was denied." },
+  "llmExt_localFetching": { "message": "Fetching models…" },
+  "llmExt_localNoModels": { "message": "No chat models are available. Load a chat model on the server, then test the connection again." },
+  "llmExt_localTesting": { "message": "Testing the connection. The first request may take several minutes while the model loads…" },
+  "llmExt_localSuccess": { "message": "Connection test succeeded ($1 models)." },
   "llm_validationKeyUnopened": {
     "message": "Comparison with reviewers' decisions is unavailable because other reviewers' decisions are hidden (the key has not been opened). Comparison becomes available when an administrator opens the key."
   },
@@ -2083,7 +2096,7 @@
     "message": "Pick an AI screening model from the selected provider. Type to filter; you can also pick from the fetched OpenRouter list. Press Enter to confirm an unlisted known ID; a model from another provider also switches the connection. Leaving the field restores the previous selection unless the input exactly matches a candidate. Cost, speed and accuracy differ by model. For Gemini, read the free-tier data-use notice and use a paid API key for unpublished or confidential documents."
   },
   "guideExt_tour_ai_first_run_keys": {
-    "message": "Choose a provider in \"AI connection\", enter its API key in the visible field and press \"Verify and save\". Get the key from the provider. Choose the storage preference with \"Save the key on this device\", then pick a model below. Free Gemini keys limit processing speed. Use \"Skip this step\" if you are only exploring."
+    "message": "Choose a provider in \"AI connection\". For cloud providers, enter an API key, press \"Verify and save\", and choose whether to save the key on this device. For Local LLM, start the server, fill the URL with \"Ollama\" or \"LM Studio\", press \"Save and test connection\", and allow access. No key is required. Pick a model below. Local models have no benchmark results; check accuracy using within-review validation. Use \"Skip this step\" if you are only exploring."
   },
   "guideExt_tour_ai_first_run_protocol": {
     "message": "Paste the protocol's inclusion and exclusion criteria here. If you already have review criteria for human reviewers, \"Copy TiAb review criteria\" fills this in."

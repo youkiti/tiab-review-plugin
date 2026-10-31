@@ -1084,8 +1084,8 @@
                     <span class="en">AI Screening Support</span>
                 </h2>
                 <p>
-                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAI・Anthropic・TypeSafeの5プロバイダに対応しています。プロバイダとAPIキーを設定して、そのプロバイダのモデルを選びます。</span>
-                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Configure a provider and API key from Gemini, OpenRouter, OpenAI, Anthropic, or TypeSafe, then choose that provider's model.</span>
+                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAI・Anthropic・TypeSafe・ローカル LLM に対応しています。クラウドは API キー、ローカル LLM は URL を設定してモデルを選びます。ローカル LLM は Chrome 拡張のタイトル・抄録の一括判定と基準の最適化で使えます。</span>
+                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Choose Gemini, OpenRouter, OpenAI, Anthropic, TypeSafe, or Local LLM. Configure an API key for cloud providers or a URL for Local LLM, then choose a model. Local LLM supports title/abstract batch screening and criteria optimization in the Chrome extension.</span>
                 </p>
 
                 <h3 id="ai-screening-api-keys">
@@ -1093,8 +1093,8 @@
                     <span class="en">API Key Setup</span>
                 </h3>
                 <p>
-                    <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を選ぶと、そのプロバイダの入力欄だけが表示されます。キーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。その下の「使うモデル」では選んだプロバイダのモデルだけを表示し、モデル欄の下に接続状態を案内します。</span>
-                    <span class="en">Choose a "Provider" in "AI connection" on the "🤖 AI" tab to show only that provider's fields. Paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Keys are stored independently; "Save the key on this device" controls the storage preference for all five. The "Model" field below lists only the selected provider's models, with connection status underneath.</span>
+                    <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を選ぶと、そのプロバイダの入力欄だけが表示されます。クラウドの場合はキーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。ローカル LLM はキー不要で、「保存して接続テスト」を使います。その下の「使うモデル」では選んだプロバイダのモデルだけを表示し、モデル欄の下に接続状態を案内します。</span>
+                    <span class="en">Choose a "Provider" in "AI connection" on the "🤖 AI" tab to show only that provider's fields. For cloud providers, paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Keys are stored independently; "Save the key on this device" controls their storage preference. Local LLM needs no key; use "Save and test connection". The "Model" field below lists only the selected provider's models, with connection status underneath.</span>
                 </p>
                 <figure class="help-img-figure help-img-tall">
                     <img class="help-img" src="images/faq-gemini/01-ai-tab-overview.png"
@@ -1114,7 +1114,7 @@
                         から API キーを発行します。<br>
                         4. Anthropic: <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a> から API キーを発行します。<br>
                         5. TypeSafe: <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a> から API キーを発行します。<br>
-                        6. 選んだプロバイダの入力欄にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。</span>
+                        選んだクラウドプロバイダの入力欄にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。ローカル LLM の設定は下記をご覧ください。</span>
                     <span class="en">1. Gemini: Get an API key from <a href="https://aistudio.google.com/app/apikey"
                             target="_blank">Google AI Studio</a> (see <a
                             href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">instructions</a>).<br>
@@ -1124,7 +1124,24 @@
                             target="_blank">OpenAI Platform</a>.<br>
                         4. Anthropic: Issue an API key from <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>.<br>
                         5. TypeSafe: Issue an API key from <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a>.<br>
-                        6. Paste the key in the selected provider's field and click "Verify and save". Leaving the input also verifies it.</span>
+                        Paste the key in the selected cloud provider's field and click "Verify and save". Leaving the input also verifies it. See below for Local LLM setup.</span>
+                </p>
+                <h4 id="ai-local-llm"><span class="ja">ローカル LLM の設定</span><span class="en">Local LLM setup</span></h4>
+                <p>
+                    <span class="ja">手元の PC で動かしている LLM（Ollama・LM Studio など）を使います。「Ollama」「LM Studio」のボタンで URL が入ります。URL は localhost・127.0.0.1・[::1] に限られ、API キーは要りません。</span>
+                    <span class="en">Use an LLM running on your computer, such as Ollama or LM Studio. The Ollama and LM Studio buttons fill in the URL. Only localhost, 127.0.0.1, and [::1] URLs are allowed. No API key is required.</span>
+                </p>
+                <p>
+                    <span class="ja">Ollama はチャット用モデルを取得し、環境変数 <code>OLLAMA_ORIGINS=chrome-extension://*</code> を設定してからサーバーを再起動してください（Windows は Ollama を完全に終了して起動し直します）。既定 URL は <code>http://localhost:11434/v1/chat/completions</code> です。LM Studio はチャット用モデルを読み込み、Developer のローカルサーバーを起動します。既定 URL は <code>http://localhost:1234/v1/chat/completions</code> です。</span>
+                    <span class="en">For Ollama, download a chat model, set <code>OLLAMA_ORIGINS=chrome-extension://*</code>, and restart the server (on Windows, fully quit and reopen Ollama). The default URL is <code>http://localhost:11434/v1/chat/completions</code>. For LM Studio, load a chat model and start the local server in Developer. The default URL is <code>http://localhost:1234/v1/chat/completions</code>.</span>
+                </p>
+                <p>
+                    <span class="ja">プロバイダで「ローカル LLM」を選び、「Ollama」または「LM Studio」で URL を入れ、「保存して接続テスト」を押して接続権限を許可します。モデル一覧を取得し、選択中のモデルが一覧にあれば維持、なければ先頭モデルで JSON 応答をテストします。初回は読み込みで数分かかることがあります。モデルが0件ならサーバーでモデルを読み込んで再試行してください。失敗しても URL は保存されます。URL とモデル一覧はこの端末に暗号化せず保存します。API キーと Authorization ヘッダーは使いません。モデルは1件ずつ処理し、5件ごとに判定を保存します。Web 版とフルテキスト AI 判定には対応しません。</span>
+                    <span class="en">Select "Local LLM", fill the URL with "Ollama" or "LM Studio", click "Save and test connection", and allow the connection permission. The extension fetches models, keeps the current model if listed or selects the first, and tests a JSON response. Initial loading may take several minutes. If no models appear, load a model on the server and retry. The URL stays saved after failure. The URL and model list are stored unencrypted on this device. No API key or Authorization header is used. Models process one reference at a time, saving every five results. The Web version and full-text AI screening are not supported.</span>
+                </p>
+                <p>
+                    <span class="ja">AI に送るデータはこの PC 内に留まります。処理はクラウド API より大幅に遅く、これらのモデルのベンチマーク結果はありません。レビュー内検証で精度を確認してください。</span>
+                    <span class="en">Data sent to the AI stays on this computer. Processing is much slower than cloud APIs, and no benchmark results are available for these models. Check accuracy using within-review validation.</span>
                 </p>
                 <p>
                     <span class="ja">TypeSafe（Jev）は判定理由の文章を返さないため、判定理由の欄には基準の要素（P/I/C/O など）ごとの合致確率が記録され、根拠のハイライトは付きません。基準の最適化には使えません。OpenRouter のキーでも利用でき、モデル一覧の「TypeSafe Jev 1.14（OpenRouter）— Recall 96.8%（閾値0.3）」を選びます。</span>
@@ -1422,9 +1439,9 @@
                     <span class="en"><strong>How to check within your review:</strong> In the AI batch card, enter the maximum acceptable miss rate (default 5%) and click "Save acceptance criterion" before running. Include records already screened by reviewers in the AI target. The "Comparison with reviewers" card above the threshold card compares AI with reviewer consensus and shows counts, miss rate, specificity, agreement and whether the criterion is met. While the key is unopened, comparison is unavailable because reviewer decisions are hidden; confirming the threshold does not record or overwrite validation results. Comparison becomes available when an administrator opens the key. Disagreements, Maybe decisions, incomplete assignments and records without human decisions are excluded and counted separately. Moving the slider updates the results. With few reviewer inclusions, the miss rate can vary substantially. No confidence interval is shown because these are not randomly sampled records. Do not use AI decisions if they fail the criterion. Confirming the threshold records the results, criterion and timestamps for "Manuscript text" in the export menu, distinguishing criteria set before or after the run and those not recorded in advance. If records were compared but none were included by reviewers, the text reports the comparison count and explains that the miss rate could not be assessed.</span>
                 </p>
                 <p>
-                    <span class="ja"><strong>データの送信と著作権：</strong>AI 判定は、文献のタイトル・抄録（フルテキストの AI 判定では PDF 全体）を、選んだ AI プロバイダへ送ります。Gemini API の無料枠では、送った内容が Google の製品の改善に使われ、人が読むこともあります。未公開の原稿や機密の文書には、有料の API キーを使うか、AI 判定を使わないでください。PDF を AI に送ってよいかは、出版社の利用条件と所属機関の契約によります。詳しくは<a href="privacy-policy.html">プライバシーポリシー</a>をご覧ください。</span>
+                    <span class="ja"><strong>データの送信と著作権：</strong>AI 判定は、文献のタイトル・抄録（フルテキストの AI 判定では PDF 全体）を、選んだ AI プロバイダへ送ります。ローカル LLM を選ぶと、タイトル・抄録・判定基準はこの PC のサーバーへ送り、クラウド AI へは送りません。レビューの保存先は引き続き Google Sheets です。Gemini API の無料枠では、送った内容が Google の製品の改善に使われ、人が読むこともあります。未公開の原稿や機密の文書には、有料の API キーを使うか、AI 判定を使わないでください。PDF を AI に送ってよいかは、出版社の利用条件と所属機関の契約によります。詳しくは<a href="privacy-policy.html">プライバシーポリシー</a>をご覧ください。</span>
                     <span class="en"><strong>Data sent and copyright:</strong> AI screening sends titles and abstracts
-                        (the whole PDF for full-text AI screening) to the AI provider you choose. On the Gemini API free
+                        (the whole PDF for full-text AI screening) to the AI provider you choose. Local LLM sends titles, abstracts and criteria to this computer's server, without sending them to cloud AI; review storage still uses Google Sheets. On the Gemini API free
                         tier, what you send may be used to improve Google's products and may be read by people. For
                         unpublished manuscripts or confidential documents, use a paid API key or do not use AI
                         screening. Whether you may send a PDF to an AI depends on the publisher's terms and your
@@ -2327,11 +2344,11 @@
                         <span class="en">Q: Where is my data stored?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。ただし、AI判定機能を使う場合に限り、判定対象のタイトル・抄録（フルテキストのAI判定ではPDF全体）が、設定したプロバイダ（Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe）のAPIへ送信されます。APIキーはブラウザのローカルストレージに保存されます。フルテキストの取得やレジストリ連携を使うと、文献の DOI・PMID・試験登録番号などがオープンアクセスの検索サービスや試験登録サイトへ送られ、Unpaywall と OpenAlex にはログイン中のメールアドレスも送られます。AI 判定もフルテキストの取得もレジストリ連携も使わなければ、レビューデータが Google 以外へ送信されることはありません（<a href="privacy-policy.html">プライバシーポリシー</a>）。</span>
+                        <span class="ja">A: レビューデータ（文献情報・判定・メモなど）はすべてあなたのGoogle Driveに保存されます。クラウド AI 判定ではタイトル・抄録が設定したプロバイダ（Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe）へ、フルテキスト AI 判定では PDF 全体が Gemini へ送られます。ローカル LLM のタイトル・抄録・判定基準はこの PC のサーバーへ送り、クラウド AI へは送りません。URL とモデル一覧はこの端末に暗号化せず保存します。APIキーはブラウザのローカルストレージに保存されます。フルテキストの取得やレジストリ連携を使うと、文献の DOI・PMID・試験登録番号などがオープンアクセスの検索サービスや試験登録サイトへ送られ、Unpaywall と OpenAlex にはログイン中のメールアドレスも送られます。AI 判定もフルテキストの取得もレジストリ連携も使わなければ、レビューデータが Google 以外へ送信されることはありません（<a href="privacy-policy.html">プライバシーポリシー</a>）。</span>
                         <span class="en">A: Your review data (references, decisions, notes, etc.) is stored in your
                             Google Drive. However, if you use AI screening, the title/abstract of each reference
                             being screened (or the full PDF, for full-text AI screening) is sent to the API of
-                            whichever provider you configured (Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe). API keys are stored in your
+                            whichever provider you configured (Gemini/OpenRouter/OpenAI/Anthropic/TypeSafe, or this computer's server for Local LLM). Local LLM sends no AI data to cloud AI; review storage still uses Google Sheets. Its URL and model list are stored unencrypted on this device. API keys are stored in your
                             browser's local storage. Full-text retrieval and registry linkage send identifiers such as DOI,
                             PMID, and trial registration numbers to open-access search services and trial registries,
                             and also send the signed-in email address to Unpaywall and OpenAlex. If you use none of AI
@@ -2386,9 +2403,9 @@
                         <span class="en">Q: Can I use AI screening with providers other than Google Gemini?</span>
                     </h4>
                     <p>
-                        <span class="ja">A: TiAbのAI判定はGemini・OpenRouter・OpenAI・Anthropic・TypeSafeの5プロバイダに対応しています（プロバイダごとに個別のAPIキー設定が必要です）。ただし、フルテキストのAI一括判定はGeminiのみに対応しています。</span>
-                        <span class="en">A: TiAb AI screening supports five providers — Gemini, OpenRouter,
-                            OpenAI, Anthropic, and TypeSafe (each requires its own API key). However, batch AI screening for full text only
+                        <span class="ja">A: TiAbのAI判定はGemini・OpenRouter・OpenAI・Anthropic・TypeSafe・ローカル LLM に対応しています。クラウドは個別の API キー、ローカル LLM はこの PC の URL が必要です。ただし、フルテキストのAI一括判定はGeminiのみに対応しています。</span>
+                        <span class="en">A: TiAb AI screening supports Gemini, OpenRouter,
+                            OpenAI, Anthropic, TypeSafe, and Local LLM. Cloud providers require individual API keys; Local LLM requires this computer's URL. However, batch AI screening for full text only
                             supports Gemini.</span>
                     </p>
                 </div>

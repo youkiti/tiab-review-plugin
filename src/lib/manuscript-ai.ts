@@ -61,7 +61,7 @@ function recordedSettings(model: string, row?: LlmExecution): string {
     const provider = getModelGenerationSettings(model).provider;
     const modern = Boolean(row.prompt_sha256);
     const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/');
-    const sampling = modern || (!typeSafe && (provider === 'gemini' || provider === 'openrouter'));
+    const sampling = provider !== 'local_llm' && (modern || (!typeSafe && (provider === 'gemini' || provider === 'openrouter')));
     const settings: string[] = [];
     if (sampling && row.temperature !== undefined) {
         settings.push(`temperature ${row.temperature}`);
@@ -72,7 +72,7 @@ function recordedSettings(model: string, row?: LlmExecution): string {
     if (sampling && row.thinkingLevel) {
         settings.push(`thinking level ${row.thinkingLevel.toLowerCase()}`);
     }
-    const effort = modern ? row.reasoning_effort
+    const effort = provider === 'local_llm' ? undefined : modern ? row.reasoning_effort
         : provider === 'openai' || provider === 'anthropic' ? 'low' : undefined;
     if (effort) {
         settings.push(`${provider === 'anthropic' ? 'effort' : 'reasoning effort'} ${effort}`);

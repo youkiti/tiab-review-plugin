@@ -1,6 +1,7 @@
 // types.ts - 型定義
 
 import type { LlmTargetMode } from './llm-target-selection';
+import { isLocalModelId } from './local-llm-model';
 import type { DuplicateMatch, DuplicateMatchType } from './duplicate-detect';
 
 /**
@@ -608,6 +609,9 @@ export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, 
  * モデル別の上書きがあればそちらを優先し、なければデフォルトを返す
  */
 export function getBatchProfile(tier: ManualTier, modelId?: string): BatchProfile {
+    if (modelId && isLocalModelId(modelId)) {
+        return { rate: { concurrency: 1, delayBetweenRequests: 0 }, saveBatchSize: 5 };
+    }
     if (modelId) {
         const override = BATCH_PROFILE_OVERRIDES[modelId]?.[tier];
         if (override) return override;

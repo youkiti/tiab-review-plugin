@@ -3,14 +3,14 @@ import type { TourFor } from './types';
 
 /**
  * ツアー「ai-first-run」（AI 判定の初回）。
- * AI タブを開き、モデル・API キー・レビュー基準・対象を整えて一括実行し、閾値を確定するまでを案内する。
+ * AI タブを開き、モデル・接続（API キーまたはローカル URL）・レビュー基準・対象を整えて一括実行し、閾値を確定するまでを案内する。
  * 費用がかかる・実データが変わる操作（キーの保存、基準の最適化・保存、一括実行、閾値の確定）の手順は
  * optional（押さずに次へ進める）にして、ツアーを見ただけで API の利用料や書き込みが起きないようにする。
  */
 
 /** このツアー固有のイベント名（features/llm/** の各操作が成功して確定した後に emitGuideEvent で投げる）。 */
 export type AiFirstRunEvent =
-    | 'ai-key-saved' // API キーの確認と保存に成功した
+    | 'ai-key-saved' // API キーの確認と保存、またはローカル接続テストに成功した
     | 'ai-criteria-optimized' // 基準の最適化に成功し、プロンプトが画面に出た
     | 'ai-criteria-saved' // 基準（プロンプト）をシートへ保存した
     | 'ai-batch-finished' // 一括実行が（中断せずに）終わった
@@ -18,7 +18,7 @@ export type AiFirstRunEvent =
 /** このツアー固有の条件名。計算は sidepanel/features/guide/conditions/ai-first-run.ts。 */
 export type AiFirstRunCondition =
     | 'ai-tab-open' // AI タブを開いている
-    | 'ai-key-ready' // 選んでいるモデルのプロバイダのキーが設定済み
+    | 'ai-key-ready' // 選んでいるモデルの接続先が設定済み
     | 'ai-has-prompt' // 最適化されたプロンプトの欄が出ている
     | 'ai-no-prompt'
     | 'ai-has-threshold' // 閾値の確定欄が出ている（実行の結果がある）

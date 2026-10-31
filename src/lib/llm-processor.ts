@@ -378,7 +378,7 @@ async function processWithRetry(
             // どちらもプロバイダ内部で再試行しないため、ここで見ないと認証エラーや打ち切り・拒否の応答を
             // 同じ条件で送り直すことになる（Anthropic の打ち切りは出力上限まで生成した分が毎回課金される）。
             const nonRetryable = errorCode === 'max_tokens_truncated'
-                || ((providerId === 'typesafe' || providerId === 'anthropic'
+                || ((providerId === 'typesafe' || providerId === 'anthropic' || providerId === 'local_llm'
                     || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
                     && (error as { retryable?: boolean } | null)?.retryable === false);
             if (nonRetryable) {

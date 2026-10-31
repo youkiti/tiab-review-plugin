@@ -1,10 +1,27 @@
 // storage.ts - ローカルストレージ管理（APIキー等）
 
 import { platform } from '../platform';
+import { normalizeLocalLlmEndpoint } from './local-llm-model';
 import type { OpenRouterModel, OpenRouterModelsCache } from './openrouter-models';
 import { parseScreeningPosition, type ScreeningPosition } from './screening-position';
 
 const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
+export async function saveLocalLlmEndpoint(endpoint: string): Promise<void> {
+    await chrome.storage.local.set({ local_llm_endpoint: normalizeLocalLlmEndpoint(endpoint) });
+}
+export async function getLocalLlmEndpoint(): Promise<string | null> {
+    const result = await chrome.storage.local.get('local_llm_endpoint');
+    return typeof result.local_llm_endpoint === 'string' ? result.local_llm_endpoint : null;
+}
+
+export async function saveLocalLlmModels(models: string[]): Promise<void> {
+    await chrome.storage.local.set({ local_llm_models: models });
+}
+export async function getLocalLlmModels(): Promise<string[]> {
+    const result = await chrome.storage.local.get('local_llm_models');
+    return Array.isArray(result.local_llm_models)
+        ? result.local_llm_models.filter((id: unknown): id is string => typeof id === 'string') : [];
+}
 const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
 const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
 

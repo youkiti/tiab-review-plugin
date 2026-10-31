@@ -73,6 +73,7 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - `host_permissions`: `https://sheets.googleapis.com/*`（他にDrive・LLM各プロバイダ・OA取得ウォーターフォール各API・ClinicalTrials.gov API v2・eutilsなど。全量は `src/manifest.json` を参照。レジストリ連携フェーズ1チャンク2で `https://clinicaltrials.gov/*` と `https://eutils.ncbi.nlm.nih.gov/*` を追加した）
 - OAuth: manifest に `oauth2` ブロックは持たない。クライアントIDはビルド時に `WEBAUTH_CLIENT_ID`（`.env`）を webpack DefinePlugin 経由でコード側に埋め込む。クライアント種別は**ウェブアプリケーション型**でなければならない（Chrome 拡張機能型は `launchWebAuthFlow` で `redirect_uri_mismatch` になる。「OAuth フロー: なぜ implicit なのか」参照）
 - `side_panel`: サイドパネル利用時に定義
+- `optional_host_permissions`: 既存の `https://*/*` に加え、ローカル LLM 用の `http://localhost/*`・`http://127.0.0.1/*`・`http://[::1]/*`。URL 検証後、「保存して接続テスト」のクリックから接続先ホストだけを要求する。`host_permissions` には追加しない。
 - `commands`: ショートカット定義（単一キーはUI内で処理）
 
 ## 非機能要件

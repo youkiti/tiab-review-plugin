@@ -3,7 +3,7 @@
 // globalThis.fetch を丸ごと差し替え、Google Sheets API / Drive API / Gemini API /
 // OAuth userinfo への呼び出しをすべてインメモリで処理する。
 // chrome-extension:// 宛て（PDF.js のワーカー/CMap取得・同梱PDFフィクスチャ取得等）と
-// 相対URLは実際の fetch へそのまま素通しし、それ以外の未対応な外部ホスト・エンドポイントは
+// 相対URLとループバックホストは実際の fetch へそのまま素通しし、それ以外の未対応な外部ホスト・エンドポイントは
 // 404 を返して console.warn するだけに留め、実ネットワークには一切出ない。
 //
 // Issue #151（#150 工程0）チャンク2: 通信待ち・CPU処理・描画・保存の時間を切り分けて
@@ -711,6 +711,9 @@ export function installDemoFetchMock(): void {
 
         try {
             const url = new URL(rawUrl);
+            if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+                return originalFetch(input, init);
+            }
             const method = (init?.method || 'GET').toUpperCase();
             const body = readJsonBody(init);
 

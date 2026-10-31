@@ -5,6 +5,8 @@
 
 import { dom } from './dom';
 import { providerNames } from './providers';
+import { initializeLocalLlmConnection, wireLocalLlmConnection } from './local-connection';
+import { toLocalModelId } from '../../../lib/local-llm-model';
 import { populateModelSelect, refreshOpenRouterModels, setSelectedModel, wireModelCombobox } from './model-combobox';
 import { dom as sharedDom } from '../../dom';
 import { wireCollapsibleCards } from '../../ui/collapsible';
@@ -43,6 +45,8 @@ import {
     getSessionOpenAiApiKey,
     getSessionAnthropicApiKey,
     getSessionTypeSafeApiKey,
+    getLocalLlmEndpoint,
+    getLocalLlmModels,
 } from '../../../lib/storage';
 import {
     handleOptimizeCriteria,
@@ -110,6 +114,9 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
     if (openAi || (getSessionOpenAiApiKey() ?? '').length > 0) configured.add('openai');
     if (anthropic || (getSessionAnthropicApiKey() ?? '').length > 0) configured.add('anthropic');
     if (typeSafe || (getSessionTypeSafeApiKey() ?? '').length > 0) configured.add('typesafe');
+    if (await getLocalLlmEndpoint()) {
+        configured.add('local_llm');
+    }
     return configured;
 }
 
@@ -144,6 +151,15 @@ export async function refreshModelKeyNote(): Promise<void> {
     dom.llmModelKeyNote.textContent = modelId
         ? t(ready ? 'llm_modelKeyReady' : 'llm_modelKeyMissing', providerNames[provider])
         : t('llm_modelRequired');
+    if (provider === 'local_llm') {
+        const models = await getLocalLlmModels();
+        if (dom.llmModelSelect.value !== modelId) {
+            return;
+        }
+        const listed = models.some(id => toLocalModelId(id) === modelId);
+        dom.llmModelKeyNote.textContent = t(ready && listed ? 'llmExt_localReady' : 'llmExt_localMissing');
+        dom.llmModelKeyNote.className = ready && listed ? 'model-key-note ok' : 'model-key-note warn';
+    }
     refreshCustomModelSectionVisibility(configured.has('openrouter'));
 }
 
@@ -188,6 +204,7 @@ export function setupLlmEventListeners() {
 
     // APIキー関連
     wireProviderFields();
+    wireLocalLlmConnection(refreshModelKeyNote);
     dom.saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
     dom.tierSelect?.addEventListener('change', handleTierChange);
 
@@ -238,6 +255,7 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
     try {
         // APIキーの状態と共通の保存設定を読み込む。
         await loadAllProviderStatus();
+        await initializeLocalLlmConnection();
         if (!isCurrent()) return;
 
         // OpenRouter カスタムモデル一覧を読み込み（モデルセレクト構築前に必要）

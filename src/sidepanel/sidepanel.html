@@ -537,6 +537,18 @@
                     <p class="help-text provider-hint" data-i18n-html="llm_providerHintTypeSafe"></p>
                     <div id="typesafe-api-key-status" class="api-key-status" aria-live="polite"></div>
                 </div>
+                <div id="provider-body-local_llm" class="provider-fields" hidden>
+                    <p class="help-text" data-i18n="llmExt_localHelp"></p>
+                    <p class="help-text" data-i18n="llmExt_localCaution"></p>
+                    <label for="local-llm-endpoint" data-i18n="llmExt_localUrl"></label>
+                    <input id="local-llm-endpoint" type="url" autocomplete="off" class="api-key-input" placeholder="http://localhost:11434/v1/chat/completions">
+                    <div class="api-key-input-group">
+                        <button id="local-llm-preset-ollama" class="btn btn-small">Ollama</button>
+                        <button id="local-llm-preset-lmstudio" class="btn btn-small">LM Studio</button>
+                        <button id="local-llm-save-test-btn" class="btn btn-primary btn-small" data-i18n="llmExt_localSaveTest"></button>
+                    </div>
+                    <div id="local-llm-status" class="api-key-status" aria-live="polite"></div>
+                </div>
                 <label class="checkbox-label save-key-line">
                     <input type="checkbox" id="save-api-key-checkbox">
                     <span>

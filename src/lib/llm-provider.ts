@@ -5,8 +5,10 @@
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { isOpenRouterJevModel } from './openrouter-model';
+import { isLocalModelId } from './local-llm-model';
 
-export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe';
+export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe' | 'local_llm';
+export type KeyProviderId = Exclude<LlmProviderId, 'local_llm'>;
 
 /**
  * プロバイダ非依存のスクリーニング入力
@@ -47,6 +49,9 @@ export function resolveProviderId(
     modelId: string,
     models: ReadonlyArray<{ id: string; provider?: LlmProviderId }>
 ): LlmProviderId {
+    if (isLocalModelId(modelId)) {
+        return 'local_llm';
+    }
     const found = models.find(m => m.id === modelId);
     if (found?.provider) return found.provider;
     if (modelId.includes('/')) return 'openrouter';
@@ -104,6 +109,10 @@ export async function convertCriteriaWithProvider(
     params: ConvertCriteriaParams,
     options?: ConvertCriteriaOptions
 ): Promise<ConvertCriteriaResult> {
+    if (providerId === 'local_llm') {
+        const { convertCriteriaViaLocalLlm } = await import(/* webpackChunkName: "llm-feature" */ './providers/local-llm');
+        return convertCriteriaViaLocalLlm(params, options);
+    }
     if (providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(params.model))) {
         throw Object.assign(new Error('TypeSafe のモデルは基準の最適化に対応していません'), { retryable: false });
     }
@@ -144,6 +153,10 @@ export async function screenWithProvider(
     providerId: LlmProviderId,
     params: LlmScreenParams
 ): Promise<LlmScreenResult> {
+    if (providerId === 'local_llm') {
+        const { screenViaLocalLlm } = await import(/* webpackChunkName: "llm-feature" */ './providers/local-llm');
+        return screenViaLocalLlm(params);
+    }
     if (providerId === 'typesafe' || (providerId === 'openrouter' && isOpenRouterJevModel(params.model))) {
         const { screenViaTypeSafe } = await import(/* webpackChunkName: "llm-feature" */ './providers/typesafe');
         return screenViaTypeSafe(params, undefined, providerId);
