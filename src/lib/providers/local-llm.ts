@@ -162,6 +162,21 @@ function parseOutput<T>(data: ChatResponse): T {
     return JSON.parse(text) as T;
 }
 
+/**
+ * json_object へ下げたサーバはスキーマを保証しない。確率の無い応答を通すと除外判定として保存され、
+ * 解析失敗時に組み入れ側へ倒すフォールバックを迂回するので、ここで例外にする。
+ */
+function validateScreeningOutput(output: LlmScreeningOutput): LlmScreeningOutput {
+    const probability: unknown = output?.include_probability;
+    if (typeof probability !== 'number' || !Number.isFinite(probability) || probability < 0 || probability > 1) {
+        throw new Error('ローカル LLM: include_probability が 0 から 1 の数値ではありません');
+    }
+    if (!Array.isArray(output.reasons) || !Array.isArray(output.evidence)) {
+        throw new Error('ローカル LLM: reasons または evidence が配列ではありません');
+    }
+    return output;
+}
+
 async function savedEndpoint(): Promise<string> {
     const endpoint = await getLocalLlmEndpoint();
     if (!endpoint) {
@@ -197,7 +212,7 @@ export async function screenViaLocalLlm(params: ScreenParams, timeoutMs = 300000
     const promptTokenCount = data.usage?.prompt_tokens ?? 0;
     const candidatesTokenCount = data.usage?.completion_tokens ?? 0;
     return {
-        output: parseOutput<LlmScreeningOutput>(data),
+        output: validateScreeningOutput(parseOutput<LlmScreeningOutput>(data)),
         usageMetadata: {
             promptTokenCount,
             candidatesTokenCount,

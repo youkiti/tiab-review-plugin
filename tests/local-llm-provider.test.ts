@@ -270,6 +270,26 @@ test('基準最適化は再試行不可の応答を送り直さない', async ()
     });
 });
 
+test('形式に合わない判定結果を成功として返さない', async () => {
+    const invalid = [
+        { reasons: [], evidence: [] },
+        { include_probability: '0.8', reasons: [], evidence: [] },
+        { include_probability: 1.2, reasons: [], evidence: [] },
+        { include_probability: -0.1, reasons: [], evidence: [] },
+        { include_probability: 0.8, evidence: [] },
+        { include_probability: 0.8, reasons: [] },
+        null,
+    ];
+    for (const body of invalid) {
+        await withFetch(async () => response(JSON.stringify(body)), async () => {
+            await assert.rejects(screenViaLocalLlm(params), /ローカル LLM:/);
+        });
+    }
+    await withFetch(async () => response(JSON.stringify({ include_probability: 0, reasons: [], evidence: [] })), async () => {
+        assert.equal((await screenViaLocalLlm(params)).output.include_probability, 0);
+    });
+});
+
 test('タイムアウトで通信を中止する', async () => {
     await withFetch(async (_url, init) => new Promise((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
