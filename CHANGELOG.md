@@ -7,14 +7,22 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
-## 未リリース
+## v0.56.0（2026-10-31）
 
-### AI 判定に影響する変更
+### AI 判定に影響する変更 / Changes that affect AI screening
 
 - Chrome 拡張の TiAb 一括判定と基準の最適化にローカル LLM（Ollama・LM Studio 等）を追加。ループバック URL だけを許可し、API キーなしで接続します。モデル一覧と JSON 応答を「保存して接続テスト」で確認します。並列1、待機0、5件ごと保存とし、クラウド用 tier に依存しません。ローカルモデルのベンチマーク結果はないため、レビュー内検証で精度を確認してください。
+  Added a local LLM option (Ollama, LM Studio and the like) for TiAb batch screening and criteria optimization in the Chrome extension. Only loopback URLs are allowed, and no API key is needed. "Save and test connection" checks the model list and a JSON response. Requests run one at a time with results saved every 5 references, independent of the cloud tiers. No benchmark results exist for local models, so check accuracy with validation within your review.
+
+### 画面 / Interface
+
+- AI タブの接続設定を「AI の接続」カードに統合し、プロバイダを選ぶと対応するキー入力欄とモデル候補だけを表示するようにしました。
+  The AI tab's settings are now one "AI connection" card: choosing a provider shows only its key field and models.
+
+### 文書 / Documentation
 
 - 解説動画（長編）を、AI タブの新しい接続画面で第6章を撮り直した版に差し替えました。
-- AI タブの接続設定を「AI の接続」カードに統合し、プロバイダを選ぶと対応するキー入力欄とモデル候補だけを表示するようにしました。
+  The walkthrough video now uses a re-recorded chapter 6 showing the new connection card.
 
 ## v0.55.0（2026-10-20）
 
