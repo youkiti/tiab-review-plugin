@@ -29,7 +29,7 @@ export interface GuideTopic {
 }
 
 /** 解説動画（長編）の YouTube ID。上げ直したら docs/index.html・docs/help.html の埋め込みと一緒に直す */
-export const GUIDE_VIDEO_ID = 'SJxUTnLyZI4';
+export const GUIDE_VIDEO_ID = 'bYUAPJ77l_o';
 
 /** 解説動画（長編）の章の開始秒。撮り直したら video/build/chapters.txt に合わせて直す */
 export const GUIDE_VIDEO_CHAPTERS = {
@@ -39,11 +39,11 @@ export const GUIDE_VIDEO_CHAPTERS = {
     shortcuts: 179,
     ml: 214,
     ai: 270,
-    fulltext: 340,
-    sharing: 458,
-    web: 525,
-    settings: 564,
-    outro: 604,
+    fulltext: 353,
+    sharing: 471,
+    web: 538,
+    settings: 577,
+    outro: 617,
 } as const;
 
 function chapterVideo(chapter: keyof typeof GUIDE_VIDEO_CHAPTERS) {
