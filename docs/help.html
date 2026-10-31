@@ -1084,8 +1084,8 @@
                     <span class="en">AI Screening Support</span>
                 </h2>
                 <p>
-                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAI・Anthropic・TypeSafeの5プロバイダに対応しており、全モデルから選んで必要なAPIキーを設定できます。</span>
-                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Choose from all models across Gemini, OpenRouter, OpenAI, Anthropic, and TypeSafe, then configure the required API key.</span>
+                    <span class="ja">LLM（大規模言語モデル）を利用して、文献の自動判定（Include/Exclude/Maybe）を行う機能です。Gemini・OpenRouter・OpenAI・Anthropic・TypeSafeの5プロバイダに対応しています。プロバイダとAPIキーを設定して、そのプロバイダのモデルを選びます。</span>
+                    <span class="en">Automatically screen references (Include/Exclude/Maybe) using an LLM. Configure a provider and API key from Gemini, OpenRouter, OpenAI, Anthropic, or TypeSafe, then choose that provider's model.</span>
                 </p>
 
                 <h3 id="ai-screening-api-keys">
@@ -1093,15 +1093,15 @@
                     <span class="en">API Key Setup</span>
                 </h3>
                 <p>
-                    <span class="ja">「🤖 AI」タブ先頭の「使うモデル」でモデルを選ぶと、キー未設定の場合は「🔑 APIキー」カード内の対応する行が開きます。キーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。5プロバイダの行は1枚のカードにまとまり、状態チップで設定状況を確認できます。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。</span>
-                    <span class="en">Choose a model in the first "Model" card on the "🤖 AI" tab. If its key is missing, the matching row opens in the single "🔑 API keys" card. Paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Status chips show the configuration of all five providers. Keys are stored independently; "Save the key on this device" controls the storage preference for all five.</span>
+                    <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を選ぶと、そのプロバイダの入力欄だけが表示されます。キーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。その下の「使うモデル」では選んだプロバイダのモデルだけを表示し、モデル欄の下に接続状態を案内します。</span>
+                    <span class="en">Choose a "Provider" in "AI connection" on the "🤖 AI" tab to show only that provider's fields. Paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Keys are stored independently; "Save the key on this device" controls the storage preference for all five. The "Model" field below lists only the selected provider's models, with connection status underneath.</span>
                 </p>
                 <figure class="help-img-figure help-img-tall">
                     <img class="help-img" src="images/faq-gemini/01-ai-tab-overview.png"
-                        alt="Overview of the AI tab settings screen, showing provider rows within a single API keys card">
+                        alt="AI connection settings with provider selection, key fields and model selection">
                     <figcaption>
-                        <span class="ja">AIタブの設定画面。モデル選択の下に、1枚のAPIキーカードとプロバイダ行が並ぶ</span>
-                        <span class="en">The AI tab's settings screen, with model selection above provider rows in one API keys card</span>
+                        <span class="ja">「AI の接続」でプロバイダ・APIキー・使うモデルを設定</span>
+                        <span class="en">Configure the provider, API key and model in "AI connection"</span>
                     </figcaption>
                 </figure>
                 <p>
@@ -1114,7 +1114,7 @@
                         から API キーを発行します。<br>
                         4. Anthropic: <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a> から API キーを発行します。<br>
                         5. TypeSafe: <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a> から API キーを発行します。<br>
-                        6. 対応する行にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。</span>
+                        6. 選んだプロバイダの入力欄にAPIキーを貼り付け、「確認して保存」を押します。入力欄からフォーカスを外しても確認されます。</span>
                     <span class="en">1. Gemini: Get an API key from <a href="https://aistudio.google.com/app/apikey"
                             target="_blank">Google AI Studio</a> (see <a
                             href="https://ai.google.dev/gemini-api/docs/api-key" target="_blank">instructions</a>).<br>
@@ -1124,7 +1124,7 @@
                             target="_blank">OpenAI Platform</a>.<br>
                         4. Anthropic: Issue an API key from <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>.<br>
                         5. TypeSafe: Issue an API key from <a href="https://console.typesafe.ai/settings/keys" target="_blank">TypeSafe Console</a>.<br>
-                        6. Paste the key in the matching row and click "Verify and save". Leaving the input also verifies it.</span>
+                        6. Paste the key in the selected provider's field and click "Verify and save". Leaving the input also verifies it.</span>
                 </p>
                 <p>
                     <span class="ja">TypeSafe（Jev）は判定理由の文章を返さないため、判定理由の欄には基準の要素（P/I/C/O など）ごとの合致確率が記録され、根拠のハイライトは付きません。基準の最適化には使えません。OpenRouter のキーでも利用でき、モデル一覧の「TypeSafe Jev 1.14（OpenRouter）— Recall 96.8%（閾値0.3）」を選びます。</span>
@@ -1140,24 +1140,24 @@
                     <span class="en">Setting Up a Gemini API Key (Free vs. Paid Tier)</span>
                 </h3>
                 <p>
-                    <span class="ja">「🤖 AI」タブの「🔑 APIキー」カードの Gemini 行にキーを入力して「確認して保存」を押すと、下図のようにプラン表示（Tier）が現れます（取得方法は上の「APIキーのセットアップ」を参照）。</span>
-                    <span class="en">Enter your key in the Gemini row of the "🔑 API keys" card on the "🤖 AI" tab and click "Verify and save". A plan (Tier) indicator appears, as shown below (see "API Key Setup" above for how to obtain a key).</span>
+                    <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を Gemini にし、キーを入力して「確認して保存」を押すと、プラン表示（Tier）が現れます（取得方法は上の「APIキーのセットアップ」を参照）。</span>
+                    <span class="en">Set "Provider" to Gemini in "AI connection" on the "🤖 AI" tab, enter your key and click "Verify and save". A plan (Tier) indicator appears (see "API Key Setup" above for how to obtain a key).</span>
                 </p>
                 <div class="help-img-row">
                     <figure class="help-img-figure">
                         <img class="help-img" src="images/faq-gemini/02-api-key-card-empty.png"
-                            alt="Expanded Gemini row in the API keys card before a key is entered">
+                            alt="AI connection with Gemini selected before a key is entered">
                         <figcaption>
-                            <span class="ja">APIキーカードの Gemini 行（キー未入力）</span>
-                            <span class="en">Gemini row in the API keys card, before entering a key</span>
+                            <span class="ja">「AI の接続」で Gemini を選択（キー未入力）</span>
+                            <span class="en">Gemini selected in "AI connection", before entering a key</span>
                         </figcaption>
                     </figure>
                     <figure class="help-img-figure">
                         <img class="help-img" src="images/faq-gemini/03-api-key-card-verified.png"
-                            alt="Verified Gemini row in the API keys card, showing the plan indicator">
+                            alt="AI connection with a verified Gemini key and plan indicator">
                         <figcaption>
-                            <span class="ja">Gemini 行のキー確認済み（プラン表示あり）</span>
-                            <span class="en">Gemini row verified (plan indicator shown)</span>
+                            <span class="ja">「AI の接続」で Gemini のキー確認済み（プラン表示あり）</span>
+                            <span class="en">Gemini key verified in "AI connection" (plan indicator shown)</span>
                         </figcaption>
                     </figure>
                 </div>
@@ -1198,15 +1198,15 @@
                     </p>
                 </div>
                 <p>
-                    <span class="ja">モデルは先頭の「使うモデル」カードで選べます（各選択肢にRecall・コストの目安が表示されます）。速度重視なら既定のFlash-Lite系のままで問題ありません。</span>
-                    <span class="en">Choose the model in the first "Model" card (each option shows approximate recall and cost). For speed, the default Flash-Lite model works well.</span>
+                    <span class="ja">モデルは「AI の接続」の「使うモデル」で、選択中のプロバイダの候補から選べます（各選択肢にRecall・コストの目安が表示されます）。プロバイダを切り替えると、このセッションで直近に選んだモデル、初回は先頭の候補になります。候補がなくモデルが空欄の間は実行できません。速度重視なら既定のFlash-Lite系のままで問題ありません。</span>
+                    <span class="en">Choose from the selected provider's models in the "Model" field of "AI connection" (each option shows approximate recall and cost). Switching providers restores the most recent model in this session, or the first candidate on the first visit. Screening cannot start while the model is empty. For speed, the default Flash-Lite model works well.</span>
                 </p>
                 <figure class="help-img-figure">
                     <img class="help-img" src="images/faq-gemini/04-model-select.png"
-                        alt="Model card showing all providers’ models and the required API key note">
+                        alt="Model field showing the selected provider's models and the required API key note">
                     <figcaption>
-                        <span class="ja">先頭の「使うモデル」カード。全モデルと必要なAPIキーの注記を表示</span>
-                        <span class="en">The first "Model" card shows all models and a note about the required API key</span>
+                        <span class="ja">「使うモデル」には選択中のプロバイダの候補と必要なAPIキーの注記を表示</span>
+                        <span class="en">"Model" shows the selected provider's candidates and a note about the required API key</span>
                     </figcaption>
                 </figure>
 
@@ -1219,8 +1219,8 @@
                     <span class="en">When Gemini is selected, a notice near the model field explains that free-tier submissions may be used for product improvement and read by humans. The notice does not determine your tier. Use a paid API key for unpublished or confidential documents and see <a href="#ai-limitations">AI limitations</a>.</span>
                 </p>
                 <p>
-                    <span class="ja">「使うモデル」カードでは、キーの設定状態にかかわらず全プロバイダの標準モデルと登録済みカスタムモデルを選べます。文字を打って候補を絞り込め、OpenRouter のキー設定後は取得した公開一覧から登録・テストなしで直接選べます（一覧にない provider/model 形式のIDは入力後に Enter で確定します。候補に一致しない入力は、欄から離れると直前の確定値に戻ります）。キー未設定のモデルを選ぶと注記が表示され、対応する行が開きます。カスタムモデルは、キー設定済みの OpenRouter 行にある「＋ 一覧にないモデルを追加」からフォームを開き、任意のモデルIDを入力して「テストして保存」を実行します。実 API テスト成功時のみブラウザに保存され、選択肢に追加されます（最大20件）。カスタムモデルはベンチマーク未検証である旨を表示します。</span>
-                    <span class="en">The "Model" card lists all providers’ built-in models and registered custom models, regardless of key configuration. Type to filter candidates; after configuring an OpenRouter key, you can select directly from its fetched public list without registration or testing (or enter an unlisted provider/model ID and press Enter to confirm; leaving the field restores the previous selection unless the input exactly matches a candidate). Selecting a model without a key displays a note and opens the matching row. Once an OpenRouter key is configured, open "+ Add a model not in the list" in the OpenRouter row, enter a model ID, and click "Test and save". Only models that pass a live API test are saved to your browser and added to the list (up to 20). The UI notes that custom models have not been benchmarked.</span>
+                    <span class="ja">「AI の接続」の「使うモデル」では、キーの設定状態にかかわらず選択中のプロバイダの標準モデルと登録済みカスタムモデルを選べます。文字を打って候補を絞り込め、OpenRouter のキー設定後は取得した公開一覧から登録・テストなしで直接選べます（一覧にない provider/model 形式のIDは入力後に Enter で確定します。別プロバイダの既知のモデルIDを確定すると「プロバイダ」も切り替わります。候補に一致しない入力は、欄から離れると直前の確定値に戻ります）。キー未設定なら上の入力欄への案内が表示されます。カスタムモデルは、OpenRouter を選びキーを設定してから「＋ 一覧にないモデルを追加」でフォームを開き、任意のモデルIDを入力して「テストして保存」を実行します。実 API テスト成功時のみブラウザに保存され、選択肢に追加されます（最大20件）。カスタムモデルはベンチマーク未検証である旨を表示します。</span>
+                    <span class="en">The "Model" field in "AI connection" lists the selected provider's built-in and registered custom models, regardless of key configuration. Type to filter candidates; after configuring an OpenRouter key, you can select directly from its fetched public list without registration or testing (or enter an unlisted provider/model ID and press Enter to confirm; confirming a known model from another provider also switches "Provider"; leaving the field restores the previous selection unless the input exactly matches a candidate). If a key is missing, a note points to the input above. To add a custom model, select OpenRouter and configure its key, then open "+ Add a model not in the list", enter a model ID, and click "Test and save". Only models that pass a live API test are saved to your browser and added to the list (up to 20). The UI notes that custom models have not been benchmarked.</span>
                 </p>
 
                 <h3 id="ai-screening-criteria">

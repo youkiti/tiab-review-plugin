@@ -3,6 +3,7 @@
  */
 
 import { dom } from './dom';
+import { providers } from './providers';
 import { refreshOpenRouterModels } from './model-combobox';
 import {
     getGeminiApiKey,
@@ -214,7 +215,6 @@ export function missingApiKeyMessageKey(provider: LlmProviderId): string {
     }[provider];
 }
 
-const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai', 'anthropic', 'typesafe'];
 const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
     gemini: {
         input: () => dom.geminiApiKeyInput,
@@ -298,27 +298,6 @@ const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: fa
 const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null, anthropic: null, typesafe: null };
 const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
 
-export function setProviderRowOpen(provider: LlmProviderId, open: boolean): void {
-    dom.providerRow(provider).classList.toggle('open', open);
-    dom.providerHead(provider).setAttribute('aria-expanded', String(open));
-}
-
-function updateProviderChip(provider: LlmProviderId, configured: boolean, needed = false): void {
-    const chip = dom.providerChip(provider);
-    chip.className = 'provider-chip' + (configured ? ' ok' : needed ? ' need' : '');
-    chip.textContent = t(configured
-        ? sessionOnly[provider] ? 'llm_apiKeySummarySession' : 'llm_apiKeySummarySet'
-        : needed ? 'llm_providerChipNeeded' : 'llm_providerChipUnset');
-}
-
-export function refreshProviderEmphasis(selected: LlmProviderId, configured: Set<LlmProviderId>): void {
-    for (const provider of providers) {
-        dom.providerRow(provider).classList.toggle('emphasized', provider === selected);
-        updateProviderChip(provider, configured.has(provider), provider === selected);
-    }
-    if (!configured.has(selected)) setProviderRowOpen(selected, true);
-}
-
 export async function loadAllProviderStatus(): Promise<void> {
     const preferences = await Promise.all(providers.map(provider => adapters[provider].getSavePreference()));
     dom.saveApiKeyCheckbox.checked = preferences.some(Boolean);
@@ -332,8 +311,6 @@ export async function loadAllProviderStatus(): Promise<void> {
         sessionOnly[provider] = !!sessionKey && sessionKey !== savedKey;
         adapter.status().textContent = key ? t(sessionOnly[provider] ? 'llm_apiKeySessionOnly' : 'llm_apiKeySet') : '';
         adapter.status().className = key ? 'api-key-status success' : 'api-key-status';
-        updateProviderChip(provider, !!key);
-        setProviderRowOpen(provider, false);
     }
     await refreshTierSelector();
 }
@@ -429,12 +406,9 @@ export async function handleSavePreferenceChange(): Promise<void> {
     await notifyApiKeyChanged();
 }
 
-export function wireProviderRows(): void {
+export function wireProviderFields(): void {
     for (const provider of providers) {
         const adapter = adapters[provider];
-        dom.providerHead(provider).addEventListener('click', () => {
-            setProviderRowOpen(provider, !dom.providerRow(provider).classList.contains('open'));
-        });
         dom.verifyApiKeyBtn(provider).addEventListener('click', () => { void verifyProviderKey(provider); });
         adapter.input().addEventListener('change', () => { void verifyProviderKey(provider); });
         adapter.input().addEventListener('keydown', event => {

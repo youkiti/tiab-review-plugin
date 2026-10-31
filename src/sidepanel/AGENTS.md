@@ -78,7 +78,7 @@
        - 折りたたみ時のヘッダー要約にも絞り込み後の数字を反映する（対象外のメンバーは「—」）
 7. **LLMスクリーニング支援**
 
-   - **APIキー設定**: 先頭の「使うモデル」で全プロバイダのモデルを選び、1枚の「🔑 APIキー」カード内の Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe 行で確認・保存する。キーは provider 別に独立保管し、端末保存のチェックボックスは5プロバイダ共通。状態チップで設定状況を示し、選択モデルのキーが未設定なら対応行を開く。
+   - **APIキー設定**: 1枚の「AI の接続」カードで Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe からプロバイダを選び、選択した入力欄だけでキーを確認・保存する。選択肢と表示名は `features/llm/providers.ts` の一覧から生成する。キーは provider 別に独立保管し、端末保存のチェックボックスは5プロバイダ共通。その下の「使うモデル」は選択プロバイダの候補だけを表示し、接続状態の注記を付ける。モデルの復元・明示的な別プロバイダのモデルIDの確定でも接続先を揃える。プロバイダ切替はセッション内の直近モデル、初回は先頭候補を選び、候補なしなら空欄にして実行を止める。
    - **Gemini APIキーの無料/有料判定**（`detectTierByBatchProbe()` / `classifyTierProbeResponse()`, `src/lib/gemini-api.ts`）:
      `batchGenerateContent` に requests が空の batch を送るプローブで判定する（1リクエスト・課金ゼロ、バッチジョブは作られない）。
      `400 FAILED_PRECONDITION` → free（課金チェックが body 検証より先に走る）、
@@ -320,7 +320,7 @@
   - `TourStep.advance` の `{ type: 'events'; events: [...]; optional?: true }`: `optional` の手順は、イベントが起きれば進むのに加えて、カードに「押さずに次へ」（`guide_tourSkip`、属性は `data-guide-action="next"` のまま）も出す。AI の一括実行・共有の追加・担当セットの作成など、慎重に扱う操作を、押させずに説明だけ済ませて先へ進める手順に使う。最後の手順は `{ type: 'next' }` にする
 - タブを開いたイベント（`tab-opened-*`）は、`src/sidepanel/bootstrap.ts` のストア購読が、スクリーニング画面でタブが切り替わるたびに `emitGuideEvent` で1回投げる。初期バンドル側の `lazy.ts` は、全体の「今後表示しない」でなければ、このイベントでも本体チャンクを読む（初期 JS の予算が小さいので、初期側に足す量は数百バイトに収める）。全文の判定ページのイベントは `src/fulltext/guide.ts` の `emitGuideEvent` で投げる
 - UI を変えるときの注意: `data-tour` / `data-help` の付いた要素を消す・id を変えると照合テストが落ちる。落ちたらテストを緩めず、ツアーの定義か属性のほうを直す（テストを緩めると、利用者の画面でツアーが黙って止まる）
-- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`、全文タブ上部の「?」= `fulltext-views`、AI タブのモデルカード見出しの「?」= `ai-model`、ML タブ上部の「?」= `ml`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この5つの「?」には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（各タブの上部の「?」に付いているので、どのタブで終わるツアーでも指す先がある。ランナーは同じ値の要素のうち表示中のものを選ぶ）（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）。一覧は使えるツアー（`draft` を除く）を全部出し、パネルは縦にスクロールできる（`max-height` で画面内に収める）
+- ツアーの一覧は画面上部の専用ボタンではなく、`topics.ts` で `tourList: true` を付けたトピック（プロジェクト選択画面右上の ❓ = `overview`、スクリーニング画面ツールバーの ❓ = `screening-toolbar`、全文タブ上部の「?」= `fulltext-views`、AI タブの「AI の接続」内のモデル見出しの「?」= `ai-model`、ML タブ上部の「?」= `ml`）の吹き出しにある「操作ツアーの一覧」ボタン（`data-guide-action="tour-list"`）から開く。この5つの「?」には `data-tour="tour-list"` も付いており、最後の手順 `finish` が指す対象になる（各タブの上部の「?」に付いているので、どのタブで終わるツアーでも指す先がある。ランナーは同じ値の要素のうち表示中のものを選ぶ）（テストが「`data-tour="tour-list"` は `data-help` も持つ」ことを検査する）。一覧は使えるツアー（`draft` を除く）を全部出し、パネルは縦にスクロールできる（`max-height` で画面内に収める）
 - カードの手順番号「n / m」は、今の条件で `skipIf` により飛ばされない手順だけで数える（`visibleStepPosition`、`tour-progress.ts`。手順を描画するたびに数え直す。保存値の `stepId`・`stepIndex` は全手順の添字のまま）
 - 手順に入ったときのスクロールは `TourStep.scroll` で指定する。`'start'`（文献カードの先頭＝タイトルを見せる。`read`）、`'if-hidden'`（対象が画面内に全部見えているならスクロールしない。`decide` で、直前まで読んでいた抄録を画面に残す）。省略時は対象が高ければ上端、そうでなければ中央へ寄せる
 - ダイアログ（`#modal-backdrop`）の中の要素を対象にしてよい。そのとき枠・覆い・カードはダイアログより前面に出る（`guide-tour-*--over-modal`）。カードは本文が全部読める通常表示を保ち、対象の下→上→画面の上端・下端の順に、対象とフッターのボタンに重ならない場所へ置く（見出しや別の入力欄には重なってよい。対象の半分以上を覆うしかないときだけ小さい表示に落ちる。`guide-ui/placement.ts` の `computeInDialogCardPosition`）

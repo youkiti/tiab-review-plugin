@@ -26,6 +26,12 @@ export default defineScenario({
         await run.shot('tab-suggest');
         await run.click('#guide-tab-suggest [data-guide-action="start"]', 'banner', '帯の「ツアーで進める」');
 
+        // キー: 未設定なので手順が出る。実際に入れて保存する
+        await run.waitStep(T, 'keys');
+        await run.page.locator('#llm-provider-select').selectOption('gemini');
+        await run.page.locator('#gemini-api-key').fill(DEMO_API_KEY);
+        await run.click('#verify-gemini-api-key-btn', 'keys', 'Gemini の「確認して保存」');
+
         await run.waitStep(T, 'model');
         await expectCardClearOfTarget(run, 'model', '#llm-model-select', 'モデルの選択欄');
         await run.click('#llm-model-toggle', 'model', 'モデルの候補リスト');
@@ -41,11 +47,6 @@ export default defineScenario({
         if (!reachable) run.fail('model', '候補リストの一番下の候補の中心を押せること');
         await run.page.locator('#llm-model-select').press('Escape');
         await run.clickNext('model');
-
-        // キー: 未設定なので手順が出る。実際に入れて保存する
-        await run.waitStep(T, 'keys');
-        await run.page.locator('#gemini-api-key').fill(DEMO_API_KEY);
-        await run.click('#verify-gemini-api-key-btn', 'keys', 'Gemini の「確認して保存」');
 
         await run.waitStep(T, 'protocol');
         await run.page.locator('#protocol-text-input').fill('Population: adults with depression\nIntervention: exercise\nInclude: randomized trials\nExclude: animal studies');

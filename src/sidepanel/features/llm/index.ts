@@ -4,6 +4,7 @@
  */
 
 import { dom } from './dom';
+import { providerNames } from './providers';
 import { populateModelSelect, refreshOpenRouterModels, setSelectedModel, wireModelCombobox } from './model-combobox';
 import { dom as sharedDom } from '../../dom';
 import { wireCollapsibleCards } from '../../ui/collapsible';
@@ -17,8 +18,7 @@ import {
     loadAllProviderStatus,
     handleSavePreferenceChange,
     handleTierChange,
-    refreshProviderEmphasis,
-    wireProviderRows,
+    wireProviderFields,
     setOnApiKeyChanged,
 } from './api-key';
 import {
@@ -114,14 +114,16 @@ async function getConfiguredProviders(): Promise<Set<LlmProviderId>> {
 }
 
 /**
- * 選択中モデルに必要なキーの案内とプロバイダ行を更新
+ * 選択中モデルに必要なキーと接続状態の案内を更新
  */
 export async function refreshModelKeyNote(): Promise<void> {
     const modelId = dom.llmModelSelect.value;
-    if (!modelId) return;
+    const selectedProvider = dom.providerSelect.value as LlmProviderId;
     const configured = await getConfiguredProviders();
-    if (dom.llmModelSelect.value !== modelId) return;
-    const provider = resolveProviderId(modelId, AVAILABLE_MODELS);
+    if (dom.llmModelSelect.value !== modelId || dom.providerSelect.value !== selectedProvider) {
+        return;
+    }
+    const provider = modelId ? resolveProviderId(modelId, AVAILABLE_MODELS) : selectedProvider;
     let dataNotice = document.getElementById('llm-gemini-data-notice');
     if (!dataNotice) {
         dataNotice = document.createElement('p');
@@ -137,13 +139,11 @@ export async function refreshModelKeyNote(): Promise<void> {
     helpLink.rel = 'noopener noreferrer';
     helpLink.textContent = t('common_help');
     dataNotice.append(' ', helpLink);
-    const names: Record<LlmProviderId, string> = {
-        gemini: 'Gemini', openrouter: 'OpenRouter', openai: 'OpenAI', anthropic: 'Anthropic', typesafe: 'TypeSafe',
-    };
-    const ready = configured.has(provider);
+    const ready = !!modelId && configured.has(provider);
     dom.llmModelKeyNote.className = ready ? 'model-key-note ok' : 'model-key-note warn';
-    dom.llmModelKeyNote.textContent = t(ready ? 'llm_modelKeyReady' : 'llm_modelKeyMissing', names[provider]);
-    refreshProviderEmphasis(provider, configured);
+    dom.llmModelKeyNote.textContent = modelId
+        ? t(ready ? 'llm_modelKeyReady' : 'llm_modelKeyMissing', providerNames[provider])
+        : t('llm_modelRequired');
     refreshCustomModelSectionVisibility(configured.has('openrouter'));
 }
 
@@ -187,7 +187,7 @@ export function setupLlmEventListeners() {
     });
 
     // APIキー関連
-    wireProviderRows();
+    wireProviderFields();
     dom.saveApiKeyCheckbox?.addEventListener('change', handleSavePreferenceChange);
     dom.tierSelect?.addEventListener('change', handleTierChange);
 
@@ -197,7 +197,7 @@ export function setupLlmEventListeners() {
 
     wireModelCombobox();
 
-    // モデル選択: 選択 provider に応じて該当プロバイダ行と注記を更新
+    // モデル選択に応じて接続状態の注記を更新
     dom.llmModelSelect?.addEventListener('change', handleModelSelectChange);
     // モデル・プロンプトを変えると別 Run になり対象件数も変わるので再計算する
     dom.llmModelSelect?.addEventListener('change', () => { void updateBatchTargetCount(); });
@@ -244,7 +244,7 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
         await loadCustomModelsList();
         if (!isCurrent()) return;
 
-        // モデル選択オプションを動的に生成（全プロバイダ + 登録カスタムモデル）
+        // モデル選択オプションを動的に生成（選択プロバイダ + 登録カスタムモデル）
         await populateModelSelect(isCurrent);
         if (!isCurrent()) return;
 

@@ -1,10 +1,25 @@
 import { findModelConfig, type ModelOption } from './gemini-api';
 import type { OpenRouterModel } from './openrouter-models';
+import type { LlmProviderId } from './llm-provider';
 
 export interface ModelGroup {
     label: string;
     labelKey?: string;
     models: ModelOption[];
+}
+
+/** 選択プロバイダのモデルだけを残し、取得・登録グループの区分を保つ。 */
+export function filterModelGroupsByProvider(groups: readonly ModelGroup[], provider: LlmProviderId): ModelGroup[] {
+    return groups.map(group => ({
+        ...group,
+        models: group.models.filter(model => model.provider === provider),
+    })).filter(group => group.models.length > 0);
+}
+
+/** セッション内の直近の選択が候補に残っていれば優先し、なければ先頭候補、候補なしなら空欄にする。 */
+export function pickProviderModel(groups: readonly ModelGroup[], previous?: string): string {
+    const ids = groups.flatMap(group => group.models.map(model => model.id));
+    return previous && ids.includes(previous) ? previous : ids[0] ?? '';
 }
 
 /** 一覧外のモデルIDは、Enter で明示的に確定したときだけ受け付ける。 */

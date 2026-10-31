@@ -3,9 +3,9 @@ import { getElement } from '../../dom';
 import type { LlmProviderId } from '../../../lib/llm-provider';
 
 export const dom = {
-    get providerRow() { return (provider: LlmProviderId) => getElement<HTMLElement>(`provider-row-${provider}`); },
-    get providerChip() { return (provider: LlmProviderId) => getElement<HTMLElement>(`provider-chip-${provider}`); },
-    get providerHead() { return (provider: LlmProviderId) => dom.providerRow(provider).querySelector<HTMLButtonElement>('.provider-row-head')!; },
+    get providerSelect() { return getElement<HTMLSelectElement>('llm-provider-select'); },
+    get providerCaption() { return getElement<HTMLElement>('llm-provider-caption'); },
+    get providerBody() { return (provider: LlmProviderId) => getElement<HTMLElement>(`provider-body-${provider}`); },
     get verifyApiKeyBtn() { return (provider: LlmProviderId) => getElement<HTMLButtonElement>(`verify-${provider}-api-key-btn`); },
     get llmModelKeyNote() { return getElement<HTMLElement>('llm-model-key-note'); },
     get openRouterCustomModelSection() { return getElement<HTMLElement>('openrouter-custom-model-section'); },

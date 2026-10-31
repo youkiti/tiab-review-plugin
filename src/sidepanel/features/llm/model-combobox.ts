@@ -1,6 +1,8 @@
 import { dom } from './dom';
 import { AVAILABLE_MODELS, DEFAULT_MODEL_CONFIG, getAllAvailableModels, type ModelOption } from '../../../lib/gemini-api';
-import { buildModelGroups, filterModelGroups, resolveModelEntry, type ModelGroup } from '../../../lib/llm-model-options';
+import { buildModelGroups, filterModelGroups, filterModelGroupsByProvider, pickProviderModel, resolveModelEntry, type ModelGroup } from '../../../lib/llm-model-options';
+import { resolveProviderId, type LlmProviderId } from '../../../lib/llm-provider';
+import { providers, providerNames, providerCaptionKeys } from './providers';
 import { fetchOpenRouterModels } from '../../../lib/openrouter-models';
 import { getOpenRouterModels, saveOpenRouterModels, hasOpenRouterApiKey, getSessionOpenRouterApiKey } from '../../../lib/storage';
 import { isImeComposing } from '../../../lib/ime-composition';
@@ -9,6 +11,9 @@ import { showToast } from '../../ui/feedback';
 import { updateBatchTargetCount } from './batch/target-count';
 
 let groups: ModelGroup[] = [];
+let allGroups: ModelGroup[] = [];
+const recentModels = new Map<LlmProviderId, string>();
+let providerChange = false;
 let committedValue = DEFAULT_MODEL_CONFIG.model;
 let explicitChange = false;
 let query = '';
@@ -105,11 +110,32 @@ function open(search = ''): void {
 export function setSelectedModel(value: string): void {
     committedValue = value;
     dom.llmModelSelect.value = value;
+    if (value) {
+        const provider = resolveProviderId(value, AVAILABLE_MODELS);
+        dom.providerSelect.value = provider;
+        recentModels.set(provider, value);
+    }
+    refreshProviderSelection();
     close();
+}
+
+function refreshProviderSelection(): void {
+    const selected = dom.providerSelect.value as LlmProviderId;
+    groups = filterModelGroupsByProvider(allGroups, selected);
+    for (const provider of providers) {
+        dom.providerBody(provider).hidden = provider !== selected;
+    }
+    dom.providerCaption.textContent = t(providerCaptionKeys[selected]);
+    render();
 }
 
 function validate(explicit: boolean): boolean {
     const value = dom.llmModelSelect.value.trim();
+    // プロバイダ切替の値は切替先の候補から選んだもの。切替前の一覧では検証しない
+    if (providerChange) {
+        setSelectedModel(value);
+        return true;
+    }
     const result = resolveModelEntry(value, groups.flatMap(group => group.models.map(model => model.id)), explicit);
     if ('revert' in result) {
         dom.llmModelSelect.value = committedValue;
@@ -120,23 +146,35 @@ function validate(explicit: boolean): boolean {
         return false;
     }
     const changed = result.accept !== committedValue;
-    committedValue = result.accept;
-    dom.llmModelSelect.value = result.accept;
-    close();
-    return changed;
+    setSelectedModel(result.accept);
+    return changed || providerChange;
 }
 
-function commit(value: string, explicit = true): void {
+function commit(value: string, explicit = true, fromProvider = false): void {
     dom.llmModelSelect.value = value;
     explicitChange = explicit;
+    providerChange = fromProvider;
     try {
         dom.llmModelSelect.dispatchEvent(new Event('change', { bubbles: true }));
     } finally {
         explicitChange = false;
+        providerChange = false;
     }
 }
 
 export function wireModelCombobox(): void {
+    dom.providerSelect.replaceChildren(...providers.map(provider => {
+        const option = document.createElement('option');
+        option.value = provider;
+        option.textContent = providerNames[provider];
+        return option;
+    }));
+    setSelectedModel(committedValue);
+    dom.providerSelect.addEventListener('change', () => {
+        const provider = dom.providerSelect.value as LlmProviderId;
+        const candidates = filterModelGroupsByProvider(allGroups, provider);
+        commit(pickProviderModel(candidates, recentModels.get(provider)), true, true);
+    });
     const input = dom.llmModelSelect;
     const button = document.getElementById('llm-model-toggle') as HTMLButtonElement;
     const container = input.closest('.model-combobox')!;
@@ -201,8 +239,8 @@ export async function populateModelSelect(isCurrent: () => boolean = () => true)
     if (!isCurrent() || generation !== population) {
         return;
     }
-    groups = buildModelGroups(AVAILABLE_MODELS, models.filter(model => model.custom), cache?.models ?? []);
-    render();
+    allGroups = buildModelGroups(AVAILABLE_MODELS, models.filter(model => model.custom), cache?.models ?? []);
+    refreshProviderSelection();
     await updateBatchTargetCount(() => isCurrent() && generation === population);
 }
 

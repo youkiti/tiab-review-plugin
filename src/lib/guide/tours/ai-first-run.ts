@@ -45,17 +45,17 @@ export const AI_FIRST_RUN_TOUR: TourFor<AiFirstRunEvent, AiFirstRunCondition> = 
             skipIf: 'ai-tab-open',
         },
         {
-            id: 'model',
-            target: 'ai-model',
-            textKey: stepKey(BASE, 'model'),
-            advance: { type: 'next' },
-        },
-        {
             id: 'keys',
             target: 'ai-keys',
             textKey: stepKey(BASE, 'keys'),
             advance: { type: 'events', events: ['ai-key-saved'], optional: true },
             skipIf: 'ai-key-ready',
+        },
+        {
+            id: 'model',
+            target: 'ai-model',
+            textKey: stepKey(BASE, 'model'),
+            advance: { type: 'next' },
         },
         {
             id: 'protocol',

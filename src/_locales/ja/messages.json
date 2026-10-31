@@ -2080,10 +2080,10 @@
     "message": "ここを押して AI タブを開いてください。"
   },
   "guideExt_tour_ai_first_run_model": {
-    "message": "AI 判定に使うモデルを選びます。文字を打って絞り込め、キー設定後は OpenRouter の取得した一覧からも直接選べます。一覧にないIDは Enter で確定します。候補に一致しない入力は、欄から離れると元に戻ります。迷ったら初期のままで構いません。モデルによって、料金と判定の速さ・精度が変わります。Gemini では無料枠のデータ利用の注記を確認し、未公開原稿や機密文書には有料の API キーを使ってください。"
+    "message": "選んだプロバイダのモデルから AI 判定に使うものを選びます。文字を打って絞り込め、OpenRouter の取得した一覧からも選べます。一覧にない既知のIDは Enter で確定でき、別プロバイダのモデルなら接続先も切り替わります。候補に一致しない入力は、欄から離れると元に戻ります。モデルによって料金と判定の速さ・精度が変わります。Gemini では無料枠のデータ利用の注記を確認し、未公開原稿や機密文書には有料の API キーを使ってください。"
   },
   "guideExt_tour_ai_first_run_keys": {
-    "message": "選んだモデルの会社の欄に API キーを入れて「確認して保存」を押してください。キーはモデルの提供元で発行します。Gemini の無料キーは、処理の速さが制限されます。キーが済んでいれば「押さずに次へ」で進めます。"
+    "message": "「AI の接続」でプロバイダを選び、表示された入力欄に API キーを入れて「確認して保存」を押してください。キーはプロバイダで発行します。「この端末にキーを保存する」で保存方法を選び、その下でモデルを選びます。Gemini の無料キーは処理の速さが制限されます。試すだけなら「押さずに次へ」で進めます。"
   },
   "guideExt_tour_ai_first_run_protocol": {
     "message": "プロトコルの組み入れ基準・除外基準をここへ貼り付けます。人が使うレビュー基準があるときは、「抄録レビューの基準をコピー」で入れられます。"
@@ -2381,12 +2381,6 @@
   },
   "llm_apiKeyVerifying": {
     "message": "検証中..."
-  },
-  "llm_apiKeySummarySet": {
-    "message": "✓ 設定済み"
-  },
-  "llm_apiKeySummarySession": {
-    "message": "✓ セッション"
   },
   "llm_apiKeySessionChanged": {
     "message": "✓ セッション限りの設定に変更しました"
@@ -3464,7 +3458,7 @@
     "message": "ヘルプ"
   },
   "llm_tip_model": {
-    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件。\n\n■ Anthropic (Anthropic キー必要)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: このツールのベンチマークは未実施です。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.14.0: 確率を直接返す System One モデル。判定理由の文章は返りません（閾値0.3で depression Recall 96.8%、CQ1〜5 合算 97.3%）。\n\n選択したモデルに必要なキーを、下の「APIキー」カードの対応する行で設定します。最新のベンチマーク結果はモデル横のリンクを参照してください。"
+    "message": "判定に使うLLMモデルを選びます (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe)。\n■ Gemini (Google AI Studio キー必要)\n• Gemini 3.1 Flash-Lite: 推奨。低コスト・高速 (depression Recall 93.6%, 約 $$0.30/1K件)。\n• Gemini 3 Flash Preview: 精度重視 (depression Recall 96.1%, 約 $$1.70/1K件)。\n\n■ OpenRouter (OpenRouter キー必要)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / 約 $$0.135/1K件。\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / 約 $$0.756/1K件。\n\n■ Anthropic (Anthropic キー必要)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: このツールのベンチマークは未実施です。\n\n■ TypeSafe (TypeSafe キー必要)\n• TypeSafe Jev 1.14.0: 確率を直接返す System One モデル。判定理由の文章は返りません（閾値0.3で depression Recall 96.8%、CQ1〜5 合算 97.3%）。\n\n「AI の接続」でプロバイダとキーを設定し、その下でモデルを選びます。最新のベンチマーク結果はモデル横のリンクを参照してください。"
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 ベンチマークで比べる"
@@ -4345,11 +4339,17 @@
   "dupReview_manualRepairError": {
     "message": "修復に失敗しました: $1"
   },
-  "llm_modelCardTitle": {
+  "llm_modelLabel": {
     "message": "使うモデル"
   },
-  "llm_apiKeysCardTitle": {
-    "message": "🔑 APIキー"
+  "llm_connectionTitle": {
+    "message": "AI の接続"
+  },
+  "llm_providerLabel": {
+    "message": "プロバイダ"
+  },
+  "llm_modelRequired": {
+    "message": "モデルを選んでください。候補がない場合はモデル一覧を取得するか、モデルを追加してください。"
   },
   "llm_providerCaptionGemini": {
     "message": "Google AI Studio"
@@ -4365,12 +4365,6 @@
   },
   "llm_providerCaptionTypeSafe": {
     "message": "確率を直接返す System One モデル"
-  },
-  "llm_providerChipUnset": {
-    "message": "未設定"
-  },
-  "llm_providerChipNeeded": {
-    "message": "このモデルに必要"
   },
   "llm_apiKeyVerifyBtn": {
     "message": "確認して保存"
@@ -4409,7 +4403,7 @@
     "message": "暗号化して保存します。共有PCでは外してください。外すとこのセッションの間だけ保持します。"
   },
   "llm_modelKeyMissing": {
-    "message": "このモデルには $1 のAPIキーが必要です。下の $1 行に貼り付けてください。"
+    "message": "このモデルには $1 のAPIキーが必要です。上の入力欄に貼り付けてください。"
   },
   "llm_modelKeyReady": {
     "message": "✓ $1 のキーが設定済みです。このモデルで実行できます。"
