@@ -4,10 +4,10 @@ slug: ai-screening
 ---
 
 ## cue 01
-The "AI" tab offers automated screening with large language models. It supports four provider families: Gemini, OpenRouter, OpenAI, and TypeSafe.
+The "AI" tab offers automated screening with large language models. It supports five providers (Gemini, OpenRouter, OpenAI, Anthropic, and TypeSafe) plus a local LLM running on your own computer.
 
 ## cue 02
-To use it, enter your key in the row for your provider in the "API key" card on the AI tab, then click "Verify and save". A key for any one provider is enough.
+To use it, choose your provider in the "AI connection" card on the AI tab, enter your key, click "Verify and save", and pick a model below. A key for any one provider is enough. For a local LLM, you save a URL instead of a key.
 
 ## cue 03
 The "Review Criteria" card lets you edit the instructions given to the AI. Start from the default prompt and adapt it to your review's inclusion and exclusion criteria.
