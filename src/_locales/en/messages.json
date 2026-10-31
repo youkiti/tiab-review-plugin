@@ -2080,10 +2080,10 @@
     "message": "Press here to open the AI tab."
   },
   "guideExt_tour_ai_first_run_model": {
-    "message": "Pick the model used for AI screening. Type to filter; after setting a key, you can also pick directly from the fetched OpenRouter list. Press Enter to confirm an unlisted ID. Leaving the field restores the previous selection unless the input exactly matches a candidate. If unsure, the default is fine. Cost, speed and accuracy differ by model. For Gemini, read the free-tier data-use notice and use a paid API key for unpublished or confidential documents."
+    "message": "Pick an AI screening model from the selected provider. Type to filter; you can also pick from the fetched OpenRouter list. Press Enter to confirm an unlisted known ID; a model from another provider also switches the connection. Leaving the field restores the previous selection unless the input exactly matches a candidate. Cost, speed and accuracy differ by model. For Gemini, read the free-tier data-use notice and use a paid API key for unpublished or confidential documents."
   },
   "guideExt_tour_ai_first_run_keys": {
-    "message": "Enter an API key in the row for your model's provider and press \"Verify and save\". You get the key from the provider. Free Gemini keys limit the processing speed. If a key is already set, use \"Skip this step\" to move on."
+    "message": "Choose a provider in \"AI connection\", enter its API key in the visible field and press \"Verify and save\". Get the key from the provider. Choose the storage preference with \"Save the key on this device\", then pick a model below. Free Gemini keys limit processing speed. Use \"Skip this step\" if you are only exploring."
   },
   "guideExt_tour_ai_first_run_protocol": {
     "message": "Paste the protocol's inclusion and exclusion criteria here. If you already have review criteria for human reviewers, \"Copy TiAb review criteria\" fills this in."
@@ -2381,12 +2381,6 @@
   },
   "llm_apiKeyVerifying": {
     "message": "Verifying..."
-  },
-  "llm_apiKeySummarySet": {
-    "message": "✓ Configured"
-  },
-  "llm_apiKeySummarySession": {
-    "message": "✓ Session"
   },
   "llm_apiKeySessionChanged": {
     "message": "✓ Changed to session-only setting"
@@ -3464,7 +3458,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.14.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.8%, CQ1–5 pooled 97.3%).\n\nConfigure the selected model’s key in the matching row of the API keys card below. See the latest benchmark via the link beside the model."
+    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.14.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.8%, CQ1–5 pooled 97.3%).\n\nConfigure the provider and key in \"AI connection\", then pick a model below. See the latest benchmark via the link beside the model."
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 Compare on the benchmark"
@@ -4345,11 +4339,17 @@
   "dupReview_manualRepairError": {
     "message": "Failed to repair: $1"
   },
-  "llm_modelCardTitle": {
+  "llm_modelLabel": {
     "message": "Model"
   },
-  "llm_apiKeysCardTitle": {
-    "message": "🔑 API keys"
+  "llm_connectionTitle": {
+    "message": "AI connection"
+  },
+  "llm_providerLabel": {
+    "message": "Provider"
+  },
+  "llm_modelRequired": {
+    "message": "Choose a model. If there are no candidates, fetch the model list or add a model."
   },
   "llm_providerCaptionGemini": {
     "message": "Google AI Studio"
@@ -4365,12 +4365,6 @@
   },
   "llm_providerCaptionTypeSafe": {
     "message": "System One model that returns probabilities"
-  },
-  "llm_providerChipUnset": {
-    "message": "Not set"
-  },
-  "llm_providerChipNeeded": {
-    "message": "Needed for this model"
   },
   "llm_apiKeyVerifyBtn": {
     "message": "Verify and save"
@@ -4409,7 +4403,7 @@
     "message": "Stored encrypted on this device. Untick on a shared PC; the key is then kept only for this session."
   },
   "llm_modelKeyMissing": {
-    "message": "This model needs a $1 API key. Paste it in the $1 row below."
+    "message": "This model needs a $1 API key. Paste it in the input above."
   },
   "llm_modelKeyReady": {
     "message": "✓ $1 key is set. You can run with this model."

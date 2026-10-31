@@ -15,9 +15,8 @@ function isShown(id: string): boolean {
 }
 
 export function computeAiFirstRunConditions(): Record<AiFirstRunCondition, boolean> {
-    // 選んでいるモデルのプロバイダ行（`.emphasized`）のチップが「設定済み」（`.ok`）になっているか。
-    // チップは AI タブを開くたび、キーの保存・削除のたびに更新される（features/llm/api-key.ts）
-    const keyReady = document.querySelector('#llm-providers-card .provider-row.emphasized .provider-chip.ok') !== null;
+    // 選択中モデルに必要なキーが設定済みかを接続状態の注記から読む。
+    const keyReady = document.querySelector('#llm-model-key-note.ok') !== null;
     const hasPrompt = isShown('screening-prompt-input');
     const hasThreshold = isShown('threshold-section');
     return {

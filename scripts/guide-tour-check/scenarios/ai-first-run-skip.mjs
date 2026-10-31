@@ -22,11 +22,11 @@ export default defineScenario({
         await run.waitStep(T, 'open-tab');
         await run.click('#tab-llm', 'open-tab', 'AI タブのボタン');
 
-        await run.waitStep(T, 'model');
-        await run.clickNext('model');
-
         await run.waitStep(T, 'keys'); // キー未設定なので出る
         await run.clickNext('keys');
+
+        await run.waitStep(T, 'model');
+        await run.clickNext('model');
 
         await run.waitStep(T, 'protocol');
         await run.clickNext('protocol');

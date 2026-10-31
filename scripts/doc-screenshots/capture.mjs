@@ -129,12 +129,11 @@ async function main() {
         await apiKeyCard.waitFor({ state: 'visible', timeout: 10000 });
         await sleep(500);
 
-        // 01: AIタブの全景（どこにAPIキーカードがあるか）
+        // 01: AIタブの全景（接続設定の位置）
         await shot('01-ai-tab-overview', page);
 
-        // 02: APIキーカード（未入力）
-        const geminiHead = page.locator('#provider-row-gemini .provider-row-head');
-        if (await geminiHead.getAttribute('aria-expanded') === 'false') await geminiHead.click();
+        // 02: 接続カード（未入力）
+        await page.locator('#llm-provider-select').selectOption('gemini');
         await apiKeyCard.scrollIntoViewIfNeeded();
         await shot('02-api-key-card-empty', apiKeyCard);
 
@@ -146,7 +145,7 @@ async function main() {
         await shot('03-api-key-card-verified', apiKeyCard);
 
         // 04: 使うモデル
-        const modelCard = page.locator('#llm-model-card');
+        const modelCard = page.locator('[data-tour="ai-model"]');
         await modelCard.scrollIntoViewIfNeeded();
         await shot('04-model-select', modelCard);
 

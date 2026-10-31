@@ -7,6 +7,10 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース
+
+- AI タブの接続設定を「AI の接続」カードに統合し、プロバイダを選ぶと対応するキー入力欄とモデル候補だけを表示するようにしました。
+
 ## v0.55.0（2026-10-20）
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
