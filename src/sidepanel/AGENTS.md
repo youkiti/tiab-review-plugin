@@ -1,5 +1,14 @@
 # src/sidepanel/ の仕様
 
+## ローカル LLM の接続
+
+- Chrome 拡張の AI タブの TiAb 一括判定と基準の最適化で利用する。Web 版・フルテキスト AI 判定には追加しない。
+- `local:` 付きモデル ID を保存し、プロバイダ解決では `/` より先に判定する。接頭辞を外すのはサーバーへの送信時だけ。
+- キー専用の処理は `keyProviders` と `KeyProviderId` に限定する。ローカルは URL とモデル一覧だけを端末に保存し、API キー・Authorization ヘッダーは使わない。
+- 「保存して接続テスト」は同期的な URL 検証の直後にホスト権限を要求し、URL 保存、モデル一覧取得、チャット検証の順に進む。失敗しても URL を保持する。
+- URL は localhost・127.0.0.1・[::1] のみ。Ollama は `OLLAMA_ORIGINS=chrome-extension://*` が必要。逐次処理・待機0・5件ごと保存で、Gemini の tier に依存しない。
+- 拡張専用文言は `llmExt_` を使う。ローカルモデルのベンチマーク結果はないため、レビュー内検証での精度確認を案内する。
+
 このファイルは ../../AGENTS.md（リポジトリ根）から Issue #195 で切り出した詳細仕様です。
 リポジトリ全体の規約・基本ルールは [根の AGENTS.md](../../AGENTS.md) を参照してください。
 
@@ -78,7 +87,7 @@
        - 折りたたみ時のヘッダー要約にも絞り込み後の数字を反映する（対象外のメンバーは「—」）
 7. **LLMスクリーニング支援**
 
-   - **APIキー設定**: 1枚の「AI の接続」カードで Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe からプロバイダを選び、選択した入力欄だけでキーを確認・保存する。選択肢と表示名は `features/llm/providers.ts` の一覧から生成する。キーは provider 別に独立保管し、端末保存のチェックボックスは5プロバイダ共通。その下の「使うモデル」は選択プロバイダの候補だけを表示し、接続状態の注記を付ける。モデルの復元・明示的な別プロバイダのモデルIDの確定でも接続先を揃える。プロバイダ切替はセッション内の直近モデル、初回は先頭候補を選び、候補なしなら空欄にして実行を止める。
+   - **接続設定**: 1枚の「AI の接続」カードで Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe / ローカル LLM からプロバイダを選ぶ。クラウドは選択した入力欄だけでキーを確認・保存する。ローカル LLM は URL を「保存して接続テスト」で保存・検証する。選択肢と表示名は `features/llm/providers.ts` の一覧から生成する。キーは provider 別に独立保管し、端末保存のチェックボックスはキーを使う5プロバイダ共通（ローカルでは隠す）。その下の「使うモデル」は選択プロバイダの候補だけを表示し、接続状態の注記を付ける。モデルの復元・明示的な別プロバイダのモデルIDの確定でも接続先を揃える。プロバイダ切替はセッション内の直近モデル、初回は先頭候補を選び、候補なしなら空欄にして実行を止める。保存済みのローカルモデルがこの端末の一覧になくても復元し、接続テストを案内する。
    - **Gemini APIキーの無料/有料判定**（`detectTierByBatchProbe()` / `classifyTierProbeResponse()`, `src/lib/gemini-api.ts`）:
      `batchGenerateContent` に requests が空の batch を送るプローブで判定する（1リクエスト・課金ゼロ、バッチジョブは作られない）。
      `400 FAILED_PRECONDITION` → free（課金チェックが body 検証より先に走る）、
@@ -105,7 +114,7 @@
      水増しして閾値に届かせる方向は**どう転んでも損**（詳細: `experiments/gemini-prompt-cache/report.md`）。
      蒸し返さないこと。なお前置きが別の理由で既に閾値を超えているユーザーには implicit caching が
      既定で効いており、**実装すべきものは無い**
-   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) + OpenAI 2 種 (GPT-5.6 Terra, GPT-5.6 Luna) + Anthropic 2 種 (Claude Haiku 5.5, Claude Sonnet 5.5、未評価) + TypeSafe (`jev-1.14.0`) から選択
+   - **モデル選択**: Gemini 2 種 + OpenRouter 2 種 (Qwen3 235B Instruct, DeepSeek V4 Flash) + OpenAI 2 種 (GPT-5.6 Terra, GPT-5.6 Luna) + Anthropic 2 種 (Claude Haiku 5.5, Claude Sonnet 5.5、未評価) + TypeSafe (`jev-1.14.0`) + 接続テストで取得したローカルモデル（未評価）から選択
    - **OpenRouter カスタムモデル**: キー設定済みの OpenRouter 行内の「＋ 一覧にないモデルを追加」からフォームを開く（一覧も同じ行内に表示）。任意のモデル ID を手入力 → 実 API テスト成功時のみ `chrome.storage.local` (`openrouter_custom_models`) に永続化し、モデル選択肢に追加。最大 20 件。ベンチマーク未検証であることをUIで明示する。
    - **判定基準設定**: プロンプト・判定基準のカスタマイズ
    - **一括判定**: LLMによる自動判定（バッチ処理）。対象の決定ロジックは `src/lib/llm-batch-target.ts`（純粋関数）に集約

@@ -1,4 +1,17 @@
 {
+  "llmExt_localName": { "message": "ローカル LLM" },
+  "llmExt_localCaption": { "message": "この PC の OpenAI 互換サーバーに接続します。API キーは不要です。" },
+  "llmExt_localHelp": { "message": "手元の PC で動かしている LLM（Ollama・LM Studio など）を使います。「Ollama」「LM Studio」のボタンで URL が入ります。URL は localhost・127.0.0.1・[::1] に限られ、API キーは要りません。" },
+  "llmExt_localCaution": { "message": "AI に送るデータはこの PC 内に留まります。処理はクラウド API より大幅に遅く、これらのモデルのベンチマーク結果はありません。レビュー内検証で精度を確認してください。" },
+  "llmExt_localUrl": { "message": "API エンドポイント URL" },
+  "llmExt_localSaveTest": { "message": "保存して接続テスト" },
+  "llmExt_localMissing": { "message": "ローカル LLM の URL またはこの PC のモデル一覧が未設定です。「保存して接続テスト」を押してください。" },
+  "llmExt_localReady": { "message": "ローカル LLM の URL は保存済みです。" },
+  "llmExt_localPermissionDenied": { "message": "ローカル LLM への接続権限が許可されませんでした。" },
+  "llmExt_localFetching": { "message": "モデル一覧を取得しています…" },
+  "llmExt_localNoModels": { "message": "利用できるモデルがありません。サーバーでチャット用モデルを読み込み、もう一度接続テストしてください。" },
+  "llmExt_localTesting": { "message": "接続テスト中です。初回はモデルの読み込みで数分かかることがあります…" },
+  "llmExt_localSuccess": { "message": "接続テストに成功しました（モデル $1 件）。" },
   "llm_validationKeyUnopened": {
     "message": "他者の判定が非表示（キー未開封）のため、人の判定と比べられません。管理者がキーを開封すると比べられます。"
   },
@@ -2083,7 +2096,7 @@
     "message": "選んだプロバイダのモデルから AI 判定に使うものを選びます。文字を打って絞り込め、OpenRouter の取得した一覧からも選べます。一覧にない既知のIDは Enter で確定でき、別プロバイダのモデルなら接続先も切り替わります。候補に一致しない入力は、欄から離れると元に戻ります。モデルによって料金と判定の速さ・精度が変わります。Gemini では無料枠のデータ利用の注記を確認し、未公開原稿や機密文書には有料の API キーを使ってください。"
   },
   "guideExt_tour_ai_first_run_keys": {
-    "message": "「AI の接続」でプロバイダを選び、表示された入力欄に API キーを入れて「確認して保存」を押してください。キーはプロバイダで発行します。「この端末にキーを保存する」で保存方法を選び、その下でモデルを選びます。Gemini の無料キーは処理の速さが制限されます。試すだけなら「押さずに次へ」で進めます。"
+    "message": "「AI の接続」でプロバイダを選びます。クラウドは API キーを入れて「確認して保存」を押し、「この端末にキーを保存する」で保存方法を選びます。ローカル LLM はサーバーを起動し、「Ollama」か「LM Studio」で URL を入れて「保存して接続テスト」を押し、接続権限を許可します。キーは不要です。その下でモデルを選びます。ローカルモデルにはベンチマーク結果がないためレビュー内検証で精度を確認してください。試すだけなら「押さずに次へ」で進めます。"
   },
   "guideExt_tour_ai_first_run_protocol": {
     "message": "プロトコルの組み入れ基準・除外基準をここへ貼り付けます。人が使うレビュー基準があるときは、「抄録レビューの基準をコピー」で入れられます。"

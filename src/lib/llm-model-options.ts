@@ -1,6 +1,7 @@
 import { findModelConfig, type ModelOption } from './gemini-api';
 import type { OpenRouterModel } from './openrouter-models';
 import type { LlmProviderId } from './llm-provider';
+import { toLocalModelId } from './local-llm-model';
 
 export interface ModelGroup {
     label: string;
@@ -40,6 +41,7 @@ export function buildModelGroups(
     builtIn: readonly ModelOption[],
     custom: readonly ModelOption[],
     fetched: readonly OpenRouterModel[],
+    localModels: readonly string[] = [],
 ): ModelGroup[] {
     const ids = new Set(builtIn.map(model => model.id));
     const models = [...builtIn];
@@ -68,6 +70,9 @@ export function buildModelGroups(
         { label: 'OpenAI', models: models.filter(model => model.provider === 'openai') },
         { label: 'Anthropic', models: models.filter(model => model.provider === 'anthropic') },
         { label: 'TypeSafe', models: models.filter(model => model.provider === 'typesafe') },
+        { label: '', labelKey: 'llmExt_localName', models: localModels.map(id => ({
+            id: toLocalModelId(id), name: id, provider: 'local_llm' as const, config: { temperature: 0 },
+        })) },
     ].filter(group => group.models.length > 0);
 }
 

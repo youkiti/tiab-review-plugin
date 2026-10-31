@@ -1,6 +1,7 @@
 // 通信や画面に依存しない、モデルごとの送信設定の正本。
+import { isLocalModelId } from './local-llm-model';
 export interface ModelGenerationSettings {
-    provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe';
+    provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe' | 'local_llm';
     temperature?: number;
     topP?: number;
     thinkingLevel?: string;
@@ -22,6 +23,9 @@ export const MODEL_GENERATION_SETTINGS: Record<string, ModelGenerationSettings> 
 };
 
 export function getModelGenerationSettings(model: string): ModelGenerationSettings {
+    if (isLocalModelId(model)) {
+        return { provider: 'local_llm', temperature: 0 };
+    }
     return MODEL_GENERATION_SETTINGS[model] ?? { provider: 'openrouter', temperature: 0 };
 }
 
@@ -48,7 +52,7 @@ export function sentGenerationSettings(model: string, config: Omit<ModelGenerati
             ? config.reasoningEffort === 'none' ? 'low' : config.reasoningEffort ?? 'low'
             : provider === 'openai' ? config.reasoningEffort ?? 'low'
             : provider === 'openrouter' && !typeSafe ? config.reasoningEffort : undefined,
-        max_output_tokens: typeSafe ? undefined : provider === 'anthropic'
+        max_output_tokens: typeSafe || provider === 'local_llm' ? undefined : provider === 'anthropic'
             ? anthropicMaxOutputTokens(config.maxOutputTokens) : config.maxOutputTokens,
     };
 }

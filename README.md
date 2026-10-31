@@ -74,7 +74,9 @@ gcloud services enable drive.googleapis.com
 | `OPENROUTER_API_KEY`   | OpenRouter API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 | `TYPE_SAFE_API_KEY`    | TypeSafe API キー（実験用CLIのみ） | 実験スクリプト実行時  |
 
-> **LLM プロバイダ**: Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe に対応。v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「AI の接続」で「プロバイダ」を OpenRouter にして登録します。モデル欄には選んだプロバイダの候補だけが表示されます（環境変数は実験ランナー用途のみ）。
+> **LLM プロバイダ**: Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe / ローカル LLM に対応。v0.19.0 から Gemini に加えて OpenRouter モデル (`qwen/qwen3-235b-a22b-2507`, `deepseek/deepseek-v4-flash`) が選択可能。OpenRouter キーは https://openrouter.ai/keys で発行し、サイドパネルの「AI の接続」で「プロバイダ」を OpenRouter にして登録します。モデル欄には選んだプロバイダの候補だけが表示されます（環境変数は実験ランナー用途のみ）。
+
+> **ローカル LLM**: Chrome 拡張のタイトル・抄録の一括判定と基準の最適化に使えます。Ollama はチャット用モデルを取得し、環境変数 `OLLAMA_ORIGINS=chrome-extension://*` を設定して再起動します。LM Studio はチャット用モデルを読み込み、Developer のローカルサーバーを起動します。「AI の接続」で「ローカル LLM」を選び、「Ollama」（ポート11434）または「LM Studio」（1234）で `/v1/chat/completions` の URL を入れ、「保存して接続テスト」を押して接続権限を許可します。初回はモデルの読み込みで数分かかります。URL は localhost・127.0.0.1・[::1] のみで、API キーは不要です。URL と取得したモデル一覧は端末内に暗号化せず保存します。AI データはこの PC のサーバーに送り、レビューと判定の保存には Google Sheets を使います。並列1・待機0・5件ごと保存で、Gemini の tier に依存しません。クラウド API より大幅に遅く、ベンチマーク結果はないためレビュー内検証で精度を確認してください。Web 版とフルテキスト AI 判定には対応しません。[詳しい設定](docs/help.html#ai-local-llm)。
 
 > **TypeSafe**（2026-10 更新）: `jev-1.14.0` を選べます。キーは https://console.typesafe.ai/settings/keys で発行し、サイドパネルの「AI の接続」で「プロバイダ」を TypeSafe にして貼り付け、「確認して保存」を押します（環境変数 `TYPE_SAFE_API_KEY` は実験ランナー用途のみ）。判定理由の文章は返らず、基準の要素ごとの合致確率を記録します。基準の最適化には使えません。
 > OpenRouter のキーだけでも `typesafe/jev-1.14`（OpenRouter 経由）を選べます。単価は入力 $0.042/100万トークン・出力無料（2026-09-18 時点の OpenRouter 表示）。

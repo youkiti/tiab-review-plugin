@@ -65,9 +65,9 @@
                     <li>
                         <strong class="ja">AI（LLM）判定機能（任意）</strong><span class="lang-sep"> / </span><strong class="en">AI (LLM) Screening Feature
                             (Optional)</strong><span class="ja">：</span><span class="en">: </span>
-                        <span class="ja">ユーザーが明示的に実行した場合に、ユーザーが選んだ AI プロバイダ（Google Gemini、OpenRouter、OpenAI、Anthropic、TypeSafe のいずれか）の API へ、文献のタイトル・抄録と判定基準・プロンプトを送信します。フルテキストの AI 判定では、PDF ファイル全体を Gemini API に送信します。</span><span class="lang-sep"> / </span><span class="en">When explicitly run by the user, the Service sends reference titles and
+                        <span class="ja">ユーザーが明示的に実行した場合に、ユーザーが選んだ AI プロバイダ（Google Gemini、OpenRouter、OpenAI、Anthropic、TypeSafe、ローカル LLM のいずれか）の API へ、文献のタイトル・抄録と判定基準・プロンプトを送信します。ローカル LLM はこの PC のループバックアドレスだけに接続し、クラウド AI に送りません。URL とモデル一覧は端末内に暗号化せず保存し、API キーは使いません。レビュー情報と判定の保存には引き続き Google Sheets を使います。フルテキストの AI 判定では、PDF ファイル全体を Gemini API に送信します。</span><span class="lang-sep"> / </span><span class="en">When explicitly run by the user, the Service sends reference titles and
                             abstracts, together with the review criteria and prompt, to the API of the AI provider the
-                            user selected (Google Gemini, OpenRouter, OpenAI, Anthropic, or TypeSafe). For full-text AI
+                            user selected (Google Gemini, OpenRouter, OpenAI, Anthropic, TypeSafe, or Local LLM). Local LLM connects only to this computer's loopback addresses, without sending data to cloud AI. Its URL and model list are stored unencrypted on the device; no API key is used. Review data and decisions still use Google Sheets for storage. For full-text AI
                             screening, the entire PDF file is sent to the Gemini API.</span>
                     </li>
                     <li>
@@ -134,10 +134,10 @@
                 <ul>
                     <li><span class="ja">Google Sheets API / Google Drive API / Google Picker API（スプレッドシートの読み書き、作成・選択のため）</span><span class="lang-sep"> / </span><span class="en">Google Sheets API / Google Drive API / Google Picker API (to read/write, create, and select
                             spreadsheets)</span></li>
-                    <li><span class="ja">AI プロバイダ（ユーザーが選んだもの）※任意機能（判定支援のため）：Google Generative Language API（Gemini）、OpenRouter、OpenAI API、Anthropic API、TypeSafe API</span><span class="lang-sep"> / </span><span
+                    <li><span class="ja">AI プロバイダ（ユーザーが選んだもの）※任意機能（判定支援のため）：Google Generative Language API（Gemini）、OpenRouter、OpenAI API、Anthropic API、TypeSafe API、またはこの PC のローカル LLM（Ollama・LM Studio 等）</span><span class="lang-sep"> / </span><span
                             class="en">AI providers (the one the user selects) *optional feature (for decision
                             support): Google Generative Language API (Gemini), OpenRouter, OpenAI API, Anthropic API,
-                            TypeSafe API</span></li>
+                            TypeSafe API, or Local LLM on this computer (such as Ollama or LM Studio)</span></li>
                     <li><span class="ja">オープンアクセス検索・書誌サービス ※任意機能（全文 PDF の検索と試験登録情報の取得のため）：NCBI（PubMed Central、E-utilities）、Europe PMC、Unpaywall、OpenAlex、ClinicalTrials.gov、および全文 PDF の配布元のウェブサイト</span><span class="lang-sep"> / </span><span
                             class="en">Open-access search and bibliographic services *optional feature (for finding
                             full-text PDFs and trial registration records): NCBI (PubMed Central, E-utilities), Europe

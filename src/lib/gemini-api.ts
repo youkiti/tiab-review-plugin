@@ -4,6 +4,7 @@ import type { LlmScreeningOutput, LlmCriteria, ApiKeyTestResult, ApiTier, Detect
 import { getEffectiveApiKey } from './storage';
 import { t } from './i18n';
 import { getModelGenerationConfig } from './model-generation-settings';
+import { isLocalModelId } from './local-llm-model';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -829,7 +830,7 @@ export interface ModelOption {
     id: string;
     name: string;        // フォールバック表示 (i18n 未取得時)
     nameKey?: string;    // i18n キー (UI 描画時に t() で解決)
-    provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe';
+    provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe' | 'local_llm';
     config: Omit<GeminiModelConfig, 'model'>;
     /** ユーザーが手動追加した OpenRouter モデル（ベンチマーク未検証） */
     custom?: boolean;
@@ -951,6 +952,9 @@ export { MODEL_ID_MIGRATIONS } from './model-migrations';
  *  2. それ以外 → null（利用できないモデル）。
  */
 export function findModelConfig(modelId: string): GeminiModelConfig | null {
+    if (isLocalModelId(modelId)) {
+        return { model: modelId, temperature: 0 };
+    }
     const modelOption = AVAILABLE_MODELS.find(m => m.id === modelId);
     if (modelOption) {
         return {

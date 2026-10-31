@@ -3,7 +3,7 @@
  */
 
 import { dom } from './dom';
-import { providers } from './providers';
+import { keyProviders } from './providers';
 import { refreshOpenRouterModels } from './model-combobox';
 import {
     getGeminiApiKey,
@@ -59,6 +59,7 @@ import {
     getEffectiveOpenAiApiKey,
     getEffectiveAnthropicApiKey,
     getEffectiveTypeSafeApiKey,
+    getLocalLlmEndpoint,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
 import { testOpenRouterApiKey } from '../../../lib/providers/openrouter';
@@ -68,7 +69,7 @@ import { testTypeSafeApiKey } from '../../../lib/providers/typesafe';
 import { showToast } from '../../ui/feedback';
 import { t } from '../../../lib/i18n';
 import type { ApiTier, ManualTier } from '../../../lib/types';
-import type { LlmProviderId } from '../../../lib/llm-provider';
+import type { LlmProviderId, KeyProviderId } from '../../../lib/llm-provider';
 import { isImeComposing } from '../../../lib/ime-composition';
 import { emitGuideEvent } from '../guide/lazy';
 
@@ -201,6 +202,7 @@ export async function getEffectiveApiKeyForProvider(provider: LlmProviderId): Pr
         openai: getEffectiveOpenAiApiKey,
         anthropic: getEffectiveAnthropicApiKey,
         typesafe: getEffectiveTypeSafeApiKey,
+        local_llm: getLocalLlmEndpoint,
     };
     return getters[provider]();
 }
@@ -212,10 +214,11 @@ export function missingApiKeyMessageKey(provider: LlmProviderId): string {
         openai: 'llm_openAiApiKeyRequired',
         anthropic: 'llm_anthropicApiKeyRequired',
         typesafe: 'llm_typeSafeApiKeyRequired',
+        local_llm: 'llmExt_localMissing',
     }[provider];
 }
 
-const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
+const adapters: Record<KeyProviderId, ProviderKeyAdapter> = {
     gemini: {
         input: () => dom.geminiApiKeyInput,
         toggleBtn: () => dom.toggleApiKeyVisibilityBtn,
@@ -294,14 +297,14 @@ const adapters: Record<LlmProviderId, ProviderKeyAdapter> = {
     },
 };
 
-const inFlight: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
-const lastValidKeys: Record<LlmProviderId, string | null> = { gemini: null, openrouter: null, openai: null, anthropic: null, typesafe: null };
-const sessionOnly: Record<LlmProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
+const inFlight: Record<KeyProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
+const lastValidKeys: Record<KeyProviderId, string | null> = { gemini: null, openrouter: null, openai: null, anthropic: null, typesafe: null };
+const sessionOnly: Record<KeyProviderId, boolean> = { gemini: false, openrouter: false, openai: false, anthropic: false, typesafe: false };
 
 export async function loadAllProviderStatus(): Promise<void> {
-    const preferences = await Promise.all(providers.map(provider => adapters[provider].getSavePreference()));
+    const preferences = await Promise.all(keyProviders.map(provider => adapters[provider].getSavePreference()));
     dom.saveApiKeyCheckbox.checked = preferences.some(Boolean);
-    for (const provider of providers) {
+    for (const provider of keyProviders) {
         const adapter = adapters[provider];
         const savedKey = await adapter.hasKey() ? await adapter.getKey() : null;
         const sessionKey = adapter.getSessionKey();
@@ -315,14 +318,14 @@ export async function loadAllProviderStatus(): Promise<void> {
     await refreshTierSelector();
 }
 
-export function toggleProviderKeyVisibility(provider: LlmProviderId): void {
+export function toggleProviderKeyVisibility(provider: KeyProviderId): void {
     const adapter = adapters[provider];
     const show = adapter.input().type === 'password';
     adapter.input().type = show ? 'text' : 'password';
     adapter.toggleBtn().textContent = show ? '🙈' : '👁';
 }
 
-export async function verifyProviderKey(provider: LlmProviderId): Promise<void> {
+export async function verifyProviderKey(provider: KeyProviderId): Promise<void> {
     const adapter = adapters[provider];
     const apiKey = adapter.input().value.trim();
     if (inFlight[provider] || (apiKey && lastValidKeys[provider] === apiKey)) return;
@@ -387,7 +390,7 @@ export async function verifyProviderKey(provider: LlmProviderId): Promise<void> 
  */
 export async function handleSavePreferenceChange(): Promise<void> {
     const shouldSave = dom.saveApiKeyCheckbox.checked;
-    for (const provider of providers) {
+    for (const provider of keyProviders) {
         const adapter = adapters[provider];
         await adapter.setSavePreference(shouldSave);
         const apiKey = adapter.input().value.trim();
@@ -407,7 +410,7 @@ export async function handleSavePreferenceChange(): Promise<void> {
 }
 
 export function wireProviderFields(): void {
-    for (const provider of providers) {
+    for (const provider of keyProviders) {
         const adapter = adapters[provider];
         dom.verifyApiKeyBtn(provider).addEventListener('click', () => { void verifyProviderKey(provider); });
         adapter.input().addEventListener('change', () => { void verifyProviderKey(provider); });

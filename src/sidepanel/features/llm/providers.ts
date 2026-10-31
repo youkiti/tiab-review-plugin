@@ -1,6 +1,8 @@
-import type { LlmProviderId } from '../../../lib/llm-provider';
+import type { LlmProviderId, KeyProviderId } from '../../../lib/llm-provider';
+import { t } from '../../../lib/i18n';
 
-export const providers: LlmProviderId[] = ['gemini', 'openrouter', 'openai', 'anthropic', 'typesafe'];
+export const keyProviders: KeyProviderId[] = ['gemini', 'openrouter', 'openai', 'anthropic', 'typesafe'];
+export const providers: LlmProviderId[] = [...keyProviders, 'local_llm'];
 
 export const providerNames: Record<LlmProviderId, string> = {
     gemini: 'Gemini',
@@ -8,6 +10,7 @@ export const providerNames: Record<LlmProviderId, string> = {
     openai: 'OpenAI',
     anthropic: 'Anthropic',
     typesafe: 'TypeSafe',
+    get local_llm() { return t('llmExt_localName'); },
 };
 
 export const providerCaptionKeys: Record<LlmProviderId, string> = {
@@ -16,5 +19,6 @@ export const providerCaptionKeys: Record<LlmProviderId, string> = {
     openai: 'llm_providerCaptionOpenAi',
     anthropic: 'llm_providerCaptionAnthropic',
     typesafe: 'llm_providerCaptionTypeSafe',
+    local_llm: 'llmExt_localCaption',
 };
 
