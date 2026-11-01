@@ -305,6 +305,9 @@
   "screening_saveFailedQueued": {
     "message": "Saving failed, so the decision is kept as unsent. Click the \"Unsent\" badge to retry"
   },
+  "screening_saveDeniedQueued": {
+    "message": "You may not have edit access to this spreadsheet, so the decision could not be saved and is kept as unsent. Ask the project administrator (the sheet owner) to make you an editor, then click the \"Unsent\" badge"
+  },
   "screening_unsentBadge": {
     "message": "⚠ Unsent: $1",
     "placeholders": {
@@ -326,6 +329,14 @@
   },
   "screening_unsentRemaining": {
     "message": "$1 decision(s) still could not be sent",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      }
+    }
+  },
+  "screening_unsentDenied": {
+    "message": "$1 decision(s) could not be sent. You may not have edit access. Ask the project administrator (the sheet owner) to make you an editor, then click again",
     "placeholders": {
       "1": {
         "content": "$1"

@@ -5,6 +5,7 @@ import {
     shouldAttemptReauth,
     shouldRetryAfterReauth,
     pickSaveFailureToast,
+    pickUnsentRemainingToast,
 } from '../src/lib/save-failure';
 import { SheetsAccessDeniedError } from '../src/lib/sheets-api';
 
@@ -14,6 +15,8 @@ import { SheetsAccessDeniedError } from '../src/lib/sheets-api';
 test('online=false なら常に offline', () => {
     assert.equal(classifySaveFailure(new Error('interaction_required'), false), 'offline');
     assert.equal(classifySaveFailure(new Error('anything'), false), 'offline');
+    assert.equal(classifySaveFailure(new SheetsAccessDeniedError('sheet-1', 403), false), 'offline');
+    assert.equal(classifySaveFailure(new SheetsAccessDeniedError('sheet-1', 404), false), 'offline');
 });
 
 test('interaction_required を含むエラーは auth', () => {
@@ -48,11 +51,11 @@ test('Unexpected token のようなJSONパースエラーは auth と誤判定�
     assert.equal(classifySaveFailure(new Error('token expired'), true), 'other');
 });
 
-test('SheetsAccessDeniedError（403/404）は権限不足のため other', () => {
+test('SheetsAccessDeniedError（403/404）は権限不足のため denied', () => {
     const error403 = new SheetsAccessDeniedError('sheet-1', 403);
     const error404 = new SheetsAccessDeniedError('sheet-1', 404);
-    assert.equal(classifySaveFailure(error403, true), 'other');
-    assert.equal(classifySaveFailure(error404, true), 'other');
+    assert.equal(classifySaveFailure(error403, true), 'denied');
+    assert.equal(classifySaveFailure(error404, true), 'denied');
 });
 
 test('汎用の Error は other', () => {
@@ -72,6 +75,7 @@ test('shouldAttemptReauth は auth のときだけ true', () => {
     assert.equal(shouldAttemptReauth('auth'), true);
     assert.equal(shouldAttemptReauth('offline'), false);
     assert.equal(shouldAttemptReauth('other'), false);
+    assert.equal(shouldAttemptReauth('denied'), false);
 });
 
 test('shouldRetryAfterReauth は auth かつ再ログイン成功のときだけ true', () => {
@@ -79,6 +83,7 @@ test('shouldRetryAfterReauth は auth かつ再ログイン成功のときだけ
     assert.equal(shouldRetryAfterReauth('auth', false), false);
     assert.equal(shouldRetryAfterReauth('offline', true), false);
     assert.equal(shouldRetryAfterReauth('other', true), false);
+    assert.equal(shouldRetryAfterReauth('denied', true), false);
 });
 
 // 種類別トーストメッセージ（pickSaveFailureToast）のユニットテスト。
@@ -103,3 +108,26 @@ test('pickSaveFailureToast: other は保存失敗メッセージ・5000ms', () =
         duration: 5000,
     });
 });
+
+test('pickSaveFailureToast: denied は管理者への依頼メッセージ・8000ms', () => {
+    assert.deepEqual(pickSaveFailureToast('denied'), {
+        messageKey: 'screening_saveDeniedQueued',
+        duration: 8000,
+    });
+});
+
+test('pickUnsentRemainingToast: denied は編集権限の案内・8000ms', () => {
+    assert.deepEqual(pickUnsentRemainingToast('denied'), {
+        messageKey: 'screening_unsentDenied',
+        duration: 8000,
+    });
+});
+
+for (const kind of ['other', 'auth', 'offline', null] as const) {
+    test(`pickUnsentRemainingToast: ${kind} は既存の未送信メッセージ・2000ms`, () => {
+        assert.deepEqual(pickUnsentRemainingToast(kind), {
+            messageKey: 'screening_unsentRemaining',
+            duration: 2000,
+        });
+    });
+}

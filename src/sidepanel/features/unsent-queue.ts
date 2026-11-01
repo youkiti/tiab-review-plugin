@@ -24,13 +24,14 @@ import {
     shouldAttemptReauth,
     shouldRetryAfterReauth,
     pickSaveFailureToast,
+    pickUnsentRemainingToast,
     type SaveFailureKind,
 } from '../../lib/save-failure';
 import { enqueueDecision, flushDecisionQueue, countQueuedDecisions } from '../utils/offline-queue';
 import { createAsyncCoalescer } from '../../lib/async-coalesce';
 import type { Decision } from '../../lib/types';
 
-type FlushResult = { flushedCount: number; remainingCount: number };
+type FlushResult = { flushedCount: number; remainingCount: number; lastFailureKind: SaveFailureKind | null };
 
 /** バッジの click ハンドラ登録。bootstrap から1回だけ呼ぶ。 */
 export function initUnsentQueue(): void {
@@ -40,9 +41,10 @@ export function initUnsentQueue(): void {
 }
 
 async function handleBadgeClick(): Promise<void> {
-    const { flushedCount, remainingCount } = await flushUnsentQueue({ interactive: true });
+    const { flushedCount, remainingCount, lastFailureKind } = await flushUnsentQueue({ interactive: true });
     if (remainingCount > 0) {
-        showToast(t('screening_unsentRemaining', String(remainingCount)));
+        const toast = pickUnsentRemainingToast(lastFailureKind);
+        showToast(t(toast.messageKey, String(remainingCount)), toast.duration);
     } else if (flushedCount > 0) {
         showToast(t('screening_unsentFlushed', String(flushedCount)));
     }
@@ -103,7 +105,7 @@ export function ensureInteractiveAuth(): Promise<boolean> {
 async function runFlushOnce(
     spreadsheetId: string,
     userEmail: string
-): Promise<FlushResult & { lastFailureKind: SaveFailureKind | null }> {
+): Promise<FlushResult> {
     const result = await flushDecisionQueue(
         spreadsheetId,
         userEmail,
@@ -129,7 +131,7 @@ export async function flushUnsentQueue(options: { interactive: boolean }): Promi
     const spreadsheetId = state.spreadsheetId;
     const userEmail = state.userEmail;
     if (!spreadsheetId || !userEmail) {
-        return { flushedCount: 0, remainingCount: 0 };
+        return { flushedCount: 0, remainingCount: 0, lastFailureKind: null };
     }
 
     try {
@@ -141,20 +143,25 @@ export async function flushUnsentQueue(options: { interactive: boolean }): Promi
                 const retry = await runFlushOnce(spreadsheetId, userEmail);
                 flushedCount += retry.flushedCount;
                 remainingCount = retry.remainingCount;
+                lastFailureKind = retry.lastFailureKind;
             }
         }
 
         // 表示中のプロジェクトが切り替わっていてもバッジは「今表示中のプロジェクト」を
         // 反映すべきなので、ここだけは state を見たままでよい（refreshUnsentBadge 内で読む）。
         await refreshUnsentBadge();
-        return { flushedCount, remainingCount };
+        return { flushedCount, remainingCount, lastFailureKind };
     } catch (error) {
         // flushDecisionQueue 自体は各項目の送信失敗を握りつぶすため、ここに来るのは
         // ストレージ書き戻し（chainQueueWrite）側の想定外エラーのみ。呼び出し側（bootstrap の
         // fire-and-forget 呼び出しを含む）を壊さないよう、ログに残して安全な既定値を返す。
         console.error('Queue flush error:', error);
         await refreshUnsentBadge();
-        return { flushedCount: 0, remainingCount: await countQueuedDecisions(spreadsheetId, userEmail) };
+        return {
+            flushedCount: 0,
+            remainingCount: await countQueuedDecisions(spreadsheetId, userEmail),
+            lastFailureKind: null,
+        };
     }
 }
 

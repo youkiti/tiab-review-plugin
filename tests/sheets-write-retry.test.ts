@@ -9,6 +9,7 @@ import {
     getSheetValues,
     getSheetValuesBatch,
     setQuotaRetrySleepForTest,
+    SheetsAccessDeniedError,
     updateRange,
 } from '../src/lib/sheets/transport';
 import { setPlatform } from '../src/platform';
@@ -138,6 +139,26 @@ for (const write of writes) {
             await assert.rejects(write.run(), { message: `${write.errorPrefix}: rejected` });
             assert.equal(calls.length, 1);
             assert.deepEqual(delays, []);
+        });
+    }
+}
+
+for (const write of writes.filter(write => write.name === 'appendRows' || write.name === 'updateRange')) {
+    for (const status of [403, 404, 500]) {
+        test(`${write.name}: ${status}の分類と接頭辞付きメッセージを保持する`, async () => {
+            installFetch(() => jsonResponse({ error: { message: 'rejected' } }, status));
+            await assert.rejects(write.run(), error => {
+                assert.ok(error instanceof Error);
+                assert.equal(error.message, `${write.errorPrefix}: rejected`);
+                if (status === 403 || status === 404) {
+                    assert.ok(error instanceof SheetsAccessDeniedError);
+                    assert.equal(error.status, status);
+                    assert.equal(error.spreadsheetId, spreadsheetId);
+                } else {
+                    assert.equal(error instanceof SheetsAccessDeniedError, false);
+                }
+                return true;
+            });
         });
     }
 }

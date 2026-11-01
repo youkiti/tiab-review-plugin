@@ -8,7 +8,7 @@
 
 import { SheetsAccessDeniedError } from './sheets-api';
 
-export type SaveFailureKind = 'auth' | 'offline' | 'other';
+export type SaveFailureKind = 'auth' | 'offline' | 'denied' | 'other';
 
 // トークン失効・未認可を示すエラーメッセージのパターン。
 // Google Identity Services 側の 'interaction_required'（サイレント再取得不可）、
@@ -24,13 +24,17 @@ const AUTH_ERROR_PATTERN = /\b401\b|unauthorized|invalid (?:authentication )?cre
  * 判定保存の失敗を分類する。
  * - online が false のときは、エラー内容を見るまでもなく 'offline'
  * - 401や認証情報関連の文言を含むエラーは 'auth'（再ログインで直る可能性がある）
- * - SheetsAccessDeniedError（403/404）は権限不足で、再ログインしても直らないため 'other'
+ * - SheetsAccessDeniedError（403/404）は 'denied'（管理者へ編集権限の依頼を案内する）
  * - それ以外は 'other'
  */
 export function classifySaveFailure(error: unknown, online: boolean): SaveFailureKind {
-    if (!online) return 'offline';
+    if (!online) {
+        return 'offline';
+    }
 
-    if (error instanceof SheetsAccessDeniedError) return 'other';
+    if (error instanceof SheetsAccessDeniedError) {
+        return 'denied';
+    }
 
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('interaction_required') || AUTH_ERROR_PATTERN.test(message)) {
@@ -42,7 +46,7 @@ export function classifySaveFailure(error: unknown, online: boolean): SaveFailur
 
 /**
  * 保存失敗が 'auth' のとき、再ログインを試すべきかどうか。
- * 'offline' / 'other' は再ログインでは直らないため試さない。
+ * 'offline' / 'denied' / 'other' は再ログインでは直らないため試さない。
  */
 export function shouldAttemptReauth(kind: SaveFailureKind): boolean {
     return kind === 'auth';
@@ -60,6 +64,7 @@ export function shouldRetryAfterReauth(kind: SaveFailureKind, reauthSucceeded: b
 export type SaveFailureToastKey =
     | 'screening_reloginQueued'
     | 'screening_offlineQueued'
+    | 'screening_saveDeniedQueued'
     | 'screening_saveFailedQueued';
 
 export type SaveFailureToast = { messageKey: SaveFailureToastKey; duration: number };
@@ -68,11 +73,12 @@ export type SaveFailureToast = { messageKey: SaveFailureToastKey; duration: numb
 // 原因の分かりにくい other は長め（5000ms）にする。offline は既存文言・既存の長さを維持する。
 const DEFAULT_TOAST_DURATION = 2000;
 const LONGER_TOAST_DURATION = 5000;
+const DENIED_TOAST_DURATION = 8000;
 
 /**
  * 保存失敗の種類から、キュー退避後に出すトーストのメッセージキーと表示時間を選ぶ。
  * 2026-09 Web版ログイン切れによるキュー滞留・重複追記の事故対応: 一律「オフラインのため
- * キューへ保存しました」だったものを、実際の原因（ログイン切れ/オフライン/その他）で
+ * キューへ保存しました」だったものを、実際の原因（ログイン切れ/オフライン/権限不足/その他）で
  * 出し分ける。
  */
 export function pickSaveFailureToast(kind: SaveFailureKind): SaveFailureToast {
@@ -81,7 +87,20 @@ export function pickSaveFailureToast(kind: SaveFailureKind): SaveFailureToast {
             return { messageKey: 'screening_reloginQueued', duration: LONGER_TOAST_DURATION };
         case 'offline':
             return { messageKey: 'screening_offlineQueued', duration: DEFAULT_TOAST_DURATION };
+        case 'denied':
+            return { messageKey: 'screening_saveDeniedQueued', duration: DENIED_TOAST_DURATION };
         case 'other':
             return { messageKey: 'screening_saveFailedQueued', duration: LONGER_TOAST_DURATION };
     }
+}
+
+/** 未送信の判定が残った原因から、再送信後の案内と表示時間を選ぶ。 */
+export function pickUnsentRemainingToast(kind: SaveFailureKind | null): {
+    messageKey: 'screening_unsentDenied' | 'screening_unsentRemaining';
+    duration: number;
+} {
+    if (kind === 'denied') {
+        return { messageKey: 'screening_unsentDenied', duration: DENIED_TOAST_DURATION };
+    }
+    return { messageKey: 'screening_unsentRemaining', duration: DEFAULT_TOAST_DURATION };
 }

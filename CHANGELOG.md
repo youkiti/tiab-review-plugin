@@ -7,6 +7,13 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース
+
+### 画面 / Interface
+
+- 編集権限不足で判定の保存を拒否されたとき、プロジェクトの管理者への依頼を案内するようにしました。
+  When saving a decision is refused for lack of edit access, the message now asks the reviewer to contact the project administrator.
+
 ## v0.56.0（2026-10-31）
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
