@@ -203,8 +203,11 @@ export async function appendRows(
     );
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to append rows: ${error.error?.message || response.statusText}`);
+        const message = `Failed to append rows: ${await readSheetsErrorMessage(response)}`;
+        if (isSheetsAccessDeniedStatus(response.status)) {
+            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
+        }
+        throw new Error(message);
     }
 
     const data = await response.json().catch(() => null);
@@ -235,8 +238,11 @@ export async function updateRange(spreadsheetId: string, range: string, values: 
     );
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Failed to update range: ${error.error?.message || response.statusText}`);
+        const message = `Failed to update range: ${await readSheetsErrorMessage(response)}`;
+        if (isSheetsAccessDeniedStatus(response.status)) {
+            throw new SheetsAccessDeniedError(spreadsheetId, response.status, message);
+        }
+        throw new Error(message);
     }
 }
 

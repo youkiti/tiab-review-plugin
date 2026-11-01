@@ -251,6 +251,10 @@
     bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
+    /* left: 50% のままだと幅が画面の半分に縮むため、長い案内は左右の余白まで広げる */
+    box-sizing: border-box;
+    width: max-content;
+    max-width: calc(100vw - 32px);
     padding: 10px 20px;
     background: #333;
     color: #fff;
