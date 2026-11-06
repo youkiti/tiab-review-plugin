@@ -108,8 +108,15 @@ test('サイトの埋め込みは GUIDE_VIDEO_ID を指す', () => {
 });
 
 test('ヘルプのツアー一覧は、ツアーごとに動画へのリンクを1つ持つ', () => {
-    const start = helpHtml.indexOf('<h3 id="getting-started-tours">');
-    assert.ok(start >= 0, 'ツアー一覧の見出しが無い');
+    const heading = helpHtml.indexOf('<h3 id="getting-started-tours">');
+    assert.ok(heading >= 0, 'ツアー一覧の見出しが無い');
+    // 見出しの直後には「こんなとき」の囲み（.help-when、#281）があり、その中にも <ul> がある。
+    // ツアー一覧はその囲みの後ろから探す（囲みが無ければ見出しから）。
+    const whenStart = helpHtml.indexOf('<div class="help-when">', heading);
+    const nextHeading = helpHtml.indexOf('<h3', heading + 1);
+    const hasWhen = whenStart >= 0 && (nextHeading < 0 || whenStart < nextHeading);
+    const start = hasWhen ? helpHtml.indexOf('</div>', whenStart) : heading;
+    assert.ok(start >= 0, '「こんなとき」の囲みの終端が無い');
     const end = helpHtml.indexOf('</ul>', start);
     assert.ok(end > start, 'ツアー一覧の終端が無い');
     const section = helpHtml.slice(start, end + '</ul>'.length);

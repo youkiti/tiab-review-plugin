@@ -146,6 +146,36 @@
             color: var(--text-secondary);
         }
 
+        /* 小節の「こんなとき」：困りごとからこの小節を引くための例（#281。ヘルプの相談機能も使う） */
+        .help-when {
+            margin: 0 0 16px;
+            padding: 8px 14px;
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .document-page .help-when .help-when-label {
+            margin: 0 0 4px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .help-when-label .ja,
+        .help-when-label .en {
+            display: inline;
+            margin-bottom: 0;
+        }
+
+        .document-page .help-when ul {
+            margin: 0 0 0 20px;
+        }
+
+        .document-page .help-when li {
+            margin-bottom: 2px;
+        }
+
         .shortcut-table {
             width: 100%;
             border-collapse: collapse;
@@ -374,6 +404,14 @@
                     <span class="ja">1. 拡張機能をインストールする</span>
                     <span class="en">1. Install the extension</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">拡張機能をどこから入れればよいか分からない</span><span class="lang-sep"> / </span><span class="en">I don't know where to install the extension from</span></li>
+                        <li><span class="ja">「Chrome に追加」を押したのに何も起こらない</span><span class="lang-sep"> / </span><span class="en">I clicked "Add to Chrome" but nothing happened</span></li>
+                        <li><span class="ja">Edge など Chrome 以外のブラウザで使えるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know whether it works in Edge or other browsers</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">Google Chrome（または Microsoft Edge などの Chromium 系ブラウザ）で <a
                             href="https://chromewebstore.google.com/detail/tiab-review-plugin/alejlnlfflogpnabpbplmnojgoeeabij"
@@ -392,6 +430,14 @@
                     <span class="ja">2. 拡張機能アイコンから起動する</span>
                     <span class="en">2. Launch it from the extensions button</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">インストールしたのに画面が見当たらない</span><span class="lang-sep"> / </span><span class="en">I installed it, but I can't find the panel</span></li>
+                        <li><span class="ja">拡張機能の一覧に TiAb Review Plugin が無い</span><span class="lang-sep"> / </span><span class="en">TiAb Review Plugin isn't in the extensions list</span></li>
+                        <li><span class="ja">次から1クリックで開けるようにしたい</span><span class="lang-sep"> / </span><span class="en">I want to open it with one click next time</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">Chrome の右上（アドレスバーの右側）にあるパズルピースの形をしたアイコン🧩をクリックすると、「拡張機能」メニューが開きます。一覧の中の <strong>TiAb
                             Review Plugin</strong> をクリックすると、画面の右側にサイドパネルが開きます。</span>
@@ -426,6 +472,13 @@
                     <span class="ja">3. ログインしてプロジェクトに接続する</span>
                     <span class="en">3. Sign in and connect to a project</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">サイドパネルが開いたが、次に何をすればよいか分からない</span><span class="lang-sep"> / </span><span class="en">The side panel is open, but I don't know what to do next</span></li>
+                        <li><span class="ja">共同研究者からスプレッドシートの URL が届いた</span><span class="lang-sep"> / </span><span class="en">A collaborator sent me a spreadsheet URL</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">サイドパネルが開いたら、<a href="#login">ログイン画面</a> の手順に進みます。共同研究者から招待された場合は、受け取ったスプレッドシートの
                         URL を貼り付けて接続してください。</span>
@@ -437,6 +490,13 @@
                     <span class="ja">文献ファイル（.nbib / .ris）の扱い</span>
                     <span class="en">About reference files (.nbib / .ris)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">.nbib や .ris を開こうとしたら「開けません」と出た</span><span class="lang-sep"> / </span><span class="en">Opening a .nbib or .ris file says it can't be opened</span></li>
+                        <li><span class="ja">PubMed から落としたファイルの読み込み方が分からない</span><span class="lang-sep"> / </span><span class="en">I don't know how to load a file downloaded from PubMed</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">PubMed などからダウンロードした <code>.nbib</code> や <code>.ris</code>
                         のファイルは、ダブルクリックして開くファイルではありません。開こうとすると「このファイルは開けません」「再生できません」といったメッセージが出ることがありますが、故障ではありません。ダウンロードした状態のまま、拡張機能を起動して <a
@@ -451,6 +511,15 @@
                     <span class="ja">操作の案内（ツアーと「?」ボタン）</span>
                     <span class="en">Guided tours and the "?" buttons</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">画面の操作を順番に案内してほしい</span><span class="lang-sep"> / </span><span class="en">I want step-by-step guidance on the screen</span></li>
+                        <li><span class="ja">操作を動画で見たい</span><span class="lang-sep"> / </span><span class="en">I want to watch a video of the steps</span></li>
+                        <li><span class="ja">途中でやめたツアーを再開したい、やり直したい</span><span class="lang-sep"> / </span><span class="en">I want to resume or redo a tour</span></li>
+                        <li><span class="ja">「?」ボタンを押すと何が出るか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know what the "?" buttons show</span></li>
+                    </ul>
+                </div>
                                 <p>
                     <span class="ja">ツアーは、画面上で次に押す場所を示し、実際に操作すると次の手順へ進む案内です。次の11本があります（「共同研究者として参加」は拡張機能版と Web 版、ほかは Chrome 拡張機能版のみ）。</span>
                     <span class="en">A tour is a guide that points to the next place to click on the screen and moves on to the next step when you actually perform the action. There are eleven tours ("Join as a collaborator" is available in the extension and web versions; the others are Chrome extension only).</span>
@@ -606,6 +675,14 @@
                     <span class="ja">Googleアカウントでログイン</span>
                     <span class="en">Sign in with Google</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ログインすると Google から許可を求められた</span><span class="lang-sep"> / </span><span class="en">Signing in asks me to grant Google permissions</span></li>
+                        <li><span class="ja">Chrome を再起動したらログインし直す必要があるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know whether I must sign in again after restarting Chrome</span></li>
+                        <li><span class="ja">ログアウトした後、もう一度ログインしたい</span><span class="lang-sep"> / </span><span class="en">I signed out and want to sign in again</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「Googleアカウントでログイン」ボタンをクリックして認証します。初回ログイン時は、Google APIへのアクセス許可を求められます。同じGoogleアカウントのログイン状態と許可が有効な間は、Chromeを再起動しても通常は自動的に再接続します。ログアウトした場合やGoogle側で許可を取り消した場合は、再度ログインが必要です。</span>
                     <span class="en">Click the "Sign in with Google" button to authenticate. On first login, you'll be
@@ -618,6 +695,13 @@
                     <span class="ja">新規プロジェクトの作成</span>
                     <span class="en">Create New Project</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">新しいレビューを始めたい</span><span class="lang-sep"> / </span><span class="en">I want to start a new review</span></li>
+                        <li><span class="ja">プロジェクトのスプレッドシートがどこに作られるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know where the project spreadsheet is created</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「＋ 新規レビュープロジェクトを作成」ボタンをクリックすると、Google Driveに新しいスプレッドシートが自動作成されます。</span>
                     <span class="en">Click "+ Create New Review Project" to automatically create a new spreadsheet in
@@ -628,6 +712,14 @@
                     <span class="ja">既存プロジェクトへの接続</span>
                     <span class="en">Connect to Existing Project</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">前に作ったプロジェクトを開きたい</span><span class="lang-sep"> / </span><span class="en">I want to open a project I created before</span></li>
+                        <li><span class="ja">共有されたスプレッドシートの URL で接続したい</span><span class="lang-sep"> / </span><span class="en">I want to connect with a shared spreadsheet URL</span></li>
+                        <li><span class="ja">一覧から選んだのに別のシートにつながった</span><span class="lang-sep"> / </span><span class="en">I picked a sheet from the list, but a different one opened</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「スプレッドシートURL/IDを入力（優先）」欄にURL/IDを入力するか、「最近のスプレッドシートから選択」ドロップダウンから既存のプロジェクトを選択し、「選択したシートに接続」ボタンをクリックします。URL/IDが入力されている場合はそちらが優先されます。</span>
                     <span class="en">Enter a spreadsheet URL/ID in the "Enter spreadsheet URL/ID (priority)" field, or
@@ -652,6 +744,15 @@
                     <span class="ja">ツールバー機能</span>
                     <span class="en">Toolbar Features</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">文献ファイルを取り込みたい、対応する形式を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to import references, or check which formats are supported</span></li>
+                        <li><span class="ja">判定結果を CSV・RIS に書き出したい、論文の Methods・Results の下書きがほしい</span><span class="lang-sep"> / </span><span class="en">I want to export decisions as CSV/RIS, or draft the Methods/Results text</span></li>
+                        <li><span class="ja">組入・除外基準を画面で確かめたい</span><span class="lang-sep"> / </span><span class="en">I want to check the inclusion/exclusion criteria on screen</span></li>
+                        <li><span class="ja">共同研究者を追加したい</span><span class="lang-sep"> / </span><span class="en">I want to add collaborators</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja"><strong>📁 インポート</strong>: RIS(.ris)・PubMed NBIB(.nbib/.txt)・ClinicalTrials.gov
@@ -695,6 +796,15 @@
                     <span class="ja">フィルター機能</span>
                     <span class="en">Filter Features</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">未判定・Include・不一致などで文献を絞り込みたい</span><span class="lang-sep"> / </span><span class="en">I want to filter references by Pending, Include, Conflict, and so on</span></li>
+                        <li><span class="ja">自分の担当分だけを表示したい、どのセットが誰の担当か知りたい</span><span class="lang-sep"> / </span><span class="en">I want to see only my assigned set, or who is assigned to each set</span></li>
+                        <li><span class="ja">「担当者なし ⚠」と表示されている</span><span class="lang-sep"> / </span><span class="en">"No reviewer ⚠" is shown</span></li>
+                        <li><span class="ja">前回やめた文献から続けたい</span><span class="lang-sep"> / </span><span class="en">I want to continue from where I stopped</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ステータスフィルターで文献を絞り込めます：未判定、すべて、Include、Exclude、Maybe、不一致、フルテキスト候補</span>
                     <span class="en">Filter references by status: Pending, All, Include, Exclude, Maybe, Conflict,
@@ -727,6 +837,15 @@
                     <span class="ja">重複の確認</span>
                     <span class="en">Duplicate Review</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">取り込んだ文献に重複がある、確認の画面を閉じてしまった</span><span class="lang-sep"> / </span><span class="en">My imported references have duplicates, or I closed the review dialog</span></li>
+                        <li><span class="ja">「左を残す／右を残す」を間違えたので戻したい</span><span class="lang-sep"> / </span><span class="en">I chose the wrong side ("Keep Left" / "Keep Right") and want to undo it</span></li>
+                        <li><span class="ja">重複をまとめて片付けたい</span><span class="lang-sep"> / </span><span class="en">I want to resolve many duplicates at once</span></li>
+                        <li><span class="ja">後から取り込んだ文献も含めて重複を調べ直したい</span><span class="lang-sep"> / </span><span class="en">I want to check again for duplicates, including references added later</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">インポート時、PMID・DOI・同じレジストリの試験IDが一致する明らかな重複は自動的に除外されます。一方、タイトルだけが一致する組など、どちらを残すか人が決める必要があるものは自動では除外されず、確認待ちの候補として記録されます。</span>
                     <span class="en">During import, obvious duplicates — matching PMID, DOI, or the same registry's
@@ -790,6 +909,13 @@
                     <span class="ja">判定ボタン</span>
                     <span class="en">Decision Buttons</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">Include・Maybe・Exclude の意味を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know what Include, Maybe, and Exclude mean</span></li>
+                        <li><span class="ja">キーボードで判定したい</span><span class="lang-sep"> / </span><span class="en">I want to make decisions with the keyboard</span></li>
+                    </ul>
+                </div>
                 <table class="shortcut-table">
                     <tr>
                         <th><span class="ja">ボタン</span><span class="lang-sep"> / </span><span class="en">Button</span></th>
@@ -826,6 +952,13 @@
                     <span class="ja">ハイライト設定</span>
                     <span class="en">Highlight Settings</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">抄録のキーワードに色を付けて読みやすくしたい</span><span class="lang-sep"> / </span><span class="en">I want to color keywords in abstracts to read faster</span></li>
+                        <li><span class="ja">RCT や SR 向けのキーワードをまとめて設定したい</span><span class="lang-sep"> / </span><span class="en">I want a ready-made keyword set for RCTs or systematic reviews</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">キーワードに基づいてタイトルと抄録内の文字をハイライト表示できます。組み入れキーワードは緑色、除外キーワードは赤色で表示されます。RCT用・SR用のプリセットも利用可能です。</span>
                     <span class="en">Highlight text in titles and abstracts based on keywords. Inclusion keywords are
@@ -836,6 +969,13 @@
                     <span class="ja">メモ機能</span>
                     <span class="en">Notes</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">判定の理由や気になった点を書き残したい</span><span class="lang-sep"> / </span><span class="en">I want to note why I decided, or what caught my eye</span></li>
+                        <li><span class="ja">メモが保存されたか不安</span><span class="lang-sep"> / </span><span class="en">I'm not sure my note was saved</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">各文献に対してメモを残せます。判定理由や気になる点などを記録でき、メモは自動的に保存されます。</span>
                     <span class="en">Add notes for each reference. Record decision reasons or points of interest. Notes
@@ -846,6 +986,14 @@
                     <span class="ja">TiAb完了バナー</span>
                     <span class="en">TiAb Completion Banner</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">「TiAbスクリーニング完了」のバナーが出たが、次に何をすればよいか</span><span class="lang-sep"> / </span><span class="en">The "TiAb screening complete" banner appeared, and I don't know what's next</span></li>
+                        <li><span class="ja">不一致や保留が残っていないか確かめたい</span><span class="lang-sep"> / </span><span class="en">I want to check whether conflicts or Maybes remain</span></li>
+                        <li><span class="ja">全文の判定に進みたい</span><span class="lang-sep"> / </span><span class="en">I want to move on to full-text screening</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">自分の未判定（保留を除く）文献が0件になると、画面上部に「🎉 TiAbスクリーニング完了」バナーが表示されます（表示条件はフィルターの絞り込みに影響されず、プロジェクト全体の判定状況で判定されます）。バナーには次の内容が含まれます。</span>
                     <span class="en">Once your own pending decisions reach zero, a "🎉 TiAb screening complete" banner
@@ -878,6 +1026,14 @@
                     <span class="ja">チーム進捗パネル（TiAbタブ）</span>
                     <span class="en">Team Progress Panel (TiAb Tab)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">チームの誰がどこまで判定したか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to see how far each team member has got</span></li>
+                        <li><span class="ja">👥 のチップが表示されない</span><span class="lang-sep"> / </span><span class="en">The 👥 chip doesn't appear</span></li>
+                        <li><span class="ja">他の人の Include・Exclude の内訳が見られない</span><span class="lang-sep"> / </span><span class="en">I can't see the Include/Exclude breakdown of others</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ツールバーの⚙️ボタンの右側に👥アイコンのチップが表示され、クリックするとチームメンバー全員の進捗（判定件数と最終判定日時）を確認できます。判定の独立性を保つため、Include/Exclude等の内訳は表示されません。🔄ボタンで最新の状態に更新できます。プロジェクトメンバーが自分1人だけの場合は、このチップ自体が表示されません。詳細は「<a
                             href="#sharing">共有とチーム運用</a>」章を参照してください。</span>
@@ -907,6 +1063,13 @@
                     <span class="ja">利用条件</span>
                     <span class="en">Requirements to Use ML Screening</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ML タブが開けない、エラーが出る</span><span class="lang-sep"> / </span><span class="en">The ML tab won't open, or shows an error</span></li>
+                        <li><span class="ja">初めて ML タブを開いたら停止基準の確認が出た</span><span class="lang-sep"> / </span><span class="en">A stopping-rule dialog appeared when I first opened the ML tab</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">MLタブは、文献数が1,000件以上のプロジェクトでのみ利用できます。1,000件未満の状態でMLタブを開こうとすると、エラーメッセージが表示されて開始できません。初めてMLタブを開いたときは、停止基準（CMH）の確認ダイアログが表示され、内容を確認して設定を確定する必要があります（このダイアログでの確認は、下記で説明する「1+1ルール」＝モデル学習が始まるためのラベル数の条件とは別のものです）。</span>
                     <span class="en">The ML tab is only available for projects with 1,000 or more references. If you
@@ -921,6 +1084,13 @@
                     <span class="ja">基本コンセプト</span>
                     <span class="en">Basic Concept</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ML スクリーニングが何をしているのか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know what ML screening does</span></li>
+                        <li><span class="ja">学習を始めるのに何件判定すればよいか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how many decisions are needed before training starts</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja">レコードを1件ずつ読み、Include（Relevant）/ Exclude（Irrelevant）を付けます。</span>
@@ -945,6 +1115,13 @@
                     <span class="ja">新規レビュー開始の流れ</span>
                     <span class="en">Starting a New Review</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ML で新しいレビューを始める手順を知りたい</span><span class="lang-sep"> / </span><span class="en">I want the steps to start a new review with ML</span></li>
+                        <li><span class="ja">組み入れると分かっている論文を先に入れたい</span><span class="lang-sep"> / </span><span class="en">I want to add papers I already know should be included</span></li>
+                    </ul>
+                </div>
                 <ol>
                     <li>
                         <span class="ja"><strong>データセットを読み込む</strong>：RIS等の対応形式のファイルを取り込みます（対応形式は「<a
@@ -971,6 +1148,14 @@
                     <span class="ja">学習開始条件（ラベル数）と挙動</span>
                     <span class="en">Learning Trigger Conditions</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">「Need at least 1 include &amp; 1 exclude」と表示される</span><span class="lang-sep"> / </span><span class="en">"Need at least 1 include &amp; 1 exclude" is shown</span></li>
+                        <li><span class="ja">判定しても提示順が変わらない</span><span class="lang-sep"> / </span><span class="en">The order doesn't change after I make decisions</span></li>
+                        <li><span class="ja">学習がいつ動くのか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know when the model is trained</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja"><strong>自動開始条件</strong>：Includeが1件以上、Excludeが1件以上そろった時点（1+1）でモデル学習と推薦を有効化します。</span>
@@ -995,6 +1180,13 @@
                     <span class="ja">スクリーニング画面の使い方</span>
                     <span class="en">Using the Screening Interface</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ML タブでの判定の進め方を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how to screen in the ML tab</span></li>
+                        <li><span class="ja">ML タブでもメモを残したい</span><span class="lang-sep"> / </span><span class="en">I want to leave notes in the ML tab too</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja">レコード（タイトル・抄録）を読み、Include または Exclude を選択します。次のレコードが表示されます。</span>
@@ -1012,6 +1204,13 @@
                     <span class="ja">p(relevant) の表示方針</span>
                     <span class="en">p(relevant) Display Policy</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">関連確率（p(relevant)）のスコアを見たい</span><span class="lang-sep"> / </span><span class="en">I want to see the p(relevant) score</span></li>
+                        <li><span class="ja">なぜスコアが表示されないのか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know why the score is hidden</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">p(relevant)（関連確率スコア）は非表示です。常時表示はアンカリング等の運用バイアスを招く可能性があるためです。</span>
                     <span class="en">p(relevant) (relevance probability score) is hidden by default. Constant display
@@ -1022,6 +1221,14 @@
                     <span class="ja">後半フェーズの運用</span>
                     <span class="en">Late-Phase Workflow</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">停止基準に達したと表示され、続けるか止めるか迷う</span><span class="lang-sep"> / </span><span class="en">The stopping rule was reached, and I'm unsure whether to continue</span></li>
+                        <li><span class="ja">残りを一括除外した文献が論文でどう数えられるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how bulk-excluded records are reported</span></li>
+                        <li><span class="ja">後半は Exclude ばかりで集中が続かない</span><span class="lang-sep"> / </span><span class="en">Late in screening it's mostly Exclude, and I lose focus</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">停止到達時は「続ける」が先に表示されます。残りを一括除外した文献は「ML の停止基準で除外（未読）」として人の判定人数には数えず、除外件数には残し、論文用テキストで件数を分けて報告します。停止基準は見落としが無いことを保証しません。</span>
                     <span class="en">When a stopping criterion is reached, Continue appears first. Bulk exclusions are marked as excluded by the ML stopping criterion (unread): they remain in exclusion totals, do not count as human judgments, and are reported separately in manuscript text. Stopping criteria do not guarantee that no eligible records are missed.</span>
@@ -1044,6 +1251,13 @@
                     <span class="ja">2人レビュー（独立スクリーニング）</span>
                     <span class="en">Dual Review (Independent Screening)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">2人で独立に ML スクリーニングをしたい</span><span class="lang-sep"> / </span><span class="en">Two of us want to screen independently with ML</span></li>
+                        <li><span class="ja">別のプロジェクトにするか、同じプロジェクトにするか迷う</span><span class="lang-sep"> / </span><span class="en">I'm unsure whether to use separate projects or the same one</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">独立したスクリーニングを行う場合の最小ルール案：</span>
                     <span class="en">Minimum rules for independent screening:</span>
@@ -1092,6 +1306,14 @@
                     <span class="ja">APIキーのセットアップ</span>
                     <span class="en">API Key Setup</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">AI 判定を使いたいが、API キーの入れ方が分からない</span><span class="lang-sep"> / </span><span class="en">I want to use AI screening but don't know how to enter an API key</span></li>
+                        <li><span class="ja">API キーをどこで取得するか知りたい（Gemini・OpenAI・Anthropic など）</span><span class="lang-sep"> / </span><span class="en">I want to know where to get an API key (Gemini, OpenAI, Anthropic, and so on)</span></li>
+                        <li><span class="ja">キーをこの端末に保存するかどうかを選びたい</span><span class="lang-sep"> / </span><span class="en">I want to choose whether to save the key on this device</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を選ぶと、そのプロバイダの入力欄だけが表示されます。クラウドの場合はキーを貼り付けて「確認して保存」を押してください（入力欄からフォーカスを外すか Enter でも確認できます）。キーはプロバイダ別に独立保管し、「この端末にキーを保存する」で共通の保存方法を選びます。ローカル LLM はキー不要で、「保存して接続テスト」を使います。その下の「使うモデル」では選んだプロバイダのモデルだけを表示し、モデル欄の下に接続状態を案内します。</span>
                     <span class="en">Choose a "Provider" in "AI connection" on the "🤖 AI" tab to show only that provider's fields. For cloud providers, paste the key and click "Verify and save" (leaving the input or pressing Enter also verifies it). Keys are stored independently; "Save the key on this device" controls their storage preference. Local LLM needs no key; use "Save and test connection". The "Model" field below lists only the selected provider's models, with connection status underneath.</span>
@@ -1127,6 +1349,14 @@
                         Paste the key in the selected cloud provider's field and click "Verify and save". Leaving the input also verifies it. See below for Local LLM setup.</span>
                 </p>
                 <h4 id="ai-local-llm"><span class="ja">ローカル LLM の設定</span><span class="en">Local LLM setup</span></h4>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">手元の PC の LLM（Ollama・LM Studio）で判定したい</span><span class="lang-sep"> / </span><span class="en">I want to screen with an LLM on my own PC (Ollama, LM Studio)</span></li>
+                        <li><span class="ja">「保存して接続テスト」が失敗する、モデルが0件になる</span><span class="lang-sep"> / </span><span class="en">"Save and test connection" fails, or no models are found</span></li>
+                        <li><span class="ja">文献を外部の AI に送りたくない</span><span class="lang-sep"> / </span><span class="en">I don't want to send references to a cloud AI</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">手元の PC で動かしている LLM（Ollama・LM Studio など）を使います。「Ollama」「LM Studio」のボタンで URL が入ります。URL は localhost・127.0.0.1・[::1] に限られ、API キーは要りません。</span>
                     <span class="en">Use an LLM running on your computer, such as Ollama or LM Studio. The Ollama and LM Studio buttons fill in the URL. Only localhost, 127.0.0.1, and [::1] URLs are allowed. No API key is required.</span>
@@ -1156,6 +1386,14 @@
                     <span class="ja">Gemini APIキーの設定（無料枠と有料枠）</span>
                     <span class="en">Setting Up a Gemini API Key (Free vs. Paid Tier)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">無料の Gemini キーで足りるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know whether a free Gemini key is enough</span></li>
+                        <li><span class="ja">AI 判定が遅い、レート制限に当たる</span><span class="lang-sep"> / </span><span class="en">AI screening is slow, or hits rate limits</span></li>
+                        <li><span class="ja">プラン（Tier）の表示が実際と違う気がする</span><span class="lang-sep"> / </span><span class="en">The plan (Tier) shown seems wrong</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「🤖 AI」タブの「AI の接続」で「プロバイダ」を Gemini にし、キーを入力して「確認して保存」を押すと、プラン表示（Tier）が現れます（取得方法は上の「APIキーのセットアップ」を参照）。</span>
                     <span class="en">Set "Provider" to Gemini in "AI connection" on the "🤖 AI" tab, enter your key and click "Verify and save". A plan (Tier) indicator appears (see "API Key Setup" above for how to obtain a key).</span>
@@ -1231,6 +1469,14 @@
                     <span class="ja">モデル選択とカスタムモデル</span>
                     <span class="en">Model Selection and Custom Models</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">どのモデルを選べばよいか迷う</span><span class="lang-sep"> / </span><span class="en">I'm unsure which model to choose</span></li>
+                        <li><span class="ja">一覧に無いモデルを使いたい</span><span class="lang-sep"> / </span><span class="en">I want to use a model that isn't in the list</span></li>
+                        <li><span class="ja">未公開の原稿や機密の文書を AI に送ってよいか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know whether I may send unpublished or confidential documents to the AI</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">Gemini 選択時はモデル欄の近くに、無料枠で送信内容が製品改善や人による閲覧に使われ得ることを表示します。無料枠かどうかはこの注記では判定しません。未公開原稿・機密文書には有料の API キーを使い、<a href="#ai-limitations">AI の制約</a>を確認してください。</span>
                     <span class="en">When Gemini is selected, a notice near the model field explains that free-tier submissions may be used for product improvement and read by humans. The notice does not determine your tier. Use a paid API key for unpublished or confidential documents and see <a href="#ai-limitations">AI limitations</a>.</span>
@@ -1244,6 +1490,13 @@
                     <span class="ja">判定基準のカスタマイズ</span>
                     <span class="en">Customizing Criteria</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">AI への指示（プロンプト）を自分のレビューに合わせたい</span><span class="lang-sep"> / </span><span class="en">I want to tailor the AI's instructions (prompt) to my review</span></li>
+                        <li><span class="ja">登録済みの組入・除外基準を AI の指示に使いたい</span><span class="lang-sep"> / </span><span class="en">I want to reuse my saved inclusion/exclusion criteria in the prompt</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「📋 レビュー基準」カードで、AIに与える指示（プロンプト）を編集できます。<br>
                         デフォルトのプロンプトを参考に、ご自身のレビュー基準に合わせて修正してください。<br>
@@ -1262,6 +1515,15 @@
                     <span class="ja">一括判定の実行</span>
                     <span class="en">Running Batch Screening</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">AI の一括判定を始めたい、費用の目安を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to start batch AI screening, or see the estimated cost</span></li>
+                        <li><span class="ja">一部の文献だけを AI で判定したい</span><span class="lang-sep"> / </span><span class="en">I want the AI to screen only some references</span></li>
+                        <li><span class="ja">閾値をいくつにすればよいか分からない</span><span class="lang-sep"> / </span><span class="en">I don't know what threshold to use</span></li>
+                        <li><span class="ja">失敗した分をやり直したい</span><span class="lang-sep"> / </span><span class="en">I want to retry the ones that failed</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">実行予定の下に、対象文献の題名・抄録と判定プロンプトの長さ、思考を含む出力の見込み、組み込み単価または取得済みのOpenRouter単価から概算費用を表示します（思考量で変動、単価不明は概算不可、Gemini の無料枠のキーなら課金されません）。</span>
                     <span class="en">Below the planned count, estimated cost uses target titles, abstracts, prompt length, expected output including reasoning, and built-in or fetched OpenRouter prices (reasoning varies, unknown prices cannot be estimated, and Gemini is not charged with a free-tier key).</span>
@@ -1328,6 +1590,14 @@
                     <span class="ja">AI判定が画面に出ないとき（pendingのまま）</span>
                     <span class="en">When AI Decisions Don't Show Up (Stuck as "pending")</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">AI 判定を実行したのに画面に出ない、pending のまま</span><span class="lang-sep"> / </span><span class="en">I ran AI screening, but nothing shows on screen, or it stays pending</span></li>
+                        <li><span class="ja">閾値の確定を忘れて画面を離れてしまった</span><span class="lang-sep"> / </span><span class="en">I left the screen without confirming the threshold</span></li>
+                        <li><span class="ja">何回か実行したうち、どれを判定に使うか選びたい</span><span class="lang-sep"> / </span><span class="en">I ran it several times and want to choose which run to use</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">AI判定は、<strong>Include閾値を確定するまでDecisionsシート上で
                             <code>pending</code> のまま</strong>で、画面上の判定にも反映されません。実際に判定として使われるのは「確定済み」かつ「判定に使用」に選ばれているRunだけです。一括実行の直後に「判定が全部pendingのまま」に見えたら、まずこの閾値確定を行ったかどうかを確認してください。</span>
@@ -1387,6 +1657,15 @@
                     <span class="ja">AI 判定の検証と限界</span>
                     <span class="en">Validation and Limitations of AI Screening</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">モデル一覧の Recall の数字をどこまで信じてよいか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how far to trust the Recall figures in the model list</span></li>
+                        <li><span class="ja">自分のレビューで AI の見落とし率を確かめたい</span><span class="lang-sep"> / </span><span class="en">I want to check the AI's miss rate in my own review</span></li>
+                        <li><span class="ja">論文に AI の使い方と検証の結果をどう書くか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how to report AI use and its validation in my paper</span></li>
+                        <li><span class="ja">抄録や PDF をどこへ送っているか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know where abstracts and PDFs are sent</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">モデル一覧に出る Recall（見落とさずに拾えた割合）は、開発者が手元のデータで測った値です。あなたのレビューでも同じ性能が出るとは限りません。次の限界を踏まえ、AI の判定はレビューごとに人の判定と突き合わせて確かめてから使ってください。</span>
                     <span class="en">The Recall figures shown in the model list (the share of eligible records the AI
@@ -1468,6 +1747,13 @@
                     <span class="ja">3つのサブビュー</span>
                     <span class="en">Three Sub-Views</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文タブの画面の切り替え方が分からない</span><span class="lang-sep"> / </span><span class="en">I don't know how to switch views in the full-text tab</span></li>
+                        <li><span class="ja">全文の PDF の取得・AI 判定・集計がどこにあるか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to find where PDF retrieval, AI screening, and results are</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">フルテキストタブの上部にある3つのボタンで表示を切り替えます。</span>
                     <span class="en">Three buttons at the top of the Full-text tab switch between views.</span>
@@ -1493,6 +1779,14 @@
                     <span class="ja">候補（対象文献）の決まり方</span>
                     <span class="en">How Candidates Are Determined</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の候補リストに文献が出ない、0件と表示される</span><span class="lang-sep"> / </span><span class="en">No references appear in the full-text candidate list, or it shows 0</span></li>
+                        <li><span class="ja">どの文献が全文の対象になるのか知りたい、候補のルールを変えたい</span><span class="lang-sep"> / </span><span class="en">I want to know which references go to full text, or change the candidate rule</span></li>
+                        <li><span class="ja">人によって候補リストが違う</span><span class="lang-sep"> / </span><span class="en">Different people see different candidate lists</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">人の voter が無く AI の voter があるルールでは、編集・保存時に警告が出ますが保存はできます。AI が除外した文献は人の目を通らないため、レビュー内で AI の見落とし率を確かめてから使ってください。</span>
                     <span class="en">Rules with AI voters and no human voters show a warning during editing and saving, but can still be saved. Records excluded by AI will not be seen by a human; evaluate the AI miss rate within your review before using such rules.</span>
@@ -1525,6 +1819,14 @@
                     <span class="ja">セットアップチェックリスト</span>
                     <span class="en">Setup Checklist</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">他の人がアップロードした PDF が読めない</span><span class="lang-sep"> / </span><span class="en">I can't open PDFs that others uploaded</span></li>
+                        <li><span class="ja">セットアップの4項目の意味を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know what the four setup items mean</span></li>
+                        <li><span class="ja">「リンクを知っている全員」の共有設定について警告が出た</span><span class="lang-sep"> / </span><span class="en">A warning appeared about "Anyone with the link" sharing</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">候補リストの上部に、バージョン・担当グループ・PDF読み取り権限・判定進捗の番号付き4項目を状態から自動判定する
                         「セットアップ」パネルが表示されます。特に「PDF読み取り権限」は、他のメンバーがアップロードしたPDFが drive.file
@@ -1559,6 +1861,14 @@
                     <span class="ja">担当割り当て</span>
                     <span class="en">Assignment</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の判定をメンバーで分担したい</span><span class="lang-sep"> / </span><span class="en">I want to split full-text screening among members</span></li>
+                        <li><span class="ja">割り振った後に候補が増えた</span><span class="lang-sep"> / </span><span class="en">New candidates appeared after I assigned the groups</span></li>
+                        <li><span class="ja">自分の担当グループだけを表示したい</span><span class="lang-sep"> / </span><span class="en">I want to see only my assigned groups</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">候補プールが確定した後、管理者は「担当割り振り」行（候補ルール行の下）のボタン（未設定時は「分担を設定」）から、候補文献をグループに分けて担当レビュアーへ割り振れます。割り振りが未設定の場合は、全員が全候補を判定します。割り振り後に新しく候補入りした未割り当ての文献は、「割り振り後に候補入りした未割り当ての文献が◯件あります」という案内とともに表示される「既存グループへ配分」ボタンで後から割り振れます。</span>
                     <span class="en">Once the candidate pool is fixed, admins can split candidates into groups and
@@ -1592,6 +1902,14 @@
                     <span class="ja">全文PDFの取得</span>
                     <span class="en">Retrieving Full-Text PDFs</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の PDF をまとめて集めたい</span><span class="lang-sep"> / </span><span class="en">I want to collect full-text PDFs in bulk</span></li>
+                        <li><span class="ja">PDF が取れなかった文献に、手元の PDF を入れたい</span><span class="lang-sep"> / </span><span class="en">I want to upload my own PDF for a reference that couldn't be retrieved</span></li>
+                        <li><span class="ja">リンクだけの文献が「未入手」のまま</span><span class="lang-sep"> / </span><span class="en">References with only a link stay "not retrieved"</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">「⬇ フリー全文を一括検索」ボタンで、PMC OA・Europe PMC・出版社・Unpaywall・OpenAlexなどのオープンアクセス経路を順に検索します。取得できたPDFはプロジェクトのGoogle Driveフォルダへ自動保存され、取得できない場合はDOI/PubMedへのリンクのみ記録されます。文献1件ずつの「🔍 取得を試す」ボタンや、手元のPDFファイルをアップロードするボタンも利用できます。全文がDriveに保存されていない文献のカードには、DOI・PubMed・Google Scholarへのボタンが出ます（DOIやPMIDの無い文献では、そのボタンは出ません）。Google ScholarはDOIで検索し、DOIが無ければタイトルの完全一致で検索します。候補リストの表示切替で「入手済み」に数えるのはDriveにPDFを保存した文献だけで、リンクのみの文献は「未入手」に入ります。AI一括判定の対象になるのもDrive保存済みだけなので、リンクのみの文献はPDFをアップロードしてください。</span>
                     <span class="en">The "⬇ Fetch free full texts" button checks open-access sources in order
@@ -1610,6 +1928,14 @@
                     <span class="ja">Driveに直接置いたPDFの取り込み</span>
                     <span class="en">Importing PDFs Placed Directly in Drive</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">Drive に自分で置いた PDF が候補として認識されない</span><span class="lang-sep"> / </span><span class="en">PDFs I put in Drive myself aren't recognized</span></li>
+                        <li><span class="ja">取り込んだ PDF を別の文献に付け直したい</span><span class="lang-sep"> / </span><span class="en">I want to link an imported PDF to a different reference</span></li>
+                        <li><span class="ja">「既に取り込み済みの可能性があります」と出た</span><span class="lang-sep"> / </span><span class="en">"This may already have been imported" appeared</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">拡張機能を経由せずGoogle Driveフォルダへ直接保存したPDFは、そのままでは候補として認識されません。「Driveに直接置かれたPDFを取り込む」ボタンからPickerでPDFを選択すると、ファイル名やタイトルをもとに対応する文献の候補が自動的に提案されます（Pickerでは共有ドライブ上のフォルダもナビゲーションから辿れます）。内容を確認して実行すると、プロジェクト用フォルダへPDFがコピーされ、対応する文献に紐付けられます。取り込み完了後は、元ファイルをゴミ箱へ移動するかどうかも選べます。</span>
                     <span class="en">PDFs saved directly to the Drive folder (without going through the extension)
@@ -1647,6 +1973,14 @@
                     <span class="ja">レジストリ連携（試験登録レコードから結果論文を探す）</span>
                     <span class="en">Registry Linkage (Finding Result Publications from Trial Registrations)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">ClinicalTrials.gov や ICTRP の登録レコードから結果論文を探したい</span><span class="lang-sep"> / </span><span class="en">I want to find results papers from ClinicalTrials.gov or ICTRP records</span></li>
+                        <li><span class="ja">登録レコードを開くと PDF ではなくスナップショットが出る</span><span class="lang-sep"> / </span><span class="en">A registry record shows a snapshot instead of a PDF</span></li>
+                        <li><span class="ja">見つかった論文の候補を文献に加えたい</span><span class="lang-sep"> / </span><span class="en">I want to add a found paper candidate to my references</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ClinicalTrials.gov CSVやICTRP XMLからインポートした行は<strong>試験登録レコード</strong>として扱われます。これらの行には論文としての全文が存在しないため、「⬇ フリー全文を一括検索」を実行しても通常のオープンアクセス検索（PMC OA・Europe PMC・Unpaywall・OpenAlex）には入らず、代わりに登録内容そのものをHTMLスナップショットにしてDriveへ保存します。カードをクリックすると、PDFの代わりにこのスナップショットが表示され、「💾 PDFとして保存」で印刷ダイアログからPDF化できます。ツールバーの「実PDFで差し替える」でプロトコル文書などの実PDFに置き換えたり、「スナップショットを削除」で取り直したりもできます。</span>
                     <span class="en">Rows imported from ClinicalTrials.gov CSV or ICTRP XML are treated as
@@ -1709,6 +2043,15 @@
                     <span class="ja">フルテキストページでの判定</span>
                     <span class="en">Making Decisions on the Full-Text Page</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の判定ページの使い方が分からない</span><span class="lang-sep"> / </span><span class="en">I don't know how to use the full-text screening page</span></li>
+                        <li><span class="ja">除外理由の選び方を知りたい、理由のリストを変えたい</span><span class="lang-sep"> / </span><span class="en">I want to know how to choose exclusion reasons, or edit the list</span></li>
+                        <li><span class="ja">「このPDFを表示できません」と出る</span><span class="lang-sep"> / </span><span class="en">"This PDF cannot be displayed" appears</span></li>
+                        <li><span class="ja">他のレビュアーの全文の判定を見たい</span><span class="lang-sep"> / </span><span class="en">I want to see other reviewers' full-text decisions</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">候補リストのカードをクリックすると、PDFと判定パネルが並んだフルテキストページ（新しいタブ）が開きます。</span>
                     <span class="en">Clicking a card in the candidate list opens the full-text page (a new tab) with
@@ -1810,6 +2153,15 @@
                     <span class="ja">AI一括判定</span>
                     <span class="en">Batch AI Screening</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の PDF を AI でまとめて判定したい</span><span class="lang-sep"> / </span><span class="en">I want the AI to screen full-text PDFs in bulk</span></li>
+                        <li><span class="ja">Gemini 以外のプロバイダで全文を AI 判定したい</span><span class="lang-sep"> / </span><span class="en">I want to use a provider other than Gemini for full-text AI screening</span></li>
+                        <li><span class="ja">AI 判定に失敗した文献がある（権限・認証切れなど）</span><span class="lang-sep"> / </span><span class="en">Some references failed AI screening (permissions, expired sign-in, and so on)</span></li>
+                        <li><span class="ja">どの実行結果（ラウンド）を採用するか切り替えたい</span><span class="lang-sep"> / </span><span class="en">I want to switch which run (round) is adopted</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">実行ボタンの近くに PDF の送信と著作権の注記を表示します。閲覧の許諾があっても出版社の利用条件によって AI への送信が認められていないことがあるため、<a href="#ai-limitations">AI の制約</a>も確認してください。</span>
                     <span class="en">A notice near the run button explains PDF transmission and copyright. Permission to read may not permit sending a PDF to AI under publisher terms; also see <a href="#ai-limitations">AI limitations</a>.</span>
@@ -1843,6 +2195,15 @@
                     <span class="ja">判定後レビュー</span>
                     <span class="en">Post-Decision Review</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">全文の段階の PRISMA の数を出したい、CSV・RIS に書き出したい</span><span class="lang-sep"> / </span><span class="en">I want the PRISMA numbers for full text, or to export CSV/RIS</span></li>
+                        <li><span class="ja">判定が割れた文献を裁定したい、裁定の理由を残したい</span><span class="lang-sep"> / </span><span class="en">I want to adjudicate disagreements and record why</span></li>
+                        <li><span class="ja">「未解消の不一致」が残っていると出る</span><span class="lang-sep"> / </span><span class="en">It says unresolved conflicts remain</span></li>
+                        <li><span class="ja">レジストリ連携で見つけた論文の数え方を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know how papers found through registry linkage are counted</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">AI のみを判定者に選んだ場合や、選択した判定者の人の票が無い文献がある場合は、AI だけで決まった件数と、そのうちの除外件数を警告に表示します。合議の OR ルールは変わりません。論文用テキストでは、通常の人の判定が無い場合、人の裁定が採用された文献数と残りの AI のみの評価を区別します。裁定も無ければ AI のみの評価と記します。</span>
                     <span class="en">When only AI judges are selected, or reports have no human votes among the selected judges, a warning shows the number decided by AI alone and the number excluded. The OR consensus rule is unchanged. When there are no regular human judges, manuscript text distinguishes reports with an adopted human adjudication from the remaining model-only decisions. With no adjudications, it identifies assessment by AI alone.</span>
@@ -1923,6 +2284,14 @@
                     <span class="ja">共有ダイアログ</span>
                     <span class="en">Share Dialog</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">共同研究者を追加したい、招待の文面を送りたい</span><span class="lang-sep"> / </span><span class="en">I want to add collaborators or send an invitation message</span></li>
+                        <li><span class="ja">共有した人のアクセスを外したい</span><span class="lang-sep"> / </span><span class="en">I want to remove someone's access</span></li>
+                        <li><span class="ja">アクセスを外したのに一覧に残っている</span><span class="lang-sep"> / </span><span class="en">I removed access, but the person is still listed</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ツールバーの「👤 共有」ボタンから、共同編集者をGoogleアカウント（メールアドレス）で追加できます。</span>
                     <span class="en">Use the "👤 Share" button in the toolbar to add collaborators by their Google
@@ -1968,6 +2337,14 @@
                     <span class="ja">他者の判定の表示／非表示（キー開封）</span>
                     <span class="en">Showing or hiding others' decisions (opening the key)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">他のレビュアーの判定や不一致を見たい</span><span class="lang-sep"> / </span><span class="en">I want to see other reviewers' decisions and conflicts</span></li>
+                        <li><span class="ja">判定の表示を切り替えるスイッチが見当たらない</span><span class="lang-sep"> / </span><span class="en">I can't find the switch that shows others' decisions</span></li>
+                        <li><span class="ja">キー開封が何をするのか知りたい</span><span class="lang-sep"> / </span><span class="en">I want to know what opening the key does</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">画面のラベルは、現在の状態に応じて「他者の判定は非表示」または「他者の判定を表示中」に切り替わります。</span>
                     <span class="en">The on-screen label reflects the current state: "Others' decisions hidden" or "Others' decisions shown".</span>
@@ -2008,6 +2385,14 @@
                     <span class="ja">🤝 合議モード</span>
                     <span class="en">🤝 Consensus Mode</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">不一致をみんなで話し合って判定し直したい</span><span class="lang-sep"> / </span><span class="en">We want to discuss conflicts and decide again together</span></li>
+                        <li><span class="ja">合議の前と後の一致率（κ）を分けて出したい</span><span class="lang-sep"> / </span><span class="en">I want agreement (kappa) before and after discussion separately</span></li>
+                        <li><span class="ja">合議モードのチェックボックスが出ない</span><span class="lang-sep"> / </span><span class="en">The consensus mode checkbox doesn't appear</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">レビュアー同士が集まって不一致を話し合い、判定をすり合わせる「合議」のためのチェックボックスです。TiAbタブ（手動タブ）の判定者フィルター付近にあり、<strong>キー開封中のみ表示されます</strong>（合議は他者の判定が非表示の間には成立しないため）。ONにしている間に保存した判定は「合議による判定」として記録され、各レビュアーが独立に付けた初回判定と区別できるようになります。ONの間は判定ボタンの上に「🤝 合議モードで判定中」のバッジが出るので、切り忘れたまま通常の判定を続ける事故を防げます。</span>
                     <span class="en">A checkbox for "consensus" sessions, where reviewers meet to discuss
@@ -2039,6 +2424,14 @@
                     <span class="ja">チーム進捗パネル</span>
                     <span class="en">Team Progress Panel</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">メンバーの進み具合を知りたい</span><span class="lang-sep"> / </span><span class="en">I want to see each member's progress</span></li>
+                        <li><span class="ja">⚠ が付いたメンバーがいる</span><span class="lang-sep"> / </span><span class="en">A member is marked with ⚠</span></li>
+                        <li><span class="ja">AI の判定が件数に入らない</span><span class="lang-sep"> / </span><span class="en">AI decisions aren't counted</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">TiAbタブ（ツールバーの⚙️ボタン右側のチップ）とフルテキストタブ（候補ルール行の下にインライン表示）の両方で、チームメンバー全員の進捗を確認できます。表示されるのは各メンバーの判定件数と最終判定日時のみで、ブラインディングを維持するためInclude/Exclude等の内訳は表示されません。件数にカウントされるのは人間の判定と確定済みのML判定のみで、AI（LLM）判定や未確定（pending）の判定行はカウントに含まれません。データは🔄ボタンで再取得します（自分の判定を保存した場合は即時反映されます）。残作業があり3日以上判定がないメンバーには⚠が表示されます。プロジェクトメンバーが1人だけの場合は、パネル自体が表示されません。</span>
                     <span class="en">Every team member's progress can be checked both from the TiAb tab (the chip to
@@ -2056,6 +2449,13 @@
                     <span class="ja">共有シートを初めて開く場合</span>
                     <span class="en">Opening a shared sheet for the first time</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">招待されたシートに接続したら「Googleで許可する」と出た</span><span class="lang-sep"> / </span><span class="en">"Allow with Google" appeared when I connected to a shared sheet</span></li>
+                        <li><span class="ja">Picker に目的のシートが出てこない</span><span class="lang-sep"> / </span><span class="en">The sheet I need doesn't appear in the Picker</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">共同研究者が作成したスプレッドシートをURLで接続すると、初回のみ「Googleで許可する」ボタンが表示されることがあります。開いたGoogle Pickerページで対象シートを選択すると、拡張機能のパネルが自動で再接続します。対象シートが表示されない場合は、先にGoogle Driveでそのシートが自分のGoogleアカウントに共有されているか確認してください。</span>
                     <span class="en">When you connect to a spreadsheet created by a collaborator by URL, an "Allow with Google" button may appear the first time. Select the target sheet on the Google Picker page that opens, and the extension panel will reconnect automatically. If the target sheet is not shown, first confirm in Google Drive that the sheet is shared with your Google account.</span>
@@ -2092,6 +2492,14 @@
                     <span class="ja">できること</span>
                     <span class="en">What You Can Do</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">拡張機能を入れずに、スマートフォンやタブレットで判定したい</span><span class="lang-sep"> / </span><span class="en">I want to screen on a phone or tablet without the extension</span></li>
+                        <li><span class="ja">「未送信」が表示される、判定が送れない</span><span class="lang-sep"> / </span><span class="en">"Unsent" is shown, or my decisions won't send</span></li>
+                        <li><span class="ja">1時間でログインが切れた</span><span class="lang-sep"> / </span><span class="en">My sign-in expired after an hour</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja">Googleアカウントでのログイン</span>
@@ -2133,6 +2541,13 @@
                     <span class="ja">できないこと（Chrome拡張機能版のみの機能）</span>
                     <span class="en">What You Can't Do (Chrome Extension Only)</span>
                 </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">Web 版で ML・AI・全文のタブが見当たらない</span><span class="lang-sep"> / </span><span class="en">I can't find the ML, AI, or full-text tabs in the web version</span></li>
+                        <li><span class="ja">Web 版で新しいプロジェクトを作りたい、ファイルを取り込みたい</span><span class="lang-sep"> / </span><span class="en">I want to create a project or import files in the web version</span></li>
+                    </ul>
+                </div>
                 <ul>
                     <li>
                         <span class="ja">MLスクリーニング（機械学習支援）</span>
@@ -2252,6 +2667,13 @@
                     <span class="ja">判断後に自動的に次の文献に遷移する</span>
                     <span class="en">Auto-advance after decision</span>
                 </h4>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">判定すると勝手に次の文献へ進んでしまう</span><span class="lang-sep"> / </span><span class="en">It jumps to the next reference after each decision</span></li>
+                        <li><span class="ja">判定した後もその文献にとどまりたい</span><span class="lang-sep"> / </span><span class="en">I want to stay on the reference after deciding</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ON（デフォルト）: 判定後、自動的に次の文献へ移動<br>OFF: 判定後もその場にとどまり、手動で移動</span>
                     <span class="en">ON (default): Auto-advance after making a decision<br>OFF: Stay on current
@@ -2262,6 +2684,12 @@
                     <span class="ja">進捗表示を下部に表示</span>
                     <span class="en">Show progress at bottom</span>
                 </h4>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">進捗の表示位置を変えたい</span><span class="lang-sep"> / </span><span class="en">I want to move where progress is shown</span></li>
+                    </ul>
+                </div>
                 <p>
                     <span class="ja">ON（デフォルト）: ナビゲーションエリアに進捗表示<br>OFF: タイトル上部の目立つ位置に進捗表示</span>
                     <span class="en">ON (default): Show progress in navigation area<br>OFF: Show progress prominently
