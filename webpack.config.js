@@ -220,6 +220,7 @@ function buildExtensionConfig(env, argv) {
                 __EXTENSION_OAUTH_CLIENT_ID__: JSON.stringify(webauthClientId ?? ''),
                 __PICKER_PAGE_URL__: JSON.stringify(pickerPageUrl),
                 __DEMO__: JSON.stringify(isDemo),
+                __WEB_BUILD__: false,
             }),
             ...(isDemo
                 ? [
@@ -419,6 +420,7 @@ function buildWebConfig(env, argv) {
                 __GCP_PROJECT_NUMBER__: JSON.stringify(gcpProjectNumber ?? ''),
                 __PICKER_PAGE_URL__: JSON.stringify(resolvePickerPageUrlOverride(isProduction)),
                 __APP_VERSION__: JSON.stringify(packageJson.version),
+                __WEB_BUILD__: true,
             }),
             new CopyPlugin({
                 patterns: [

@@ -43,8 +43,8 @@ test('実物の全小節と「こんなとき」の件数・本文を両言語�
     const source = readFileSync('docs/help.html', 'utf8');
     const ids = [...source.matchAll(/<h[34] id="([^"]+)"/g)].map(match => match[1]);
     const whenCount = [...source.matchAll(/<div class="help-when">/g)].length;
-    assert.equal(ids.length, 64);
-    assert.equal(whenCount, 51);
+    assert.equal(ids.length, 65);
+    assert.equal(whenCount, 52);
     for (const lang of ['ja', 'en']) {
         const sections: HelpSection[] = parseHelpSections(source, lang);
         assert.deepEqual(sections.map(section => section.id), ids);

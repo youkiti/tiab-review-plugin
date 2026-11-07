@@ -80,6 +80,26 @@ function buildActions(topicId: GuideTopicId, anchor: HTMLElement): GuideAction[]
             run: () => { void toggleGuideTourList(anchor); },
         });
     }
+    if (!__WEB_BUILD__ && platform().capabilities.llm) {
+        actions.push({
+            id: 'consult',
+            label: t('guideExt_consult_action'),
+            run: () => {
+                void import(/* webpackChunkName: "help-consult" */ './consult').then(feature => {
+                    feature.openHelpConsult(topicId, {
+                        available: () => availableTours(currentGuidePlatform(), undefined, computeGuideConditions())
+                            .filter(tour => tour.page === 'sidepanel').map(tour => tour.id),
+                        start: startGuideTour,
+                    });
+                }).catch(error => {
+                    // 失敗の通知部品をこのチャンクから import すると、初期 JS 側でその部品が
+                    // まとめられなくなり Web 版の初期 JS が増えるため、記録してヘルプを開くだけにする。
+                    console.error('[guide] 相談の小窓を読み込めませんでした:', error);
+                    platform().openExternal(buildHelpUrl(topicId, uiLanguage()));
+                });
+            },
+        });
+    }
     return actions;
 }
 

@@ -4866,5 +4866,115 @@
         "content": "$1"
       }
     }
+  },
+  "guideExt_consult_action": {
+    "message": "相談する"
+  },
+  "guideExt_consult_title": {
+    "message": "ヘルプに相談する"
+  },
+  "guideExt_consult_question": {
+    "message": "質問（1,000文字まで）"
+  },
+  "guideExt_consult_search": {
+    "message": "ヘルプを探す"
+  },
+  "guideExt_consult_loading": {
+    "message": "ヘルプを読み込んでいます…"
+  },
+  "guideExt_consult_currentHelp": {
+    "message": "この画面のヘルプ"
+  },
+  "guideExt_consult_searchEmpty": {
+    "message": "見つかりませんでした。言い換えるか、AI に聞いてください。"
+  },
+  "guideExt_consult_openHelp": {
+    "message": "📖 ヘルプを開く"
+  },
+  "guideExt_consult_startTour": {
+    "message": "🧭 ツアーを始める"
+  },
+  "guideExt_consult_ask": {
+    "message": "AI に聞く"
+  },
+  "guideExt_consult_abort": {
+    "message": "中止"
+  },
+  "guideExt_consult_sendNotice": {
+    "message": "$1（$2）に、質問と、AI が選んだヘルプの一部を送ります。文献・判定・メールアドレスは送りません。",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
+  "guideExt_consult_no_key": {
+    "message": "AI タブの「AI の接続」で API キーを登録すると使えます。"
+  },
+  "guideExt_consult_batchRunning": {
+    "message": "AI 一括判定の実行中は相談できません。判定が終わってから押してください。"
+  },
+  "guideExt_consult_empty": {
+    "message": "質問を入力してください。"
+  },
+  "guideExt_consult_running": {
+    "message": "AI に問い合わせています…"
+  },
+  "guideExt_consult_accuracy": {
+    "message": "AI の回答は誤ることがあります。手順はヘルプの本文で確かめてください。"
+  },
+  "guideExt_consult_noMatch": {
+    "message": "ヘルプに該当する説明が見つかりませんでした。"
+  },
+  "guideExt_consult_rate_limited": {
+    "message": "利用枠の上限に達しました。少し待ってからもう一度押してください。"
+  },
+  "guideExt_consult_auth": {
+    "message": "API キーが無効か、権限がありません。"
+  },
+  "guideExt_consult_timeout": {
+    "message": "応答が時間内に届きませんでした。もう一度押してください。"
+  },
+  "guideExt_consult_network": {
+    "message": "通信できませんでした。接続を確認してください。"
+  },
+  "guideExt_consult_invalid_response": {
+    "message": "AI の応答を読み取れませんでした。もう一度押してください。"
+  },
+  "guideExt_consult_unknown": {
+    "message": "問い合わせに失敗しました。もう一度押してください。"
+  },
+  "guideExt_consult_aborted": {
+    "message": "問い合わせを中止しました。"
+  },
+  "guideExt_consult_unsupported_provider": {
+    "message": "この AI プロバイダは相談に対応していません。"
+  },
+  "guideExt_consult_unresolved": {
+    "message": "解決しない場合"
+  },
+  "guideExt_consult_draftPreview": {
+    "message": "公開される下書き（投稿前に内容を確認してください。GitHub の画面で編集できます）"
+  },
+  "guideExt_consult_github": {
+    "message": "GitHub で質問・報告する"
+  },
+  "guideExt_consult_copy": {
+    "message": "文面をコピー"
+  },
+  "guideExt_consult_copyFailed": {
+    "message": "文面をコピーできませんでした。下書きの欄から手動でコピーしてください。"
+  },
+  "guideExt_consult_noGithub": {
+    "message": "GitHub のアカウントが無い場合は、この文面をコピーして、プロジェクトの管理者や、このツールを紹介した人に相談してください。"
+  },
+  "guideExt_consult_loadFailed": {
+    "message": "ヘルプを読み込めませんでした。"
+  },
+  "guideExt_consult_tourFailed": {
+    "message": "ツアーを開始できませんでした。"
   }
 }
