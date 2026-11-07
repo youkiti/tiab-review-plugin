@@ -108,3 +108,43 @@ export function capTargetPagesByBytes(
     }
     return result;
 }
+
+/**
+ * ページごとの実体化ジョブを世代で区別し、同じ世代の進行中の処理だけを共有する。
+ * 解放をまたいで古いジョブを使い回すと、canvas の無いページに文字層だけが書かれて白紙が残る。
+ */
+export class MaterializeJobs {
+    private epochs = new Map<number, number>();
+    private pending = new Map<number, Promise<void>>();
+
+    run(pageNumber: number, start: (epoch: number) => Promise<void>): Promise<void> {
+        const existing = this.pending.get(pageNumber);
+        if (existing) {
+            return existing;
+        }
+        const epoch = this.epochs.get(pageNumber) ?? 0;
+        let started: Promise<void>;
+        try {
+            started = start(epoch);
+        } catch (err) {
+            return Promise.reject(err);
+        }
+        const promise = started.finally(() => {
+            // 古いジョブの完了で、解放後に始まった新しいジョブの登録を消さない。
+            if (this.pending.get(pageNumber) === promise) {
+                this.pending.delete(pageNumber);
+            }
+        });
+        this.pending.set(pageNumber, promise);
+        return promise;
+    }
+
+    invalidate(pageNumber: number): void {
+        this.epochs.set(pageNumber, (this.epochs.get(pageNumber) ?? 0) + 1);
+        this.pending.delete(pageNumber);
+    }
+
+    isCurrent(pageNumber: number, epoch: number): boolean {
+        return epoch === (this.epochs.get(pageNumber) ?? 0);
+    }
+}

@@ -13,6 +13,8 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 - 接続時に編集権限がないと確定した場合は TiAb・ML の判定を止め、アカウントと対処を表示します。途中で権限不足になった場合は未送信件数つきの警告を表示し続け、未送信が残る間は完了表示を出しません。AI 判定には影響しません。
   TiAb and ML decisions are blocked when the sheet is confirmed to be read-only at connection, with the account and recovery steps shown. If edit access is lost during screening, a persistent warning shows the unsent count. Screening is not shown as complete while decisions remain unsent. AI screening is unaffected.
+- 全文の判定ページで、根拠カードから別のページへ飛んだ後に1ページ目のカードへ戻ると、1ページ目が白紙のまま描かれないことがある不具合を直しました。AI 判定には影響しません。
+  Fixed an issue on the full-text screening page where page 1 could stay blank after jumping from an evidence card to another page and then back to a page-1 card. AI screening is unaffected.
 
 ## v0.57.0（2026-11-07）
 

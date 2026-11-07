@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { normalizeWithMap, findQuoteItems, bboxToRect } from '../src/fulltext/pdf-text-match';
 
 // テキストアイテム配列から rawText と charItemIndex を構築するテスト用ヘルパー
-// （pdf-renderer の buildTextIndex と同じ規約: アイテム連結 + EOL 改行）
+// （pdf-text-index の buildTextIndex と同じ規約: アイテム連結 + EOL 改行）
 function buildIndex(items: Array<{ str: string; eol?: boolean }>): { raw: string; charItemIndex: number[] } {
     let raw = '';
     const charItemIndex: number[] = [];
