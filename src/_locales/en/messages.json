@@ -4866,5 +4866,115 @@
         "content": "$1"
       }
     }
+  },
+  "guideExt_consult_action": {
+    "message": "Ask for help"
+  },
+  "guideExt_consult_title": {
+    "message": "Ask about the help"
+  },
+  "guideExt_consult_question": {
+    "message": "Question (up to 1,000 characters)"
+  },
+  "guideExt_consult_search": {
+    "message": "Search help"
+  },
+  "guideExt_consult_loading": {
+    "message": "Loading help…"
+  },
+  "guideExt_consult_currentHelp": {
+    "message": "Help for this screen"
+  },
+  "guideExt_consult_searchEmpty": {
+    "message": "No results found. Try different words or ask the AI."
+  },
+  "guideExt_consult_openHelp": {
+    "message": "📖 Open help"
+  },
+  "guideExt_consult_startTour": {
+    "message": "🧭 Start tour"
+  },
+  "guideExt_consult_ask": {
+    "message": "Ask the AI"
+  },
+  "guideExt_consult_abort": {
+    "message": "Stop"
+  },
+  "guideExt_consult_sendNotice": {
+    "message": "Your question and the help excerpts selected by the AI will be sent to $1 ($2). References, decisions, and email addresses will not be sent.",
+    "placeholders": {
+      "1": {
+        "content": "$1"
+      },
+      "2": {
+        "content": "$2"
+      }
+    }
+  },
+  "guideExt_consult_no_key": {
+    "message": "Add an API key under “AI connection” in the AI tab to use this feature."
+  },
+  "guideExt_consult_batchRunning": {
+    "message": "AI screening is running. Wait until it finishes before asking."
+  },
+  "guideExt_consult_empty": {
+    "message": "Enter a question."
+  },
+  "guideExt_consult_running": {
+    "message": "Asking the AI…"
+  },
+  "guideExt_consult_accuracy": {
+    "message": "AI answers can be wrong. Check the steps in the help text."
+  },
+  "guideExt_consult_noMatch": {
+    "message": "No relevant explanation was found in the help."
+  },
+  "guideExt_consult_rate_limited": {
+    "message": "The usage limit has been reached. Wait a while, then press the button again."
+  },
+  "guideExt_consult_auth": {
+    "message": "The API key is invalid or lacks permission."
+  },
+  "guideExt_consult_timeout": {
+    "message": "The response timed out. Press the button to try again."
+  },
+  "guideExt_consult_network": {
+    "message": "Could not connect. Check your connection."
+  },
+  "guideExt_consult_invalid_response": {
+    "message": "Could not read the AI response. Press the button to try again."
+  },
+  "guideExt_consult_unknown": {
+    "message": "The request failed. Press the button to try again."
+  },
+  "guideExt_consult_aborted": {
+    "message": "The request was stopped."
+  },
+  "guideExt_consult_unsupported_provider": {
+    "message": "This AI provider does not support help consultation."
+  },
+  "guideExt_consult_unresolved": {
+    "message": "Still need help?"
+  },
+  "guideExt_consult_draftPreview": {
+    "message": "Public draft (check the contents before posting; you can edit it on GitHub)"
+  },
+  "guideExt_consult_github": {
+    "message": "Ask or report on GitHub"
+  },
+  "guideExt_consult_copy": {
+    "message": "Copy draft"
+  },
+  "guideExt_consult_copyFailed": {
+    "message": "Could not copy the draft. Select and copy it manually from the preview."
+  },
+  "guideExt_consult_noGithub": {
+    "message": "If you do not have a GitHub account, copy this draft and ask your project's admin or the person who introduced you to this tool."
+  },
+  "guideExt_consult_loadFailed": {
+    "message": "Could not load the help."
+  },
+  "guideExt_consult_tourFailed": {
+    "message": "Could not start the tour."
   }
 }

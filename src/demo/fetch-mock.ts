@@ -475,13 +475,20 @@ function routeGoogleApis(pathname: string, url: URL, method: string, body: any):
 
 /**
  * `/v1beta/models`、`/v1beta/models/{model}:streamGenerateContent`、
- * `/v1beta/models/{model}:batchGenerateContent`（tier プローブ）に対応する。
+ * `/v1beta/models/{model}:batchGenerateContent`（tier プローブ）と非ストリームの相談に対応する。
  * APIキーの値そのものは一切検証しない（デモでは何を入力しても通す）。
  */
-function routeGeminiApi(pathname: string, method: string, body: any): Response | null {
+async function routeGeminiApi(pathname: string, method: string, body: any): Promise<Response | null> {
     if (pathname === '/v1beta/models') {
         if (method !== 'GET') return null;
         return jsonResponse(200, buildDemoModelsListBody());
+    }
+
+    if (!__WEB_BUILD__ && /^\/v1beta\/models\/[^:]+:generateContent$/.test(pathname)) {
+        if (method !== 'POST') return null;
+        // 相談のないWebデモにはモックも含めず、拡張デモでは追加チャンクを作らない。
+        const { buildDemoConsultResponse } = await import(/* webpackMode: "eager" */ './help-consult-fixtures');
+        return jsonResponse(200, buildDemoConsultResponse(body ?? {}));
     }
 
     const streamMatch = pathname.match(/^\/v1beta\/models\/([^:]+):streamGenerateContent$/);
@@ -723,7 +730,7 @@ export function installDemoFetchMock(): void {
             } else if (url.hostname === 'www.googleapis.com') {
                 response = await routeGoogleApis(url.pathname, url, method, body);
             } else if (url.hostname === 'generativelanguage.googleapis.com') {
-                response = routeGeminiApi(url.pathname, method, body);
+                response = await routeGeminiApi(url.pathname, method, body);
             }
 
             if (response) return finalizeDemoResponse(url, method, response, netDelayMs);

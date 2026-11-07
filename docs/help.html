@@ -657,6 +657,35 @@
                     <span class="en">Pressing the "?" on a card opens its explanation, which is the matching section of this
                         help page. On screens covered by the video tutorial, "▶ Watch video" in the balloon opens the matching chapter of the video.</span>
                 </p>
+                <h3 id="getting-started-consult">
+                    <span class="ja">困ったときに AI に相談する</span>
+                    <span class="en">Ask the AI when you're stuck</span>
+                </h3>
+                <div class="help-when">
+                    <p class="help-when-label"><span class="ja">こんなとき</span><span class="lang-sep"> / </span><span class="en">When to read this</span></p>
+                    <ul>
+                        <li><span class="ja">困っている操作の説明を探したい</span><span class="lang-sep"> / </span><span class="en">I need to find instructions for an operation</span></li>
+                        <li><span class="ja">ヘルプを読んでも分からず、質問したい</span><span class="lang-sep"> / </span><span class="en">I have read the help but still have a question</span></li>
+                        <li><span class="ja">開発者に質問・不具合を報告したい</span><span class="lang-sep"> / </span><span class="en">I want to ask the developer or report a problem</span></li>
+                    </ul>
+                </div>
+                <p>
+                    <span class="ja">拡張版のサイドパネルで「?」の吹き出しの「相談する」を押すと開きます。「ヘルプを探す」はキーワードで端末内を検索し、API キーは不要です。関連するヘルプや、今使える操作ツアーを開けます。Web 版と全文の判定ページにはありません。</span>
+                    <span class="en">In the extension side panel, choose "Ask for help" in a "?" popover. "Search help" searches locally by keyword without an API key. You can open related help or an available tour. This feature is not available in the web version or the full-text decision page.</span>
+                </p>
+                <p>
+                    <span class="ja">「AI に聞く」を押したときだけ、質問と、AI が選んだヘルプの一部を、登録済みの API キーの社の安いモデルへ送ります。送信先とモデルは押す前に表示します。文献・判定・メールアドレスは送りません。AI タブの「AI の接続」で対応する API キーを登録すると使えます。TypeSafe・ローカル LLM のキーだけの場合やキーが無い場合、AI 一括判定の実行中は AI に質問できません。検索・ツアー・下書きは使えます。</span>
+                    <span class="en">Only when you press "Ask the AI", your question and the help excerpts selected by the AI are sent to a low-cost model from a provider for which you have registered an API key. The destination and model are shown before sending. References, decisions, and email addresses are not sent. Register a supported API key under "AI connection" in the AI tab. AI questions are unavailable with only TypeSafe or local LLM configured, without a key, or while AI batch screening is running. Search, tours, and drafts remain available.</span>
+                </p>
+                <p>
+                    <span class="ja">使うモデルは Gemini 3.1 Flash-Lite、GPT-5.6 Luna、Claude Haiku 5.5、OpenRouter では DeepSeek V4 Flash です。Gemini の無料枠では送信内容や応答がサービスの改善に使われ、人が読むこともあります。一問一答で履歴を持たず、自動で再試行しません。「中止」や小窓を閉じる操作で問い合わせを中止できます。AI の回答は誤ることがあります。手順はヘルプの本文で確かめてください。</span>
+                    <span class="en">The models are Gemini 3.1 Flash-Lite, GPT-5.6 Luna, Claude Haiku 5.5, and DeepSeek V4 Flash through OpenRouter. On Gemini's free tier, submitted content and responses may be used to improve services and may be read by people. Each question stands alone, without history or automatic retries. Press "Stop" or close the window to cancel. AI answers can be wrong; verify the steps in the help text.</span>
+                </p>
+                <p>
+                    <span class="ja">解決しない場合は、公開される下書きの内容を確認して「GitHub で質問・報告する」を押してください。質問・回答・環境情報を含む下書きは GitHub で編集でき、利用者自身が投稿を押したときに公開されます。GitHub のアカウントが無い場合は、この文面をコピーして、プロジェクトの管理者や、このツールを紹介した人に相談してください。</span>
+                    <span class="en">If you still need help, check the public draft and choose "Ask or report on GitHub". The draft includes your question, answer, and environment information. You can edit it on GitHub; it becomes public only when you submit it yourself. If you do not have a GitHub account, copy this draft and ask your project's admin or the person who introduced you to this tool.</span>
+                </p>
+
             </section>
 
             <!-- ログイン画面 -->

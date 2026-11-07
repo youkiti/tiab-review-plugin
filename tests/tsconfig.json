@@ -12,6 +12,7 @@
         ]
     },
     "include": [
+        "../src/types/demo-globals.d.ts",
         "../src/lib/gemini-api.ts",
         "../src/lib/storage.ts",
         "../src/lib/i18n.ts",

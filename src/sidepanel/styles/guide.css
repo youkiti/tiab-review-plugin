@@ -114,6 +114,54 @@
     background: #e8f0fe;
 }
 
+/* 相談の小窓。狭いサイドパネルでは操作ボタンを折り返す。 */
+.guide-consult-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-wrap: anywhere;
+}
+
+.guide-consult-question,
+.guide-consult-preview {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    resize: vertical;
+    padding: 8px;
+    font: inherit;
+}
+
+.guide-consult-section {
+    margin: 8px 0;
+    padding: 10px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+}
+
+.guide-consult-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.guide-consult-actions > button {
+    width: auto;
+    flex: 0 0 auto;
+    max-width: 100%;
+    white-space: normal;
+}
+
+.guide-consult-note {
+    margin-top: 8px;
+    color: #5f6368;
+    font-size: 12px;
+}
+
+.guide-consult-answer > p {
+    white-space: pre-wrap;
+}
+
 /* ---------- ツアー（操作に連動して進む案内） ---------- */
 
 /* 強調の枠と、押せなくするための透明な覆い。位置は tour-runner.ts が fixed で合わせる */
