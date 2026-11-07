@@ -1,6 +1,119 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes } from '../src/fulltext/pdf-page-window';
+import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes, MaterializeJobs } from '../src/fulltext/pdf-page-window';
+
+function deferred() {
+    let resolve!: () => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+}
+
+test('MaterializeJobs: 同じ世代の進行中のジョブは開始せず同じ promise を返す', async () => {
+    const jobs = new MaterializeJobs();
+    const pending = deferred();
+    let starts = 0;
+    const start = (epoch: number) => {
+        starts++;
+        assert.equal(epoch, 0);
+        return pending.promise;
+    };
+    const first = jobs.run(1, start);
+    assert.equal(jobs.run(1, start), first);
+    assert.equal(starts, 1);
+    pending.resolve();
+    await first;
+});
+
+test('MaterializeJobs: 実体化開始 → 解放 → 再び対象に戻ると新しい世代で開始する', async () => {
+    const jobs = new MaterializeJobs();
+    const old = deferred();
+    const next = deferred();
+    const epochs: number[] = [];
+    const first = jobs.run(1, epoch => {
+        epochs.push(epoch);
+        return old.promise;
+    });
+    jobs.invalidate(1);
+    const second = jobs.run(1, epoch => {
+        epochs.push(epoch);
+        return next.promise;
+    });
+    assert.notEqual(first, second);
+    assert.deepEqual(epochs, [0, 1]);
+    assert.equal(jobs.isCurrent(1, 0), false);
+    assert.equal(jobs.isCurrent(1, 1), true);
+    old.resolve();
+    await first;
+    // 古いジョブが完了しても、新しいジョブの登録は残る。
+    assert.equal(jobs.run(1, () => {
+        assert.fail('新しいジョブが進行中なので開始しない');
+    }), second);
+    next.resolve();
+    await second;
+});
+
+test('MaterializeJobs: 完了後は同じ世代で次のジョブを開始する', async () => {
+    const jobs = new MaterializeJobs();
+    const epochs: number[] = [];
+    const start = (epoch: number) => {
+        epochs.push(epoch);
+        return Promise.resolve();
+    };
+    const first = jobs.run(1, start);
+    await first;
+    const second = jobs.run(1, start);
+    assert.notEqual(first, second);
+    await second;
+    assert.deepEqual(epochs, [0, 0]);
+});
+
+test('MaterializeJobs: 非同期の失敗を伝え、失敗後の登録を外す', async () => {
+    const jobs = new MaterializeJobs();
+    const pending = deferred();
+    const error = new Error('実体化失敗');
+    const first = jobs.run(1, () => pending.promise);
+    const rejected = assert.rejects(first, err => err === error);
+    pending.reject(error);
+    await rejected;
+    let restarted = false;
+    await jobs.run(1, epoch => {
+        restarted = true;
+        assert.equal(epoch, 0);
+        return Promise.resolve();
+    });
+    assert.equal(restarted, true);
+});
+
+test('MaterializeJobs: start の同期例外も promise に伝え、次の開始を妨げない', async () => {
+    const jobs = new MaterializeJobs();
+    const error = new Error('開始失敗');
+    await assert.rejects(jobs.run(1, () => {
+        throw error;
+    }), err => err === error);
+    let restarted = false;
+    await jobs.run(1, () => {
+        restarted = true;
+        return Promise.resolve();
+    });
+    assert.equal(restarted, true);
+});
+
+test('MaterializeJobs: 別ページの解放は進行中のジョブと世代に影響しない', async () => {
+    const jobs = new MaterializeJobs();
+    const pending = deferred();
+    const first = jobs.run(1, () => pending.promise);
+    jobs.invalidate(2);
+    assert.equal(jobs.isCurrent(1, 0), true);
+    assert.equal(jobs.run(1, () => {
+        assert.fail('別ページの解放では開始しない');
+    }), first);
+    pending.resolve();
+    await first;
+});
 
 function sorted(set: ReadonlySet<number>): number[] {
     return [...set].sort((a, b) => a - b);

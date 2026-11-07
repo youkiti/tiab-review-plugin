@@ -41,7 +41,7 @@
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
-import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes } from './pdf-page-window';
+import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes, MaterializeJobs } from './pdf-page-window';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
 import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-constants';
 import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
@@ -103,6 +103,8 @@ interface PageInfo {
     highlightLayer: HTMLElement;
     // 実体化中の RenderTask（キャンセル用）。実体化していない間・render完了後は null。
     renderTask: { cancel: () => void; promise: Promise<void> } | null;
+    // 実体化中の文字層も解放時にキャンセルし、解放後の DOM への追記を止める。
+    textLayerTask: { cancel: () => void } | null;
     // テキストマッチ用: 抽出テキストと、各文字がどのテキストアイテムに属するかの対応
     // （バックグラウンドの索引構築が終わるまでは空のまま。loadPdf() の解決前に全ページ分埋まる）
     rawText: string;
@@ -168,7 +170,7 @@ export class PdfRenderer {
     private materializedPages = new Set<number>();
     // ページ番号ごとの「実体化が進行中の promise」。同じページに対する materializePage() の
     // 二重起動を防ぐ（理由は materializePage() のコメント参照）。完了したら自分でエントリを消す。
-    private materializePromises = new Map<number, Promise<void>>();
+    private materializeJobs = new MaterializeJobs();
 
     /**
      * PDF上のハイライト矩形クリック時に呼ばれるコールバック（引数はハイライトid）。
@@ -188,10 +190,10 @@ export class PdfRenderer {
         this.pages = [];
         this.materializedPages = new Set();
         this.visiblePages = new Set();
-        // 進行中の materializePage() 呼び出し自体は止められないが、Map から切り離しておくことで
+        // 進行中の materializePage() 呼び出し自体は止められないが、ジョブ管理を切り離しておくことで
         // 次の loadPdf() がこのページ番号を再利用しても古い promise を誤って使い回さないようにする
         // （古い呼び出しは token チェックで自然に無害化される。ページ実体化のコメント参照）。
-        this.materializePromises = new Map();
+        this.materializeJobs = new MaterializeJobs();
         if (this.pdfDoc) {
             try { this.pdfDoc.destroy(); } catch { /* noop */ }
             this.pdfDoc = null;
@@ -231,9 +233,9 @@ export class PdfRenderer {
         this.pages = [];
         this.materializedPages = new Set();
         this.visiblePages = new Set();
-        // 古い文献の in-flight materialize と新しい文献のページ番号がMapキー上で衝突しないよう
+        // 古い文献の実体化ジョブと新しい文献のページ番号が衝突しないよう
         // 切り離す（destroy() と同じ理由。古い呼び出しは token チェックで自然に無害化される）。
-        this.materializePromises = new Map();
+        this.materializeJobs = new MaterializeJobs();
         if (this.pdfDoc) {
             try { this.pdfDoc.destroy(); } catch { /* noop */ }
             this.pdfDoc = null;
@@ -386,6 +388,7 @@ export class PdfRenderer {
             textLayerEl: textLayer,
             highlightLayer,
             renderTask: null,
+            textLayerTask: null,
             rawText: '',
             charItemIndex: [],
             itemRects: [],
@@ -394,7 +397,7 @@ export class PdfRenderer {
 
     /**
      * 指定ページを実体化する（canvas を作って render() → DOM テキストレイヤーを構築）。
-     * 同じページ番号に対する呼び出しは1本にまとめる（materializePromises で進行中の promise を
+     * 同じページ番号に対する呼び出しは1本にまとめる（materializeJobs で進行中の promise を
      * 共有する）。理由: applyWindow() は IntersectionObserver の発火のたびに独立して
      * materialize/release を判断するため、対策なしだと次の順序で二重起動しうる:
      *   1. ページNの実体化を開始（getPage(N) 待ち。この時点では canvasEl も renderTask もまだ無い）
@@ -405,30 +408,36 @@ export class PdfRenderer {
      * 最後に代入した方だけが info.canvasEl に残る。先に代入されていた canvas は DOM に残ったまま
      * releasePage()/sumCanvasBytes() のどちらからも見えなくなる（info.canvasEl 経由でしか
      * 参照していないため）。ページ単位で進行中の promise を共有し、二重起動そのものを防ぐ。
+     * 解放されたら世代が進むので、解放をまたいで古いジョブを使い回さない。
      */
     private materializePage(pageNumber: number, token: number): Promise<void> {
-        const existing = this.materializePromises.get(pageNumber);
-        if (existing) return existing;
-        const promise = this.materializePageImpl(pageNumber, token).finally(() => {
-            this.materializePromises.delete(pageNumber);
-        });
-        this.materializePromises.set(pageNumber, promise);
-        return promise;
+        return this.materializeJobs.run(pageNumber, epoch => this.materializePageImpl(pageNumber, token, epoch));
     }
 
     /**
      * materializePage() の実処理。実体化中に「もう不要になった」（token が進んだ、または
      * materializedPages から外れた）場合は、各 await の直後で中断し、途中まで作った canvas を
-     * 後始末する。
+     * 後始末する。解放で世代が進んだ場合は、新しいジョブの DOM に触れずに終了する。
      */
-    private async materializePageImpl(pageNumber: number, token: number): Promise<void> {
+    private async materializePageImpl(pageNumber: number, token: number, epoch: number): Promise<void> {
+        const jobs = this.materializeJobs;
         const info = this.pages[pageNumber - 1];
         if (!info || info.canvasEl) return;
-        const stillWanted = () => token === this.renderToken && this.materializedPages.has(pageNumber);
+        const isCurrent = () => jobs.isCurrent(pageNumber, epoch);
+        const stillWanted = () => isCurrent() && token === this.renderToken && this.materializedPages.has(pageNumber);
+        const stopIfUnwanted = () => {
+            if (stillWanted()) {
+                return false;
+            }
+            if (isCurrent()) {
+                this.detachCanvas(info);
+            }
+            return true;
+        };
 
         const page = await this.pdfDoc.getPage(pageNumber);
         // await の直後: 待っている間に解放された／別経路で既に canvas が付いた場合はここで打ち切る
-        // （materializePromises による単一化が効いていれば info.canvasEl は基本的に null のはずだが、
+        // （materializeJobs による単一化が効いていれば info.canvasEl は基本的に null のはずだが、
         // 万一の漏れに対する最終防衛として明示的に確認する）。
         if (!stillWanted() || info.canvasEl) return;
 
@@ -452,28 +461,50 @@ export class PdfRenderer {
             try {
                 await renderTask.promise;
             } catch (err) {
-                info.renderTask = null;
+                if (!isCurrent()) {
+                    return;
+                }
+                if (info.renderTask === renderTask) {
+                    info.renderTask = null;
+                }
                 if (isCancelledRenderError(err)) return;
                 throw err;
             }
-            info.renderTask = null;
+            if (stopIfUnwanted()) {
+                return;
+            }
+            if (info.renderTask === renderTask) {
+                info.renderTask = null;
+            }
             // 描画が実際に完了した時点でのみ 'rendered' にする（canvasをDOMに挿しただけの
             // 時点ではまだピクセルが無いため 'placeholder' のまま。ctxが取れず描画自体を
             // 行わなかった場合もここへは来ない）。
             info.pageDiv.dataset.renderState = 'rendered';
         }
-        if (!stillWanted()) { this.detachCanvas(info); return; }
 
         try {
             const textContent = await page.getTextContent();
-            if (!stillWanted()) { this.detachCanvas(info); return; }
+            if (stopIfUnwanted()) {
+                return;
+            }
             const tl = new pdfjsLib.TextLayer({
                 textContentSource: textContent,
                 container: info.textLayerEl,
                 viewport,
             });
-            await tl.render();
+            info.textLayerTask = tl;
+            try {
+                await tl.render();
+            } finally {
+                if (isCurrent() && info.textLayerTask === tl) {
+                    info.textLayerTask = null;
+                }
+            }
+            stopIfUnwanted();
         } catch (err) {
+            if (!isCurrent()) {
+                return;
+            }
             if (!isCancelledRenderError(err)) {
                 console.warn(`[pdf-renderer] text layer render failed (page ${pageNumber}):`, err);
             }
@@ -494,28 +525,30 @@ export class PdfRenderer {
     }
 
     /**
-     * 指定ページを解放する（= detachCanvas）。実体化中なら RenderTask をキャンセルする。
+     * 指定ページを解放する（= detachCanvas）。実体化中なら描画と文字層をキャンセルする。
      * `.ft-page` の寸法・`--scale-factor`・ハイライトレイヤーの中身は残す
      * （スクロール位置とハイライトを壊さないため）。
      */
     private releasePage(pageNumber: number): void {
+        this.materializeJobs.invalidate(pageNumber);
         const info = this.pages[pageNumber - 1];
         if (!info) return;
         if (info.renderTask) {
             try { info.renderTask.cancel(); } catch { /* noop */ }
             info.renderTask = null;
         }
+        if (info.textLayerTask) {
+            try {
+                info.textLayerTask.cancel();
+            } catch { /* キャンセル済みなら後始末だけ続ける。 */ }
+            info.textLayerTask = null;
+        }
         this.detachCanvas(info);
     }
 
-    /** 全ページの RenderTask をキャンセルする（新しい loadPdf() 開始時・destroy() 時に呼ぶ）。 */
+    /** 全ページを解放し、描画と文字層をキャンセルする（新しい loadPdf() 開始時・destroy() 時に呼ぶ）。 */
     private cancelAllRenderTasks(): void {
-        for (const info of this.pages) {
-            if (info.renderTask) {
-                try { info.renderTask.cancel(); } catch { /* noop */ }
-                info.renderTask = null;
-            }
-        }
+        this.pages.forEach(info => this.releasePage(info.pageNumber));
     }
 
     /**
@@ -759,7 +792,8 @@ function cssEscape(s: string): string {
     return s.replace(/["\\]/g, '\\$&');
 }
 
-/** RenderTask.cancel() 後に render() の promise が reject する例外かどうか（握りつぶす対象）。 */
+/** 描画または文字層のキャンセルで promise が reject する例外かどうか（握りつぶす対象）。 */
 function isCancelledRenderError(err: unknown): boolean {
-    return !!err && typeof err === 'object' && (err as { name?: unknown }).name === 'RenderingCancelledException';
+    return !!err && typeof err === 'object'
+        && ['RenderingCancelledException', 'AbortException'].includes((err as { name?: unknown }).name as string);
 }
