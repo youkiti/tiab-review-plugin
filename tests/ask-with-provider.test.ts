@@ -203,6 +203,48 @@ const sections: HelpSection[] = ['a', 'b'].map(id => ({
     id, title: id, body: `本文${id}`, when: [], level: 3, sectionId: 'group', sectionTitle: '章',
 }));
 
+test('OpenRouter は JSON 指定の有無にかかわらず打ち切られた本文を拒否し、正常終了なら返す', async () => {
+    for (const finishReason of ['length', 'content_filter', 'stop']) {
+        for (const structured of [false, true]) {
+            const text = structured ? '{"sectionIds":["a"]}' : '回答';
+            await withFetch(async () => new Response(JSON.stringify({
+                choices: [{ finish_reason: finishReason, message: { content: text } }],
+            })), async () => {
+                const result = askWithProvider('openrouter', {
+                    model: CONSULT_MODELS.openrouter, prompt: '質問', maxOutputTokens: 100,
+                    ...(structured ? { jsonSchema: schema } : {}),
+                });
+                if (finishReason === 'stop') {
+                    assert.deepEqual(await result, structured ? { sectionIds: ['a'] } : '回答');
+                } else {
+                    await assert.rejects(result, error => classifyConsultError(error) === 'invalid_response');
+                }
+            });
+        }
+    }
+});
+
+test('OpenRouter の相談は小節選択・回答生成の打ち切りを失敗として返し、正常終了なら成功する', async () => {
+    for (const finishReason of ['length', 'content_filter', 'stop']) {
+        for (const targetCall of [1, 2]) {
+            let calls = 0;
+            await withFetch(async () => {
+                calls++;
+                return new Response(JSON.stringify({ choices: [{
+                    finish_reason: calls === targetCall ? finishReason : 'stop',
+                    message: { content: calls === 1 ? '{"sectionIds":["a"]}' : '回答' },
+                }] }));
+            }, async () => {
+                assert.deepEqual(await consultHelp({ question: '質問', lang: 'ja', sections, providerId: 'openrouter' }),
+                    finishReason === 'stop'
+                        ? { status: 'success', sectionIds: ['a'], answer: '回答' }
+                        : { status: 'failure', kind: 'invalid_response' });
+            });
+            assert.equal(calls, finishReason === 'stop' ? 2 : targetCall);
+        }
+    }
+});
+
 test('相談は選択ゼロで止まり、未知 ID を落として選ばれた本文だけで回答する', async () => {
     for (const ids of [[], ['unknown'], ['unknown', 'a', 'a']]) {
         let calls = 0;

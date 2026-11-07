@@ -157,8 +157,13 @@ export async function askViaOpenRouter(params: AskParams): Promise<unknown> {
         if (!response.ok) {
             throw Object.assign(new Error(`OpenRouter API error ${response.status}`), { status: response.status });
         }
-        const data = await response.json() as { choices?: { message?: { content?: string } }[] };
-        const text = data.choices?.[0]?.message?.content ?? '';
+        const data = await response.json() as { choices?: { finish_reason?: string; message?: { content?: string } }[] };
+        const choice = data.choices?.[0];
+        // null も「終了理由なし」として扱い、本文で判定する。
+        if (choice?.finish_reason != null && choice.finish_reason !== 'stop') {
+            throw askError('invalid_response');
+        }
+        const text = choice?.message?.content ?? '';
         if (!params.jsonSchema) {
             return parseAskText(text);
         }
