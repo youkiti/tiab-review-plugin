@@ -3,6 +3,8 @@
 // 内部で待つとガバナーから待ち時間が見えなくなるため、1回だけ通信する。
 
 import { anthropicMaxOutputTokens } from '../model-generation-settings';
+import type { AskParams } from './ask-types';
+import { askError, parseAskText, withAskSignal } from './ask-request';
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from '../types';
 import { getEffectiveAnthropicApiKey } from '../storage';
 import { SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA, normalizeCriteriaConversionResult } from '../gemini-api';
@@ -151,7 +153,7 @@ function nonRetryableError(message: string): Error {
     return Object.assign(new Error(message), { retryable: false });
 }
 
-async function postMessages(body: ReturnType<typeof buildRequest>, timeoutMs: number): Promise<AnthropicResponse> {
+async function postMessages(body: { model: string }, timeoutMs: number, signal?: AbortSignal): Promise<AnthropicResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -164,7 +166,7 @@ async function postMessages(body: ReturnType<typeof buildRequest>, timeoutMs: nu
             method: 'POST',
             headers: { ...authHeaders(apiKey), 'content-type': 'application/json' },
             body: JSON.stringify(body),
-            signal: controller.signal,
+            signal: signal ?? controller.signal,
         });
         if (!response.ok) {
             const errText = (await response.text().catch(() => '')).split(apiKey).join('[REDACTED]');
@@ -185,6 +187,28 @@ async function postMessages(body: ReturnType<typeof buildRequest>, timeoutMs: nu
     } finally {
         clearTimeout(timer);
     }
+}
+
+/** 相談用にはスキーマが任意のリクエストを別に組み立てる。 */
+export async function askViaAnthropic(params: AskParams): Promise<unknown> {
+    return withAskSignal(params, async signal => {
+        const body = {
+            model: params.model,
+            max_tokens: anthropicMaxOutputTokens(params.maxOutputTokens),
+            messages: [{ role: 'user', content: params.prompt }],
+            ...(params.systemPrompt ? { system: params.systemPrompt } : {}),
+            output_config: {
+                effort: resolveScreeningEffort(params.reasoningEffort),
+                ...(params.jsonSchema ? { format: { type: 'json_schema', schema: toAnthropicSchema(params.jsonSchema) } } : {}),
+            },
+        };
+        const data = await postMessages(body, params.timeoutMs ?? 60000, signal);
+        if (data.stop_reason === 'refusal' || data.stop_reason === 'max_tokens') {
+            throw askError('invalid_response');
+        }
+        const text = (data.content ?? []).filter(part => part.type === 'text').map(part => part.text ?? '').join('');
+        return parseAskText(text, params.jsonSchema);
+    });
 }
 
 function parseOutput<T>(data: AnthropicResponse): T {
