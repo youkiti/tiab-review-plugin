@@ -47,7 +47,9 @@ export async function consultHelp(params: {
         return { status: 'failure', kind: 'unsupported_provider' };
     }
     try {
-        const common = { model: CONSULT_MODELS[providerId as ConsultProviderId], maxOutputTokens: 2048, signal };
+        // 推論のトークンも上限に数える社がある。OpenRouter の DeepSeek V4 Flash は推論が 237〜2,925 トークンと揺れ、
+        // 2,048 では回答が打ち切られることがあった（評価の台帳 v1）。回答は短く止まるので、上限を広めに取る。
+        const common = { model: CONSULT_MODELS[providerId as ConsultProviderId], maxOutputTokens: 8192, signal };
         const selected = validateSelectedIds(await askWithProvider(providerId, {
             ...common, ...buildSelectionPrompt(sections, question),
         }), sections);

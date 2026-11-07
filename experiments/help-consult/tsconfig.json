@@ -1,0 +1,7 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "../.."
+    },
+    "include": ["../../src/types/demo-globals.d.ts", "./**/*.ts"]
+}

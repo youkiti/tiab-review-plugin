@@ -1,0 +1,7 @@
+{
+    "ledgerVersion": "v3",
+    "providers": ["gemini", "openai", "openrouter"],
+    "timeoutMs": 60000,
+    "retry": { "maxAttempts": 3, "baseDelayMs": 5000, "maxDelayMs": 60000 },
+    "smokeCount": 2
+}
