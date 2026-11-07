@@ -19,6 +19,8 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenRouterApiKey } from '../storage';
+import type { AskParams } from './ask-types';
+import { askError, parseAskText, withAskSignal } from './ask-request';
 import { isOpenRouterJevModel } from '../openrouter-model';
 import { normalizeCriteriaConversionResult } from '../gemini-api';
 
@@ -121,6 +123,53 @@ async function getApiKey(): Promise<string> {
     return sanitizeApiKey(key);
 }
 
+/** 既存の判定と自由問い合わせで同じ送信先・ヘッダーを使う。 */
+async function postOpenRouter(body: Record<string, unknown>, apiKey: string, signal: AbortSignal): Promise<Response> {
+    return fetch(OPENROUTER_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://github.com/youkiti/tiab-review-plugin',
+            'X-Title': 'tiab-review-plugin',
+        },
+        body: JSON.stringify(body),
+        signal,
+    });
+}
+
+/** 構造化出力の非対応経路も使えるよう、JSON はプロンプトで要求する。 */
+export async function askViaOpenRouter(params: AskParams): Promise<unknown> {
+    return withAskSignal(params, async signal => {
+        const prompt = params.jsonSchema
+            ? `${params.prompt}\n次のスキーマの JSON だけを返してください:\n${JSON.stringify(params.jsonSchema)}` : params.prompt;
+        const body = {
+            model: params.model,
+            messages: [
+                ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: params.maxOutputTokens,
+            ...(params.reasoningEffort ? { reasoning: { effort: params.reasoningEffort } } : {}),
+        };
+        const apiKey = await getApiKey();
+        const response = await postOpenRouter(body, apiKey, signal);
+        if (!response.ok) {
+            throw Object.assign(new Error(`OpenRouter API error ${response.status}`), { status: response.status });
+        }
+        const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+        const text = data.choices?.[0]?.message?.content ?? '';
+        if (!params.jsonSchema) {
+            return parseAskText(text);
+        }
+        const parsed = tryParseJson(text);
+        if (parsed === null) {
+            throw askError('invalid_response');
+        }
+        return parsed;
+    });
+}
+
 async function callOnce(
     params: LlmScreenParams,
     promptText: string,
@@ -143,17 +192,7 @@ async function callOnce(
 
     try {
         const apiKey = await getApiKey();
-        const response = await fetch(OPENROUTER_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://github.com/youkiti/tiab-review-plugin',
-                'X-Title': 'tiab-review-plugin',
-            },
-            body: JSON.stringify(body),
-            signal: controller.signal,
-        });
+        const response = await postOpenRouter(body, apiKey, controller.signal);
         clearTimeout(timer);
 
         if (!response.ok) {

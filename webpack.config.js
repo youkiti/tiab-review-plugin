@@ -182,6 +182,12 @@ function buildExtensionConfig(env, argv) {
         module: {
             rules: [
                 {
+                    // 相談用の問い合わせを付けたヘルプだけを小節データへ変換する。
+                    test: /[\\/]docs[\\/]help\.html$/,
+                    resourceQuery: /[?&]help-sections(?:&|$)/,
+                    use: path.resolve(__dirname, 'scripts/webpack/help-sections.cjs'),
+                },
+                {
                     test: /\.ts$/,
                     use: 'ts-loader',
                     exclude: /node_modules/,
@@ -371,6 +377,12 @@ function buildWebConfig(env, argv) {
         },
         module: {
             rules: [
+                {
+                    // Web 版も同じヘルプを言語別の遅延データとして使う。
+                    test: /[\\/]docs[\\/]help\.html$/,
+                    resourceQuery: /[?&]help-sections(?:&|$)/,
+                    use: path.resolve(__dirname, 'scripts/webpack/help-sections.cjs'),
+                },
                 {
                     test: /\.ts$/,
                     use: 'ts-loader',

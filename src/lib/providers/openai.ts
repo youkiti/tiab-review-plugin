@@ -30,6 +30,8 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenAiApiKey } from '../storage';
+import type { AskParams } from './ask-types';
+import { parseAskText, withAskSignal } from './ask-request';
 import { normalizeCriteriaConversionResult, SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA } from '../gemini-api';
 import { buildScreeningPrompt as buildPrompt, buildCriteriaPrompt } from './structured-prompts';
 
@@ -192,7 +194,7 @@ interface OpenAiResponseBody {
     usage?: OpenAiResponseUsage;
 }
 
-async function postResponses(body: Record<string, unknown>, timeoutMs: number): Promise<OpenAiResponseBody> {
+async function postResponses(body: Record<string, unknown>, timeoutMs: number, signal?: AbortSignal): Promise<OpenAiResponseBody> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -205,7 +207,7 @@ async function postResponses(body: Record<string, unknown>, timeoutMs: number): 
                 'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify(body),
-            signal: controller.signal,
+            signal: signal ?? controller.signal,
         });
         clearTimeout(timer);
 
@@ -223,6 +225,30 @@ async function postResponses(body: Record<string, unknown>, timeoutMs: number): 
     } finally {
         clearTimeout(timer);
     }
+}
+
+/** 自由問い合わせ用。スキーマを省略した場合は本文をそのまま返す。 */
+export async function askViaOpenAi(params: AskParams): Promise<unknown> {
+    return withAskSignal(params, async signal => {
+        const body: Record<string, unknown> = {
+            model: params.model,
+            input: [{ role: 'user', content: params.prompt }],
+            max_output_tokens: params.maxOutputTokens,
+            reasoning: { effort: params.reasoningEffort ?? 'low' },
+            store: false,
+        };
+        if (params.systemPrompt) {
+            body.instructions = params.systemPrompt;
+        }
+        if (params.jsonSchema) {
+            body.text = { format: {
+                type: 'json_schema', name: 'help_consult', strict: true, schema: toStrictSchema(params.jsonSchema),
+            } };
+        }
+        const data = await postResponses(body, params.timeoutMs ?? 60000, signal);
+        checkResponseStatus(data);
+        return parseAskText(extractOutputText(data), params.jsonSchema);
+    });
 }
 
 /**

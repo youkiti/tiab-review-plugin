@@ -6,7 +6,9 @@
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { isOpenRouterJevModel } from './openrouter-model';
 import { isLocalModelId } from './local-llm-model';
+import type { AskParams } from './providers/ask-types';
 
+export type { AskParams } from './providers/ask-types';
 export type LlmProviderId = 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe' | 'local_llm';
 export type KeyProviderId = Exclude<LlmProviderId, 'local_llm'>;
 
@@ -188,4 +190,34 @@ export async function screenWithProvider(
         },
         params.outputLanguage
     );
+}
+
+export type AskResult<P extends AskParams> = 'jsonSchema' extends keyof P
+    ? P['jsonSchema'] extends undefined ? string : unknown
+    : string;
+
+/** 登録済みのキーを使う自由問い合わせ。相談では自動再試行しない。 */
+export function askWithProvider<P extends AskParams>(providerId: LlmProviderId, params: P):
+    Promise<AskResult<P>> {
+    return dispatchAsk(providerId, params) as Promise<AskResult<P>>;
+}
+
+async function dispatchAsk(providerId: LlmProviderId, params: AskParams): Promise<unknown> {
+    if (providerId === 'typesafe' || providerId === 'local_llm') {
+        throw Object.assign(new Error('このプロバイダはヘルプ相談に対応していません'), { kind: 'unsupported_provider' });
+    }
+    if (providerId === 'openai') {
+        const { askViaOpenAi } = await import(/* webpackChunkName: "llm-feature" */ './providers/openai');
+        return askViaOpenAi(params);
+    }
+    if (providerId === 'anthropic') {
+        const { askViaAnthropic } = await import(/* webpackChunkName: "llm-feature" */ './providers/anthropic');
+        return askViaAnthropic(params);
+    }
+    if (providerId === 'openrouter') {
+        const { askViaOpenRouter } = await import(/* webpackChunkName: "llm-feature" */ './providers/openrouter');
+        return askViaOpenRouter(params);
+    }
+    const { askViaGemini } = await import(/* webpackChunkName: "llm-feature" */ './providers/gemini-ask');
+    return askViaGemini(params);
 }
