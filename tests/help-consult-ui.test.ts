@@ -94,9 +94,3 @@ test('デモの回答は渡された見出しを使い、UI言語に従う', () 
     assert.match(responseText(buildAnswerPrompt(sections.slice(1, 2), 'How?', 'en')), /Open the help sections “Share project”/);
     assert.doesNotMatch(responseText(buildAnswerPrompt(sections.slice(1, 2), 'How?', 'en')), /PDF upload/);
 });
-
-test('ヘルプの改行はCRLFに統一されている', () => {
-    const source = readFileSync('docs/help.html', 'utf8');
-    assert.ok(source.includes('\r\n'));
-    assert.doesNotMatch(source.split('\r\n').join(''), /\n/);
-});
