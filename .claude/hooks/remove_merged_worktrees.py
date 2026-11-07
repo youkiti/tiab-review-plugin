@@ -149,6 +149,7 @@ def dirty_reason(root, links, budget):
          "--untracked-files=normal", "-z"], root,
     )
     link_names = [os.path.relpath(link, root).replace(os.sep, "/") for link in links]
+    removable_names = set()
     preserved = []
     for record in output.split("\0"):
         budget.remaining()
@@ -156,17 +157,24 @@ def dirty_reason(root, links, budget):
             continue
         status = record[:2]
         path = record[3:].rstrip("/")
-        if any(path == name or path.startswith(name + "/") for name in link_names):
-            continue
+        if status in ("??", "!!"):
+            removable_names.update(name for name in link_names
+                                   if name == path or name.startswith(path + "/"))
+            if any(path == name or path.startswith(name + "/") for name in link_names):
+                continue
         if status == "??":
-            return "未追跡ファイルがある"
+            return "未追跡ファイルがある", []
         if status != "!!":
-            return "未コミットの変更・ステージ済み変更・競合がある"
+            return "未コミットの変更・ステージ済み変更・競合がある", []
         if not rebuildable(path + ("/" if record.endswith("/") else "")):
             preserved.append(path)
     if preserved:
-        return "保存すべき無視ファイルがある: " + "、".join(preserved[:5])
-    return None
+        return "保存すべき無視ファイルがある: " + "、".join(preserved[:5]), []
+    # 追跡対象のリンクは外さず、その worktree は残す。
+    tracked_links = [name for name in link_names if name not in removable_names]
+    if tracked_links:
+        return "追跡対象のリンクがある: " + "、".join(tracked_links[:5]), []
+    return None, [link for link, name in zip(links, link_names) if name in removable_names]
 
 
 def remove_worktree(repo, root, links, budget):
@@ -240,9 +248,9 @@ def cleanup(data, merge_checker=None, budget=None):
                             reason = "マージ済み PR の HEAD と不一致（未マージ、またはマージ後の追加コミット）"
                 if reason is None:
                     links = find_links(root, budget)
-                    reason = dirty_reason(root, links, budget)
+                    reason, removable_links = dirty_reason(root, links, budget)
                     if reason is None:
-                        removed, reason = remove_worktree(repo, root, links, budget)
+                        removed, reason = remove_worktree(repo, root, removable_links, budget)
             except Exception as error:
                 reason = f"安全確認・削除で例外（{type(error).__name__}）。残した"
             rows.append((root, branch, removed, reason))

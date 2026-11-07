@@ -59,6 +59,38 @@ class InputTests(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             hook.Budget(-1).run(["git", "status"], ".")
 
+    def test_tracked_changes_under_links_preserved(self):
+        root = os.path.abspath("worktree")
+        link = os.path.join(root, "pkg")
+        for status in (" T", " M", " D", "T ", "M ", "D ", "UU"):
+            for path in ("pkg", "pkg/a.txt"):
+                with self.subTest(status=status, path=path):
+                    budget = unittest.mock.Mock()
+                    budget.run.return_value = f"{status} {path}\0"
+                    reason, links = hook.dirty_reason(root, [link], budget)
+                    self.assertIn("未コミット", reason)
+                    self.assertEqual(links, [])
+
+    def test_untracked_and_ignored_links_removable(self):
+        root = os.path.abspath("worktree")
+        link = os.path.join(root, "pkg")
+        for status in ("??", "!!"):
+            with self.subTest(status=status):
+                budget = unittest.mock.Mock()
+                budget.run.return_value = f"{status} pkg/\0"
+                with patch.object(hook, "rebuildable") as rebuildable:
+                    self.assertEqual(hook.dirty_reason(root, [link], budget), (None, [link]))
+                rebuildable.assert_not_called()
+
+    def test_tracked_link_report_limited_to_five_paths(self):
+        root = os.path.abspath("worktree")
+        links = [os.path.join(root, f"link{i}") for i in range(6)]
+        budget = unittest.mock.Mock()
+        budget.run.return_value = ""
+        reason, removable = hook.dirty_reason(root, links, budget)
+        self.assertEqual(reason, "追跡対象のリンクがある: link0、link1、link2、link3、link4")
+        self.assertEqual(removable, [])
+
 
 class WorktreeTests(unittest.TestCase):
     def setUp(self):
@@ -70,7 +102,8 @@ class WorktreeTests(unittest.TestCase):
         self.git(self.repo, "init", "-b", "main")
         self.write(self.repo / ".gitignore", "dist/\n.env*\n*.log\n")
         self.write(self.repo / "tracked.txt", "元の内容\n")
-        self.git(self.repo, "add", ".gitignore", "tracked.txt")
+        self.write(self.repo / "pkg" / "a.txt", "追跡する内容\n")
+        self.git(self.repo, "add", ".gitignore", "tracked.txt", "pkg/a.txt")
         self.git(self.repo, "-c", "user.name=t", "-c", "user.email=t@example.com",
                  "commit", "-m", "テスト用の初期コミット")
         self.wt = self.base / "w"
@@ -148,6 +181,7 @@ class WorktreeTests(unittest.TestCase):
         self.assertTrue(self.wt.exists())
 
     def test_link_removal_failure_preserves_worktree(self):
+        self.write(self.wt / "link" / "keep.txt", "リンクを模す未追跡の内容\n")
         with patch.object(hook, "find_links", return_value=[str(self.wt / "link")]):
             with patch.object(hook.os, "rmdir", side_effect=OSError("テスト用の削除失敗")):
                 report = self.run_hook()
@@ -211,6 +245,60 @@ class WorktreeTests(unittest.TestCase):
     def test_ignored_junction_removed_without_touching_target(self):
         self.write(self.repo / ".git" / "info" / "exclude", "node_modules/\n")
         self.check_junction_cleanup(ignored=True)
+
+    def test_tracked_directory_replaced_by_junction_preserved(self):
+        link = self.wt / "pkg"
+        (link / "a.txt").unlink()
+        link.rmdir()
+        target = self.create_junction(link)
+        report = self.run_hook()
+        self.assertTrue(self.wt.exists())
+        self.assertTrue(os.path.lexists(link))
+        self.assertIn("未コミット", report)
+        self.assertEqual((target / "keep.txt").read_text(encoding="utf-8"), "残す内容\n")
+
+    def test_junction_under_ignored_directory_removed_without_touching_target(self):
+        self.write(self.repo / ".git" / "info" / "exclude", "node_modules/\n")
+        directory = self.wt / "node_modules"
+        directory.mkdir()
+        target = self.create_junction(directory / "pkg")
+        status = self.git(self.wt, "status", "--porcelain=v1", "--ignored",
+                          "--untracked-files=normal")
+        self.assertEqual(status.strip(), "!! node_modules/")
+        report = self.run_hook()
+        self.assertIn("消した 1 件", report)
+        self.assertFalse(self.wt.exists())
+        self.assertEqual((target / "keep.txt").read_text(encoding="utf-8"), "残す内容\n")
+
+    def test_unchanged_tracked_link_preserved_without_detaching_any_link(self):
+        self.write(self.wt / "dist" / "x.js", "生成物\n")
+        links = [str(self.wt / "dist"), str(self.wt / "tracked.txt")]
+        with patch.object(hook, "find_links", return_value=links):
+            with patch.object(hook.os, "rmdir") as rmdir, patch.object(hook.os, "unlink") as unlink:
+                report = self.run_hook()
+        self.assertTrue(self.wt.exists())
+        self.assertIn("追跡対象のリンクがある: tracked.txt", report)
+        rmdir.assert_not_called()
+        unlink.assert_not_called()
+
+    def create_junction(self, link):
+        if os.name != "nt":
+            self.skipTest("Windows の junction を作れない環境")
+        target = self.base / "target"
+        self.write(target / "keep.txt", "残す内容\n")
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            capture_output=True, timeout=30,
+        )
+        if result.returncode:
+            self.skipTest(f"junction の作成不可（終了コード {result.returncode}）")
+
+        def detach_link():
+            if os.path.lexists(link):
+                os.rmdir(link)
+
+        self.addCleanup(detach_link)
+        return target
 
     def check_junction_cleanup(self, ignored):
         if os.name != "nt":
