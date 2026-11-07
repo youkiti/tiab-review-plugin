@@ -21,7 +21,7 @@ export function buildDemoConsultResponse(body: {
         text = JSON.stringify({ sectionIds: selected.map(item => item.id) });
     } else {
         const titles = (data.sections ?? []).map(section => section.title).filter(Boolean).join(' / ');
-        text = prompt.includes('UI 言語（日本語）')
+        text = prompt.includes('日本語で答えてください')
             ? `「${titles}」のヘルプを開いて手順を確認してください。これはデモの回答です。`
             : `Open the help sections “${titles}” to check the steps. This is a demo answer.`;
     }
