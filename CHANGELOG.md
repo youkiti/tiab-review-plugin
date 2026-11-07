@@ -7,12 +7,19 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
-## 未リリース
+## v0.57.0（2026-11-07）
 
 ### 画面 / Interface
 
 - 編集権限不足で判定の保存を拒否されたとき、プロジェクトの管理者への依頼を案内するようにしました。
   When saving a decision is refused for lack of edit access, the message now asks the reviewer to contact the project administrator.
+- Chrome 拡張のサイドパネルの「?」の吹き出しに「相談する」を追加しました。ヘルプをキーワードで探せるほか（API キー不要）、登録済みの API キーで AI に質問できます（Gemini 3.1 Flash-Lite、GPT-5.6 Luna、Claude Haiku 5.5、OpenRouter では DeepSeek V4 Flash）。AI に送るのは質問と、AI が選んだヘルプの一部だけで、文献・判定・メールアドレスは送りません。解決しないときは、内容を確かめたうえで GitHub に質問・報告する下書きを作れます。AI の判定（スクリーニング）の結果には影響しません。
+  Added "Ask for help" to the "?" popovers in the Chrome extension side panel. You can search the help by keyword (no API key needed) or ask the AI with an API key you have already registered (Gemini 3.1 Flash-Lite, GPT-5.6 Luna, Claude Haiku 5.5, or DeepSeek V4 Flash through OpenRouter). Only your question and the help excerpts selected by the AI are sent; references, decisions and email addresses are not. If that does not solve it, you can review and open a draft question or report on GitHub. This does not affect AI screening results.
+
+### 文書 / Documentation
+
+- ヘルプの各小節に「こんなとき」の困りごとの例を日英で追加し、「困ったときに AI に相談する」の節を足しました。プライバシーポリシーに「ヘルプの相談」の項を足しました。
+  Added "When to read this" examples of common problems to each help section, in Japanese and English, and a section on asking the AI when you are stuck. Added a "Help Consultation" item to the privacy policy.
 
 ## v0.56.0（2026-10-31）
 
