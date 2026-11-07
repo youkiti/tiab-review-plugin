@@ -294,7 +294,9 @@ export class PdfRenderer {
             const viewport = page.getViewport({ scale: info.scale });
             const textContent = await page.getTextContent();
             if (token !== this.renderToken) return stale;
-            const { rawText, charItemIndex, itemRects } = buildTextIndex(textContent.items, viewport);
+            const { rawText, charItemIndex, itemRects } = buildTextIndex(
+                textContent.items, viewport, textContent.styles, textContent.lang
+            );
             info.rawText = rawText;
             info.charItemIndex = charItemIndex;
             info.itemRects = itemRects;
@@ -694,8 +696,13 @@ export class PdfRenderer {
             el.dataset.category = req.category;
             el.dataset.hlId = req.id;
             if (req.title) el.title = req.title;
-            el.style.left = `${r.left}px`;
-            el.style.top = `${r.top}px`;
+            // Issue #272: 位置は文字層の span と同じくページの実寸に対する百分率で置く。pdf.js は文字層の
+            // 寸法を 1px 単位に切り捨て（setLayerDimensions の round(down, …)）、span の left/top を
+            // その層に対する百分率で置く。ページ枠（と、その中いっぱいのハイライト層）も Math.floor で
+            // 切り捨てているので、px で置くとページの下ほど帯が span より下へずれる（実測 0.38px）。
+            // 幅と高さは span も px（文字高と canvasWidth）なので px のまま。
+            el.style.left = `${(100 * r.left) / page.widthPx}%`;
+            el.style.top = `${(100 * r.top) / page.heightPx}%`;
             el.style.width = `${r.width}px`;
             el.style.height = `${r.height}px`;
             el.addEventListener('click', () => this.onHighlightClick?.(req.id));
@@ -714,7 +721,9 @@ export class PdfRenderer {
  */
 function buildTextIndex(
     items: any[],
-    viewport: any
+    viewport: any,
+    styles?: Record<string, any>,
+    lang?: string | null
 ): { rawText: string; charItemIndex: number[]; itemRects: Rect[] } {
     let rawText = '';
     const charItemIndex: number[] = [];
@@ -724,7 +733,8 @@ function buildTextIndex(
         // マーク（hasEOL のみで str を持たない要素）は矩形なしで扱う
         const str: string = typeof item.str === 'string' ? item.str : '';
         // 矩形を計算（str を持つアイテムのみ意味がある）
-        itemRects[idx] = computeItemRect(item, viewport);
+        const fontFamily: string | undefined = styles?.[item.fontName]?.fontFamily;
+        itemRects[idx] = computeItemRect(item, viewport, fontAscentRatio(fontFamily, lang ?? null));
 
         for (const ch of str) {
             rawText += ch;
@@ -739,8 +749,51 @@ function buildTextIndex(
     return { rawText, charItemIndex, itemRects };
 }
 
+// Issue #272: 文字層の span は上端を「ベースライン − 文字高 × ascent 比」に置く（pdf.js TextLayer の
+// #appendText / #getAscent）。以前は「ベースライン − 文字高」で計算していたため、帯が文字より
+// 文字高 ×（1 − ascent 比）だけ上にずれ、下の縁が取り消し線のように見えていた。
+// 索引は文字層の DOM と切り離して全ページ分を先に作るので、span の位置は読めない。pdf.js と同じ
+// canvas の計測で ascent 比を出す。pdf.js 側の関数は private（#getAscent）で呼べない。
+const DEFAULT_FONT_ASCENT = 0.8; // pdf.js の既定値と同じ
+const ASCENT_MEASURE_FONT_SIZE = 30; // pdf.js の DEFAULT_FONT_SIZE と同じ
+const ascentRatioCache = new Map<string, number>();
+let ascentMeasureCtx: CanvasRenderingContext2D | null | undefined;
+
+/** フォントの ascent 比（ascent /（ascent + descent））。計測できなければ pdf.js の既定値 0.8 */
+function fontAscentRatio(fontFamily: string | undefined, lang: string | null): number {
+    if (!fontFamily) return DEFAULT_FONT_ASCENT;
+    // pdf.js は Windows の Firefox で sans-serif / monospace を置き換える（TextLayer.fontFamilyMap）
+    const family = (pdfjsLib.TextLayer as any)?.fontFamilyMap?.get?.(fontFamily) || fontFamily;
+    const key = `${lang ?? ''}\u0000${family}`;
+    const cached = ascentRatioCache.get(key);
+    if (cached !== undefined) return cached;
+
+    let ratio = DEFAULT_FONT_ASCENT;
+    try {
+        if (ascentMeasureCtx === undefined) {
+            ascentMeasureCtx = typeof document !== 'undefined'
+                ? document.createElement('canvas').getContext('2d')
+                : null;
+        }
+        const ctx = ascentMeasureCtx;
+        if (ctx) {
+            // pdf.js は lang ごとに canvas を分けている。lang でフォントの解決が変わりうるため合わせる。
+            ctx.canvas.lang = lang ?? '';
+            ctx.font = `${ASCENT_MEASURE_FONT_SIZE}px ${family}`;
+            const metrics = ctx.measureText('');
+            const ascent = metrics.fontBoundingBoxAscent;
+            const descent = Math.abs(metrics.fontBoundingBoxDescent);
+            if (ascent) ratio = ascent / (ascent + descent);
+        }
+    } catch {
+        ratio = DEFAULT_FONT_ASCENT;
+    }
+    ascentRatioCache.set(key, ratio);
+    return ratio;
+}
+
 /** 1つのテキストアイテムのビューポート座標矩形（CSSピクセル, ページ左上原点）を求める */
-function computeItemRect(item: any, viewport: any): Rect {
+function computeItemRect(item: any, viewport: any, ascentRatio: number = DEFAULT_FONT_ASCENT): Rect {
     if (!item.transform || typeof item.width !== 'number') {
         return { left: 0, top: 0, width: 0, height: 0 };
     }
@@ -748,8 +801,11 @@ function computeItemRect(item: any, viewport: any): Rect {
     const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
     const fontHeight = Math.hypot(tx[2], tx[3]) || (item.height ?? 0);
     const width = item.width * viewport.scale;
-    const left = tx[4];
-    const top = tx[5] - fontHeight; // tx[5] はベースライン。矩形上端はベースライン - 文字高。
+    // tx[5] はベースライン。文字層の span と同じく、上端はベースライン − 文字高 × ascent 比。
+    const fontAscent = fontHeight * ascentRatio;
+    const angle = Math.atan2(tx[1], tx[0]);
+    const left = angle === 0 ? tx[4] : tx[4] + fontAscent * Math.sin(angle);
+    const top = angle === 0 ? tx[5] - fontAscent : tx[5] - fontAscent * Math.cos(angle);
     return { left, top, width, height: fontHeight };
 }
 
