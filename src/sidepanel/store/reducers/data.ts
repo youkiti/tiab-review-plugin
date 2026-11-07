@@ -24,13 +24,23 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
         case 'data/setSpreadsheetId':
             return {
                 ...state,
-                data: { ...state.data, spreadsheetId: action.id },
+                data: {
+                    ...state.data,
+                    spreadsheetId: action.id,
+                    sheetEditAccess: action.id === state.data.spreadsheetId ? state.data.sheetEditAccess : 'unknown',
+                    unsentCount: action.id === state.data.spreadsheetId ? state.data.unsentCount : 0,
+                },
             };
 
         case 'data/setUserEmail':
             return {
                 ...state,
-                data: { ...state.data, userEmail: action.email },
+                data: {
+                    ...state.data,
+                    userEmail: action.email,
+                    sheetEditAccess: action.email === state.data.userEmail ? state.data.sheetEditAccess : 'unknown',
+                    unsentCount: action.email === state.data.userEmail ? state.data.unsentCount : 0,
+                },
             };
 
         case 'data/setKeywords':
@@ -88,6 +98,12 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
                 ...state,
                 data: { ...state.data, recentSheets: action.sheets },
             };
+
+        case 'data/setSheetEditAccess':
+            return { ...state, data: { ...state.data, sheetEditAccess: action.editAccess } };
+
+        case 'data/setUnsentCount':
+            return { ...state, data: { ...state.data, unsentCount: action.count } };
 
         case 'data/setIsAdmin':
             return {

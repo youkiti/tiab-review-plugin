@@ -201,11 +201,16 @@ export async function addPermission(
 }
 
 /**
- * ユーザーが管理者権限（編集権限）を持っているかチェック
+ * 管理者判定を保ちながら、接続時の編集可否を取得する。
+ * Issue #271: 読み取り専用は capabilities.canEdit === false の場合だけ確定する。
  * - Permissions APIがつかえない場合（drive.fileスコープの制限など）は
  *   ファイルのcapabilitiesをチェックする
  */
-export async function isUserAdmin(spreadsheetId: string, userEmail: string): Promise<boolean> {
+export async function getUserSheetAccess(spreadsheetId: string, userEmail: string): Promise<{
+    isAdmin: boolean;
+    editAccess: 'editable' | 'readonly' | 'unknown';
+}> {
+    let foundNonAdmin = false;
     console.log('[isUserAdmin] Starting check for:', userEmail);
     try {
         // 方法1: Permissions API (既存)
@@ -220,7 +225,10 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
             if (userPermission) {
                 const isAdmin = userPermission.role === 'owner' || userPermission.role === 'writer';
                 console.log('[isUserAdmin] Result from permissions:', isAdmin);
-                return isAdmin;
+                if (isAdmin) {
+                    return { isAdmin: true, editAccess: 'editable' };
+                }
+                foundNonAdmin = true;
             }
         } catch (permError) {
             console.warn('[isUserAdmin] Permissions check failed:', permError);
@@ -241,13 +249,21 @@ export async function isUserAdmin(spreadsheetId: string, userEmail: string): Pro
             console.log('[isUserAdmin] Capabilities data:', data);
             const canEdit = data.capabilities?.canEdit === true;
             console.log('[isUserAdmin] Result from capabilities:', canEdit);
-            return canEdit;
+            return {
+                isAdmin: !foundNonAdmin && canEdit,
+                editAccess: canEdit ? 'editable' : data.capabilities?.canEdit === false ? 'readonly' : 'unknown',
+            };
         }
 
         console.log('[isUserAdmin] All checks failed, returning false');
-        return false;
+        return { isAdmin: false, editAccess: 'unknown' };
     } catch (error) {
         console.error('[isUserAdmin] Error:', error);
-        return false;
+        return { isAdmin: false, editAccess: 'unknown' };
     }
+}
+
+/** 既存の管理者判定を返す互換窓口。 */
+export async function isUserAdmin(spreadsheetId: string, userEmail: string): Promise<boolean> {
+    return (await getUserSheetAccess(spreadsheetId, userEmail)).isAdmin;
 }

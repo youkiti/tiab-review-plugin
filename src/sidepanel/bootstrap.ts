@@ -141,7 +141,7 @@ export function bootstrapCommon(): void {
     });
 
     // 未送信キューバッジのクリックハンドラ登録
-    initUnsentQueue();
+    initUnsentQueue(screeningRender.renderProgress);
 
     // Auth
     dom.loginBtn?.addEventListener('click', auth.handleLogin);

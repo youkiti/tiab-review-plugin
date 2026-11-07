@@ -343,6 +343,18 @@
       }
     }
   },
+  "screening_sheetReadonly": {
+    "message": "You do not have edit access to this spreadsheet, so decisions cannot be saved. Ask the project administrator (the sheet owner) to share it with this account ($1) as an editor, then open the project again."
+  },
+  "screening_sheetDeniedUnsent": {
+    "message": "You do not have edit access, so $1 decisions have not been saved to the sheet. Ask the project administrator (the sheet owner) to make you an editor, then press the \"Unsent\" button after your access is changed."
+  },
+  "screening_progressUnsent": {
+    "message": "$1 decisions have not been saved to the sheet"
+  },
+  "screening_sendUnsent": {
+    "message": "Send unsent decisions"
+  },
   "screening_historyPosition": {
     "message": "History $1 / $2"
   },
@@ -370,6 +382,9 @@
   },
   "screening_tiabDoneTitle": {
     "message": "🎉 TiAb screening complete ($1 references, all decided)"
+  },
+  "screening_tiabUnsentTitle": {
+    "message": "You have screened all $1 records, but $2 decisions have not been saved to the sheet"
   },
   "screening_tiabDoneConflictOr": {
     "message": "There are $1 conflicting decisions, but conflicting references still count as full-text candidates, so it's fine to move on. If you'd like to reduce the full texts to retrieve, resolve any obvious slip-ups first."

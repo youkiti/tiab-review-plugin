@@ -7,6 +7,13 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース
+
+### 画面 / Interface
+
+- 接続時に編集権限がないと確定した場合は TiAb・ML の判定を止め、アカウントと対処を表示します。途中で権限不足になった場合は未送信件数つきの警告を表示し続け、未送信が残る間は完了表示を出しません。AI 判定には影響しません。
+  TiAb and ML decisions are blocked when the sheet is confirmed to be read-only at connection, with the account and recovery steps shown. If edit access is lost during screening, a persistent warning shows the unsent count. Screening is not shown as complete while decisions remain unsent. AI screening is unaffected.
+
 ## v0.57.0（2026-11-07）
 
 ### 画面 / Interface

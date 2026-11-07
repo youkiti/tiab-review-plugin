@@ -343,6 +343,18 @@
       }
     }
   },
+  "screening_sheetReadonly": {
+    "message": "このスプレッドシートの編集権限がないため、判定を保存できません。プロジェクトの管理者（シートのオーナー）に、このアカウント（$1）を編集者として共有してもらい、プロジェクトを開き直してください。"
+  },
+  "screening_sheetDeniedUnsent": {
+    "message": "編集権限がないため、$1件の判定がシートに保存されていません。プロジェクトの管理者（シートのオーナー）に編集者への変更を依頼し、変更後に「未送信」ボタンを押してください。"
+  },
+  "screening_progressUnsent": {
+    "message": "$1件の判定がまだシートに保存されていません"
+  },
+  "screening_sendUnsent": {
+    "message": "未送信を送信"
+  },
   "screening_historyPosition": {
     "message": "履歴 $1 / $2"
   },
@@ -370,6 +382,9 @@
   },
   "screening_tiabDoneTitle": {
     "message": "🎉 TiAbスクリーニング完了（$1件すべて判定済み）"
+  },
+  "screening_tiabUnsentTitle": {
+    "message": "$1件すべて判定しましたが、$2件がまだシートに保存されていません"
   },
   "screening_tiabDoneConflictOr": {
     "message": "不一致が $1 件ありますが、不一致の文献も全文候補に入るのでこのまま進めて大丈夫です。取り寄せる全文を減らしたい場合は、明らかなうっかりミスだけ先に直しておくと楽になります。"

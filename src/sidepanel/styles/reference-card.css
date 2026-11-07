@@ -178,6 +178,16 @@
     margin-bottom: 8px;
 }
 
+.sheet-access-banner {
+    background-color: #fff3cd;
+    border: 1px solid #d39e00;
+    border-radius: 8px;
+    color: #664d03;
+    font-size: 13px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+
 .tiab-done-row {
     display: flex;
     align-items: center;

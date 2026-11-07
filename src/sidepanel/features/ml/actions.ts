@@ -144,6 +144,11 @@ export async function activateMlTab(isCurrent: () => boolean = () => true): Prom
 
 
 async function handleMlDecision(decision: 'include' | 'exclude') {
+    if (state.sheetEditAccess === 'readonly') {
+        showToast(t('screening_sheetReadonly', state.userEmail), 6000);
+        return;
+    }
+
     // 設定なしの場合は設定ダイアログを表示して戻す
     if (!state.mlState.stoppingRule) {
         showToast(t('ml_stoppingRequired'));

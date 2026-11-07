@@ -21,6 +21,7 @@ import type { DecisionStatus } from '../../../lib/types';
 import { setLastScreeningPosition } from '../../../lib/storage';
 import { isScreeningStatusFilter } from '../../../lib/screening-position';
 import { perfSpanSync } from '../../../lib/perf';
+import { pickScreeningCompletion } from '../../../lib/sheet-access-banner';
 
 // 外部アクションへの参照（循環依存回避）
 let _navigate: ((dir: number) => void) | null = null;
@@ -457,7 +458,7 @@ function renderTrialRegistryNote(ref: ReferenceWithStatus) {
 /**
  * 進捗状況の表示
  */
-function renderProgress() {
+export function renderProgress() {
     // フィルターと同じロジックで「判定済み」をカウントする
     // (r.statusはMLを含む合成ステータスの場合があるため、getMyManualDecisionStatusを使う)
     const labeledCount = state.references.filter((r) => {
@@ -485,7 +486,8 @@ function renderProgress() {
     } else if (progressPercent < 100) {
         encourageMessage = t('progress_nearGoal');
     } else {
-        encourageMessage = t('progress_complete');
+        const completion = pickScreeningCompletion(totalCount, state.unsentCount);
+        encourageMessage = t(completion.progressKey, completion.progressArgs);
     }
 
     // 設定に応じて表示位置を切り替え
@@ -538,7 +540,8 @@ function renderTiabDoneBanner(): void {
 
     // 未判定 > 0 → 0 に変化した瞬間だけ完了トーストを1回鳴らす（初回ロード時は発火させない）。
     // トースト文言は全文タブへの誘導なので、fulltext capability が無い（Web版）ときは鳴らさない。
-    if (hasFulltextTab && _tiabDoneToastPrevPending !== null && _tiabDoneToastPrevPending > 0 && counts.pending === 0) {
+    const completion = pickScreeningCompletion(total, state.unsentCount);
+    if (completion.canCelebrate && hasFulltextTab && _tiabDoneToastPrevPending !== null && _tiabDoneToastPrevPending > 0 && counts.pending === 0) {
         showToast(t('screening_tiabDoneToast'), 4000);
     }
     _tiabDoneToastPrevPending = counts.pending;
@@ -551,8 +554,11 @@ function renderTiabDoneBanner(): void {
 
     // ---- ここから「完了」時のみの描画 ----
     const rows: string[] = [
-        `<div class="tiab-done-title">${t('screening_tiabDoneTitle', String(total))}</div>`,
+        `<div class="tiab-done-title">${t(completion.titleKey, completion.titleArgs)}</div>`,
     ];
+    if (!completion.canCelebrate) {
+        rows.push(`<button type="button" class="btn btn-outline btn-small" data-action="tiab-done-unsent">${t('screening_sendUnsent')}</button>`);
+    }
 
     // 残作業①: 不一致（キーオープン時のみ件数を出す。Blind中は下のBlind行に譲る）
     if (state.isKeyOpened && counts.conflict > 0) {
@@ -605,6 +611,10 @@ function renderTiabDoneBanner(): void {
 
     banner.innerHTML = rows.join('');
     banner.classList.remove('hidden');
+
+    banner.querySelector('[data-action="tiab-done-unsent"]')?.addEventListener('click', () => {
+        dom.unsentQueueBadge.click();
+    });
 
     banner.querySelector('[data-action="tiab-done-conflict"]')?.addEventListener('click', () => {
         dom.statusFilter.value = 'conflict';

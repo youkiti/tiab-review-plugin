@@ -25,6 +25,8 @@ export const initialState: AppState = {
         mlState: createInitialMlState(),
         recentSheets: [],
         isAdmin: false,
+        sheetEditAccess: 'unknown',
+        unsentCount: 0,
         fulltextPoolRule: null,
         fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
         assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
@@ -493,6 +495,8 @@ export function reducer(state: AppState, action: Action): AppState {
                 data: {
                     ...state.data,
                     spreadsheetId: '',
+                    sheetEditAccess: 'unknown',
+                    unsentCount: 0,
                     references: [],
                     fulltextPoolRule: null,
                     fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
