@@ -350,6 +350,16 @@ npm run check:bundle
 - **真偽値フラグ（`if (loading) return;`）による非同期処理の二重起動防止は、その処理の完了を `await` して待つ呼び出し元がいると成り立たない。** 進行中の呼び出しを「捨てる」だけで、待っている側には何も返せないため、`await` 側は実際には何も起きていないのに「完了した」と思い込んで先へ進んでしまう。レジストリ連携フェーズ1チャンク3で実際に踏んだ（`features/fulltext/tab.ts` の `loadPublicationCandidates()` を、一括検索/再探索の完了時は fire-and-forget（`void`）で呼ぶ一方、候補の取り込み完了後は `await` して待っていたため、前者が進行中に後者が呼ばれると空振りしていた）。fire-and-forget と `await` の呼び出しが混在する非同期処理には、進行中の Promise をそのまま返して合流させるヘルパー（`src/lib/async-coalesce.ts` の `createAsyncCoalescer()`）を使うこと。**ただし `createAsyncCoalescer()` は `inFlight` を1本しか持たないため、プロジェクト（`spreadsheetId`）単位の処理へ素で使うとプロジェクトをまたいで合流してしまう。** 合流の単位が「現在のプロジェクト1つ」なら単一スロットの memo（`src/lib/sheets/llm-history.ts`）、複数キーを同時に扱うなら `Map` でキーごとにコールセーサーを分ける（`src/sidepanel/utils/offline-queue.ts`）。さらに、合流を分けるだけでも足りない: 取得完了時に現在のプロジェクトと突き合わせて破棄する処理が別途要る（`src/sidepanel/features/team-progress.ts` の `fetchDecisions()`、`src/sidepanel/features/fulltext/candidates-loader.ts`）。片方だけ直すと症状が別の形に移るだけになる（Issue #188）。
 - **ブリーフが名指しした1箇所だけを直すと、同じルーティング判断を行う別の呼び出し元が直り漏れることがある。** レジストリ連携フェーズ1チャンク3で、`showPdfForRef()` の分岐だけを直す指示だったが、`showCachedPdf()` の全呼び出し元を grep すると `handleResolve()`（初回自動検索）にも同じ分岐判断のコピーがあり、そこを直さないと「registration行の初回表示だけ直っていない」状態になっていた。**ある関数の呼び出し条件を変更・追加するときは、対象関数の全呼び出し元を一度 grep し、同じ判断ロジックが他の場所に重複していないか確認すること。**
 
+### マージ済み worktree の自動削除
+
+- Claude Code の Bash / PowerShell で `gh pr merge` を実行すると、PostToolUse フックが本リポジトリの worktree を確認する。
+- 設定は `.claude/settings.json` の `hooks.PostToolUse`、本体は `.claude/hooks/remove_merged_worktrees.py`。
+- マージ済み PR の `headRefOid` と HEAD が一致し、保存すべきファイルが無い worktree だけを削除する。ブランチは残す。
+- 本体のチェックアウトは対象外。locked・prunable・存在しないディレクトリ・detached・現在の cwd を含む worktree は残す。
+- 未コミット変更・未追跡ファイル・`.env` やログなどの無視ファイルがあれば残し、ビルド生成物など作り直せる無視ファイルだけなら削除できる。
+- junction・シンボリックリンクはリンク自身だけを外し、リンク先の実体は削除しない。worktree の削除に `--force` は使わない。
+- 判定不能・追加コミット・削除失敗・時間切れの場合は残し、削除件数・残した件数と各理由を日本語で報告する。
+
 ### ローカル実験環境
 
 LLMのパラメーター調整などの実験をローカル環境（Chrome拡張外）で実行可能。

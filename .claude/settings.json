@@ -12,5 +12,19 @@
       "Bash(xargs grep:*)",
       "Bash(echo \"exit=$?\")"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -B -X utf8 \"$CLAUDE_PROJECT_DIR/.claude/hooks/remove_merged_worktrees.py\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }
