@@ -327,6 +327,8 @@ export function getEncourageMessage(state: AppState): string {
     } else if (percent < 100) {
         return t('progress_nearGoal');
     } else {
-        return t('progress_complete');
+        return state.data.unsentCount > 0
+            ? t('screening_progressUnsent', String(state.data.unsentCount))
+            : t('progress_complete');
     }
 }

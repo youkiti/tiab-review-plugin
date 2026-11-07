@@ -49,6 +49,8 @@ function makeState(params: {
             mlState: {} as AppState['data']['mlState'],
             recentSheets: [],
             isAdmin: params.isAdmin ?? false,
+            sheetEditAccess: 'unknown',
+            unsentCount: 0,
             fulltextPoolRule: params.fulltextPoolRule ?? null,
             fulltextAssignment: params.fulltextAssignment
                 ?? { status: 'none', groupCount: 2, reviewerMap: {} },

@@ -204,6 +204,14 @@ export function closeSettingsView(): void {
     dispatch({ type: 'ui/closeSettings' });
 }
 
+export function setSheetEditAccess(editAccess: 'editable' | 'readonly' | 'unknown'): void {
+    dispatch({ type: 'data/setSheetEditAccess', editAccess });
+}
+
+export function setUnsentCount(count: number): void {
+    dispatch({ type: 'data/setUnsentCount', count });
+}
+
 /**
  * Admin状態を設定（Storeのみ）
  */

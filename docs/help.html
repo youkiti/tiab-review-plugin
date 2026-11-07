@@ -2489,6 +2489,10 @@
                     <span class="ja">共同研究者が作成したスプレッドシートをURLで接続すると、初回のみ「Googleで許可する」ボタンが表示されることがあります。開いたGoogle Pickerページで対象シートを選択すると、拡張機能のパネルが自動で再接続します。対象シートが表示されない場合は、先にGoogle Driveでそのシートが自分のGoogleアカウントに共有されているか確認してください。</span>
                     <span class="en">When you connect to a spreadsheet created by a collaborator by URL, an "Allow with Google" button may appear the first time. Select the target sheet on the Google Picker page that opens, and the extension panel will reconnect automatically. If the target sheet is not shown, first confirm in Google Drive that the sheet is shared with your Google account.</span>
                 </p>
+                <p>
+                    <span class="ja">接続時に編集権限がないと確認できた場合は、判定ボタンを押せなくし、キーボードでの判定も止め、画面上部に警告の帯を表示します。帯に表示されたログイン中のメールアドレスを確認してください。編集権限を確認できない場合は判定を続けられます。</span>
+                    <span class="en">If the sheet is confirmed to be read-only when you connect, decision buttons are disabled and keyboard decisions are blocked, and a warning banner appears near the top of the screen. Check the signed-in email address shown in the banner. If edit access cannot be determined, you can continue screening.</span>
+                </p>
             </section>
 
             <!-- Web版 -->
@@ -2557,6 +2561,10 @@
                     <span class="en">Sign-in expires after 1 hour. Decisions made after that are saved on your device
                         as "unsent" — use the "Unsent" button near the top of the screen to sign in again and send
                         them.</span>
+                </p>
+                <p>
+                    <span class="ja">途中で権限不足になった場合は、未送信の件数つきの警告の帯が解決するまで残ります。判定は続けられ、端末に保存されます。未送信が残っている間は完了と表示されず、「未送信を送信」ボタンが表示されます。接続時に編集権限がないと確定した場合は判定を止めます。</span>
+                    <span class="en">If edit access is lost during screening, a persistent warning banner shows the unsent count until the problem is resolved. You can continue screening and decisions stay on your device. While decisions remain unsent, screening is not shown as complete and a "Send unsent decisions" button is displayed. Decisions are blocked if the sheet is confirmed to be read-only at connection.</span>
                 </p>
                 <p>
                     <span class="ja">「未送信」ボタンを押しても送信できず、編集権限の案内が出るときは、プロジェクトの管理者（シートのオーナー）に編集者への変更を依頼してください。判定は端末に残っているので、変更後に「未送信」ボタンで送信できます。</span>

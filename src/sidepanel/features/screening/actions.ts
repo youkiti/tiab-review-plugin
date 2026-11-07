@@ -270,6 +270,11 @@ export async function handleDecision(decision: 'include' | 'exclude' | 'maybe') 
 }
 
 async function handleDecisionImpl(decision: 'include' | 'exclude' | 'maybe') {
+    if (state.sheetEditAccess === 'readonly') {
+        showToast(t('screening_sheetReadonly', state.userEmail), 6000);
+        return;
+    }
+
     const filtered = getFilteredReferences();
     const ref = getDisplayedReference(filtered);
     const wasReviewHistoryActive = state.isReviewHistoryActive();

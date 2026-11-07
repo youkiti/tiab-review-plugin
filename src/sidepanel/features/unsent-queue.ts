@@ -30,11 +30,14 @@ import {
 import { enqueueDecision, flushDecisionQueue, countQueuedDecisions } from '../utils/offline-queue';
 import { createAsyncCoalescer } from '../../lib/async-coalesce';
 import type { Decision } from '../../lib/types';
+import { pickSheetAccessBanner } from '../../lib/sheet-access-banner';
+import { setUnsentCount } from '../store/compat';
 
 type FlushResult = { flushedCount: number; remainingCount: number; lastFailureKind: SaveFailureKind | null };
 
 /** バッジの click ハンドラ登録。bootstrap から1回だけ呼ぶ。 */
-export function initUnsentQueue(): void {
+export function initUnsentQueue(onCountChange: () => void): void {
+    renderUnsentProgress = onCountChange;
     dom.unsentQueueBadge?.addEventListener('click', () => {
         void handleBadgeClick();
     });
@@ -50,27 +53,57 @@ async function handleBadgeClick(): Promise<void> {
     }
 }
 
-/**
- * 未送信キュー件数バッジを更新する。プロジェクト未接続時は隠す。
- */
+let renderUnsentProgress: (() => void) | null = null;
+let failureProjectKey = '';
+let lastSaveFailure: SaveFailureKind | null = null;
+
+function currentProjectKey(): string {
+    return JSON.stringify([state.spreadsheetId, state.userEmail]);
+}
+
+function syncFailureProject(): void {
+    const key = currentProjectKey();
+    if (key !== failureProjectKey) {
+        failureProjectKey = key;
+        lastSaveFailure = null;
+    }
+}
+
+function updateSaveFailure(spreadsheetId: string, userEmail: string, kind: SaveFailureKind | null): void {
+    syncFailureProject();
+    if (spreadsheetId === state.spreadsheetId && userEmail === state.userEmail) {
+        lastSaveFailure = kind;
+    }
+}
+
+/** 未送信件数と警告を更新する。Issue #271: 非同期の旧プロジェクトの結果は表示しない。 */
 export async function refreshUnsentBadge(): Promise<void> {
-    const badge = dom.unsentQueueBadge;
-    if (!badge) return;
-
-    if (!state.spreadsheetId || !state.userEmail) {
-        badge.classList.add('hidden');
+    syncFailureProject();
+    const projectKey = currentProjectKey();
+    const connected = Boolean(state.spreadsheetId && state.userEmail);
+    const count = connected ? await countQueuedDecisions(state.spreadsheetId, state.userEmail) : 0;
+    if (projectKey !== currentProjectKey()) {
         return;
     }
-
-    const count = await countQueuedDecisions(state.spreadsheetId, state.userEmail);
     if (count === 0) {
-        badge.classList.add('hidden');
-        return;
+        lastSaveFailure = null;
     }
-
+    const changed = state.unsentCount !== count;
+    setUnsentCount(count);
+    const badge = dom.unsentQueueBadge;
+    badge.classList.toggle('hidden', count === 0);
     badge.textContent = t('screening_unsentBadge', String(count));
     badge.title = t('screening_unsentBadgeHint');
-    badge.classList.remove('hidden');
+    const message = connected ? pickSheetAccessBanner({
+        editAccess: state.sheetEditAccess,
+        deniedUnsentCount: lastSaveFailure === 'denied' ? count : 0,
+        userEmail: state.userEmail,
+    }) : null;
+    dom.sheetAccessBanner.textContent = message ? t(message.messageKey, message.args) : '';
+    dom.sheetAccessBanner.classList.toggle('hidden', message === null);
+    if (changed && connected) {
+        renderUnsentProgress?.();
+    }
 }
 
 // getAuthToken(true) を1本へ合流させる。バッジ連打やほぼ同時の複数保存失敗が、
@@ -114,6 +147,8 @@ async function runFlushOnce(
     const lastFailureKind = 'lastError' in result
         ? classifySaveFailure(result.lastError, navigator.onLine)
         : null;
+    updateSaveFailure(spreadsheetId, userEmail,
+        result.flushedCount > 0 || result.remainingCount === 0 ? null : lastFailureKind);
     return { flushedCount: result.flushedCount, remainingCount: result.remainingCount, lastFailureKind };
 }
 
@@ -191,6 +226,7 @@ export async function saveDecisionOrQueue(
             if (shouldRetryAfterReauth(kind, reauthed)) {
                 try {
                     await apiSaveDecision(spreadsheetId, decision);
+                    updateSaveFailure(spreadsheetId, userEmail, null);
                     await flushUnsentQueue({ interactive: false });
                     return;
                 } catch (retryError) {
@@ -201,6 +237,7 @@ export async function saveDecisionOrQueue(
         }
 
         await enqueueDecision(spreadsheetId, userEmail, decision);
+        updateSaveFailure(spreadsheetId, userEmail, kind);
         await refreshUnsentBadge();
         if (options.notifyOnFailure) {
             const toast = pickSaveFailureToast(kind);
@@ -209,5 +246,6 @@ export async function saveDecisionOrQueue(
         return;
     }
 
+    updateSaveFailure(spreadsheetId, userEmail, null);
     await flushUnsentQueue({ interactive: false });
 }

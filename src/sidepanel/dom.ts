@@ -108,6 +108,7 @@ const domElements = {
     get backBtn() { return getElement<HTMLButtonElement>('back-btn'); },
 
     // ========== 未送信キューバッジ ==========
+    get sheetAccessBanner() { return getElement<HTMLDivElement>('sheet-access-banner'); },
     get unsentQueueBadge() { return getElement<HTMLButtonElement>('unsent-queue-badge'); },
 
     // ========== Key Open Section ==========

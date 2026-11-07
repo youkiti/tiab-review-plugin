@@ -6,6 +6,18 @@
 import type { AppState } from '../store/types';
 import { dom } from '../dom';
 import { computeSharePanelPosition } from '../utils/share-panel-position';
+import type { SheetEditAccess } from '../../lib/sheet-access-banner';
+
+/** Issue #271: 編集可否の更新・切替・戻るを同じ描画規則で反映する。 */
+export function renderDecisionButtonAccess(
+    editAccess: SheetEditAccess,
+    root: Pick<Document, 'getElementById'> = document,
+): void {
+    for (const id of ['btn-include', 'btn-maybe', 'btn-exclude', 'ml-btn-include', 'ml-btn-exclude']) {
+        const button = root.getElementById(id) as HTMLButtonElement | null;
+        if (button) button.disabled = editAccess === 'readonly';
+    }
+}
 
 /** 前回の補正を外して測り、開閉やリサイズによる位置ずれの累積を防ぐ。 */
 function positionSharePanel(): void {
@@ -25,6 +37,7 @@ function positionSharePanel(): void {
  */
 export function renderLayout(state: AppState): void {
     const { view, currentTab } = state.ui;
+    renderDecisionButtonAccess(state.data.sheetEditAccess);
 
     // ========== メインセクションの表示切替 ==========
     // すべてのセクションを非表示にしてから、該当のみ表示

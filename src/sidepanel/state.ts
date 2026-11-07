@@ -124,6 +124,10 @@ export const state = {
 
     get isAdmin() { return getState().data.isAdmin; },
 
+    get sheetEditAccess() { return getState().data.sheetEditAccess; },
+
+    get unsentCount() { return getState().data.unsentCount; },
+
     get fulltextPoolRule() { return getState().data.fulltextPoolRule; },
 
     get fulltextAssignment() { return getState().data.fulltextAssignment; },

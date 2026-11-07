@@ -339,6 +339,8 @@ function makeState(overrides: {
             },
             recentSheets: [],
             isAdmin: false,
+            sheetEditAccess: 'unknown',
+            unsentCount: 0,
             fulltextPoolRule: null,
             fulltextAssignment: { status: 'none', groupCount: 2, reviewerMap: {} },
             assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },

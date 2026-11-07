@@ -15,12 +15,12 @@ import {
     getRecentSpreadsheets,
     getLocalRecentSheets,
     rememberLocalRecentSheet,
-    isUserAdmin,
     loadProjectSnapshot,
     selectReferencesWithStatus,
     forceReauth,
     ensureHeaders,
 } from '../../lib/sheets-api';
+import { getUserSheetAccess } from '../../lib/drive-permissions';
 import { setupProjectFolder } from '../../lib/drive-api';
 import { platform } from '../../platform';
 import { getReviewerKey } from './screening/reviewer-utils';
@@ -46,6 +46,7 @@ import {
     setKeywords as syncSetKeywords,
     setIsKeyOpened as syncSetIsKeyOpened,
     setIsAdmin as syncSetIsAdmin,
+    setSheetEditAccess as syncSetSheetEditAccess,
     setSourceFiles as syncSetSourceFiles,
     setSelectedSourceFiles as syncSetSelectedSourceFiles,
     setAvailableReviewers as syncSetAvailableReviewers,
@@ -536,10 +537,10 @@ async function loadDataAndShowScreeningImpl() {
         // Duplicate_Candidates の取得だけは失敗を握りつぶす（null）: 重複レビューは補助機能であり、
         // 従来もその取得失敗（loadPendingCount() 内の try/catch）でスクリーニング画面自体の表示を
         // 止めていなかった。
-        const [adminStatus, snapshot] = await perfSpan(
+        const [sheetAccess, snapshot] = await perfSpan(
             'tiab:project.fetch.meta',
             () => Promise.all([
-                isUserAdmin(spreadsheetId, userEmail),
+                getUserSheetAccess(spreadsheetId, userEmail),
                 loadProjectSnapshot(spreadsheetId, userEmail),
             ])
         );
@@ -554,7 +555,9 @@ async function loadDataAndShowScreeningImpl() {
         const keyOpenedStatus = configBundle.keyOpened;
 
         // Store経由で更新
+        const adminStatus = sheetAccess.isAdmin;
         syncSetIsAdmin(adminStatus);
+        syncSetSheetEditAccess(sheetAccess.editAccess);
         syncSetIsKeyOpened(keyOpenedStatus);
         syncSetKeywords(configBundle.keywords);
         syncSetFulltextPoolRule(configBundle.fulltextPoolRule);
@@ -713,6 +716,7 @@ async function loadDataAndShowScreeningImpl() {
                 }
             }
 
+            await refreshUnsentBadge();
             if (_renderCurrentReference) _renderCurrentReference();
             void maybeShowAssignmentWizard('load');
             // 基準更新通知（案D）。画面表示は完了しているので await せず、失敗しても画面を壊さない

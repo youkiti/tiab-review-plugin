@@ -47,6 +47,8 @@ export interface AppState {
         mlState: MlState;
         recentSheets: SheetInfo[];
         isAdmin: boolean;
+        sheetEditAccess: 'editable' | 'readonly' | 'unknown';
+        unsentCount: number;
         // フルテキスト候補ルール（Configシート共有設定、未設定はnull）
         fulltextPoolRule: FulltextPoolRule | null;
         // フルテキスト担当割り振り（Configシート共有設定、未設定は status 'none'）
@@ -130,6 +132,8 @@ export type Action =
     | { type: 'data/setMlState'; mlState: MlState }
     | { type: 'data/setRecentSheets'; sheets: SheetInfo[] }
     | { type: 'data/setIsAdmin'; isAdmin: boolean }
+    | { type: 'data/setSheetEditAccess'; editAccess: 'editable' | 'readonly' | 'unknown' }
+    | { type: 'data/setUnsentCount'; count: number }
     | { type: 'data/setFulltextPoolRule'; rule: FulltextPoolRule | null }
     | { type: 'data/setFulltextAssignment'; config: FulltextAssignmentConfig }
     | { type: 'data/setSourceFiles'; files: Set<string> }
