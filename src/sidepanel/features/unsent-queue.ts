@@ -69,9 +69,17 @@ function syncFailureProject(): void {
     }
 }
 
+/**
+ * kind が null（保存・送信の成功）なら権限不足の状態を解除する。
+ * Issue #271（PR #289 の codex レビュー指摘）: 権限不足の後にオフラインなど別の種類の失敗が
+ * 続いても、権限は戻っていないので、'denied' を別の種類で上書きして警告の帯を消さない。
+ */
 function updateSaveFailure(spreadsheetId: string, userEmail: string, kind: SaveFailureKind | null): void {
     syncFailureProject();
-    if (spreadsheetId === state.spreadsheetId && userEmail === state.userEmail) {
+    if (spreadsheetId !== state.spreadsheetId || userEmail !== state.userEmail) {
+        return;
+    }
+    if (kind === null || kind === 'denied' || lastSaveFailure !== 'denied') {
         lastSaveFailure = kind;
     }
 }

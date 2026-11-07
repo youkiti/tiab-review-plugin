@@ -74,7 +74,10 @@ test('権限不足の帯・送信成功・プロジェクト切替・読み取�
         assert.equal(state.unsentCount, 1);
         assert.equal(banner.textContent, 'screening_sheetDeniedUnsent:1');
         assert.equal(banner.classList.contains('hidden'), false);
+        // 権限不足の後のオフラインの失敗で、権限不足の帯を消さない（PR #289 の codex レビュー指摘）
+        (globalThis.navigator as { onLine: boolean }).onLine = false;
         await saveDecisionOrQueue(decision('second'), { notifyOnFailure: false });
+        (globalThis.navigator as { onLine: boolean }).onLine = true;
         assert.equal(state.unsentCount, 2);
         assert.equal(banner.textContent, 'screening_sheetDeniedUnsent:2');
         await refreshUnsentBadge();
