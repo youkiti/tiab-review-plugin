@@ -42,6 +42,7 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { findQuoteItems, bboxToRect, type Rect } from './pdf-text-match';
 import { computeTargetPages, diffMaterialization, sumCanvasBytes, capTargetPagesByBytes, MaterializeJobs } from './pdf-page-window';
+import { DEFAULT_FONT_ASCENT, fontAscentRatio } from './pdf-font-ascent';
 // scanned（画像only）判定の閾値は、AI判定時の検出（lib/pdf-image-only.ts）と共有する。
 import { SCANNED_TEXT_THRESHOLD } from '../lib/pdf-constants';
 import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
@@ -296,7 +297,9 @@ export class PdfRenderer {
             const viewport = page.getViewport({ scale: info.scale });
             const textContent = await page.getTextContent();
             if (token !== this.renderToken) return stale;
-            const { rawText, charItemIndex, itemRects } = buildTextIndex(textContent.items, viewport);
+            const { rawText, charItemIndex, itemRects } = buildTextIndex(
+                textContent.items, viewport, textContent.styles, textContent.lang
+            );
             info.rawText = rawText;
             info.charItemIndex = charItemIndex;
             info.itemRects = itemRects;
@@ -727,8 +730,13 @@ export class PdfRenderer {
             el.dataset.category = req.category;
             el.dataset.hlId = req.id;
             if (req.title) el.title = req.title;
-            el.style.left = `${r.left}px`;
-            el.style.top = `${r.top}px`;
+            // Issue #272: 位置は文字層の span と同じくページの実寸に対する百分率で置く。pdf.js は文字層の
+            // 寸法を 1px 単位に切り捨て（setLayerDimensions の round(down, …)）、span の left/top を
+            // その層に対する百分率で置く。ページ枠（と、その中いっぱいのハイライト層）も Math.floor で
+            // 切り捨てているので、px で置くとページの下ほど帯が span より下へずれる（実測 0.38px）。
+            // 幅と高さは span も px（文字高と canvasWidth）なので px のまま。
+            el.style.left = `${(100 * r.left) / page.widthPx}%`;
+            el.style.top = `${(100 * r.top) / page.heightPx}%`;
             el.style.width = `${r.width}px`;
             el.style.height = `${r.height}px`;
             el.addEventListener('click', () => this.onHighlightClick?.(req.id));
@@ -747,7 +755,9 @@ export class PdfRenderer {
  */
 function buildTextIndex(
     items: any[],
-    viewport: any
+    viewport: any,
+    styles?: Record<string, any>,
+    lang?: string | null
 ): { rawText: string; charItemIndex: number[]; itemRects: Rect[] } {
     let rawText = '';
     const charItemIndex: number[] = [];
@@ -757,7 +767,8 @@ function buildTextIndex(
         // マーク（hasEOL のみで str を持たない要素）は矩形なしで扱う
         const str: string = typeof item.str === 'string' ? item.str : '';
         // 矩形を計算（str を持つアイテムのみ意味がある）
-        itemRects[idx] = computeItemRect(item, viewport);
+        const fontFamily: string | undefined = styles?.[item.fontName]?.fontFamily;
+        itemRects[idx] = computeItemRect(item, viewport, fontAscentRatio(fontFamily, lang ?? null));
 
         for (const ch of str) {
             rawText += ch;
@@ -773,7 +784,7 @@ function buildTextIndex(
 }
 
 /** 1つのテキストアイテムのビューポート座標矩形（CSSピクセル, ページ左上原点）を求める */
-function computeItemRect(item: any, viewport: any): Rect {
+function computeItemRect(item: any, viewport: any, ascentRatio: number = DEFAULT_FONT_ASCENT): Rect {
     if (!item.transform || typeof item.width !== 'number') {
         return { left: 0, top: 0, width: 0, height: 0 };
     }
@@ -781,8 +792,11 @@ function computeItemRect(item: any, viewport: any): Rect {
     const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
     const fontHeight = Math.hypot(tx[2], tx[3]) || (item.height ?? 0);
     const width = item.width * viewport.scale;
-    const left = tx[4];
-    const top = tx[5] - fontHeight; // tx[5] はベースライン。矩形上端はベースライン - 文字高。
+    // tx[5] はベースライン。文字層の span と同じく、上端はベースライン − 文字高 × ascent 比。
+    const fontAscent = fontHeight * ascentRatio;
+    const angle = Math.atan2(tx[1], tx[0]);
+    const left = angle === 0 ? tx[4] : tx[4] + fontAscent * Math.sin(angle);
+    const top = angle === 0 ? tx[5] - fontAscent : tx[5] - fontAscent * Math.cos(angle);
     return { left, top, width, height: fontHeight };
 }
 
