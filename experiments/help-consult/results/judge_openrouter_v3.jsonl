@@ -44,7 +44,7 @@
 {"key": "en-14|openrouter|v3", "grade": "correct", "leak": false, "note": "\"AI connection\" でプロバイダを選び、キーを貼って \"Verify and save\" と案内している。"}
 {"key": "en-15|openrouter|v3", "grade": "correct", "leak": false, "note": "15 requests/minute の制限、自動で速度を落として続けること、課金の有効化を含む（実測時点の注記は省略）。"}
 {"key": "en-16|openrouter|v3", "grade": "correct", "leak": false, "note": "閾値を確定するまで pending のままであること、Execution History の未確定の Run から後で確定できることを含む。"}
-{"key": "en-17|openrouter|v3", "grade": "correct", "leak": false, "note": "【迷い】既定の 0.3 は含む。「閾値を上げると見落としが増える」は明示されず、\"Consider 0.5 / 0.7 only if more missed eligible records are acceptable\" で含意されるだけなので、correct とした。"}
+{"key": "en-17|openrouter|v3", "grade": "partial", "leak": false, "note": "【迷い】既定の 0.3 は含む。「閾値を上げると見落としが増える」は明示されず、\"Consider 0.5 / 0.7 only if more missed eligible records are acceptable\" で含意されるだけなので、correct とした。（本人の確認で correct → partial に変更）"}
 {"key": "en-18|openrouter|v3", "grade": "correct", "leak": false, "note": "実行前に合格基準を保存すること、比較カードで人の合議と比べることを含み、注記も本文どおり。"}
 {"key": "en-19|openrouter|v3", "grade": "correct", "leak": false, "note": "Local LLM を選び URL を入れて \"Save and test connection\"、OLLAMA_ORIGINS の設定と再起動を含む。"}
 {"key": "en-20|openrouter|v3", "grade": "partial", "leak": false, "note": "セットアップの \"PDF read permission\" から付与できることは含むが、drive.file の制約で共有だけでは拡張機能から読めないという理由が欠けている（\"restore read access\" の案内も無い）。"}
