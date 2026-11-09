@@ -7,6 +7,13 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース / Unreleased
+
+### 画面 / Interface
+
+- 管理者（シートの編集者以上）も、担当表に名前があれば TiAb は最初に自分の担当セット（キャリブレーションと未割当を含む）だけを表示し、担当外のセットはチェックで表示できます。全文の担当状態行にも自分の担当グループを表示します。AI 判定には影響しません。
+  Admins (sheet editors or owners) with assigned groups now start TiAb with only their own assignment sets, including calibration and unassigned references, and can check other sets to show them. Their own groups are also shown in the full-text assignment status row. AI screening is unaffected.
+
 ## v0.57.1（2026-11-07）
 
 ### 画面 / Interface

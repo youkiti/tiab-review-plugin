@@ -522,7 +522,7 @@
     "message": "How this looks after setup:"
   },
   "ftAssign_wizardRolePreviewAdmin": {
-    "message": "- Admin (edit access): sees all $1 (can filter by assignment set)"
+    "message": "- Admin (edit access): starts with their own groups if assigned; can show all $1 via the assignment sets"
   },
   "ftAssign_wizardRolePreviewReviewer": {
     "message": "- Each reviewer: only their own group plus unassigned items"

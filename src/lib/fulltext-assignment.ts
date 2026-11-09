@@ -7,7 +7,7 @@
 // - status 'none'（デフォルト）: 従来どおり全員が全候補を判定する
 // - status 'configured': 各レビュアーは自分の担当グループ + 未割り当て文献のみを見る
 //   （未割り当て = 割り振り後に候補プールへ新規流入した文献。取りこぼし防止のため全員に見せる）
-// - 管理者は常に全候補を見る
+// - 管理者は全候補を表示できる（担当があれば初期選択は自分の担当 + 未割り当て）
 //
 // 永続化:
 // - グループ構成・担当者 → Config シートの fulltext_assignment_* キー（sheets/config.ts）
@@ -60,6 +60,14 @@ export function getFulltextSetsForUser(config: FulltextAssignmentConfig, userEma
         }
     }
     return assigned;
+}
+
+/** 状態行の自分の担当表示（担当あり・担当なしの案内・非表示）を決める */
+export function fulltextMyGroupsDisplay(isAdmin: boolean, assignedSets: Set<string>): 'groups' | 'none' | 'hidden' {
+    if (assignedSets.size > 0) {
+        return 'groups';
+    }
+    return isAdmin ? 'hidden' : 'none';
 }
 
 /**
