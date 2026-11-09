@@ -34,6 +34,7 @@ import {
     distributeUnassigned,
     fulltextSetOf,
     getFulltextSetsForUser,
+    fulltextMyGroupsDisplay,
     getFulltextSetLabel,
     normalizeFulltextReviewerMap,
     initialSelectedFulltextSets,
@@ -277,17 +278,20 @@ export function renderFulltextAssignmentRow(): void {
 
     const parts: string[] = [t('ftAssign_lineConfigured', String(config.groupCount))];
 
+    const mySets = getFulltextSetsForUser(config, state.userEmail);
+    const display = fulltextMyGroupsDisplay(state.isAdmin, mySets);
+    if (display === 'groups') {
+        const labels = Array.from(mySets).sort().map(getFulltextSetLabel);
+        parts.push(t('ftAssign_lineMyGroups', labels.join(', ')));
+    } else if (display === 'none') {
+        parts.push(t('ftAssign_lineMyGroupsNone'));
+    }
+
     if (state.isAdmin) {
         const unassigned = getUnassignedPoolRefs(config).length;
         if (unassigned > 0) {
             parts.push(t('ftAssign_lineUnassigned', String(unassigned)));
         }
-    } else {
-        const mySets = getFulltextSetsForUser(config, state.userEmail);
-        const labels = Array.from(mySets).sort().map(getFulltextSetLabel);
-        parts.push(labels.length > 0
-            ? t('ftAssign_lineMyGroups', labels.join(', '))
-            : t('ftAssign_lineMyGroupsNone'));
     }
 
     line.textContent = parts.join(' / ');

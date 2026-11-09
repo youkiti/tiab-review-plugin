@@ -1,4 +1,5 @@
 import { dismissAssignment } from '../../lib/assignment-dismiss';
+import { initialSelectedAssignmentSets } from '../../lib/assignment-initial-selection';
 import { DEFAULT_ASSIGNMENT_CONFIG, createDefaultAssignmentConfig, resolveReferenceAssignmentSet } from '../../lib/assignment-set';
 import type { AssignmentConfig, ReferenceWithStatus } from '../../lib/types';
 import { getAssignmentConfig, saveAssignmentConfig, updateReferenceScreeningSets } from '../../lib/sheets-api';
@@ -139,18 +140,21 @@ export function initializeAssignmentState(
     const availableSets = getAvailableAssignmentSets(refs, normalizedConfig);
     storeSetAssignmentSets(availableSets);
 
+    const assignedSets = getAssignedSetsForUser(normalizedConfig, userEmail);
+    storeSetSelectedAssignmentSets(initialSelectedAssignmentSets({
+        configured: normalizedConfig.status === 'configured',
+        isAdmin,
+        availableSets,
+        assignedSets,
+    }));
+
     if (isAdmin) {
-        storeSetSelectedAssignmentSets(new Set(availableSets));
         return refs;
     }
 
     if (normalizedConfig.status !== 'configured') {
-        storeSetSelectedAssignmentSets(new Set());
         return refs;
     }
-
-    const assignedSets = getAssignedSetsForUser(normalizedConfig, userEmail);
-    storeSetSelectedAssignmentSets(new Set(assignedSets));
 
     const visibleRefs = refs.filter((ref) => assignedSets.has(getReferenceAssignmentSet(ref)));
 

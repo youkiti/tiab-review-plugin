@@ -522,7 +522,7 @@
     "message": "設定後の見え方:"
   },
   "ftAssign_wizardRolePreviewAdmin": {
-    "message": "・管理者（編集権限）: 全$1件を表示（担当セットのチェックで絞り込み可能）"
+    "message": "・管理者（編集権限）: 担当があれば最初は自分の担当分を表示。担当セットのチェックで全$1件まで表示可能"
   },
   "ftAssign_wizardRolePreviewReviewer": {
     "message": "・各レビュアー: 自分の担当グループ＋未割り当て分のみ"

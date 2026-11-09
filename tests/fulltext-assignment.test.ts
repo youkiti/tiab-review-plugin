@@ -1,3 +1,5 @@
+// fulltext-assignment.test.ts - フルテキスト担当割り振りの共通ロジックの検証
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -5,6 +7,7 @@ import {
     distributeUnassigned,
     canSeeFulltextRef,
     getFulltextSetsForUser,
+    fulltextMyGroupsDisplay,
     fulltextSetOf,
     initialSelectedFulltextSets,
     matchesSelectedFulltextSets,
@@ -22,6 +25,22 @@ const CONFIGURED: FulltextAssignmentConfig = {
 };
 
 const NONE: FulltextAssignmentConfig = { status: 'none', groupCount: 2, reviewerMap: {} };
+
+test('fulltextMyGroupsDisplay: 管理者で担当ありなら自分の担当を表示する', () => {
+    assert.equal(fulltextMyGroupsDisplay(true, new Set(['ft-group-1'])), 'groups');
+});
+
+test('fulltextMyGroupsDisplay: 管理者で担当なしなら非表示にする', () => {
+    assert.equal(fulltextMyGroupsDisplay(true, new Set()), 'hidden');
+});
+
+test('fulltextMyGroupsDisplay: 非管理者で担当ありなら自分の担当を表示する', () => {
+    assert.equal(fulltextMyGroupsDisplay(false, new Set(['ft-group-1'])), 'groups');
+});
+
+test('fulltextMyGroupsDisplay: 非管理者で担当なしなら担当なしを案内する', () => {
+    assert.equal(fulltextMyGroupsDisplay(false, new Set()), 'none');
+});
 
 test('buildFulltextSetAssignments: 全件が割り当てられ、グループ間の件数差は1以内', () => {
     const refIds = Array.from({ length: 25 }, (_, i) => `ref-${i}`);
