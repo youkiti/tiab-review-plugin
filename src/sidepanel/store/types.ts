@@ -22,12 +22,6 @@ export type View = 'login' | 'project' | 'screening' | 'llm' | 'ml' | 'settings'
 // ========== Tab型（screening/llm/ml/fulltext内の切替） ==========
 export type Tab = 'screening' | 'llm' | 'ml' | 'fulltext';
 
-// ========== SheetInfo型 ==========
-export interface SheetInfo {
-    id: string;
-    name: string;
-    lastOpened?: string;
-}
 
 // ========== TermFilter型 ==========
 export interface TermFilter {
@@ -45,7 +39,6 @@ export interface AppState {
         highlightKeywords: HighlightKeywords;
         llmConfig: LlmConfig;
         mlState: MlState;
-        recentSheets: SheetInfo[];
         isAdmin: boolean;
         sheetEditAccess: 'editable' | 'readonly' | 'unknown';
         unsentCount: number;
@@ -86,18 +79,6 @@ export interface AppState {
             activeTermFilters: TermFilter[];
         };
 
-        // ML
-        ml: {
-            currentIndex: number;
-            searchQuery: string;
-        };
-
-        // LLM
-        llm: {
-            batchRunning: boolean;
-            currentExecutionId: string;
-        };
-
         // 一時UI（メニュー開閉/モーダル）
         flags: {
             loading: boolean;
@@ -122,7 +103,6 @@ export type Action =
 
     // データ操作
     | { type: 'data/setReferences'; refs: ReferenceWithStatus[] }
-    | { type: 'data/updateReference'; refId: string; updates: Partial<ReferenceWithStatus> }
     | { type: 'data/setSpreadsheetId'; id: string }
     | { type: 'data/setUserEmail'; email: string }
     | { type: 'data/setKeywords'; keywords: HighlightKeywords }
@@ -130,7 +110,6 @@ export type Action =
     | { type: 'data/removeKeyword'; keywordType: 'include' | 'exclude'; word: string }
     | { type: 'data/setLlmConfig'; config: LlmConfig }
     | { type: 'data/setMlState'; mlState: MlState }
-    | { type: 'data/setRecentSheets'; sheets: SheetInfo[] }
     | { type: 'data/setIsAdmin'; isAdmin: boolean }
     | { type: 'data/setSheetEditAccess'; editAccess: 'editable' | 'readonly' | 'unknown' }
     | { type: 'data/setUnsentCount'; count: number }
@@ -138,13 +117,11 @@ export type Action =
     | { type: 'data/setFulltextAssignment'; config: FulltextAssignmentConfig }
     | { type: 'data/setSourceFiles'; files: Set<string> }
     | { type: 'data/setSelectedSourceFiles'; files: Set<string> }
-    | { type: 'data/toggleSourceFile'; file: string }
     | { type: 'data/addSelectedSourceFile'; file: string }
     | { type: 'data/removeSelectedSourceFile'; file: string }
     | { type: 'data/deleteSourceFile'; file: string }
     | { type: 'data/setAvailableReviewers'; reviewers: Set<string> }
     | { type: 'data/setEnabledReviewers'; reviewers: Set<string> }
-    | { type: 'data/toggleReviewer'; reviewerId: string }
     | { type: 'data/addReviewer'; reviewerId: string }
     | { type: 'data/removeReviewer'; reviewerId: string }
     | { type: 'data/setFailedRefIds'; ids: string[]; sourceExecutionId: string | null }
@@ -174,20 +151,10 @@ export type Action =
     | { type: 'screening/setIndex'; index: number }
     | { type: 'screening/setFilter'; filter: AppState['ui']['screening']['currentFilter'] }
     | { type: 'screening/setSearch'; query: string }
-    | { type: 'screening/toggleKeyOpen' }
     | { type: 'screening/setKeyOpened'; opened: boolean }
     | { type: 'screening/addTermFilter'; filter: TermFilter }
     | { type: 'screening/removeTermFilter'; term: string; termType: string }
     | { type: 'screening/clearTermFilters' }
-
-    // ML UI
-    | { type: 'ml/navigate'; direction: 1 | -1 }
-    | { type: 'ml/setIndex'; index: number }
-    | { type: 'ml/setSearch'; query: string }
-
-    // LLM UI
-    | { type: 'llm/setBatchRunning'; running: boolean }
-    | { type: 'llm/setExecutionId'; id: string }
 
     // 一時UI
     | { type: 'ui/setLoading'; loading: boolean }
@@ -203,14 +170,6 @@ export type Action =
 
     // 設定
     | { type: 'settings/patch'; patch: Partial<UserSettings> }
-    | { type: 'settings/setAutoNavigate'; value: boolean }
-    | { type: 'settings/setShowRecordCountBelow'; value: boolean }
-    | { type: 'settings/setTermFilterUseAnd'; value: boolean }
-    | { type: 'settings/setTreatMlAsManual'; value: boolean }
-    | { type: 'settings/setShowAiHighlights'; value: boolean }
-    | { type: 'settings/setAiDecisionFilter'; filter: Record<string, { include: boolean; exclude: boolean }> }
-    | { type: 'settings/setAbstractSubsectionBreakEnabled'; value: boolean }
-    | { type: 'settings/setAbstractSubsectionHeadings'; value: string[] }
 
     // リセット
     | { type: 'reset/logout' }

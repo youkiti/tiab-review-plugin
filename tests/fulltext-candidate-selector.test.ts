@@ -1,11 +1,16 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
-import { getFilteredReferences, getFilterCounts } from '../src/sidepanel/store/selectors';
+import { getFilteredReferences } from '../src/sidepanel/store/selectors';
+import { initializeStore } from '../src/sidepanel/store';
+import { computeStatusFilterCounts } from '../src/sidepanel/features/screening/filters';
 import { DEFAULT_ASSIGNMENT_CONFIG } from '../src/lib/assignment-set';
 import type { AppState } from '../src/sidepanel/store/types';
 import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 import type { FulltextPoolRule } from '../src/lib/fulltext-pool';
 import type { FulltextAssignmentConfig } from '../src/lib/fulltext-assignment';
+
+// 件数の計算は Store（初期化したもの）を読むため、最後に初期状態へ戻す
+after(() => { initializeStore(); });
 
 let seq = 0;
 function makeDecision(overrides: Partial<Decision>): Decision {
@@ -47,7 +52,6 @@ function makeState(params: {
             highlightKeywords: { include: [], exclude: [] },
             llmConfig: {} as AppState['data']['llmConfig'],
             mlState: {} as AppState['data']['mlState'],
-            recentSheets: [],
             isAdmin: params.isAdmin ?? false,
             sheetEditAccess: 'unknown',
             unsentCount: 0,
@@ -76,14 +80,6 @@ function makeState(params: {
                 searchQuery: '',
                 isKeyOpened: true,
                 activeTermFilters: [],
-            },
-            ml: {
-                currentIndex: 0,
-                searchQuery: '',
-            },
-            llm: {
-                batchRunning: false,
-                currentExecutionId: '',
             },
             flags: {
                 loading: false,
@@ -121,7 +117,8 @@ test('フルテキスト候補未設定時: 非管理ユーザーは自分のTiA
     });
 
     assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-own']);
-    assert.equal(getFilterCounts(state).fulltextCandidates, 1);
+    initializeStore(state);
+    assert.equal(computeStatusFilterCounts().fulltextCandidates, 1);
 });
 
 test('フルテキスト候補未設定時: 管理者は全レビュアーのTiAb Includeを候補にする', () => {
@@ -141,7 +138,8 @@ test('フルテキスト候補未設定時: 管理者は全レビュアーのTiA
     });
 
     assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-own', 'ref-other']);
-    assert.equal(getFilterCounts(state).fulltextCandidates, 2);
+    initializeStore(state);
+    assert.equal(computeStatusFilterCounts().fulltextCandidates, 2);
 });
 
 test('フルテキスト候補ルール設定時: 管理者分岐よりルールを優先する', () => {
@@ -163,7 +161,8 @@ test('フルテキスト候補ルール設定時: 管理者分岐よりルール
     });
 
     assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-other']);
-    assert.equal(getFilterCounts(state).fulltextCandidates, 1);
+    initializeStore(state);
+    assert.equal(computeStatusFilterCounts().fulltextCandidates, 1);
 });
 
 test('フルテキスト担当割り振り設定時: 非管理ユーザーは自分の担当グループ + 未割り当てのみ候補にする', () => {
@@ -196,7 +195,8 @@ test('フルテキスト担当割り振り設定時: 非管理ユーザーは自
     });
 
     assert.deepEqual(getFilteredReferences(state).map(r => r.ref_id), ['ref-mine', 'ref-unassigned']);
-    assert.equal(getFilterCounts(state).fulltextCandidates, 2);
+    initializeStore(state);
+    assert.equal(computeStatusFilterCounts().fulltextCandidates, 2);
 
     // 管理者は割り振りに関係なく全候補を見る
     const adminState = makeState({
