@@ -217,7 +217,7 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 
 ## Chrome Web Store への提出（リリース手順）
 
-- リリースは `npm run release`（修正・小変更）または `npm run release:major`（機能追加）。1回の実行で、リリース用ブランチと PR の作成、CI の必須チェック待ち、マージ、ストア用ビルドと審査提出まで進みます。途中で止まったら同じコマンドを再実行すると続きから進みます。前提: Windows の PowerShell、`gh` CLI のログイン、`.env` のストア API 認証。zip だけ作るときは `npm run build:release`（生成される **`dist.zip`** をデベロッパーダッシュボードにアップロードします。ファイル名は `dist.zip` 固定で、バージョン付きの名前ではアップロードできません）。
+- リリースは `npm run release`（修正・小変更）または `npm run release:major`（機能追加）。1回の実行で、リリース用ブランチと PR の作成、CI の必須チェック待ち、マージ、ストア用ビルドと審査提出、版タグと GitHub Release の作成まで進みます（過去の版にはタグを打ちません）。版上げは `package.json`・`package-lock.json`・`src/manifest.json`・`src/sidepanel/sidepanel.html` に加えて `CITATION.cff` の5ファイルを書き換えます。途中で止まったら同じコマンドを再実行すると続きから進みます。前提: Windows の PowerShell、`gh` CLI のログイン、`.env` のストア API 認証。zip だけ作るときは `npm run build:release`（生成される **`dist.zip`** をデベロッパーダッシュボードにアップロードします。ファイル名は `dist.zip` 固定で、バージョン付きの名前ではアップロードできません）。
 - `gh` CLI の導入（リリースを行う Windows の PC で1回）: PowerShell で `gh --version` を実行し、版が出なければ `winget install --id GitHub.cli` で入れて PowerShell を開き直します。次に `gh auth login` を実行し、「GitHub.com」「HTTPS」「Login with a web browser」を選んで、表示されたコードをブラウザに入れます。`gh auth status` でログインを確かめます。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
 - `chrome.identity.launchWebAuthFlow` の認可には、ウェブ アプリケーション種別のOAuthクライアントをGCP側で作成し、承認済みリダイレクトURIにストア版・dev版それぞれの `https://<拡張機能ID>.chromiumapp.org/` を登録した上で、`.env` の `WEBAUTH_CLIENT_ID` に設定してください（詳細は上記「OAuth 2.0 クライアントIDの作成」参照）。
@@ -504,6 +504,12 @@ This project is supported by the following research grant.
 本ツールは無料・非営利で提供しています。開発者は、本ツールで使える AI サービスの提供元（Google、OpenRouter、OpenAI、Anthropic、TypeSafe）から報酬や資金を受けていません。
 
 This tool is provided free of charge and not for profit. The developer receives no payment or funding from the providers of the AI services that can be used with this tool (Google, OpenRouter, OpenAI, Anthropic, TypeSafe).
+
+## 引用 / Citation
+
+GitHub のリポジトリ画面の「Cite this repository」で、[CITATION.cff](CITATION.cff) の引用形式（BibTeX・APA）を取得できます。Zenodo の concept DOI（全版を束ねる DOI）は、決まり次第ここに載せます。論文には、使った TiAb Review の版（判定を記録した版の最小から最大）を書いてください。論文用テキスト（Methods）はその範囲を自動で書きます。
+
+To cite this software, use "Cite this repository" on the GitHub page, which reads [CITATION.cff](CITATION.cff) (BibTeX and APA). The Zenodo concept DOI, which covers all versions, will be listed here once issued. In your paper, give the TiAb Review version or version range you used; the generated manuscript text (Methods) writes the range automatically.
 
 ## 変更履歴 / Changelog
 

@@ -2255,6 +2255,10 @@
                         automatically, and CSV/RIS export and manuscript text generation are also available here.</span>
                 </p>
                 <p>
+                    <span class="ja"><strong>論文用テキストの TiAb Review の版：</strong>Methods の「TiAb Review (version …)」は、その段階の判定（人・AI・ML）を記録した版の最小から最大です（同じ版だけなら単一の版、版が読めないときはテキストを作った人のいまの版）。キーが未開封のときは自分の判定だけから求めます。Web版の判定も同じ版番号に含めます。版の末尾に DOI が付く場合、それは TiAb Review の全版を束ねる Zenodo の DOI です。</span>
+                    <span class="en"><strong>TiAb Review version in the manuscript text:</strong> The "TiAb Review (version …)" in Methods is the range from the lowest to the highest version that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same. When no version can be read from the decisions, it shows the version of the person generating the text. Before the key is opened, only your own decisions are used, and decisions made in the web version are counted under the same version numbers. A DOI after the version, when shown, is the Zenodo DOI that covers all versions of TiAb Review.</span>
+                </p>
+                <p>
                     <span class="ja">この章の「<a href="#fulltext">レジストリ連携</a>」で取り込んだ論文は、データベース検索で見つけた文献とは<strong>別の腕として集計されます</strong>。PRISMA 2020では、citation searchingなどと同じ「Identification of studies via other methods（他の方法による同定）」で報告するのが正しいためです。結果サマリにはデータベース検索の数値に続けて「結果サマリ（PRISMA other methods 腕: レジストリ連携）」というブロックが表示され、レジストリ連携で同定・全文取得・全文評価で除外・組み入れの件数と除外理由の内訳が出ます（レジストリ連携由来の候補が0件のプロジェクトでは、このブロックは表示されず、数値も文案もこれまでと変わりません）。論文用テキストのMethods・Results・PRISMA 2020フロー図にも同じ腕別の記述が追加され、全文結果CSVには各文献がどちらの腕かを示す
                         <code>identification_route</code> 列（<code>database</code> /
                         <code>registry_linkage</code>）が入ります（列の並びは既存の列の後ろで、そのあとに裁定メモの <code>adjudication_memo</code> 列が続きます）。</span>
@@ -2968,6 +2972,14 @@
                             target="_blank">changelog</a>. For earlier changes, see the <a
                             href="https://github.com/youkiti/tiab-review-plugin/commits/main" target="_blank">commit
                             history</a>.</span>
+                </p>
+                <p>
+                    <span class="ja">引用するときは、GitHub のリポジトリ画面の「Cite this repository」または <a
+                            href="https://github.com/youkiti/tiab-review-plugin/blob/main/CITATION.cff"
+                            target="_blank">CITATION.cff</a> を使ってください。</span>
+                    <span class="en">To cite TiAb Review, use "Cite this repository" on the GitHub page or <a
+                            href="https://github.com/youkiti/tiab-review-plugin/blob/main/CITATION.cff"
+                            target="_blank">CITATION.cff</a>.</span>
                 </p>
                 <p>
                     <span class="ja">本ツールは JSPS 科研費 25K13585 の助成を受けて開発しており、無料・非営利で提供しています。開発者は、本ツールで使える AI サービスの提供元から報酬や資金を受けていません。</span>

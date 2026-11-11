@@ -3673,6 +3673,9 @@
   "manuscript_disclaimer": {
     "message": "自動生成の下書きです。数値は現在のデータ・判定者選択に基づきます。[ ] は手入力が必要です。投稿前に必ず確認してください。"
   },
+  "manuscript_versionNote": {
+    "message": "版は、この段階の判定（人・AI・ML）を記録した TiAb Review の版の最小から最大です。キーが未開封のときは自分の判定だけから求めます。Web版の判定も同じ版番号に含めます。"
+  },
   "manuscript_warnUnscreened": {
     "message": "未判定の文献が $1 件あります。数値は最終値ではありません。"
   },

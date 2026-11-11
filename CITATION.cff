@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file. For a specific version, cite the version DOI on Zenodo."
+type: software
+title: "TiAb Review"
+abstract: "A Chrome extension and web app for title/abstract and full-text screening in systematic reviews, using a shared Google Sheets spreadsheet as the database."
+# 各著者の affiliation と orcid は空欄（arXiv 2604.08602v2 で確かめてから記入する）。
+# 記入するときは given-names の下に affiliation: "…" と orcid: "https://orcid.org/0000-0000-0000-0000" を足す。
+authors:
+  - family-names: Kataoka
+    given-names: Yuki
+  - family-names: Banno
+    given-names: Masahiro
+  - family-names: Kyo
+    given-names: Michihito
+  - family-names: Nakao
+    given-names: Shuri
+  - family-names: Sato
+    given-names: Tomoo
+  - family-names: Taito
+    given-names: Shunsuke
+  - family-names: Takayama
+    given-names: Tomohiro
+  - family-names: Tsuge
+    given-names: Takahiro
+  - family-names: Tsujimoto
+    given-names: Yasushi
+  - family-names: So
+    given-names: Ryuhei
+  - family-names: Furukawa
+    given-names: "Toshi A."
+version: 0.57.2
+date-released: "2026-11-09"
+license: MIT
+repository-code: "https://github.com/youkiti/tiab-review-plugin"
+url: "https://youkiti.github.io/tiab-review-plugin/"
+keywords:
+  - systematic review
+  - citation screening
+  - PRISMA 2020
+  - active learning
+  - large language model

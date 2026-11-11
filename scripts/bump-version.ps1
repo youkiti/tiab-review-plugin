@@ -29,6 +29,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $packageJsonPath = Join-Path $repoRoot "package.json"
 $manifestJsonPath = Join-Path $repoRoot "src/manifest.json"
 $sidepanelHtmlPath = Join-Path $repoRoot "src/sidepanel/sidepanel.html"
+$citationPath = Join-Path $repoRoot "CITATION.cff"
 
 # main 上では版上げしない。main は CI を通った PR からしか更新できないため（ruleset `protect main`）。
 $currentBranch = git -C $repoRoot branch --show-current
@@ -58,7 +59,7 @@ if ($dirtyStatus) {
     Write-Host "対処方法:"
     Write-Host "  1. 変更を commit または stash してから再実行してください。"
     Write-Host "  2. 前回のバンプ失敗で書き換えが残っている場合は、次のコマンドで戻してください:"
-    Write-Host "     git checkout -- package.json src/manifest.json src/sidepanel/sidepanel.html package-lock.json"
+    Write-Host "     git checkout -- package.json src/manifest.json src/sidepanel/sidepanel.html package-lock.json CITATION.cff"
     exit 1
 }
 
@@ -124,8 +125,16 @@ $sidepanelContent = $sidepanelContent -replace 'Build: [0-9-]+( [0-9:]+)?', "Bui
 [System.IO.File]::WriteAllText($sidepanelHtmlPath, $sidepanelContent, [System.Text.UTF8Encoding]::new($false))
 Write-Host "✓ sidepanel.html を更新しました (Build: $buildDate)"
 
-# 4. バンプした4ファイルだけをローカル commit する（push はしない）
-git -C $repoRoot add -- package.json src/manifest.json src/sidepanel/sidepanel.html package-lock.json
+# 3b. CITATION.cff の version と date-released を更新（BOMなしUTF-8で保存）
+# date-released は Build: と同じ $buildDate（この PC のローカル日付）。npm run release は CHANGELOG の版の見出しも同じ日付で書く。
+$citationContent = Get-Content $citationPath -Raw -Encoding UTF8
+$citationContent = $citationContent -replace '(?m)^version: [^\r\n]*$', "version: $newVersion"
+$citationContent = $citationContent -replace '(?m)^date-released: [^\r\n]*$', "date-released: `"$buildDate`""
+[System.IO.File]::WriteAllText($citationPath, $citationContent, [System.Text.UTF8Encoding]::new($false))
+Write-Host "✓ CITATION.cff を更新しました (version: $newVersion, date-released: $buildDate)"
+
+# 4. バンプした5ファイルだけをローカル commit する（push はしない）
+git -C $repoRoot add -- package.json src/manifest.json src/sidepanel/sidepanel.html package-lock.json CITATION.cff
 if ($LASTEXITCODE -ne 0) {
     Write-Host "エラー: git add の実行に失敗しました（終了コード: $LASTEXITCODE）" -ForegroundColor Red
     exit 1

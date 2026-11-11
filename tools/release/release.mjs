@@ -1,14 +1,15 @@
-// リリースの1コマンド: 版上げ PR の作成 → 必須チェック待ち → マージ → ストア用ビルドと審査提出。
+// リリースの1コマンド: 版上げ PR の作成 → 必須チェック待ち → マージ → ストア用ビルドと審査提出 → 版タグと GitHub Release。
 // 起動: node tools/release/release.mjs --bump patch|major [--dry-run] [--alias <npm script 名>]
 // 途中で止まっても、同じコマンドを再実行すると続きから進む。続きの位置は状態ファイルでなく、
 // GitHub（開いているリリース PR、main の版）とストア（公開中・審査中の版）の実際の状態から決める。
 // 外部コマンドはすべて run() 経由で呼ぶ。テストは run を差し替えて、実際の git・gh・ストアを呼ばずに検査する。
-import { readFileSync, writeFileSync, rmSync, realpathSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareVersions } from './storeApi.mjs';
+import { extractChangelogSection, readConceptDoi, buildReleaseNotes } from './release-notes.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 // build-check.yml のジョブ名と一致させる。ruleset `protect main` の必須チェック名も同じ。
@@ -19,6 +20,11 @@ const APPEAR_LIMIT_MS = 5 * 60_000;
 const TOTAL_LIMIT_MS = 40 * 60_000;
 const RERUN_NOTE = '同じコマンドを再実行すると、ここから続きます。';
 const STORE_API = 'tools/release/storeApi.mjs';
+// 版タグと GitHub Release は、この版より新しい版にだけ作る。過去の版にはタグを打たない（版とコミットの対応は文書に載せる）。
+// 段6の再開（提出済みの版にタグか Release が無いとき）の下限でもある。実装時点の main の package.json の版。
+export const TAG_FROM_AFTER_VERSION = '0.57.2';
+const CITATION_TS = 'src/lib/citation.ts';
+const REPO_URL = 'https://github.com/youkiti/tiab-review-plugin';
 
 export class StopError extends Error {
   constructor(message, code = 1) {
@@ -116,7 +122,7 @@ export async function main({
   argv = process.argv.slice(2),
   run = defaultRun,
   readFile = (path) => readFileSync(resolve(root, path), 'utf8'),
-  writeFile = (path, text) => writeFileSync(path, text),
+  writeFile = (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); },
   removeFile = (path) => rmSync(path, { force: true }),
   sleep = (ms) => new Promise((done) => setTimeout(done, ms)),
   now = () => Date.now(),
@@ -189,6 +195,25 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
     await requireSubmittable();
   }
 
+  // 段6の入口: origin にタグが無い、または GitHub Release が無い。
+  async function remoteTag(version) {
+    const ref = `refs/tags/v${version}`;
+    const listed = await git(['ls-remote', '--tags', 'origin', ref, `${ref}^{}`]);
+    if (listed.status !== 0) stop('origin のタグを確認できません');
+    const entries = text(listed).split(/\r?\n/).filter(Boolean).map((line) => {
+      const [oid, name] = line.split(/\s+/);
+      return { oid, peeled: name?.endsWith('^{}') ?? false };
+    });
+    // annotated タグは `^{}` の行がコミット、軽量タグは1行目がコミット。
+    const entry = entries.find((e) => e.peeled) ?? entries[0];
+    return entry?.oid ?? null;
+  }
+
+  async function tagStageIncomplete(version) {
+    if (!(await remoteTag(version))) return true;
+    return (await capture('gh', ['release', 'view', `v${version}`])).status !== 0;
+  }
+
   // 段0: 続きの位置を決める。
   await requireGh();
   const fetched = await git(['fetch', 'origin', 'main', '--tags']);
@@ -215,7 +240,10 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
       if (statusResult.status !== 0 || !store) stop('ストアの認証または状況の確認に失敗しました');
       const published = (store.publishedItemRevisionStatus?.distributionChannels ?? []).map((c) => c.crxVersion);
       const submitted = (store.submittedItemRevisionStatus?.distributionChannels ?? []).map((c) => c.crxVersion);
-      if (mainVersion && submitted.includes(mainVersion)) position = { kind: 'submitted', version: mainVersion };
+      const shipped = mainVersion && [...published, ...submitted].includes(mainVersion);
+      if (shipped && compareVersions(mainVersion, TAG_FROM_AFTER_VERSION) > 0 && await tagStageIncomplete(mainVersion)) {
+        position = { kind: 'tag', version: mainVersion, inReview: submitted.includes(mainVersion) };
+      } else if (mainVersion && submitted.includes(mainVersion)) position = { kind: 'submitted', version: mainVersion };
       else if (mainVersion && ![...published, ...submitted].includes(mainVersion) && [...published, ...submitted].every((v) => compareVersions(mainVersion, v) > 0)) {
         position = { kind: 'build', version: mainVersion };
       } else position = { kind: 'new' };
@@ -226,6 +254,7 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
     push: `続きの位置: リリース用ブランチ ${position.branch} の push から（v${position.version}）`,
     wait: `続きの位置: 開いているリリース PR #${position.pr} の必須チェック待ちから（v${position.version}）`,
     build: `続きの位置: v${position.version} はマージ済みで未提出。ストア用ビルドから`,
+    tag: `続きの位置: v${position.version} は${position.inReview ? '審査提出済み' : 'ストアで公開中'}です。版タグと GitHub Release の作成から`,
     submitted: `v${position.version} は審査提出済みです。続きの作業はありません`,
     new: '続きの位置: 新規リリース',
   }[position.kind];
@@ -235,6 +264,8 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
   let version;
   if (position.kind === 'submitted') {
     return 0;
+  } else if (position.kind === 'tag') {
+    version = position.version;
   } else if (position.kind === 'push') {
     const dirty = await git(['status', '--porcelain', '--ignore-submodules=dirty']);
     if (dirty.status !== 0 || text(dirty)) stop('作業ツリーに未コミットの変更があります');
@@ -265,6 +296,11 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
   if (options.dryRun) {
     output(position.kind === 'new' ? `新規 v${version}（dry-run のため何も変更しません）` : `v${version}（dry-run のため何も変更しません）`);
     if (position.pr) output(`PR 番号: #${position.pr}`);
+    return 0;
+  }
+
+  if (position.kind === 'tag') {
+    await tagAndRelease(version, undefined);
     return 0;
   }
 
@@ -316,6 +352,62 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
   await buildAndSubmit(version, mergeSha);
   return 0;
 
+  // 段6: 対象のコミットを決める。段4の merge commit があればそれ。無ければ（再開）main の first-parent で
+  // package.json を最後に変えたコミット（その版の merge commit）。見つからなければ origin/main の先頭。
+  async function releaseCommit(newVersion, sha) {
+    if (sha) return sha;
+    const found = text(await git(['log', '--first-parent', '-n', '1', '--format=%H', 'origin/main', '--', 'package.json']));
+    const target = found || text(await git(['rev-parse', 'origin/main']));
+    if (!target) stop('版タグを打つコミットを決められません');
+    const shown = await git(['show', `${target}:package.json`]);
+    const atTarget = shown.status === 0 ? parseJson(shown.stdout, {}).version : undefined;
+    if (atTarget && atTarget !== newVersion) stop(`コミット ${target.slice(0, 7)} の package.json の版は ${atTarget} で、v${newVersion} ではありません。タグを打たずに止まりました`, { rerun: false });
+    return target;
+  }
+
+  async function readAtCommit(commit, path) {
+    const shown = await git(['show', `${commit}:${path}`]);
+    if (shown.status === 0 && (shown.stdout ?? '') !== '') return shown.stdout;
+    try { return readFile(path); } catch { return ''; }
+  }
+
+  async function tagAndRelease(newVersion, sha) {
+    const tag = `v${newVersion}`;
+    const ref = `refs/tags/${tag}`;
+    const commit = await releaseCommit(newVersion, sha);
+
+    // タグ: origin に既にあれば、同じコミットを指すときだけ先へ進む。
+    const remote = await remoteTag(newVersion);
+    if (remote) {
+      if (remote !== commit) stop(`origin の ${tag} が別のコミットを指しています（origin: ${remote.slice(0, 7)}、この版: ${commit.slice(0, 7)}）。タグは動かしません`, { rerun: false });
+    } else {
+      const local = text(await git(['rev-parse', '-q', '--verify', `${ref}^{commit}`]));
+      if (local && local !== commit) stop(`手元の ${tag} が別のコミットを指しています（手元: ${local.slice(0, 7)}、この版: ${commit.slice(0, 7)}）。確認して git tag -d ${tag} してから再実行してください`, { rerun: false });
+      if (!local && (await git(['tag', '-a', tag, commit, '-m', `TiAb Review ${tag}`])).status !== 0) stop(`タグ ${tag} を作れませんでした`);
+      if ((await run('git', ['push', 'origin', ref])).status !== 0) stop(`タグ ${tag} の push に失敗しました。手元のタグは残してあります`);
+    }
+
+    // GitHub Release: 無いときだけ作る。draft・prerelease にしない（Zenodo は published だけを保存する）。ファイルは添付しない。
+    const releaseUrl = `${REPO_URL}/releases/tag/${tag}`;
+    if ((await capture('gh', ['release', 'view', tag])).status === 0) {
+      output(`${tag} の GitHub Release は既にあります: ${releaseUrl}`);
+      return;
+    }
+    const changelog = await readAtCommit(commit, 'CHANGELOG.md');
+    const section = extractChangelogSection(changelog, newVersion);
+    if (section === null) output(red(`CHANGELOG.md に v${newVersion} の節が見つかりません。リリースノートは案内の行だけになります`));
+    const notesPath = `.tmp/release-notes-${tag}.md`;
+    writeFile(resolve(root, notesPath), buildReleaseNotes(section, readConceptDoi(await readAtCommit(commit, CITATION_TS))));
+    let created;
+    try {
+      created = await capture('gh', ['release', 'create', tag, '--verify-tag', '--title', `TiAb Review ${tag}`, '--notes-file', notesPath]);
+    } finally {
+      removeFile(resolve(root, notesPath));
+    }
+    if (created.status !== 0) stop(`GitHub Release の作成に失敗しました。タグは push 済みです。原因を解消して同じコマンドを再実行すると、Release の作成から続きます`, { rerun: false });
+    output(`${tag} のタグと GitHub Release を作りました: ${/https?:\/\/\S+/.exec(created.stdout ?? '')?.[0] ?? releaseUrl}`);
+  }
+
   // 段3の2: 必須4つだけを見て待つ。--watch は必須でないチェックの失敗でも非0になるため使わない。
   async function waitForChecks(number) {
     const started = now();
@@ -351,6 +443,7 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
   // 段5
   async function buildAndSubmit(newVersion, sha) {
     let detached = false;
+    let tagged = false;
     if (sha && text(await git(['rev-parse', 'HEAD'])) !== sha) {
       // 間に別の PR がマージされた。ビルドは merge commit から作る。
       if ((await git(['switch', '--detach', sha])).status !== 0) stop('merge commit へ切り替えられませんでした。マージは済んでいます', { rerun: false });
@@ -364,10 +457,13 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
         stop('結果不明です。`npm run store:status` で状況を確かめてから、同じコマンドを再実行してください（提出済みなら提出は飛ばします）', { rerun: false, code: 3 });
       }
       if (submitted.status !== 0) stop('ストアへの提出に失敗しました。理由は上の出力を確認してください。原因を解消して同じコマンドを再実行すると、提出から続きます', { rerun: false });
+      // 段6: 提出の後に、同じ merge commit へ版タグと GitHub Release を作る（main へ戻る前の同じ流れの中で行う）。
+      tagged = compareVersions(newVersion, TAG_FROM_AFTER_VERSION) > 0;
+      if (tagged) await tagAndRelease(newVersion, sha);
     } finally {
       if (detached) await git(['switch', 'main']);
     }
-    output(`v${newVersion} をストアへ審査提出しました`);
+    output(`v${newVersion} をストアへ審査提出しました${tagged ? '。版タグと GitHub Release も作成済みです' : ''}`);
   }
 }
 

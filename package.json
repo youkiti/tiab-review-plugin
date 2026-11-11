@@ -27,7 +27,7 @@
         "test": "node scripts/run-tests.mjs",
         "store:status": "node tools/release/storeApi.mjs status",
         "store:submit": "node tools/release/storeApi.mjs submit",
-        "test:tools": "node --test tools/release/storeApi.test.mjs tools/release/release.test.mjs",
+        "test:tools": "node --test tools/release/storeApi.test.mjs tools/release/release.test.mjs tools/release/release-notes.test.mjs",
         "tiab": "node scripts/tiab.mjs",
         "create-project": "node scripts/create-project.mjs",
         "video:setup": "bash video/scripts/setup.sh",
