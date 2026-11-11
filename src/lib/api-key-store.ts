@@ -144,7 +144,7 @@ export function createApiKeyStore(def: ApiKeyStoreDefinition): ApiKeyStore {
     async function getKey(): Promise<string | null> {
         const result = await chrome.storage.local.get([storageKey]);
         const encoded = result[storageKey];
-        if (!encoded) return null;
+        if (typeof encoded !== 'string' || !encoded) return null;
         try {
             return await decryptApiKey(encoded);
         } catch {
