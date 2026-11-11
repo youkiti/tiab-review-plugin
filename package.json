@@ -67,6 +67,6 @@
     "license": "MIT",
     "dependencies": {
         "jstat": "^1.9.6",
-        "pdfjs-dist": "^4.10.38"
+        "pdfjs-dist": "^6.5.438"
     }
 }
