@@ -11,7 +11,7 @@
 //
 // MV3 制約への対応:
 //   - worker は拡張同梱の `pdf.worker.min.mjs` をローカル参照（remote script 禁止のため）。
-//   - cMap / standard_fonts も拡張同梱物を参照する。
+//   - CMap / 標準フォント / wasm / ICC プロファイルも拡張同梱物を参照する。
 //
 // Issue #156（#150 工程5）PR2: 表示範囲中心の描画への組み替え。
 //   ページ数に比例して canvas 描画時間・メモリが増え続けていた問題への対応。
@@ -51,6 +51,8 @@ import { perfSpan, perfNow, perfMeasureFrom } from '../lib/perf';
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
 const CMAP_URL = chrome.runtime.getURL('cmaps/');
 const STANDARD_FONT_URL = chrome.runtime.getURL('standard_fonts/');
+const WASM_URL = chrome.runtime.getURL('wasm/');
+const ICC_URL = chrome.runtime.getURL('iccs/');
 
 // 描画スケールの上限（高すぎるとメモリを圧迫するため）。
 const MAX_RENDER_SCALE = 2.0;
@@ -161,6 +163,7 @@ interface AllPagesDetail {
 export class PdfRenderer {
     private container: HTMLElement;
     private pdfDoc: any = null;
+    private loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
     private pages: PageInfo[] = [];
     private renderToken = 0;
 
@@ -195,11 +198,18 @@ export class PdfRenderer {
         // 次の loadPdf() がこのページ番号を再利用しても古い promise を誤って使い回さないようにする
         // （古い呼び出しは token チェックで自然に無害化される。ページ実体化のコメント参照）。
         this.materializeJobs = new MaterializeJobs();
-        if (this.pdfDoc) {
-            try { this.pdfDoc.destroy(); } catch { /* noop */ }
-            this.pdfDoc = null;
-        }
+        this.destroyLoadingTask();
         this.container.innerHTML = '';
+    }
+
+    /** 読み込み途中も含め、文書と worker を読み込みタスクから解放する。 */
+    private destroyLoadingTask(): void {
+        const task = this.loadingTask;
+        this.loadingTask = null;
+        this.pdfDoc = null;
+        if (task) {
+            void task.destroy().catch(() => { /* 解放中の失敗は無視する。 */ });
+        }
     }
 
     /**
@@ -237,10 +247,7 @@ export class PdfRenderer {
         // 古い文献の実体化ジョブと新しい文献のページ番号が衝突しないよう
         // 切り離す（destroy() と同じ理由。古い呼び出しは token チェックで自然に無害化される）。
         this.materializeJobs = new MaterializeJobs();
-        if (this.pdfDoc) {
-            try { this.pdfDoc.destroy(); } catch { /* noop */ }
-            this.pdfDoc = null;
-        }
+        this.destroyLoadingTask();
         this.container.innerHTML = '';
 
         // getDocument は渡された Uint8Array を transferable として消費するためコピーして渡す。
@@ -250,10 +257,21 @@ export class PdfRenderer {
             cMapUrl: CMAP_URL,
             cMapPacked: true,
             standardFontDataUrl: STANDARD_FONT_URL,
+            wasmUrl: WASM_URL,
+            iccUrl: ICC_URL,
         });
-        const pdf = await loadingTask.promise;
+        this.loadingTask = loadingTask;
+        let pdf: Awaited<typeof loadingTask.promise>;
+        try {
+            pdf = await loadingTask.promise;
+        } catch (error) {
+            if (token !== this.renderToken) {
+                return { numPages: 0, isImageOnly: false, totalTextLength: 0 };
+            }
+            throw error;
+        }
         if (token !== this.renderToken) {
-            try { pdf.destroy(); } catch { /* noop */ }
+            try { await loadingTask.destroy(); } catch { /* 解放中の失敗は無視する。 */ }
             return { numPages: 0, isImageOnly: false, totalTextLength: 0 };
         }
         this.pdfDoc = pdf;
@@ -365,9 +383,11 @@ export class PdfRenderer {
         pageDiv.dataset.renderState = 'placeholder';
         pageDiv.style.width = `${Math.floor(viewport.width)}px`;
         pageDiv.style.height = `${Math.floor(viewport.height)}px`;
-        // PDF.js 4.x の TextLayer は span 位置を calc(var(--scale-factor)*…) で出力する。
-        // 未設定だと calc が無効化されテキストレイヤーがずれるため、viewport の scale を渡す。
-        pageDiv.style.setProperty('--scale-factor', String(scale));
+        // TextLayer の寸法と文字サイズは --total-scale-factor を参照する。
+        // ページの実寸に合わせ、描画倍率に PDF の userUnit を掛ける。
+        pageDiv.style.setProperty('--total-scale-factor', String(viewport.scale * viewport.userUnit));
+        pageDiv.style.setProperty('--scale-round-x', '1px');
+        pageDiv.style.setProperty('--scale-round-y', '1px');
 
         // --- text layer（選択可能・透明。実体化されるまで空） ---
         const textLayer = document.createElement('div');
@@ -459,7 +479,7 @@ export class PdfRenderer {
 
         if (ctx) {
             const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-            const renderTask = page.render({ canvasContext: ctx, viewport, transform });
+            const renderTask = page.render({ canvas, viewport, transform });
             info.renderTask = renderTask;
             try {
                 await renderTask.promise;

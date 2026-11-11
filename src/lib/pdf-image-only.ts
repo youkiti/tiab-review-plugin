@@ -25,9 +25,11 @@ export async function detectImageOnlyPdf(
         cMapUrl: chrome.runtime.getURL('cmaps/'),
         cMapPacked: true,
         standardFontDataUrl: chrome.runtime.getURL('standard_fonts/'),
+        wasmUrl: chrome.runtime.getURL('wasm/'),
+        iccUrl: chrome.runtime.getURL('iccs/'),
     });
-    const pdf = await loadingTask.promise;
     try {
+        const pdf = await loadingTask.promise;
         let total = 0;
         for (let n = 1; n <= pdf.numPages; n++) {
             const page = await pdf.getPage(n);
@@ -42,6 +44,6 @@ export async function detectImageOnlyPdf(
         }
         return { imageOnly: total < SCANNED_TEXT_THRESHOLD, totalTextLength: total };
     } finally {
-        try { pdf.destroy(); } catch { /* noop */ }
+        try { await loadingTask.destroy(); } catch { /* 解放中の失敗は無視する。 */ }
     }
 }

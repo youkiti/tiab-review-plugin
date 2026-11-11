@@ -217,7 +217,7 @@
    - **PDFハイライト**（`fulltext.html` + `pdf-renderer.ts`）: cached PDF を PDF.js でテキストレイヤー付き描画し、
      evidence を **経路A: quote文字列マッチ → 経路B: 正規化bbox → ページ送り** の順で段階的にハイライト。
      スキャン画像PDFはテキストレイヤーが無いため bbox（AIの領域推定）を使う旨をUIに明示
-   - **依存**: `pdfjs-dist`（worker/cmaps/standard_fonts を dist 直下へ同梱）。
+   - **依存**: `pdfjs-dist` 6.5.438（worker/cmaps/standard_fonts/wasm/iccs を dist 直下へ同梱）。文書と worker の解放は `PDFDocumentLoadingTask.destroy()` を使う。文字層は `--total-scale-factor` と TextLayer が出力する文字高・横倍率・回転の CSS 変数を適用する。
      manifest に `content_security_policy.extension_pages`（`wasm-unsafe-eval`）を追加
    - **TiAbのAIラウンドとは別枠**: 全文閲覧ウィンドウのハイライトは `screening_phase='fulltext'` の
      `llm:` 判定のうち**採用ラウンド**（Config `fulltext_ai_active_round`）のものだけを使う。
