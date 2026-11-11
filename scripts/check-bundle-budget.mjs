@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Issue #157: bundle-stats の既存JSONから初期JS量（.map除外）を検査する。
+// bundle-stats の既存JSONから初期JS量と遅延チャンクの量を検査する。
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,12 +8,22 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TARGETS = [
     { label: '拡張版 (extension)', entry: 'sidepanel/sidepanel' },
     { label: 'Web版 (web)', entry: 'app' },
+    { label: '拡張版 (extension)', entry: 'fulltext/fulltext' },
+    { label: '拡張版 (extension)', chunk: 'pdf-image-only' },
 ];
 
 export function readMeasurements(stats) {
     if (!Array.isArray(stats.reports)) throw new Error('バンドル統計に reports がありません');
-    return Object.fromEntries(TARGETS.map(({ label, entry }) => {
+    return Object.fromEntries(TARGETS.map(({ label, entry, chunk }) => {
         const reports = stats.reports.filter((report) => report.label === label);
+        if (chunk) {
+            const chunks = reports[0]?.asyncChunks?.filter((item) => item.names?.includes(chunk)) ?? [];
+            const bytes = chunks[0]?.size;
+            if (reports.length !== 1 || chunks.length !== 1 || !Number.isSafeInteger(bytes) || bytes <= 0) {
+                throw new Error(`遅延チャンクJSバイト数が不正です: ${label} / ${chunk}`);
+            }
+            return [chunk, bytes];
+        }
         const bytes = reports[0]?.entrypoints?.[entry]?.jsBytes;
         if (reports.length !== 1 || !Number.isSafeInteger(bytes) || bytes <= 0) {
             throw new Error(`初期JSバイト数が不正です: ${label} / ${entry}`);
@@ -65,7 +75,8 @@ export function main(args) {
     const results = compareBudget(measurements, JSON.parse(readFileSync(budgetPath, 'utf8')));
     console.log(`バンドル統計: ${path.relative(ROOT, statsPath)}`);
     for (const result of results) {
-        console.log(`${result.failed ? 'FAIL' : 'PASS'}: ${result.entry} 初期JS ${result.bytes} bytes / 上限 ${result.maxBytes} bytes（.map除外）`);
+        const description = TARGETS.some((target) => target.chunk === result.entry) ? '遅延チャンク JS' : '初期JS';
+        console.log(`${result.failed ? 'FAIL' : 'PASS'}: ${result.entry} ${description} ${result.bytes} bytes / 上限 ${result.maxBytes} bytes（.map除外）`);
         if (result.improved) console.log(`${result.entry}: 3%以上の余裕があります。予算を更新できます。`);
     }
     return results.some((result) => result.failed) ? 1 : 0;
