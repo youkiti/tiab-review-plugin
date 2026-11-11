@@ -39,7 +39,7 @@
 **References を読む経路を新設・変更するときの規則（Issue #145 チャンク2、PR #146 レビュー指摘）**: References の行を返す経路は、論理削除済み行（`duplicate_of` 非空）を含めるかどうかで2種類に分かれる。新しい取得経路を足すときは、必ずどちら側かを判断すること。
 
 - **全件返す（論理削除済みも含む）**: `getReferences()`。重複レビューUIの `resolveSurvivor()`（論理削除済みの相手から残っている側を辿り直す）・`isPairAlreadySettled()`（survivor の収束・相互削除の判定）が論理削除済みの行を必要とするため、意図的にフィルタしない（Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは実装されていない）
-- **論理削除行を除外する**: `getReferencesWithStatus()`（TiAb盲検）・`getReferencesWithAllDecisions()`（キー開封後）・`getFulltextPageData()`（`src/lib/sheets/project-snapshot.ts` の取得窓口。フルテキスト画面。Config タブ欠落時も同じ合成経路で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
+- **論理削除行を除外する**: `selectReferencesWithStatus()`（TiAb。盲検中は `mergeReferencesWithStatus()`、キー開封後は `mergeReferencesWithAllDecisions()` を使う）・`getFulltextPageData()`（`src/lib/sheets/project-snapshot.ts` の取得窓口。フルテキスト画面。Config タブ欠落時も同じ合成経路で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
 
 **`getReferences()` の呼び出し元を grep するだけでは経路の洗い出しに不十分**: `getFulltextPageData()` は `getReferences()` を経由せず、`src/lib/sheets/project-snapshot.ts` の `loadProjectSnapshot()` がシート値から `Reference[]` へ変換する内部関数 `parseReferenceValues()` を呼んでいる。TiAb の合成は `src/lib/reference-status.ts` の `mergeReferencesWithStatus()` / `mergeReferencesWithAllDecisions()` が担う。そのため「除外漏れが無いか」を確認するときは `getReferences(` ではなく `parseReferenceValues` で grep すること。PR #146 のレビューでこの漏れが実際に見つかった（フルテキスト画面だけ論理削除済み文献が残っていた）。
 

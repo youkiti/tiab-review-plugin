@@ -263,7 +263,7 @@ export function setEnabledReviewers(reviewers: Set<string>): void {
 
 /**
  * レビュアーを有効化（Storeのみ）。混在レビュアー（人手＋ML）のチェックボックス切替では
- * 本体キーと ::ml キーへ同じ enabled 値を独立に適用するため、toggleReviewer ではなく
+ * 本体キーと ::ml キーへ同じ enabled 値を独立に適用するため、現在の集合を反転する方式ではなく
  * 明示的な追加/削除アクションを使う。
  */
 export function addEnabledReviewer(id: string): void {
