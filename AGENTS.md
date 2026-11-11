@@ -4,7 +4,7 @@
 
 このリポジトリで常に守るルール：
 
-1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。**例外: バージョンバンプ commit（`npm run bump` / `scripts/bump-version.ps1`）は `main` 上で直接行ってよい。** 差分が version と Build 日付のみで、直前の `main` は CI green である前提のため PR / CI 待ちを挟まない（作業ツリーが汚れている場合はスクリプトが停止する）。機能変更をこの経路で `main` に入れてはならない。
+1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。**バージョンバンプも例外ではない。** リリースは `npm run release`（機能追加は `npm run release:major`）で行い、このコマンドが `chore/release-v<版>` ブランチの作成・CHANGELOG の版の節・バンプ commit・PR・必須チェック待ち・マージ・ストア提出を順に行う。`main` の ruleset（`protect main`）は `build-check.yml` の4ジョブ（`quality`・`build-extension`・`build-web`・`bundle-budget`）の成功を必須にしており、CI を通っていないコミットは PR のマージでも直接 push でも `main` に入らない（#300。`main` へのマージは `deploy-web.yml` で Web 版の本番公開も兼ねるため）。bypass は設定しない。`scripts/bump-version.ps1` は `main` 上では停止する。
 2. **日本語化**: ユーザーに提示するアーティファクト（計画書・タスク・確認事項）は、作成時に必ず日本語で記述すること。
 3. **不要ファイル・ブランチの削除**: テストなどで作成したファイルやブランチは不要になった時点で削除すること。
 4. **言語規定**: ユーザーへのレスポンス、アーティファクト、コミットメッセージ、コード内のコメントは必ず日本語で記述すること。（システムエラーやログの引用は原文のままでよい）
@@ -29,6 +29,7 @@
 | コマンドラインからのプロジェクト作成 | [「Node（コマンドライン）用のアダプタと認証（Issue #245）」](src/platform/AGENTS.md)、[scripts/create-project/README.md](scripts/create-project/README.md) |
 | オフライン同期 | [「オフライン同期の方針」](src/lib/AGENTS.md) |
 | テスト・作業ツリー | 「テスト・作業ツリーの落とし穴」「`.env` が無い環境（git worktree 等）で production ビルドを検証する」 |
+| 機能を足すかどうか・要望 Issue への返答 | 「機能を足す・足さない基準（保守期、2026-11-11 確定）」 |
 | 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
 | 遅延読み込み・チャンク分割 | 「遅延読み込み（動的 import）でチャンクを分けるときの規約」 |
 | アプリ内ヘルプ・操作ツアー・解説動画 | [「アプリ内ヘルプ（?ボタン）」「ツアー（操作に連動する案内）」](src/sidepanel/AGENTS.md)（`data-help` / `data-tour` の付け方、ツアーを足す手順、`npm run check:tours`）、[video/README.md](video/README.md)（収録 → 読み上げ → 合成） |
@@ -57,6 +58,62 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
 - PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
 - RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
+
+### 機能を足す・足さない基準（保守期、2026-11-11 確定）
+
+要件は満たした。今後は、利用者の指摘を1件ずつ直す保守期として運用する。新しい機能は、下の「足す条件」を3つとも満たしたときだけ足す。この節は「アーキテクチャ方針」の補足で、データ抽出・RoB を本リポジトリに入れない理由はそちらに書いてある。
+
+#### 足さないもの
+
+| 対象 | 現状 | 代わりの受け皿 |
+| --- | --- | --- |
+| AI プロバイダの追加 | Gemini / OpenAI / Anthropic / OpenRouter / ローカル LLM / TypeSafe の6系統（`src/lib/gemini-api.ts`、`src/lib/providers/`） | OpenRouter のカスタムモデル（「＋ 一覧にないモデルを追加」、最大20件）、ローカル LLM |
+| ベンチマークしていないモデルの同梱 | 同梱の採用基準は depression 全1,993件で Recall ≥ 0.90。既定モデルの置き換えは Recall ≥ 0.95（README「LLMモデル履歴」） | OpenRouter のカスタムモデル。精度は利用者がレビュー内検証で確かめる |
+| Web版への AI・ML・全文・取り込み・プロジェクト作成 | `src/platform/web/index.ts` の `capabilities` がすべて `false`。Web版はレビュー専用（「Web版（ブラウザ版）」節、`docs/help.html#web-version`） | 拡張版 |
+| CLI のサブコマンド・オプションの追加 | `create` / `seed` / `share` / `status` の4つ（`src/cli/command-args.ts`） | 拡張版の画面 |
+| データ抽出・RoB 評価 | 「アーキテクチャ方針」で本リポジトリの範囲外 | 別リポジトリのアプリ（同節の表） |
+
+同梱しているモデルは、すべて同梱の採用基準のベンチマークを済ませていなければならない。この節を入れた時点で未実施の Anthropic の2モデル（`claude-haiku-5-5`・`claude-sonnet-5-5`）は、#312 で同じ手順のベンチマークを行い、結果に応じて扱いを決める。
+
+#### 保守として扱うもの（「足す」に当たらない）
+
+次は「足す条件」を問わず直してよい。
+
+- 不具合・性能の劣化・セキュリティの修正
+- 外部 API、Chrome、Chrome Web Store、Google の OAuth・Drive・Sheets の仕様変更への追従
+- 文言・ヘルプ・ツアーの分かりにくさの修正（画面の機能は増やさない）
+- 同梱モデルの差し替え（提供終了・改名・版上げ）。次をすべて守る
+  - 後継モデルを、いま同梱しているモデルと同じ手順（`experiments/<モデル名>/` に1モデル1ディレクトリ、depression 全1,993件、拡張の既定閾値）でベンチマークし、同梱の採用基準 Recall ≥ 0.90 を満たすこと。既定モデルを差し替えるときは Recall ≥ 0.95
+  - 保存済みの設定は `src/lib/model-migrations.ts` の `MODEL_ID_MIGRATIONS` で後継へ移す
+  - 後継が基準を満たさなければ、そのモデルを選択肢から外し、移行先は作らない。保存済みの設定のまま実行した利用者には、未知のモデル ID を止める既存のトースト（PR #263）が出る
+  - `CHANGELOG.md` の「AI 判定に影響する変更」に載せる
+  - 前例: TypeSafe `jev-1.13.0` から `jev-1.14.0` への差し替え（`experiments/typesafe-jev/`）
+
+#### 足す条件（3つとも満たすこと）
+
+1. **複数の利用者が、実際のレビューで同じ所で止まった。** 別々の2人以上（オーナーも1人と数える）が、実在のレビュープロジェクトの作業中に、同じ画面・同じ操作で先へ進めなくなったことが、Issue・ヘルプの相談の下書き（タイトルが「ヘルプ相談:」で始まる Issue）・メールのどれかに記録されていること。「あると便利」「他のツールにある」という要望は数えない
+2. **周りの更新まで見積もった。** 着手する前に、次の更新の要否と量を Issue に書く: `docs/help.html` の該当節（日英）、操作ツアー（`src/lib/guide/tours/`）、解説動画（`video/scenes/`・`video/narration/` の撮り直し）、`src/_locales/ja/messages.json` と `src/_locales/en/messages.json` の文言、`README.md`、`CHANGELOG.md`
+3. **初期 JS の予算に収まる。** 残りは `scripts/bundle-budget.json` の `maxBytes − measuredBytes` で計算する（dc4e7be 時点でサイドパネル 3,227 bytes、Web版 4,445 bytes）。収まらないなら、遅延チャンクに出して初期 JS を増やさない（「遅延読み込み（動的 import）でチャンクを分けるときの規約」）。新しい機能を入れるために `--update-budget` で上限を上げない。「開発規約」節の上限の更新は、保守の修正で必要になったときに限る
+
+#### 要望の Issue が来たときの手順（エージェント向け）
+
+1. 不具合か要望かを分ける。画面の説明どおりに動かない、または説明が無くて進めないなら不具合・ヘルプ不足として扱い、保守として直す
+2. 要望が「足さないもの」の表に当たるなら、返答文 A の下書きを作る
+3. 当たらないなら「足す条件」の1を確かめる。似た要望の Issue を検索し（閉じたものを含む）、別の利用者の報告があればリンクする。条件1を満たさなければ返答文 B の下書きを作る
+4. 条件1を満たすなら、条件2の見積もりと、条件3の残り bytes と見込みの増分を Issue のコメント案に書き、オーナーに着手するかどうかを尋ねる
+5. エージェントがするのは判定と下書きまで。コメントの投稿、ラベル（`enhancement` / `wontfix`）の付け外し、Issue を閉じる・開き直すことは、オーナーの指示があるときだけ行う。閉じるときは理由を「not planned」にする
+
+返答文 A（足さないものに当たる）:
+
+> ご要望ありがとうございます。TiAb Review Plugin は現在、機能を増やさず、利用中の方の不具合や分かりにくい点を直す保守の段階にあります。〈要望の対象〉は、機能を足さない対象として決めています。代わりに〈受け皿〉をお使いください。実際のレビューで先へ進めなくなった点や不具合があれば、別の Issue でお知らせください。
+>
+> Thank you for the suggestion. TiAb Review Plugin is in a maintenance phase: we fix bugs and unclear points for current users rather than adding features. 〈target〉 is something we have decided not to add. Please use 〈alternative〉 instead. If you get stuck in an actual review, or find a bug, please open a separate issue.
+
+返答文 B（条件1を満たさない）:
+
+> ご要望ありがとうございます。TiAb Review Plugin は現在、機能を増やさず、不具合や分かりにくい点を直す保守の段階にあります。新しい機能は、複数の利用者が実際のレビューで同じ所で先へ進めなくなったときに、足すかどうかを検討します。このご要望は記録として残し、同じ点で困った方の報告があれば、この Issue を開き直して検討します。差し支えなければ、どのレビューのどの段階で、何ができずに止まったかを追記してください。
+>
+> Thank you for the suggestion. TiAb Review Plugin is in a maintenance phase: we fix bugs and unclear points rather than adding features. We consider a new feature when several users get stuck at the same point in actual reviews. We will keep this request on record and reopen it if others report the same problem. If you can, please add at which stage of your review you got stuck and what you could not do.
 
 ## 技術スタック
 
@@ -194,7 +251,7 @@ tiab-review-plugin/
 3. `npm run dev` - 開発ビルド（`key` 保持。`WEBAUTH_CLIENT_ID` 未設定だと本番と同様に fail-fast する。認証を触らないローカル作業では `ALLOW_NO_AUTH=1 npm run dev` で警告のみに格下げできる）
 4. `chrome://extensions` で「パッケージ化されていない拡張機能を読み込む」→ `dist` フォルダ選択
 5. 開発中は `npm run watch` でホットリロード
-6. リリースは `npm run release`（バージョンバンプしてローカル commit + ストア用ビルド + `dist.zip` 作成）。機能追加時は `npm run release:major`（push・審査提出まで行う場合は `npm run release:submit` / `npm run release:submit:major`）
+6. リリースは `npm run release`（機能追加は `npm run release:major`）。1回の実行で版上げ PR の作成からストアへの審査提出まで進み、途中で止まったら同じコマンドの再実行で続きから進む。手順は「リリース（Chrome Web Store）」節
 
 ### 開発規約（依存方向・ファイル規模・CI 回帰条件）
 
@@ -209,6 +266,8 @@ tiab-review-plugin/
 - **初期JSの予算は、実測の約 1%（サイドパネル約 3.2 KB、Web版約 4.4 KB）が残り（Issue #271 の編集権限の警告を足した時点）。** `check:bundle` の実測は `sidepanel/sidepanel` 322,676 bytes / 上限 325,903 bytes、Web版 `app` 444,412 bytes / 上限 448,857 bytes（上限はどちらも `--update-budget` による実測の 101%）。このとき上限を更新した理由は、接続時の編集権限の判定、未送信が残るときの警告の帯と完了表示（Issue #271）で、main の実測（サイドパネル 319,695 bytes、Web版 439,751 bytes）からサイドパネルが 2,981 bytes、Web版が 4,661 bytes 増え、どちらも上限を超えたため。増えたのは判定の保存の経路で必ず動くコードと、Web版の判定画面にも出す日英の文言なので、遅延チャンクには切り出せない。その前（レビュー内検証を足した時点）の実測は `sidepanel/sidepanel` 317,176 bytes / 上限 320,348 bytes、Web版 `app` 438,167 bytes / 上限 442,549 bytes で、そのとき上限を更新した理由は、Web版が上限を 123 bytes 超えたため（LLM_Runs の検証の列と Config の合格基準の読み取りは、Web版も読み込むシート処理の共通コードに入る。AI タブの検証の文言 `llm_validation*` は `strip-locale-keys.cjs` で Web版から落とした）。サイドパネルは、実測が前回の 326,620 bytes から 317,176 bytes に下がった（主に、論文用テキスト `features/manuscript.ts` を遅延チャンク `manuscript-feature` に移したため）ので、上限も実測に合わせて下げた。その前の引き上げは、未知のモデル ID を止めるトースト（PR #263）とモデル欄の候補リストの日英の文言で、サイドパネルが上限を 84 bytes 超えたため。さらに前は、全文カードの個別ボタンの文言（`fulltext_action*` の日英）で Web版が 34 bytes 超えたため（`fulltext_` キーは Web版の TiAb 画面でも使われるので接頭辞ごとは落とせない。`tests/strip-locale-keys.test.ts`）と、「?」ボタンと参加ツアーを Web版にも載せたため（Web版は `messages.json` を丸ごと初期JSに同梱するので、日英の案内文がそのまま増分になる。ツアー本体は遅延チャンク `guide-feature` で初期JSには入っていない）。`src/sidepanel/` に数百行足すだけで `bundle-budget` ジョブが落ちるので、次に超えたら「上の規則どおり理由を書いて `--update-budget` で上限を更新する」か「『遅延読み込み（動的 import）でチャンクを分けるときの規約』節に沿って初期バンドルから外す」かを、検査を通すためではなく設計判断として選ぶこと。
 - Web版は `_locales/*/messages.json` を丸ごと同梱するが、`scripts/webpack/strip-locale-keys.cjs` の接頭辞（現在 `ftPage_`）に該当する拡張専用キーはビルド時に落とす（PR #207、フルテキスト判定ページ専用キーでbundle-budgetを超過したため）。拡張専用の画面用にキーを追加するときは、既存の接頭辞に揃えるか、この配列にその接頭辞を足すこと。
 - **拡張版だけの機能の初期化を `bootstrapCommon()`（`src/sidepanel/bootstrap.ts`）に置かない。** ここは Web版（`src/webapp/index.ts`）も呼ぶので、ここから `features/*/lazy.ts` などを import すると、Web版が読み込んでいなかったモジュール（その `lazy.ts` と、それが静的に import している先）が Web版の初期JSに入る。Issue #251 で全文タブの通知の受け口をここに置いたところ、Web版 `app` が約 50 KB 増えて `check:bundle` で落ちた。拡張版だけの登録は `src/sidepanel/sidepanel.ts` で行う。
+- `main` の必須チェックは `build-check.yml` の4ジョブ名で登録している。ジョブ名を変える・ジョブを足すときは、同じ PR で ruleset `protect main` の必須チェックと `tools/release/release.mjs` の待つチェック名も直すこと（直さないと、旧名のチェックが報告されないまま全 PR のマージとリリースが止まる）。Codex レビュー（`codex-pr-review.yml`）と `deploy`（`deploy-web.yml`）は必須にしない。Codex レビューはワークフローが無効化されていて結果を報告せず、必須にすると全 PR がマージできなくなる。有効にしても fork と Dependabot の PR では secrets が渡らず失敗し、合否の判定でもない。`deploy` は main への push でだけ動き、PR には付かない（#300）。
+- 週1回の自動点検（`.github/workflows/weekly-check.yml`）がモデル ID の生存確認（`npm run check:models`）、本番依存の `npm audit`、`npm run check:tours` を回し、失敗は件名を固定した Issue になる。組み込みモデルを足す・替えるときは、その社の鍵が repository secrets にあるかを確かめる（無い社は「飛ばした」として報告に残る）。
 
 ### 遅延読み込み（動的 import）でチャンクを分けるときの規約
 
@@ -245,7 +304,7 @@ WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=00
 ```
 
 - 出力先の `dist/` と `docs/app/` はどちらも `.gitignore` 済みなので、差分は汚れない。
-- **プレースホルダで作った成果物を配布・アップロードしないこと。**認証が通らないビルドになる。用途はコンパイル検証のみで、実際に配布する `dist.zip` は必ず `.env` のある環境で `npm run release` から作る。
+- **プレースホルダで作った成果物を配布・アップロードしないこと。**認証が通らないビルドになる。用途はコンパイル検証のみで、実際に配布する `dist.zip` は必ず `.env` のある環境で `npm run release` か `npm run build:release` から作る。
 - **`src/sidepanel/` 配下を変更したら両方のビルドを通すこと。**そのコードは Web版バンドルにも入る（`src/webapp/index.ts` が `src/sidepanel/bootstrap.ts` の `bootstrapCommon()` を呼ぶ）。拡張版だけ確認して Web版の回帰を見落とす事故を防ぐ。
 - メインチェックアウトの `.env` を worktree へコピーする回避策は取らないこと。秘密情報を余計な場所へ広げる。
 
@@ -260,18 +319,40 @@ WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=00
 **リリース前に作業ツリーがクリーンである必要がある。** `npm run bump`（`scripts/bump-version.ps1`）は冒頭で `git status --porcelain --ignore-submodules=dirty` を確認し、未コミットの変更が残っていれば何も書き換えずに停止する。`scripts/bump-version.ps1` は UTF-8 BOM 付きで保存すること（Windows PowerShell 5.1 が BOM 無しを CP932 として読むため）。
 
 ```bash
-npm run release         # = release:minor（デフォルト）
-npm run release:minor   # 修正・小変更 0.33.2 → 0.33.3 + ストア用ビルド + dist.zip
-npm run release:major   # 機能追加     0.33.2 → 0.34.0 + 同上
+npm run release         # 修正・小変更 0.33.2 → 0.33.3（release:minor・release:submit も同じ）
+npm run release:major   # 機能追加     0.33.2 → 0.34.0（release:submit:major も同じ）
+npm run release -- --dry-run   # 何もせず、続きの位置と新しい版だけを表示
+```
+
+`npm run release` は `tools/release/release.mjs` を実行し、次の段を順に進める。
+
+1. 前提の確認（何も変えない）: `gh` のログイン、`main` でクリーンかつ `origin/main` と一致、`.env` の `WEBAUTH_CLIENT_ID`、ストアの提出可否、CHANGELOG の「未リリース」の節が1つ、新しい版のブランチとタグが `origin` に無いこと。
+2. リリース用ブランチ: `chore/release-v<版>` を作り、CHANGELOG の「未リリース」を版の節に書き換えて commit、`scripts/bump-version.ps1 -SetVersion` でバンプ commit、push。
+3. PR と必須チェック: PR を作り、`quality`・`build-extension`・`build-web`・`bundle-budget` の4つが成功するまで待つ（失敗したら PR を残して止まる）。
+4. マージ: `gh pr merge --merge --delete-branch`、`main` を取り込む（間に別の PR が入っていれば merge commit からビルドする）。
+5. ストア用ビルドと審査提出: `npm run build:release`、`storeApi.mjs submit`。終了コード3（結果不明）は自動で再実行せず、`npm run store:status` で確かめてから再実行する。
+
+途中で止まったら**同じコマンドを再実行する**と続きから進む（`release:resume` は無い）。続きの位置は状態ファイルでなく、GitHub とストアの実際の状態から毎回決める。
+
+| 順 | 見るもの | 当てはまったら |
+| --- | --- | --- |
+| 1 | 今いるブランチが `chore/release-v*` で、その版と `package.json` の版が一致する | push から続ける（作業ツリーが汚れていれば止まる） |
+| 2 | 開いているリリース PR（`chore/release-v*`）が1つある（2つ以上なら止まる） | 前提の確認の後、必須チェック待ちから続ける。指定した `--bump` と版が違っても PR の版を優先する |
+| 3 | `origin/main` の `package.json` の版が、ストアの公開中・審査中のどの版とも一致せず、どれよりも新しい | マージ済み・未提出。前提の確認の後、ストア用ビルドから続ける。審査中の版と一致するなら提出済みとして何もしない |
+| 4 | 上のどれでもない | 新しいリリースとして始める |
+
+やめたいとき（リリースを取りやめる）は、開いている PR を閉じてブランチを消す（`git branch -D chore/release-v<版>`、リモートは PR を閉じた後に `git push origin --delete chore/release-v<版>`）。取りやめを自動で行うコマンドは無い。
+
+前提: Windows の PowerShell、`gh` CLI のログイン（`gh auth login`）、`.env` のストア API 認証（`tools/release/README.md`）。
 ```
 
 API による状況確認・審査提出も利用できる（詳細: [tools/release/README.md](tools/release/README.md)）。
 
 - `npm run store:status`: 公開中・審査中の状況を確認する。
 - `npm run store:submit`: 再ビルドせず、既存の `dist.zip` をアップロードして審査提出する。
-- `npm run release:submit` / `npm run release:submit:major`: `main` 上でクリーンかつ `origin/main` と一致するとき、版上げ・ビルド・push・提出を順に行う。この経路だけが push まで行い、`main` に push するのは規則1の例外で許容するバージョンバンプ commit だけ。
+- `npm run release:submit` / `npm run release:submit:major`: `release` / `release:major` の別名。
 
-バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` の4ファイルを更新し、スクリプト自身がその4ファイルだけをステージしてローカル commit まで行う（**push は手動**）。後続の `npm run build:release` が失敗した場合は `git reset --hard HEAD~1` で戻せる（差分は version と Build 日付のみ）。
+バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` の4ファイルを更新し、スクリプト自身がその4ファイルだけをステージしてローカル commit まで行う。`npm run release` がリリース用ブランチ上で呼ぶ。手で `npm run bump` を使うのは、リリース用ブランチで版だけを上げたいときに限る（`main` 上では停止する）。
 
 1.0.0 など先頭の数字を動かす場合のみ `./scripts/bump-version.ps1 -SetVersion "1.0.0"` で明示指定する。
 
@@ -295,6 +376,7 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+| 版の文字列     | `web-<package.json の版>+<ビルド元コミットの短縮 SHA 7桁>`（`scripts/webpack/build-commit.cjs`）。CI は `GITHUB_SHA`、ローカルは `git rev-parse`、取れなければ `unknown`。`client_version` の接尾辞（`-human` など）はこの後ろに付く |
 
 **収録用の Web 版デモビルド**: 解説動画の第9章の収録には `npm run build:web:demo` を使う。出力先は `dist-web-demo/`（`.gitignore` 済み・配布しない）。`src/demo/webapp-entry.ts` が fetch モック・シードデータ・GIS の代役を用意してから Web 版エントリを読み、実アカウントを使わずサンプルデータで操作できる。HTML には GIS の script を出さない（代役を本物が上書きするため）。本番の Web 版ビルド（`docs/app/`）には影響しない。
 

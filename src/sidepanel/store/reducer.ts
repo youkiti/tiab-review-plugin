@@ -23,7 +23,6 @@ export const initialState: AppState = {
         highlightKeywords: { include: [], exclude: [] },
         llmConfig: { ...DEFAULT_LLM_CONFIG },
         mlState: createInitialMlState(),
-        recentSheets: [],
         isAdmin: false,
         sheetEditAccess: 'unknown',
         unsentCount: 0,
@@ -51,14 +50,6 @@ export const initialState: AppState = {
             searchQuery: '',
             isKeyOpened: false,
             activeTermFilters: [],
-        },
-        ml: {
-            currentIndex: 0,
-            searchQuery: '',
-        },
-        llm: {
-            batchRunning: false,
-            currentExecutionId: '',
         },
         flags: {
             loading: false,
@@ -168,18 +159,6 @@ export function reducer(state: AppState, action: Action): AppState {
                 },
             };
 
-        case 'screening/toggleKeyOpen':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    screening: {
-                        ...state.ui.screening,
-                        isKeyOpened: !state.ui.screening.isKeyOpened,
-                    },
-                },
-            };
-
         case 'screening/setKeyOpened':
             return {
                 ...state,
@@ -234,65 +213,6 @@ export function reducer(state: AppState, action: Action): AppState {
                         activeTermFilters: [],
                         currentIndex: 0,
                     },
-                },
-            };
-
-        // ========== ML UI ==========
-        case 'ml/navigate': {
-            const ranking = state.data.mlState.ranking;
-            let newIndex = state.ui.ml.currentIndex + action.direction;
-            if (newIndex < 0) {
-                newIndex = ranking.length - 1;
-            } else if (newIndex >= ranking.length) {
-                newIndex = 0;
-            }
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: { ...state.ui.ml, currentIndex: newIndex },
-                },
-            };
-        }
-
-        case 'ml/setIndex':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: { ...state.ui.ml, currentIndex: action.index },
-                },
-            };
-
-        case 'ml/setSearch':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: {
-                        ...state.ui.ml,
-                        searchQuery: action.query,
-                        currentIndex: 0,
-                    },
-                },
-            };
-
-        // ========== LLM UI ==========
-        case 'llm/setBatchRunning':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    llm: { ...state.ui.llm, batchRunning: action.running },
-                },
-            };
-
-        case 'llm/setExecutionId':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    llm: { ...state.ui.llm, currentExecutionId: action.id },
                 },
             };
 
@@ -403,78 +323,6 @@ export function reducer(state: AppState, action: Action): AppState {
                 ui: {
                     ...state.ui,
                     settings: { ...state.ui.settings, ...action.patch },
-                },
-            };
-
-        case 'settings/setAutoNavigate':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, autoNavigateAfterDecision: action.value },
-                },
-            };
-
-        case 'settings/setShowRecordCountBelow':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, showRecordCountBelow: action.value },
-                },
-            };
-
-        case 'settings/setTermFilterUseAnd':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, termFilterUseAnd: action.value },
-                },
-            };
-
-        case 'settings/setTreatMlAsManual':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, treatMlAsManual: action.value },
-                },
-            };
-
-        case 'settings/setShowAiHighlights':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, showAiHighlights: action.value },
-                },
-            };
-
-        case 'settings/setAiDecisionFilter':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, aiDecisionFilter: action.filter },
-                },
-            };
-
-        case 'settings/setAbstractSubsectionBreakEnabled':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, abstractSubsectionBreakEnabled: action.value },
-                },
-            };
-
-        case 'settings/setAbstractSubsectionHeadings':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, abstractSubsectionHeadings: action.value },
                 },
             };
 

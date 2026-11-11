@@ -7,12 +7,22 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
-## 未リリース / Unreleased
+## 未リリース
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
 - AI 一括判定で、API キーの誤り・残高不足・存在しないモデルなど送り直しても通らないエラーは、どの AI でも1回で打ち切り、組み入れ確率 1.0 の判定（人の確認に必ず回る扱い）として保存するようにしました。これまでは Gemini・OpenAI では同じ文献を最大3回、OpenRouter のチャットモデルでは最大9回送り直していました。レート制限（429）と一時的なサーバーエラー・通信エラーは従来どおり再試行します。
   In AI batch screening, errors that cannot succeed on resend (invalid API key, insufficient credit, unknown model, and similar) now stop after one attempt for every AI provider, and the reference is saved with an inclusion probability of 1.0 so that it always goes to human review. Previously, Gemini and OpenAI resent the same reference up to three times, and OpenRouter chat models up to nine times. Rate limits (429) and temporary server or network errors are still retried as before.
+
+### 画面 / Interface
+
+- Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
+  The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
+
+### 文書 / Documentation
+
+- README に「機能の追加について」の節を足し、保守の段階で足さない機能と、新しい機能を検討する条件を書いた。AI 判定には影響しない。
+  Added an "About new features" section to the README describing what is not added in the maintenance phase and when new features are considered. AI screening is unaffected.
 
 ## v0.57.2（2026-11-09）
 

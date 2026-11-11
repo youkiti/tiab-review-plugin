@@ -1,6 +1,7 @@
 /**
  * client_version 共通ユーティリティ
  * manifest.jsonからバージョンを取得し、処理種別サフィックスを付与
+ * Web版は `web-<版>+<短縮SHA>` の形。SHA は16進なので接尾辞の判定に影響しない
  */
 import { platform } from '../platform';
 

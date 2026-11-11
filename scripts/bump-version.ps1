@@ -5,6 +5,7 @@
 #   major : 0.33.2 → 0.34.0（機能追加）
 #   minor : 0.33.2 → 0.33.3（修正・小変更。デフォルト）
 #   1.0.0 など先頭の数字を動かす場合は -SetVersion "1.0.0" で明示指定する
+#   通常は npm run release から呼ばれる（リリース用ブランチ上で -SetVersion 付き）
 #
 # 重要: このファイルは UTF-8 **BOM 付き** で保存すること。BOM を落としてはいけない。
 # `npm run bump` は Windows PowerShell 5.1（powershell.exe）で起動されるが、5.1 は
@@ -29,7 +30,19 @@ $packageJsonPath = Join-Path $repoRoot "package.json"
 $manifestJsonPath = Join-Path $repoRoot "src/manifest.json"
 $sidepanelHtmlPath = Join-Path $repoRoot "src/sidepanel/sidepanel.html"
 
-# 作業ツリーの汚れチェック（AutoResearchClaw サブモジュール内の生成物は
+# main 上では版上げしない。main は CI を通った PR からしか更新できないため（ruleset `protect main`）。
+$currentBranch = git -C $repoRoot branch --show-current
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "エラー: git branch の実行に失敗しました（終了コード: $LASTEXITCODE）" -ForegroundColor Red
+    exit 1
+}
+if ($currentBranch -eq "main") {
+    Write-Host "エラー: main ブランチ上では版上げできません。main は CI を通った PR からしか更新できないためです。" -ForegroundColor Red
+    Write-Host "リリースは npm run release（機能追加は npm run release:major）で行ってください。" -ForegroundColor Red
+    exit 1
+}
+
+# 作業ツリーの汚れチェック（サブモジュール内の生成物は
 # 提出物に影響しないため --ignore-submodules=dirty で除外する）
 $dirtyStatus = git -C $repoRoot status --porcelain --ignore-submodules=dirty
 if ($LASTEXITCODE -ne 0) {
@@ -125,5 +138,4 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ""
 Write-Host "=== バージョン更新完了: $currentVersion → $newVersion ==="
-Write-Host "変更は未 push のローカル commit です。この後の 'npm run build:release' が失敗した場合は"
-Write-Host "'git reset --hard HEAD~1' で戻せます（差分は version と Build 日付のみ）。"
+Write-Host "変更は未 push のローカル commit です。npm run release から実行した場合は、この後の push・PR・マージ・提出を続けて行います"

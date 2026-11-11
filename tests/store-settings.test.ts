@@ -28,12 +28,6 @@ test('設定の一括反映は一度だけ通知し、他領域を変更しな�
     assert.equal(notifications, 1);
 });
 
-test('既存の設定アクションもStoreの設定だけを更新する', () => {
-    const store = createStore();
-    store.dispatch({ type: 'settings/setShowAiHighlights', value: false });
-    assert.deepEqual(store.getState().ui.settings, { ...DEFAULT_USER_SETTINGS, showAiHighlights: false });
-});
-
 test('旧stateの設定は読み取り専用でStoreの更新を直ちに参照する', () => {
     const store = initializeStore();
     try {
