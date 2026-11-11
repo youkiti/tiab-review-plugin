@@ -292,6 +292,11 @@ tiab-review-plugin/
 バンドル統計 `npm run bench:bundle` の2本）。計測結果は既定で `.tmp/bench/`（`.gitignore` 済み）へ
 出る。計測用ビルド（プレースホルダー環境変数・隔離した出力先）は配布しないこと。
 
+AI 判定の評価結果（`experiments/`）は、生の結果とレポートを Zenodo のデータセットとして公開する。
+公開物は `npm run zenodo:eval:pack` で作り（題名・抄録の原文の抜粋 `evidence[].quote` は除く）、
+新しいモデルの評価を足したら同じ PR で `scripts/zenodo-eval/pack.mjs` の `INCLUDED_DIRS` に足す。
+規則と更新手順は `scripts/zenodo-eval/README.md`。
+
 PDFフィクスチャはデモビルド限定で3本同梱している（`demo`/`20p`/`57p`、`?benchPdf=` または
 `npm run bench -- --pdf` で選択）。追加2本（20ページ・57ページ）は外部のCC BY 4.0論文で、出所表示は
 `video/fixtures/NOTICE.md` にある。

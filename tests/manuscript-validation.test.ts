@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildManuscriptValidationSentence } from '../src/lib/manuscript-ai';
+import { buildManuscriptBenchmarkSentence, buildManuscriptValidationSentence } from '../src/lib/manuscript-ai';
 import type { LlmRun } from '../src/lib/types';
 
 function run(extra: Partial<LlmRun> = {}): LlmRun {
@@ -54,4 +54,11 @@ test('人の組み入れゼロでも比較件数があれば比較したこと�
         }));
         assert.equal(sentence, "Before the large language model's decisions were used, they were compared with the reviewers' consensus decisions for 12 records, none of which were included by the reviewers, so the miss rate could not be assessed.");
     }
+});
+
+test('開発者による評価結果のデータセットの DOI を示す1文を固定する', () => {
+    assert.equal(
+        buildManuscriptBenchmarkSentence('10.5281/zenodo.1234567'),
+        "The developer's benchmark results for the available models, which have not been independently validated, are archived at https://doi.org/10.5281/zenodo.1234567.",
+    );
 });
