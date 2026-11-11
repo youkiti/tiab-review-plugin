@@ -3,7 +3,7 @@
 // fetch モックとシードデータをインストールしてから、通常の拡張版サイドパネル実装
 // （src/sidepanel/sidepanel.ts）をそのまま読み込む。既存のサイドパネル実装は
 // 一切変更しない（差し替えは webpack.config.js の entry 設定のみで行う）。
-// chrome.storage の直接参照は .eslintrc.cjs の overrides（src/demo/**）で許可済み。
+// chrome.storage の直接参照は eslint.config.mjs の許可リスト（src/demo/**）で許可済み。
 //
 // デモプロファイル（既定 / ML / bench）は resolveDemoProfile()（src/demo/profile.ts）で
 // URL クエリパラメータ ?demoProfile=ml / ?demoProfile=bench から同期的に解決する

@@ -4,7 +4,7 @@
 // 「真偽値1個の判定＋関数1回の呼び出し」以上のコストをかけない（通常利用への影響をゼロにする）。
 //
 // 拡張版・Web版・デモ版すべてのビルドから使う共有コードのため、chrome.* API を直接参照しない
-// （.eslintrc.cjs の no-restricted-globals 許可リストにこのファイルを加えていない。Web版バンドル
+// （eslint.config.mjs の no-restricted-globals 許可リストにこのファイルを加えていない。Web版バンドル
 // にも含まれるため chrome への依存は不可）。location / performance / globalThis だけを使う。
 //
 // 【有効化判定】次のいずれかが真なら有効。モジュール初期化時に一度だけ判定し、以後はキャッシュ
