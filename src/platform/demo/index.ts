@@ -9,7 +9,7 @@
  * webpack.config.js の NormalModuleReplacementPlugin により、`--env demo` ビルドでは
  * '../platform/chrome' への import が本ファイルへ差し替えられる。
  *
- * chrome.storage の直接参照は .eslintrc.cjs の overrides（src/platform/demo/**）で許可済み。
+ * chrome.storage の直接参照は eslint.config.mjs の許可リスト（src/platform/demo/**）で許可済み。
  */
 import type { PlatformAdapter } from '../types';
 import { chromePlatform } from '../chrome';
