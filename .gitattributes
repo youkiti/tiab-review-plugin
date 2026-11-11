@@ -36,3 +36,11 @@
 # EndNote ライブラリ（tests/fixtures/sample.enl, sample.enlp）
 *.enl binary
 *.enlp binary
+
+# Zenodo・GitHub の source archive から評価データと実験結果の生データを外す（#304・#307）。
+# 実験結果は別の Zenodo レコード（#307）で公開する。実験のコードとレポートは残す
+# （tests/registry-linkage-scoring.test.ts と tests/tsconfig.json が experiments/registry-linkage/ を参照するため）。
+experiments/**/results/** export-ignore
+scripts/asreview-baseline/datasets/** export-ignore
+scripts/asreview-baseline/raw_data/** export-ignore
+scripts/asreview-baseline/*.json export-ignore

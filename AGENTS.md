@@ -4,7 +4,7 @@
 
 このリポジトリで常に守るルール：
 
-1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。**バージョンバンプも例外ではない。** リリースは `npm run release`（機能追加は `npm run release:major`）で行い、このコマンドが `chore/release-v<版>` ブランチの作成・CHANGELOG の版の節・バンプ commit・PR・必須チェック待ち・マージ・ストア提出を順に行う。`main` の ruleset（`protect main`）は `build-check.yml` の4ジョブ（`quality`・`build-extension`・`build-web`・`bundle-budget`）の成功を必須にしており、CI を通っていないコミットは PR のマージでも直接 push でも `main` に入らない（#300。`main` へのマージは `deploy-web.yml` で Web 版の本番公開も兼ねるため）。bypass は設定しない。`scripts/bump-version.ps1` は `main` 上では停止する。
+1. **ブランチ強制**: コードを変更する前には必ず `git branch` を確認し、作業用ブランチを作成すること。`main`・`master`・`develop` での作業は禁止。**バージョンバンプも例外ではない。** リリースは `npm run release`（機能追加は `npm run release:major`）で行い、このコマンドが `chore/release-v<版>` ブランチの作成・CHANGELOG の版の節・バンプ commit・PR・必須チェック待ち・マージ・ストア提出・版タグと GitHub Release の作成を順に行う。`main` の ruleset（`protect main`）は `build-check.yml` の4ジョブ（`quality`・`build-extension`・`build-web`・`bundle-budget`）の成功を必須にしており、CI を通っていないコミットは PR のマージでも直接 push でも `main` に入らない（#300。`main` へのマージは `deploy-web.yml` で Web 版の本番公開も兼ねるため）。bypass は設定しない。`scripts/bump-version.ps1` は `main` 上では停止する。
 2. **日本語化**: ユーザーに提示するアーティファクト（計画書・タスク・確認事項）は、作成時に必ず日本語で記述すること。
 3. **不要ファイル・ブランチの削除**: テストなどで作成したファイルやブランチは不要になった時点で削除すること。
 4. **言語規定**: ユーザーへのレスポンス、アーティファクト、コミットメッセージ、コード内のコメントは必ず日本語で記述すること。（システムエラーやログの引用は原文のままでよい）
@@ -335,6 +335,7 @@ npm run release -- --dry-run   # 何もせず、続きの位置と新しい版�
 3. PR と必須チェック: PR を作り、`quality`・`build-extension`・`build-web`・`bundle-budget` の4つが成功するまで待つ（失敗したら PR を残して止まる）。
 4. マージ: `gh pr merge --merge --delete-branch`、`main` を取り込む（間に別の PR が入っていれば merge commit からビルドする）。
 5. ストア用ビルドと審査提出: `npm run build:release`、`storeApi.mjs submit`。終了コード3（結果不明）は自動で再実行せず、`npm run store:status` で確かめてから再実行する。
+6. 版タグと GitHub Release（`tools/release/release-notes.mjs` が本文を作る）: 段4の merge commit に annotated タグ `v<版>` を打って `git push origin refs/tags/v<版>`、`gh release create --verify-tag`（draft・prerelease にしない。ファイルは添付しない）。`origin` に同名のタグが別のコミットを指していれば止まる。タグか Release の片方だけ済んでいれば、足りない方だけを作る。本文は CHANGELOG の該当節（日英）と、`src/lib/citation.ts` の `TIAB_REVIEW_CONCEPT_DOI` から作る DOI の行（定数が空なら出さない）。`dist.zip` は添付しない（ストア用ビルドは `key` を削除しており、直接読み込むと拡張機能 ID が変わって OAuth が通らないため）。**過去の版にはタグを打たない**: `release.mjs` の定数 `TAG_FROM_AFTER_VERSION`（実装時点の main の版）より新しい版だけが段6の対象で、これ以下の版では続きの位置の判定も段6を提案しない。Zenodo の GitHub 連携は、この Release の source archive を版ごとに保存する（`.zenodo.json` と `.gitattributes` の `export-ignore`。評価データと実験結果の生データは archive に入れない）。
 
 途中で止まったら**同じコマンドを再実行する**と続きから進む（`release:resume` は無い）。続きの位置は状態ファイルでなく、GitHub とストアの実際の状態から毎回決める。
 
@@ -342,7 +343,8 @@ npm run release -- --dry-run   # 何もせず、続きの位置と新しい版�
 | --- | --- | --- |
 | 1 | 今いるブランチが `chore/release-v*` で、その版と `package.json` の版が一致する | push から続ける（作業ツリーが汚れていれば止まる） |
 | 2 | 開いているリリース PR（`chore/release-v*`）が1つある（2つ以上なら止まる） | 前提の確認の後、必須チェック待ちから続ける。指定した `--bump` と版が違っても PR の版を優先する |
-| 3 | `origin/main` の `package.json` の版が、ストアの公開中・審査中のどの版とも一致せず、どれよりも新しい | マージ済み・未提出。前提の確認の後、ストア用ビルドから続ける。審査中の版と一致するなら提出済みとして何もしない |
+| 3 | `origin/main` の `package.json` の版が、ストアの公開中・審査中のどの版とも一致せず、どれよりも新しい | マージ済み・未提出。前提の確認の後、ストア用ビルドから続け、提出の後に段6も行う。審査中の版と一致するなら提出済みとして何もしない（タグと Release が未作成なら下の 3b） |
+| 3b | `origin/main` の版 V がストアに提出済み（公開中か審査中）で、`origin` に `vV` タグか `vV` の Release が無く、V が `TAG_FROM_AFTER_VERSION` より新しい | 段6（タグと Release）だけを行う |
 | 4 | 上のどれでもない | 新しいリリースとして始める |
 
 やめたいとき（リリースを取りやめる）は、開いている PR を閉じてブランチを消す（`git branch -D chore/release-v<版>`、リモートは PR を閉じた後に `git push origin --delete chore/release-v<版>`）。取りやめを自動で行うコマンドは無い。
@@ -356,7 +358,7 @@ API による状況確認・審査提出も利用できる（詳細: [tools/rele
 - `npm run store:submit`: 再ビルドせず、既存の `dist.zip` をアップロードして審査提出する。
 - `npm run release:submit` / `npm run release:submit:major`: `release` / `release:major` の別名。
 
-バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` の4ファイルを更新し、スクリプト自身がその4ファイルだけをステージしてローカル commit まで行う。`npm run release` がリリース用ブランチ上で呼ぶ。手で `npm run bump` を使うのは、リリース用ブランチで版だけを上げたいときに限る（`main` 上では停止する）。
+バンプは `package.json` / `src/manifest.json` / `src/sidepanel/sidepanel.html` / `package-lock.json` / `CITATION.cff`（`version` と `date-released`）の5ファイルを更新し、スクリプト自身がその5ファイルだけをステージしてローカル commit まで行う。`tests/release-metadata.test.ts` が `CITATION.cff` の版と日付を `package.json` と CHANGELOG の見出しに固定する。`npm run release` がリリース用ブランチ上で呼ぶ。手で `npm run bump` を使うのは、リリース用ブランチで版だけを上げたいときに限る（`main` 上では停止する）。
 
 1.0.0 など先頭の数字を動かす場合のみ `./scripts/bump-version.ps1 -SetVersion "1.0.0"` で明示指定する。
 

@@ -26,6 +26,8 @@ import { getFulltextEnabledJudges } from './fulltext/lazy';
 import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../lib/identification-route';
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
+import { conceptDoiUrl } from '../../lib/citation';
+import { collectVersionRange, formatToolVersionClause, parseClientSemver } from '../../lib/manuscript-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo, getReferences, getLlmExecutions, getLlmRuns } from '../../lib/sheets-api';
 import { computeIdentification } from '../../lib/prisma-identification';
@@ -140,9 +142,24 @@ function countUnscreenedTiab(): number {
 // テキスト生成（英語固定）
 // ---------------------------------------------------------------------------
 
-function extensionVersion(): string {
-    const v = getClientVersion();
-    return v === 'unknown' ? '[version]' : v;
+/**
+ * Methods に書く TiAb Review Plugin の版の句（括弧の中身）。
+ * 判定を記録した版の最小から最大（同じなら単一の版）。判定から版が読めないときは、
+ * テキストを生成した人のいまの版（読めなければ [version]）。DOI の定数が空なら DOI は書かない。
+ */
+function toolVersionClause(decisions: readonly Decision[]): string {
+    return formatToolVersionClause(
+        collectVersionRange(decisions),
+        parseClientSemver(getClientVersion()) ?? 'unknown',
+        conceptDoiUrl(),
+    );
+}
+
+/** 全文フェーズの判定（judgeDecisionMap と同じ選び方: allFulltextDecisions、無ければ myFulltextDecision）。 */
+function collectFulltextDecisions(refs: readonly ReferenceWithStatus[]): Decision[] {
+    return refs.flatMap(ref => (ref.allFulltextDecisions && ref.allFulltextDecisions.length > 0)
+        ? ref.allFulltextDecisions
+        : ref.myFulltextDecision ? [ref.myFulltextDecision] : []);
 }
 
 /** 英語の単数/複数形（不規則形は pluralForm で指定） */
@@ -157,12 +174,15 @@ function wasWere(n: number): string {
 function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecution[], validationSentence: string): string {
     const fileList = id.files.map(f => f.file).join('; ');
     const nReviewers = countTiabHumanReviewers();
+    // 版の範囲と AI の文は、データベース腕の論理削除されていない文献の判定を同じ集合から作る。
+    const { database } = splitByIdentificationRoute(state.allReferences);
+    const databaseDecisions = database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions);
 
     const paragraphs: string[] = [];
     // レビュアー1名のときは blinded 節が意味を成さないので省く
     const blindClause = nReviewers > 1 ? ", without access to each other's decisions" : '';
     paragraphs.push(
-        `Records exported from each database (${fileList}) were imported into TiAb Review (version ${extensionVersion()}) and deduplicated automatically. ` +
+        `Records exported from each database (${fileList}) were imported into TiAb Review Plugin (${toolVersionClause(databaseDecisions.filter(isTiabDecision))}) and deduplicated automatically. ` +
         `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} ${plural(nReviewers, 'reviewer')}${blindClause}.`
     );
 
@@ -182,9 +202,8 @@ function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecut
         paragraphs.push(`${stoppingExcluded} records were excluded without reviewer screening when the ML stopping criterion was met; these exclusions were reported separately from reviewer exclusions.`);
     }
 
-    const { database } = splitByIdentificationRoute(state.allReferences);
     const aiSentence = buildManuscriptAiSentence(
-        database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions), id.screened, state.llmConfig.llm_include_threshold,
+        databaseDecisions, id.screened, state.llmConfig.llm_include_threshold,
         executions,
     );
     if (aiSentence) {
@@ -239,7 +258,7 @@ function buildTiabResults(id: IdentificationData, sought: number): string {
     return text;
 }
 
-function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
+function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary, versionClause: string): string {
     const humanJudges = summary.judges.filter(j => !j.startsWith('llm:'));
     const paragraphs: string[] = [];
     // 通常の人判定者数を示し、AI評価と人の裁定の関与は後続の文に記す。
@@ -250,7 +269,7 @@ function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: 
         ? 'The full text of the single candidate report was'
         : `Full texts of the ${summary.sought} candidate reports were`;
     paragraphs.push(
-        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review (version ${extensionVersion()}), with reasons for exclusion recorded.`
+        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review Plugin (${versionClause}), with reasons for exclusion recorded.`
     );
 
     const aiSentence = buildFulltextAiMethodsSentence(summary);
@@ -487,7 +506,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     const registryLinkage = summaryByRoute ? summaryByRoute.registryLinkage : null;
 
     const methods = summaryByRoute
-        ? buildFulltextMethods(summaryByRoute.database, summaryByRoute.registryLinkage)
+        ? buildFulltextMethods(summaryByRoute.database, summaryByRoute.registryLinkage, toolVersionClause(collectFulltextDecisions(getProjectFulltextCandidateList())))
         : buildTiabMethods(id, executions, validationSentence);
     const results = summaryByRoute
         ? buildFulltextResults(summaryByRoute.database, summaryByRoute.registryLinkage)
@@ -524,6 +543,11 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     disclaimer.className = 'manuscript-note';
     disclaimer.textContent = t('manuscript_disclaimer');
     body.appendChild(disclaimer);
+
+    const versionNote = document.createElement('div');
+    versionNote.className = 'manuscript-note';
+    versionNote.textContent = t('manuscript_versionNote');
+    body.appendChild(versionNote);
 
     for (const warning of warnings) {
         const el = document.createElement('div');

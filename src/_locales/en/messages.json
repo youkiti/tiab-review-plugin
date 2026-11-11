@@ -3673,6 +3673,9 @@
   "manuscript_disclaimer": {
     "message": "Auto-generated draft. Numbers reflect the current data and judge selection; items in [ ] must be edited manually. Review before submission."
   },
+  "manuscript_versionNote": {
+    "message": "The version range covers the TiAb Review Plugin versions that recorded the decisions at this stage (human, AI and ML). Before the key is opened, only your own decisions are used. Decisions made in the web version are counted under the same version numbers."
+  },
   "manuscript_warnUnscreened": {
     "message": "$1 records have not been screened yet — these numbers are not final."
   },
