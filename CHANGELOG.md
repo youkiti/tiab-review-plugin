@@ -9,8 +9,15 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 ## 未リリース
 
+### AI 判定に影響する変更 / Changes that affect AI screening
+
+- プロジェクトを切り替えた直後に、前のプロジェクトの AI 設定（基準）が全文の AI 判定の実行記録に入ることがある経路をなくしました。
+  Removed a path by which the previous project's AI settings (criteria) could be recorded in the full-text AI screening log right after switching projects.
+
 ### 画面 / Interface
 
+- 別のプロジェクトへ切り替えたとき、前のプロジェクトの検索語・ステータスの絞り込み・AI の設定・「新規にやり直す」の切替が残ることがあったのを直しました。AI 一括判定の実行中に「戻る」を押した場合は、一括判定を中止してから切り替えます（中止までの判定は保存され、続きから再開できます）。
+  When switching to another project, the search text, status filter, AI settings and the "start over" toggle of the previous project could carry over; this is fixed. If you press Back while AI batch screening is running, the batch is now stopped before switching (decisions saved so far are kept and the run can be resumed).
 - Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
   The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
 
