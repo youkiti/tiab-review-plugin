@@ -7,6 +7,8 @@ import { getModelGenerationConfig } from './model-generation-settings';
 import { isLocalModelId } from './local-llm-model';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+/** API キーを送るヘッダ名。URL クエリには載せない（AGENTS.md 規約9）。gemini-ask.ts は同じ値を自前で持つ。 */
+export const GEMINI_API_KEY_HEADER = 'x-goog-api-key';
 
 /**
  * LLM モデル設定（Gemini / OpenRouter / OpenAI / Anthropic 共通）
@@ -341,8 +343,8 @@ export async function callGeminiApiWithParts<T>(
         });
     }
 
-    // streamGenerateContentを使用
-    const url = `${GEMINI_API_BASE}/${config.model}:streamGenerateContent?key=${apiKey}`;
+    // streamGenerateContentを使用。APIキーは x-goog-api-key ヘッダで送る（URL に載せない。AGENTS.md 規約9）
+    const url = `${GEMINI_API_BASE}/${config.model}:streamGenerateContent`;
 
     const requestBody = {
         contents: [
@@ -370,6 +372,7 @@ export async function callGeminiApiWithParts<T>(
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                [GEMINI_API_KEY_HEADER]: apiKey,
             },
             body: JSON.stringify(requestBody),
             signal: controller.signal,
@@ -737,7 +740,7 @@ export async function detectTierByBatchProbe(
         const response = await fetch(`${GEMINI_API_BASE}/${model}:batchGenerateContent`, {
             method: 'POST',
             headers: {
-                'x-goog-api-key': apiKey,
+                [GEMINI_API_KEY_HEADER]: apiKey,
                 'content-type': 'application/json',
             },
             // requests を意図的に空にする → 有料キーでもバッチジョブは作られない
@@ -772,7 +775,7 @@ export async function testApiKeyWithTier(apiKey: string): Promise<ApiKeyTestResu
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'x-goog-api-key': apiKey,
+                [GEMINI_API_KEY_HEADER]: apiKey,
             },
         });
 
