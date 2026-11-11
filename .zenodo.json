@@ -1,0 +1,26 @@
+{
+  "title": "TiAb Review Plugin: a Chrome extension and web app for title/abstract and full-text screening in systematic reviews",
+  "upload_type": "software",
+  "description": "<p>TiAb Review Plugin supports title/abstract and full-text screening for systematic reviews, using a shared Google Sheets spreadsheet as the database. It offers independent (blinded) screening by multiple reviewers, conflict resolution, active-learning prioritisation, optional AI screening as an additional screener, and draft Methods/Results text with PRISMA 2020 flow numbers. Release notes for each version are in CHANGELOG.md.</p>",
+  "creators": [
+    { "name": "Kataoka, Yuki" },
+    { "name": "Banno, Masahiro" },
+    { "name": "Kyo, Michihito" },
+    { "name": "Nakao, Shuri" },
+    { "name": "Sato, Tomoo" },
+    { "name": "Taito, Shunsuke" },
+    { "name": "Takayama, Tomohiro" },
+    { "name": "Tsuge, Takahiro" },
+    { "name": "Tsujimoto, Yasushi" },
+    { "name": "So, Ryuhei" },
+    { "name": "Furukawa, Toshi A." }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["systematic review", "citation screening", "title and abstract screening", "full-text screening", "PRISMA 2020", "active learning", "large language model", "Chrome extension"],
+  "notes": "Developed with support from JSPS KAKENHI Grant Number 25K13585. Distributed through the Chrome Web Store; web version at https://youkiti.github.io/tiab-review-plugin/app/.",
+  "related_identifiers": [
+    { "identifier": "https://github.com/youkiti/tiab-review-plugin", "relation": "isSupplementTo", "scheme": "url" },
+    { "identifier": "https://youkiti.github.io/tiab-review-plugin/help.html", "relation": "isDocumentedBy", "scheme": "url" }
+  ]
+}

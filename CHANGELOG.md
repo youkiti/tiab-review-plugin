@@ -23,6 +23,8 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
 
 ### 画面 / Interface
 
+- 論文用テキストの Methods に、TiAb Review Plugin の版として、その段階の判定（人・AI・ML）を記録した版の最小から最大（同じなら単一の版）を書くようにしました。これまでは、テキストを作った人のいまの版だけでした。Zenodo の concept DOI が決まったら、DOI も併記します。モーダルに、この版の範囲の求め方の注記を1行足しました。AI 判定には影響しません。
+  The Methods in the manuscript text now give the range of TiAb Review Plugin versions that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same, instead of only the version of the person generating the text. The Zenodo concept DOI will be added once it is issued. The modal gains a one-line note on how the range is determined. AI screening is unaffected.
 - 別のプロジェクトへ切り替えたとき、前のプロジェクトの検索語・ステータスの絞り込み・AI の設定・「新規にやり直す」の切替が残ることがあったのを直しました。AI 一括判定の実行中に「戻る」を押した場合は、一括判定を中止してから切り替えます（中止までの判定は保存され、続きから再開できます）。
   When switching to another project, the search text, status filter, AI settings and the "start over" toggle of the previous project could carry over; this is fixed. If you press Back while AI batch screening is running, the batch is now stopped before switching (decisions saved so far are kept and the run can be resumed).
 - 別のプロジェクトへ切り替えたとき・ログアウトしたときに、全文タブの AI 判定のプロンプト・対象範囲・一覧の絞り込み・結果で選んだ判定者が前のプロジェクトのまま残ることがあったのを直しました。全文の AI 一括判定と一括 OA 検索の実行中に「戻る」を押した場合は、中止してから切り替えます（中止までの結果は元のプロジェクトに保存されます）。
