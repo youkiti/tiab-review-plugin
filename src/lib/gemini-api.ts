@@ -719,6 +719,9 @@ export function classifyTierProbeResponse(httpStatus: number, bodyText: string):
     return 'unknown';
 }
 
+/** `detectTierByBatchProbe()` が既定で使うモデル（latest エイリアス）。週次点検の生存確認（scripts/model-check/）も参照する。 */
+export const TIER_PROBE_MODEL = 'gemini-flash-lite-latest';
+
 /**
  * `batchGenerateContent` に requests が空の batch を送り、free/paid を1リクエストで判定する。
  * どちらの結果でもバッチジョブは作られないため課金ゼロ・後片付け不要。
@@ -728,7 +731,7 @@ export function classifyTierProbeResponse(httpStatus: number, bodyText: string):
  */
 export async function detectTierByBatchProbe(
     apiKey: string,
-    model = 'gemini-flash-lite-latest',
+    model = TIER_PROBE_MODEL,
     timeoutMs = 10000,
 ): Promise<DetectedTier> {
     const controller = new AbortController();

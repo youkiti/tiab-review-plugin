@@ -1,0 +1,195 @@
+# 週1回の自動点検。コードを変えていない週にも壊れうるものを確かめる（#301）。
+#   models : 組み込みの AI モデル ID が各社の API でまだ使えるか（鍵が無い社は飛ばして報告に書く）
+#   audit  : 本番依存の high 以上の脆弱性（開発依存は記録だけ）
+#   tours  : 操作ツアーの通し検証（npm run check:tours。CI には入れていない）
+# 失敗した項目ごとに、件名を固定した Issue を立てる。同じ件名の Open の Issue があればコメントを足す。
+name: weekly-check
+
+on:
+  schedule:
+    # UTC の毎週日曜 22:17 = 日本時間の毎週月曜 07:17
+    - cron: '17 22 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-check
+  cancel-in-progress: false
+
+jobs:
+  models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: AI モデル ID の生存確認
+        run: npm run check:models -- --report .tmp/weekly-check/models.md
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TYPE_SAFE_API_KEY: ${{ secrets.TYPE_SAFE_API_KEY }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-models
+          path: .tmp/weekly-check/models.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      # npm audit は package-lock.json だけで動くので npm ci は要らない
+      - name: npm audit（本番依存は high 以上で失敗、全体は記録だけ）
+        run: |
+          mkdir -p .tmp/weekly-check
+          set +e
+          npm audit --omit=dev --audit-level=high > .tmp/weekly-check/audit-prod.txt 2>&1
+          prod=$?
+          npm audit > .tmp/weekly-check/audit-all.txt 2>&1
+          set -e
+          {
+            echo '## npm audit: 本番依存（high 以上で失敗）'
+            echo
+            echo '```'
+            tail -n 80 .tmp/weekly-check/audit-prod.txt
+            echo '```'
+            echo
+            echo '## npm audit: 開発依存を含む全体（記録だけ）'
+            echo
+            echo '```'
+            tail -n 120 .tmp/weekly-check/audit-all.txt
+            echo '```'
+          } > .tmp/weekly-check/audit.md
+          cat .tmp/weekly-check/audit.md >> "$GITHUB_STEP_SUMMARY"
+          exit $prod
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-audit
+          path: .tmp/weekly-check/audit.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  tours:
+    runs-on: ubuntu-latest
+    # 2026-11-11 の実測は25本で約5分。再試行と Chromium の取得を見込む
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:demo
+      - name: 操作ツアーの通し検証
+        # Linux の Chromium は画面の言語を LANGUAGE から決める（--lang は効かない）
+        env:
+          LANGUAGE: ja
+        run: |
+          mkdir -p .tmp/weekly-check
+          set +e
+          xvfb-run -a npm run check:tours -- --retry-failed 1 2>&1 | tee .tmp/weekly-check/tours.log
+          code=${PIPESTATUS[0]}
+          set -e
+          {
+            echo '## 操作ツアーの通し検証（npm run check:tours）'
+            echo
+            echo '```'
+            grep -E '合格|不合格|失敗|再試行' .tmp/weekly-check/tours.log | tail -n 120
+            echo '```'
+          } > .tmp/weekly-check/tours.md
+          cat .tmp/weekly-check/tours.md >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-tours
+          path: .tmp/weekly-check/tours.md
+          if-no-files-found: warn
+          retention-days: 14
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tour-screenshots
+          path: .tmp/guide-tour-check/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
+  report:
+    needs: [models, audit, tours]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: report-*
+          path: reports
+          merge-multiple: true
+      - name: 失敗した項目を Issue にする
+        uses: actions/github-script@v7
+        env:
+          RESULT_MODELS: ${{ needs.models.result }}
+          RESULT_AUDIT: ${{ needs.audit.result }}
+          RESULT_TOURS: ${{ needs.tours.result }}
+        with:
+          script: |
+            const fs = require('fs');
+            const items = [
+              { result: process.env.RESULT_MODELS, file: 'reports/models.md', title: '週次点検: AI モデル ID の生存確認に失敗' },
+              { result: process.env.RESULT_AUDIT, file: 'reports/audit.md', title: '週次点検: 本番依存に high 以上の脆弱性' },
+              { result: process.env.RESULT_TOURS, file: 'reports/tours.md', title: '週次点検: 操作ツアーの通し検証に失敗' },
+            ];
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const failed = items.filter(item => item.result === 'failure');
+            if (failed.length === 0) {
+              core.info('失敗した項目はありません');
+              return;
+            }
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+            });
+            for (const item of failed) {
+              const report = fs.existsSync(item.file)
+                ? fs.readFileSync(item.file, 'utf8').slice(0, 60000)
+                : '（報告ファイルがありません。実行のログを見てください）';
+              const body = [
+                `週次点検（weekly-check.yml）で失敗しました。`,
+                ``,
+                `- 実行: ${runUrl}`,
+                `- コミット: ${context.sha}`,
+                ``,
+                report,
+              ].join('\n');
+              const existing = openIssues.find(issue => !issue.pull_request && issue.title === item.title);
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body,
+                });
+                core.info(`#${existing.number} にコメントを足しました: ${item.title}`);
+              } else {
+                const created = await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo, title: item.title, body,
+                });
+                core.info(`#${created.data.number} を立てました: ${item.title}`);
+              }
+            }
