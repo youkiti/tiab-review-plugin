@@ -255,7 +255,7 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 ## LLMモデル履歴
 
 - 既定のLLMモデルは `gemini-3.1-flash-lite` (GA, Temp 0) です。下記ベンチマークで速度・コスト効率に優れることを確認した上で、既定として採用しています。
-- UI で選べるモデルは以下の 7 つ。プロバイダごとに別の API キーが必要です:
+- UI で選べるモデルは以下の 9 つ。プロバイダごとに別の API キーが必要です:
   - **Gemini**: `gemini-3.1-flash-lite` (既定 / depression Recall 93.6%) / `gemini-3-flash-preview` (Recall 96.1%)
   - **OpenRouter** (v0.19.0+): `qwen/qwen3-235b-a22b-2507` (Recall 93.9% / Specificity 92.2% / 約 $0.135/1K件) / `deepseek/deepseek-v4-flash` (Recall 91.1% / Specificity 90.5% / 約 $0.756/1K件)
   - **OpenAI**: `gpt-5.6-terra` / `gpt-5.6-luna`
@@ -305,9 +305,9 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 | `qwen/qwen3.8-27b` (2026-08, 不採用) | Temp 0 / 非thinking | 85.0% | 73.7% | 84.7% | 870 | $1.844 | 約 $0.93 |
 
 **所見**:
-- 2026-05 時点で OpenRouter 経由の最新 Kimi / Qwen / DeepSeek / Grok 系を試したが、**Recall ≥ 95% (採用基準) を全件 1,993 で満たすモデルは無し**。既存 B4 (`gemini-3-flash-preview`) を上回るモデルは確認できなかった。
+- 2026-05 時点で OpenRouter 経由の最新 Kimi / Qwen / DeepSeek / Grok 系を試したが、**Recall ≥ 95% (既定モデルの置き換え基準) を全件 1,993 で満たすモデルは無し**。既存 B4 (`gemini-3-flash-preview`) を上回るモデルは確認できなかった。
 - `qwen3-235b-a22b-2507` (Instruct) は B4 比 **コスト約 1/24** で Recall 93.9%。Recall を 2pp 譲っても圧倒的な低コストで一次スクリーニングしたい場合の「予算オプション」として有望。
-- `deepseek-v4-flash` は Recall 91.1% で採用基準未達。内部 reasoning でレイテンシ・コストとも `qwen` Instruct の数倍。
+- `deepseek-v4-flash` は Recall 91.1% で既定モデルの置き換え基準未達。内部 reasoning でレイテンシ・コストとも `qwen` Instruct の数倍。
 - Thinking 系 (`qwen3-thinking-2507`, `kimi-k2-thinking`, `grok-4.3`) は 50〜300件サンプルでは Recall 100% を出すが、レイテンシ 16〜48 秒/件・コスト数倍〜十数倍で本番スケール非現実的。詳細は [experiments/openrouter-bench/report.md](experiments/openrouter-bench/report.md)。
 - `qwen/qwen3.8-27b`（2026-08-14リリース、同Qwen系列の小型27B版）は Recall 85.0%で235B Instruct（93.9%）を8.9pp下回り不採用。レイテンシも235Bの約18倍（870ms/件）。詳細は [experiments/qwen3.8-27b/report.md](experiments/qwen3.8-27b/report.md)。
 
@@ -323,7 +323,7 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 | `gpt-5.6-luna` | reasoning=medium | 91.4% | 64.3% | 90.7% | 572 | $7.68 | 約 $3.85 |
 
 **所見**:
-- 全 reasoning_effort で **Recall < 95% (採用基準未達)**、B4 (96.1%) を下回る。**reasoning_effort を上げても Recall は改善せず** (none 92.9% → low/medium 91.4%)、Precision のみ改善 (49→64%)。reasoning は判断を除外方向に寄せるため、感度最優先のスクリーニングとは相性が悪い。
+- 全 reasoning_effort で **Recall < 95% (既定モデルの置き換え基準未達)**、B4 (96.1%) を下回る。**reasoning_effort を上げても Recall は改善せず** (none 92.9% → low/medium 91.4%)、Precision のみ改善 (49→64%)。reasoning は判断を除外方向に寄せるため、感度最優先のスクリーニングとは相性が悪い。
 - threshold を 0.05 まで下げれば none / low は Recall 95% を超える (95.7% / 95.4%) が、Precision が 38〜48% に低下し、同 Recall 帯の B4 に劣る。
 - `reasoning=high` は未実行 (疎通で全件換算 ≈ $22)。単調な傾向から Recall 改善は期待薄。
 - 詳細は [experiments/gpt-5.6/report.md](experiments/gpt-5.6/report.md)。
@@ -393,7 +393,7 @@ OpenRouter 経由で利用できる主要 LLM をベースラインと同一プ�
 - `gemini-3.5-flash` は 2026-05 評価で depression Recall 93.2% (B4 比 -2.9pp) と既存モデルを上回らず、UI 公開は見送り。
 - OpenRouter 系 (Kimi K2 / Qwen3 235B / DeepSeek V4 / Grok 4.3) は 2026-05 評価でいずれも depression 全件 Recall 95% 未満で、既定モデルの差し替え候補にはならず。`qwen3-235b-a22b-2507` のみ「コスト最重視の予算オプション」として `experiments/openrouter-bench/` で再現可能。
 - OpenAI `gpt-5.6-luna` は 2026-07 評価で depression 全件 Recall 95% 未満 (none 92.9% / low・medium 91.4%)、B4 を上回らず差し替え候補にならず。詳細は `experiments/gpt-5.6/`。
-- `gemini-3.6-flash` は 2026-07 評価で depression Recall 94.6%（最良 D1, Think LOW）。現行デフォルト `gemini-3.1-flash-lite` (93.6%) と B4 (96.1%) の中間で、fallback/budget-tier の候補ではあるが採用基準の Recall ≥95% には届かず。コストは B4 とほぼ同水準（約1.0倍）で、UI公開・デフォルト切替は見送り。詳細は `experiments/gemini-3.6-flash/`。
+- `gemini-3.6-flash` は 2026-07 評価で depression Recall 94.6%（最良 D1, Think LOW）。現行デフォルト `gemini-3.1-flash-lite` (93.6%) と B4 (96.1%) の中間で、fallback/budget-tier の候補ではあるが既定モデルの置き換え基準の Recall ≥95% には届かず。コストは B4 とほぼ同水準（約1.0倍）で、UI公開・デフォルト切替は見送り。詳細は `experiments/gemini-3.6-flash/`。
 - `gemini-3.5-flash-lite` は 2026-07 評価で depression Recall 91.8%（最良 C4, Think LOW）にとどまり、現行 lite 既定 (93.6%) を下回るため却下。B4 よりコストは低い（約0.24倍）が、Recall 不足が採用のボトルネック。詳細は `experiments/gemini-3.5-flash-lite/`。
 
 ### 評価の限界
@@ -477,6 +477,12 @@ npm run watch  # 変更を監視して自動ビルド
 ```
 
 ローカルの `dist`フォルダをChromeに読み込めば、コード変更後は拡張機能の**リロードボタン（🔄）**を押すだけで反映されます。
+
+## 機能の追加について / About new features
+
+このツールは要件を満たし、いまは不具合や分かりにくい点を直す保守の段階です。AI の接続先（プロバイダ）の追加、ベンチマークしていないモデルの同梱、Web 版への AI・機械学習・全文の機能、データ抽出・バイアスのリスク評価は足しません。新しい機能は、複数の利用者が実際のレビューで同じ所で先へ進めなくなったときに検討します。困ったときは、拡張機能の「?」の「相談する」か [Issue](https://github.com/youkiti/tiab-review-plugin/issues) でお知らせください。
+
+This tool meets its requirements and is now in a maintenance phase focused on bugs and unclear points. We do not add new AI providers, unbenchmarked bundled models, AI, machine-learning or full-text features in the web version, or data extraction and risk-of-bias assessment. We consider a new feature when several users get stuck at the same point in actual reviews. If you are stuck, use "Ask for help" from the "?" button in the extension, or open an [issue](https://github.com/youkiti/tiab-review-plugin/issues).
 
 ## ライセンス
 
