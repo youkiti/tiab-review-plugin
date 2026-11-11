@@ -22,7 +22,7 @@
         "dev:web": "webpack --mode development --env target=web",
         "build:web:demo": "webpack --mode development --env target=web --env demo",
         "watch:web": "webpack --mode development --watch --env target=web",
-        "lint": "eslint src --ext .ts --cache --cache-location .tmp/eslint/",
+        "lint": "eslint src --cache --cache-location .tmp/eslint/",
         "typecheck": "tsc --noEmit",
         "test": "node scripts/run-tests.mjs",
         "store:status": "node tools/release/storeApi.mjs status",
@@ -45,18 +45,20 @@
         "video:tours": "node video/scripts/tour-videos.mjs"
     },
     "devDependencies": {
-        "@types/chrome": "^0.0.332",
+        "@eslint/js": "^10.0.1",
+        "@types/chrome": "^0.3.7",
         "@types/google.accounts": "^0.0.18",
-        "@typescript-eslint/eslint-plugin": "^7.0.0",
-        "@typescript-eslint/parser": "^7.0.0",
-        "copy-webpack-plugin": "^12.0.2",
-        "dotenv": "^17.4.2",
-        "eslint": "^8.57.0",
+        "@typescript-eslint/eslint-plugin": "^8.72.2",
+        "@typescript-eslint/parser": "^8.72.2",
+        "copy-webpack-plugin": "^14.0.0",
+        "dotenv": "^18.0.10",
+        "eslint": "^10.14.0",
+        "globals": "^17.14.0",
         "playwright": "^1.65.0",
         "ts-loader": "^9.6.2",
         "typescript": "^5.3.3",
         "webpack": "^5.112.2",
-        "webpack-cli": "^5.1.4"
+        "webpack-cli": "^7.3.1"
     },
     "engines": {
         "node": ">=22"
