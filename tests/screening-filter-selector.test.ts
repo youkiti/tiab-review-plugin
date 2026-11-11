@@ -309,7 +309,7 @@ test('Issue #154 工程3で移行した9領域はgetter専用で、compatラッ�
     }
 });
 
-test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する（loadDataAndShowScreeningでの再設定が前提）', () => {
+test('resetForBackはuserEmailと設定だけを残し、resetForLogoutは設定だけを残す', () => {
     const store = initializeStore(fixture([]));
     try {
         compat.setSpreadsheetId('sheet-9');
@@ -322,9 +322,8 @@ test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する�
         compat.setEnabledReviewers(new Set(['a@example.test']));
         compat.changeTab('ml');
 
-        // reset/back: spreadsheetId・fulltextPoolRule・fulltextAssignment・availableReviewers・
-        // enabledReviewers は初期化するが、userEmail・isAdmin・highlightKeywords・currentTab は保持する
-        // （store/reducer.ts の 'reset/back' ケースの内容と一致）
+        // reset/back: 残すのは userEmail（ログインは続く）と設定だけ（KEPT_ON_BACK）。
+        // isAdmin・highlightKeywords・currentTab などは初期値に戻る（読み込み時に再設定される）
         compat.resetForBack();
         assert.equal(store.getState().data.spreadsheetId, '');
         assert.equal(store.getState().data.fulltextPoolRule, null);
@@ -332,9 +331,9 @@ test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する�
         assert.deepEqual(store.getState().data.availableReviewers, new Set());
         assert.deepEqual(store.getState().data.enabledReviewers, new Set());
         assert.equal(store.getState().data.userEmail, 'nine@example.test');
-        assert.equal(store.getState().data.isAdmin, true);
-        assert.deepEqual(store.getState().data.highlightKeywords, { include: ['rct'], exclude: [] });
-        assert.equal(store.getState().ui.currentTab, 'ml');
+        assert.equal(store.getState().data.isAdmin, false);
+        assert.deepEqual(store.getState().data.highlightKeywords, { include: [], exclude: [] });
+        assert.equal(store.getState().ui.currentTab, 'screening');
 
         // reset/logout: initialStateへ戻るため9領域すべて初期値に戻る。
         // highlightKeywords・availableReviewers・enabledReviewers はlegacy resetForLogout()は
