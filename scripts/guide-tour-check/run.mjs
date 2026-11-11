@@ -3,11 +3,13 @@
 //
 // 使い方:
 //   npm run build:demo
-//   npm run check:tours -- [--only <シナリオ名>] [--lang ja|en] [--size 幅x高さ]
+//   npm run check:tours -- [--only <シナリオ名>] [--lang ja|en] [--size 幅x高さ] [--retry-failed <回数>]
 //
 //   --only    scenarios/<名前>.mjs の名前を指定して、そのシナリオだけ実行する（省略時は defaultRun が真のものを全部実行）
 //   --lang    ブラウザとUIの言語（既定 ja）
 //   --size    ビューポート（既定 500x1000。狭い画面は 400x700 など）
+//   --retry-failed  全シナリオを1巡した後、不合格のものだけを指定回数まで再実行する（既定 0）。再試行で合格したものは合格に数え、最後に名前を並べる
+//             Linux の Chromium は画面の言語を環境変数 LANGUAGE から決める（--lang は効かない）ので、日本語の文言を前提にするシナリオは LANGUAGE=ja を付けて実行する
 //
 // 構成:
 //   run.mjs            起動・引数・結果の集計だけ。scenarios/ を読んで順に実行する
@@ -34,7 +36,7 @@ import { withFreshBrowser } from './lib/browser.mjs';
 const SCENARIOS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'scenarios');
 
 function parseArgs(argv) {
-    const args = { only: null, lang: 'ja', size: null };
+    const args = { only: null, lang: 'ja', size: null, retryFailed: 0 };
     for (let i = 0; i < argv.length; i += 1) {
         if (argv[i] === '--only') {
             const value = argv[++i];
@@ -48,6 +50,10 @@ function parseArgs(argv) {
             const value = argv[++i];
             if (value !== 'ja' && value !== 'en') throw new Error('--lang には ja または en を指定してください');
             args.lang = value;
+        } else if (argv[i] === '--retry-failed') {
+            const raw = argv[++i] ?? '';
+            if (!/^\d+$/.test(raw)) throw new Error('--retry-failed には 0 以上の整数を指定してください');
+            args.retryFailed = Number(raw);
         } else {
             throw new Error(`不明な引数: ${argv[i]}`);
         }
@@ -72,7 +78,7 @@ async function loadScenarios() {
 }
 
 async function main() {
-    const { only, lang, size } = parseArgs(process.argv.slice(2));
+    const { only, lang, size, retryFailed } = parseArgs(process.argv.slice(2));
     if (size) config.viewport = size;
     if (!existsSync(DIST_DEMO_DIR) || readdirSync(DIST_DEMO_DIR).length === 0) {
         throw new Error(`dist-demo/ がありません。先に \`npm run build:demo\` を実行してください: ${DIST_DEMO_DIR}`);
@@ -92,23 +98,41 @@ async function main() {
         if (f.endsWith('.png')) rmSync(path.join(OUT_DIR, f), { force: true });
     }
 
-    const results = [];
     const allShots = [];
-    for (const s of selected) {
-        console.log(`\n=== ${s.title} ===`);
+    /** 1本を実行して合否を返す。スクリーンショットの一覧には実行のたびに足す。 */
+    const runOne = async (s) => {
         try {
             const run = await withFreshBrowser(s.name, lang, s.run);
             allShots.push(...run.shots);
-            results.push({ ...s, ok: true });
+            return true;
         } catch (err) {
             if (err.run) allShots.push(...err.run.shots);
             console.error(`  失敗: ${err.message}`);
-            results.push({ ...s, ok: false });
+            return false;
+        }
+    };
+
+    const results = [];
+    for (const s of selected) {
+        console.log(`\n=== ${s.title} ===`);
+        results.push({ ...s, ok: await runOne(s), retried: false });
+    }
+    // 不合格のものだけを、同じ条件（新しい一時プロファイル）で回数まで再実行する
+    for (const r of results) {
+        for (let attempt = 1; !r.ok && attempt <= retryFailed; attempt += 1) {
+            console.log(`\n=== ${r.title}（再試行 ${attempt}/${retryFailed}）===`);
+            r.ok = await runOne(r);
+            if (r.ok) r.retried = true;
         }
     }
 
     console.log('\n=== 結果 ===');
-    for (const r of results) console.log(`${r.ok ? '合格' : '不合格'}  ${r.title}`);
+    for (const r of results) console.log(`${r.ok ? (r.retried ? '合格（再試行で合格）' : '合格') : '不合格'}  ${r.title}`);
+    const flaky = results.filter((r) => r.retried);
+    if (flaky.length > 0) {
+        console.log('\n再試行で合格したもの（不安定の疑い）:');
+        for (const r of flaky) console.log(`  ${r.name}`);
+    }
     console.log(`\nスクリーンショット（${allShots.length} 枚、${path.relative(REPO_ROOT, OUT_DIR)}）:`);
     for (const f of allShots) console.log(`  ${f}`);
 

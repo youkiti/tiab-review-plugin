@@ -89,18 +89,11 @@ export function subscribe(listener: (state: AppState) => void): () => void {
 }
 
 // ========== 型のre-export ==========
-export type { AppState, Action, Store, Dispatch, View, Tab, TermFilter, SheetInfo } from './types';
+export type { AppState, Action, Store, Dispatch, View, Tab, TermFilter } from './types';
 export { initialState } from './reducer';
 
 // ========== Selectorsのre-export ==========
 export {
     getFilteredReferences,
-    getCurrentReference,
-    getProgressStats,
-    getFilterCounts,
-    getMlFilteredRanking,
-    getCurrentMlReference,
-    getAiEvidenceList,
-    getEncourageMessage,
     getMyManualDecisionStatus,
 } from './selectors';

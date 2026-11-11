@@ -19,6 +19,7 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenRouterApiKey } from '../storage';
+import { sanitizeApiKey } from './sanitize-api-key';
 import type { AskParams } from './ask-types';
 import { askError, parseAskText, withAskSignal } from './ask-request';
 import { isOpenRouterJevModel } from '../openrouter-model';
@@ -80,47 +81,12 @@ function tryParseJson(text: string): LlmScreeningOutput | null {
     }
 }
 
-/**
- * API キー文字列を HTTP ヘッダーで送れる形に正規化する。
- *
- * - 前後空白除去
- * - 不可視 Unicode（zero-width space, BOM 等）を除去
- * - ISO-8859-1 範囲外の文字が残れば例外（fetch がヘッダー構築で失敗する前にユーザー向けエラーへ）
- *
- * 想定ケース: ユーザーがブラウザの保存値や Markdown からコピペした際に
- * U+200B (ZWSP) や U+FEFF (BOM)、全角文字などが混入し、fetch が
- * "String contains non ISO-8859-1 code point." を投げる。
- */
-// テスト用 export（プロダクションでは getApiKey/testOpenRouterApiKey 経由でのみ使用）
-export function _sanitizeApiKeyForTest(rawKey: string): string {
-    return sanitizeApiKey(rawKey);
-}
-
-function sanitizeApiKey(rawKey: string): string {
-    let out = '';
-    for (const ch of rawKey.trim()) {
-        const cp = ch.codePointAt(0);
-        if (cp === undefined) continue;
-        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
-        if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
-            cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
-        if (cp > 255) {
-            throw new Error(
-                'OpenRouter APIキーに ISO-8859-1 範囲外の文字が含まれています。'
-                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
-            );
-        }
-        out += ch;
-    }
-    return out;
-}
-
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenRouterApiKey();
     if (!key) {
         throw new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。');
     }
-    return sanitizeApiKey(key);
+    return sanitizeApiKey(key, 'OpenRouter');
 }
 
 /** 既存の判定と自由問い合わせで同じ送信先・ヘッダーを使う。 */
@@ -491,7 +457,7 @@ export async function testOpenRouterModel(
 export async function testOpenRouterApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
     let cleanKey: string;
     try {
-        cleanKey = sanitizeApiKey(apiKey);
+        cleanKey = sanitizeApiKey(apiKey, 'OpenRouter');
     } catch (err) {
         return { isValid: false, reason: err instanceof Error ? err.message : String(err) };
     }
