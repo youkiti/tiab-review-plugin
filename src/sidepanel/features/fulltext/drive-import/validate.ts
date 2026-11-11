@@ -10,7 +10,6 @@
  * コメント参照（mapping-modal.ts と exec.ts の相互参照による循環import回避）。
  */
 
-import { state } from '../../../state';
 import { t } from '../../../../lib/i18n';
 import { showToast } from '../../../ui/feedback';
 import { buildPdfPickerUrl } from '../../../../lib/picker-url';
@@ -35,19 +34,23 @@ export function formatBytes(bytes: number): string {
 // ① Picker起動〜選択結果の受信
 // ---------------------------------------------------------------------------
 
-/** Pickerを開き、選択されたファイル一覧を返す。キャンセル/形状不正は null（呼び出し側で終了） */
-export async function runPickerFlow(): Promise<PickedDriveFile[] | null> {
+/**
+ * Pickerを開き、選択されたファイル一覧を返す。キャンセル/形状不正は null（呼び出し側で終了）。
+ * spreadsheetId・userEmail は呼び出し側が取り込みの開始時に控えた値（途中で戻る・ログアウトが
+ * あっても別のプロジェクトを読まないため、state を読まない）。
+ */
+export async function runPickerFlow(spreadsheetId: string, userEmail: string): Promise<PickedDriveFile[] | null> {
     const redirectUri = chrome.identity.getRedirectURL('picker');
 
     let folderId: string | undefined;
     try {
-        folderId = (await getProjectDriveFolderId(state.spreadsheetId)) ?? undefined;
+        folderId = (await getProjectDriveFolderId(spreadsheetId)) ?? undefined;
     } catch (err) {
         // 初期表示フォルダを絞れないだけなので、取れなくても全Drive表示で続行する
         console.warn('[fulltext-drive-import] プロジェクトフォルダIDの取得に失敗（全Drive表示で続行）:', err);
     }
 
-    const url = buildPdfPickerUrl({ email: state.userEmail, redirectUri, folderId });
+    const url = buildPdfPickerUrl({ email: userEmail, redirectUri, folderId });
 
     let redirectUrl: string | undefined;
     try {
@@ -143,11 +146,12 @@ interface ImportStateClassification {
  */
 async function classifyImportState(
     fileId: string,
-    claimsSnapshot: FulltextClaimsSnapshot
+    claimsSnapshot: FulltextClaimsSnapshot,
+    spreadsheetId: string
 ): Promise<ImportStateClassification> {
     let existingCopy: ImportedCopyMatch | null = null;
     try {
-        existingCopy = await findImportedCopy(fileId, state.spreadsheetId);
+        existingCopy = await findImportedCopy(fileId, spreadsheetId);
     } catch (err) {
         console.warn('[fulltext-drive-import] 冪等性チェック（表示用）に失敗（fail-open: クレーム判定へ続行）:', fileId, err);
     }
@@ -157,7 +161,8 @@ async function classifyImportState(
 
 export async function validateAndCheckFiles(
     files: PickedDriveFile[],
-    claimsSnapshot: FulltextClaimsSnapshot
+    claimsSnapshot: FulltextClaimsSnapshot,
+    spreadsheetId: string
 ): Promise<ValidatedFile[]> {
     const results: ValidatedFile[] = [];
     for (const file of files) {
@@ -188,7 +193,7 @@ export async function validateAndCheckFiles(
         let importState: 'none' | 'incomplete' | 'done' = 'none';
         let existingCopy: ImportedCopyMatch | undefined;
         if (!blockedReason) {
-            const classification = await classifyImportState(file.id, claimsSnapshot);
+            const classification = await classifyImportState(file.id, claimsSnapshot, spreadsheetId);
             importState = classification.state;
             existingCopy = classification.existingCopy;
         }

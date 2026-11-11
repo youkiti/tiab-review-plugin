@@ -5,6 +5,7 @@
 
 import type { LlmCriteria, LlmScreeningOutput, UsageMetadata, LlmModelResponseMetadata } from '../types';
 import { getEffectiveTypeSafeApiKey, getEffectiveOpenRouterApiKey } from '../storage';
+import { sanitizeApiKey } from './sanitize-api-key';
 
 // ディスパッチ層への型 import も循環になるため、使用する入力だけを構造型で受け取る。
 interface TypeSafeScreenParams {
@@ -99,23 +100,6 @@ export function parseTypeSafeScreeningResponse(
     };
 }
 
-function sanitizeApiKey(rawKey: string, providerName = 'TypeSafe'): string {
-    let out = '';
-    for (const ch of rawKey.trim()) {
-        const cp = ch.codePointAt(0);
-        if (cp === undefined) continue;
-        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
-        if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
-            cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
-        if (cp > 255) {
-            throw new Error(`${providerName} APIキーに ISO-8859-1 範囲外の文字が含まれています。`
-                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。');
-        }
-        out += ch;
-    }
-    return out;
-}
-
 export async function screenViaTypeSafe(
     params: TypeSafeScreenParams, timeoutMs = 60000, route: 'typesafe' | 'openrouter' = 'typesafe'
 ): Promise<TypeSafeScreenResult> {
@@ -123,9 +107,9 @@ export async function screenViaTypeSafe(
     const rawKey = await (viaOpenRouter ? getEffectiveOpenRouterApiKey() : getEffectiveTypeSafeApiKey());
     const apiKey = rawKey ? sanitizeApiKey(rawKey, viaOpenRouter ? 'OpenRouter' : 'TypeSafe') : '';
     if (!apiKey) {
-        throw new Error(viaOpenRouter
+        throw Object.assign(new Error(viaOpenRouter
             ? 'OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。'
-            : 'TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。');
+            : 'TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。'), { retryable: false });
     }
     const { body, criterionKeys } = buildTypeSafeScreeningRequest(params);
     const controller = new AbortController();
@@ -145,7 +129,9 @@ export async function screenViaTypeSafe(
             const detail = unknownModel
                 ? `モデル ${params.model} が見つかりません（提供終了の可能性があります。拡張機能の更新が必要です）。応答=${text.slice(0, 200)}`
                 : text.slice(0, 200);
-            const error = new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`);
+            const error = Object.assign(
+                new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`),
+                { status: response.status });
             // 4xx を恒久的な失敗と決めつけない。負荷時の 400 は直後に通ることがあるため、
             // キー不正・権限なし・モデル不明と、残高不足（402）だけを再試行不可にする。
             // 直 API もクレジットが尽きると 402 billing_error を返す（2026-10-15 実測）。再試行しても通らない。
@@ -163,7 +149,7 @@ export async function screenViaTypeSafe(
 /** モデル一覧へのアクセス可否だけでキーを検証する。 */
 export async function testTypeSafeApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
     try {
-        const cleanKey = sanitizeApiKey(apiKey);
+        const cleanKey = sanitizeApiKey(apiKey, 'TypeSafe');
         const response = await fetch('https://api.typesafe.ai/v1/models', {
             method: 'GET', headers: { 'Authorization': `Bearer ${cleanKey}` },
         });

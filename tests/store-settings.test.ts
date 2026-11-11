@@ -28,12 +28,6 @@ test('設定の一括反映は一度だけ通知し、他領域を変更しな�
     assert.equal(notifications, 1);
 });
 
-test('既存の設定アクションもStoreの設定だけを更新する', () => {
-    const store = createStore();
-    store.dispatch({ type: 'settings/setShowAiHighlights', value: false });
-    assert.deepEqual(store.getState().ui.settings, { ...DEFAULT_USER_SETTINGS, showAiHighlights: false });
-});
-
 test('旧stateの設定は読み取り専用でStoreの更新を直ちに参照する', () => {
     const store = initializeStore();
     try {
@@ -143,7 +137,7 @@ test('LLM/MLバッチ領域はlegacy setterを持たずcompat経由でStoreだ�
     }
 });
 
-test('reset/back後はLLM/MLバッチ領域のうちmlStateだけが初期化される', () => {
+test('reset/back後はLLM/MLバッチ領域が全て既定値に戻る（#299: 残すもの以外は全部消す）', () => {
     const store = initializeStore();
     try {
         const llmConfig = { ...DEFAULT_LLM_CONFIG, llm_enabled: true };
@@ -158,13 +152,14 @@ test('reset/back後はLLM/MLバッチ領域のうちmlStateだけが初期化さ
 
         store.dispatch({ type: 'reset/back' });
 
-        // mlStateはreset/backで明示的に初期化される（他プロジェクトのML状態を持ち越さないため）。
+        // 前のプロジェクトの AI 設定・実行中の判定・失敗分を次のプロジェクトへ持ち越さない（#299）。
+        // 以前は mlState だけを初期化し、残り4領域は次の読み込みで上書きされる想定で残していた。
         assert.deepEqual(state.mlState, createInitialMlState());
-        // 残り4領域はreset/backでは戻らない（次のプロジェクト読み込みで上書きされる想定）。
-        assert.deepEqual(state.llmConfig, llmConfig);
-        assert.deepEqual(state.activeLlmExecutionIds, new Set(['exec-1']));
-        assert.equal(state.currentBatchDecisions.length, 1);
-        assert.deepEqual(state.failedRefIds, ['r-failed']);
+        assert.deepEqual(state.llmConfig, DEFAULT_LLM_CONFIG);
+        assert.notDeepEqual(state.llmConfig, llmConfig);
+        assert.deepEqual(state.activeLlmExecutionIds, new Set());
+        assert.deepEqual(state.currentBatchDecisions, []);
+        assert.deepEqual(state.failedRefIds, []);
     } finally {
         initializeStore();
     }

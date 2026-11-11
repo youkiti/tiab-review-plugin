@@ -80,6 +80,11 @@ export function triggerFulltextRegrantCheck(): void {
     void handleRegrantClick();
 }
 
+/** アクセスの再付与の確認が実行中か（戻る・ログアウトの初期化が状態の文を消してよいかの判断に使う） */
+export function isRegrantInProgress(): boolean {
+    return regrantInProgress;
+}
+
 function releaseRegrantGuard(): void {
     regrantInProgress = false;
     dom.fulltextRegrantBtn.disabled = false;
@@ -190,12 +195,17 @@ function showResultModal(before: CachedFulltextRef[], after: CachedFulltextRef[]
 async function handleRegrantClick(): Promise<void> {
     if (regrantInProgress) return;
     regrantInProgress = true;
+    // 宛先は開始時の値を控える。中止できない短い処理なので、途中で戻る・ログアウトがあっても
+    // 別のプロジェクトを読み書きせず、結果の通知（チェックリストへの保存）も画面の書き換えもしない
+    const spreadsheetId = state.spreadsheetId;
+    const isSameProject = (): boolean => state.spreadsheetId === spreadsheetId;
     dom.fulltextRegrantBtn.disabled = true;
     setRegrantStatus(t('fulltext_regrantChecking'));
 
     let modalOpened = false;
     try {
-        const folderId = await getFulltextDriveFolderId(state.spreadsheetId);
+        const folderId = await getFulltextDriveFolderId(spreadsheetId);
+        if (!isSameProject()) return;
         if (!folderId) {
             // まだPDFが1件も無いプロジェクト。復旧する対象が無いので何もしない。
             // チェックリスト的には「確認済み・問題なし（0件）」として扱ってよい。
@@ -205,6 +215,7 @@ async function handleRegrantClick(): Promise<void> {
         }
 
         const unreadable = await detectUnreadable(folderId);
+        if (!isSameProject()) return;
         if (unreadable.length === 0) {
             showToast(t('fulltext_regrantAllReadable'), 4000);
             notifyRegrantResult(0);
@@ -218,9 +229,11 @@ async function handleRegrantClick(): Promise<void> {
         // キャンセル・パース失敗でもここで打ち切らず再検知へ進む（付与は既に起きている可能性があるため）。
         // launchWebAuthFlow自体が失敗した場合（キャンセル以外）はここで例外が飛び、catchへ抜ける。
         await openRegrantPicker(folderId, unreadable);
+        if (!isSameProject()) return;
 
         setRegrantStatus(t('fulltext_regrantRechecking'));
         const afterUnreadable = await detectUnreadable(folderId);
+        if (!isSameProject()) return;
         notifyRegrantResult(afterUnreadable.length);
 
         showResultModal(unreadable, afterUnreadable);

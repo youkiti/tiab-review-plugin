@@ -84,9 +84,30 @@ export function setPublicationCandidatesDeps(d: PublicationCandidatesDeps): void
 // モジュールローカル状態
 // ---------------------------------------------------------------------------
 
-/** バッジクリックで開閉するパネルの展開状態（ref_id単位）。renderFulltextTab() はカードを
+/** セッション状態: バッジクリックで開閉するパネルの展開状態（ref_id単位）。renderFulltextTab() はカードを
  *  毎回作り直すため、開閉状態はDOMではなくここで保持する（team-progress.ts の expanded と同じ方針）。 */
-const expandedRefIds = new Set<string>();
+export interface PublicationCandidatesSessionState {
+    expandedRefIds: Set<string>;
+}
+
+export function createPublicationCandidatesSession(): PublicationCandidatesSessionState {
+    return { expandedRefIds: new Set<string>() };
+}
+
+const session: PublicationCandidatesSessionState = createPublicationCandidatesSession();
+
+export function _getPublicationCandidatesSessionForTest(): PublicationCandidatesSessionState {
+    return session;
+}
+
+/**
+ * 戻る・ログアウトで、開いていた論文候補の欄を閉じる。
+ * importInFlight・dismissInFlight・importedRefIdByCandidateId は、実行中の処理の印と
+ * 失敗したときの復旧用なので残す（各処理の終わりで今までどおり戻る）。
+ */
+export function resetPublicationCandidatesSession(): void {
+    Object.assign(session, createPublicationCandidatesSession());
+}
 
 /** 二重クリック防止（同一候補への同時実行ガード） */
 const importInFlight = new Set<string>();
@@ -140,17 +161,17 @@ export function decoratePublicationCandidateCard(
     const panel = document.createElement('div');
     panel.className = 'pub-candidate-panel hidden';
     renderCandidatePanelBody(panel, registrationRef, candidates);
-    panel.classList.toggle('hidden', !expandedRefIds.has(registrationRef.ref_id));
+    panel.classList.toggle('hidden', !session.expandedRefIds.has(registrationRef.ref_id));
     wrapper.appendChild(panel);
 
     badge.addEventListener('click', (e) => {
         e.stopPropagation(); // カードクリック（フルテキストページを開く）を抑止
-        if (expandedRefIds.has(registrationRef.ref_id)) {
-            expandedRefIds.delete(registrationRef.ref_id);
+        if (session.expandedRefIds.has(registrationRef.ref_id)) {
+            session.expandedRefIds.delete(registrationRef.ref_id);
         } else {
-            expandedRefIds.add(registrationRef.ref_id);
+            session.expandedRefIds.add(registrationRef.ref_id);
         }
-        panel.classList.toggle('hidden', !expandedRefIds.has(registrationRef.ref_id));
+        panel.classList.toggle('hidden', !session.expandedRefIds.has(registrationRef.ref_id));
     });
 
     return wrapper;

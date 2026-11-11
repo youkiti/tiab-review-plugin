@@ -153,7 +153,7 @@ test('OpenRouter Jev の基準最適化は通信前に拒否する', async () =>
     });
 });
 
-test('OpenRouter Jev の再試行不可エラーは即フォールバックし、チャットモデルの再試行は維持する', async () => {
+test('再試行不可のエラーは、Jev でもチャットモデルでも即フォールバックする', async () => {
     for (const model of [params.model, '~typesafe/jev-latest', 'qwen/qwen3-235b-a22b-2507']) {
         let calls = 0;
         const waits: number[] = [];
@@ -163,11 +163,25 @@ test('OpenRouter Jev の再試行不可エラーは即フォールバックし�
             screenFn: async () => { calls++; throw Object.assign(new Error('API error 401'), { retryable: false }); },
             sleepFn: async ms => { waits.push(ms); }, random: () => 0,
         });
-        assert.equal(calls, isOpenRouterJevModel(model) ? 1 : 3);
-        assert.equal(waits.length, isOpenRouterJevModel(model) ? 0 : 2);
+        assert.equal(calls, 1);
+        assert.equal(waits.length, 0);
         assert.equal(result.fallbackCount, 1);
         assert.equal(result.totalCostUsd, undefined);
     }
+});
+
+test('印の無いエラーでは、チャットモデルは従来どおり3回送る', async () => {
+    let calls = 0;
+    const waits: number[] = [];
+    const result = await processBatch([{ ref_id: 'ref-1', title: params.title }], {
+        batchSize: 1, ...params, model: 'qwen/qwen3-235b-a22b-2507',
+        rateLimitConfig: { concurrency: 1, delayBetweenRequests: 0 },
+        screenFn: async () => { calls++; throw new Error('API error 500'); },
+        sleepFn: async ms => { waits.push(ms); }, random: () => 0,
+    });
+    assert.equal(calls, 3);
+    assert.equal(waits.length, 2);
+    assert.equal(result.fallbackCount, 1);
 });
 
 test('成功判定のコストを合計して note に保存し、コスト無し・フォールバックは加算しない', async () => {

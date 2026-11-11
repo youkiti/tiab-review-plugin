@@ -3,9 +3,9 @@
 import { platform } from '../platform';
 import { normalizeLocalLlmEndpoint } from './local-llm-model';
 import type { OpenRouterModel, OpenRouterModelsCache } from './openrouter-models';
+import { createApiKeyStore } from './api-key-store';
 import { parseScreeningPosition, type ScreeningPosition } from './screening-position';
 
-const GEMINI_API_KEY_STORAGE_KEY = 'gemini_api_key';
 export async function saveLocalLlmEndpoint(endpoint: string): Promise<void> {
     await chrome.storage.local.set({ local_llm_endpoint: normalizeLocalLlmEndpoint(endpoint) });
 }
@@ -22,13 +22,6 @@ export async function getLocalLlmModels(): Promise<string[]> {
     return Array.isArray(result.local_llm_models)
         ? result.local_llm_models.filter((id: unknown): id is string => typeof id === 'string') : [];
 }
-const GEMINI_API_KEY_SAVE_PREFERENCE = 'gemini_api_key_save_preference';
-const GEMINI_API_KEY_SALT_KEY = 'gemini_api_key_salt';
-
-// OpenRouter（追加プロバイダ）。暗号化ソルトは Gemini と同じ鍵を流用する
-// （chrome.runtime.id 由来でデバイス固有のため、鍵を分けるメリットがなく管理コストが増える）。
-const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter_api_key';
-const OPENROUTER_API_KEY_SAVE_PREFERENCE = 'openrouter_api_key_save_preference';
 
 // ユーザーが手動追加した OpenRouter モデル ID 一覧。実 API 試行に成功したもののみ保存する
 const OPENROUTER_CUSTOM_MODELS_KEY = 'openrouter_custom_models';
@@ -36,201 +29,92 @@ const OPENROUTER_MODELS_CACHE_KEY = 'openrouter_models_cache';
 /** カスタム OpenRouter モデルの上限（chrome.storage.local 5MB 制限に余裕を持たせた値） */
 export const OPENROUTER_CUSTOM_MODELS_LIMIT = 20;
 
-function bytesToBase64(bytes: Uint8Array): string {
-    let binary = '';
-    for (const b of bytes) {
-        binary += String.fromCharCode(b);
-    }
-    return btoa(binary);
-}
+// ========== API キー ==========
+// 保存処理は api-key-store.ts の createApiKeyStore() が持つ。保存キー名は一度決めたら変えない
+// （変えると既存利用者の保存値が読めなくなる）。暗号化ソルトは全プロバイダで共用する。
 
-function base64ToBytes(base64: string): Uint8Array {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-}
+export const apiKeyStores = {
+    gemini: createApiKeyStore({
+        storageKey: 'gemini_api_key',
+        savePreferenceKey: 'gemini_api_key_save_preference',
+        envVar: 'GEMINI_API_KEY',
+    }),
+    openrouter: createApiKeyStore({
+        storageKey: 'openrouter_api_key',
+        savePreferenceKey: 'openrouter_api_key_save_preference',
+        envVar: 'OPENROUTER_API_KEY',
+    }),
+    openai: createApiKeyStore({
+        storageKey: 'openai_api_key',
+        savePreferenceKey: 'openai_api_key_save_preference',
+        envVar: 'OPENAI_API_KEY',
+    }),
+    anthropic: createApiKeyStore({
+        storageKey: 'anthropic_api_key',
+        savePreferenceKey: 'anthropic_api_key_save_preference',
+        envVar: 'ANTHROPIC_API_KEY',
+    }),
+    typesafe: createApiKeyStore({
+        storageKey: 'typesafe_api_key',
+        savePreferenceKey: 'typesafe_api_key_save_preference',
+        envVar: 'TYPE_SAFE_API_KEY',
+    }),
+} as const;
 
-async function getOrCreateSalt(): Promise<Uint8Array> {
-    const result = await chrome.storage.local.get([GEMINI_API_KEY_SALT_KEY]);
-    const existing = result[GEMINI_API_KEY_SALT_KEY];
-    if (typeof existing === 'string' && existing.length > 0) {
-        return base64ToBytes(existing);
-    }
+export const saveGeminiApiKey = apiKeyStores.gemini.saveKey;
+export const getGeminiApiKey = apiKeyStores.gemini.getKey;
+export const removeGeminiApiKey = apiKeyStores.gemini.removeKey;
+export const hasGeminiApiKey = apiKeyStores.gemini.hasKey;
+export const setApiKeySavePreference = apiKeyStores.gemini.setSavePreference;
+export const getApiKeySavePreference = apiKeyStores.gemini.getSavePreference;
+export const setSessionApiKey = apiKeyStores.gemini.setSessionKey;
+export const getSessionApiKey = apiKeyStores.gemini.getSessionKey;
+export const clearSessionApiKey = apiKeyStores.gemini.clearSessionKey;
+export const getEffectiveApiKey = apiKeyStores.gemini.getEffectiveKey;
 
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    await chrome.storage.local.set({ [GEMINI_API_KEY_SALT_KEY]: bytesToBase64(salt) });
-    return salt;
-}
+export const saveOpenRouterApiKey = apiKeyStores.openrouter.saveKey;
+export const getOpenRouterApiKey = apiKeyStores.openrouter.getKey;
+export const removeOpenRouterApiKey = apiKeyStores.openrouter.removeKey;
+export const hasOpenRouterApiKey = apiKeyStores.openrouter.hasKey;
+export const setOpenRouterApiKeySavePreference = apiKeyStores.openrouter.setSavePreference;
+export const getOpenRouterApiKeySavePreference = apiKeyStores.openrouter.getSavePreference;
+export const setSessionOpenRouterApiKey = apiKeyStores.openrouter.setSessionKey;
+export const getSessionOpenRouterApiKey = apiKeyStores.openrouter.getSessionKey;
+export const clearSessionOpenRouterApiKey = apiKeyStores.openrouter.clearSessionKey;
+export const getEffectiveOpenRouterApiKey = apiKeyStores.openrouter.getEffectiveKey;
 
-async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
-    const secret = chrome.runtime.id;
-    const baseKey = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(secret),
-        'PBKDF2',
-        false,
-        ['deriveKey']
-    );
+export const saveOpenAiApiKey = apiKeyStores.openai.saveKey;
+export const getOpenAiApiKey = apiKeyStores.openai.getKey;
+export const removeOpenAiApiKey = apiKeyStores.openai.removeKey;
+export const hasOpenAiApiKey = apiKeyStores.openai.hasKey;
+export const setOpenAiApiKeySavePreference = apiKeyStores.openai.setSavePreference;
+export const getOpenAiApiKeySavePreference = apiKeyStores.openai.getSavePreference;
+export const setSessionOpenAiApiKey = apiKeyStores.openai.setSessionKey;
+export const getSessionOpenAiApiKey = apiKeyStores.openai.getSessionKey;
+export const clearSessionOpenAiApiKey = apiKeyStores.openai.clearSessionKey;
+export const getEffectiveOpenAiApiKey = apiKeyStores.openai.getEffectiveKey;
 
-    return crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: salt as BufferSource,
-            iterations: 100000,
-            hash: 'SHA-256',
-        },
-        baseKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-    );
-}
+export const saveAnthropicApiKey = apiKeyStores.anthropic.saveKey;
+export const getAnthropicApiKey = apiKeyStores.anthropic.getKey;
+export const removeAnthropicApiKey = apiKeyStores.anthropic.removeKey;
+export const hasAnthropicApiKey = apiKeyStores.anthropic.hasKey;
+export const setAnthropicApiKeySavePreference = apiKeyStores.anthropic.setSavePreference;
+export const getAnthropicApiKeySavePreference = apiKeyStores.anthropic.getSavePreference;
+export const setSessionAnthropicApiKey = apiKeyStores.anthropic.setSessionKey;
+export const getSessionAnthropicApiKey = apiKeyStores.anthropic.getSessionKey;
+export const clearSessionAnthropicApiKey = apiKeyStores.anthropic.clearSessionKey;
+export const getEffectiveAnthropicApiKey = apiKeyStores.anthropic.getEffectiveKey;
 
-async function encryptApiKey(apiKey: string): Promise<string> {
-    const salt = await getOrCreateSalt();
-    const key = await deriveKey(salt);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        new TextEncoder().encode(apiKey)
-    );
-
-    const payload = {
-        v: 1,
-        iv: bytesToBase64(iv),
-        data: bytesToBase64(new Uint8Array(ciphertext)),
-    };
-    return JSON.stringify(payload);
-}
-
-async function decryptApiKey(encoded: string): Promise<string> {
-    const parsed = JSON.parse(encoded) as { v: number; iv: string; data: string };
-    if (!parsed || parsed.v !== 1 || !parsed.iv || !parsed.data) {
-        throw new Error('Invalid encrypted payload');
-    }
-
-    const salt = await getOrCreateSalt();
-    const key = await deriveKey(salt);
-    const iv = base64ToBytes(parsed.iv);
-    const data = base64ToBytes(parsed.data);
-
-    const plaintext = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: iv as BufferSource },
-        key,
-        data as BufferSource
-    );
-    return new TextDecoder().decode(plaintext);
-}
-
-/**
- * Gemini APIキーを保存
- */
-export async function saveGeminiApiKey(apiKey: string): Promise<void> {
-    const encoded = await encryptApiKey(apiKey);
-    await chrome.storage.local.set({ [GEMINI_API_KEY_STORAGE_KEY]: encoded });
-}
-
-/**
- * Gemini APIキーを取得
- */
-export async function getGeminiApiKey(): Promise<string | null> {
-    const result = await chrome.storage.local.get([GEMINI_API_KEY_STORAGE_KEY]);
-    const encoded = result[GEMINI_API_KEY_STORAGE_KEY];
-    if (!encoded) return null;
-    try {
-        return await decryptApiKey(encoded);
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Gemini APIキーを削除
- */
-export async function removeGeminiApiKey(): Promise<void> {
-    await chrome.storage.local.remove([GEMINI_API_KEY_STORAGE_KEY]);
-}
-
-/**
- * APIキーが保存されているか確認
- */
-export async function hasGeminiApiKey(): Promise<boolean> {
-    const key = await getGeminiApiKey();
-    return key !== null && key.length > 0;
-}
-
-/**
- * APIキー保存設定を保存
- * @param save true = 端末に保存する、false = 毎回入力
- */
-export async function setApiKeySavePreference(save: boolean): Promise<void> {
-    await chrome.storage.local.set({ [GEMINI_API_KEY_SAVE_PREFERENCE]: save });
-}
-
-/**
- * APIキー保存設定を取得
- */
-export async function getApiKeySavePreference(): Promise<boolean> {
-    const result = await chrome.storage.local.get([GEMINI_API_KEY_SAVE_PREFERENCE]);
-    // デフォルトはfalse（毎回入力）
-    return result[GEMINI_API_KEY_SAVE_PREFERENCE] === true;
-}
-
-/**
- * セッション用のAPIキー（保存しない場合のメモリ保持用）
- */
-let sessionApiKey: string | null = null;
-
-/**
- * セッション用APIキーを設定（保存しない場合）
- */
-export function setSessionApiKey(apiKey: string): void {
-    sessionApiKey = apiKey;
-}
-
-/**
- * セッション用APIキーを取得
- */
-export function getSessionApiKey(): string | null {
-    return sessionApiKey;
-}
-
-/**
- * セッション用APIキーをクリア
- */
-export function clearSessionApiKey(): void {
-    sessionApiKey = null;
-}
-
-/**
- * 有効なAPIキーを取得（保存されているか、セッションに設定されているか）
- */
-export async function getEffectiveApiKey(): Promise<string | null> {
-    // まずセッションキーを確認
-    if (sessionApiKey) {
-        return sessionApiKey;
-    }
-    // Node.js environment check (for local experiments)
-    // types/chrome があるため、chromeオブジェクト自体の存在チェックが必要
-    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
-    if (isNodeEnv) {
-        if (process.env.GEMINI_API_KEY) {
-            return process.env.GEMINI_API_KEY;
-        }
-    }
-
-    // 次に保存されているキーを確認
-    // chrome environment check
-    if (typeof chrome === 'undefined' || !chrome.storage) {
-        return null; // Chrome拡張環境でもNode環境でもない、またはAPIキーがない
-    }
-
-    return await getGeminiApiKey();
-}
+export const saveTypeSafeApiKey = apiKeyStores.typesafe.saveKey;
+export const getTypeSafeApiKey = apiKeyStores.typesafe.getKey;
+export const removeTypeSafeApiKey = apiKeyStores.typesafe.removeKey;
+export const hasTypeSafeApiKey = apiKeyStores.typesafe.hasKey;
+export const setTypeSafeApiKeySavePreference = apiKeyStores.typesafe.setSavePreference;
+export const getTypeSafeApiKeySavePreference = apiKeyStores.typesafe.getSavePreference;
+export const setSessionTypeSafeApiKey = apiKeyStores.typesafe.setSessionKey;
+export const getSessionTypeSafeApiKey = apiKeyStores.typesafe.getSessionKey;
+export const clearSessionTypeSafeApiKey = apiKeyStores.typesafe.clearSessionKey;
+export const getEffectiveTypeSafeApiKey = apiKeyStores.typesafe.getEffectiveKey;
 
 // API Tier関連
 
@@ -320,287 +204,6 @@ export async function clearManualTier(): Promise<void> {
         await chrome.storage.local.remove([GEMINI_MANUAL_TIER_KEY]);
     }
     sessionManualTier = null;
-}
-
-// ========== OpenRouter API キー ==========
-// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
-
-export async function saveOpenRouterApiKey(apiKey: string): Promise<void> {
-    const encoded = await encryptApiKey(apiKey);
-    await chrome.storage.local.set({ [OPENROUTER_API_KEY_STORAGE_KEY]: encoded });
-}
-
-export async function getOpenRouterApiKey(): Promise<string | null> {
-    const result = await chrome.storage.local.get([OPENROUTER_API_KEY_STORAGE_KEY]);
-    const encoded = result[OPENROUTER_API_KEY_STORAGE_KEY];
-    if (!encoded) return null;
-    try {
-        return await decryptApiKey(encoded);
-    } catch {
-        return null;
-    }
-}
-
-export async function removeOpenRouterApiKey(): Promise<void> {
-    await chrome.storage.local.remove([OPENROUTER_API_KEY_STORAGE_KEY]);
-}
-
-export async function hasOpenRouterApiKey(): Promise<boolean> {
-    const key = await getOpenRouterApiKey();
-    return key !== null && key.length > 0;
-}
-
-export async function setOpenRouterApiKeySavePreference(save: boolean): Promise<void> {
-    await chrome.storage.local.set({ [OPENROUTER_API_KEY_SAVE_PREFERENCE]: save });
-}
-
-export async function getOpenRouterApiKeySavePreference(): Promise<boolean> {
-    const result = await chrome.storage.local.get([OPENROUTER_API_KEY_SAVE_PREFERENCE]);
-    return result[OPENROUTER_API_KEY_SAVE_PREFERENCE] === true;
-}
-
-// セッション保持（保存しない設定時のメモリ保持）
-let sessionOpenRouterApiKey: string | null = null;
-
-export function setSessionOpenRouterApiKey(apiKey: string): void {
-    sessionOpenRouterApiKey = apiKey;
-}
-
-export function getSessionOpenRouterApiKey(): string | null {
-    return sessionOpenRouterApiKey;
-}
-
-export function clearSessionOpenRouterApiKey(): void {
-    sessionOpenRouterApiKey = null;
-}
-
-/**
- * 有効な OpenRouter API キーを取得（セッション > 環境変数 > 保存値）
- */
-export async function getEffectiveOpenRouterApiKey(): Promise<string | null> {
-    if (sessionOpenRouterApiKey) {
-        return sessionOpenRouterApiKey;
-    }
-    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
-    if (isNodeEnv) {
-        if (process.env.OPENROUTER_API_KEY) {
-            return process.env.OPENROUTER_API_KEY;
-        }
-    }
-    if (typeof chrome === 'undefined' || !chrome.storage) {
-        return null;
-    }
-    return await getOpenRouterApiKey();
-}
-
-// ========== OpenAI API キー ==========
-// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
-
-const OPENAI_API_KEY_STORAGE_KEY = 'openai_api_key';
-const OPENAI_API_KEY_SAVE_PREFERENCE = 'openai_api_key_save_preference';
-
-export async function saveOpenAiApiKey(apiKey: string): Promise<void> {
-    const encoded = await encryptApiKey(apiKey);
-    await chrome.storage.local.set({ [OPENAI_API_KEY_STORAGE_KEY]: encoded });
-}
-
-export async function getOpenAiApiKey(): Promise<string | null> {
-    const result = await chrome.storage.local.get([OPENAI_API_KEY_STORAGE_KEY]);
-    const encoded = result[OPENAI_API_KEY_STORAGE_KEY];
-    if (!encoded) return null;
-    try {
-        return await decryptApiKey(encoded);
-    } catch {
-        return null;
-    }
-}
-
-export async function removeOpenAiApiKey(): Promise<void> {
-    await chrome.storage.local.remove([OPENAI_API_KEY_STORAGE_KEY]);
-}
-
-export async function hasOpenAiApiKey(): Promise<boolean> {
-    const key = await getOpenAiApiKey();
-    return key !== null && key.length > 0;
-}
-
-export async function setOpenAiApiKeySavePreference(save: boolean): Promise<void> {
-    await chrome.storage.local.set({ [OPENAI_API_KEY_SAVE_PREFERENCE]: save });
-}
-
-export async function getOpenAiApiKeySavePreference(): Promise<boolean> {
-    const result = await chrome.storage.local.get([OPENAI_API_KEY_SAVE_PREFERENCE]);
-    return result[OPENAI_API_KEY_SAVE_PREFERENCE] === true;
-}
-
-// セッション保持（保存しない設定時のメモリ保持）
-let sessionOpenAiApiKey: string | null = null;
-
-export function setSessionOpenAiApiKey(apiKey: string): void {
-    sessionOpenAiApiKey = apiKey;
-}
-
-export function getSessionOpenAiApiKey(): string | null {
-    return sessionOpenAiApiKey;
-}
-
-export function clearSessionOpenAiApiKey(): void {
-    sessionOpenAiApiKey = null;
-}
-
-/**
- * 有効な OpenAI API キーを取得（セッション > 環境変数 > 保存値）
- */
-export async function getEffectiveOpenAiApiKey(): Promise<string | null> {
-    if (sessionOpenAiApiKey) {
-        return sessionOpenAiApiKey;
-    }
-    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
-    if (isNodeEnv) {
-        if (process.env.OPENAI_API_KEY) {
-            return process.env.OPENAI_API_KEY;
-        }
-    }
-    if (typeof chrome === 'undefined' || !chrome.storage) {
-        return null;
-    }
-    return await getOpenAiApiKey();
-}
-
-// ========== Anthropic API キー ==========
-// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
-
-const ANTHROPIC_API_KEY_STORAGE_KEY = 'anthropic_api_key';
-const ANTHROPIC_API_KEY_SAVE_PREFERENCE = 'anthropic_api_key_save_preference';
-
-export async function saveAnthropicApiKey(apiKey: string): Promise<void> {
-    const encoded = await encryptApiKey(apiKey);
-    await chrome.storage.local.set({ [ANTHROPIC_API_KEY_STORAGE_KEY]: encoded });
-}
-
-export async function getAnthropicApiKey(): Promise<string | null> {
-    const result = await chrome.storage.local.get([ANTHROPIC_API_KEY_STORAGE_KEY]);
-    const encoded = result[ANTHROPIC_API_KEY_STORAGE_KEY];
-    if (!encoded) return null;
-    try {
-        return await decryptApiKey(encoded);
-    } catch {
-        return null;
-    }
-}
-
-export async function removeAnthropicApiKey(): Promise<void> {
-    await chrome.storage.local.remove([ANTHROPIC_API_KEY_STORAGE_KEY]);
-}
-
-export async function hasAnthropicApiKey(): Promise<boolean> {
-    const key = await getAnthropicApiKey();
-    return key !== null && key.length > 0;
-}
-
-export async function setAnthropicApiKeySavePreference(save: boolean): Promise<void> {
-    await chrome.storage.local.set({ [ANTHROPIC_API_KEY_SAVE_PREFERENCE]: save });
-}
-
-export async function getAnthropicApiKeySavePreference(): Promise<boolean> {
-    const result = await chrome.storage.local.get([ANTHROPIC_API_KEY_SAVE_PREFERENCE]);
-    return result[ANTHROPIC_API_KEY_SAVE_PREFERENCE] === true;
-}
-
-// セッション保持（保存しない設定時のメモリ保持）
-let sessionAnthropicApiKey: string | null = null;
-
-export function setSessionAnthropicApiKey(apiKey: string): void {
-    sessionAnthropicApiKey = apiKey;
-}
-
-export function getSessionAnthropicApiKey(): string | null {
-    return sessionAnthropicApiKey;
-}
-
-export function clearSessionAnthropicApiKey(): void {
-    sessionAnthropicApiKey = null;
-}
-
-/** 有効な Anthropic API キーを取得（セッション > 環境変数 > 保存値） */
-export async function getEffectiveAnthropicApiKey(): Promise<string | null> {
-    if (sessionAnthropicApiKey) {
-        return sessionAnthropicApiKey;
-    }
-    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
-    if (isNodeEnv) {
-        if (process.env.ANTHROPIC_API_KEY) {
-            return process.env.ANTHROPIC_API_KEY;
-        }
-    }
-    if (typeof chrome === 'undefined' || !chrome.storage) {
-        return null;
-    }
-    return await getAnthropicApiKey();
-}
-
-// ========== TypeSafe API キー ==========
-// Gemini と同じ AES-GCM 暗号化を流用し、保存先キーだけを分離する
-
-const TYPE_SAFE_API_KEY_STORAGE_KEY = 'typesafe_api_key';
-const TYPE_SAFE_API_KEY_SAVE_PREFERENCE = 'typesafe_api_key_save_preference';
-
-export async function saveTypeSafeApiKey(apiKey: string): Promise<void> {
-    const encoded = await encryptApiKey(apiKey);
-    await chrome.storage.local.set({ [TYPE_SAFE_API_KEY_STORAGE_KEY]: encoded });
-}
-
-export async function getTypeSafeApiKey(): Promise<string | null> {
-    const result = await chrome.storage.local.get([TYPE_SAFE_API_KEY_STORAGE_KEY]);
-    const encoded = result[TYPE_SAFE_API_KEY_STORAGE_KEY];
-    if (!encoded) return null;
-    try {
-        return await decryptApiKey(encoded);
-    } catch {
-        return null;
-    }
-}
-
-export async function removeTypeSafeApiKey(): Promise<void> {
-    await chrome.storage.local.remove([TYPE_SAFE_API_KEY_STORAGE_KEY]);
-}
-
-export async function hasTypeSafeApiKey(): Promise<boolean> {
-    const key = await getTypeSafeApiKey();
-    return key !== null && key.length > 0;
-}
-
-export async function setTypeSafeApiKeySavePreference(save: boolean): Promise<void> {
-    await chrome.storage.local.set({ [TYPE_SAFE_API_KEY_SAVE_PREFERENCE]: save });
-}
-
-export async function getTypeSafeApiKeySavePreference(): Promise<boolean> {
-    const result = await chrome.storage.local.get([TYPE_SAFE_API_KEY_SAVE_PREFERENCE]);
-    return result[TYPE_SAFE_API_KEY_SAVE_PREFERENCE] === true;
-}
-
-// セッション保持（保存しない設定時のメモリ保持）
-let sessionTypeSafeApiKey: string | null = null;
-
-export function setSessionTypeSafeApiKey(apiKey: string): void {
-    sessionTypeSafeApiKey = apiKey;
-}
-
-export function getSessionTypeSafeApiKey(): string | null {
-    return sessionTypeSafeApiKey;
-}
-
-export function clearSessionTypeSafeApiKey(): void {
-    sessionTypeSafeApiKey = null;
-}
-
-/** 有効な TypeSafe API キーを取得（セッション > 環境変数 > 保存値） */
-export async function getEffectiveTypeSafeApiKey(): Promise<string | null> {
-    if (sessionTypeSafeApiKey) return sessionTypeSafeApiKey;
-    const isNodeEnv = typeof process !== 'undefined' && process.versions && process.versions.node;
-    if (isNodeEnv && process.env.TYPE_SAFE_API_KEY) return process.env.TYPE_SAFE_API_KEY;
-    if (typeof chrome === 'undefined' || !chrome.storage) return null;
-    return await getTypeSafeApiKey();
 }
 
 // ========== OpenRouter カスタムモデル ==========

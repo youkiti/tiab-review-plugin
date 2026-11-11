@@ -3,6 +3,8 @@
 このファイルは ../../../AGENTS.md（リポジトリ根）から Issue #195 で切り出した詳細仕様です。
 リポジトリ全体の規約・基本ルールは [根の AGENTS.md](../../../AGENTS.md) を参照してください。
 
+References・Decisions・Config・LLM_Runs・LLM_Executions の一部の列とキーは、別リポジトリの sr-data-extraction-plugin から読まれている。対象と、変えるときの決まりは [SHARED-SHEET-CONTRACT.md](SHARED-SHEET-CONTRACT.md)。判定の畳み込み・重複除外・盲検（キーの開封）・有効な AI 実行の選び方・裁定・合議・全文の AI ラウンド・全文の候補の規則を変える PR は、抽出アプリの `src/features/documents/tiabReview.ts` も直す必要があることを本文に書くこと。
+
 ## データ設計
 
 ### スプレッドシート構造
@@ -19,6 +21,10 @@
 | year            | 出版年                                              |      |
 | authors         | 著者                                                |      |
 | journal         | ジャーナル名                                        |      |
+| volume          | 巻                                                   |      |
+| issue           | 号                                                   |      |
+| pages           | ページ                                                 |      |
+| issn            | ISSN                                                |      |
 | doi             | DOI                                                 |      |
 | pmid            | PubMed ID                                           |      |
 | url             | URL                                                 |      |
@@ -26,8 +32,11 @@
 | imported_at     | 取り込み日時                                        |      |
 | imported_by     | 取り込み者                                          |      |
 | dedupe_key      | 重複検出キー（後述）                                |      |
+| source_file     | 取り込み元のファイル名（取り込み元ごとの削除に使う）                          |      |
+| screening_set   | TiAb の担当セット                                         |      |
 | fulltext_url    | フルテキストURL（OA / ブラウザアタッチ）            |      |
 | fulltext_status | `not_retrieved` / `retrieved` / `unavailable` |      |
+| fulltext_set    | フルテキストの担当セット。sr-data-extraction-plugin が全文の候補の判定に読む |      |
 | fulltext_drive_source_id | Drive直接取り込みの取り込み元PDFのDriveファイルID（W列） |      |
 | fulltext_drive_copy_id   | 同じく、取り込み時に作成/再利用したコピーのDriveファイルID（X列） |      |
 | record_type     | レコード種別。`article` / `registration`。未設定は `article` 相当（後方互換）。確定値を持つのはCTG/ICTRPパーサと、論文候補の取り込み（`buildImportedPublicationReference()`。取り込んだ論文行は常に `article` を確定値として書く）。判定は必ず `src/lib/registry-record.ts` の `isRegistrationRecord()` を経由すること（Y列）。`isRegistrationRecord()` が true の行は、フルテキスト取得（`retrieveAndCacheFulltext()`）でも通常のOAウォーターフォール（PMC OA/Europe PMC/Unpaywall/OpenAlex、pmid/doi前提）に入れず、レジストリ内容の自己完結HTMLスナップショットをDriveへ保存する経路に分岐する（レジストリ連携フェーズ1チャンク2パスA。下記「試験登録レコードのフルテキスト取得（レジストリスナップショット）」参照） |      |
@@ -39,7 +48,7 @@
 **References を読む経路を新設・変更するときの規則（Issue #145 チャンク2、PR #146 レビュー指摘）**: References の行を返す経路は、論理削除済み行（`duplicate_of` 非空）を含めるかどうかで2種類に分かれる。新しい取得経路を足すときは、必ずどちら側かを判断すること。
 
 - **全件返す（論理削除済みも含む）**: `getReferences()`。重複レビューUIの `resolveSurvivor()`（論理削除済みの相手から残っている側を辿り直す）・`isPairAlreadySettled()`（survivor の収束・相互削除の判定）が論理削除済みの行を必要とするため、意図的にフィルタしない（Issue #147 外部レビュー指摘。個別の統合判断を取り消す一般的なUIは実装されていない）
-- **論理削除行を除外する**: `getReferencesWithStatus()`（TiAb盲検）・`getReferencesWithAllDecisions()`（キー開封後）・`getFulltextPageData()`（`src/lib/sheets/project-snapshot.ts` の取得窓口。フルテキスト画面。Config タブ欠落時も同じ合成経路で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
+- **論理削除行を除外する**: `selectReferencesWithStatus()`（TiAb。盲検中は `mergeReferencesWithStatus()`、キー開封後は `mergeReferencesWithAllDecisions()` を使う）・`getFulltextPageData()`（`src/lib/sheets/project-snapshot.ts` の取得窓口。フルテキスト画面。Config タブ欠落時も同じ合成経路で除外する）。除外は必ず `isLogicallyDeleted()` を経由する
 
 **`getReferences()` の呼び出し元を grep するだけでは経路の洗い出しに不十分**: `getFulltextPageData()` は `getReferences()` を経由せず、`src/lib/sheets/project-snapshot.ts` の `loadProjectSnapshot()` がシート値から `Reference[]` へ変換する内部関数 `parseReferenceValues()` を呼んでいる。TiAb の合成は `src/lib/reference-status.ts` の `mergeReferencesWithStatus()` / `mergeReferencesWithAllDecisions()` が担う。そのため「除外漏れが無いか」を確認するときは `getReferences(` ではなく `parseReferenceValues` で grep すること。PR #146 のレビューでこの漏れが実際に見つかった（フルテキスト画面だけ論理削除済み文献が残っていた）。
 
@@ -55,7 +64,7 @@
 | labels          | (廃止)                                 |      |
 | note            | メモ                                   |      |
 | decided_at      | 判定日時（ISO 8601）                   | ✓   |
-| client_version  | 拡張機能バージョン                     |      |
+| client_version  | 記録した版（拡張版 `0.57.2`、Web版 `web-0.57.2+abc1234`、コマンドライン `cli-0.57.2`）と処理の接尾辞 |      |
 | source_url      | 判定時に見ていたURL                    |      |
 | screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
 | context_json    | 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON（`DecisionContextV1`、`src/lib/decision-context.ts`）。human判定（TiAb/フルテキストの `handleDecision`/`handleSave`）の保存時に設定する。CLI で本人の既存判定を移す場合は、AI暴露情報ではなく取り込み由来 `{"imported":true,"by":"cli","source":"CSVのファイル名"}` を保存する。**書くだけの列で、読み手（既存のUI・集計）の挙動は一切変えない**。将来「人間の判定はAIから独立していたか」を遡って検証するための記録専用列 |      |
@@ -86,7 +95,7 @@ key の開閉など、判定イベントではないため Decisions の行に�
 | event_type     | `key_opened` / `key_closed`（今回のスコープは key 開閉のみ） | ✓   |
 | actor          | 操作者（email）                                           | ✓   |
 | occurred_at    | 発生日時（ISO 8601）                                      | ✓   |
-| client_version | 拡張機能バージョン                                        |      |
+| client_version | 記録した版（拡張版 `0.57.2`、Web版 `web-0.57.2+abc1234`、コマンドライン `cli-0.57.2`）と処理の接尾辞 |      |
 | detail_json    | 追加情報（今回のスコープでは常に空文字）                  |      |
 
 - **タブが無いプロジェクトは初回書き込み時に自動作成する**: `addSheet` → `[ヘッダ行, 本体行]` を1回の append でまとめて書き込む。Config タブ欠落時の `trySaveConfigValue` と同じ自動作成パターンを踏襲している（ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまうため、まとめて1回にしている）
@@ -268,10 +277,9 @@ TiAb 形（`reasons: string[]`）は非空要素を `'; '` で連結、フルテ
   - `labelEn` は PRISMA フロー図・論文用テキスト（`manuscript.ts`）で使う。未入力なら `label` で代替する。
   - この設定は `config_hash` の算出対象ではない（`llm_config` 系とは別経路）。ただしフルテキストAI判定の出力スキーマ（enum）とプロンプトはこのリストから生成されるため、レビュー途中で理由を入れ替えると**前後のAI票で区分の意味が変わる**。運用上はスクリーニング開始前に確定させること。判定時点のリストは `LLM_Executions.exclude_reasons_snapshot` にスナップショットされるため、後から入れ替えても過去 Run の区分の意味は復元できる。
 
-#### Annotations タブ（PDFアノテーション）
+#### Annotations タブ（予約の名前。本体は未実装）
 
-フルテキストスクリーニングおよびデータ抽出で使用するPDFハイライトを1行1件で保存する。
-`phase` と `category` の組み合わせで用途を区別し、将来のWebアプリ（データ抽出・RoB）からも参照できる。
+PDF のハイライトを1行1件で保存するために設計したタブ。**本体はこのタブを作らず、読み書きもしない**（タブ名の定数も schema.ts に無い。型 `Annotation` は `src/lib/types.ts` にあるが使われていない）。データ抽出は本リポジトリの範囲外なので、`phase` の `data_extraction` と `category` の `data_point` は本体では使わない。sr-data-extraction-plugin もこのタブを読まない。
 
 | 列名             | 説明                                                         | 必須 |
 | ---------------- | ------------------------------------------------------------ | ---- |

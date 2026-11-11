@@ -35,12 +35,23 @@ CWS_PUBLISHER_ID=発行元ID
 | `npm run store:submit` | 再ビルドせず、今ある `dist.zip` をアップロードして審査提出 |
 | `npm run store:submit -- --dry-run` | 認証・状況・版を確認。アップロード・提出なし（通信は行う） |
 | `npm run store:submit -- --zip=<path>` | 任意のファイル名の zip を指定して提出 |
-| `npm run release:submit` | 小変更の版上げ → ストア用ビルド → `origin/main` へ push → 提出 |
-| `npm run release:submit:major` | 機能追加の版上げで同じ処理を実行 |
+| `npm run release` | 小変更の版上げ PR → 必須チェック待ち → マージ → ストア用ビルド → 提出（`release:minor` も同じ） |
+| `npm run release:major` | 機能追加の版上げで同じ処理を実行 |
+| `npm run release -- --dry-run` | 何も変えず、続きの位置と新しい版だけを表示 |
+| `npm run release:submit` | `release` の別名 |
+| `npm run release:submit:major` | `release:major` の別名 |
 
 提出では zip 内 `manifest.json` と `package.json` の版が一致することを確認し、公開中の全チャネルの版より新しい版だけを提出します。`--zip` 指定時も同じ照合を行います。
 
-`release:submit` は `main` 上・作業ツリーがクリーン・fetch 後の `origin/main` と HEAD が一致するときだけ進みます。認証・提出可否を確認してから版を上げ、バンプ commit の push まで自動で行います。既存の `npm run release` は push を行いません。提出失敗時は版を上げ直さず、原因を解消して `store:submit` で提出だけをやり直します。
+`release`（`tools/release/release.mjs`）は次の段を順に進めます。`main` へは直接 push せず、版上げは PR 経由です（`main` の必須チェックは直接 push も止めるため）。
+
+1. 前提の確認（何も変えません）: `gh` のログイン、`main` 上・作業ツリーがクリーン・fetch 後の `origin/main` と HEAD が一致、`.env` の `WEBAUTH_CLIENT_ID`、ストアの提出可否、CHANGELOG の「未リリース」の節、新しい版のブランチとタグが `origin` に無いこと。
+2. `chore/release-v<版>` ブランチの作成、CHANGELOG の版の節への書き換え、バンプ commit、push。
+3. PR の作成と、必須チェック（`quality`・`build-extension`・`build-web`・`bundle-budget`）の成功待ち。失敗したら PR を残して止まります。
+4. `gh pr merge --merge --delete-branch` でマージし、`main` を取り込みます。
+5. `npm run build:release` と `storeApi.mjs submit`。
+
+途中で止まったら同じコマンドを再実行します。続きの位置は、今いるブランチ、開いているリリース PR、`origin/main` の版とストアの公開中・審査中の版から毎回決めます（`release:resume` はありません）。審査中の版が `origin/main` の版と同じなら、提出済みとして何もしません。リリースを取りやめるときは、開いている PR を閉じてブランチを消します。
 
 ## 終了コード
 
@@ -51,4 +62,4 @@ CWS_PUBLISHER_ID=発行元ID
 | 2 | 設定・引数の不備 |
 | 3 | 結果不明 |
 
-upload / publish は自動再試行しません。結果不明なら、再実行する前に `npm run store:status` で状況を確認してください。`release:submit` で提出段階まで進んだ場合、zip 作成と push は完了済みです。
+upload / publish は自動再試行しません。結果不明なら、再実行する前に `npm run store:status` で状況を確認してください。`release` で提出段階まで進んだ場合、マージと zip 作成は完了済みです。再実行すると提出から続きます。

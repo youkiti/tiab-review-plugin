@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import {
     createSmartRegex,
@@ -12,7 +12,9 @@ import {
     applyTextFilters,
 } from '../src/sidepanel/utils/search';
 import type { ReferenceWithStatus } from '../src/lib/types';
-import { getFilteredReferences, getFilterCounts } from '../src/sidepanel/store/selectors';
+import { getFilteredReferences } from '../src/sidepanel/store/selectors';
+import { initializeStore } from '../src/sidepanel/store';
+import { computeStatusFilterCounts } from '../src/sidepanel/features/screening/filters';
 import { DEFAULT_ASSIGNMENT_CONFIG } from '../src/lib/assignment-set';
 import type { AppState } from '../src/sidepanel/store/types';
 
@@ -296,11 +298,13 @@ test('applyTextFilters: 返り値の要素は入力と同一のオブジェク�
     assert.equal(result[0], ref1, '同一オブジェクト参照であること');
 });
 
+after(() => { initializeStore(); });
+
 // ========== selectors.ts 統合テスト ==========
 // selectors.ts は state を引数で受ける純関数設計のため、Node の node:test から
 // import して直接呼び出せるかを確認したうえで追加する（src/lib/i18n.ts の t() は
 // 非拡張環境で platform() が例外を投げても空文字にフォールバックするため、
-// getFilteredReferences / getFilterCounts の呼び出し経路では問題にならない）。
+// getFilteredReferences / computeStatusFilterCounts の呼び出し経路では問題にならない）。
 // 実際に import できたため、AND タームフィルターの偽陰性解消と、1パス化後の
 // 件数集計を state 経由で検証する。
 
@@ -337,7 +341,6 @@ function makeState(overrides: {
                 currentIndex: 0,
                 lastUpdated: 0,
             },
-            recentSheets: [],
             isAdmin: false,
             sheetEditAccess: 'unknown',
             unsentCount: 0,
@@ -366,8 +369,6 @@ function makeState(overrides: {
                 isKeyOpened: false,
                 activeTermFilters: overrides.activeTermFilters,
             },
-            ml: { currentIndex: 0, searchQuery: '' },
-            llm: { batchRunning: false, currentExecutionId: '' },
             flags: { loading: false, exportMenuOpen: false, shareInputOpen: false, settingsOpen: false },
             settings: {
                 autoNavigateAfterDecision: false,
@@ -404,7 +405,7 @@ test('[selectors.ts統合] getFilteredReferences: ANDタームフィルターの
     assert.deepEqual(filtered.map(r => r.ref_id), ['1', '2', '3']);
 });
 
-test('[selectors.ts統合] getFilterCounts: 1パス化後も件数が現行仕様どおりの形・値になる', () => {
+test('[filters.ts] computeStatusFilterCounts: 1パス化後も件数が現行仕様どおりの形・値になる', () => {
     const refs = [
         makeRef({ ref_id: '1', title: 'pending one' }),
         makeRef({
@@ -434,7 +435,9 @@ test('[selectors.ts統合] getFilterCounts: 1パス化後も件数が現行仕�
     ];
     const state = makeState({ references: refs, activeTermFilters: [], termFilterUseAnd: true });
 
-    const counts = getFilterCounts(state);
+    // 件数の計算は Store を読むため、初期化してから呼び、最後に初期状態へ戻す
+    initializeStore(state);
+    const counts = computeStatusFilterCounts();
     assert.deepEqual(counts, {
         pending: 1,
         all: 3,

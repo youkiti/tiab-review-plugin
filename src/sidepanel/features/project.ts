@@ -104,10 +104,14 @@ export function setProjectDependencies(deps: {
  */
 export async function handleBack() {
     // 状態をリセット（Store経由で両方に同期）
-    syncResetForBack();
+    // 実行中の AI 一括判定は中止してから初期化される（戻り値 true）
+    const batchAborted = syncResetForBack();
 
     // プロジェクト選択画面を表示（Store経由でrenderLayoutが自動更新）
     showProjectView();
+    if (batchAborted) {
+        showToast(t('llm_batchStopped'));
+    }
 
     // プロジェクトを離れるのでバッジを隠す（state.spreadsheetId は既にリセット済み）
     await refreshUnsentBadge();

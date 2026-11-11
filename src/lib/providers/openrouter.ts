@@ -19,6 +19,7 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenRouterApiKey } from '../storage';
+import { sanitizeApiKey } from './sanitize-api-key';
 import type { AskParams } from './ask-types';
 import { askError, parseAskText, withAskSignal } from './ask-request';
 import { isOpenRouterJevModel } from '../openrouter-model';
@@ -80,47 +81,14 @@ function tryParseJson(text: string): LlmScreeningOutput | null {
     }
 }
 
-/**
- * API キー文字列を HTTP ヘッダーで送れる形に正規化する。
- *
- * - 前後空白除去
- * - 不可視 Unicode（zero-width space, BOM 等）を除去
- * - ISO-8859-1 範囲外の文字が残れば例外（fetch がヘッダー構築で失敗する前にユーザー向けエラーへ）
- *
- * 想定ケース: ユーザーがブラウザの保存値や Markdown からコピペした際に
- * U+200B (ZWSP) や U+FEFF (BOM)、全角文字などが混入し、fetch が
- * "String contains non ISO-8859-1 code point." を投げる。
- */
-// テスト用 export（プロダクションでは getApiKey/testOpenRouterApiKey 経由でのみ使用）
-export function _sanitizeApiKeyForTest(rawKey: string): string {
-    return sanitizeApiKey(rawKey);
-}
-
-function sanitizeApiKey(rawKey: string): string {
-    let out = '';
-    for (const ch of rawKey.trim()) {
-        const cp = ch.codePointAt(0);
-        if (cp === undefined) continue;
-        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
-        if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
-            cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
-        if (cp > 255) {
-            throw new Error(
-                'OpenRouter APIキーに ISO-8859-1 範囲外の文字が含まれています。'
-                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
-            );
-        }
-        out += ch;
-    }
-    return out;
-}
-
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenRouterApiKey();
     if (!key) {
-        throw new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。');
+        throw Object.assign(
+            new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。'),
+            { retryable: false });
     }
-    return sanitizeApiKey(key);
+    return sanitizeApiKey(key, 'OpenRouter');
 }
 
 /** 既存の判定と自由問い合わせで同じ送信先・ヘッダーを使う。 */
@@ -201,8 +169,20 @@ async function callOnce(
         clearTimeout(timer);
 
         if (!response.ok) {
-            const errText = await response.text().catch(() => '');
-            throw new Error(`OpenRouter API error ${response.status}: ${errText.slice(0, 200)}`);
+            // 応答にキーが含まれてもエラーメッセージへ流出させない。
+            const errText = (await response.text().catch(() => '')).split(apiKey).join('[REDACTED]');
+            const unknownModel = response.status === 400
+                && (errText.includes('is not a valid model ID') || errText.includes('does not exist'));
+            const detail = unknownModel
+                ? `モデル ${params.model} が見つかりません（提供終了の可能性があります。拡張機能の更新が必要です）。応答=${errText.slice(0, 200)}`
+                : errText.slice(0, 200);
+            const error = Object.assign(
+                new Error(`OpenRouter API error ${response.status}: ${detail}`), { status: response.status });
+            // 4xx を恒久的な失敗と決めつけない。キー不正・残高不足・拒否・存在しないモデル（404 と
+            // モデル不明の 400）だけを再試行不可にし、それ以外の 400・408・429・5xx は送り直す。
+            if (response.status === 401 || response.status === 402 || response.status === 403
+                || response.status === 404 || unknownModel) Object.assign(error, { retryable: false });
+            throw error;
         }
 
         const data = await response.json() as {
@@ -272,6 +252,8 @@ export async function screenViaOpenRouter(
             return await callOnce(params, promptText, timeoutMs);
         } catch (err) {
             lastErr = err;
+            // 送り直しても通らないエラーは待たずに投げる（openai.ts と同じ形）。
+            if ((err as { retryable?: boolean } | null)?.retryable === false) throw err;
             if (attempt < maxRetries) {
                 const delay = 5000 * Math.pow(2, attempt);
                 console.warn(`[openrouter] retry ${attempt + 1}/${maxRetries} after ${delay}ms: ${(err as Error).message}`);
@@ -491,7 +473,7 @@ export async function testOpenRouterModel(
 export async function testOpenRouterApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
     let cleanKey: string;
     try {
-        cleanKey = sanitizeApiKey(apiKey);
+        cleanKey = sanitizeApiKey(apiKey, 'OpenRouter');
     } catch (err) {
         return { isValid: false, reason: err instanceof Error ? err.message : String(err) };
     }

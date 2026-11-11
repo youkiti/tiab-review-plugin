@@ -11,16 +11,6 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
                 data: { ...state.data, references: action.refs },
             };
 
-        case 'data/updateReference': {
-            const refs = state.data.references.map(r =>
-                r.ref_id === action.refId ? { ...r, ...action.updates } : r
-            );
-            return {
-                ...state,
-                data: { ...state.data, references: refs },
-            };
-        }
-
         case 'data/setSpreadsheetId':
             return {
                 ...state,
@@ -93,12 +83,6 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
                 data: { ...state.data, mlState: action.mlState },
             };
 
-        case 'data/setRecentSheets':
-            return {
-                ...state,
-                data: { ...state.data, recentSheets: action.sheets },
-            };
-
         case 'data/setSheetEditAccess':
             return { ...state, data: { ...state.data, sheetEditAccess: action.editAccess } };
 
@@ -134,24 +118,6 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
                 ...state,
                 data: { ...state.data, selectedSourceFiles: action.files },
             };
-
-        case 'data/toggleSourceFile': {
-            const newSelected = new Set(state.data.selectedSourceFiles);
-            if (newSelected.has(action.file)) {
-                newSelected.delete(action.file);
-            } else {
-                newSelected.add(action.file);
-            }
-            return {
-                ...state,
-                data: { ...state.data, selectedSourceFiles: newSelected },
-                // ソースファイル切替時はインデックスリセット
-                ui: {
-                    ...state.ui,
-                    screening: { ...state.ui.screening, currentIndex: 0 },
-                },
-            };
-        }
 
         case 'data/addSelectedSourceFile': {
             const newSelected = new Set(state.data.selectedSourceFiles);
@@ -210,23 +176,10 @@ export function reduceData(state: AppState, action: Action): AppState | undefine
                 data: { ...state.data, enabledReviewers: action.reviewers },
             };
 
-        case 'data/toggleReviewer': {
-            const newEnabled = new Set(state.data.enabledReviewers);
-            if (newEnabled.has(action.reviewerId)) {
-                newEnabled.delete(action.reviewerId);
-            } else {
-                newEnabled.add(action.reviewerId);
-            }
-            return {
-                ...state,
-                data: { ...state.data, enabledReviewers: newEnabled },
-            };
-        }
-
-        // toggleReviewerと異なり、呼び出し側が持つ真偽値をそのまま反映する（現在の集合に対する
+        // 呼び出し側が持つ真偽値をそのまま反映する（現在の集合に対する
         // 反転ではない）。混在レビュアー（人手＋ML）のチェックボックス切替では、同じ enabled 値を
         // 独立した2キー（本体キーと ::ml キー）へ適用するため、片方が既にその状態でも
-        // toggleReviewer だと意図せず反転してしまう。
+        // 反転で切り替える方式だと意図せず反転してしまう。
         case 'data/addReviewer': {
             if (state.data.enabledReviewers.has(action.reviewerId)) {
                 return state; // 既に有効
