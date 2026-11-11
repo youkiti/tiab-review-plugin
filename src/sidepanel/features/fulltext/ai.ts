@@ -18,6 +18,7 @@
  */
 
 import { dom } from './dom';
+import { executeAiBatchRun } from './ai-batch-run';
 import { state } from '../../state';
 import { t } from '../../../lib/i18n';
 import { escapeHtml } from '../../utils/text';
@@ -43,7 +44,6 @@ import {
     extractDriveFileId,
     downloadDriveFile,
     describeDriveAccessError,
-    DriveAccessDeniedError,
 } from '../../../lib/drive-api';
 import { judgeFulltext, buildFulltextPrompt, FULLTEXT_PROMPT_VERSION } from '../../../lib/gemini-fulltext';
 import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
@@ -64,8 +64,6 @@ import {
 } from '../../../lib/fulltext-ai-target';
 import {
     classifyFulltextAiFailure,
-    summarizeFailures,
-    serializeFailureBreakdown,
     NoDriveUrlError,
     PdfReadError,
     LlmCallError,
@@ -85,14 +83,48 @@ import type {
     LlmExecution,
 } from '../../../lib/types';
 
-// バッチ実行の中断フラグ
-let aiAbort: { cancelled: boolean } | null = null;
-// パネル初期化済みか（モデル選択・プロンプトの初回プリフィル制御）
-let aiInitialized = false;
-// 対象範囲（既定はプロジェクト全体。人間の担当割り振りでは絞らない）
-let aiScope: FulltextAiScope = DEFAULT_FULLTEXT_AI_SCOPE;
-// 採用ラウンドが判定済みの ref_id（renderRounds が Decisions タブから更新するキャッシュ）
-let judgedRefIds: ReadonlySet<string> = new Set<string>();
+/**
+ * 全文の AI 判定のセッション状態（プロジェクトに属するもの）。
+ * 戻る・ログアウトで丸ごと作り直す。モジュール変数を足すときはここに入れる
+ * （tests/session-reset.test.ts が最上位の let を検査する）。
+ */
+export interface FulltextAiSessionState {
+    /** バッチ実行の中断フラグ（実行中は非 null） */
+    aiAbort: { cancelled: boolean } | null;
+    /** パネル初期化済みか（モデル選択・プロンプトの初回プリフィル制御） */
+    aiInitialized: boolean;
+    /** 対象範囲（既定はプロジェクト全体。人間の担当割り振りでは絞らない） */
+    aiScope: FulltextAiScope;
+    /** 採用ラウンドが判定済みの ref_id（renderRounds が Decisions タブから更新するキャッシュ） */
+    judgedRefIds: ReadonlySet<string>;
+}
+
+export function createFulltextAiSession(): FulltextAiSessionState {
+    return {
+        aiAbort: null,
+        aiInitialized: false,
+        aiScope: DEFAULT_FULLTEXT_AI_SCOPE,
+        judgedRefIds: new Set<string>(),
+    };
+}
+
+const session: FulltextAiSessionState = createFulltextAiSession();
+
+export function _getFulltextAiSessionForTest(): FulltextAiSessionState {
+    return session;
+}
+
+/**
+ * 戻る・ログアウトで状態を作り直す。実行中の一括判定は中止してから初期化する
+ * （実行中の1件は終わるまで続き、その結果は開始時のシートへ保存される。ラウンドは採用されない）。
+ * @returns 実行中の一括判定を中止したら true
+ */
+export function resetFulltextAiSession(): boolean {
+    const running = session.aiAbort;
+    if (running) running.cancelled = true;
+    Object.assign(session, createFulltextAiSession());
+    return running !== null;
+}
 
 /**
  * 対象範囲に応じた候補一覧を返す
@@ -186,8 +218,8 @@ export function renderFulltextAi(): void {
         notice.append(' ', helpLink);
         dom.fulltextAiStartBtn.parentElement!.before(notice);
     }
-    if (!aiInitialized) {
-        aiInitialized = true;
+    if (!session.aiInitialized) {
+        session.aiInitialized = true;
         void prefillPrompt();
     }
     syncScopeRadios();
@@ -198,8 +230,8 @@ export function renderFulltextAi(): void {
 
 /** 対象範囲ラジオの表示を現在値に合わせる */
 function syncScopeRadios(): void {
-    dom.fulltextAiScopeProjectRadio.checked = aiScope === 'project';
-    dom.fulltextAiScopeAssignedRadio.checked = aiScope === 'assigned';
+    dom.fulltextAiScopeProjectRadio.checked = session.aiScope === 'project';
+    dom.fulltextAiScopeAssignedRadio.checked = session.aiScope === 'assigned';
 }
 
 // ---------------------------------------------------------------------------
@@ -258,7 +290,7 @@ async function renderRounds(): Promise<void> {
         active = act;
         // 「AI判定済み」は Blind 中に参照側の票から導けないため、ここで取得した
         // Decisions 行から採用ラウンド基準で作り直す（対象件数表示もこの値を使う）
-        judgedRefIds = collectAiJudgedRefIds(decisions, active ? new Set([active]) : new Set<string>());
+        session.judgedRefIds = collectAiJudgedRefIds(decisions, active ? new Set([active]) : new Set<string>());
         updateAiTargetCount();
     } catch (err) {
         // 無言で空にすると「ラウンドがまだ無い」状態と見分けが付かないため、失敗を明示する
@@ -443,7 +475,7 @@ async function deleteRound(reviewerId: string): Promise<void> {
 
 /** 対象件数の表示を更新する */
 function updateAiTargetCount(): void {
-    const counts = countFulltextAiTargets(getScopedCandidates(aiScope), judgedRefIds);
+    const counts = countFulltextAiTargets(getScopedCandidates(session.aiScope), session.judgedRefIds);
 
     const lines = [
         `<span class="fulltext-ai-target-main">${escapeHtml(t('fulltext_aiTarget', String(counts.target)))}</span>`,
@@ -470,8 +502,8 @@ function updateAiTargetCount(): void {
 
     // プロジェクト全体を対象にしているとき、そのうち自分の担当分が何件かを併記する
     // （担当割り振りをしていて件数が変わる場合のみ）
-    if (aiScope === 'project') {
-        const assigned = countFulltextAiTargets(getScopedCandidates('assigned'), judgedRefIds);
+    if (session.aiScope === 'project') {
+        const assigned = countFulltextAiTargets(getScopedCandidates('assigned'), session.judgedRefIds);
         if (assigned.target !== counts.target) {
             lines.push(
                 `<span class="fulltext-ai-target-sub">${escapeHtml(t('fulltext_aiTargetAssignedShare', String(assigned.target)))}</span>`
@@ -500,7 +532,7 @@ function updateProgress(done: number, total: number, ok: number, ng: number): vo
 
 /** 一括AI判定を開始する */
 async function handleStartAiBatch(): Promise<void> {
-    if (aiAbort) return; // 二重起動防止
+    if (session.aiAbort) return; // 二重起動防止
 
     // セレクトが未描画で空のときは、従来どおり先頭の Gemini モデルを使う
     const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
@@ -525,13 +557,17 @@ async function handleStartAiBatch(): Promise<void> {
     //   直前に実行した分を取りこぼす）。読み取りに失敗した場合はキャッシュで続行する
     let refetchFailed = false;
     try {
-        judgedRefIds = await fetchJudgedRefIds(spreadsheetId);
+        const fetched = await fetchJudgedRefIds(spreadsheetId);
+        // 待っている間に戻る・ログアウトで別のプロジェクトへ切り替わっていたら、結果は使わず始めない
+        if (state.spreadsheetId !== spreadsheetId) return;
+        session.judgedRefIds = fetched;
     } catch (err) {
         refetchFailed = true;
         console.warn('[fulltext-ai] 判定済み ref_id の再取得に失敗:', err);
     }
 
-    const targets = selectFulltextAiTargets(getScopedCandidates(aiScope), judgedRefIds);
+    if (state.spreadsheetId !== spreadsheetId) return;
+    const targets = selectFulltextAiTargets(getScopedCandidates(session.aiScope), session.judgedRefIds);
     if (targets.length === 0) {
         updateAiTargetCount();
         showToast(t('fulltext_aiNoTarget'));
@@ -544,7 +580,10 @@ async function handleStartAiBatch(): Promise<void> {
     const executionId = reviewerId;
 
     // UI: 実行状態へ
-    aiAbort = { cancelled: false };
+    const run = { cancelled: false };
+    session.aiAbort = run;
+    // 戻る・ログアウトで初期化されると session.aiAbort は別の値になる。その後は画面に書かない
+    const isCurrentRun = (): boolean => session.aiAbort === run;
     dom.fulltextAiStartBtn.classList.add('hidden');
     dom.fulltextAiStopBtn.classList.remove('hidden');
     dom.fulltextAiStopBtn.disabled = false;
@@ -599,104 +638,30 @@ async function handleStartAiBatch(): Promise<void> {
         appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
     }
 
-    let done = 0, ok = 0, ng = 0;
-    // Drive の読み取り権限が無くて落ちた件数（drive.file は「アプリ×ユーザー×ファイル」単位の
-    // 付与なので、他メンバーがアップロードしたPDFは読めない。プロジェクト全体を対象にすると
-    // まとまった件数で起きうるため、最後に復旧導線をまとめて案内する）。
-    // 定義上 failureKinds の drive_denied + drive_not_found の件数と一致するはずなので、
-    // 分類ロジック（classifyFulltextAiFailure）側だけを直して乖離させないこと。
-    let driveDenied = 0;
-    // include/exclude/maybe の内訳（実行履歴の include_count/exclude_count/maybe_count に使う）
-    const decisionCounts: Record<'include' | 'exclude' | 'maybe', number> = { include: 0, exclude: 0, maybe: 0 };
-    // 失敗種別ごとの内訳（実行履歴の failure_breakdown に使う）
-    const failureKinds: FulltextAiFailureKind[] = [];
-    updateProgress(0, targets.length, 0, 0);
-    appendLog(t('fulltext_aiStarted', String(targets.length)));
-
-    try {
-        for (const ref of targets) {
-            if (aiAbort?.cancelled) {
-                appendLog(t('fulltext_aiCancelled'), 'log-warn');
-                break;
-            }
-            try {
-                const { decision, evidenceTruncated } = await judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId);
-                ok++;
-                decisionCounts[decision]++;
-                appendLog(`✓ ${ref.title || ref.ref_id}${evidenceTruncated ? ` — ${t('fulltext_aiEvidenceTruncated')}` : ''}`,
-                    evidenceTruncated ? 'log-warn' : 'log-ok');
-            } catch (err) {
-                ng++;
-                if (err instanceof DriveAccessDeniedError) driveDenied++;
-                failureKinds.push(classifyFulltextAiFailure(err));
-                const msg = err instanceof Error ? err.message : String(err);
-                appendLog(`✕ ${ref.title || ref.ref_id} — ${describeDriveAccessError(err) ?? msg}`, 'log-err');
-            } finally {
-                done++;
-                updateProgress(done, targets.length, ok, ng);
-            }
+    await executeAiBatchRun(
+        { spreadsheetId, reviewerId, executionId, targets, run, isCurrentRun, initialExecution, executionLogWritten },
+        {
+            judgeOne: ref => judgeOne(ref, screeningPrompt, modelConfig, reviewerId, executionId, modelId, spreadsheetId),
+            setFulltextAiActiveRound,
+            updateLlmExecution,
+            saveLlmExecution,
+            reloadReferences,
+            showToast,
+            appendLog,
+            updateProgress,
+            finishUi: () => {
+                dom.fulltextAiStartBtn.classList.remove('hidden');
+                dom.fulltextAiStopBtn.classList.add('hidden');
+                dom.fulltextAiStopBtn.disabled = false;
+                dom.fulltextAiModelSelect.disabled = false;
+                dom.fulltextAiPromptInput.disabled = false;
+                setScopeRadiosDisabled(false);
+                updateAiTargetCount();
+                void renderRounds();
+            },
+            clearRun: () => { session.aiAbort = null; },
         }
-    } finally {
-        // 1件以上成功していれば、今回のラウンドを自動採用する（中断時は採用しない）
-        if (ok > 0 && !aiAbort?.cancelled) {
-            try {
-                await setFulltextAiActiveRound(spreadsheetId, reviewerId);
-                showToast(t('fulltext_aiRoundAdopted'), 2500);
-            } catch (err) {
-                console.warn('[fulltext-ai] 自動採用に失敗:', err);
-            }
-        }
-
-        // 実行履歴を確定させる。中断・全件失敗でも「実行したが0件成功だった」という事実自体を
-        // 残すのが本Issueの主眼なので、条件を付けず必ず更新を試みる（失敗しても判定処理は止めない）。
-        const { failedCount, breakdown } = summarizeFailures(failureKinds);
-        const finalCounts = {
-            include_count: decisionCounts.include,
-            exclude_count: decisionCounts.exclude,
-            maybe_count: decisionCounts.maybe,
-            failed_count: failedCount,
-            failure_breakdown: serializeFailureBreakdown(breakdown),
-        };
-        try {
-            if (executionLogWritten) {
-                await updateLlmExecution(spreadsheetId, executionId, {
-                    ...finalCounts,
-                    status: 'confirmed',
-                });
-            } else {
-                // 開始行の保存に失敗していると updateLlmExecution は対象行が無いため必ず
-                // 「Execution not found」で失敗し、この Run の履歴が1行も残らなくなる。
-                // 開始失敗の典型はネットワーク瞬断で、判定が終わる頃には回復していることが
-                // 多いため、確定値を入れた行をここで新規作成するフォールバックで履歴を救う。
-                await saveLlmExecution(spreadsheetId, {
-                    ...initialExecution,
-                    ...finalCounts,
-                    status: 'confirmed',
-                });
-            }
-        } catch (err) {
-            // フォールバック経路もさらに失敗しうるが、判定処理自体は止めず警告に留める
-            console.warn('[fulltext-ai] 実行履歴（終了）の記録に失敗:', err);
-            appendLog(t('fulltext_aiExecutionLogFailed'), 'log-warn');
-        }
-
-        // 判定結果を反映するため参照を再読込
-        await reloadReferences(spreadsheetId);
-        dom.fulltextAiStartBtn.classList.remove('hidden');
-        dom.fulltextAiStopBtn.classList.add('hidden');
-        dom.fulltextAiStopBtn.disabled = false;
-        dom.fulltextAiModelSelect.disabled = false;
-        dom.fulltextAiPromptInput.disabled = false;
-        setScopeRadiosDisabled(false);
-        updateAiTargetCount();
-        void renderRounds();
-        aiAbort = null;
-        appendLog(t('fulltext_aiDone', [String(ok), String(ng)]), 'log-done');
-        if (driveDenied > 0) {
-            appendLog(t('fulltext_aiDriveDeniedHint', String(driveDenied)), 'log-warn');
-        }
-        showToast(t('fulltext_aiDone', [String(ok), String(ng)]), 4000);
-    }
+    );
 }
 
 /** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。最終判定と根拠の欠けの有無を返す */
@@ -846,8 +811,8 @@ export async function reloadReferences(spreadsheetId: string): Promise<void> {
 
 /** 実行を中断する */
 function handleStopAiBatch(): void {
-    if (aiAbort) {
-        aiAbort.cancelled = true;
+    if (session.aiAbort) {
+        session.aiAbort.cancelled = true;
         dom.fulltextAiStopBtn.disabled = true;
         appendLog(t('fulltext_aiCancelling'), 'log-warn');
     }
@@ -861,7 +826,7 @@ function setScopeRadiosDisabled(disabled: boolean): void {
 
 /** 対象範囲の変更を反映する */
 function handleScopeChange(scope: FulltextAiScope): void {
-    aiScope = parseFulltextAiScope(scope);
+    session.aiScope = parseFulltextAiScope(scope);
     updateAiTargetCount();
 }
 

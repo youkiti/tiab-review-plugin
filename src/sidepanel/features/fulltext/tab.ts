@@ -15,9 +15,16 @@ import { escapeHtml } from '../../utils/text';
 import { getFulltextCandidateList, getVisibleFulltextCandidateList } from '../screening/filters';
 import { handleKeyToggle } from '../screening/actions';
 import { explainEmptyFulltextCandidates } from '../../../lib/fulltext-empty-reason';
-import { hasCachedFulltext } from '../../../lib/fulltext-ai-target';
-import { setupFulltextResultsListeners, renderFulltextResults, renderFulltextKeyStatus, setFulltextResultsDeps } from './results';
-import { setupFulltextAiListeners } from './ai';
+import { hasCachedFulltext, DEFAULT_FULLTEXT_AI_SCOPE } from '../../../lib/fulltext-ai-target';
+import {
+    setupFulltextResultsListeners,
+    renderFulltextResults,
+    renderFulltextKeyStatus,
+    setFulltextResultsDeps,
+    resetFulltextResultsSession,
+    applyFulltextModeVisibility,
+} from './results';
+import { setupFulltextAiListeners, resetFulltextAiSession } from './ai';
 import {
     renderFulltextAssignmentRow,
     setupFulltextAssignmentListeners,
@@ -25,7 +32,7 @@ import {
 } from './assignment-ui';
 import { renderTeamProgress } from '../team-progress';
 import { mountRuleEditor } from '../../../lib/fulltext-rule-editor';
-import { mountReasonEditor } from './reason-editor';
+import { mountReasonEditor, resetReasonEditorSession } from './reason-editor';
 import { retrieveAndCacheFulltext } from '../../../lib/fulltext-retriever';
 import type { FulltextFetchOutcome } from '../../../lib/fulltext-retriever';
 import {
@@ -57,6 +64,8 @@ import {
     nextCandidateFlushThreshold,
 } from '../../../lib/publication-candidate-rerun';
 import { createPublicationCandidatesLoader } from './candidates-loader';
+import { registerSessionReset, type SessionResetReason } from '../../session-reset';
+import { createBulkWriter, type BulkRun, type BulkWriterDeps } from './bulk-run';
 import {
     selectSuggestedPublicationCandidates,
     countSuggestedPublicationCandidatesByRef,
@@ -65,13 +74,15 @@ import { buildDoiUrl, buildPubmedUrl, buildGoogleScholarUrl } from '../../../lib
 import {
     decoratePublicationCandidateCard,
     setPublicationCandidatesDeps,
+    resetPublicationCandidatesSession,
 } from './publication-candidates';
 import {
     setFulltextDriveImportDeps,
     setupFulltextDriveImportListeners,
+    isDriveImportInProgress,
 } from './drive-import';
-import { setupFulltextRegrantListeners } from './regrant';
-import { renderFulltextChecklist, setupFulltextChecklistListeners } from './checklist';
+import { setupFulltextRegrantListeners, isRegrantInProgress } from './regrant';
+import { renderFulltextChecklist, setupFulltextChecklistListeners, resetFulltextChecklistSession } from './checklist';
 import { setFulltextPoolRule as syncSetFulltextPoolRule, changeTab } from '../../store/compat';
 import { hideToast, showToast } from '../../ui/feedback';
 import { emitGuideEvent } from '../guide/lazy';
@@ -90,16 +101,49 @@ const STATUS_META: Record<string, { icon: string; cls: string }> = {
 
 type ViewFilter = 'all' | 'missing' | 'obtained' | 'undecided';
 
-// タブ内のローカルUI状態
-let viewFilter: ViewFilter = 'all';
-let bulkRun: { cancelled: boolean } | null = null;
-let uploadTargetRefId: string | null = null;
+/**
+ * 全文タブのセッション状態（プロジェクトに属するもの）。
+ * 戻る・ログアウトで丸ごと作り直す（resetFulltextTabSession）。モジュール変数を足すときはここに入れる
+ * （tests/session-reset.test.ts が最上位の let を検査する）。
+ */
+export interface FulltextTabSessionState {
+    /** 一覧の絞り込み */
+    viewFilter: ViewFilter;
+    /** 一括OA検索・論文候補の一括再探索の中断フラグ（実行中は非 null） */
+    bulkRun: BulkRun | null;
+    /** 手動アップロードの対象の ref_id */
+    uploadTargetRefId: string | null;
+    /**
+     * 論文候補（Publication_Candidates）のキャッシュ（Issue #118 チャンク3b）。
+     * このタブ限定の関心事のため state には足さない。renderFulltextTab() は同期関数なので、
+     * 読み込みは非同期の別ルーチン（loadPublicationCandidates）にし、完了後に renderFulltextTab()
+     * を呼び直して反映する。
+     */
+    publicationCandidates: PublicationCandidate[];
+}
 
-// 論文候補（Publication_Candidates）のモジュールローカルキャッシュ（Issue #118 チャンク3b）。
-// このタブ限定の関心事のため state には足さない。renderFulltextTab() は同期関数なので、
-// 読み込みは非同期の別ルーチン（loadPublicationCandidates）にし、完了後に renderFulltextTab()
-// を呼び直して反映する。
-let publicationCandidates: PublicationCandidate[] = [];
+export function createFulltextTabSession(): FulltextTabSessionState {
+    return { viewFilter: 'all', bulkRun: null, uploadTargetRefId: null, publicationCandidates: [] };
+}
+
+const session: FulltextTabSessionState = createFulltextTabSession();
+
+export function _getFulltextTabSessionForTest(): FulltextTabSessionState {
+    return session;
+}
+
+/**
+ * 戻る・ログアウトで状態を作り直す。実行中の一括OA検索・論文候補の一括再探索は、
+ * 中止してから初期化する（中止ボタンと同じ。実行中の1件は終わるまで続き、ループは次の文献へ進まない。
+ * それまでの取得結果は開始時のプロジェクトのシートへ保存される）。
+ * @returns 実行中の一括処理を中止したら true
+ */
+export function resetFulltextTabSession(): boolean {
+    const running = session.bulkRun;
+    if (running) running.cancelled = true;
+    Object.assign(session, createFulltextTabSession());
+    return running !== null;
+}
 
 /**
  * Sheets からの実読み込み本体（registration行が1件以上ある場合のみ呼ばれる）を
@@ -117,7 +161,7 @@ let publicationCandidates: PublicationCandidate[] = [];
 const loadCandidatesForProject = createPublicationCandidatesLoader({
     fetchCandidates: getPublicationCandidates,
     getCurrentSpreadsheetId: () => state.spreadsheetId,
-    applyCandidates: candidates => { publicationCandidates = candidates; },
+    applyCandidates: candidates => { session.publicationCandidates = candidates; },
     render: () => renderFulltextTab(),
 });
 
@@ -159,7 +203,7 @@ async function loadPublicationCandidates(
     const suppressErrorToast = options.suppressErrorToast ?? false;
     const hasRegistrationRows = state.allReferences.some(isRegistrationRecord);
     if (!hasRegistrationRows) {
-        publicationCandidates = [];
+        session.publicationCandidates = [];
         renderFulltextTab();
         return true;
     }
@@ -296,8 +340,8 @@ function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
     const retry = dom.fulltextRetryCheckbox.checked;
     const targetCount = missing + (retry ? unavailable : 0);
     dom.fulltextFetchBtn.textContent = t('fulltext_fetchBtn', String(targetCount));
-    dom.fulltextFetchBtn.disabled = targetCount === 0 || bulkRun !== null;
-    dom.fulltextFetchCancelBtn.classList.toggle('hidden', bulkRun === null);
+    dom.fulltextFetchBtn.disabled = targetCount === 0 || session.bulkRun !== null;
+    dom.fulltextFetchCancelBtn.classList.toggle('hidden', session.bulkRun === null);
 
     // 論文候補の再探索ボタン: fulltext_status を一切見ず、registration行全部を対象数とする
     // （PR #122 レビュー指摘2。取得状態から独立して何度でも再実行できる導線）。registration行が無い
@@ -305,7 +349,7 @@ function renderRetrievalSummary(candidates: ReferenceWithStatus[]): void {
     const registrationCount = candidates.filter(isRegistrationRecord).length;
     dom.fulltextSuggestBtn.classList.toggle('hidden', registrationCount === 0);
     dom.fulltextSuggestBtn.textContent = t('fulltext_suggestBtn', String(registrationCount));
-    dom.fulltextSuggestBtn.disabled = bulkRun !== null;
+    dom.fulltextSuggestBtn.disabled = session.bulkRun !== null;
 }
 
 function renderViewFilter(candidates: ReferenceWithStatus[]): void {
@@ -324,11 +368,11 @@ function renderViewFilter(candidates: ReferenceWithStatus[]): void {
     for (const option of Array.from(dom.fulltextViewFilter.options)) {
         option.textContent = labels[option.value as ViewFilter] ?? option.value;
     }
-    dom.fulltextViewFilter.value = viewFilter;
+    dom.fulltextViewFilter.value = session.viewFilter;
 }
 
 function applyViewFilter(candidates: ReferenceWithStatus[]): ReferenceWithStatus[] {
-    switch (viewFilter) {
+    switch (session.viewFilter) {
         case 'missing': return candidates.filter(r => !isObtained(r));
         case 'obtained': return candidates.filter(isObtained);
         case 'undecided': return candidates.filter(r => myFulltextStatus(r) === 'pending');
@@ -361,7 +405,7 @@ function renderList(candidates: ReferenceWithStatus[]): void {
 
     // registration行ごとの論文候補バッジ件数を1パスでまとめて集計する
     // （カード1枚ごとに配列を毎回フィルタしない。Issue #118 チャンク3b）。
-    const publicationCandidateCounts = countSuggestedPublicationCandidatesByRef(publicationCandidates);
+    const publicationCandidateCounts = countSuggestedPublicationCandidatesByRef(session.publicationCandidates);
     // ツアーの案内先は、全文が未入手で補う手段（PDFアップロード等）が出ている最初のカード（無ければ先頭）
     const tourCardIndex = Math.max(0, visible.findIndex(r => retrievalStatus(r) !== 'cached'));
     visible.forEach((ref, index) => {
@@ -513,7 +557,7 @@ function buildCard(ref: ReferenceWithStatus, publicationCandidateCounts: Map<str
     if (isRegistrationRecord(ref)) {
         const count = publicationCandidateCounts.get(ref.ref_id) ?? 0;
         if (count > 0) {
-            const candidatesForRef = selectSuggestedPublicationCandidates(publicationCandidates, ref.ref_id);
+            const candidatesForRef = selectSuggestedPublicationCandidates(session.publicationCandidates, ref.ref_id);
             return decoratePublicationCandidateCard(card, ref, candidatesForRef);
         }
     }
@@ -743,7 +787,8 @@ async function fetchCtgPmids(nctId: string): Promise<string[]> {
  */
 async function discoverRegistryPublicationCandidates(
     ref: ReferenceWithStatus,
-    outcome: FulltextFetchOutcome
+    outcome: FulltextFetchOutcome,
+    userEmail: string
 ): Promise<PublicationCandidateDraft[]> {
     if (!isRegistrationRecord(ref)) return [];
 
@@ -764,7 +809,7 @@ async function discoverRegistryPublicationCandidates(
             kind: trial.kind,
             ctgPmids,
             existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
-            email: state.userEmail,
+            email: userEmail,
             secondaryTrialIds,
         }, {
             fetchCtgPmids,
@@ -775,8 +820,31 @@ async function discoverRegistryPublicationCandidates(
     }
 }
 
+/**
+ * 開始時に控えた spreadsheetId のプロジェクトを、今も開いているか。
+ * 長い処理が終わったときの画面の書き換えの条件に使う（書き込み先の決定には使わない）。
+ */
+function isProjectOpen(spreadsheetId: string): boolean {
+    return state.spreadsheetId === spreadsheetId;
+}
+
+/** 一括処理の書き込み（bulk-run.ts）へ渡す実体。宛先の spreadsheetId は createBulkWriter に開始時の値を渡す */
+const bulkWriterDeps: BulkWriterDeps = {
+    ensureFulltextFolder,
+    updateReferenceFulltextUrls,
+    savePublicationCandidates,
+    describeDriveAccessError,
+    showToast,
+};
+
 async function handleBulkFetch(): Promise<void> {
-    if (bulkRun) return;
+    if (session.bulkRun) return;
+
+    // 書き込み先・実行者は開始時の値を控える。実行中に戻る・ログアウトで別のプロジェクトへ
+    // 切り替わっても、前のプロジェクトの取得結果を切り替えた後のシートと Drive フォルダへ書かないため
+    // （この控え以外で state.spreadsheetId・state.userEmail を読まない）。
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
 
     const retry = dom.fulltextRetryCheckbox.checked;
     const targets = getVisibleFulltextCandidateList().filter(r => {
@@ -789,54 +857,17 @@ async function handleBulkFetch(): Promise<void> {
     if (!broadGranted) {
         showToast(t('fulltext_permissionHint'), 5000);
     }
+    // 権限の確認を待っている間に別のプロジェクトへ切り替わっていたら、始めない
+    if (!isProjectOpen(spreadsheetId) || session.bulkRun) return;
 
-    bulkRun = { cancelled: false };
+    const run: BulkRun = { cancelled: false };
+    session.bulkRun = run;
+    // 戻る・ログアウトで初期化されると session.bulkRun は別の値になる。その後は画面に書かない
+    const isCurrentRun = (): boolean => session.bulkRun === run;
     renderFulltextTab();
 
-    // Driveフォルダは最初のPDF取得成功時に一度だけ作成。
-    // ensureFulltextFolder が fail-fast エラー（アクセス拒否/認証切れ/一時エラー）を
-    // 投げた場合はここで一度だけ toast を出す（memo化により2回目以降は再実行されない）。
-    // retrieveAndCacheFulltext 側の catch でこのエラーは既存どおり linked へフォールバックする
-    // ため、ここでは再送出するだけで分岐は変えない。
-    let folderPromise: Promise<string> | null = null;
-    const ensureFolder = () => (folderPromise ??= ensureFulltextFolder(state.spreadsheetId).catch(err => {
-        const knownMessage = describeDriveAccessError(err);
-        if (knownMessage) showToast(knownMessage, 6000);
-        throw err;
-    }));
-
-    const pendingWrites: Array<{ refId: string; fulltextUrl: string; status: FulltextStatus; driveSource: null }> = [];
-    // registration行の論文候補（Issue #118 チャンク2 パスB）。pendingWrites と同じ流儀で
-    // ため込み、flush() でまとめて savePublicationCandidates() を呼ぶ。行ごとに保存すると
-    // Sheets APIの読み取りクォータを容易に超えるため（詳細は sheets/publication-candidates.ts の savePublicationCandidates() のコメント参照）。
-    const pendingCandidates: PublicationCandidateDraft[] = [];
-    const flush = async () => {
-        // URL書き込みと候補保存は互いに独立させる: 片方の失敗がもう片方のフラッシュを
-        // 巻き込まないよう、try/catch を別々に付ける。
-        if (pendingWrites.length > 0) {
-            const batch = pendingWrites.splice(0);
-            try {
-                await updateReferenceFulltextUrls(state.spreadsheetId, batch);
-            } catch (err) {
-                console.warn('[fulltext-tab] シートへの保存に失敗:', err);
-                showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
-            }
-        }
-
-        // pendingCandidates は保存に成功した分だけ flushCandidateBuffer() が取り除く。
-        // 失敗時はバッファをそのまま残し、次回の flush() 呼び出し（5件ごと or 最終）で
-        // 再送する（PR #122 レビュー指摘2。以前は先に splice(0) してから保存していたため、保存失敗の
-        // 瞬間にバッファごと候補が消えていた）。
-        if (pendingCandidates.length > 0) {
-            const saved = await flushCandidateBuffer(
-                pendingCandidates,
-                batch => savePublicationCandidates(state.spreadsheetId, batch)
-            );
-            if (!saved) {
-                console.warn('[fulltext-tab] 論文候補の保存に失敗（バッファを保持し次回flushで再送）');
-            }
-        }
-    };
+    const writer = createBulkWriter(spreadsheetId, bulkWriterDeps);
+    const { ensureFolder, pendingWrites, pendingCandidates, flush } = writer;
 
     let done = 0;
     let cachedCount = 0;
@@ -850,12 +881,12 @@ async function handleBulkFetch(): Promise<void> {
 
     try {
         for (const ref of targets) {
-            if (bulkRun.cancelled) break;
-            setFetchStatus(t('fulltext_fetchProgress', [String(done + 1), String(targets.length)]));
+            if (run.cancelled) break;
+            if (isCurrentRun()) setFetchStatus(t('fulltext_fetchProgress', [String(done + 1), String(targets.length)]));
 
             let outcome: FulltextFetchOutcome;
             try {
-                outcome = await retrieveAndCacheFulltext(ref, state.userEmail, ensureFolder);
+                outcome = await retrieveAndCacheFulltext(ref, userEmail, ensureFolder);
             } catch (err) {
                 console.warn('[fulltext-tab] 取得エラー:', ref.ref_id, err);
                 outcome = { kind: 'none' };
@@ -872,7 +903,7 @@ async function handleBulkFetch(): Promise<void> {
                 if (outcome.kind === 'cached') registrySnapshotSaved++;
             }
 
-            const candidates = await discoverRegistryPublicationCandidates(ref, outcome);
+            const candidates = await discoverRegistryPublicationCandidates(ref, outcome, userEmail);
             if (candidates.length > 0) {
                 pendingCandidates.push(...candidates);
                 if (isRegistryRow) registryCandidatesFound += candidates.length;
@@ -884,7 +915,7 @@ async function handleBulkFetch(): Promise<void> {
 
             done++;
             if (pendingWrites.length >= 5) await flush();
-            renderFulltextTab();
+            if (isCurrentRun()) renderFulltextTab();
 
             // 外部APIへの礼儀として間隔を空ける
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -896,18 +927,22 @@ async function handleBulkFetch(): Promise<void> {
         if (pendingCandidates.length > 0) {
             showToast(t('fulltext_candidateSaveError', String(pendingCandidates.length)), 6000);
         }
-        const cancelled = bulkRun?.cancelled ?? false;
-        bulkRun = null;
-        renderFulltextTab();
-        let summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
-        // registration行を1件でも処理していれば内訳を追加する（Issue #118 実装内容6）。
-        if (registryProcessed > 0) {
-            summary += ` ${t('fulltext_fetchDoneRegistry', [String(registrySnapshotSaved), String(registryCandidatesFound)])}`;
+        // 画面の書き換えと実行の印の解除は、この実行が現役のときだけ
+        // （戻る・ログアウトで中止された実行は、切り替えた後の画面に書かず、新しい実行の印も消さない）
+        if (isCurrentRun()) {
+            const cancelled = run.cancelled;
+            session.bulkRun = null;
+            renderFulltextTab();
+            let summary = t('fulltext_fetchDone', [String(cachedCount), String(linkedCount), String(noneCount)]);
+            // registration行を1件でも処理していれば内訳を追加する（Issue #118 実装内容6）。
+            if (registryProcessed > 0) {
+                summary += ` ${t('fulltext_fetchDoneRegistry', [String(registrySnapshotSaved), String(registryCandidatesFound)])}`;
+            }
+            setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+            if (!cancelled) emitGuideEvent('fulltext-fetch-finished');
+            // 論文候補キャッシュを再読み込みしてバッジへ反映する（この一括取得で新規発見された分も含む）。
+            void loadPublicationCandidates();
         }
-        setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
-        if (!cancelled) emitGuideEvent('fulltext-fetch-finished');
-        // 論文候補キャッシュを再読み込みしてバッジへ反映する（この一括取得で新規発見された分も含む）。
-        void loadPublicationCandidates();
     }
 }
 
@@ -925,32 +960,27 @@ async function handleBulkFetch(): Promise<void> {
  * 除外するため、何度再実行しても Publication_Candidates タブに重複行は増えない
  * （＝この冪等性が「取得状態を見ずに毎回全件を再実行してよい」ことの根拠）。
  *
- * handleBulkFetch と同じ bulkRun ガードを共有する。取得と再探索が同時に走らず、
- * 既存の中止ボタン（bulkRun !== null で表示）もそのまま両方に効く。
+ * handleBulkFetch と同じ session.bulkRun ガードを共有する。取得と再探索が同時に走らず、
+ * 既存の中止ボタン（session.bulkRun !== null で表示）もそのまま両方に効く。
  */
 async function handleBulkSuggest(): Promise<void> {
-    if (bulkRun) return;
+    if (session.bulkRun) return;
+
+    // handleBulkFetch と同じく、書き込み先・実行者は開始時の値を控える（state.spreadsheetId を読まない）。
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
 
     const targets = getVisibleFulltextCandidateList().filter(isRegistrationRecord);
     if (targets.length === 0) return;
 
-    bulkRun = { cancelled: false };
+    const run: BulkRun = { cancelled: false };
+    session.bulkRun = run;
+    const isCurrentRun = (): boolean => session.bulkRun === run;
     renderFulltextTab();
 
     // handleBulkFetch の pendingCandidates/flush と同じ流儀（5件ごとにflush。registration行
     // 1件ごとの保存はSheets APIの読み取りクォータを焼き切るため）。
-    const pendingCandidates: PublicationCandidateDraft[] = [];
-    const flushCandidates = async (): Promise<boolean> => {
-        if (pendingCandidates.length === 0) return true;
-        const saved = await flushCandidateBuffer(
-            pendingCandidates,
-            batch => savePublicationCandidates(state.spreadsheetId, batch)
-        );
-        if (!saved) {
-            console.warn('[fulltext-tab] 論文候補の保存に失敗（バッファを保持し次回flushで再送）');
-        }
-        return saved;
-    };
+    const { pendingCandidates, flushCandidates } = createBulkWriter(spreadsheetId, bulkWriterDeps);
 
     let done = 0;
     let totalFound = 0;
@@ -961,8 +991,8 @@ async function handleBulkSuggest(): Promise<void> {
     let nextFlushAt = 5;
     try {
         for (const ref of targets) {
-            if (bulkRun.cancelled) break;
-            setFetchStatus(t('fulltext_suggestProgress', [String(done + 1), String(targets.length)]));
+            if (run.cancelled) break;
+            if (isCurrentRun()) setFetchStatus(t('fulltext_suggestProgress', [String(done + 1), String(targets.length)]));
 
             const trial = extractTrialId(ref);
             if (trial) {
@@ -980,7 +1010,7 @@ async function handleBulkSuggest(): Promise<void> {
                         kind: trial.kind,
                         ctgPmids,
                         existingRefs: state.references.map(r => ({ pmid: r.pmid, doi: r.doi })),
-                        email: state.userEmail,
+                        email: userEmail,
                         secondaryTrialIds,
                     }, {
                         fetchCtgPmids,
@@ -998,7 +1028,7 @@ async function handleBulkSuggest(): Promise<void> {
                 const ok = await flushCandidates();
                 nextFlushAt = nextCandidateFlushThreshold(pendingCandidates.length, ok);
             }
-            renderFulltextTab();
+            if (isCurrentRun()) renderFulltextTab();
 
             // 外部APIへの礼儀として間隔を空ける（handleBulkFetchと同じ）
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -1009,13 +1039,16 @@ async function handleBulkSuggest(): Promise<void> {
         if (pendingCandidates.length > 0) {
             showToast(t('fulltext_candidateSaveError', String(pendingCandidates.length)), 6000);
         }
-        const cancelled = bulkRun?.cancelled ?? false;
-        bulkRun = null;
-        renderFulltextTab();
-        const summary = t('fulltext_suggestDone', [String(done), String(totalFound)]);
-        setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
-        // 論文候補キャッシュを再読み込みしてバッジへ反映する（この再探索で新規発見された分も含む）。
-        void loadPublicationCandidates();
+        // 画面の書き換えと実行の印の解除は、この実行が現役のときだけ（handleBulkFetch と同じ）
+        if (isCurrentRun()) {
+            const cancelled = run.cancelled;
+            session.bulkRun = null;
+            renderFulltextTab();
+            const summary = t('fulltext_suggestDone', [String(done), String(totalFound)]);
+            setFetchStatus(cancelled ? `${t('fulltext_fetchCancelled')} ${summary}` : summary);
+            // 論文候補キャッシュを再読み込みしてバッジへ反映する（この再探索で新規発見された分も含む）。
+            void loadPublicationCandidates();
+        }
     }
 }
 
@@ -1058,6 +1091,10 @@ export async function fetchSingleFulltextForRef(
 ): Promise<boolean> {
     const reloadCandidates = options.reloadCandidates ?? true;
     const suppressErrorToast = options.suppressErrorToast ?? false;
+    // 処理の途中で戻る・ログアウトがあっても、書き込み先は開始時のプロジェクトのままにする
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
+    const isSameProject = (): boolean => isProjectOpen(spreadsheetId);
 
     try {
         // requestBroadHostPermission() は内部で必ず resolve するよう直しており、今はここが
@@ -1068,12 +1105,12 @@ export async function fetchSingleFulltextForRef(
         // try の内側に置いて必ず finally 一本で後始末が走るようにしておく。
         await requestBroadHostPermission();
         const outcome = await retrieveAndCacheFulltext(
-            ref, state.userEmail,
+            ref, userEmail,
             // ensureFulltextFolder の fail-fast エラーは通知だけして再送出する。
             // retrieveAndCacheFulltext 側は従来どおり linked へフォールバックする。
             async () => {
                 try {
-                    return await ensureFulltextFolder(state.spreadsheetId);
+                    return await ensureFulltextFolder(spreadsheetId);
                 } catch (err) {
                     const knownMessage = describeDriveAccessError(err);
                     if (knownMessage) showToast(knownMessage, 6000);
@@ -1083,25 +1120,26 @@ export async function fetchSingleFulltextForRef(
         );
         const write = applyOutcome(ref, outcome);
         // fulltext_url の書き込みを論文候補探索より先に済ませる（handleBulkFetch と同じ理由）。
-        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, write.fulltextUrl, write.status, null);
+        await updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, write.fulltextUrl, write.status, null);
 
-        const candidates = await discoverRegistryPublicationCandidates(ref, outcome);
+        const candidates = await discoverRegistryPublicationCandidates(ref, outcome, userEmail);
         if (candidates.length > 0) {
             try {
-                await savePublicationCandidates(state.spreadsheetId, candidates);
+                await savePublicationCandidates(spreadsheetId, candidates);
             } catch (err) {
                 console.warn('[fulltext-tab] 論文候補の保存に失敗:', ref.ref_id, err);
             }
         }
 
-        renderFulltextTab();
+        // 終わったときの画面の書き換えは、開始時のプロジェクトを今も開いているときだけ
+        if (isSameProject()) renderFulltextTab();
         return true;
     } catch (err) {
         if (!suppressErrorToast) showToast(t('fulltext_sheetSaveError', (err as Error).message), 5000);
-        renderFulltextTab();
+        if (isSameProject()) renderFulltextTab();
         return false;
     } finally {
-        if (reloadCandidates) void loadPublicationCandidates();
+        if (reloadCandidates && isSameProject()) void loadPublicationCandidates();
     }
 }
 
@@ -1110,17 +1148,19 @@ export async function fetchSingleFulltextForRef(
 // ---------------------------------------------------------------------------
 
 function handleUploadClick(ref: ReferenceWithStatus): void {
-    uploadTargetRefId = ref.ref_id;
+    session.uploadTargetRefId = ref.ref_id;
     dom.fulltextUploadInput.value = '';
     dom.fulltextUploadInput.click();
 }
 
 async function handleUploadChange(): Promise<void> {
     const file = dom.fulltextUploadInput.files?.[0];
-    const refId = uploadTargetRefId;
-    uploadTargetRefId = null;
+    const refId = session.uploadTargetRefId;
+    session.uploadTargetRefId = null;
     if (!file || !refId) return;
 
+    // 処理の途中で戻る・ログアウトがあっても、書き込み先は開始時のプロジェクトのままにする
+    const spreadsheetId = state.spreadsheetId;
     const ref = state.references.find(r => r.ref_id === refId);
     if (!ref) return;
 
@@ -1133,15 +1173,15 @@ async function handleUploadChange(): Promise<void> {
 
     showToast(t('fulltext_uploading'), 3000);
     try {
-        const folderId = await ensureFulltextFolder(state.spreadsheetId);
+        const folderId = await ensureFulltextFolder(spreadsheetId);
         const info = await uploadPdfToDrive(folderId, buildPdfFileName(ref), file);
         ref.fulltext_url = info.webViewLink;
         ref.fulltext_status = 'cached';
         // ローカルPDFの手動アップロードはDrive直接取り込みではないため、取り込み元/コピーIDはクリアする
         ref.fulltext_drive_source_id = undefined;
         ref.fulltext_drive_copy_id = undefined;
-        await updateReferenceFulltextUrl(state.spreadsheetId, ref.ref_id, info.webViewLink, 'cached', null);
-        renderFulltextTab();
+        await updateReferenceFulltextUrl(spreadsheetId, ref.ref_id, info.webViewLink, 'cached', null);
+        if (isProjectOpen(spreadsheetId)) renderFulltextTab();
         showToast(t('fulltext_uploadDone'), 3000);
     } catch (err) {
         const knownMessage = describeDriveAccessError(err);
@@ -1153,6 +1193,72 @@ async function handleUploadChange(): Promise<void> {
 // イベントリスナー
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// 戻る・ログアウトの初期化
+// ---------------------------------------------------------------------------
+
+/**
+ * 全文タブの入力欄と表示を初期の状態に戻す。全文タブの DOM が無いとき（読み込み前）は何もしない。
+ * 次に全文の AI 判定タブを描くと、aiInitialized が false に戻っているので、
+ * プロンプト欄は次のプロジェクトの設定からプリフィルされる。
+ */
+function resetFulltextDom(): void {
+    if (typeof document === 'undefined' || !document.getElementById('fulltext-ai-prompt')) return;
+
+    // 全文の AI 判定
+    dom.fulltextAiPromptInput.value = '';
+    dom.fulltextAiPromptInput.disabled = false;
+    // 選択肢の先頭は Gemini の最初のモデル（今の初期と同じ）
+    if (dom.fulltextAiModelSelect.options.length > 0) dom.fulltextAiModelSelect.selectedIndex = 0;
+    dom.fulltextAiModelSelect.disabled = false;
+    dom.fulltextAiScopeProjectRadio.checked = DEFAULT_FULLTEXT_AI_SCOPE === 'project';
+    dom.fulltextAiScopeAssignedRadio.checked = DEFAULT_FULLTEXT_AI_SCOPE === 'assigned';
+    dom.fulltextAiScopeProjectRadio.disabled = false;
+    dom.fulltextAiScopeAssignedRadio.disabled = false;
+    dom.fulltextAiLogDiv.innerHTML = '';
+    dom.fulltextAiProgressDiv.classList.add('hidden');
+    dom.fulltextAiProgressFill.style.width = '0%';
+    dom.fulltextAiProgressText.textContent = '';
+    dom.fulltextAiStartBtn.classList.remove('hidden');
+    dom.fulltextAiStopBtn.classList.add('hidden');
+    dom.fulltextAiStopBtn.disabled = false;
+
+    // 一覧・取得
+    dom.fulltextViewFilter.value = createFulltextTabSession().viewFilter;
+    dom.fulltextRetryCheckbox.checked = false;
+    dom.fulltextUploadInput.value = '';
+    setFetchStatus(null);
+    dom.fulltextFetchCancelBtn.classList.add('hidden');
+    // 中止しない短い処理の状態の文は、その処理が実行中なら終わりに任せる
+    if (!isDriveImportInProgress()) {
+        dom.fulltextImportDriveStatus.classList.add('hidden');
+        dom.fulltextImportDriveStatus.textContent = '';
+    }
+    if (!isRegrantInProgress()) {
+        dom.fulltextRegrantStatus.classList.add('hidden');
+        dom.fulltextRegrantStatus.textContent = '';
+    }
+
+    // 候補リスト・AI判定・結果の表示の切替（状態は初期値の list に戻っている）
+    applyFulltextModeVisibility();
+}
+
+/**
+ * 戻る・ログアウトで全文タブの状態と入力欄を初期に戻す（session-reset.ts に登録する）。
+ * 実行中の全文の AI 一括判定と一括OA検索は、中止してから初期化する。
+ * @returns 実行中の処理を中止したら true
+ */
+export function resetFulltextSession(reason: SessionResetReason): boolean {
+    const abortedAi = resetFulltextAiSession();
+    const abortedBulk = resetFulltextTabSession();
+    resetFulltextResultsSession();
+    resetFulltextChecklistSession(reason);
+    resetPublicationCandidatesSession();
+    resetReasonEditorSession();
+    resetFulltextDom();
+    return abortedAi || abortedBulk;
+}
+
 /**
  * イベントリスナーを設定（features/fulltext/lazy.ts の本体読込成功時に一度だけ呼ぶ）
  *
@@ -1160,6 +1266,9 @@ async function handleUploadChange(): Promise<void> {
  * （llm/index.ts の setupLlmEventListeners と同じ理由。タブ切替は本体ロード前に必要なため）。
  */
 export function setupFulltextTabListeners(): void {
+    // 一度でも全文タブを開いたら、戻る・ログアウトの初期化に参加する（開いていなければ何もしない。
+    // compat.ts から遅延チャンクを直接 import しないための登録）
+    registerSessionReset('fulltext', resetFulltextSession);
     dom.fulltextBackBtn?.addEventListener('click', () => {
         hideToast();
         changeTab('screening');
@@ -1174,11 +1283,11 @@ export function setupFulltextTabListeners(): void {
     dom.fulltextFetchBtn?.addEventListener('click', () => { void handleBulkFetch(); });
     dom.fulltextSuggestBtn?.addEventListener('click', () => { void handleBulkSuggest(); });
     dom.fulltextFetchCancelBtn?.addEventListener('click', () => {
-        if (bulkRun) bulkRun.cancelled = true;
+        if (session.bulkRun) session.bulkRun.cancelled = true;
     });
     dom.fulltextRetryCheckbox?.addEventListener('change', () => renderFulltextTab());
     dom.fulltextViewFilter?.addEventListener('change', () => {
-        viewFilter = dom.fulltextViewFilter.value as ViewFilter;
+        session.viewFilter = dom.fulltextViewFilter.value as ViewFilter;
         renderFulltextTab();
     });
     dom.fulltextUploadInput?.addEventListener('change', () => { void handleUploadChange(); });

@@ -13,11 +13,15 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 - プロジェクトを切り替えた直後に、前のプロジェクトの AI 設定（基準）が全文の AI 判定の実行記録に入ることがある経路をなくしました。
   Removed a path by which the previous project's AI settings (criteria) could be recorded in the full-text AI screening log right after switching projects.
+- プロジェクトを切り替えた直後に、全文の AI 判定のプロンプト欄に前のプロジェクトのプロンプトが残り、そのまま実行できた経路をなくしました。
+  Removed a path by which the previous project's prompt could remain in the full-text AI screening prompt box after switching projects and be used as is.
 
 ### 画面 / Interface
 
 - 別のプロジェクトへ切り替えたとき、前のプロジェクトの検索語・ステータスの絞り込み・AI の設定・「新規にやり直す」の切替が残ることがあったのを直しました。AI 一括判定の実行中に「戻る」を押した場合は、一括判定を中止してから切り替えます（中止までの判定は保存され、続きから再開できます）。
   When switching to another project, the search text, status filter, AI settings and the "start over" toggle of the previous project could carry over; this is fixed. If you press Back while AI batch screening is running, the batch is now stopped before switching (decisions saved so far are kept and the run can be resumed).
+- 別のプロジェクトへ切り替えたとき・ログアウトしたときに、全文タブの AI 判定のプロンプト・対象範囲・一覧の絞り込み・結果で選んだ判定者が前のプロジェクトのまま残ることがあったのを直しました。全文の AI 一括判定と一括 OA 検索の実行中に「戻る」を押した場合は、中止してから切り替えます（中止までの結果は元のプロジェクトに保存されます）。
+  When switching to another project or logging out, the full-text AI prompt, scope, list filter and the reviewers selected in the results could carry over from the previous project; this is fixed. If you press Back while full-text AI batch screening or bulk open-access retrieval is running, it is now stopped before switching (results so far are saved to the original project).
 
 ## v0.57.2（2026-11-09）
 
