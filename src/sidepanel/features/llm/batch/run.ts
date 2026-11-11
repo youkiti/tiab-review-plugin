@@ -10,7 +10,7 @@
 
 import { dom } from '../dom';
 import { state } from '../../../state';
-import type { LlmBatchProgress, BatchProfile, LlmRun } from '../../../../lib/types';
+import type { LlmBatchProgress, BatchProfile, LlmRun, Decision } from '../../../../lib/types';
 import { BATCH_PROFILES, getBatchProfile } from '../../../../lib/types';
 import {
     appendDecisions,
@@ -206,6 +206,11 @@ export async function handleStartBatch() {
     // AbortControllerを作成
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
+    // 戻る・ログアウトで初期化されると state 側の制御が null になり false になる。
+    // 初期化の後に、前のプロジェクトの結果を次のプロジェクトの Store へ書かないための判定
+    const isCurrentBatch = () => state.batchAbortController === abortController;
+    // 保存できた判定。Store の currentBatchDecisions は初期化されうるので件数計算にはこちらを使う
+    const savedDecisions: Decision[] = [];
     syncSetCurrentBatchDecisions([]);
 
     // 中断・エラー時にも finally で履歴行を実件数で更新するため、
@@ -301,33 +306,35 @@ export async function handleStartBatch() {
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
                 await appendDecisions(spreadsheetId, decisions);
-                const currentDecisions = state.currentBatchDecisions;
-                syncSetCurrentBatchDecisions([...currentDecisions, ...decisions]);
+                savedDecisions.push(...decisions);
+                if (isCurrentBatch()) {
+                    syncSetCurrentBatchDecisions([...savedDecisions]);
+                }
             },
             // confirmed Run 配下のバッチは保存時点で include/exclude を確定させる
             applyThreshold: runThreshold ?? undefined,
         });
         batchResult = result;
 
-        // 失敗したref_idを保存
-        syncSetFailedRefIds(result.failedRefIds, executionId);
-
-        // 失敗があればリトライボタンを表示
-        if (result.failedRefIds.length > 0) {
-            dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
-            dom.retryFailedBtn.classList.remove('hidden');
-        } else {
-            dom.retryFailedBtn.classList.add('hidden');
+        // 失敗したref_idを保存し、あればリトライボタンを表示（初期化済みなら次のプロジェクトを触らない）
+        if (isCurrentBatch()) {
+            syncSetFailedRefIds(result.failedRefIds, executionId);
+            if (result.failedRefIds.length > 0) {
+                dom.retryFailedBtn.textContent = t('llm_retryBtn', String(result.failedRefIds.length));
+                dom.retryFailedBtn.classList.remove('hidden');
+            } else {
+                dom.retryFailedBtn.classList.add('hidden');
+            }
         }
 
         // 完了後のUI更新
-        if (!abortController.signal.aborted) {
+        if (!abortController.signal.aborted && isCurrentBatch()) {
             // Batch 行は pre-write 済みなのでここでの再保存は不要。
             // Run/Batch 分離後、閾値・status・is_active は LLM_Runs 側を正とする。
 
             // confirmed Run なら、Run を active 化して閾値 UI を出さない
             if (isImmediate && runThreshold !== null) {
-                const counts = previewThresholdCounts(state.currentBatchDecisions, runThreshold);
+                const counts = previewThresholdCounts(savedDecisions, runThreshold);
                 await setSingleActiveRun(spreadsheetId, runId);
                 showToast(
                     t('llm_thresholdAutoApplied', [String(counts.includeCount), String(counts.excludeCount)])
@@ -370,12 +377,14 @@ export async function handleStartBatch() {
         console.error('[handleStartBatch] Error:', error);
         showToast(t('llm_batchError', (error as Error).message));
     } finally {
-        dom.stopBatchBtn.classList.add('hidden');
+        // 初期化の後に次のプロジェクトで別の一括判定が始まっていたら、その画面の状態は触らない
+        const ownsBatchUi = () => isCurrentBatch() || state.batchAbortController === null;
+        if (ownsBatchUi()) dom.stopBatchBtn.classList.add('hidden');
 
         // pre-write した履歴行の target_count を、実際に保存できた判定件数で更新する。
         // 中断・エラー・成功のいずれでもここに来るので、履歴行と Decisions シートの件数が
         // 食い違わないようにする最後の保険。失敗しても黙って続行する。
-        await finalizeBatchExecution(spreadsheetId, executionId, batchResult);
+        await finalizeBatchExecution(spreadsheetId, executionId, batchResult, savedDecisions);
 
         // バッチで判定済みになった文献を「未判定」カウントから除外するため再読込
         // （中断・エラー時も部分的に保存されている可能性があるので必ず実行）
@@ -383,17 +392,22 @@ export async function handleStartBatch() {
         // 先に解放すると state.references が古いまま連続クリックされて、
         // 直前のバッチ対象を重複して投げてしまう競合が起きる（重複の入口は冒頭の guard で塞ぐ）。
         await refreshReferencesAfterBatch(spreadsheetId);
-        state.setBatchAbortController(null);
-        dom.startBatchBtn.classList.remove('hidden');
+        if (isCurrentBatch()) state.setBatchAbortController(null);
+        if (ownsBatchUi()) dom.startBatchBtn.classList.remove('hidden');
     }
 }
 
-async function finalizeBatchExecution(spreadsheetId: string, executionId: string | null, batchResult: Awaited<ReturnType<typeof processBatch>> | null): Promise<void> {
+async function finalizeBatchExecution(
+    spreadsheetId: string,
+    executionId: string | null,
+    batchResult: Awaited<ReturnType<typeof processBatch>> | null,
+    savedDecisions: readonly Decision[],
+): Promise<void> {
     if (!executionId) {
         return;
     }
     try {
-        const savedCount = countExecutionReferences(state.currentBatchDecisions, executionId);
+        const savedCount = countExecutionReferences(savedDecisions, executionId);
         await updateLlmExecution(spreadsheetId, executionId, {
             target_count: savedCount,
             model_version: batchResult?.resolvedModelVersion,
@@ -490,24 +504,32 @@ export async function handleRetryFailed() {
 
     const abortController = new AbortController();
     state.setBatchAbortController(abortController);
+    // handleStartBatch と同じ。初期化の後に前のプロジェクトの結果を書かないための判定
+    const isCurrentBatch = () => state.batchAbortController === abortController;
+    // 保存済みの判定（開始時に読み直した分）に、この再試行で保存できた分を足していく
+    let savedDecisions: Decision[] = [];
+    // 後始末は開始時のシートに対して行う（実行中に戻って別のプロジェクトを開いても向き先が変わらない）
+    const spreadsheetId = state.spreadsheetId;
 
     let retryStarted = false;
     let batchResult: Awaited<ReturnType<typeof processBatch>> | null = null;
 
     try {
         const profile = await resolveBatchProfile(modelId);
-        const spreadsheetId = state.spreadsheetId;
 
         const run = await getRunForBatchId(spreadsheetId, executionId);
         if (!run) {
             throw new Error('リトライ元の実行に対応する Run が見つかりません。実行履歴を読み直してください。');
         }
         const saved = await getDecisionsByReviewerId(spreadsheetId, executionId);
-        syncSetCurrentBatchDecisions(saved.map(row => row.decision));
+        savedDecisions = saved.map(row => row.decision);
         retryStarted = true;
-        state.setCurrentExecutionId(executionId);
-        dom.retryFailedBtn.classList.add('hidden');
-        syncClearFailedRefIds();
+        if (isCurrentBatch()) {
+            syncSetCurrentBatchDecisions([...savedDecisions]);
+            state.setCurrentExecutionId(executionId);
+            dom.retryFailedBtn.classList.add('hidden');
+            syncClearFailedRefIds();
+        }
         // 同じ reviewer_id で新しい decided_at を保存する。
         // buildReviewerDecisionMap が最新の票を採るため、元の仮の票と二重採用されない。
         const result = await processBatch(targetRefs, {
@@ -530,14 +552,17 @@ export async function handleRetryFailed() {
             onProgress: updateBatchProgress,
             onSaveBatch: async (decisions) => {
                 await appendDecisions(spreadsheetId, decisions);
-                const currentDecisions = state.currentBatchDecisions;
-                syncSetCurrentBatchDecisions([...currentDecisions, ...decisions]);
+                savedDecisions.push(...decisions);
+                if (isCurrentBatch()) {
+                    syncSetCurrentBatchDecisions([...savedDecisions]);
+                }
             },
         });
 
         batchResult = result;
 
-        // リトライ結果を更新
+        // リトライ結果を更新（初期化済みなら次のプロジェクトの画面を触らない）
+        if (!isCurrentBatch()) return;
         syncSetFailedRefIds(result.failedRefIds, executionId);
 
         if (result.failedRefIds.length > 0) {
@@ -557,18 +582,22 @@ export async function handleRetryFailed() {
         handleThresholdChange();
     } catch (error) {
         console.error('[handleRetryFailed] Error:', error);
-        syncSetFailedRefIds(failedRefIds, sourceExecutionId);
-        dom.retryFailedBtn.classList.remove('hidden');
+        if (isCurrentBatch()) {
+            syncSetFailedRefIds(failedRefIds, sourceExecutionId);
+            dom.retryFailedBtn.classList.remove('hidden');
+        }
         showToast(t('llm_retryError', (error as Error).message));
     } finally {
         if (retryStarted) {
-            await finalizeBatchExecution(state.spreadsheetId, executionId, batchResult);
+            await finalizeBatchExecution(spreadsheetId, executionId, batchResult, savedDecisions);
         }
-        dom.stopBatchBtn.classList.add('hidden');
+        // 初期化の後に次のプロジェクトで別の一括判定が始まっていたら、その画面の状態は触らない
+        const ownsBatchUi = () => isCurrentBatch() || state.batchAbortController === null;
+        if (ownsBatchUi()) dom.stopBatchBtn.classList.add('hidden');
         // refresh 完了後にまとめて解放（handleStartBatch 側の guard と対になっている）
-        await refreshReferencesAfterBatch(state.spreadsheetId);
-        state.setBatchAbortController(null);
-        dom.startBatchBtn.classList.remove('hidden');
+        await refreshReferencesAfterBatch(spreadsheetId);
+        if (isCurrentBatch()) state.setBatchAbortController(null);
+        if (ownsBatchUi()) dom.startBatchBtn.classList.remove('hidden');
     }
 }
 

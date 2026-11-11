@@ -18,6 +18,7 @@ import {
     showProjectView,
     setUserEmail as syncSetUserEmail,
     resetForLogout as syncResetForLogout,
+    abortRunningBatch,
 } from '../store/compat';
 
 // 外部関数への参照（循環依存回避）
@@ -87,6 +88,9 @@ export async function handleLogout() {
     if (!confirm(t('auth_logoutConfirm'))) {
         return;
     }
+
+    // 実行中の AI 一括判定は、認証を消す前に中止する（消した後に書き込みへ行って失敗するのを避ける）
+    abortRunningBatch();
 
     try {
         showLoading(true);

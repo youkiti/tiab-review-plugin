@@ -201,6 +201,10 @@ function renderCurrentReferenceImpl() {
     if (dom.searchInput.value !== state.searchQuery) {
         dom.searchInput.value = state.searchQuery;
     }
+    // ステータスの選択欄も Store に合わせる（戻る・ログアウトで未判定に戻ったとき表示も戻す）
+    if (dom.statusFilter.value !== state.currentFilter) {
+        dom.statusFilter.value = state.currentFilter;
+    }
     const filtered = getFilteredReferences();
     const historyRef = getCurrentHistoryReference();
     const ref = historyRef || filtered[state.currentIndex];

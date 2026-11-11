@@ -25,6 +25,7 @@
 | Blind の可視性 | [「フルテキスト判定画面（PDFウィンドウ）の「他レビュアーの判定」」](src/lib/sheets/AGENTS.md)「運用ルール」 |
 | 列の末尾追加・ヘッダー導出 | [「スプレッドシート構造」](src/lib/sheets/AGENTS.md)の References / LLM_Executions タブ、「テスト・作業ツリーの落とし穴」のヘッダーミラー・References読み取り範囲 |
 | 判定保存・履歴の追記専用契約 | [「スプレッドシート構造」](src/lib/sheets/AGENTS.md)の Decisions タブ、[「判定保存フロー」](src/lib/sheets/AGENTS.md)[「κ（Cohen's kappa）の算出手順」](src/lib/sheets/AGENTS.md) |
+| 抽出アプリから読まれているシートの契約 | [src/lib/sheets/SHARED-SHEET-CONTRACT.md](src/lib/sheets/SHARED-SHEET-CONTRACT.md)（読まれている列・Config のキー、変えるときの決まり、採用判定の2か所の実装の対応表） |
 | OAuth・認証の変更禁止事項 | [「OAuth スコープ」](src/platform/AGENTS.md)[「OAuth フロー: なぜ implicit なのか（変更禁止・調査済み）」](src/platform/AGENTS.md)「Web版（ブラウザ版）」 |
 | コマンドラインからのプロジェクト作成 | [「Node（コマンドライン）用のアダプタと認証（Issue #245）」](src/platform/AGENTS.md)、[scripts/create-project/README.md](scripts/create-project/README.md) |
 | オフライン同期 | [「オフライン同期の方針」](src/lib/AGENTS.md) |
@@ -44,20 +45,22 @@
 
 Google スプレッドシートを共有データベースとして使用し、複数のレビュアーが文献評価を行えるツールです。
 
-### アーキテクチャ方針（2026-06-12 確定）
+### アーキテクチャ方針（2026-06-12 確定、2026-11-11 に別アプリの記述を事実に合わせて更新）
 
-SR ワークフローを以下の**2アプリ構成**で実現する。共有データ基盤は同一 Google Sheets。
+SR ワークフローを以下の**2アプリ構成**で実現する。どちらも Chrome 拡張で、同じ発行元アカウントで Chrome Web Store に公開している（`tools/release/README.md`）。
 
-| レイヤー                               | 担当機能                                                                                                  | 形態                           |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **Chrome拡張（本リポジトリ）**         | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF アノテーション（`fulltext.html`） | Chrome Extension (MV3)         |
-| **別Webアプリ（別リポジトリ、将来）**  | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB2 / ROBINS-I 等）                                   | Web アプリ（インストール不要） |
+| レイヤー | 担当機能 | 形態 |
+| --- | --- | --- |
+| **TiAb Review Plugin（本リポジトリ）** | TiAb スクリーニング（サイドパネル）<br>フルテキストスクリーニング + PDF 表示（`fulltext.html`） | Chrome Extension (MV3)。判定に参加するだけの Web版（「Web版（ブラウザ版）」節） |
+| **sr-data-extraction-plugin（別リポジトリ `youkiti/sr-data-extraction-plugin`）** | データ抽出（構造化フォーム）<br>Risk of Bias 評価（RoB 2 / ROBINS-I のテンプレート）<br>独立二重レビュー・裁定 | Chrome Extension。2026-07-12 からストアで公開 |
 
-**Chrome拡張をフルテキスト以降に拡張しない理由：**
+**2つのアプリの連携は、抽出アプリが本リポジトリのスプレッドシートを読むだけで行う。** 抽出アプリは自分のスプレッドシートにデータを書き、本リポジトリのシートには書かない。本リポジトリのシートの References・Decisions・Config を読み、採用リスト（最終判定が include の文献）を自分のコードで計算する（LLM_Runs・LLM_Executions と、References の `duplicate_of`・Config の `key_opened` は youkiti/sr-data-extraction-plugin#480 で読み始める）。抽出アプリが依存している列・Config のキー・判定の規則と、本リポジトリ側でそれらを変えるときの決まりは [src/lib/sheets/SHARED-SHEET-CONTRACT.md](src/lib/sheets/SHARED-SHEET-CONTRACT.md)（契約 v1）にある。**判定の畳み込み・重複除外・盲検（キーの開封）・有効な AI 実行の選び方・裁定・合議・全文の AI ラウンド・全文の候補の規則を変える PR は、抽出アプリの `src/features/documents/tiabReview.ts` も直す必要があることを本文に書く。**
 
-- データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
-- PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
-- RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
+**データ抽出・RoB を本リポジトリに入れない理由：**
+
+- データ抽出・RoB はフォーム UI と動的なスキーマ（RoB ツールのドメイン定義など）が主体で、TiAb のサイドパネルと設定 UI に馴染まない
+- PDF.js を入れた後のバンドルの肥大を、本リポジトリ内で最小限に抑えるため
+- 抽出アプリは既に公開済みで、データ抽出・RoB・二重レビュー・裁定をそちらで実装している
 
 ### 機能を足す・足さない基準（保守期、2026-11-11 確定）
 
@@ -267,6 +270,7 @@ tiab-review-plugin/
 - Web版は `_locales/*/messages.json` を丸ごと同梱するが、`scripts/webpack/strip-locale-keys.cjs` の接頭辞（現在 `ftPage_`）に該当する拡張専用キーはビルド時に落とす（PR #207、フルテキスト判定ページ専用キーでbundle-budgetを超過したため）。拡張専用の画面用にキーを追加するときは、既存の接頭辞に揃えるか、この配列にその接頭辞を足すこと。
 - **拡張版だけの機能の初期化を `bootstrapCommon()`（`src/sidepanel/bootstrap.ts`）に置かない。** ここは Web版（`src/webapp/index.ts`）も呼ぶので、ここから `features/*/lazy.ts` などを import すると、Web版が読み込んでいなかったモジュール（その `lazy.ts` と、それが静的に import している先）が Web版の初期JSに入る。Issue #251 で全文タブの通知の受け口をここに置いたところ、Web版 `app` が約 50 KB 増えて `check:bundle` で落ちた。拡張版だけの登録は `src/sidepanel/sidepanel.ts` で行う。
 - `main` の必須チェックは `build-check.yml` の4ジョブ名で登録している。ジョブ名を変える・ジョブを足すときは、同じ PR で ruleset `protect main` の必須チェックと `tools/release/release.mjs` の待つチェック名も直すこと（直さないと、旧名のチェックが報告されないまま全 PR のマージとリリースが止まる）。Codex レビュー（`codex-pr-review.yml`）と `deploy`（`deploy-web.yml`）は必須にしない。Codex レビューはワークフローが無効化されていて結果を報告せず、必須にすると全 PR がマージできなくなる。有効にしても fork と Dependabot の PR では secrets が渡らず失敗し、合否の判定でもない。`deploy` は main への push でだけ動き、PR には付かない（#300）。
+- 依存の更新は Dependabot（`.github/dependabot.yml`）が毎週月曜 09:00（日本時間）に、npm の本番依存・開発依存のまとめ PR と GitHub Actions のまとめ PR を出す。メジャー更新は PR にしない設定で、個別の Issue で移行の手順を決めてから手で上げる。自動マージはしない。Dependabot の PR のコミットメッセージは英語のまま（基本ルール4の例外）。`pdfjs-dist` を含む更新は `check:bundle` の対象外（全文の判定ページは予算に入っていない）なので、`npm run bench:bundle` で `fulltext/fulltext` と `pdf-image-only` の量を比べ、全文の判定ページを目で確かめてからマージする。`deploy-web.yml` の action を上げた PR は、マージ後の `deploy-web` の成功を確かめる。
 - 週1回の自動点検（`.github/workflows/weekly-check.yml`）がモデル ID の生存確認（`npm run check:models`）、本番依存の `npm audit`、`npm run check:tours` を回し、失敗は件名を固定した Issue になる。組み込みモデルを足す・替えるときは、その社の鍵が repository secrets にあるかを確かめる（無い社は「飛ばした」として報告に残る）。
 
 ### 遅延読み込み（動的 import）でチャンクを分けるときの規約
@@ -475,7 +479,7 @@ LLMのパラメーター調整などの実験をローカル環境（Chrome拡�
 
 ## 注意事項
 
-- **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別 Webアプリで実装する（アーキテクチャ方針セクション参照）
+- **この拡張機能のスコープ**: TiAb スクリーニング + フルテキストスクリーニング（PDF取得・ハイライト・判定）まで。データ抽出・Risk of Bias 評価は別リポジトリの sr-data-extraction-plugin が担う（アーキテクチャ方針セクション参照）。抽出アプリは本リポジトリのシートを読むので、シートの列・Config のキー・判定の規則を変えるときは [src/lib/sheets/SHARED-SHEET-CONTRACT.md](src/lib/sheets/SHARED-SHEET-CONTRACT.md) に従う
 - **後方互換の維持**: `Decision.screening_phase` は省略時 `'tiab'` 扱い。`Reference` の `fulltext_url` / `fulltext_status` は空でも既存機能に影響しない
 - **`src/sidepanel/dom.ts` の `getElement()` は要素が見つからないと例外を投げる**。`dom.foo?.classList` のような optional chaining では getter 内の throw を防げないので、参照する要素は必ず `sidepanel.html` に存在させること（Web版 HTML も `sidepanel.html` から生成されるため両方に入る）
 - **排他制御は不要**（追記型設計のため）
