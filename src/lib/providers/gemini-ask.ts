@@ -5,12 +5,14 @@ import type { AskParams } from './ask-types';
 import { askError, parseAskText, withAskSignal } from './ask-request';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+/** gemini-api.ts の GEMINI_API_KEY_HEADER と同じ値（初期 JS の gemini-api.ts を import しないため自前で持つ。tests/gemini-api-key-header.test.ts が一致を検査）。 */
+export const GEMINI_ASK_API_KEY_HEADER = 'x-goog-api-key';
 
 /** Gemini の問い合わせの POST 送信。 */
-async function postGemini(url: string, body: object, signal: AbortSignal): Promise<Response> {
+async function postGemini(url: string, apiKey: string, body: object, signal: AbortSignal): Promise<Response> {
     return fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', [GEMINI_ASK_API_KEY_HEADER]: apiKey },
         body: JSON.stringify(body),
         signal,
     });
@@ -33,7 +35,7 @@ export async function askViaGemini(params: AskParams): Promise<unknown> {
                 ...(params.jsonSchema ? { responseMimeType: 'application/json', responseSchema: params.jsonSchema } : {}),
             },
         };
-        const response = await postGemini(`${GEMINI_API_BASE}/${params.model}:generateContent?key=${apiKey}`, body, signal);
+        const response = await postGemini(`${GEMINI_API_BASE}/${params.model}:generateContent`, apiKey, body, signal);
         if (!response.ok) {
             throw Object.assign(new Error(`Gemini API error ${response.status}`), { status: response.status });
         }
