@@ -51,7 +51,8 @@ for (const provider of providers) {
                 assert.equal(headers.get('content-type'), 'application/json');
                 if (provider === 'gemini') {
                     assert.equal(String(url), `https://generativelanguage.googleapis.com/v1beta/models/${CONSULT_MODELS[provider]}`
-                        + `:generateContent?key=${key}`);
+                        + ':generateContent');
+                    assert.equal(headers.get('x-goog-api-key'), key);
                     assert.deepEqual(body.contents, [{ parts: [{ text: '質問' }] }]);
                     assert.deepEqual(body.systemInstruction, { parts: [{ text: '指示' }] });
                     assert.equal(body.generationConfig.maxOutputTokens, 2048);

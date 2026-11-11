@@ -267,6 +267,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **トークンのサニタイズ**: ログ出力前に `token.substring(0, 8) + '...'` で省略
 - **本番ビルド**: `console.log` を除去（webpack/esbuild の drop 設定）
 - **ストレージ方針**: センシティブデータは可能な限りメモリ/セッションに置き、永続化が必要な場合は保存前にアプリ側で暗号化
+- **API キーは URL のクエリに載せない**（DevTools・HAR・プロキシのログ・URL を含む例外に残るため）。Gemini は `x-goog-api-key` ヘッダ（`GEMINI_API_KEY_HEADER`）、ほかのプロバイダは各社のヘッダで送る。`tests/gemini-api-key-header.test.ts` が `src/` の `.ts` に URL クエリ形式のキー（`key=` にテンプレート展開を続ける書き方）が無いことを検査する。新しく書く実験のコードも同じ
 
 ### ローカルデータ管理
 
