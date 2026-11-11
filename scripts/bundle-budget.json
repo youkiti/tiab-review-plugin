@@ -8,6 +8,14 @@
     "app": {
       "measuredBytes": 444412,
       "maxBytes": 448857
+    },
+    "fulltext/fulltext": {
+      "measuredBytes": 634325,
+      "maxBytes": 640669
+    },
+    "pdf-image-only": {
+      "measuredBytes": 1101340,
+      "maxBytes": 1112354
     }
   }
 }
