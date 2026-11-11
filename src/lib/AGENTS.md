@@ -267,6 +267,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **トークンのサニタイズ**: ログ出力前に `token.substring(0, 8) + '...'` で省略
 - **本番ビルド**: `console.log` を除去（webpack/esbuild の drop 設定）
 - **ストレージ方針**: センシティブデータは可能な限りメモリ/セッションに置き、永続化が必要な場合は保存前にアプリ側で暗号化
+- **API キーの保存**: `src/lib/api-key-store.ts` の `createApiKeyStore()` を1回呼んで `storage.ts` の `apiKeyStores` に足す。保存キー名は一度決めたら変えない（既存利用者の保存値が読めなくなる）。キーの整形は `providers/sanitize-api-key.ts` を使う
 
 ### ローカルデータ管理
 

@@ -6,59 +6,12 @@ import { dom } from './dom';
 import { keyProviders } from './providers';
 import { refreshOpenRouterModels } from './model-combobox';
 import {
-    getGeminiApiKey,
-    getSessionApiKey,
-    saveGeminiApiKey,
-    removeGeminiApiKey,
-    hasGeminiApiKey,
-    setSessionApiKey,
-    getApiKeySavePreference,
-    setApiKeySavePreference,
+    apiKeyStores,
     saveApiTier,
     setSessionApiTier,
     clearApiTier,
     getManualTier,
     saveManualTier,
-    // OpenRouter
-    getOpenRouterApiKey,
-    getSessionOpenRouterApiKey,
-    saveOpenRouterApiKey,
-    removeOpenRouterApiKey,
-    hasOpenRouterApiKey,
-    setSessionOpenRouterApiKey,
-    getOpenRouterApiKeySavePreference,
-    setOpenRouterApiKeySavePreference,
-    // OpenAI
-    getOpenAiApiKey,
-    getSessionOpenAiApiKey,
-    saveOpenAiApiKey,
-    removeOpenAiApiKey,
-    hasOpenAiApiKey,
-    setSessionOpenAiApiKey,
-    getOpenAiApiKeySavePreference,
-    setOpenAiApiKeySavePreference,
-    // Anthropic
-    getAnthropicApiKey,
-    getSessionAnthropicApiKey,
-    saveAnthropicApiKey,
-    removeAnthropicApiKey,
-    hasAnthropicApiKey,
-    setSessionAnthropicApiKey,
-    getAnthropicApiKeySavePreference,
-    setAnthropicApiKeySavePreference,
-    getTypeSafeApiKey,
-    getSessionTypeSafeApiKey,
-    saveTypeSafeApiKey,
-    removeTypeSafeApiKey,
-    hasTypeSafeApiKey,
-    setSessionTypeSafeApiKey,
-    getTypeSafeApiKeySavePreference,
-    setTypeSafeApiKeySavePreference,
-    getEffectiveApiKey,
-    getEffectiveOpenRouterApiKey,
-    getEffectiveOpenAiApiKey,
-    getEffectiveAnthropicApiKey,
-    getEffectiveTypeSafeApiKey,
     getLocalLlmEndpoint,
 } from '../../../lib/storage';
 import { testApiKeyWithTier } from '../../../lib/gemini-api';
@@ -196,15 +149,8 @@ async function afterValidGemini(result: KeyTestResult, shouldSave: boolean): Pro
 }
 
 export async function getEffectiveApiKeyForProvider(provider: LlmProviderId): Promise<string | null> {
-    const getters = {
-        gemini: getEffectiveApiKey,
-        openrouter: getEffectiveOpenRouterApiKey,
-        openai: getEffectiveOpenAiApiKey,
-        anthropic: getEffectiveAnthropicApiKey,
-        typesafe: getEffectiveTypeSafeApiKey,
-        local_llm: getLocalLlmEndpoint,
-    };
-    return getters[provider]();
+    if (provider === 'local_llm') return getLocalLlmEndpoint();
+    return apiKeyStores[provider].getEffectiveKey();
 }
 
 export function missingApiKeyMessageKey(provider: LlmProviderId): string {
@@ -220,17 +166,10 @@ export function missingApiKeyMessageKey(provider: LlmProviderId): string {
 
 const adapters: Record<KeyProviderId, ProviderKeyAdapter> = {
     gemini: {
+        ...apiKeyStores.gemini,
         input: () => dom.geminiApiKeyInput,
         toggleBtn: () => dom.toggleApiKeyVisibilityBtn,
         status: () => dom.apiKeyStatus,
-        hasKey: hasGeminiApiKey,
-        getKey: getGeminiApiKey,
-        getSessionKey: getSessionApiKey,
-        saveKey: saveGeminiApiKey,
-        removeKey: removeGeminiApiKey,
-        setSessionKey: setSessionApiKey,
-        getSavePreference: getApiKeySavePreference,
-        setSavePreference: setApiKeySavePreference,
         test: testApiKeyWithTier,
         afterValid: afterValidGemini,
         afterClear: async () => {
@@ -239,60 +178,32 @@ const adapters: Record<KeyProviderId, ProviderKeyAdapter> = {
         },
     },
     openrouter: {
+        ...apiKeyStores.openrouter,
         input: () => dom.openRouterApiKeyInput,
         toggleBtn: () => dom.toggleOpenRouterApiKeyVisibilityBtn,
         status: () => dom.openRouterApiKeyStatus,
-        hasKey: hasOpenRouterApiKey,
-        getKey: getOpenRouterApiKey,
-        getSessionKey: getSessionOpenRouterApiKey,
-        saveKey: saveOpenRouterApiKey,
-        removeKey: removeOpenRouterApiKey,
-        setSessionKey: setSessionOpenRouterApiKey,
-        getSavePreference: getOpenRouterApiKeySavePreference,
-        setSavePreference: setOpenRouterApiKeySavePreference,
         test: testOpenRouterApiKey,
         afterValid: async () => { void refreshOpenRouterModels(true); },
     },
     openai: {
+        ...apiKeyStores.openai,
         input: () => dom.openAiApiKeyInput,
         toggleBtn: () => dom.toggleOpenAiApiKeyVisibilityBtn,
         status: () => dom.openAiApiKeyStatus,
-        hasKey: hasOpenAiApiKey,
-        getKey: getOpenAiApiKey,
-        getSessionKey: getSessionOpenAiApiKey,
-        saveKey: saveOpenAiApiKey,
-        removeKey: removeOpenAiApiKey,
-        setSessionKey: setSessionOpenAiApiKey,
-        getSavePreference: getOpenAiApiKeySavePreference,
-        setSavePreference: setOpenAiApiKeySavePreference,
         test: testOpenAiApiKey,
     },
     anthropic: {
+        ...apiKeyStores.anthropic,
         input: () => dom.anthropicApiKeyInput,
         toggleBtn: () => dom.toggleAnthropicApiKeyVisibilityBtn,
         status: () => dom.anthropicApiKeyStatus,
-        hasKey: hasAnthropicApiKey,
-        getKey: getAnthropicApiKey,
-        getSessionKey: getSessionAnthropicApiKey,
-        saveKey: saveAnthropicApiKey,
-        removeKey: removeAnthropicApiKey,
-        setSessionKey: setSessionAnthropicApiKey,
-        getSavePreference: getAnthropicApiKeySavePreference,
-        setSavePreference: setAnthropicApiKeySavePreference,
         test: testAnthropicApiKey,
     },
     typesafe: {
+        ...apiKeyStores.typesafe,
         input: () => dom.typeSafeApiKeyInput,
         toggleBtn: () => dom.toggleTypeSafeApiKeyVisibilityBtn,
         status: () => dom.typeSafeApiKeyStatus,
-        hasKey: hasTypeSafeApiKey,
-        getKey: getTypeSafeApiKey,
-        getSessionKey: getSessionTypeSafeApiKey,
-        saveKey: saveTypeSafeApiKey,
-        removeKey: removeTypeSafeApiKey,
-        setSessionKey: setSessionTypeSafeApiKey,
-        getSavePreference: getTypeSafeApiKeySavePreference,
-        setSavePreference: setTypeSafeApiKeySavePreference,
         test: testTypeSafeApiKey,
     },
 };
