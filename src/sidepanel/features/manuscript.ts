@@ -13,7 +13,7 @@
  */
 
 import { state } from '../state';
-import { buildManuscriptAiSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions, buildManuscriptValidationSentence } from '../../lib/manuscript-ai';
+import { buildManuscriptAiSentence, buildManuscriptBenchmarkSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions, buildManuscriptValidationSentence } from '../../lib/manuscript-ai';
 import { collectReviewerKeys } from '../../lib/decision-summary';
 import { isLogicallyDeleted } from '../../lib/duplicate-detect';
 import { t } from '../../lib/i18n';
@@ -26,7 +26,7 @@ import { getFulltextEnabledJudges } from './fulltext/lazy';
 import { buildOtherMethodsPrismaLines, splitByIdentificationRoute } from '../../lib/identification-route';
 import { isTiabDecision } from '../../lib/fulltext-pool';
 import { isMlDecision, isLlmDecision, getClientVersion } from '../../lib/client-version';
-import { conceptDoiUrl } from '../../lib/citation';
+import { AI_EVALUATION_DATASET_DOI, conceptDoiUrl } from '../../lib/citation';
 import { collectVersionRange, formatToolVersionClause, parseClientSemver } from '../../lib/manuscript-version';
 import { isCmhStoppingRule } from '../../lib/ml/types';
 import { getSpreadsheetInfo, getReferences, getLlmExecutions, getLlmRuns } from '../../lib/sheets-api';
@@ -207,7 +207,10 @@ function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecut
         executions,
     );
     if (aiSentence) {
-        paragraphs.push(aiSentence);
+        // 評価結果の DOI が決まっているときだけ、AI の文と同じ段落に足す（空なら出力は変わらない）。
+        paragraphs.push(AI_EVALUATION_DATASET_DOI
+            ? `${aiSentence} ${buildManuscriptBenchmarkSentence(AI_EVALUATION_DATASET_DOI)}`
+            : aiSentence);
     }
     if (validationSentence) {
         paragraphs.push(validationSentence);
