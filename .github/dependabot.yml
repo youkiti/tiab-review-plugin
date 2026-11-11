@@ -1,0 +1,42 @@
+# 依存の更新 PR を週1回まとめて出す（#303）。
+# メジャー更新は PR にしない。個別の Issue で、移行の手順を決めてから手で上げる。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 3
+    groups:
+      # 本番依存（拡張機能と Web 版に同梱される）は開発依存と分け、差分を読みやすくする
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # メジャー更新は別 Issue で扱う（eslint 10、typescript 7、pdfjs-dist 6 など）
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # 0.0.x から 0.3.x への型定義の大きな更新は、Dependabot の区分ではマイナーになるので個別に止める
+      - dependency-name: "@types/chrome"
+        versions: [">=0.1.0"]
+    commit-message:
+      prefix: "chore(deps)"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(actions)"
