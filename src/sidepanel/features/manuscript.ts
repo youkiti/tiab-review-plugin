@@ -17,6 +17,8 @@ import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
 import { getFulltextEnabledJudges } from './fulltext/lazy';
 import { getClientVersion } from '../../lib/client-version';
+import { AI_EVALUATION_DATASET_DOI, conceptDoiUrl } from '../../lib/citation';
+import { parseClientSemver } from '../../lib/manuscript-version';
 import { getSpreadsheetInfo, getReferences, getLlmExecutions, getLlmRuns } from '../../lib/sheets-api';
 import { buildManuscriptOutput } from '../../lib/manuscript-text';
 import type { ManuscriptPhase, ManuscriptInput } from '../../lib/manuscript-text';
@@ -123,7 +125,9 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
         phase,
         projectTitle,
         generatedDate,
-        extensionVersion: getClientVersion(),
+        currentVersion: parseClientSemver(getClientVersion()) ?? 'unknown',
+        conceptDoiUrl: conceptDoiUrl(),
+        evaluationDatasetDoi: AI_EVALUATION_DATASET_DOI,
         identificationRefs: allReferencesForIdentification,
         refsMayOmitLogicallyDeleted,
         references: state.allReferences,
@@ -152,6 +156,11 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
     disclaimer.className = 'manuscript-note';
     disclaimer.textContent = t('manuscript_disclaimer');
     body.appendChild(disclaimer);
+
+    const versionNote = document.createElement('div');
+    versionNote.className = 'manuscript-note';
+    versionNote.textContent = t('manuscript_versionNote');
+    body.appendChild(versionNote);
 
     for (const warning of warnings) {
         const el = document.createElement('div');

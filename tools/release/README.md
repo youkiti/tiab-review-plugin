@@ -35,7 +35,7 @@ CWS_PUBLISHER_ID=発行元ID
 | `npm run store:submit` | 再ビルドせず、今ある `dist.zip` をアップロードして審査提出 |
 | `npm run store:submit -- --dry-run` | 認証・状況・版を確認。アップロード・提出なし（通信は行う） |
 | `npm run store:submit -- --zip=<path>` | 任意のファイル名の zip を指定して提出 |
-| `npm run release` | 小変更の版上げ PR → 必須チェック待ち → マージ → ストア用ビルド → 提出（`release:minor` も同じ） |
+| `npm run release` | 小変更の版上げ PR → 必須チェック待ち → マージ → ストア用ビルド → 提出 → 版タグと GitHub Release（`release:minor` も同じ） |
 | `npm run release:major` | 機能追加の版上げで同じ処理を実行 |
 | `npm run release -- --dry-run` | 何も変えず、続きの位置と新しい版だけを表示 |
 | `npm run release:submit` | `release` の別名 |
@@ -50,8 +50,9 @@ CWS_PUBLISHER_ID=発行元ID
 3. PR の作成と、必須チェック（`quality`・`build-extension`・`build-web`・`bundle-budget`）の成功待ち。失敗したら PR を残して止まります。
 4. `gh pr merge --merge --delete-branch` でマージし、`main` を取り込みます。
 5. `npm run build:release` と `storeApi.mjs submit`。
+6. 版タグと GitHub Release: 段4の merge commit に annotated タグ `v<版>` を打って push し、Release が無ければ `gh release create --verify-tag` で作ります（本文は CHANGELOG の該当節と、`src/lib/citation.ts` の concept DOI の行。draft・prerelease にせず、ファイルは添付しません）。`origin` のタグが別のコミットを指していれば止まります。過去の版にはタグを打ちません: `release.mjs` の `TAG_FROM_AFTER_VERSION` より新しい版だけが対象です。
 
-途中で止まったら同じコマンドを再実行します。続きの位置は、今いるブランチ、開いているリリース PR、`origin/main` の版とストアの公開中・審査中の版から毎回決めます（`release:resume` はありません）。審査中の版が `origin/main` の版と同じなら、提出済みとして何もしません。リリースを取りやめるときは、開いている PR を閉じてブランチを消します。
+途中で止まったら同じコマンドを再実行します。続きの位置は、今いるブランチ、開いているリリース PR、`origin/main` の版とストアの公開中・審査中の版から毎回決めます（`release:resume` はありません）。審査中の版が `origin/main` の版と同じなら、提出済みとして何もしません（ただし `origin` にタグか Release が無く、版が `TAG_FROM_AFTER_VERSION` より新しければ、段6だけを行います）。リリースを取りやめるときは、開いている PR を閉じてブランチを消します。
 
 ## 終了コード
 

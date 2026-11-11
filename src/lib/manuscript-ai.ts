@@ -115,6 +115,11 @@ export function buildManuscriptAiSentence(
     return `A large language model (${descriptions.join('; ')}) screened ${coverage} against the same eligibility criteria as an additional independent screener (inclusion threshold ${threshold}), using TiAb Review's screening prompt version ${[...prompts].sort().join(', ')}.`;
 }
 
+/** 開発者による評価結果のデータセット（Zenodo）の DOI を示す1文。AI の文の直後に同じ段落で足す。 */
+export function buildManuscriptBenchmarkSentence(doi: string): string {
+    return `The developer's benchmark results for the available models, which have not been independently validated, are archived at https://doi.org/${doi}.`;
+}
+
 /** 担当セットの必要人数を満たし、未読除外だけで除外が確定した文献を数える。 */
 export function countManuscriptStoppingRuleExclusions(
     refs: ReferenceWithStatus[], reviewerKeys: string[], treatMlAsManual: boolean,

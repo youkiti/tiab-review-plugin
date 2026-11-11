@@ -1,7 +1,7 @@
 // 実際の git・gh・ストア・PowerShell は呼ばず、run を偽物に差し替えて、続きの位置の判定と各段の分岐を検査する。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { main, replaceChangelogHeading, nextVersion, summarizeChecks, parseArgs, StopError } from './release.mjs';
+import { main, replaceChangelogHeading, nextVersion, summarizeChecks, parseArgs, StopError, TAG_FROM_AFTER_VERSION } from './release.mjs';
 
 const pass = (names = ['quality', 'build-extension', 'build-web', 'bundle-budget']) => JSON.stringify(names.map((name) => ({ name, bucket: 'pass', link: `https://example.test/${name}` })));
 const ok = (stdout = '') => ({ status: 0, stdout, stderr: '' });
@@ -57,6 +57,8 @@ function harness({ override = () => undefined, argv = ['--bump', 'patch'], files
   return { deps, calls, outputs, sleeps, written, fileMap, state };
 }
 
+// 段6のタグの push（git push origin refs/tags/vX）は版上げのブランチの push と区別する。
+const isBranchPush = (call) => call.startsWith('git push') && !call.startsWith('git push origin refs/tags/v');
 const index = (calls, prefix) => calls.findIndex((call) => call.startsWith(prefix));
 const writeCommands = ['git switch', 'git commit', 'git push', 'gh pr create', 'gh pr merge', 'npm run build:release', 'node tools/release/storeApi.mjs submit'];
 
@@ -79,7 +81,7 @@ test('新規リリースは決まった順序で進み、main へ直接 push し
     last = at;
   }
   assert.ok(!h.calls.some((call) => call.includes('HEAD:main')));
-  assert.ok(!h.calls.some((call) => /^git push/.test(call) && !call.startsWith('git push -u origin chore/release-v')));
+  assert.ok(!h.calls.some((call) => /^git push/.test(call) && !call.startsWith('git push -u origin chore/release-v') && !call.startsWith('git push origin refs/tags/v')));
   assert.match(h.outputs.at(-1), /v0\.57\.3 をストアへ審査提出しました/);
   const body = Object.entries(h.written).find(([path]) => path.endsWith('release-pr-body-0.57.3.md'))[1];
   assert.match(body, /## v0\.57\.3（2026-11-12）/);
@@ -205,7 +207,7 @@ test('続きの位置2: 開いているリリース PR があればチェック�
   assert.equal(await main(h.deps), 0);
   assert.ok(h.calls.includes('gh pr checks 77 --json name,bucket,link'));
   assert.ok(h.calls.includes('gh pr merge 77 --merge --delete-branch'));
-  assert.ok(!h.calls.some((call) => call.startsWith('git switch -c') || call.startsWith('gh pr create') || call.startsWith('git push')));
+  assert.ok(!h.calls.some((call) => call.startsWith('git switch -c') || call.startsWith('gh pr create') || isBranchPush(call)));
   assert.ok(h.calls.some((call) => call === 'npm run build:release'));
   assert.match(h.outputs.join('\n'), /開いている PR の版 v0\.57\.3 を優先します/);
   assert.match(h.outputs.at(-1), /v0\.57\.3 をストアへ審査提出しました/);
@@ -223,7 +225,7 @@ test('続きの位置3: main の版がストアに無ければ build:release か
   assert.equal(await main(h.deps), 0);
   assert.ok(h.calls.includes('npm run build:release'));
   assert.ok(h.calls.includes('node tools/release/storeApi.mjs submit'));
-  assert.ok(!h.calls.some((call) => call.startsWith('git switch') || /^gh pr (create|checks|merge)/.test(call) || call.startsWith('git push')));
+  assert.ok(!h.calls.some((call) => call.startsWith('git switch') || /^gh pr (create|checks|merge)/.test(call) || isBranchPush(call)));
 });
 
 test('続きの位置3: 審査中の版が main の版と同じなら提出を飛ばす', async () => {
@@ -301,4 +303,142 @@ test('引数: --bump が無い・不正なら終了コード2', async () => {
 test('nextVersion: patch は末尾、major は中央', () => {
   assert.equal(nextVersion('0.57.2', 'patch'), '0.57.3');
   assert.equal(nextVersion('0.57.2', 'major'), '0.58.0');
+});
+
+// ---- 段6: 版タグと GitHub Release ----
+
+const releaseView = (key) => key.startsWith('gh release view');
+const noReleaseYet = (key) => releaseView(key) ? ng() : undefined;
+const mainIs = (version) => (key) => key === 'git show origin/main:package.json' ? ok(`{"version":"${version}"}`) : undefined;
+const firstOf = (...handlers) => (key, args, state) => {
+  for (const handler of handlers) {
+    const result = handler(key, args, state);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+};
+const citation = (doi) => `export const TIAB_REVIEW_CONCEPT_DOI = '${doi}';\n`;
+const releaseCreate = (calls) => calls.filter((call) => call.startsWith('gh release create'));
+const notesOf = (written) => Object.entries(written).find(([path]) => path.endsWith('release-notes-v0.57.3.md'))?.[1];
+
+test('段6: 提出の後に merge commit へ annotated タグを打って push し、Release を作る（ファイルは添付しない）', async () => {
+  const h = harness({ override: noReleaseYet, files: { 'src/lib/citation.ts': citation('10.5281/zenodo.1234567') } });
+  assert.equal(await main(h.deps), 0);
+  const order = [
+    'node tools/release/storeApi.mjs submit',
+    'git ls-remote --tags origin refs/tags/v0.57.3 refs/tags/v0.57.3^{}',
+    'git tag -a v0.57.3 merge1 -m TiAb Review Plugin v0.57.3',
+    'git push origin refs/tags/v0.57.3',
+    'gh release view v0.57.3',
+    'gh release create v0.57.3 --verify-tag --title TiAb Review Plugin v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md',
+  ];
+  let last = -1;
+  for (const call of order) {
+    const at = h.calls.findIndex((candidate, i) => i > last && candidate === call);
+    assert.ok(at > last, `${call} が順序どおりに呼ばれていません\n${h.calls.join('\n')}`);
+    last = at;
+  }
+  // 添付ファイルの引数も、draft・prerelease の指定も無い。
+  assert.deepEqual(releaseCreate(h.calls), ['gh release create v0.57.3 --verify-tag --title TiAb Review Plugin v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md']);
+  const notes = notesOf(h.written);
+  assert.match(notes, /## 追加した|- 追加した/);
+  assert.match(notes, /この Release に拡張機能の zip は添付しません/);
+  assert.match(notes, /引用 \/ Cite: https:\/\/doi\.org\/10\.5281\/zenodo\.1234567/);
+  assert.match(h.outputs.join('\n'), /v0\.57\.3 のタグと GitHub Release を作りました/);
+  assert.match(h.outputs.at(-1), /v0\.57\.3 をストアへ審査提出しました/);
+});
+
+test('段6: DOI の定数が空なら引用の行を出さない', async () => {
+  const h = harness({ override: noReleaseYet, files: { 'src/lib/citation.ts': citation('') } });
+  assert.equal(await main(h.deps), 0);
+  assert.doesNotMatch(notesOf(h.written), /引用 \/ Cite/);
+});
+
+test('段6: origin に同じコミットを指す annotated タグがあれば、タグは打たず Release だけ作る', async () => {
+  const h = harness({ override: firstOf(mainIs('0.57.3'), noReleaseYet, (key) => key === 'git ls-remote --tags origin refs/tags/v0.57.3 refs/tags/v0.57.3^{}'
+    ? ok('tagobject1\trefs/tags/v0.57.3\nabc\trefs/tags/v0.57.3^{}\n') : undefined) });
+  assert.equal(await main(h.deps), 0);
+  assert.ok(!h.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push')));
+  assert.equal(releaseCreate(h.calls).length, 1);
+});
+
+test('段6: origin のタグが別のコミットを指していれば、タグも Release も作らずに止まる', async () => {
+  const h = harness({ override: firstOf(noReleaseYet, (key) => key.startsWith('git ls-remote --tags origin refs/tags/v0.57.3 ')
+    ? ok('tagobject1\trefs/tags/v0.57.3\nother\trefs/tags/v0.57.3^{}\n') : undefined) });
+  assert.equal(await main(h.deps), 1);
+  assert.ok(!h.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push origin refs/tags') || call.startsWith('gh release create')));
+  assert.match(h.outputs.join('\n'), /origin の v0\.57\.3 が別のコミットを指しています/);
+});
+
+test('段6: 手元に同名で別のコミットを指すタグがあれば止まる', async () => {
+  const h = harness({ override: firstOf(noReleaseYet, (key) => key === 'git rev-parse -q --verify refs/tags/v0.57.3^{commit}' ? ok('other\n') : undefined) });
+  assert.equal(await main(h.deps), 1);
+  assert.ok(!h.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push origin refs/tags') || call.startsWith('gh release create')));
+  assert.match(h.outputs.join('\n'), /手元の v0\.57\.3 が別のコミットを指しています/);
+});
+
+test('段6: Release が既にあれば gh release create を呼ばない', async () => {
+  const h = harness();
+  assert.equal(await main(h.deps), 0);
+  assert.ok(h.calls.some((call) => call.startsWith('git tag -a v0.57.3')));
+  assert.equal(releaseCreate(h.calls).length, 0);
+});
+
+test('段6: Release の作成に失敗したらタグは残して止まり、再実行で Release だけ作る', async () => {
+  const failing = harness({ override: firstOf(noReleaseYet, (key) => key.startsWith('gh release create') ? ng() : undefined) });
+  assert.equal(await main(failing.deps), 1);
+  assert.ok(failing.calls.includes('git push origin refs/tags/v0.57.3'));
+  // 再実行: main の版は審査中、タグは origin にある、Release は無い。
+  const resumed = harness({ override: firstOf(mainIs('0.57.3'), noReleaseYet,
+    (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.2', '0.57.3')) : undefined,
+    (key) => key.startsWith('git ls-remote --tags origin refs/tags/v0.57.3 ') ? ok('abc\trefs/tags/v0.57.3\n') : undefined,
+    (key) => key.startsWith('git log --first-parent') ? ok('abc\n') : undefined) });
+  assert.equal(await main(resumed.deps), 0);
+  assert.ok(!resumed.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push')));
+  assert.equal(releaseCreate(resumed.calls).length, 1);
+});
+
+test('続きの位置: 提出済みで origin にタグも Release も無い版は、段6だけを行う（ビルドも提出もしない）', async () => {
+  const h = harness({ override: firstOf(mainIs('0.57.3'), noReleaseYet,
+    (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.2', '0.57.3')) : undefined,
+    (key) => key.startsWith('git log --first-parent') ? ok('c0ffee\n') : undefined) });
+  assert.equal(await main(h.deps), 0);
+  assert.match(h.outputs.join('\n'), /審査提出済み[\s\S]*版タグと GitHub Release/);
+  assert.ok(h.calls.includes('git tag -a v0.57.3 c0ffee -m TiAb Review Plugin v0.57.3'));
+  assert.ok(h.calls.includes('git push origin refs/tags/v0.57.3'));
+  assert.equal(releaseCreate(h.calls).length, 1);
+  assert.ok(!h.calls.some((call) => call === 'npm run build:release' || call.endsWith('storeApi.mjs submit') || /^gh pr (create|checks|merge)/.test(call)));
+});
+
+test('続きの位置: 公開中の版にタグが無いときも段6から続ける。dry-run は何も書かない', async () => {
+  const override = firstOf(mainIs('0.57.3'), noReleaseYet,
+    (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.3')) : undefined);
+  const dry = harness({ argv: ['--bump', 'patch', '--dry-run'], override });
+  assert.equal(await main(dry.deps), 0);
+  assert.match(dry.outputs.join('\n'), /ストアで公開中です。版タグと GitHub Release の作成から/);
+  assert.ok(!dry.calls.some((call) => writeCommands.some((prefix) => call.startsWith(prefix)) || call.startsWith('git tag') || call.startsWith('git push') || call.startsWith('gh release create')));
+  assert.deepEqual(dry.written, {});
+});
+
+test('続きの位置: TAG_FROM_AFTER_VERSION 以下の版は、タグも Release も無くても段6を再開しない', async () => {
+  assert.equal(TAG_FROM_AFTER_VERSION, '0.57.2');
+  const override = firstOf(noReleaseYet, (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.2')) : undefined);
+  const h = harness({ argv: ['--bump', 'patch', '--dry-run'], override: firstOf(mainIs('0.57.2'), override) });
+  assert.equal(await main(h.deps), 0);
+  assert.doesNotMatch(h.outputs.join('\n'), /版タグと GitHub Release の作成から/);
+  assert.match(h.outputs.join('\n'), /新規 v0\.57\.3/);
+  assert.ok(!h.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push origin refs/tags') || call.startsWith('gh release create')));
+  // 提出済み（審査中）でも同じ。
+  const submitted = harness({ override: firstOf(mainIs('0.57.2'), noReleaseYet, (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.1', '0.57.2')) : undefined) });
+  assert.equal(await main(submitted.deps), 0);
+  assert.match(submitted.outputs.join('\n'), /審査提出済み/);
+  assert.ok(!submitted.calls.some((call) => call.startsWith('git tag') || call.startsWith('gh release')));
+});
+
+test('段6: TAG_FROM_AFTER_VERSION 以下の版をビルドから続けても、タグは打たない', async () => {
+  // 下限と同じ版は提出まで進めても段6の対象外（過去の版にはタグを打たない）。
+  const h = harness({ override: firstOf(mainIs(TAG_FROM_AFTER_VERSION), (key) => key === 'node tools/release/storeApi.mjs status --json' ? ok(storeStatus('0.57.1')) : undefined) });
+  assert.equal(await main(h.deps), 0);
+  assert.ok(h.calls.includes('node tools/release/storeApi.mjs submit'));
+  assert.ok(!h.calls.some((call) => call.startsWith('git tag') || call.startsWith('git push origin refs/tags') || call.startsWith('gh release')));
 });
