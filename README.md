@@ -507,9 +507,9 @@ This tool is provided free of charge and not for profit. The developer receives 
 
 ## 引用 / Citation
 
-GitHub のリポジトリ画面の「Cite this repository」で、[CITATION.cff](CITATION.cff) の引用形式（BibTeX・APA）を取得できます。Zenodo の concept DOI（全版を束ねる DOI）は、決まり次第ここに載せます。論文には、使った TiAb Review の版（判定を記録した版の最小から最大）を書いてください。論文用テキスト（Methods）はその範囲を自動で書きます。
+GitHub のリポジトリ画面の「Cite this repository」で、[CITATION.cff](CITATION.cff) の引用形式（BibTeX・APA）を取得できます。Zenodo の concept DOI（全版を束ねる DOI）は、決まり次第ここに載せます。論文には、使った TiAb Review Plugin の版（判定を記録した版の最小から最大）を書いてください。論文用テキスト（Methods）はその範囲を自動で書きます。
 
-To cite this software, use "Cite this repository" on the GitHub page, which reads [CITATION.cff](CITATION.cff) (BibTeX and APA). The Zenodo concept DOI, which covers all versions, will be listed here once issued. In your paper, give the TiAb Review version or version range you used; the generated manuscript text (Methods) writes the range automatically.
+To cite this software, use "Cite this repository" on the GitHub page, which reads [CITATION.cff](CITATION.cff) (BibTeX and APA). The Zenodo concept DOI, which covers all versions, will be listed here once issued. In your paper, give the TiAb Review Plugin version or version range you used; the generated manuscript text (Methods) writes the range automatically.
 
 ## 変更履歴 / Changelog
 

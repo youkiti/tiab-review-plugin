@@ -1,5 +1,5 @@
 /**
- * 論文用テキストに書く TiAb Review の版（判定を記録した版の範囲）を求める純関数。
+ * 論文用テキストに書く TiAb Review Plugin の版（判定を記録した版の範囲）を求める純関数。
  * UI・state を import しない。
  */
 import type { Decision } from './types';

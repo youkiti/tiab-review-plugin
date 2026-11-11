@@ -11,8 +11,8 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 ### 画面 / Interface
 
-- 論文用テキストの Methods に、TiAb Review の版として、その段階の判定（人・AI・ML）を記録した版の最小から最大（同じなら単一の版）を書くようにしました。これまでは、テキストを作った人のいまの版だけでした。Zenodo の concept DOI が決まったら、DOI も併記します。モーダルに、この版の範囲の求め方の注記を1行足しました。AI 判定には影響しません。
-  The Methods in the manuscript text now give the range of TiAb Review versions that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same, instead of only the version of the person generating the text. The Zenodo concept DOI will be added once it is issued. The modal gains a one-line note on how the range is determined. AI screening is unaffected.
+- 論文用テキストの Methods に、TiAb Review Plugin の版として、その段階の判定（人・AI・ML）を記録した版の最小から最大（同じなら単一の版）を書くようにしました。これまでは、テキストを作った人のいまの版だけでした。Zenodo の concept DOI が決まったら、DOI も併記します。モーダルに、この版の範囲の求め方の注記を1行足しました。AI 判定には影響しません。
+  The Methods in the manuscript text now give the range of TiAb Review Plugin versions that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same, instead of only the version of the person generating the text. The Zenodo concept DOI will be added once it is issued. The modal gains a one-line note on how the range is determined. AI screening is unaffected.
 
 ## v0.57.2（2026-11-09）
 

@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata from this file. For a specific version, cite the version DOI on Zenodo."
 type: software
-title: "TiAb Review"
+title: "TiAb Review Plugin"
 abstract: "A Chrome extension and web app for title/abstract and full-text screening in systematic reviews, using a shared Google Sheets spreadsheet as the database."
 # 各著者の affiliation と orcid は空欄（arXiv 2604.08602v2 で確かめてから記入する）。
 # 記入するときは given-names の下に affiliation: "…" と orcid: "https://orcid.org/0000-0000-0000-0000" を足す。
