@@ -54,6 +54,11 @@ export { setFulltextDriveImportDeps } from './result-view';
 // どの経路でも hideModal() 経由で発火する）に解除を委ねる。
 let importInProgress = false;
 
+/** Drive からの取り込みが実行中か（戻る・ログアウトの初期化が状態の文を消してよいかの判断に使う） */
+export function isDriveImportInProgress(): boolean {
+    return importInProgress;
+}
+
 function releaseImportGuard(): void {
     importInProgress = false;
     dom.fulltextImportDriveBtn.disabled = false;
@@ -71,6 +76,11 @@ function setDriveImportStatus(msg: string | null): void {
 async function handleImportFromDriveClick(): Promise<void> {
     if (importInProgress) return;
     importInProgress = true;
+    // 宛先は開始時の値を控える。中止できない短い処理なので、途中で戻る・ログアウトがあっても
+    // 別のプロジェクトを読み書きせず、終わったときの画面の書き換えもしない
+    const spreadsheetId = state.spreadsheetId;
+    const userEmail = state.userEmail;
+    const isSameProject = (): boolean => state.spreadsheetId === spreadsheetId;
     dom.fulltextImportDriveBtn.disabled = true;
     setDriveImportStatus(t('fulltext_driveImportRunning'));
 
@@ -78,8 +88,9 @@ async function handleImportFromDriveClick(): Promise<void> {
     // （Cancel/X/結果画面のCloseのいずれも hideModal() 経由で onClose が発火する）。
     let modalOpened = false;
     try {
-        const picked = await runPickerFlow();
+        const picked = await runPickerFlow(spreadsheetId, userEmail);
         if (picked === null) return; // キャンセル・解析不能（解析不能時は既にtoast済み）
+        if (!isSameProject()) return;
         if (picked.length === 0) {
             showToast(t('fulltext_driveImportNoFiles'), 4000);
             return;
@@ -93,12 +104,14 @@ async function handleImportFromDriveClick(): Promise<void> {
         // 従来のDrive検索ベースの判定（classifyDriveImportStateの2.以降）へフォールバックする。
         let claimsSnapshot: FulltextClaimsSnapshot;
         try {
-            claimsSnapshot = await getFulltextClaimsSnapshot(state.spreadsheetId);
+            claimsSnapshot = await getFulltextClaimsSnapshot(spreadsheetId);
         } catch (err) {
             console.warn('[fulltext-drive-import] クレームスナップショットの再取得に失敗（fail-open: Drive検索ベースの判定へ続行）:', err);
             claimsSnapshot = { bySourceId: new Map(), byRefId: new Map() };
         }
-        const validated = await validateAndCheckFiles(picked, claimsSnapshot);
+        if (!isSameProject()) return;
+        const validated = await validateAndCheckFiles(picked, claimsSnapshot, spreadsheetId);
+        if (!isSameProject()) return;
         setDriveImportStatus(null);
         openMappingModal(validated, releaseImportGuard);
         modalOpened = true;

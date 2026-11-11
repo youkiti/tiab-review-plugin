@@ -10,6 +10,7 @@
 
 import { state as legacyState } from '../state';
 import { dispatch } from './index';
+import { runSessionResets } from '../session-reset';
 import type { UserSettings } from '../../lib/user-settings';
 import type { AppState } from './types';
 import type { ReferenceWithStatus, LlmConfig, AssignmentConfig, Decision } from '../../lib/types';
@@ -166,24 +167,26 @@ export function abortRunningBatch(): boolean {
 
 /**
  * リセット（ログアウト時）。実行中の一括判定は中止してから初期化する
- * @returns 一括判定を中止したら true
+ * @returns 一括判定（全文タブの処理を含む）を中止したら true
  */
 export function resetForLogout(): boolean {
     const aborted = abortRunningBatch();
+    const featureAborted = runSessionResets('logout');
     legacyState.resetForLogout();
     dispatch({ type: 'reset/logout' });
-    return aborted;
+    return aborted || featureAborted;
 }
 
 /**
  * リセット（戻る時）。実行中の一括判定は中止してから初期化する
- * @returns 一括判定を中止したら true
+ * @returns 一括判定（全文タブの処理を含む）を中止したら true
  */
 export function resetForBack(): boolean {
     const aborted = abortRunningBatch();
+    const featureAborted = runSessionResets('back');
     legacyState.resetForBack();
     dispatch({ type: 'reset/back' });
-    return aborted;
+    return aborted || featureAborted;
 }
 
 // ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
