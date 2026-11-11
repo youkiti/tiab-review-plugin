@@ -1,0 +1,246 @@
+TY  - JOUR
+TI  - Fixture study R01
+AU  - Smith J
+AU  - Lee K
+PY  - 2021
+JO  - Fixture Journal
+VL  - 11
+IS  - 2
+SP  - 101
+EP  - 111
+DO  - 10.1000/fixture.1
+AN  - 30000001
+AB  - Abstract of R01.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000001/
+C1  - Status: include
+C1  - Team status: include
+C2  - Decisions: alice@example.com=include; bob@example.com=include; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R02
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2022
+JO  - Fixture Journal
+VL  - 12
+IS  - 2
+SP  - 102
+EP  - 112
+DO  - 10.1000/fixture.2
+AN  - 30000002
+AB  - Abstract of R02.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000002/
+C1  - Status: include
+C1  - Team status: include
+C2  - Decisions: alice@example.com=include; bob@example.com=include; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Effect of A, B and "C" on outcomes
+AU  - Smith J
+AU  - Lee K
+PY  - 2023
+JO  - Fixture Journal
+VL  - 13
+IS  - 2
+SP  - e3
+DO  - 10.1000/fixture.3
+AN  - 30000003
+AB  - Abstract with a, comma.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000003/
+C1  - Status: include
+C1  - Team status: include
+C2  - Decisions: alice@example.com=include; bob@example.com=include; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R04
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2020
+JO  - Fixture Journal
+VL  - 14
+IS  - 2
+SP  - 104
+EP  - 114
+DO  - 10.1000/fixture.4
+AN  - 30000004
+AB  - Abstract of R04.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000004/
+C1  - Status: include
+C1  - Team status: include
+C2  - Decisions: alice@example.com=include; bob@example.com=include; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R05
+AU  - Smith J
+AU  - Lee K
+PY  - 2021
+JO  - Fixture Journal
+VL  - 15
+IS  - 2
+SP  - 105
+EP  - 115
+DO  - 10.1000/fixture.5
+AN  - 30000005
+AB  - Abstract of R05.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000005/
+C1  - Status: include
+C1  - Team status: include
+C2  - Decisions: alice@example.com=include; bob@example.com=include; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R06
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2022
+JO  - Fixture Journal
+VL  - 16
+IS  - 2
+SP  - e6
+DO  - 10.1000/fixture.6
+AN  - 30000006
+AB  - Abstract of R06.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000006/
+C1  - Status: conflict
+C1  - Team status: conflict
+C2  - Decisions: alice@example.com=include; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=include
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R07
+AU  - Smith J
+AU  - Lee K
+PY  - 2023
+JO  - Fixture Journal
+VL  - 17
+IS  - 2
+SP  - 107
+EP  - 117
+DO  - 10.1000/fixture.7
+AN  - 30000007
+AB  - Abstract of R07.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000007/
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R08
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2020
+JO  - Fixture Journal
+VL  - 18
+IS  - 2
+SP  - 108
+EP  - 118
+DO  - 10.1000/fixture.8
+AN  - 30000008
+AB  - Abstract of R08.
+UR  - https://pubmed.ncbi.nlm.nih.gov/30000008/
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - pubmed.nbib
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R09
+AU  - Smith J
+AU  - Lee K
+PY  - 2021
+JO  - Fixture Journal
+VL  - 19
+IS  - 2
+SP  - e9
+DO  - 10.2000/fixture.9
+AB  - Abstract of R09.
+UR  - https://doi.org/10.2000/fixture.9
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - embase.ris
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R10
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2022
+JO  - Fixture Journal
+VL  - 20
+IS  - 2
+SP  - 110
+EP  - 120
+DO  - 10.2000/fixture.10
+AB  - Abstract of R10.
+UR  - https://doi.org/10.2000/fixture.10
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - embase.ris
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R11
+AU  - Smith J
+AU  - Lee K
+PY  - 2023
+JO  - Fixture Journal
+VL  - 21
+IS  - 2
+SP  - 111
+EP  - 121
+DO  - 10.2000/fixture.11
+AB  - Abstract of R11.
+UR  - https://doi.org/10.2000/fixture.11
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - embase.ris
+ER  - 
+
+TY  - JOUR
+TI  - Fixture study R12
+AU  - Tanaka H
+AU  - Brown A
+PY  - 2020
+JO  - Fixture Journal
+VL  - 22
+IS  - 2
+SP  - e12
+DO  - 10.2000/fixture.12
+AB  - Abstract of R12.
+UR  - https://doi.org/10.2000/fixture.12
+C1  - Status: exclude
+C1  - Team status: exclude
+C2  - Decisions: alice@example.com=exclude; bob@example.com=exclude; llm:gemini-3.1-flash-lite@2026-01-02T00:00:00.000Z=exclude
+DB  - embase.ris
+ER  - 
+
+TY  - JOUR
+TI  - Fixture report R14 (registry linkage)
+AU  - Ito M
+PY  - 2023
+JO  - Fixture Journal
+VL  - 24
+SP  - 200
+EP  - 210
+DO  - 10.3000/fixture.14
+AB  - Abstract of R14.
+UR  - https://doi.org/10.3000/fixture.14
+C1  - Status: pending
+C1  - Team status: pending
+ER  - 

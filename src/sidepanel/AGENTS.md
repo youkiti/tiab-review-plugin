@@ -229,7 +229,7 @@
      Config の生キー名をユーザー向け文言に出さないこと（UIから編集できないため誤誘導になる。2026-08 実事故）。
      ただし表示レベル `none`（AI evidence 非表示の実験条件）では、理由で文言を変えると
      「この文献にAI判定があるか」が漏れるため、必ず既定文言に固定する
-9. **論文用テキスト生成**（`manuscript.ts`）
+9. **論文用テキスト生成**（`manuscript.ts` が表示、文章・数値の組み立ては `src/lib/manuscript-text.ts` の純関数 `buildManuscriptOutput()`。通しの検査は `tests/manuscript-e2e.test.ts`）
 
    - TiAb エクスポートメニューとフルテキスト結果ビューから、Methods / Results / PRISMA 2020 フロー数値の英語下書きをモーダル表示し、セクションごとにコピー可能
    - 数値は `import_stats`・判定データ・判定者選択から自動挿入。ツールが持たない情報（不一致の解消方法など）は `[ ]` で残す

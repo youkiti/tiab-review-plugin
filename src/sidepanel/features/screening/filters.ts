@@ -18,7 +18,7 @@ import { deleteReferencesBySourceFile, saveImportStats } from '../../../lib/shee
 import { showToast, showLoading } from '../../ui/feedback';
 import { describeRule } from '../../../lib/fulltext-pool';
 import { matchesSelectedFulltextSets } from '../../../lib/fulltext-assignment';
-import { isFulltextCandidateRef, isProjectFulltextCandidateRef } from '../../../lib/fulltext-candidates';
+import { isFulltextCandidateRef, selectProjectFulltextCandidates } from '../../../lib/fulltext-candidates';
 import { getReferenceAssignmentSet } from '../assignment';
 import { hasEffectiveConflict } from '../../render/helpers';
 import { renderDuplicateReviewSection } from '../duplicate-review';
@@ -105,14 +105,7 @@ export function getVisibleFulltextCandidateList(): ReferenceWithStatus[] {
  * 同じ結果でなければならない集計に使う。
  */
 export function getProjectFulltextCandidateList(): ReferenceWithStatus[] {
-    return state.allReferences.filter((r) =>
-        isProjectFulltextCandidateRef({
-            ref: r,
-            decisions: collectRefDecisions(r),
-            poolRule: state.fulltextPoolRule,
-            assignment: state.fulltextAssignment,
-        })
-    );
+    return selectProjectFulltextCandidates(state.allReferences, state.fulltextPoolRule, state.fulltextAssignment);
 }
 
 /** 自分の手動判定ステータスはStoreのselectorへ委譲する。 */

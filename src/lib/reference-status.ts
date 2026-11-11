@@ -221,4 +221,13 @@ export function mergeReferencesWithAllDecisions(
     });
 }
 
-
+/**
+ * 文献の全判定を集める（allDecisions + myDecision、重複排除）
+ */
+export function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
+    const list = [...(ref.allDecisions ?? [])];
+    if (ref.myDecision && !list.some(d => d.decision_id === ref.myDecision!.decision_id)) {
+        list.push(ref.myDecision);
+    }
+    return list;
+}

@@ -239,6 +239,71 @@ export async function saveLlmExecution(spreadsheetId: string, execution: LlmExec
 }
 
 /**
+ * LLM_Executions シートの値（1行目ヘッダー）を LlmExecution の配列へ変換する純関数。
+ * 動的にヘッダーから列を決めるため、シートに後から追加された列にも追従する。
+ */
+export function parseLlmExecutionValues(values: string[][]): LlmExecution[] {
+    if (values.length <= 1) {
+        return [];
+    }
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    return rows.map(row => {
+        const execution: Record<string, unknown> = {};
+        headers.forEach((header, i) => {
+            const value = row[i] || '';
+            switch (header) {
+                case 'include_threshold':
+                    execution[header] = parseFloat(value) || 0;
+                    break;
+                case 'target_count':
+                case 'include_count':
+                case 'exclude_count':
+                    execution[header] = parseInt(value, 10) || 0;
+                    break;
+                case 'criteria_snapshot':
+                    try {
+                        execution[header] = value ? JSON.parse(value) : null;
+                    } catch {
+                        execution[header] = null;
+                    }
+                    break;
+                case 'is_active':
+                    execution[header] = value.toLowerCase() === 'true';
+                    break;
+                case 'status':
+                    execution[header] = value === 'pending' ? 'pending' : 'confirmed';
+                    break;
+                case 'run_id':
+                    execution[header] = value || undefined;
+                    break;
+                case 'target_selected_count':
+                case 'max_output_tokens':
+                case 'maybe_count':
+                case 'failed_count':
+                    // 0 と未設定を区別したいので `|| 0` にはしない
+                    execution[header] = value ? parseInt(value, 10) : undefined;
+                    break;
+                case 'target_mode':
+                    execution[header] = value ? parseLlmTargetMode(value) : undefined;
+                    break;
+                case 'exclude_reasons_snapshot':
+                    // フルテキスト以外の実行では null（JSON文字列そのままで保持し、
+                    // 中身の配列としての解釈は呼び出し側に委ねる。criteria_snapshot と違い
+                    // ここではパースしない＝型は string | null のまま）
+                    execution[header] = value || null;
+                    break;
+                default:
+                    execution[header] = value || '';
+            }
+        });
+        return execution as unknown as LlmExecution;
+    });
+}
+
+/**
  * LLM実行履歴を取得
  *
  * 動的にヘッダーから列範囲を決めるため、シートに後から追加された列にも追従する。
@@ -257,64 +322,7 @@ export async function getLlmExecutions(spreadsheetId: string, readOnly = false):
                 : await readLlmExecutionsValues(spreadsheetId);
         }
 
-        if (values.length <= 1) {
-            return [];
-        }
-
-        const headers = values[0];
-        const rows = values.slice(1);
-
-        return rows.map(row => {
-            const execution: Record<string, unknown> = {};
-            headers.forEach((header, i) => {
-                const value = row[i] || '';
-                switch (header) {
-                    case 'include_threshold':
-                        execution[header] = parseFloat(value) || 0;
-                        break;
-                    case 'target_count':
-                    case 'include_count':
-                    case 'exclude_count':
-                        execution[header] = parseInt(value, 10) || 0;
-                        break;
-                    case 'criteria_snapshot':
-                        try {
-                            execution[header] = value ? JSON.parse(value) : null;
-                        } catch {
-                            execution[header] = null;
-                        }
-                        break;
-                    case 'is_active':
-                        execution[header] = value.toLowerCase() === 'true';
-                        break;
-                    case 'status':
-                        execution[header] = value === 'pending' ? 'pending' : 'confirmed';
-                        break;
-                    case 'run_id':
-                        execution[header] = value || undefined;
-                        break;
-                    case 'target_selected_count':
-                    case 'max_output_tokens':
-                    case 'maybe_count':
-                    case 'failed_count':
-                        // 0 と未設定を区別したいので `|| 0` にはしない
-                        execution[header] = value ? parseInt(value, 10) : undefined;
-                        break;
-                    case 'target_mode':
-                        execution[header] = value ? parseLlmTargetMode(value) : undefined;
-                        break;
-                    case 'exclude_reasons_snapshot':
-                        // フルテキスト以外の実行では null（JSON文字列そのままで保持し、
-                        // 中身の配列としての解釈は呼び出し側に委ねる。criteria_snapshot と違い
-                        // ここではパースしない＝型は string | null のまま）
-                        execution[header] = value || null;
-                        break;
-                    default:
-                        execution[header] = value || '';
-                }
-            });
-            return execution as unknown as LlmExecution;
-        });
+        return parseLlmExecutionValues(values);
     } catch (error) {
         if (readOnly) throw error;
         console.error('[getLlmExecutions] Error:', error);
@@ -435,6 +443,15 @@ function parseLlmRunRow(row: string[], headers: string[]): LlmRun {
 }
 
 /**
+ * LLM_Runs シートの値（1行目ヘッダー）を LlmRun の配列へ変換する純関数。
+ */
+export function parseLlmRunValues(values: string[][]): LlmRun[] {
+    if (values.length <= 1) return [];
+    const headers = values[0];
+    return values.slice(1).map(row => parseLlmRunRow(row, headers));
+}
+
+/**
  * LlmRun を行配列にシリアライズ（LLM_RUNS_HEADERS の順序に従う）
  */
 function serializeLlmRunRow(run: LlmRun): string[] {
@@ -469,9 +486,7 @@ async function getLlmRunsRaw(spreadsheetId: string, readOnly = false): Promise<L
         values = readOnly ? await getSheetValues(spreadsheetId, LLM_RUNS_SHEET)
             : await readLlmRunsValues(spreadsheetId);
     }
-    if (values.length <= 1) return [];
-    const headers = values[0];
-    return values.slice(1).map(row => parseLlmRunRow(row, headers));
+    return parseLlmRunValues(values);
 }
 
 /**

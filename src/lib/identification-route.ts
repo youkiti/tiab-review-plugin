@@ -66,13 +66,13 @@ export interface OtherMethodsPrismaSummary {
  * other methods 腕（レジストリ連携）の PRISMA 行を組み立てる。
  *
  * summary が null または sought === 0（＝レジストリ連携経由の候補が0件）のときは空配列を返す。
- * これにより、呼び出し側（manuscript.ts の buildPrismaBlock()）は「0件のときは現行の出力から
+ * これにより、呼び出し側（manuscript-text.ts の buildPrismaBlock()）は「0件のときは現行の出力から
  * 1文字も変わらない」という要件を、この関数の戻り値を無条件で追記するだけで満たせる。
  *
  * FulltextResultsSummary 型を src/lib/ から import しないのは、src/sidepanel/ → src/lib/ の
  * 依存方向を逆流させないため。構造的に必要な形（OtherMethodsPrismaSummary）だけを受け取り、
  * FulltextResultsSummary はその上位互換なので構造的部分型としてそのまま渡せる。
- * 除外理由の英語ラベル化は manuscript.ts の reasonLabelEn() を呼び出し側から関数で渡してもらう。
+ * 除外理由の英語ラベル化は manuscript-text.ts の reasonLabelEn() を使う関数を呼び出し側から関数で渡してもらう。
  */
 export function buildOtherMethodsPrismaLines(
     summary: OtherMethodsPrismaSummary | null,

@@ -5,9 +5,9 @@ import { addSourceFile as storeAddSourceFile, addSelectedSourceFile as storeAddS
 import { dom } from '../dom';
 import { state } from '../state';
 import { showToast, showLoading } from '../ui/feedback';
-import { escapeCSVField } from '../utils/csv';
 import { getFilteredReferences } from './screening/filters';
-import { collectReviewerKeys, summarizeTeamDecision, formatDecisionNotes } from './screening/decision-summary';
+import { collectReviewerKeys } from './screening/decision-summary';
+import { buildTiabExportCsv, buildTiabExportRis } from '../../lib/tiab-export';
 import { getSpreadsheetInfo, addReferences, getReferences, saveImportStats, saveDuplicateCandidates } from '../../lib/sheets-api';
 import { t } from '../../lib/i18n';
 
@@ -232,62 +232,9 @@ export async function handleExportCSV() {
             ? []
             : collectReviewerKeys(state.references, state.enabledReviewers, state.treatMlAsManual);
 
-        // CSVヘッダー
-        // status は現状の値のまま（既存CSVとの互換のため変更しない）。team_status が新定義。
-        const headers = [
-            'title', 'authors', 'year', 'journal', 'volume', 'issue', 'pages', 'issn',
-            'doi', 'pmid', 'status', 'team_status', 'n_judged', 'n_expected',
-            ...(isBlinded ? [] : reviewerKeys),
-            ...(isBlinded ? [] : ['decision_notes']),
-            'note', 'source_file',
-        ];
+        const csv = buildTiabExportCsv(filtered, { isBlinded, reviewerKeys, treatMlAsManual: state.treatMlAsManual, assignmentConfig: state.assignmentConfig });
 
-        // CSVデータを構築
-        const csvRows: string[] = [];
-        csvRows.push(headers.map(escapeCSVField).join(','));
-
-        for (const ref of filtered) {
-            let teamStatusCell = 'blinded';
-            let nJudgedCell = '';
-            let nExpectedCell = '';
-            let reviewerCells: string[] = [];
-            let decisionNotesCell = '';
-
-            if (!isBlinded) {
-                const { teamStatus, nJudged, nExpected, byReviewer } = summarizeTeamDecision(
-                    ref, reviewerKeys, state.treatMlAsManual, state.assignmentConfig
-                );
-                teamStatusCell = teamStatus;
-                nJudgedCell = String(nJudged);
-                nExpectedCell = String(nExpected);
-                reviewerCells = reviewerKeys.map(key => byReviewer.get(key)?.decision || '');
-                decisionNotesCell = formatDecisionNotes(byReviewer, reviewerKeys);
-            }
-
-            const row = [
-                ref.title || '',
-                ref.authors || '',
-                ref.year?.toString() || '',
-                ref.journal || '',
-                ref.volume || '',
-                ref.issue || '',
-                ref.pages || '',
-                ref.issn || '',
-                ref.doi || '',
-                ref.pmid || '',
-                ref.status || '',
-                teamStatusCell,
-                nJudgedCell,
-                nExpectedCell,
-                ...(isBlinded ? [] : reviewerCells),
-                ...(isBlinded ? [] : [decisionNotesCell]),
-                ref.myDecision?.note || '',
-                ref.source_file || '',
-            ];
-            csvRows.push(row.map(escapeCSVField).join(','));
-        }
-
-        downloadBlob(csvRows.join('\r\n'), filename, 'text/csv;charset=utf-8');
+        downloadBlob(csv, filename, 'text/csv;charset=utf-8');
         if (isBlinded) {
             // 完了と警告を1本のトーストにまとめる（別トーストで時間をずらすと見逃されるため）
             showToast(`${t('export_csvDone', String(filtered.length))} ${t('export_blindedReviewerColumnsOmitted')}`, 6000);
@@ -340,83 +287,9 @@ export async function handleExportRIS() {
             ? []
             : collectReviewerKeys(state.references, state.enabledReviewers, state.treatMlAsManual);
 
-        const risLines: string[] = [];
+        const ris = buildTiabExportRis(filtered, { isBlinded, reviewerKeys, treatMlAsManual: state.treatMlAsManual, assignmentConfig: state.assignmentConfig });
 
-        for (const ref of filtered) {
-            risLines.push('TY  - JOUR');
-            if (ref.title) risLines.push(`TI  - ${ref.title}`);
-
-            if (ref.authors) {
-                const authors = ref.authors.split(/;\s*/);
-                for (const author of authors) {
-                    if (author && author !== 'et al.') {
-                        risLines.push(`AU  - ${author.trim()}`);
-                    }
-                }
-            }
-
-            if (ref.year) risLines.push(`PY  - ${ref.year}`);
-            if (ref.journal) risLines.push(`JO  - ${ref.journal}`);
-            if (ref.volume) risLines.push(`VL  - ${ref.volume}`);
-            if (ref.issue) risLines.push(`IS  - ${ref.issue}`);
-
-            if (ref.pages) {
-                const pageMatch = ref.pages.match(/^(\d+)\s*-\s*(\d+)$/);
-                if (pageMatch) {
-                    risLines.push(`SP  - ${pageMatch[1]}`);
-                    risLines.push(`EP  - ${pageMatch[2]}`);
-                } else {
-                    risLines.push(`SP  - ${ref.pages}`);
-                }
-            }
-
-            if (ref.issn) risLines.push(`SN  - ${ref.issn}`);
-            if (ref.doi) risLines.push(`DO  - ${ref.doi}`);
-            if (ref.pmid) risLines.push(`AN  - ${ref.pmid}`);
-            if (ref.abstract) risLines.push(`AB  - ${ref.abstract}`);
-
-            // URL
-            if (ref.pmid) {
-                risLines.push(`UR  - https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/`);
-            } else if (ref.doi) {
-                risLines.push(`UR  - https://doi.org/${ref.doi}`);
-            }
-
-            // カスタムフィールド
-            if (ref.myDecision?.note) {
-                risLines.push(`N1  - ${ref.myDecision.note}`);
-            }
-            if (ref.status) {
-                risLines.push(`C1  - Status: ${ref.status}`);
-            }
-            if (isBlinded) {
-                risLines.push('C1  - Team status: blinded');
-            } else {
-                const { teamStatus, byReviewer } = summarizeTeamDecision(
-                    ref, reviewerKeys, state.treatMlAsManual, state.assignmentConfig
-                );
-                risLines.push(`C1  - Team status: ${teamStatus}`);
-
-                if (byReviewer.size > 0) {
-                    const decisionsText = reviewerKeys
-                        .map(key => {
-                            const d = byReviewer.get(key);
-                            return d ? `${key}=${d.decision}` : null;
-                        })
-                        .filter((entry): entry is string => Boolean(entry))
-                        .join('; ');
-                    risLines.push(`C2  - Decisions: ${decisionsText}`);
-                }
-            }
-            if (ref.source_file) {
-                risLines.push(`DB  - ${ref.source_file}`);
-            }
-
-            risLines.push('ER  - ');
-            risLines.push('');
-        }
-
-        downloadBlob(risLines.join('\r\n'), filename, 'application/x-research-info-systems;charset=utf-8');
+        downloadBlob(ris, filename, 'application/x-research-info-systems;charset=utf-8');
         if (isBlinded) {
             // 完了と警告を1本のトーストにまとめる（別トーストで時間をずらすと見逃されるため）
             showToast(`${t('export_risDone', String(filtered.length))} ${t('export_blindedReviewerColumnsOmitted')}`, 6000);
