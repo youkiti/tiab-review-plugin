@@ -42,7 +42,7 @@ if ($currentBranch -eq "main") {
     exit 1
 }
 
-# 作業ツリーの汚れチェック（AutoResearchClaw サブモジュール内の生成物は
+# 作業ツリーの汚れチェック（サブモジュール内の生成物は
 # 提出物に影響しないため --ignore-submodules=dirty で除外する）
 $dirtyStatus = git -C $repoRoot status --porcelain --ignore-submodules=dirty
 if ($LASTEXITCODE -ne 0) {

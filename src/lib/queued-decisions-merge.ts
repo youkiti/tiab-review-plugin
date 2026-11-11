@@ -17,14 +17,14 @@ import { detectConflict } from './sheets-api';
  *   無い場合）だけ myDecision を差し替える
  * - `keyOpened` が true かつ allDecisions が配列で存在する場合（キー開封後）は、自分の
  *   reviewer_id の要素を差し替え（無ければ push）た上で、更新後の allDecisions から
- *   `detectConflict()`（decision-aggregate.ts、getReferencesWithAllDecisions と同じ関数）で
+ *   `detectConflict()`（decision-aggregate.ts、mergeReferencesWithAllDecisions と同じ関数）で
  *   hasConflict を再計算し、status も hasConflict なら 'conflict'、そうでなければ
  *   `myDecision.decision !== 'pending' ? decision : 'pending'` で決め直す
  *   （PR #138 レビュー指摘: 未送信票を重ねて不一致が解消/新規発生しても、この再計算をしないと
  *   status が古いまま表示され続けていた）
  * - `keyOpened` が false（Blind中）のときは allDecisions に一切触れず、status は
- *   `decision !== 'pending' ? decision : 'pending'`（getReferencesWithStatus と同じ規則）で
- *   決める。Blind中の allDecisions は getReferencesWithStatus が LLM判定だけを入れて返す
+ *   `decision !== 'pending' ? decision : 'pending'`（mergeReferencesWithStatus と同じ規則）で
+ *   決める。Blind中の allDecisions は mergeReferencesWithStatus が LLM判定だけを入れて返す
  *   （hasConflict も持たない）ため、ここで無条件に自分のhuman判定を差し込むと
  *   Blind中にAI Evidenceハイライトへ人間の判定が混入してしまう
  *   （screening/actions.ts の handleDecision も state.isKeyOpened && ref.allDecisions の
