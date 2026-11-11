@@ -217,7 +217,8 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 
 ## Chrome Web Store への提出（リリース手順）
 
-- リリースは `npm run release`（修正・小変更: 0.33.2 → 0.33.3 + ストア用ビルド）または `npm run release:major`（機能追加: 0.33.2 → 0.34.0）。生成される **`dist.zip`** をデベロッパーダッシュボードにアップロードします（ファイル名は `dist.zip` 固定。バージョン付きの名前ではアップロードできません）。
+- リリースは `npm run release`（修正・小変更）または `npm run release:major`（機能追加）。1回の実行で、リリース用ブランチと PR の作成、CI の必須チェック待ち、マージ、ストア用ビルドと審査提出まで進みます。途中で止まったら同じコマンドを再実行すると続きから進みます。前提: Windows の PowerShell、`gh` CLI のログイン、`.env` のストア API 認証。zip だけ作るときは `npm run build:release`（生成される **`dist.zip`** をデベロッパーダッシュボードにアップロードします。ファイル名は `dist.zip` 固定で、バージョン付きの名前ではアップロードできません）。
+- `gh` CLI の導入（リリースを行う Windows の PC で1回）: PowerShell で `gh --version` を実行し、版が出なければ `winget install --id GitHub.cli` で入れて PowerShell を開き直します。次に `gh auth login` を実行し、「GitHub.com」「HTTPS」「Login with a web browser」を選んで、表示されたコードをブラウザに入れます。`gh auth status` でログインを確かめます。
 - Chrome Web Store では `manifest.json` の `key` フィールドが禁止のため、本リポジトリでは **本番ビルド（production）時のみ** `dist/manifest.json` から `key` を自動的に除去します。
 - `chrome.identity.launchWebAuthFlow` の認可には、ウェブ アプリケーション種別のOAuthクライアントをGCP側で作成し、承認済みリダイレクトURIにストア版・dev版それぞれの `https://<拡張機能ID>.chromiumapp.org/` を登録した上で、`.env` の `WEBAUTH_CLIENT_ID` に設定してください（詳細は上記「OAuth 2.0 クライアントIDの作成」参照）。
 - `WEBAUTH_CLIENT_ID` が未設定の状態で本番ビルドすると、誤った `client_id` 混入防止のためビルドを失敗させます。
