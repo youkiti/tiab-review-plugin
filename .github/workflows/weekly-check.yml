@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -37,7 +37,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TYPE_SAFE_API_KEY: ${{ secrets.TYPE_SAFE_API_KEY }}
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: report-models
           path: .tmp/weekly-check/models.md
@@ -48,8 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       # npm audit は package-lock.json だけで動くので npm ci は要らない
@@ -77,7 +77,7 @@ jobs:
           cat .tmp/weekly-check/audit.md >> "$GITHUB_STEP_SUMMARY"
           exit $prod
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: report-audit
           path: .tmp/weekly-check/audit.md
@@ -89,8 +89,8 @@ jobs:
     # 2026-11-11 の実測は25本で約5分。再試行と Chromium の取得を見込む
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -117,14 +117,14 @@ jobs:
           cat .tmp/weekly-check/tours.md >> "$GITHUB_STEP_SUMMARY"
           exit $code
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: report-tours
           path: .tmp/weekly-check/tours.md
           if-no-files-found: warn
           retention-days: 14
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tour-screenshots
           path: .tmp/guide-tour-check/*.png
@@ -140,13 +140,13 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: report-*
           path: reports
           merge-multiple: true
       - name: 失敗した項目を Issue にする
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           RESULT_MODELS: ${{ needs.models.result }}
           RESULT_AUDIT: ${{ needs.audit.result }}
