@@ -55,7 +55,7 @@ export const EXCLUDE_REASON_LABELS: Record<ExcludeReason, string> = DEFAULT_EXCL
 );
 
 /**
- * PRISMA フロー図・論文用テキスト（manuscript.ts）向けの既定の英語ラベル。派生値。
+ * PRISMA フロー図・論文用テキスト（manuscript-text.ts）向けの既定の英語ラベル。派生値。
  * 英語ラベルの追加漏れを防いでいるのはこの Record 型ではない（reduce + キャストで
  * 組み立てているだけなので、この Record<ExcludeReason, string> 自体には typecheck で
  * 漏れを検出する力はない）。保証の出どころは定義源 DEFAULT_EXCLUDE_REASON_ITEMS_SOURCE の

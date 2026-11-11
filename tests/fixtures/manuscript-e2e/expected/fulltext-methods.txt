@@ -1,0 +1,5 @@
+Full texts of the 6 candidate reports were retrieved and assessed for eligibility by 2 reviewers in TiAb Review (version 0.0.0-test), with reasons for exclusion recorded.
+
+Disagreements between screeners (n = 1) were resolved by [discussion / a third reviewer].
+
+The full text of the single additional report identified through linkage to trial registrations (without title/abstract screening) was retrieved and assessed for eligibility using the same criteria, and reported separately as an "other methods" identification route in the PRISMA 2020 flow diagram.

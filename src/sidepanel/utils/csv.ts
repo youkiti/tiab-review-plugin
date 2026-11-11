@@ -1,16 +1,5 @@
 /**
  * CSV処理ユーティリティ
+ * 実体は lib の純関数（TiAb エクスポートの本文組み立てと共有するため）。
  */
-
-/**
- * CSVフィールドをエスケープ
- */
-export function escapeCSVField(value: string): string {
-    if (!value) return '';
-    // ダブルクォートをエスケープし、特殊文字を含む場合は全体をクォート
-    const escaped = value.replace(/"/g, '""');
-    if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
-        return `"${escaped}"`;
-    }
-    return escaped;
-}
+export { escapeCSVField } from '../../lib/csv';

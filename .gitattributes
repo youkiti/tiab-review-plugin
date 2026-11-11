@@ -36,3 +36,7 @@
 # EndNote ライブラリ（tests/fixtures/sample.enl, sample.enlp）
 *.enl binary
 *.enlp binary
+
+# 論文用テキスト・TiAb エクスポートの期待値ファイル（tests/manuscript-e2e.test.ts が完全一致で照合する）。
+# CSV/RIS は改行が \r\n で出力されるため、チェックアウト時の改行変換を止めてバイト列を固定する。
+tests/fixtures/manuscript-e2e/expected/* -text

@@ -1,0 +1,32 @@
+PRISMA 2020 flow — Fixture project (generated 2026-01-01)
+
+Identification
+  Records identified from databases (n = 16)
+    embase.ris: n = 6
+    pubmed.nbib: n = 10
+  Records removed before screening (duplicates) (n = 4)
+Screening
+  Records screened (n = 12)
+  Records excluded (n = 6)
+Retrieval
+  Reports sought for retrieval (n = 6)
+  Reports not retrieved (n = 1)
+Eligibility
+  Reports assessed for eligibility (n = 5)
+  Reports excluded (n = 3):
+    Ineligible population (n = 1)
+    Ineligible intervention (n = 1)
+    Ineligible study design (n = 1)
+Included
+  Studies included in review (n = 2)
+
+Identification (other methods)
+  Records identified via registry linkage (n = 1)
+Retrieval (other methods)
+  Reports sought for retrieval (n = 1)
+  Reports not retrieved (n = 0)
+Eligibility (other methods)
+  Reports assessed for eligibility (n = 1)
+  Reports excluded (n = 0)
+Included (other methods)
+  Studies included in review (n = 1)

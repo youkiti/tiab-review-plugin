@@ -1,0 +1,14 @@
+title,authors,year,journal,volume,issue,pages,issn,doi,pmid,status,team_status,n_judged,n_expected,note,source_file
+Fixture study R01,Smith J; Lee K; et al.,2021,Fixture Journal,11,2,101-111,,10.1000/fixture.1,30000001,include,blinded,,,,pubmed.nbib
+Fixture study R02,Tanaka H; Brown A,2022,Fixture Journal,12,2,102-112,,10.1000/fixture.2,30000002,include,blinded,,,,pubmed.nbib
+"Effect of A, B and ""C"" on outcomes",Smith J; Lee K; et al.,2023,Fixture Journal,13,2,e3,,10.1000/fixture.3,30000003,include,blinded,,,,pubmed.nbib
+Fixture study R04,Tanaka H; Brown A,2020,Fixture Journal,14,2,104-114,,10.1000/fixture.4,30000004,include,blinded,,,,pubmed.nbib
+Fixture study R05,Smith J; Lee K; et al.,2021,Fixture Journal,15,2,105-115,,10.1000/fixture.5,30000005,include,blinded,,,,pubmed.nbib
+Fixture study R06,Tanaka H; Brown A,2022,Fixture Journal,16,2,e6,,10.1000/fixture.6,30000006,conflict,blinded,,,,pubmed.nbib
+Fixture study R07,Smith J; Lee K; et al.,2023,Fixture Journal,17,2,107-117,,10.1000/fixture.7,30000007,exclude,blinded,,,,pubmed.nbib
+Fixture study R08,Tanaka H; Brown A,2020,Fixture Journal,18,2,108-118,,10.1000/fixture.8,30000008,exclude,blinded,,,,pubmed.nbib
+Fixture study R09,Smith J; Lee K; et al.,2021,Fixture Journal,19,2,e9,,10.2000/fixture.9,,exclude,blinded,,,,embase.ris
+Fixture study R10,Tanaka H; Brown A,2022,Fixture Journal,20,2,110-120,,10.2000/fixture.10,,exclude,blinded,,,,embase.ris
+Fixture study R11,Smith J; Lee K; et al.,2023,Fixture Journal,21,2,111-121,,10.2000/fixture.11,,exclude,blinded,,,,embase.ris
+Fixture study R12,Tanaka H; Brown A,2020,Fixture Journal,22,2,e12,,10.2000/fixture.12,,exclude,blinded,,,,embase.ris
+Fixture report R14 (registry linkage),Ito M,2023,Fixture Journal,24,,200-210,,10.3000/fixture.14,,pending,blinded,,,,

@@ -10,6 +10,7 @@ import { parseSearchQuery, applyTextFilters } from '../utils/search';
 import { isHumanDecision, isConfirmedMlDecision } from '../../lib/client-version';
 import { canSeeFulltextRef } from '../../lib/fulltext-assignment';
 import { isFulltextCandidateRef } from '../../lib/fulltext-candidates';
+import { collectRefDecisions } from '../../lib/reference-status';
 import { hasEffectiveConflict } from '../render/helpers';
 import { resolveReferenceAssignmentSet } from '../../lib/assignment-set';
 import { t } from '../../lib/i18n';
@@ -47,15 +48,10 @@ export function getMyManualDecisionStatus(
 }
 
 /**
- * 文献の全判定を集める（allDecisions + myDecision、重複排除）
+ * 文献の全判定を集める（allDecisions + myDecision、重複排除）。
+ * 実体は lib の純関数（論文用テキストの組み立てと共有するため）。
  */
-export function collectRefDecisions(ref: ReferenceWithStatus): Decision[] {
-    const list = [...(ref.allDecisions ?? [])];
-    if (ref.myDecision && !list.some(d => d.decision_id === ref.myDecision!.decision_id)) {
-        list.push(ref.myDecision);
-    }
-    return list;
-}
+export { collectRefDecisions };
 
 /**
  * フルテキスト候補のうち自分の担当分か（担当割り振り適用後）

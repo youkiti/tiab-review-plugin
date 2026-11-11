@@ -185,7 +185,9 @@ CSVエクスポートには `conflict` / `reason_conflict` / `adjudicated` / `ad
 
 ### TiAb エクスポート（CSV/RIS）の判定者別列
 
-`src/sidepanel/features/import-export.ts` の `handleExportCSV()` / `handleExportRIS()` が対象。
+CSV/RIS の本文は `src/lib/tiab-export.ts` の `buildTiabExportCsv()` / `buildTiabExportRis()`（純関数）が作る。
+`src/sidepanel/features/import-export.ts` の `handleExportCSV()` / `handleExportRIS()` はファイル名・`reviewerKeys` の算出・トースト・ダウンロード（BOM の付与）だけを持つ。
+シートの行から出力までの通しの検査は `tests/manuscript-e2e.test.ts`（期待値は `tests/fixtures/manuscript-e2e/expected/`）にある。
 「誰が何と判定したか」が分かるよう、`status` 列とは別に `team_status` 列を追加している。
 集計ロジックは純関数として `src/sidepanel/features/screening/decision-summary.ts` に切り出してあり
 （`../../state` / `../../dom` を import しない。テストから state/dom 抜きで検証するための制約）、

@@ -14,7 +14,8 @@
 //
 // このモジュールは純関数のみで、DOM・state に依存しない。
 
-import type { Decision, Reference } from './types';
+import type { Decision, Reference, ReferenceWithStatus } from './types';
+import { collectRefDecisions } from './reference-status';
 import { isInFulltextPool, isTiabDecision, type FulltextPoolRule } from './fulltext-pool';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 
@@ -135,4 +136,23 @@ export function isSharedFulltextPoolMember(input: {
     }
 
     return poolRule ? isInFulltextPool(decisions, poolRule) : false;
+}
+
+/**
+ * 文献一覧からプロジェクト全体のフルテキスト候補を選ぶ（ログインユーザー非依存）。
+ * 画面側の getProjectFulltextCandidateList() は state の値を渡してこれを呼ぶだけ。
+ */
+export function selectProjectFulltextCandidates(
+    refs: readonly ReferenceWithStatus[],
+    poolRule: FulltextPoolRule | null,
+    assignment: FulltextAssignmentConfig
+): ReferenceWithStatus[] {
+    return refs.filter((r) =>
+        isProjectFulltextCandidateRef({
+            ref: r,
+            decisions: collectRefDecisions(r),
+            poolRule,
+            assignment,
+        })
+    );
 }

@@ -1,8 +1,9 @@
 // prisma-identification.ts - PRISMA Identification 相の集計（純関数、UI/state 非依存）
 //
-// src/sidepanel/features/manuscript.ts の collectIdentification() は state に依存していて
-// テストできなかった。集計の核をここへ切り出す（Issue #145 チャンク2）。
-// IdentificationData 型もこのファイルへ集約する。manuscript.ts はこのファイルから import して使う
+// 論文用テキストの Identification 集計は、以前は画面側（state 依存）にありテストできなかった。
+// 集計の核をここへ切り出した（Issue #145 チャンク2）。
+// IdentificationData 型もこのファイルへ集約する。論文用テキストの組み立て（manuscript-text.ts）が
+// このファイルから import して使う
 // （domain の行そのものを表す Reference/Decision 等の型は src/lib/types.ts に置くが、
 // IdentificationData は「この集計関数の戻り値の形」であって References 行の型ではないため、
 // 型定義の主目的である計算ロジックとセットでこのファイルに置くほうが自然と判断した）。

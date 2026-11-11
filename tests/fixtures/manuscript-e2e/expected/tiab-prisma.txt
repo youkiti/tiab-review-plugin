@@ -1,0 +1,12 @@
+PRISMA 2020 flow — Fixture project (generated 2026-01-01)
+
+Identification
+  Records identified from databases (n = 16)
+    embase.ris: n = 6
+    pubmed.nbib: n = 10
+  Records removed before screening (duplicates) (n = 4)
+Screening
+  Records screened (n = 12)
+  Records excluded (n = 6)
+Retrieval
+  Reports sought for retrieval (n = 6)
