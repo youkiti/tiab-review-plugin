@@ -138,7 +138,7 @@ async function postMessages(body: { model: string }, timeoutMs: number, signal?:
     try {
         const rawKey = await getEffectiveAnthropicApiKey();
         if (!rawKey) {
-            throw new Error('ANTHROPIC_API_KEY が設定されていません。サイドパネルから Anthropic APIキーを登録してください。');
+            throw Object.assign(new Error('ANTHROPIC_API_KEY が設定されていません。サイドパネルから Anthropic APIキーを登録してください。'), { retryable: false });
         }
         const apiKey = sanitizeApiKey(rawKey, 'Anthropic');
         const response = await fetch(MESSAGES_ENDPOINT, {

@@ -84,7 +84,9 @@ function tryParseJson(text: string): LlmScreeningOutput | null {
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenRouterApiKey();
     if (!key) {
-        throw new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。');
+        throw Object.assign(
+            new Error('OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。'),
+            { retryable: false });
     }
     return sanitizeApiKey(key, 'OpenRouter');
 }
@@ -167,8 +169,20 @@ async function callOnce(
         clearTimeout(timer);
 
         if (!response.ok) {
-            const errText = await response.text().catch(() => '');
-            throw new Error(`OpenRouter API error ${response.status}: ${errText.slice(0, 200)}`);
+            // 応答にキーが含まれてもエラーメッセージへ流出させない。
+            const errText = (await response.text().catch(() => '')).split(apiKey).join('[REDACTED]');
+            const unknownModel = response.status === 400
+                && (errText.includes('is not a valid model ID') || errText.includes('does not exist'));
+            const detail = unknownModel
+                ? `モデル ${params.model} が見つかりません（提供終了の可能性があります。拡張機能の更新が必要です）。応答=${errText.slice(0, 200)}`
+                : errText.slice(0, 200);
+            const error = Object.assign(
+                new Error(`OpenRouter API error ${response.status}: ${detail}`), { status: response.status });
+            // 4xx を恒久的な失敗と決めつけない。キー不正・残高不足・拒否・存在しないモデル（404 と
+            // モデル不明の 400）だけを再試行不可にし、それ以外の 400・408・429・5xx は送り直す。
+            if (response.status === 401 || response.status === 402 || response.status === 403
+                || response.status === 404 || unknownModel) Object.assign(error, { retryable: false });
+            throw error;
         }
 
         const data = await response.json() as {
@@ -238,6 +252,8 @@ export async function screenViaOpenRouter(
             return await callOnce(params, promptText, timeoutMs);
         } catch (err) {
             lastErr = err;
+            // 送り直しても通らないエラーは待たずに投げる（openai.ts と同じ形）。
+            if ((err as { retryable?: boolean } | null)?.retryable === false) throw err;
             if (attempt < maxRetries) {
                 const delay = 5000 * Math.pow(2, attempt);
                 console.warn(`[openrouter] retry ${attempt + 1}/${maxRetries} after ${delay}ms: ${(err as Error).message}`);

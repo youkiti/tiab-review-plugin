@@ -11,6 +11,8 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
+- AI 一括判定で、API キーの誤り・残高不足・存在しないモデルなど送り直しても通らないエラーは、どの AI でも1回で打ち切り、組み入れ確率 1.0 の判定（人の確認に必ず回る扱い）として保存するようにしました。これまでは Gemini・OpenAI では同じ文献を最大3回、OpenRouter のチャットモデルでは最大9回送り直していました。レート制限（429）と一時的なサーバーエラー・通信エラーは従来どおり再試行します。
+  In AI batch screening, errors that cannot succeed on resend (invalid API key, insufficient credit, unknown model, and similar) now stop after one attempt for every AI provider, and the reference is saved with an inclusion probability of 1.0 so that it always goes to human review. Previously, Gemini and OpenAI resent the same reference up to three times, and OpenRouter chat models up to nine times. Rate limits (429) and temporary server or network errors are still retried as before.
 - プロジェクトを切り替えた直後に、前のプロジェクトの AI 設定（基準）が全文の AI 判定の実行記録に入ることがある経路をなくしました。
   Removed a path by which the previous project's AI settings (criteria) could be recorded in the full-text AI screening log right after switching projects.
 
