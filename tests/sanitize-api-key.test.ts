@@ -36,3 +36,8 @@ test('sanitizeApiKey: 例外文はプロバイダ名で始まる', () => {
         );
     }
 });
+
+test('sanitizeApiKey: 例外は再試行不可の印（retryable === false）を持つ', () => {
+    assert.throws(() => sanitizeApiKey('sk-あ', 'OpenRouter'),
+        (error: Error & { retryable?: boolean }) => error.retryable === false && /ISO-8859-1/.test(error.message));
+});

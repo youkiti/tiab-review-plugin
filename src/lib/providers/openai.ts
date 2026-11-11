@@ -130,7 +130,7 @@ const STRICT_CRITERIA_SCHEMA = toStrictSchema(CRITERIA_CONVERSION_SCHEMA);
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenAiApiKey();
     if (!key) {
-        throw new Error('OPENAI_API_KEY が設定されていません。サイドパネルから OpenAI APIキーを登録してください。');
+        throw Object.assign(new Error('OPENAI_API_KEY が設定されていません。サイドパネルから OpenAI APIキーを登録してください。'), { retryable: false });
     }
     return sanitizeApiKey(key, 'OpenAI');
 }
@@ -190,9 +190,9 @@ async function postResponses(body: Record<string, unknown>, timeoutMs: number, s
             const message = `OpenAI API error ${response.status}: ${errText.slice(0, 200)}`;
             const retryable = response.status === 429 || response.status >= 500;
             if (!retryable) {
-                throw nonRetryableError(message);
+                throw Object.assign(nonRetryableError(message), { status: response.status });
             }
-            throw new Error(message);
+            throw Object.assign(new Error(message), { status: response.status });
         }
 
         return await response.json() as OpenAiResponseBody;

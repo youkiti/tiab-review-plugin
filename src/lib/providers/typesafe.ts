@@ -107,9 +107,9 @@ export async function screenViaTypeSafe(
     const rawKey = await (viaOpenRouter ? getEffectiveOpenRouterApiKey() : getEffectiveTypeSafeApiKey());
     const apiKey = rawKey ? sanitizeApiKey(rawKey, viaOpenRouter ? 'OpenRouter' : 'TypeSafe') : '';
     if (!apiKey) {
-        throw new Error(viaOpenRouter
+        throw Object.assign(new Error(viaOpenRouter
             ? 'OPENROUTER_API_KEY が設定されていません。サイドパネルから OpenRouter APIキーを登録してください。'
-            : 'TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。');
+            : 'TYPE_SAFE_API_KEY が設定されていません。サイドパネルから TypeSafe APIキーを登録してください。'), { retryable: false });
     }
     const { body, criterionKeys } = buildTypeSafeScreeningRequest(params);
     const controller = new AbortController();
@@ -129,7 +129,9 @@ export async function screenViaTypeSafe(
             const detail = unknownModel
                 ? `モデル ${params.model} が見つかりません（提供終了の可能性があります。拡張機能の更新が必要です）。応答=${text.slice(0, 200)}`
                 : text.slice(0, 200);
-            const error = new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`);
+            const error = Object.assign(
+                new Error(`${viaOpenRouter ? 'OpenRouter Decisions' : 'TypeSafe'} API error ${response.status}: ${detail}`),
+                { status: response.status });
             // 4xx を恒久的な失敗と決めつけない。負荷時の 400 は直後に通ることがあるため、
             // キー不正・権限なし・モデル不明と、残高不足（402）だけを再試行不可にする。
             // 直 API もクレジットが尽きると 402 billing_error を返す（2026-10-15 実測）。再試行しても通らない。
