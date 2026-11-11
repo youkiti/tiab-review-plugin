@@ -4,6 +4,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const dotenv = require('dotenv');
 const packageJson = require('./package.json');
 const { stripLocaleKeys } = require('./scripts/webpack/strip-locale-keys.cjs');
+const { resolveBuildCommit } = require('./scripts/webpack/build-commit.cjs');
 
 dotenv.config();
 
@@ -420,6 +421,8 @@ function buildWebConfig(env, argv) {
                 __GCP_PROJECT_NUMBER__: JSON.stringify(gcpProjectNumber ?? ''),
                 __PICKER_PAGE_URL__: JSON.stringify(resolvePickerPageUrlOverride(isProduction)),
                 __APP_VERSION__: JSON.stringify(packageJson.version),
+                // Web 版の版表示（web-<版>+<短縮SHA>）に使うビルド元コミット。拡張版には渡さない。
+                __APP_COMMIT__: JSON.stringify(resolveBuildCommit()),
                 __WEB_BUILD__: true,
             }),
             new CopyPlugin({
