@@ -669,6 +669,7 @@ async function handleCreate(
 ): Promise<void> {
     if (_ftSaving) return;
     _ftSaving = true;
+    const spreadsheetId = state.spreadsheetId; // 宛先は開始時のプロジェクトに固定する
     const restoreButton = markButtonSaving(button);
     try {
         showLoading(true);
@@ -681,9 +682,9 @@ async function handleCreate(
             seed,
             generatedAt: new Date().toISOString(),
         };
-
-        await updateReferenceFulltextSets(state.spreadsheetId, assignments);
-        await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
+        await updateReferenceFulltextSets(spreadsheetId, assignments);
+        await saveFulltextAssignmentConfig(spreadsheetId, nextConfig);
+        if (state.spreadsheetId !== spreadsheetId) return;
         applyLocalFulltextSets(assignments);
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
@@ -705,7 +706,7 @@ async function handleCreate(
 
 async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise<void> {
     if (_ftSaving) return;
-    const config = state.fulltextAssignment;
+    const { spreadsheetId, fulltextAssignment: config } = state;
     if (config.status !== 'configured') return;
 
     _ftSaving = true;
@@ -715,7 +716,8 @@ async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise
             ...config,
             reviewerMap,
         };
-        await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
+        await saveFulltextAssignmentConfig(spreadsheetId, nextConfig);
+        if (state.spreadsheetId !== spreadsheetId) return;
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
         // 新しい設定に基づく初期選択へ戻す
@@ -735,7 +737,7 @@ async function handleSaveMapOnly(reviewerMap: Record<string, string[]>): Promise
 
 async function handleDistributeUnassigned(button?: HTMLButtonElement): Promise<void> {
     if (_ftSaving) return;
-    const config = state.fulltextAssignment;
+    const { spreadsheetId, fulltextAssignment: config } = state;
     if (config.status !== 'configured') return;
 
     const unassigned = getUnassignedPoolRefs(config);
@@ -751,7 +753,8 @@ async function handleDistributeUnassigned(button?: HTMLButtonElement): Promise<v
             countPoolBySet(config),
             String(Date.now())
         );
-        await updateReferenceFulltextSets(state.spreadsheetId, assignments);
+        await updateReferenceFulltextSets(spreadsheetId, assignments);
+        if (state.spreadsheetId !== spreadsheetId) return;
         applyLocalFulltextSets(assignments);
         hideModal();
         showToast(t('ftAssign_distributed', String(assignments.length)), 3000);
@@ -768,7 +771,7 @@ async function handleDistributeUnassigned(button?: HTMLButtonElement): Promise<v
 
 async function handleReset(): Promise<void> {
     if (_ftSaving) return;
-    const config = state.fulltextAssignment;
+    const { spreadsheetId, fulltextAssignment: config } = state;
 
     _ftSaving = true;
     try {
@@ -777,7 +780,8 @@ async function handleReset(): Promise<void> {
             ...config,
             status: 'none',
         };
-        await saveFulltextAssignmentConfig(state.spreadsheetId, nextConfig);
+        await saveFulltextAssignmentConfig(spreadsheetId, nextConfig);
+        if (state.spreadsheetId !== spreadsheetId) return;
         syncSetFulltextAssignment(nextConfig);
         // 割り振り設定が変わったら選択状態は当てにならない（グループ数変更・再シャッフル・担当者変更）ので、
         // 新しい設定に基づく初期選択へ戻す（status='none' なら initialSelectedFulltextSets は空集合を返す）

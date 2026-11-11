@@ -261,6 +261,7 @@ EndNote 公式 DTD に準拠（`<source-app name="EndNote">` を含む XML）。
 - **OAuth失効**: `chrome.storage.session` のトークンキャッシュを破棄し revoke した上で、サイレント `launchWebAuthFlow`（`prompt=none`）による再取得を促す。再ログイン促進、作業続行不可の明示、オフラインキューへ退避
 - **権限不足**: 権限不足メッセージ＋シート共有設定への導線、読み取り専用モードへフォールバック
 - **クォータ超過**: 指数バックオフ（初回1秒、最大32秒）でリトライ、手動再試行ボタン
+- **AI 一括判定の再試行**: 各プロバイダは送り直しても通らないエラーに `retryable: false` を付ける。`processWithRetry`（`llm-processor.ts`）はプロバイダ名で分けず、この印だけを見る。4xx をまとめて再試行不可にはしない（Anthropic の 400、TypeSafe・OpenRouter の 400 は再試行する）
 
 ### セキュリティガイドライン
 

@@ -22,10 +22,11 @@ export function sanitizeApiKey(rawKey: string, providerLabel: string): string {
         if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
             cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
         if (cp > 255) {
-            throw new Error(
+            // 送り直しても同じキーで必ず失敗するので、一括判定の再試行対象から外す。
+            throw Object.assign(new Error(
                 `${providerLabel} APIキーに ISO-8859-1 範囲外の文字が含まれています。`
                 + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
-            );
+            ), { retryable: false });
         }
         out += ch;
     }

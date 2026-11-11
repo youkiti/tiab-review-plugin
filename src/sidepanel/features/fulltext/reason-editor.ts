@@ -41,11 +41,32 @@ export interface ReasonEditorOptions {
     onClose: () => void;
 }
 
-/** 編集中の作業コピー（保存するまで state には反映しない） */
-let draft: ExcludeReasonItem[] = [];
+/**
+ * 除外理由エディタのセッション状態。戻る・ログアウトで丸ごと作り直す
+ * （足すときはここに入れる。tests/session-reset.test.ts が最上位の let を検査する）。
+ */
+export interface ReasonEditorSessionState {
+    /** 編集中の作業コピー（保存するまで state には反映しない） */
+    draft: ExcludeReasonItem[];
+}
+
+export function createReasonEditorSession(): ReasonEditorSessionState {
+    return { draft: [] };
+}
+
+const session: ReasonEditorSessionState = createReasonEditorSession();
+
+export function _getReasonEditorSessionForTest(): ReasonEditorSessionState {
+    return session;
+}
+
+/** 戻る・ログアウトで、編集中の下書きを捨てる（開くたびに作り直すので、残りを捨てるだけ） */
+export function resetReasonEditorSession(): void {
+    Object.assign(session, createReasonEditorSession());
+}
 
 export function mountReasonEditor(options: ReasonEditorOptions): void {
-    draft = options.currentItems.map(i => ({ ...i }));
+    session.draft = options.currentItems.map(i => ({ ...i }));
     render(options);
 }
 
@@ -64,7 +85,7 @@ function render(options: ReasonEditorOptions): void {
 
     const note = document.createElement('div');
     note.className = 'ft-reason-editor-note';
-    note.textContent = t('ftReason_priorityNote', String(Math.min(draft.length, MAX_REASON_HOTKEYS)));
+    note.textContent = t('ftReason_priorityNote', String(Math.min(session.draft.length, MAX_REASON_HOTKEYS)));
     container.appendChild(note);
 
     if (!isAdmin) {
@@ -93,7 +114,7 @@ function buildList(options: ReasonEditorOptions): HTMLElement {
     const list = document.createElement('div');
     list.className = 'ft-reason-editor-list';
 
-    draft.forEach((item, idx) => {
+    session.draft.forEach((item, idx) => {
         const row = document.createElement('div');
         row.className = 'ft-reason-editor-row';
 
@@ -109,7 +130,7 @@ function buildList(options: ReasonEditorOptions): HTMLElement {
         labelInput.value = item.label;
         labelInput.placeholder = t('ftReason_labelPlaceholder');
         labelInput.disabled = !options.isAdmin;
-        labelInput.addEventListener('input', () => { draft[idx].label = labelInput.value; });
+        labelInput.addEventListener('input', () => { session.draft[idx].label = labelInput.value; });
         row.appendChild(labelInput);
 
         const labelEnInput = document.createElement('input');
@@ -118,7 +139,7 @@ function buildList(options: ReasonEditorOptions): HTMLElement {
         labelEnInput.value = item.labelEn;
         labelEnInput.placeholder = t('ftReason_labelEnPlaceholder');
         labelEnInput.disabled = !options.isAdmin;
-        labelEnInput.addEventListener('input', () => { draft[idx].labelEn = labelEnInput.value; });
+        labelEnInput.addEventListener('input', () => { session.draft[idx].labelEn = labelEnInput.value; });
         row.appendChild(labelEnInput);
 
         const used = options.usageCounts.get(item.key) ?? 0;
@@ -131,16 +152,16 @@ function buildList(options: ReasonEditorOptions): HTMLElement {
 
         if (options.isAdmin) {
             row.appendChild(buildIconBtn('↑', t('ftReason_moveUp'), idx === 0, () => {
-                [draft[idx - 1], draft[idx]] = [draft[idx], draft[idx - 1]];
+                [session.draft[idx - 1], session.draft[idx]] = [session.draft[idx], session.draft[idx - 1]];
                 render(options);
             }));
-            row.appendChild(buildIconBtn('↓', t('ftReason_moveDown'), idx === draft.length - 1, () => {
-                [draft[idx + 1], draft[idx]] = [draft[idx], draft[idx + 1]];
+            row.appendChild(buildIconBtn('↓', t('ftReason_moveDown'), idx === session.draft.length - 1, () => {
+                [session.draft[idx + 1], session.draft[idx]] = [session.draft[idx], session.draft[idx + 1]];
                 render(options);
             }));
             row.appendChild(buildIconBtn('✕', t('ftReason_remove'), false, () => {
                 if (used > 0 && !confirm(t('ftReason_removeUsedConfirm', [item.label, String(used)]))) return;
-                draft.splice(idx, 1);
+                session.draft.splice(idx, 1);
                 render(options);
             }));
         }
@@ -170,19 +191,19 @@ function buildAddRow(options: ReasonEditorOptions): HTMLElement {
     addBtn.type = 'button';
     addBtn.className = 'btn btn-small btn-secondary';
     addBtn.textContent = t('ftReason_add');
-    addBtn.disabled = draft.length >= MAX_EXCLUDE_REASON_ITEMS;
+    addBtn.disabled = session.draft.length >= MAX_EXCLUDE_REASON_ITEMS;
     addBtn.addEventListener('click', () => {
         // 既存キーに加え、現在の設定にあるキー・過去に退役したキーとも衝突させない
         // （削除した項目のキーを再利用すると、過去の判定が別の意味の理由として読まれる）。
         // usageCounts はブラインド中は他レビュアーの票を読めず0件に見えるため、
         // 再利用回避の実体は retiredKeys（state.excludeReasonConfig）で担保する。
         const usedKeys = [
-            ...draft.map(i => i.key),
+            ...session.draft.map(i => i.key),
             ...options.currentItems.map(i => i.key),
             ...options.usageCounts.keys(),
             ...(state.excludeReasonConfig?.retiredKeys ?? []),
         ];
-        draft.push({ key: nextExcludeReasonKey(usedKeys), label: '', labelEn: '' });
+        session.draft.push({ key: nextExcludeReasonKey(usedKeys), label: '', labelEn: '' });
         render(options);
     });
     row.appendChild(addBtn);
@@ -217,7 +238,7 @@ function buildPresetRow(options: ReasonEditorOptions): HTMLElement {
         const preset = findExcludeReasonPreset(select.value);
         if (!preset) return;
         if (!confirm(t('ftReason_presetConfirm', preset.name))) return;
-        draft = preset.items.map(i => ({ ...i }));
+        session.draft = preset.items.map(i => ({ ...i }));
         render(options);
     });
     row.appendChild(applyBtn);
@@ -253,7 +274,7 @@ async function handleSave(
     saveBtn: HTMLButtonElement,
     closeBtn: HTMLButtonElement
 ): Promise<void> {
-    const items: ExcludeReasonItem[] = draft.map(i => ({
+    const items: ExcludeReasonItem[] = session.draft.map(i => ({
         key: i.key,
         label: i.label.trim(),
         labelEn: i.labelEn.trim(),
