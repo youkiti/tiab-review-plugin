@@ -508,3 +508,5 @@ This tool is provided free of charge and not for profit. The developer receives 
 
 版ごとの変更は [CHANGELOG.md](CHANGELOG.md) にあります。AI のモデル・プロンプト・既定の閾値など、判定の結果に影響しうる変更はここに必ず載せます。
 
+判定や数値に影響した不具合と影響した版は [KNOWN_ISSUES.md](KNOWN_ISSUES.md) にあります。 / Bugs that affected decisions or numbers, with the affected versions, are listed in KNOWN_ISSUES.md.
+

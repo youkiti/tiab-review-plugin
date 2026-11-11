@@ -32,6 +32,7 @@
 | 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
 | 遅延読み込み・チャンク分割 | 「遅延読み込み（動的 import）でチャンクを分けるときの規約」 |
 | アプリ内ヘルプ・操作ツアー・解説動画 | [「アプリ内ヘルプ（?ボタン）」「ツアー（操作に連動する案内）」](src/sidepanel/AGENTS.md)（`data-help` / `data-tour` の付け方、ツアーを足す手順、`npm run check:tours`）、[video/README.md](video/README.md)（収録 → 読み上げ → 合成） |
+| 版別の既知不具合 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md)、「リリース（Chrome Web Store）」 |
 | 詳細仕様ファイル一覧: インポート・型定義 | [src/lib/AGENTS.md](src/lib/AGENTS.md): インポート規約・レジストリ連携・重複レビュー・オフライン同期・型定義 |
 | 詳細仕様ファイル一覧: データ・Sheets API | [src/lib/sheets/AGENTS.md](src/lib/sheets/AGENTS.md): データ設計・裁定・TiAbエクスポート・Google Sheets API・判定保存・運用フロー・κ算出 |
 | 詳細仕様ファイル一覧: 機能要件 | [src/sidepanel/AGENTS.md](src/sidepanel/AGENTS.md): MVP・表示設定・絞り込み状態・state.ts・表示位置・キーボードショートカット |
@@ -256,6 +257,10 @@ WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=00
 バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。
 
 **利用者に見える変更は `CHANGELOG.md` の「未リリース」に書き足し、リリース時にその見出しを版番号と日付に書き換える。** AI 判定の結果に影響しうる変更（AI モデルとその版、プロンプトとその版、既定の閾値、判定の集計方法）は小さくても必ず載せる。利用規約がこのファイルを AI 判定に影響する変更の告知先として名指ししているため、載せ漏れは規約違反になる。
+
+**判定・数値・方法の記述に効く不具合を直したら、同じ PR で `KNOWN_ISSUES.md` に項目を足す。** 対象は、保存された値が誤る・欠ける・重複するもの、論文用テキストやエクスポートや画面の集計の数値が誤るもの、Methods に書く記録（版・モデル・生成設定・プロンプトの版・停止基準）が実際の動作と違うもの、判定がシートに届かないのに届いたように見えるもの。表示や操作だけの不具合は載せない。影響した版の範囲（開始を特定できなければ「確認できた範囲」）、影響、利用者の確かめ方、修正版を書く。修正版はマージ時に `未リリース` とし、リリースの PR で版番号に書き換える。ID（`KI-001`〜）は振り直さない。直す前に見つけたものは、修正版を `未修正` として先に載せてよい。CHANGELOG の該当の項目には `（既知の不具合 KI-00N）` を添える。
+
+影響した版の開始は、原因のコミットを特定し、`KNOWN_ISSUES.md` 付録「版とコミットの対応」の各版のコミットに対して `git merge-base --is-ancestor <原因のコミット> <版のコミット>` を古い順に当てて、最初に真になる版とする。v0.57.2 より後の版は、版タグ `vX.Y.Z` に対して同じ判定をする（`git tag --contains <原因のコミット>` でもよい）。特定できなければ「開始版は特定していない。確認できた範囲: …」と書く。付録は v0.57.2 で固定し、更新しない。付録の表は `node scripts/list-version-commits.mjs`（完全な clone で実行）で作る。
 
 **リリース前に作業ツリーがクリーンである必要がある。** `npm run bump`（`scripts/bump-version.ps1`）は冒頭で `git status --porcelain --ignore-submodules=dirty` を確認し、未コミットの変更が残っていれば何も書き換えずに停止する。`scripts/bump-version.ps1` は UTF-8 BOM 付きで保存すること（Windows PowerShell 5.1 が BOM 無しを CP932 として読むため）。
 

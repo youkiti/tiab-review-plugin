@@ -7,6 +7,16 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+判定や数値、Methods の記述に影響した不具合は、影響した版とともに [KNOWN_ISSUES.md](KNOWN_ISSUES.md) に載せています。
+Bugs that affected decisions, numbers, or what is reported in Methods are listed with the affected versions in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+
+## 未リリース
+
+### 文書 / Documentation
+
+- 判定や数値、Methods の記述に影響した不具合を影響した版とともに載せる既知の不具合の一覧 KNOWN_ISSUES.md を足しました。AI 判定には影響しません。
+  Added KNOWN_ISSUES.md, a list of bugs that affected decisions, numbers, or what is reported in Methods, with the affected versions. AI screening is unaffected.
+
 ## v0.57.2（2026-11-09）
 
 ### 画面 / Interface
