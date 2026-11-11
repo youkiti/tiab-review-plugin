@@ -735,7 +735,7 @@ export function installDemoFetchMock(): void {
 
             if (response) return finalizeDemoResponse(url, method, response, netDelayMs);
 
-            console.warn(`[demo] 未対応の外部リクエストです（デモモードのため実ネットワークへは出ません）: ${rawUrl}`);
+            console.warn(`[demo] 未対応の外部リクエストです（デモモードのため実ネットワークへは出ません）: ${url.origin}${url.pathname}`);
             return finalizeDemoResponse(url, method, jsonResponse(404, { error: { code: 404, message: 'Demo mode: no network access for this endpoint' } }), netDelayMs);
         } catch (error) {
             console.error('[demo] fetch-mock internal error:', error);

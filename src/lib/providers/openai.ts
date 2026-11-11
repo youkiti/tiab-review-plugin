@@ -30,6 +30,7 @@ import type {
     ConvertCriteriaResult,
 } from '../llm-provider';
 import { getEffectiveOpenAiApiKey } from '../storage';
+import { sanitizeApiKey } from './sanitize-api-key';
 import type { AskParams } from './ask-types';
 import { parseAskText, withAskSignal } from './ask-request';
 import { normalizeCriteriaConversionResult, SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA } from '../gemini-api';
@@ -126,39 +127,12 @@ const STRICT_CRITERIA_SCHEMA = toStrictSchema(CRITERIA_CONVERSION_SCHEMA);
 // API キー
 // ---------------------------------------------------------------------------
 
-/**
- * API キー文字列を HTTP ヘッダーで送れる形に正規化する（OpenRouter 版と同じロジック）。
- */
-// テスト用 export（プロダクションでは getApiKey/testOpenAiApiKey 経由でのみ使用）
-export function _sanitizeApiKeyForTest(rawKey: string): string {
-    return sanitizeApiKey(rawKey);
-}
-
-function sanitizeApiKey(rawKey: string): string {
-    let out = '';
-    for (const ch of rawKey.trim()) {
-        const cp = ch.codePointAt(0);
-        if (cp === undefined) continue;
-        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
-        if (cp === 0x200B || cp === 0x200C || cp === 0x200D ||
-            cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) continue;
-        if (cp > 255) {
-            throw new Error(
-                'OpenAI APIキーに ISO-8859-1 範囲外の文字が含まれています。'
-                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
-            );
-        }
-        out += ch;
-    }
-    return out;
-}
-
 async function getApiKey(): Promise<string> {
     const key = await getEffectiveOpenAiApiKey();
     if (!key) {
         throw new Error('OPENAI_API_KEY が設定されていません。サイドパネルから OpenAI APIキーを登録してください。');
     }
-    return sanitizeApiKey(key);
+    return sanitizeApiKey(key, 'OpenAI');
 }
 
 // ---------------------------------------------------------------------------
@@ -543,7 +517,7 @@ export async function testOpenAiModel(
 export async function testOpenAiApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
     let cleanKey: string;
     try {
-        cleanKey = sanitizeApiKey(apiKey);
+        cleanKey = sanitizeApiKey(apiKey, 'OpenAI');
     } catch (err) {
         return { isValid: false, reason: err instanceof Error ? err.message : String(err) };
     }

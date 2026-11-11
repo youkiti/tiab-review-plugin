@@ -7,7 +7,7 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
-## 未リリース / Unreleased
+## 未リリース
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
@@ -22,6 +22,13 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
   When switching to another project, the search text, status filter, AI settings and the "start over" toggle of the previous project could carry over; this is fixed. If you press Back while AI batch screening is running, the batch is now stopped before switching (decisions saved so far are kept and the run can be resumed).
 - 別のプロジェクトへ切り替えたとき・ログアウトしたときに、全文タブの AI 判定のプロンプト・対象範囲・一覧の絞り込み・結果で選んだ判定者が前のプロジェクトのまま残ることがあったのを直しました。全文の AI 一括判定と一括 OA 検索の実行中に「戻る」を押した場合は、中止してから切り替えます（中止までの結果は元のプロジェクトに保存されます）。
   When switching to another project or logging out, the full-text AI prompt, scope, list filter and the reviewers selected in the results could carry over from the previous project; this is fixed. If you press Back while full-text AI batch screening or bulk open-access retrieval is running, it is now stopped before switching (results so far are saved to the original project).
+- Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
+  The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
+
+### 文書 / Documentation
+
+- README に「機能の追加について」の節を足し、保守の段階で足さない機能と、新しい機能を検討する条件を書いた。AI 判定には影響しない。
+  Added an "About new features" section to the README describing what is not added in the maintenance phase and when new features are considered. AI screening is unaffected.
 
 ## v0.57.2（2026-11-09）
 

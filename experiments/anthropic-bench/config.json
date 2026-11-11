@@ -1,0 +1,100 @@
+{
+    "description": "Anthropic 同梱モデル (claude-haiku-5-5 / claude-sonnet-5-5) の評価。アプリが送る設定 (effort low) のまま depression 全件で同梱の採用基準 (Recall >= 0.90) を判定する。基準を満たしたモデルだけ CQ1〜5 も評価する。",
+    "version": "1.0",
+    "notes": [
+        "生成の設定はアプリと同じ。temperature / top_p / top_k / thinking は送らず、output_config.effort だけを指定する (src/lib/providers/anthropic.ts の buildRequest)。",
+        "max_tokens はアプリと同じ値を送る。アプリは max_output_tokens を渡さないため anthropicMaxOutputTokens(undefined) = 20000。条件に maxOutputTokens を書かないのはそのため。",
+        "条件を調整して Recall を上げる探索はしない。調整すると depression の値が楽観的になる (README の評価の限界)。",
+        "単価は src/lib/llm-pricing.ts の BUILT_IN_PRICING と同じ (2026-10-16 に公式料金表で確認、Haiku は入力10万トークン以下の単価)。cachedInputPerMillion は入力単価の 0.1 倍と置いた値で、公式の料金表では未確認。アプリはキャッシュ指定を送らないため、通常 cached は 0 になる。",
+        "output_tokens は思考トークンを含むため、出力の課金は completion だけで計算する (thinking は内訳表示用)。max_tokens で打ち切られた件は使用量が返らず、費用に入らない。",
+        "CQ1〜5 の判定基準の文は experiments/typesafe-jev/config.json の datasetConfigs と同じ。"
+    ],
+    "datasets": {
+        "depression": "scripts/asreview-baseline/datasets/depression_slim_labeled.json",
+        "cq1": "scripts/asreview-baseline/datasets/cq1_labeled.json",
+        "cq2": "scripts/asreview-baseline/datasets/cq2_labeled.json",
+        "cq3": "scripts/asreview-baseline/datasets/cq3_labeled.json",
+        "cq4": "scripts/asreview-baseline/datasets/cq4_labeled.json",
+        "cq5": "scripts/asreview-baseline/datasets/cq5_labeled.json"
+    },
+    "datasetConfigs": {
+        "depression": {
+            "criteria": "Include studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc."
+        },
+        "cq1": {
+            "criteria": "Include studies investigating Fluid Therapy (resuscitation fluid type, rate, bolus strategy) for patients with sepsis, septic shock, or critical illness."
+        },
+        "cq2": {
+            "criteria": "Include studies investigating Target Blood Pressure (Mean Arterial Pressure targets) or vasopressor strategies for patients with sepsis or septic shock."
+        },
+        "cq3": {
+            "criteria": "Include studies investigating the use of Sodium Bicarbonate (重炭酸ナトリウム) for patients with metabolic acidosis (or other relevant conditions).\nExclude studies not related to Sodium Bicarbonate."
+        },
+        "cq4": {
+            "criteria": "Include studies investigating Early Goal-Directed Therapy (EGDT) or protocolized hemodynamic management for patients with severe sepsis or septic shock."
+        },
+        "cq5": {
+            "criteria": "Include studies investigating Restrictive Fluid Therapy strategies (fluid minimization, conservative fluid management) for patients with sepsis, septic shock, or ARDS."
+        }
+    },
+    "defaultScreeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\n{{CRITERIA}}\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant.",
+    "checkpointEvery": 50,
+    "retry": { "maxAttempts": 4, "baseDelayMs": 2000, "maxDelayMs": 60000 },
+    "invalidFailureRate": 0.01,
+    "adoptionThresholds": { "bundle": 0.90, "default": 0.95 },
+    "rateLimits": {
+        "anthropic_default": { "concurrency": 8, "delayBetweenRequests": 200 },
+        "anthropic_smoke": { "concurrency": 3, "delayBetweenRequests": 300 }
+    },
+    "conditions": [
+        {
+            "id": "A-H1",
+            "provider": "anthropic",
+            "model": "claude-haiku-5-5",
+            "reasoningEffort": "low",
+            "rateLimit": "anthropic_default",
+            "smokeRateLimit": "anthropic_smoke",
+            "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+        },
+        {
+            "id": "A-S1",
+            "provider": "anthropic",
+            "model": "claude-sonnet-5-5",
+            "reasoningEffort": "low",
+            "rateLimit": "anthropic_default",
+            "smokeRateLimit": "anthropic_smoke",
+            "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-sonnet-5-5)。同梱の採用の判定に使う。"
+        }
+    ],
+    "baselineResults": {
+        "depression": {
+            "B4": { "model": "gemini-3-flash-preview", "config": "Temp 1.0 / TopP 0.95 / Think LOW", "recall": 0.961, "specificity": 0.863, "precision": 0.534, "fBeta7": 0.952, "tp": 269, "fp": 235, "tn": 1478, "fn": 11 }
+        },
+        "recallByDataset": {
+            "note": "README.md「全データセット Recall」の表の値（B4 と flash-lite は閾値0.5、jev-1.14.0 は閾値0.3）。",
+            "columns": ["B4 (gemini-3-flash-preview)", "gemini-3.1-flash-lite (GA)", "jev-1.14.0 (TypeSafe, 閾値0.3)"],
+            "rows": {
+                "depression": [96.1, 93.6, 96.8],
+                "cq1": [99.1, 83.2, 96.5],
+                "cq2": [100.0, 100.0, 100.0],
+                "cq3": [100.0, 87.5, 87.5],
+                "cq4": [100.0, 98.6, 100.0],
+                "cq5": [97.6, 97.6, 97.6],
+                "pooled": [99.2, 91.1, 97.3]
+            }
+        }
+    },
+    "pricing": {
+        "claude-haiku-5-5": {
+            "inputPerMillion": 0.10,
+            "cachedInputPerMillion": 0.01,
+            "outputPerMillion": 0.50
+        },
+        "claude-sonnet-5-5": {
+            "inputPerMillion": 2,
+            "cachedInputPerMillion": 0.2,
+            "outputPerMillion": 10
+        }
+    },
+    "results": {}
+}

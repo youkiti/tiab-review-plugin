@@ -59,3 +59,30 @@ test('humanDecisionSuffix: keyOpened=true かつ consensusMode=true のときだ
 test('humanDecisionSuffix: keyOpened=true かつ consensusMode=false は -human', () => {
     assert.equal(humanDecisionSuffix(true, false), '-human');
 });
+
+// Web版の版文字列は web-<版>+<短縮SHA>（Issue #306）。SHA は16進（または unknown）なので、
+// 接尾辞の判定は +<sha> の有無で変わらない。
+const WEB_SUFFIXES = ['', '-human', '-human-consensus', '-human-adjudication', '-ml', '-ml-auto', '-llm'];
+const WEB_SHAS = ['abc1234', 'deadbee', '1234567', 'unknown'];
+
+for (const sha of WEB_SHAS) {
+    for (const suffix of WEB_SUFFIXES) {
+        test(`Web版の +${sha} 付き client_version は付かない場合と判定が同じ (${suffix || '接尾辞なし'})`, () => {
+            const plain = `web-0.57.2${suffix}`;
+            const withSha = `web-0.57.2+${sha}${suffix}`;
+            assert.equal(isHumanDecision(withSha), isHumanDecision(plain));
+            assert.equal(isMlDecision(withSha), isMlDecision(plain));
+            assert.equal(isConfirmedMlDecision(withSha), isConfirmedMlDecision(plain));
+            assert.equal(isMlAutoDecision(withSha), isMlAutoDecision(plain));
+            assert.equal(isLlmDecision(withSha), isLlmDecision(plain));
+        });
+    }
+}
+
+test('Web版の +<sha>-human と -human-consensus は human 判定', () => {
+    assert.equal(isHumanDecision('web-0.57.2+abc1234-human'), true);
+    assert.equal(isHumanDecision('web-0.57.2+abc1234-human-consensus'), true);
+    assert.equal(isHumanDecision('web-0.57.2+unknown-human'), true);
+    assert.equal(isMlDecision('web-0.57.2+deadbee-human'), false);
+    assert.equal(isLlmDecision('web-0.57.2+1234567-human'), false);
+});
