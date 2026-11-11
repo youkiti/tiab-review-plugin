@@ -353,6 +353,7 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+| 版の文字列     | `web-<package.json の版>+<ビルド元コミットの短縮 SHA 7桁>`（`scripts/webpack/build-commit.cjs`）。CI は `GITHUB_SHA`、ローカルは `git rev-parse`、取れなければ `unknown`。`client_version` の接尾辞（`-human` など）はこの後ろに付く |
 
 **収録用の Web 版デモビルド**: 解説動画の第9章の収録には `npm run build:web:demo` を使う。出力先は `dist-web-demo/`（`.gitignore` 済み・配布しない）。`src/demo/webapp-entry.ts` が fetch モック・シードデータ・GIS の代役を用意してから Web 版エントリを読み、実アカウントを使わずサンプルデータで操作できる。HTML には GIS の script を出さない（代役を本物が上書きするため）。本番の Web 版ビルド（`docs/app/`）には影響しない。
 

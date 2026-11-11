@@ -55,7 +55,7 @@
 | labels          | (廃止)                                 |      |
 | note            | メモ                                   |      |
 | decided_at      | 判定日時（ISO 8601）                   | ✓   |
-| client_version  | 拡張機能バージョン                     |      |
+| client_version  | 記録した版（拡張版 `0.57.2`、Web版 `web-0.57.2+abc1234`、コマンドライン `cli-0.57.2`）と処理の接尾辞 |      |
 | source_url      | 判定時に見ていたURL                    |      |
 | screening_phase | `tiab`（省略時も同義）/ `fulltext` |      |
 | context_json    | 判定の瞬間に人間がAIの情報にどれだけ暴露されていたかを記録するJSON（`DecisionContextV1`、`src/lib/decision-context.ts`）。human判定（TiAb/フルテキストの `handleDecision`/`handleSave`）の保存時に設定する。CLI で本人の既存判定を移す場合は、AI暴露情報ではなく取り込み由来 `{"imported":true,"by":"cli","source":"CSVのファイル名"}` を保存する。**書くだけの列で、読み手（既存のUI・集計）の挙動は一切変えない**。将来「人間の判定はAIから独立していたか」を遡って検証するための記録専用列 |      |
@@ -86,7 +86,7 @@ key の開閉など、判定イベントではないため Decisions の行に�
 | event_type     | `key_opened` / `key_closed`（今回のスコープは key 開閉のみ） | ✓   |
 | actor          | 操作者（email）                                           | ✓   |
 | occurred_at    | 発生日時（ISO 8601）                                      | ✓   |
-| client_version | 拡張機能バージョン                                        |      |
+| client_version | 記録した版（拡張版 `0.57.2`、Web版 `web-0.57.2+abc1234`、コマンドライン `cli-0.57.2`）と処理の接尾辞 |      |
 | detail_json    | 追加情報（今回のスコープでは常に空文字）                  |      |
 
 - **タブが無いプロジェクトは初回書き込み時に自動作成する**: `addSheet` → `[ヘッダ行, 本体行]` を1回の append でまとめて書き込む。Config タブ欠落時の `trySaveConfigValue` と同じ自動作成パターンを踏襲している（ヘッダ行と本体行を別々の append に分けると、ヘッダ側だけが失敗した場合に「タブは存在するがヘッダー無し」の状態が恒久化してしまうため、まとめて1回にしている）
