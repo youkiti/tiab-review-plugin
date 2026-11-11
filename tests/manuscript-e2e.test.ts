@@ -15,7 +15,7 @@ import { parseLlmRunValues, parseLlmExecutionValues, selectActiveBatchIds } from
 import { mergeReferencesWithAllDecisions } from '../src/lib/reference-status';
 import { isLogicallyDeleted } from '../src/lib/duplicate-detect';
 import { resolveExcludeReasonItems } from '../src/lib/exclude-reason-config';
-import { buildManuscriptValidationSentence } from '../src/lib/manuscript-ai';
+import { buildManuscriptBenchmarkSentence, buildManuscriptValidationSentence } from '../src/lib/manuscript-ai';
 import { buildManuscriptOutput } from '../src/lib/manuscript-text';
 import type { ManuscriptInput, ManuscriptPhase } from '../src/lib/manuscript-text';
 import { buildTiabExportCsv, buildTiabExportRis } from '../src/lib/tiab-export';
@@ -70,7 +70,9 @@ function loadProject(phase: ManuscriptPhase, sheets: ProjectSheets = loadSheets(
         phase,
         projectTitle: 'Fixture project',
         generatedDate: '2026-01-01',
-        extensionVersion: '0.0.0-test',
+        currentVersion: '0.0.0',
+        conceptDoiUrl: null,
+        evaluationDatasetDoi: '',
         identificationRefs: allReferences,
         refsMayOmitLogicallyDeleted: false,
         references,
@@ -190,6 +192,48 @@ test('全文相の文章・理由別内訳・警告が期待値ファイルと�
     assert.deepEqual(out.warnings, [{ key: 'manuscript_warnUnresolved', args: ['1', '0', '0'] }]);
     // 理由の英語ラベルが生キーでなく文章に出る
     assert.match(out.results, /Ineligible population \(n = 1\); Ineligible intervention \(n = 1\); Ineligible study design \(n = 1\)/);
+});
+
+test('版の範囲と concept DOI・評価データセットの DOI が Methods に出る', () => {
+    // 固定データの client_version はすべて 0.57.2 系なので、期待値ファイルは単一の版になる。
+    // 1行だけ古い版にして、範囲の書き方を確かめる（TiAb 相は人の判定行、全文相は全文の判定行を書き換える）。
+    const sheets = loadSheets();
+    const header = sheets.Decisions[0];
+    const versionCol = header.indexOf('client_version');
+    const phaseCol = header.indexOf('screening_phase');
+    const rewrite = (phase: string) => {
+        const row = sheets.Decisions.slice(1).find(r => r[phaseCol] === phase && r[versionCol] === '0.57.2-human');
+        assert.ok(row, `${phase} の人の判定行がある`);
+        row[versionCol] = '0.56.0-human';
+    };
+    rewrite('tiab');
+    rewrite('fulltext');
+    for (const phase of ['tiab', 'fulltext'] as const) {
+        const input = { ...loadProject(phase, sheets).input, conceptDoiUrl: 'https://doi.org/10.5281/zenodo.1' };
+        const out = buildManuscriptOutput(input);
+        assert.match(out.methods, /TiAb Review Plugin \(versions 0\.56\.0 to 0\.57\.2; https:\/\/doi\.org\/10\.5281\/zenodo\.1\)/);
+    }
+});
+
+test('評価データセットの DOI が空なら AI の文だけ、あるときは同じ段落に1文が付く', () => {
+    const base = loadProject('tiab').input;
+    const without = buildManuscriptOutput(base).methods;
+    assert.ok(!without.includes('benchmark'));
+    const doi = '10.5281/zenodo.2';
+    const withDoi = buildManuscriptOutput({ ...base, evaluationDatasetDoi: doi }).methods;
+    const sentence = buildManuscriptBenchmarkSentence(doi);
+    assert.ok(withDoi.includes(`, using TiAb Review's screening prompt version fixture-1. ${sentence}\n\n`));
+    // 足されるのはこの1文だけ
+    assert.equal(withDoi.replace(` ${sentence}`, ''), without);
+});
+
+test('判定から版が読めないとき、Methods は現在の版を書く（読めなければ [version]）', () => {
+    const noVersion = loadSheets();
+    const col = noVersion.Decisions[0].indexOf('client_version');
+    for (const row of noVersion.Decisions.slice(1)) row[col] = 'unknown-human';
+    const input = loadProject('tiab', noVersion).input;
+    assert.match(buildManuscriptOutput({ ...input, currentVersion: '1.2.3' }).methods, /TiAb Review Plugin \(version 1\.2\.3\)/);
+    assert.match(buildManuscriptOutput({ ...input, currentVersion: 'unknown' }).methods, /TiAb Review Plugin \(version \[version\]\)/);
 });
 
 test('TiAb エクスポート CSV/RIS が期待値ファイルと完全一致する（開封済み・ブラインド中）', () => {

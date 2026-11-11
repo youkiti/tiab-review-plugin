@@ -12,7 +12,7 @@
  *    統計がないファイルは重複除去後の件数に * を付けて明示する
  */
 
-import { buildManuscriptAiSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions } from './manuscript-ai';
+import { buildManuscriptAiSentence, buildManuscriptBenchmarkSentence, buildFulltextAiMethodsSentence, countManuscriptStoppingRuleExclusions } from './manuscript-ai';
 import { collectReviewerKeys } from './decision-summary';
 import { isLogicallyDeleted } from './duplicate-detect';
 import { getFulltextResultsSummaryByRoute } from './fulltext-results-summary';
@@ -23,12 +23,13 @@ import type { FulltextPoolRule } from './fulltext-pool';
 import type { FulltextAssignmentConfig } from './fulltext-assignment';
 import { selectProjectFulltextCandidates } from './fulltext-candidates';
 import { isMlDecision, isLlmDecision } from './client-version';
+import { collectVersionRange, formatToolVersionClause } from './manuscript-version';
 import { isCmhStoppingRule } from './ml/types';
 import type { StoppingRule } from './ml/types';
 import { computeIdentification } from './prisma-identification';
 import type { IdentificationData } from './prisma-identification';
 import { collectRefDecisions } from './reference-status';
-import type { AssignmentConfig, ImportStatsMap, LlmExecution, ReferenceWithStatus } from './types';
+import type { AssignmentConfig, Decision, ImportStatsMap, LlmExecution, ReferenceWithStatus } from './types';
 import { excludeReasonLabelEn, EXCLUDE_REASON_LABELS_EN } from './exclude-reasons';
 import type { ExcludeReasonItem } from './exclude-reasons';
 
@@ -39,8 +40,15 @@ export interface ManuscriptInput {
     projectTitle: string;
     /** 'YYYY-MM-DD'。PRISMA ブロックの見出しに使う */
     generatedDate: string;
-    /** getClientVersion() の値。'unknown' なら '[version]' と書く */
-    extensionVersion: string;
+    /**
+     * テキストを生成する人のいまの版（`x.y.z`。画面側が getClientVersion() から parseClientSemver() で取り出す）。
+     * 判定から版を1つも読めないときだけ Methods に使う。読めなければ 'unknown'（'[version]' と書く）。
+     */
+    currentVersion: string;
+    /** TiAb Review Plugin の concept DOI の URL。未発行なら null（Methods に DOI を書かない） */
+    conceptDoiUrl: string | null;
+    /** AI 判定の評価データセットの DOI。空文字なら評価データセットの文を足さない */
+    evaluationDatasetDoi: string;
     /**
      * Identification 集計の入力。論理削除した行（重複、duplicate_of 非空）を含む全件を渡すこと
      * （除外件数を duplicatesTotal へ合算するため。Issue #145）。
@@ -174,9 +182,19 @@ function countStoppingRuleExclusions(input: ManuscriptInput, candidates: Referen
 // テキスト生成（英語固定）
 // ---------------------------------------------------------------------------
 
-function extensionVersion(input: ManuscriptInput): string {
-    const v = input.extensionVersion;
-    return v === 'unknown' ? '[version]' : v;
+/**
+ * Methods の括弧に入れる TiAb Review Plugin の版の句。
+ * 判定を記録した版の最小から最大（同じなら単一の版）。判定から版が読めなければ現在の版。
+ */
+function toolVersionClause(input: ManuscriptInput, decisions: readonly Decision[]): string {
+    return formatToolVersionClause(collectVersionRange(decisions), input.currentVersion, input.conceptDoiUrl);
+}
+
+/** 全文相の判定（allFulltextDecisions、無ければ myFulltextDecision。judgeDecisionMap と同じ選び方）。 */
+function collectFulltextDecisions(refs: readonly ReferenceWithStatus[]): Decision[] {
+    return refs.flatMap(ref => (ref.allFulltextDecisions && ref.allFulltextDecisions.length > 0)
+        ? ref.allFulltextDecisions
+        : ref.myFulltextDecision ? [ref.myFulltextDecision] : []);
 }
 
 /** 英語の単数/複数形（不規則形は pluralForm で指定） */
@@ -191,12 +209,15 @@ function wasWere(n: number): string {
 function buildTiabMethods(input: ManuscriptInput, id: IdentificationData, stoppingExcluded: number): string {
     const fileList = id.files.map(f => f.file).join('; ');
     const nReviewers = countTiabHumanReviewers(input.references);
+    // 版の範囲と AI の文は、データベース腕の論理削除されていない文献の判定を同じ集合から作る。
+    const { database } = splitByIdentificationRoute(input.references);
+    const databaseDecisions = database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions);
 
     const paragraphs: string[] = [];
     // レビュアー1名のときは blinded 節が意味を成さないので省く
     const blindClause = nReviewers > 1 ? ", without access to each other's decisions" : '';
     paragraphs.push(
-        `Records exported from each database (${fileList}) were imported into TiAb Review (version ${extensionVersion(input)}) and deduplicated automatically. ` +
+        `Records exported from each database (${fileList}) were imported into TiAb Review Plugin (${toolVersionClause(input, databaseDecisions.filter(isTiabDecision))}) and deduplicated automatically. ` +
         `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} ${plural(nReviewers, 'reviewer')}${blindClause}.`
     );
 
@@ -215,13 +236,15 @@ function buildTiabMethods(input: ManuscriptInput, id: IdentificationData, stoppi
         paragraphs.push(`${stoppingExcluded} records were excluded without reviewer screening when the ML stopping criterion was met; these exclusions were reported separately from reviewer exclusions.`);
     }
 
-    const { database } = splitByIdentificationRoute(input.references);
     const aiSentence = buildManuscriptAiSentence(
-        database.filter(ref => !isLogicallyDeleted(ref)).flatMap(collectRefDecisions), id.screened, input.llmIncludeThreshold,
+        databaseDecisions, id.screened, input.llmIncludeThreshold,
         input.llmExecutions,
     );
     if (aiSentence) {
-        paragraphs.push(aiSentence);
+        // 評価データセットの DOI があるときだけ、AI の文と同じ段落に足す（空なら出力は変わらない）。
+        paragraphs.push(input.evaluationDatasetDoi
+            ? `${aiSentence} ${buildManuscriptBenchmarkSentence(input.evaluationDatasetDoi)}`
+            : aiSentence);
     }
     if (input.validationSentence) {
         paragraphs.push(input.validationSentence);
@@ -259,7 +282,7 @@ function buildTiabResults(id: IdentificationData, sought: number, stoppingExclud
     return text;
 }
 
-function buildFulltextMethods(input: ManuscriptInput, summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
+function buildFulltextMethods(versionClause: string, summary: FulltextResultsSummary, registryLinkage: FulltextResultsSummary): string {
     const humanJudges = summary.judges.filter(j => !j.startsWith('llm:'));
     const paragraphs: string[] = [];
     // 通常の人判定者数を示し、AI評価と人の裁定の関与は後続の文に記す。
@@ -270,7 +293,7 @@ function buildFulltextMethods(input: ManuscriptInput, summary: FulltextResultsSu
         ? 'The full text of the single candidate report was'
         : `Full texts of the ${summary.sought} candidate reports were`;
     paragraphs.push(
-        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review (version ${extensionVersion(input)}), with reasons for exclusion recorded.`
+        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review Plugin (${versionClause}), with reasons for exclusion recorded.`
     );
 
     const aiSentence = buildFulltextAiMethodsSentence(summary);
@@ -424,7 +447,7 @@ export function buildManuscriptOutput(input: ManuscriptInput): ManuscriptOutput 
     const stoppingRuleExclusions = countStoppingRuleExclusions(input, candidates);
 
     const methods = fulltext
-        ? buildFulltextMethods(input, fulltext.database, fulltext.registryLinkage)
+        ? buildFulltextMethods(toolVersionClause(input, collectFulltextDecisions(candidates)), fulltext.database, fulltext.registryLinkage)
         : buildTiabMethods(input, id, stoppingRuleExclusions);
     const results = fulltext
         ? buildFulltextResults(fulltext.database, fulltext.registryLinkage, labelOf)

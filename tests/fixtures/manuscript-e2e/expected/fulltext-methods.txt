@@ -1,4 +1,4 @@
-Full texts of the 6 candidate reports were retrieved and assessed for eligibility by 2 reviewers in TiAb Review (version 0.0.0-test), with reasons for exclusion recorded.
+Full texts of the 6 candidate reports were retrieved and assessed for eligibility by 2 reviewers in TiAb Review Plugin (version 0.57.2), with reasons for exclusion recorded.
 
 Disagreements between screeners (n = 1) were resolved by [discussion / a third reviewer].
 

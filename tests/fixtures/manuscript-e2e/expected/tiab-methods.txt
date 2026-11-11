@@ -1,4 +1,4 @@
-Records exported from each database (embase.ris; pubmed.nbib) were imported into TiAb Review (version 0.0.0-test) and deduplicated automatically. Titles and abstracts were screened against the predefined eligibility criteria by 2 reviewers, without access to each other's decisions.
+Records exported from each database (embase.ris; pubmed.nbib) were imported into TiAb Review Plugin (version 0.57.2) and deduplicated automatically. Titles and abstracts were screened against the predefined eligibility criteria by 2 reviewers, without access to each other's decisions.
 
 A large language model (gemini-3.1-flash-lite [model version reported by the API: fixture-model-001] (temperature 0, top-p 1, thinking level low)) screened all records against the same eligibility criteria as an additional independent screener (inclusion threshold 0.3), using TiAb Review's screening prompt version fixture-1.
 
