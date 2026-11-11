@@ -158,6 +158,27 @@ for (const c of cases) {
         }
     });
 
+    test(`api-key-store(${c.id}): 文字列以外の保存値は復号せず null`, async () => {
+        const state = installChromeStorageMock();
+        let converted = false;
+        const coercible = {
+            toString() {
+                converted = true;
+                return 'not-json';
+            },
+        };
+        try {
+            for (const value of [undefined, null, false, true, 0, 123, [], {}, coercible]) {
+                state[c.storageKey] = value;
+                assert.equal(await c.get(), null);
+                assert.equal(await c.has(), false);
+            }
+            assert.equal(converted, false);
+        } finally {
+            restoreChrome();
+        }
+    });
+
     test(`api-key-store(${c.id}): 保存設定は既定 false、true を保存設定のキーへ入れる`, async () => {
         const state = installChromeStorageMock();
         try {
