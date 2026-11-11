@@ -29,6 +29,7 @@
 | コマンドラインからのプロジェクト作成 | [「Node（コマンドライン）用のアダプタと認証（Issue #245）」](src/platform/AGENTS.md)、[scripts/create-project/README.md](scripts/create-project/README.md) |
 | オフライン同期 | [「オフライン同期の方針」](src/lib/AGENTS.md) |
 | テスト・作業ツリー | 「テスト・作業ツリーの落とし穴」「`.env` が無い環境（git worktree 等）で production ビルドを検証する」 |
+| 機能を足すかどうか・要望 Issue への返答 | 「機能を足す・足さない基準（保守期、2026-11-11 確定）」 |
 | 依存方向・規模・CI・基準値更新 | 「開発規約（依存方向・ファイル規模・CI 回帰条件）」、[READMEの最短手順](README.md#最短手順) |
 | 遅延読み込み・チャンク分割 | 「遅延読み込み（動的 import）でチャンクを分けるときの規約」 |
 | アプリ内ヘルプ・操作ツアー・解説動画 | [「アプリ内ヘルプ（?ボタン）」「ツアー（操作に連動する案内）」](src/sidepanel/AGENTS.md)（`data-help` / `data-tour` の付け方、ツアーを足す手順、`npm run check:tours`）、[video/README.md](video/README.md)（収録 → 読み上げ → 合成） |
@@ -57,6 +58,62 @@ SR ワークフローを以下の**2アプリ構成**で実現する。共有デ
 - データ抽出・RoB はブラウザ統合の恩恵が小さく、フォーム UI が主体
 - PDF.js 追加後のバンドルサイズ肥大を拡張内で最小限に抑えるため
 - RoB ツール選択（ドメイン定義）などの動的スキーマ管理は拡張の設定UIに馴染まない
+
+### 機能を足す・足さない基準（保守期、2026-11-11 確定）
+
+要件は満たした。今後は、利用者の指摘を1件ずつ直す保守期として運用する。新しい機能は、下の「足す条件」を3つとも満たしたときだけ足す。この節は「アーキテクチャ方針」の補足で、データ抽出・RoB を本リポジトリに入れない理由はそちらに書いてある。
+
+#### 足さないもの
+
+| 対象 | 現状 | 代わりの受け皿 |
+| --- | --- | --- |
+| AI プロバイダの追加 | Gemini / OpenAI / Anthropic / OpenRouter / ローカル LLM / TypeSafe の6系統（`src/lib/gemini-api.ts`、`src/lib/providers/`） | OpenRouter のカスタムモデル（「＋ 一覧にないモデルを追加」、最大20件）、ローカル LLM |
+| ベンチマークしていないモデルの同梱 | 同梱の採用基準は depression 全1,993件で Recall ≥ 0.90。既定モデルの置き換えは Recall ≥ 0.95（README「LLMモデル履歴」） | OpenRouter のカスタムモデル。精度は利用者がレビュー内検証で確かめる |
+| Web版への AI・ML・全文・取り込み・プロジェクト作成 | `src/platform/web/index.ts` の `capabilities` がすべて `false`。Web版はレビュー専用（「Web版（ブラウザ版）」節、`docs/help.html#web-version`） | 拡張版 |
+| CLI のサブコマンド・オプションの追加 | `create` / `seed` / `share` / `status` の4つ（`src/cli/command-args.ts`） | 拡張版の画面 |
+| データ抽出・RoB 評価 | 「アーキテクチャ方針」で本リポジトリの範囲外 | 別リポジトリのアプリ（同節の表） |
+
+同梱しているモデルは、すべて同梱の採用基準のベンチマークを済ませていなければならない。この節を入れた時点で未実施の Anthropic の2モデル（`claude-haiku-5-5`・`claude-sonnet-5-5`）は、#312 で同じ手順のベンチマークを行い、結果に応じて扱いを決める。
+
+#### 保守として扱うもの（「足す」に当たらない）
+
+次は「足す条件」を問わず直してよい。
+
+- 不具合・性能の劣化・セキュリティの修正
+- 外部 API、Chrome、Chrome Web Store、Google の OAuth・Drive・Sheets の仕様変更への追従
+- 文言・ヘルプ・ツアーの分かりにくさの修正（画面の機能は増やさない）
+- 同梱モデルの差し替え（提供終了・改名・版上げ）。次をすべて守る
+  - 後継モデルを、いま同梱しているモデルと同じ手順（`experiments/<モデル名>/` に1モデル1ディレクトリ、depression 全1,993件、拡張の既定閾値）でベンチマークし、同梱の採用基準 Recall ≥ 0.90 を満たすこと。既定モデルを差し替えるときは Recall ≥ 0.95
+  - 保存済みの設定は `src/lib/model-migrations.ts` の `MODEL_ID_MIGRATIONS` で後継へ移す
+  - 後継が基準を満たさなければ、そのモデルを選択肢から外し、移行先は作らない。保存済みの設定のまま実行した利用者には、未知のモデル ID を止める既存のトースト（PR #263）が出る
+  - `CHANGELOG.md` の「AI 判定に影響する変更」に載せる
+  - 前例: TypeSafe `jev-1.13.0` から `jev-1.14.0` への差し替え（`experiments/typesafe-jev/`）
+
+#### 足す条件（3つとも満たすこと）
+
+1. **複数の利用者が、実際のレビューで同じ所で止まった。** 別々の2人以上（オーナーも1人と数える）が、実在のレビュープロジェクトの作業中に、同じ画面・同じ操作で先へ進めなくなったことが、Issue・ヘルプの相談の下書き（タイトルが「ヘルプ相談:」で始まる Issue）・メールのどれかに記録されていること。「あると便利」「他のツールにある」という要望は数えない
+2. **周りの更新まで見積もった。** 着手する前に、次の更新の要否と量を Issue に書く: `docs/help.html` の該当節（日英）、操作ツアー（`src/lib/guide/tours/`）、解説動画（`video/scenes/`・`video/narration/` の撮り直し）、`src/_locales/ja/messages.json` と `src/_locales/en/messages.json` の文言、`README.md`、`CHANGELOG.md`
+3. **初期 JS の予算に収まる。** 残りは `scripts/bundle-budget.json` の `maxBytes − measuredBytes` で計算する（dc4e7be 時点でサイドパネル 3,227 bytes、Web版 4,445 bytes）。収まらないなら、遅延チャンクに出して初期 JS を増やさない（「遅延読み込み（動的 import）でチャンクを分けるときの規約」）。新しい機能を入れるために `--update-budget` で上限を上げない。「開発規約」節の上限の更新は、保守の修正で必要になったときに限る
+
+#### 要望の Issue が来たときの手順（エージェント向け）
+
+1. 不具合か要望かを分ける。画面の説明どおりに動かない、または説明が無くて進めないなら不具合・ヘルプ不足として扱い、保守として直す
+2. 要望が「足さないもの」の表に当たるなら、返答文 A の下書きを作る
+3. 当たらないなら「足す条件」の1を確かめる。似た要望の Issue を検索し（閉じたものを含む）、別の利用者の報告があればリンクする。条件1を満たさなければ返答文 B の下書きを作る
+4. 条件1を満たすなら、条件2の見積もりと、条件3の残り bytes と見込みの増分を Issue のコメント案に書き、オーナーに着手するかどうかを尋ねる
+5. エージェントがするのは判定と下書きまで。コメントの投稿、ラベル（`enhancement` / `wontfix`）の付け外し、Issue を閉じる・開き直すことは、オーナーの指示があるときだけ行う。閉じるときは理由を「not planned」にする
+
+返答文 A（足さないものに当たる）:
+
+> ご要望ありがとうございます。TiAb Review Plugin は現在、機能を増やさず、利用中の方の不具合や分かりにくい点を直す保守の段階にあります。〈要望の対象〉は、機能を足さない対象として決めています。代わりに〈受け皿〉をお使いください。実際のレビューで先へ進めなくなった点や不具合があれば、別の Issue でお知らせください。
+>
+> Thank you for the suggestion. TiAb Review Plugin is in a maintenance phase: we fix bugs and unclear points for current users rather than adding features. 〈target〉 is something we have decided not to add. Please use 〈alternative〉 instead. If you get stuck in an actual review, or find a bug, please open a separate issue.
+
+返答文 B（条件1を満たさない）:
+
+> ご要望ありがとうございます。TiAb Review Plugin は現在、機能を増やさず、不具合や分かりにくい点を直す保守の段階にあります。新しい機能は、複数の利用者が実際のレビューで同じ所で先へ進めなくなったときに、足すかどうかを検討します。このご要望は記録として残し、同じ点で困った方の報告があれば、この Issue を開き直して検討します。差し支えなければ、どのレビューのどの段階で、何ができずに止まったかを追記してください。
+>
+> Thank you for the suggestion. TiAb Review Plugin is in a maintenance phase: we fix bugs and unclear points rather than adding features. We consider a new feature when several users get stuck at the same point in actual reviews. We will keep this request on record and reopen it if others report the same problem. If you can, please add at which stage of your review you got stuck and what you could not do.
 
 ## 技術スタック
 
@@ -211,6 +268,7 @@ tiab-review-plugin/
 - **拡張版だけの機能の初期化を `bootstrapCommon()`（`src/sidepanel/bootstrap.ts`）に置かない。** ここは Web版（`src/webapp/index.ts`）も呼ぶので、ここから `features/*/lazy.ts` などを import すると、Web版が読み込んでいなかったモジュール（その `lazy.ts` と、それが静的に import している先）が Web版の初期JSに入る。Issue #251 で全文タブの通知の受け口をここに置いたところ、Web版 `app` が約 50 KB 増えて `check:bundle` で落ちた。拡張版だけの登録は `src/sidepanel/sidepanel.ts` で行う。
 - `main` の必須チェックは `build-check.yml` の4ジョブ名で登録している。ジョブ名を変える・ジョブを足すときは、同じ PR で ruleset `protect main` の必須チェックと `tools/release/release.mjs` の待つチェック名も直すこと（直さないと、旧名のチェックが報告されないまま全 PR のマージとリリースが止まる）。Codex レビュー（`codex-pr-review.yml`）と `deploy`（`deploy-web.yml`）は必須にしない。Codex レビューはワークフローが無効化されていて結果を報告せず、必須にすると全 PR がマージできなくなる。有効にしても fork と Dependabot の PR では secrets が渡らず失敗し、合否の判定でもない。`deploy` は main への push でだけ動き、PR には付かない（#300）。
 - 依存の更新は Dependabot（`.github/dependabot.yml`）が毎週月曜 09:00（日本時間）に、npm の本番依存・開発依存のまとめ PR と GitHub Actions のまとめ PR を出す。メジャー更新は PR にしない設定で、個別の Issue で移行の手順を決めてから手で上げる。自動マージはしない。Dependabot の PR のコミットメッセージは英語のまま（基本ルール4の例外）。`pdfjs-dist` を含む更新は `check:bundle` の対象外（全文の判定ページは予算に入っていない）なので、`npm run bench:bundle` で `fulltext/fulltext` と `pdf-image-only` の量を比べ、全文の判定ページを目で確かめてからマージする。`deploy-web.yml` の action を上げた PR は、マージ後の `deploy-web` の成功を確かめる。
+- 週1回の自動点検（`.github/workflows/weekly-check.yml`）がモデル ID の生存確認（`npm run check:models`）、本番依存の `npm audit`、`npm run check:tours` を回し、失敗は件名を固定した Issue になる。組み込みモデルを足す・替えるときは、その社の鍵が repository secrets にあるかを確かめる（無い社は「飛ばした」として報告に残る）。
 
 ### 遅延読み込み（動的 import）でチャンクを分けるときの規約
 
@@ -319,6 +377,7 @@ Chrome拡張をインストールせずブラウザだけで判定に参加で�
 | デプロイ       | `main` への push で `.github/workflows/deploy-web.yml` が本番ビルドして Pages へ自動デプロイ。手動コミット不要                                   |
 | 認証           | GIS（`src/platform/web/auth.ts`）。`.env` の `WEB_OAUTH_CLIENT_ID` / `PICKER_API_KEY` / `GCP_PROJECT_NUMBER` を使う（本番・dev いずれも未設定だと throw。`ALLOW_NO_AUTH=1` 指定時のみ dev ビルドは警告に格下げ） |
 | ストレージ     | `localStorage`（`tiab:` プレフィックス。`src/platform/web/storage.ts`）                                                                          |
+| 版の文字列     | `web-<package.json の版>+<ビルド元コミットの短縮 SHA 7桁>`（`scripts/webpack/build-commit.cjs`）。CI は `GITHUB_SHA`、ローカルは `git rev-parse`、取れなければ `unknown`。`client_version` の接尾辞（`-human` など）はこの後ろに付く |
 
 **収録用の Web 版デモビルド**: 解説動画の第9章の収録には `npm run build:web:demo` を使う。出力先は `dist-web-demo/`（`.gitignore` 済み・配布しない）。`src/demo/webapp-entry.ts` が fetch モック・シードデータ・GIS の代役を用意してから Web 版エントリを読み、実アカウントを使わずサンプルデータで操作できる。HTML には GIS の script を出さない（代役を本物が上書きするため）。本番の Web 版ビルド（`docs/app/`）には影響しない。
 

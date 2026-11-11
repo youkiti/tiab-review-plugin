@@ -33,7 +33,7 @@ export interface PlatformAdapter {
     /** 別画面/外部URLを開く */
     openExternal(url: string): void;
 
-    /** client_version 用のバージョン文字列（例: '0.25.0' / 'web-0.25.0'） */
+    /** client_version 用のバージョン文字列（例: '0.25.0' / 'web-0.25.0+abc1234'） */
     getVersionString(): string;
 
     /** 機能フラグ。共有 UI はこれを見て拡張専用機能を非表示にする */

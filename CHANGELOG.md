@@ -7,6 +7,18 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース
+
+### 画面 / Interface
+
+- Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
+  The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
+
+### 文書 / Documentation
+
+- README に「機能の追加について」の節を足し、保守の段階で足さない機能と、新しい機能を検討する条件を書いた。AI 判定には影響しない。
+  Added an "About new features" section to the README describing what is not added in the maintenance phase and when new features are considered. AI screening is unaffected.
+
 ## v0.57.2（2026-11-09）
 
 ### 画面 / Interface
