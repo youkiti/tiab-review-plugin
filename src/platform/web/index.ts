@@ -16,6 +16,7 @@ import { getMessage } from './i18n';
 
 // webpack DefinePlugin によりビルド時に文字列リテラルへ置換されるグローバル定数
 declare const __APP_VERSION__: string;
+declare const __APP_COMMIT__: string;
 
 export const webPlatform: PlatformAdapter = {
     getAuthToken: auth.getAuthToken,
@@ -35,7 +36,7 @@ export const webPlatform: PlatformAdapter = {
 
     openExternal: (url) => { window.open(url, '_blank', 'noopener'); },
 
-    getVersionString: () => `web-${__APP_VERSION__}`,
+    getVersionString: () => `web-${__APP_VERSION__}+${__APP_COMMIT__}`,
 
     capabilities: {
         llm: false, ml: false, fulltext: false, importExport: false, createProject: false,

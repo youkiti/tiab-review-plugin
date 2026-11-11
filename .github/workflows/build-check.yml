@@ -1,6 +1,7 @@
 # 品質検査と各productionビルドを独立して並列実行し、結果を早く得る。
 # 型・Lint・テストに加え、依存方向・循環・巨大ファイル・初期JS量の回帰を検出する。
 # npm ciを含む直列との差はCI実測で確認する。検証用成果物は配布しない。
+# ジョブ名は main の ruleset の必須チェック名と tools/release/release.mjs の待つ名前を兼ねる。変えるときは両方も直す。
 name: build-check
 
 on:
