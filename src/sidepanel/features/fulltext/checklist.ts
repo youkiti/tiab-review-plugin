@@ -60,12 +60,9 @@ let storedResultsLoaded = false;
 // これに含まれない storedResults の値は「前回以前の保存値」として扱い、✅固定にしない。
 const confirmedThisSession = new Set<string>();
 // 永続化ロード完了後に再描画するため、直近に渡された候補リストを覚えておく
-let lastCandidates: ReferenceWithStatus[] = [];
 // ユーザーが手動で開閉した状態。再描画（renderFulltextTab は判定保存や
 // フィルタ変更のたびに走る）でユーザーの選択を上書きしないために覚えておく。
 // null = 手動操作なし（allComplete から自動決定）。プロジェクト or アカウント切替でリセットする。
-let manualOpenOverride: boolean | null = null;
-let lastRegrantResultKey = '';
 
 // ---------------------------------------------------------------------------
 // 項目5・6（管理者向け: リンク共有検出・フォルダ共有ズレ検出）用の権限データ
@@ -83,25 +80,83 @@ interface FulltextChecklistPermissionsSnapshot {
     folderId: string | null;
 }
 
-let permissionsSnapshot: FulltextChecklistPermissionsSnapshot | null = null;
-let permissionsSnapshotSpreadsheetId = '';
+// 取得中かどうか。結果の取り込み・取得失敗のときだけ変える（戻る・ログアウトでは触らず、
+// 取得の結果は session.permissionsSnapshotSpreadsheetId を空にする印で捨てる）
 let permissionsSnapshotLoading = false;
+
+/**
+ * 全文タブのチェックリストのセッション状態（プロジェクトに属するもの）。
+ * 戻る・ログアウトで丸ごと作り直す。足すときはここに入れる。
+ * アクセスの確認結果（storedResults ほか）はキーにプロジェクトとアカウントを含むので、
+ * 戻るでは残し、ログアウトのときだけ消す（resetFulltextChecklistSession）。
+ */
+export interface FulltextChecklistSessionState {
+    /** 永続化ロード完了後に再描画するため、直近に渡された候補リストを覚えておく */
+    lastCandidates: ReferenceWithStatus[];
+    /** 手動の開閉の状態。null = 手動操作なし（allComplete から自動決定） */
+    manualOpenOverride: boolean | null;
+    lastRegrantResultKey: string;
+    permissionsSnapshot: FulltextChecklistPermissionsSnapshot | null;
+    permissionsSnapshotSpreadsheetId: string;
+}
+
+export function createFulltextChecklistSession(): FulltextChecklistSessionState {
+    return {
+        lastCandidates: [],
+        manualOpenOverride: null,
+        lastRegrantResultKey: '',
+        permissionsSnapshot: null,
+        permissionsSnapshotSpreadsheetId: '',
+    };
+}
+
+const session: FulltextChecklistSessionState = createFulltextChecklistSession();
+
+export function _getFulltextChecklistSessionForTest(): FulltextChecklistSessionState {
+    return session;
+}
+
+export function _getFulltextChecklistStoredForTest(): { storedResults: Record<string, StoredRegrantResult>; storedResultsLoaded: boolean; confirmed: string[] } {
+    return { storedResults, storedResultsLoaded, confirmed: [...confirmedThisSession] };
+}
+
+export function _setFulltextChecklistStoredForTest(results: Record<string, StoredRegrantResult>, confirmed: string[]): void {
+    storedResults = results;
+    storedResultsLoaded = true;
+    confirmedThisSession.clear();
+    for (const key of confirmed) confirmedThisSession.add(key);
+}
+
+/**
+ * 戻る・ログアウトで状態を作り直す。
+ * 権限の取得が実行中のときは、session.permissionsSnapshotSpreadsheetId を空に戻すことで
+ * 取得の結果を捨てる（結果の取り込み側が spreadsheetId の一致を見る）。
+ * ログアウトのときだけ、アクセスの確認結果も消す（別のアカウントになりうるため）。
+ */
+export function resetFulltextChecklistSession(reason: 'back' | 'logout'): void {
+    Object.assign(session, createFulltextChecklistSession());
+    if (reason === 'logout') {
+        storedResults = {};
+        storedResultsLoaded = false;
+        confirmedThisSession.clear();
+    }
+}
 
 /** プロジェクトごとに1回だけフォルダ・スプレッドシートの権限を取得し、結果をキャッシュする */
 function ensurePermissionsSnapshotLoaded(spreadsheetId: string, isAdmin: boolean): void {
     if (!isAdmin) return; // 管理者以外の画面には出さないため取得しない
-    if (permissionsSnapshotSpreadsheetId === spreadsheetId && (permissionsSnapshot !== null || permissionsSnapshotLoading)) return;
+    if (session.permissionsSnapshotSpreadsheetId === spreadsheetId && (session.permissionsSnapshot !== null || permissionsSnapshotLoading)) return;
 
-    permissionsSnapshotSpreadsheetId = spreadsheetId;
-    permissionsSnapshot = null;
+    session.permissionsSnapshotSpreadsheetId = spreadsheetId;
+    session.permissionsSnapshot = null;
     permissionsSnapshotLoading = true;
 
     void loadPermissionsSnapshot(spreadsheetId).then((snapshot) => {
         // 取得中にプロジェクトが切り替わっていたら、古い結果は捨てて再描画もしない
-        if (permissionsSnapshotSpreadsheetId !== spreadsheetId) return;
-        permissionsSnapshot = snapshot;
+        if (session.permissionsSnapshotSpreadsheetId !== spreadsheetId) return;
+        session.permissionsSnapshot = snapshot;
         permissionsSnapshotLoading = false;
-        renderFulltextChecklist(lastCandidates);
+        renderFulltextChecklist(session.lastCandidates);
     }).catch((error) => {
         console.warn('[fulltext-checklist] 共有権限の取得に失敗:', error);
         permissionsSnapshotLoading = false;
@@ -170,7 +225,7 @@ function ensureStoredResultsLoaded(): void {
     void platform().storageGet([STORAGE_KEY]).then((stored) => {
         const map = stored[STORAGE_KEY] as Record<string, StoredRegrantResult> | undefined;
         if (map) storedResults = { ...map, ...storedResults };
-        renderFulltextChecklist(lastCandidates);
+        renderFulltextChecklist(session.lastCandidates);
     }).catch((error) => {
         console.warn('[fulltext-checklist] 前回確認結果の読み込みに失敗:', error);
     });
@@ -201,7 +256,7 @@ export function setupFulltextChecklistListeners(): void {
         };
         storedResults = { ...storedResults, [key]: entry };
         void persistRegrantResult(key, entry);
-        renderFulltextChecklist(lastCandidates);
+        renderFulltextChecklist(session.lastCandidates);
     });
 }
 
@@ -239,7 +294,7 @@ function getVersionForDisplay(): string | null {
 
 /** フルテキストタブの描画（renderFulltextTab）から呼ぶ */
 export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void {
-    lastCandidates = candidates;
+    session.lastCandidates = candidates;
     ensureStoredResultsLoaded();
 
     let host: HTMLElement;
@@ -262,9 +317,9 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
     // プロジェクトまたはアカウントが切り替わったら手動開閉の記憶をリセット
     // （userEmail の変化も拾うことで、アカウント切替時に前アカウントの「権限OK」表示を
     // そのまま引き継がないようにする）
-    if (key !== lastRegrantResultKey) {
-        lastRegrantResultKey = key;
-        manualOpenOverride = null;
+    if (key !== session.lastRegrantResultKey) {
+        session.lastRegrantResultKey = key;
+        session.manualOpenOverride = null;
     }
 
     // regrant（読み取り権限確認）機能は fulltext/regrant.ts 自体には capability 分岐が無く、
@@ -278,7 +333,7 @@ export function renderFulltextChecklist(candidates: ReferenceWithStatus[]): void
 
     // permissionsSnapshot は spreadsheetId 単位のキャッシュ。取得中/未取得（このプロジェクトでの
     // フェッチがまだ完了していない）場合は null 扱いにする（=項目5・6は取得完了まで非表示）。
-    const snapshot = permissionsSnapshotSpreadsheetId === state.spreadsheetId ? permissionsSnapshot : null;
+    const snapshot = session.permissionsSnapshotSpreadsheetId === state.spreadsheetId ? session.permissionsSnapshot : null;
 
     const checklist = computeFulltextChecklistState({
         version: getVersionForDisplay(),
@@ -311,14 +366,14 @@ function buildPanel(allComplete: boolean, rows: HTMLElement[]): HTMLElement {
     const details = document.createElement('details');
     details.className = 'fulltext-checklist-panel';
     // 手動で開閉されていればそれを優先（再描画のたびに勝手に開き直さない）
-    details.open = manualOpenOverride !== null ? manualOpenOverride : !allComplete;
+    details.open = session.manualOpenOverride !== null ? session.manualOpenOverride : !allComplete;
 
     const summary = document.createElement('summary');
     summary.className = 'fulltext-checklist-summary';
     summary.textContent = allComplete ? t('fulltext_checklist_collapsedSummary') : t('fulltext_checklist_heading');
     summary.addEventListener('click', () => {
         // details の open 反映は click の既定動作の後なので、次のタスクで読む
-        setTimeout(() => { manualOpenOverride = details.open; }, 0);
+        setTimeout(() => { session.manualOpenOverride = details.open; }, 0);
     });
     summary.appendChild(createGuideHelpButton('fulltext-setup'));
     details.appendChild(summary);

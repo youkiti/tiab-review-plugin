@@ -1,7 +1,7 @@
 {
-  "title": "TiAb Review: a Chrome extension and web app for title/abstract and full-text screening in systematic reviews",
+  "title": "TiAb Review Plugin: a Chrome extension and web app for title/abstract and full-text screening in systematic reviews",
   "upload_type": "software",
-  "description": "<p>TiAb Review supports title/abstract and full-text screening for systematic reviews, using a shared Google Sheets spreadsheet as the database. It offers independent (blinded) screening by multiple reviewers, conflict resolution, active-learning prioritisation, optional AI screening as an additional screener, and draft Methods/Results text with PRISMA 2020 flow numbers. Release notes for each version are in CHANGELOG.md.</p>",
+  "description": "<p>TiAb Review Plugin supports title/abstract and full-text screening for systematic reviews, using a shared Google Sheets spreadsheet as the database. It offers independent (blinded) screening by multiple reviewers, conflict resolution, active-learning prioritisation, optional AI screening as an additional screener, and draft Methods/Results text with PRISMA 2020 flow numbers. Release notes for each version are in CHANGELOG.md.</p>",
   "creators": [
     { "name": "Kataoka, Yuki" },
     { "name": "Banno, Masahiro" },

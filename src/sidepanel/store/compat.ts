@@ -3,13 +3,14 @@
  * 設定・絞り込み・現在文献・references・spreadsheetId/userEmail/highlightKeywords/isAdmin/
  * fulltextPoolRule/fulltextAssignment/availableReviewers/enabledReviewers/currentTab/
  * llmConfig/mlState/activeLlmExecutionIds/currentBatchDecisions/failedRefIdsはStoreが所有し、
- * legacyState.への呼び出しはresetForLogout/resetForBackの2つだけ。state.ts側に残る
+ * legacyState.への呼び出しはresetForLogout/resetForBackの2つと、abortRunningBatch()の読み取りだけ。state.ts側に残る
  * batchAbortController・currentExecutionId・llmRuns/llmExecutions・forceNewLlmRun・
  * llmTargetMode/llmTargetRefIds・consensusModeはStoreに未移行のlegacy専有状態（Issue #154 工程3対象外）。
  */
 
 import { state as legacyState } from '../state';
 import { dispatch } from './index';
+import { runSessionResets } from '../session-reset';
 import type { UserSettings } from '../../lib/user-settings';
 import type { AppState } from './types';
 import type { ReferenceWithStatus, LlmConfig, AssignmentConfig, Decision } from '../../lib/types';
@@ -152,19 +153,40 @@ export function navigate(direction: 1 | -1): void {
 }
 
 /**
- * リセット（ログアウト時）
+ * 実行中の AI 一括判定（失敗分の再試行を含む）があれば中止する。
+ * 初期化の前に呼ぶ（初期化すると制御への参照が失われるため）。
+ * 中止までに保存できた判定はシートに残り、続きは同じ Run の再開で判定できる。
+ * @returns 中止したら true、実行中が無ければ false
  */
-export function resetForLogout(): void {
-    legacyState.resetForLogout();
-    dispatch({ type: 'reset/logout' });
+export function abortRunningBatch(): boolean {
+    const controller = legacyState.batchAbortController;
+    if (!controller) return false;
+    controller.abort();
+    return true;
 }
 
 /**
- * リセット（戻る時）
+ * リセット（ログアウト時）。実行中の一括判定は中止してから初期化する
+ * @returns 一括判定（全文タブの処理を含む）を中止したら true
  */
-export function resetForBack(): void {
+export function resetForLogout(): boolean {
+    const aborted = abortRunningBatch();
+    const featureAborted = runSessionResets('logout');
+    legacyState.resetForLogout();
+    dispatch({ type: 'reset/logout' });
+    return aborted || featureAborted;
+}
+
+/**
+ * リセット（戻る時）。実行中の一括判定は中止してから初期化する
+ * @returns 一括判定（全文タブの処理を含む）を中止したら true
+ */
+export function resetForBack(): boolean {
+    const aborted = abortRunningBatch();
+    const featureAborted = runSessionResets('back');
     legacyState.resetForBack();
     dispatch({ type: 'reset/back' });
+    return aborted || featureAborted;
 }
 
 // ========== Phase 3: 既存モジュール用ブリッジ関数 ==========
@@ -263,7 +285,7 @@ export function setEnabledReviewers(reviewers: Set<string>): void {
 
 /**
  * レビュアーを有効化（Storeのみ）。混在レビュアー（人手＋ML）のチェックボックス切替では
- * 本体キーと ::ml キーへ同じ enabled 値を独立に適用するため、toggleReviewer ではなく
+ * 本体キーと ::ml キーへ同じ enabled 値を独立に適用するため、現在の集合を反転する方式ではなく
  * 明示的な追加/削除アクションを使う。
  */
 export function addEnabledReviewer(id: string): void {

@@ -1574,6 +1574,10 @@
                         "Assignment Sets" inside Settings (⚙️).</span>
                 </p>
                 <p>
+                    <span class="ja">AI 一括判定の実行中に「戻る」を押すと、一括判定は中止されてからプロジェクト選択に戻ります。中止までに保存された判定は残り、同じ Run の続きから再開できます。全文の AI 一括判定と一括 OA 検索も同じで、実行中に「戻る」を押すと中止されてから切り替わります（中止までの結果は元のプロジェクトに保存されます）。</span>
+                    <span class="en">If you press "Back" while AI batch screening is running, the batch is stopped before returning to project selection. Decisions saved so far are kept, and the run can be resumed. The same applies to full-text AI batch screening and bulk open-access retrieval: pressing "Back" while they run stops them before switching (results so far are saved to the original project).</span>
+                </p>
+                <p>
                     <span class="ja">実行ボタンの上にある「対象:」欄で、上記の絞り込みからさらに対象を限定できます。既定は「全件（N件）」で、これまでどおり自分の未判定分すべてが対象です。「選択...」ボタンを押すと対象レコード選択モーダル（「対象レコードを選択」）が開き、グループ（担当セットまたは取り込みファイル）を選んで全選択する・タイトルや抄録で検索する・すべて表示/選択済みのみ/未選択のみを切り替える・表示中を全選択する・すべて解除する、といった操作で対象を選んで「確定する」ボタンで確定します。「解除」ボタンを押すと選択を破棄して「全件」に戻ります。</span>
                     <span class="en">The "Target:" field above the run button lets you narrow the target further,
                         on top of the pending/assignment filtering above. It defaults to "All (N items)" — every
@@ -2255,8 +2259,8 @@
                         automatically, and CSV/RIS export and manuscript text generation are also available here.</span>
                 </p>
                 <p>
-                    <span class="ja"><strong>論文用テキストの TiAb Review の版：</strong>Methods の「TiAb Review (version …)」は、その段階の判定（人・AI・ML）を記録した版の最小から最大です（同じ版だけなら単一の版、版が読めないときはテキストを作った人のいまの版）。キーが未開封のときは自分の判定だけから求めます。Web版の判定も同じ版番号に含めます。版の末尾に DOI が付く場合、それは TiAb Review の全版を束ねる Zenodo の DOI です。</span>
-                    <span class="en"><strong>TiAb Review version in the manuscript text:</strong> The "TiAb Review (version …)" in Methods is the range from the lowest to the highest version that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same. When no version can be read from the decisions, it shows the version of the person generating the text. Before the key is opened, only your own decisions are used, and decisions made in the web version are counted under the same version numbers. A DOI after the version, when shown, is the Zenodo DOI that covers all versions of TiAb Review.</span>
+                    <span class="ja"><strong>論文用テキストの TiAb Review Plugin の版：</strong>Methods の「TiAb Review Plugin (version …)」は、その段階の判定（人・AI・ML）を記録した版の最小から最大です（同じ版だけなら単一の版、版が読めないときはテキストを作った人のいまの版）。キーが未開封のときは自分の判定だけから求めます。Web版の判定も同じ版番号に含めます。版の末尾に DOI が付く場合、それは TiAb Review Plugin の全版を束ねる Zenodo の DOI です。</span>
+                    <span class="en"><strong>TiAb Review Plugin version in the manuscript text:</strong> The "TiAb Review Plugin (version …)" in Methods is the range from the lowest to the highest version that recorded the decisions at this stage (human, AI and ML), or a single version when they are the same. When no version can be read from the decisions, it shows the version of the person generating the text. Before the key is opened, only your own decisions are used, and decisions made in the web version are counted under the same version numbers. A DOI after the version, when shown, is the Zenodo DOI that covers all versions of TiAb Review Plugin.</span>
                 </p>
                 <p>
                     <span class="ja">この章の「<a href="#fulltext">レジストリ連携</a>」で取り込んだ論文は、データベース検索で見つけた文献とは<strong>別の腕として集計されます</strong>。PRISMA 2020では、citation searchingなどと同じ「Identification of studies via other methods（他の方法による同定）」で報告するのが正しいためです。結果サマリにはデータベース検索の数値に続けて「結果サマリ（PRISMA other methods 腕: レジストリ連携）」というブロックが表示され、レジストリ連携で同定・全文取得・全文評価で除外・組み入れの件数と除外理由の内訳が出ます（レジストリ連携由来の候補が0件のプロジェクトでは、このブロックは表示されず、数値も文案もこれまでと変わりません）。論文用テキストのMethods・Results・PRISMA 2020フロー図にも同じ腕別の記述が追加され、全文結果CSVには各文献がどちらの腕かを示す
@@ -2532,6 +2536,11 @@
                             rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
                     <span class="en">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
                             rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                </p>
+
+                <p>
+                    <span class="ja">Web版で判定すると、記録される版は <code>web-0.57.2+abc1234-human</code> のように、版番号に続けてビルド元のコミット（7桁）が入ります。</span>
+                    <span class="en">Decisions made in the web app record a version such as <code>web-0.57.2+abc1234-human</code>: the version number followed by the build commit (7 characters).</span>
                 </p>
 
                 <h3 id="web-version-features">
@@ -2977,7 +2986,7 @@
                     <span class="ja">引用するときは、GitHub のリポジトリ画面の「Cite this repository」または <a
                             href="https://github.com/youkiti/tiab-review-plugin/blob/main/CITATION.cff"
                             target="_blank">CITATION.cff</a> を使ってください。</span>
-                    <span class="en">To cite TiAb Review, use "Cite this repository" on the GitHub page or <a
+                    <span class="en">To cite TiAb Review Plugin, use "Cite this repository" on the GitHub page or <a
                             href="https://github.com/youkiti/tiab-review-plugin/blob/main/CITATION.cff"
                             target="_blank">CITATION.cff</a>.</span>
                 </p>

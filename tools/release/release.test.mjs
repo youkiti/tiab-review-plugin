@@ -327,10 +327,10 @@ test('段6: 提出の後に merge commit へ annotated タグを打って push �
   const order = [
     'node tools/release/storeApi.mjs submit',
     'git ls-remote --tags origin refs/tags/v0.57.3 refs/tags/v0.57.3^{}',
-    'git tag -a v0.57.3 merge1 -m TiAb Review v0.57.3',
+    'git tag -a v0.57.3 merge1 -m TiAb Review Plugin v0.57.3',
     'git push origin refs/tags/v0.57.3',
     'gh release view v0.57.3',
-    'gh release create v0.57.3 --verify-tag --title TiAb Review v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md',
+    'gh release create v0.57.3 --verify-tag --title TiAb Review Plugin v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md',
   ];
   let last = -1;
   for (const call of order) {
@@ -339,7 +339,7 @@ test('段6: 提出の後に merge commit へ annotated タグを打って push �
     last = at;
   }
   // 添付ファイルの引数も、draft・prerelease の指定も無い。
-  assert.deepEqual(releaseCreate(h.calls), ['gh release create v0.57.3 --verify-tag --title TiAb Review v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md']);
+  assert.deepEqual(releaseCreate(h.calls), ['gh release create v0.57.3 --verify-tag --title TiAb Review Plugin v0.57.3 --notes-file .tmp/release-notes-v0.57.3.md']);
   const notes = notesOf(h.written);
   assert.match(notes, /## 追加した|- 追加した/);
   assert.match(notes, /この Release に拡張機能の zip は添付しません/);
@@ -404,7 +404,7 @@ test('続きの位置: 提出済みで origin にタグも Release も無い版�
     (key) => key.startsWith('git log --first-parent') ? ok('c0ffee\n') : undefined) });
   assert.equal(await main(h.deps), 0);
   assert.match(h.outputs.join('\n'), /審査提出済み[\s\S]*版タグと GitHub Release/);
-  assert.ok(h.calls.includes('git tag -a v0.57.3 c0ffee -m TiAb Review v0.57.3'));
+  assert.ok(h.calls.includes('git tag -a v0.57.3 c0ffee -m TiAb Review Plugin v0.57.3'));
   assert.ok(h.calls.includes('git push origin refs/tags/v0.57.3'));
   assert.equal(releaseCreate(h.calls).length, 1);
   assert.ok(!h.calls.some((call) => call === 'npm run build:release' || call.endsWith('storeApi.mjs submit') || /^gh pr (create|checks|merge)/.test(call)));

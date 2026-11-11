@@ -28,7 +28,7 @@
         "store:status": "node tools/release/storeApi.mjs status",
         "store:submit": "node tools/release/storeApi.mjs submit",
         "zenodo:eval:pack": "node scripts/zenodo-eval/pack.mjs",
-        "test:tools": "node --test tools/release/storeApi.test.mjs tools/release/release.test.mjs tools/release/release-notes.test.mjs scripts/zenodo-eval/pack.test.mjs",
+        "test:tools": "node --test tools/release/storeApi.test.mjs tools/release/release.test.mjs tools/release/release-notes.test.mjs scripts/webpack/build-commit.test.cjs scripts/zenodo-eval/pack.test.mjs",
         "tiab": "node scripts/tiab.mjs",
         "create-project": "node scripts/create-project.mjs",
         "video:setup": "bash video/scripts/setup.sh",
@@ -41,6 +41,7 @@
         "check:structure": "node scripts/check-structure.mjs",
         "check:bundle": "npm run bench:bundle && node scripts/check-bundle-budget.mjs",
         "check:tours": "node scripts/guide-tour-check/run.mjs",
+        "check:models": "node scripts/model-check/run.mjs",
         "video:tours": "node video/scripts/tour-videos.mjs"
     },
     "devDependencies": {

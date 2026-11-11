@@ -4,9 +4,10 @@ import type { Decision, ReferenceWithStatus } from '../src/lib/types';
 import { DEFAULT_ASSIGNMENT_CONFIG, resolveReferenceAssignmentSet } from '../src/lib/assignment-set';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../src/lib/fulltext-assignment';
 import { createStore, initializeStore, initialState, type AppState, type Action } from '../src/sidepanel/store';
-import { getFilteredReferences, getFilterCounts, collectRefDecisions, getMyManualDecisionStatus } from '../src/sidepanel/store/selectors';
+import { getFilteredReferences, collectRefDecisions, getMyManualDecisionStatus } from '../src/sidepanel/store/selectors';
 import { state as legacyState } from '../src/sidepanel/state';
 import * as compat from '../src/sidepanel/store/compat';
+import { computeStatusFilterCounts } from '../src/sidepanel/features/screening/filters';
 
 const userEmail = 'me@example.test';
 
@@ -143,14 +144,46 @@ test('全文候補はBlind中も確定した全文セットを使い、自分の
     assert.deepEqual(ids(state), ['mine', 'other', 'new']);
 });
 
-test('件数selectorは従来どおりソースのみで絞り、担当・検索・ステータスは件数に影響しない', () => {
-    const state = fixture([ref('a', { source_file: 'a', myDecision: decision('a', 'include') }), ref('b', { source_file: 'b' })]);
+test('件数は画面と同じくソースファイルと担当セットで絞り、検索とステータスでは絞らない', () => {
+    const state = fixture([
+        ref('a', { source_file: 'a', screening_set: 'group-1', myDecision: decision('a', 'include') }),
+        ref('b', { source_file: 'b', screening_set: 'group-2' }),
+    ]);
     state.data.sourceFiles = new Set(['a', 'b']);
     state.data.selectedSourceFiles = new Set(['a']);
-    state.data.assignmentSets = new Set(['group-1']);
-    state.ui.screening.searchQuery = 'missing';
-    state.ui.screening.currentFilter = 'pending';
-    assert.deepEqual(getFilterCounts(state), { pending: 0, all: 1, include: 1, exclude: 0, maybe: 0, conflict: 0, fulltextCandidates: 1 });
+    try {
+        // ソース a だけ選択・担当セット未設定
+        initializeStore(state);
+        assert.deepEqual(computeStatusFilterCounts(), { pending: 0, all: 1, include: 1, exclude: 0, maybe: 0, conflict: 0, fulltextCandidates: 1 });
+
+        // 担当セットの一部選択では、選んだセットの文献だけが数えられる
+        state.data.selectedSourceFiles = new Set(['a', 'b']);
+        state.data.assignmentSets = new Set(['group-1', 'group-2']);
+        state.data.selectedAssignmentSets = new Set(['group-1']);
+        initializeStore(state);
+        assert.deepEqual(computeStatusFilterCounts(), { pending: 0, all: 1, include: 1, exclude: 0, maybe: 0, conflict: 0, fulltextCandidates: 1 });
+        state.data.selectedAssignmentSets = new Set(['group-2']);
+        initializeStore(state);
+        assert.deepEqual(computeStatusFilterCounts(), { pending: 1, all: 1, include: 0, exclude: 0, maybe: 0, conflict: 0, fulltextCandidates: 0 });
+        state.data.selectedAssignmentSets = new Set(['group-1', 'group-2']);
+        initializeStore(state);
+        assert.equal(computeStatusFilterCounts().all, 2);
+
+        // 担当セットが1つも選ばれていなければ0件
+        state.data.selectedAssignmentSets = new Set();
+        initializeStore(state);
+        assert.equal(computeStatusFilterCounts().all, 0);
+
+        // 検索とステータスは件数に影響しない
+        state.data.selectedAssignmentSets = new Set(['group-1', 'group-2']);
+        state.ui.screening.searchQuery = 'missing';
+        state.ui.screening.currentFilter = 'pending';
+        initializeStore(state);
+        assert.equal(computeStatusFilterCounts().all, 2);
+        assert.equal(computeStatusFilterCounts().include, 1);
+    } finally {
+        initializeStore();
+    }
 });
 
 test('共通ヘルパーはmyDecisionの重複排除とMLの手動扱いを維持する', () => {
@@ -276,7 +309,7 @@ test('Issue #154 工程3で移行した9領域はgetter専用で、compatラッ�
     }
 });
 
-test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する（loadDataAndShowScreeningでの再設定が前提）', () => {
+test('resetForBackはuserEmailと設定だけを残し、resetForLogoutは設定だけを残す', () => {
     const store = initializeStore(fixture([]));
     try {
         compat.setSpreadsheetId('sheet-9');
@@ -289,9 +322,8 @@ test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する�
         compat.setEnabledReviewers(new Set(['a@example.test']));
         compat.changeTab('ml');
 
-        // reset/back: spreadsheetId・fulltextPoolRule・fulltextAssignment・availableReviewers・
-        // enabledReviewers は初期化するが、userEmail・isAdmin・highlightKeywords・currentTab は保持する
-        // （store/reducer.ts の 'reset/back' ケースの内容と一致）
+        // reset/back: 残すのは userEmail（ログインは続く）と設定だけ（KEPT_ON_BACK）。
+        // isAdmin・highlightKeywords・currentTab などは初期値に戻る（読み込み時に再設定される）
         compat.resetForBack();
         assert.equal(store.getState().data.spreadsheetId, '');
         assert.equal(store.getState().data.fulltextPoolRule, null);
@@ -299,9 +331,9 @@ test('resetForLogout/resetForBackは9領域のうち一部だけ初期化する�
         assert.deepEqual(store.getState().data.availableReviewers, new Set());
         assert.deepEqual(store.getState().data.enabledReviewers, new Set());
         assert.equal(store.getState().data.userEmail, 'nine@example.test');
-        assert.equal(store.getState().data.isAdmin, true);
-        assert.deepEqual(store.getState().data.highlightKeywords, { include: ['rct'], exclude: [] });
-        assert.equal(store.getState().ui.currentTab, 'ml');
+        assert.equal(store.getState().data.isAdmin, false);
+        assert.deepEqual(store.getState().data.highlightKeywords, { include: [], exclude: [] });
+        assert.equal(store.getState().ui.currentTab, 'screening');
 
         // reset/logout: initialStateへ戻るため9領域すべて初期値に戻る。
         // highlightKeywords・availableReviewers・enabledReviewers はlegacy resetForLogout()は

@@ -18,7 +18,7 @@ import {
     OPENROUTER_CUSTOM_MODELS_LIMIT,
 } from '../src/lib/storage';
 import { getAllAvailableModels, AVAILABLE_MODELS } from '../src/lib/gemini-api';
-import { testOpenRouterModel, _sanitizeApiKeyForTest } from '../src/lib/providers/openrouter';
+import { testOpenRouterModel } from '../src/lib/providers/openrouter';
 
 const originalChrome = globalThis.chrome;
 const originalFetch = globalThis.fetch;
@@ -260,30 +260,6 @@ test('testOpenRouterModel: HTTP エラー応答は ok:false でエラー詳細�
         clearSessionOpenRouterApiKey();
         restoreChrome();
     }
-});
-
-// ===== sanitizeApiKey =====
-
-test('sanitizeApiKey: 通常ASCII キーはそのまま通る', () => {
-    const key = 'sk-or-v1-abc123XYZ_-=';
-    assert.equal(_sanitizeApiKeyForTest(key), key);
-});
-
-test('sanitizeApiKey: 前後空白を除去', () => {
-    assert.equal(_sanitizeApiKeyForTest('  sk-or-v1-abc  '), 'sk-or-v1-abc');
-});
-
-test('sanitizeApiKey: ZWSP / BOM / NBSP を除去', () => {
-    const dirty = '​sk‌-or‍-v1⁠-﻿abc ';
-    assert.equal(_sanitizeApiKeyForTest(dirty), 'sk-or-v1-abc');
-});
-
-test('sanitizeApiKey: ISO-8859-1 範囲外（全角文字）は例外', () => {
-    assert.throws(() => _sanitizeApiKeyForTest('sk-or-v1-ｘｘｘ'), /ISO-8859-1/);
-});
-
-test('sanitizeApiKey: 日本語が混入したキーも例外', () => {
-    assert.throws(() => _sanitizeApiKeyForTest('sk-or-v1-あいう'), /ISO-8859-1/);
 });
 
 test('testOpenRouterModel: JSON 不正応答は ok:false', async () => {

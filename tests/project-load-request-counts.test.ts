@@ -4,7 +4,7 @@ import {
     clearLlmSheetEnsureMemo, ensureLlmExecutionsSheet, ensureLlmRunsSheet,
     getLlmHistory, getProjectLoadConfig, getProjectConfigBundle, getAssignmentConfig,
     getFulltextAiActiveRound, parseAssignmentConfig, parseFulltextAiActiveRound,
-    getReferencesWithAllDecisions, getActiveBatchIdsForActiveRun,
+    getActiveBatchIdsForActiveRun,
     loadProjectSnapshot, selectReferencesWithStatus, getFulltextPageData, isUserAdmin,
     getSpreadsheetInfo, getUserEmail, ensureHeaders, validateSpreadsheetFormat,
     REFERENCES_HEADERS, DUPLICATE_CANDIDATES_HEADERS,
@@ -171,10 +171,6 @@ test('Configの共有結果は既存ラッパーと一致し、採用解除のnu
     assert.deepEqual(shared.assignmentConfig, await getAssignmentConfig('project'));
     assert.equal(shared.fulltextAiActiveRound, await getFulltextAiActiveRound('project'));
     assert.equal(shared.fulltextAiActiveRound, 'llm:ft-1', '重複キーは従来の先頭一致を維持');
-    const history = await getLlmHistory('project');
-    const before = mock.counts.Config;
-    await getReferencesWithAllDecisions('project', 'self', { ...history, fulltextAiActiveRound: null });
-    assert.equal(mock.counts.Config, before);
     assert.equal(parseFulltextAiActiveRound([]), null);
     assert.equal(parseFulltextAiActiveRound([['fulltext_ai_active_round', ' ']]), null);
     assert.deepEqual(parseAssignmentConfig([['assignment_reviewer_map', 'invalid']]).reviewerMap, {});
@@ -188,16 +184,6 @@ test('Config欠落時の一括取得は既存ラッパーと同じデフォル�
     assert.deepEqual(shared.configBundle, await getProjectConfigBundle('project'));
     assert.deepEqual(shared.assignmentConfig, await getAssignmentConfig('project'));
     assert.equal(shared.fulltextAiActiveRound, await getFulltextAiActiveRound('project'));
-});
-
-test('キー開封後の共有引数あり・なしで判定内容が一致する', async () => {
-    installMock();
-    const baseline = await getReferencesWithAllDecisions('project', 'self');
-    const [history, config] = await Promise.all([getLlmHistory('project'), getProjectLoadConfig('project')]);
-    const shared = await getReferencesWithAllDecisions('project', 'self', {
-        ...history, fulltextAiActiveRound: config.fulltextAiActiveRound,
-    });
-    assert.deepEqual(shared, baseline);
 });
 
 test('次のロードではConfigと履歴の内容を再取得する', async () => {
@@ -310,11 +296,6 @@ test('旧形式移行は一度だけ書き込み、共有した履歴で採用Ba
     // 移行時だけ、書き込み先の行位置を再確認する既存の本体GETが1回増える。
     assert.equal(mock.counts.LLM_Executions, 2);
     assert.equal(mock.counts.LLM_Runs, 1);
-    const before = { ...mock.counts };
-    await getReferencesWithAllDecisions('project', 'self', { ...history, fulltextAiActiveRound: null });
-    assert.equal(mock.counts.LLM_Runs, before.LLM_Runs);
-    assert.equal(mock.counts.LLM_Executions, before.LLM_Executions);
-    assert.equal(mock.writes.length, 2, '下流へ渡した履歴では移行を再実行しない');
     assert.deepEqual(await getActiveBatchIdsForActiveRun('project', history.llmExecutions, history.llmRuns), new Set(['llm:batch-1']));
 });
 

@@ -7,6 +7,7 @@ import type { AskParams } from './ask-types';
 import { askError, parseAskText, withAskSignal } from './ask-request';
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from '../types';
 import { getEffectiveAnthropicApiKey } from '../storage';
+import { sanitizeApiKey } from './sanitize-api-key';
 import { SCREENING_OUTPUT_SCHEMA, CRITERIA_CONVERSION_SCHEMA, normalizeCriteriaConversionResult } from '../gemini-api';
 import { buildScreeningPrompt, buildCriteriaPrompt } from './structured-prompts';
 
@@ -112,28 +113,6 @@ function buildRequest(params: AnthropicParams, prompt: string, schema: object, e
     };
 }
 
-function sanitizeApiKey(rawKey: string): string {
-    let out = '';
-    for (const ch of rawKey.trim()) {
-        const cp = ch.codePointAt(0);
-        if (cp === undefined) {
-            continue;
-        }
-        // 不可視 Unicode を除去: ZWSP系/Word joiner/BOM/NBSP
-        if (cp === 0x200B || cp === 0x200C || cp === 0x200D || cp === 0x2060 || cp === 0xFEFF || cp === 0x00A0) {
-            continue;
-        }
-        if (cp > 255) {
-            throw new Error(
-                'Anthropic APIキーに ISO-8859-1 範囲外の文字が含まれています。'
-                + 'APIキーカードで再入力してください（コピペ時に全角文字や不可視文字が混入した可能性があります）。'
-            );
-        }
-        out += ch;
-    }
-    return out;
-}
-
 /**
  * 認証ヘッダー。`anthropic-dangerous-direct-browser-access` は省略できない。
  * 拡張ページからの fetch には Origin ヘッダーが付き、このヘッダーが無いと Anthropic は本文を見る前に
@@ -159,9 +138,9 @@ async function postMessages(body: { model: string }, timeoutMs: number, signal?:
     try {
         const rawKey = await getEffectiveAnthropicApiKey();
         if (!rawKey) {
-            throw new Error('ANTHROPIC_API_KEY が設定されていません。サイドパネルから Anthropic APIキーを登録してください。');
+            throw Object.assign(new Error('ANTHROPIC_API_KEY が設定されていません。サイドパネルから Anthropic APIキーを登録してください。'), { retryable: false });
         }
-        const apiKey = sanitizeApiKey(rawKey);
+        const apiKey = sanitizeApiKey(rawKey, 'Anthropic');
         const response = await fetch(MESSAGES_ENDPOINT, {
             method: 'POST',
             headers: { ...authHeaders(apiKey), 'content-type': 'application/json' },
@@ -295,7 +274,7 @@ export async function convertCriteriaViaAnthropic(
 export async function testAnthropicApiKey(apiKey: string): Promise<{ isValid: boolean; reason?: string }> {
     let cleanKey: string;
     try {
-        cleanKey = sanitizeApiKey(apiKey);
+        cleanKey = sanitizeApiKey(apiKey, 'Anthropic');
     } catch (err) {
         return { isValid: false, reason: err instanceof Error ? err.message : String(err) };
     }

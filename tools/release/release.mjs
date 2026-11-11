@@ -383,7 +383,7 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
     } else {
       const local = text(await git(['rev-parse', '-q', '--verify', `${ref}^{commit}`]));
       if (local && local !== commit) stop(`手元の ${tag} が別のコミットを指しています（手元: ${local.slice(0, 7)}、この版: ${commit.slice(0, 7)}）。確認して git tag -d ${tag} してから再実行してください`, { rerun: false });
-      if (!local && (await git(['tag', '-a', tag, commit, '-m', `TiAb Review ${tag}`])).status !== 0) stop(`タグ ${tag} を作れませんでした`);
+      if (!local && (await git(['tag', '-a', tag, commit, '-m', `TiAb Review Plugin ${tag}`])).status !== 0) stop(`タグ ${tag} を作れませんでした`);
       if ((await run('git', ['push', 'origin', ref])).status !== 0) stop(`タグ ${tag} の push に失敗しました。手元のタグは残してあります`);
     }
 
@@ -400,7 +400,7 @@ async function release(options, { run, readFile, writeFile, removeFile, sleep, n
     writeFile(resolve(root, notesPath), buildReleaseNotes(section, readConceptDoi(await readAtCommit(commit, CITATION_TS))));
     let created;
     try {
-      created = await capture('gh', ['release', 'create', tag, '--verify-tag', '--title', `TiAb Review ${tag}`, '--notes-file', notesPath]);
+      created = await capture('gh', ['release', 'create', tag, '--verify-tag', '--title', `TiAb Review Plugin ${tag}`, '--notes-file', notesPath]);
     } finally {
       removeFile(resolve(root, notesPath));
     }

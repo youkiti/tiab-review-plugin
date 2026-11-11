@@ -77,7 +77,7 @@ function collectRefDecisions(r: ReferenceWithStatus): Decision[] {
  *
  * allReferences は state.allReferences ではなく、呼び出し元（showManuscriptModal）が
  * getReferences() で取り直した「論理削除された行も含む全件」を渡すこと。
- * getReferencesWithStatus() 経由の state.allReferences は論理削除された行（重複）が
+ * selectReferencesWithStatus() 経由の state.allReferences は論理削除された行（重複）が
  * 除外済みのため、そのまま渡すと論理削除件数を集計できない（Issue #145 チャンク2）。
  *
  * refsMayOmitLogicallyDeleted は、getReferences() の取得に失敗して state.allReferences へ
@@ -143,7 +143,7 @@ function countUnscreenedTiab(): number {
 // ---------------------------------------------------------------------------
 
 /**
- * Methods に書く TiAb Review の版の句（括弧の中身）。
+ * Methods に書く TiAb Review Plugin の版の句（括弧の中身）。
  * 判定を記録した版の最小から最大（同じなら単一の版）。判定から版が読めないときは、
  * テキストを生成した人のいまの版（読めなければ [version]）。DOI の定数が空なら DOI は書かない。
  */
@@ -182,7 +182,7 @@ function buildTiabMethods(id: IdentificationData, executions: readonly LlmExecut
     // レビュアー1名のときは blinded 節が意味を成さないので省く
     const blindClause = nReviewers > 1 ? ", without access to each other's decisions" : '';
     paragraphs.push(
-        `Records exported from each database (${fileList}) were imported into TiAb Review (${toolVersionClause(databaseDecisions.filter(isTiabDecision))}) and deduplicated automatically. ` +
+        `Records exported from each database (${fileList}) were imported into TiAb Review Plugin (${toolVersionClause(databaseDecisions.filter(isTiabDecision))}) and deduplicated automatically. ` +
         `Titles and abstracts were screened against the predefined eligibility criteria by ${nReviewers} ${plural(nReviewers, 'reviewer')}${blindClause}.`
     );
 
@@ -272,7 +272,7 @@ function buildFulltextMethods(summary: FulltextResultsSummary, registryLinkage: 
         ? 'The full text of the single candidate report was'
         : `Full texts of the ${summary.sought} candidate reports were`;
     paragraphs.push(
-        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review (${versionClause}), with reasons for exclusion recorded.`
+        `${retrievedIntro} retrieved and assessed for eligibility${reviewerClause} in TiAb Review Plugin (${versionClause}), with reasons for exclusion recorded.`
     );
 
     const aiSentence = buildFulltextAiMethodsSentence(summary);
@@ -473,7 +473,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
 
     // Identification 集計は論理削除された行（重複、duplicate_of 非空）も含めた全件が必要
     // （Issue #145 チャンク2。除外件数を duplicatesTotal へ合算するため）。state.allReferences は
-    // getReferencesWithStatus() 経由で論理削除済みの行が既に取り除かれているため使えず、
+    // selectReferencesWithStatus() 経由で論理削除済みの行が既に取り除かれているため使えず、
     // ここで getReferences() を呼んで全件を取り直す。取得に失敗した場合は state.allReferences へ
     // フォールバックするが、その場合は論理削除件数を数えられない（黙って過少になる）ため、
     // refsMayOmitLogicallyDeleted=true を collectIdentification() へ渡し、duplicatesTotal を

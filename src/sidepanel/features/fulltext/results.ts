@@ -58,12 +58,31 @@ const DECISION_ICON: Record<ConsensusDecision, string> = {
     pending: '・',
 };
 
-// モジュールローカルUI状態
+// モジュールローカルUI状態（プロジェクトに属するもの。戻る・ログアウトで丸ごと作り直す。
+// 足すときはここに入れる。tests/session-reset.test.ts が最上位の let を検査する）
 type FulltextViewMode = 'list' | 'ai' | 'results';
-let currentMode: FulltextViewMode = 'list';
-let resultsMode = false; // currentMode === 'results' のキャッシュ（既存呼び出し互換）
-// 選択中の判定者キー（null = 既定で全員）。空集合は「全解除」状態として保持しない（最小1人）。
-let enabledJudges: Set<string> | null = null;
+export interface FulltextResultsSessionState {
+    currentMode: FulltextViewMode;
+    /** currentMode === 'results' のキャッシュ（既存呼び出し互換） */
+    resultsMode: boolean;
+    /** 選択中の判定者キー（null = 既定で全員）。空集合は「全解除」状態として保持しない（最小1人）。 */
+    enabledJudges: Set<string> | null;
+}
+
+export function createFulltextResultsSession(): FulltextResultsSessionState {
+    return { currentMode: 'list', resultsMode: false, enabledJudges: null };
+}
+
+const session: FulltextResultsSessionState = createFulltextResultsSession();
+
+export function _getFulltextResultsSessionForTest(): FulltextResultsSessionState {
+    return session;
+}
+
+/** 戻る・ログアウトで、表示の切替と結果で選んだ判定者を初期値に戻す */
+export function resetFulltextResultsSession(): void {
+    Object.assign(session, createFulltextResultsSession());
+}
 
 // キー開閉後にフルテキストタブ全体を再描画するためのコールバック（fulltext/tab.ts から注入）
 let _rerenderTab: (() => void) | null = null;
@@ -72,7 +91,7 @@ export function setFulltextResultsDeps(deps: { rerenderTab: () => void }): void 
 }
 
 export function isFulltextResultsMode(): boolean {
-    return resultsMode;
+    return session.resultsMode;
 }
 
 /**
@@ -82,7 +101,7 @@ export function isFulltextResultsMode(): boolean {
  * 論文用テキスト生成の集計に反映する（フルテキストタブ未訪問時は従来どおり全員集計になる）。
  */
 export function getEnabledJudgesSnapshot(): Set<string> | null {
-    return enabledJudges ? new Set(enabledJudges) : null;
+    return session.enabledJudges ? new Set(session.enabledJudges) : null;
 }
 
 function reasonLabel(reason: string): string {
@@ -102,7 +121,7 @@ function collectJudges(candidates: ReferenceWithStatus[]): string[] {
 
 /** 有効な判定者集合（全候補の判定者と enabledJudges の積。空なら全員にフォールバック） */
 function effectiveJudges(allJudges: string[]): Set<string> {
-    return effectiveFulltextJudges(allJudges, enabledJudges);
+    return effectiveFulltextJudges(allJudges, session.enabledJudges);
 }
 
 /** 選択判定者＋裁定票から合議結果を計算する（表示・エクスポート双方の唯一の入口） */
@@ -115,7 +134,7 @@ function getConsensus(ref: ReferenceWithStatus, judges: Set<string>): FulltextCo
 // ---------------------------------------------------------------------------
 
 export function renderFulltextResults(): void {
-    if (!resultsMode) return;
+    if (!session.resultsMode) return;
     const candidates = getProjectFulltextCandidateList();
     const allJudges = collectJudges(candidates);
     const judges = effectiveJudges(allJudges);
@@ -168,18 +187,18 @@ function renderJudgeSelector(allJudges: string[], effective: Set<string>): void 
 
 function handleJudgeToggle(allJudges: string[], key: string, checked: boolean): void {
     // 初回操作時は現状（全員）を実体化してから増減
-    if (!enabledJudges) enabledJudges = new Set(allJudges);
+    if (!session.enabledJudges) session.enabledJudges = new Set(allJudges);
     if (checked) {
-        enabledJudges.add(key);
+        session.enabledJudges.add(key);
     } else {
         // 最小1人を保証
-        const remaining = allJudges.filter(j => enabledJudges!.has(j) && j !== key);
+        const remaining = allJudges.filter(j => session.enabledJudges!.has(j) && j !== key);
         if (remaining.length === 0) {
             showToast(t('fulltext_exportNoJudge'), 3000);
             renderFulltextResults();
             return;
         }
-        enabledJudges.delete(key);
+        session.enabledJudges.delete(key);
     }
     renderFulltextResults();
 }
@@ -210,7 +229,7 @@ export function getFulltextResultsSummaryByRoute(): {
 } {
     const candidates = getProjectFulltextCandidateList();
     return libGetFulltextResultsSummaryByRoute(candidates, {
-        enabledJudges,
+        enabledJudges: session.enabledJudges,
         excludeReasonItems: state.excludeReasonItems,
         userEmail: state.userEmail,
     });
@@ -643,13 +662,13 @@ function handleExportRis(): void {
 // ---------------------------------------------------------------------------
 
 /** 候補リスト / AI判定 / 判定後レビュー の表示を切り替える */
-function applyModeVisibility(): void {
+export function applyFulltextModeVisibility(): void {
     const section = sharedDom.fulltextSection;
     const retrieval = section.querySelector('.fulltext-retrieval');
     const filterRow = section.querySelector('.fulltext-filter-row');
-    const isList = currentMode === 'list';
-    const isAi = currentMode === 'ai';
-    const isResults = currentMode === 'results';
+    const isList = session.currentMode === 'list';
+    const isAi = session.currentMode === 'ai';
+    const isResults = session.currentMode === 'results';
 
     // 候補リスト系ブロック（取得・フィルタ・一覧）は list モードのみ表示
     retrieval?.classList.toggle('hidden', !isList);
@@ -664,9 +683,9 @@ function applyModeVisibility(): void {
 }
 
 export function setFulltextMode(mode: FulltextViewMode): void {
-    currentMode = mode;
-    resultsMode = mode === 'results';
-    applyModeVisibility();
+    session.currentMode = mode;
+    session.resultsMode = mode === 'results';
+    applyFulltextModeVisibility();
     if (mode === 'list') emitGuideEvent('fulltext-list-shown');
     if (mode === 'results') emitGuideEvent('fulltext-results-shown');
     if (mode === 'results') renderFulltextResults();
