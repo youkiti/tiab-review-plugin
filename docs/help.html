@@ -1574,6 +1574,10 @@
                         "Assignment Sets" inside Settings (⚙️).</span>
                 </p>
                 <p>
+                    <span class="ja">AI 一括判定の実行中に「戻る」を押すと、一括判定は中止されてからプロジェクト選択に戻ります。中止までに保存された判定は残り、同じ Run の続きから再開できます。全文の AI 一括判定と一括 OA 検索も同じで、実行中に「戻る」を押すと中止されてから切り替わります（中止までの結果は元のプロジェクトに保存されます）。</span>
+                    <span class="en">If you press "Back" while AI batch screening is running, the batch is stopped before returning to project selection. Decisions saved so far are kept, and the run can be resumed. The same applies to full-text AI batch screening and bulk open-access retrieval: pressing "Back" while they run stops them before switching (results so far are saved to the original project).</span>
+                </p>
+                <p>
                     <span class="ja">実行ボタンの上にある「対象:」欄で、上記の絞り込みからさらに対象を限定できます。既定は「全件（N件）」で、これまでどおり自分の未判定分すべてが対象です。「選択...」ボタンを押すと対象レコード選択モーダル（「対象レコードを選択」）が開き、グループ（担当セットまたは取り込みファイル）を選んで全選択する・タイトルや抄録で検索する・すべて表示/選択済みのみ/未選択のみを切り替える・表示中を全選択する・すべて解除する、といった操作で対象を選んで「確定する」ボタンで確定します。「解除」ボタンを押すと選択を破棄して「全件」に戻ります。</span>
                     <span class="en">The "Target:" field above the run button lets you narrow the target further,
                         on top of the pending/assignment filtering above. It defaults to "All (N items)" — every
@@ -2528,6 +2532,11 @@
                             rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
                     <span class="en">URL: <a href="https://youkiti.github.io/tiab-review-plugin/app/" target="_blank"
                             rel="noopener">https://youkiti.github.io/tiab-review-plugin/app/</a></span>
+                </p>
+
+                <p>
+                    <span class="ja">Web版で判定すると、記録される版は <code>web-0.57.2+abc1234-human</code> のように、版番号に続けてビルド元のコミット（7桁）が入ります。</span>
+                    <span class="en">Decisions made in the web app record a version such as <code>web-0.57.2+abc1234-human</code>: the version number followed by the build commit (7 characters).</span>
                 </p>
 
                 <h3 id="web-version-features">

@@ -6,7 +6,6 @@ import { pickSheetAccessBanner, pickScreeningCompletion } from '../src/lib/sheet
 import { setPlatform } from '../src/platform';
 import type { PlatformAdapter } from '../src/platform/types';
 import { initialState, reducer } from '../src/sidepanel/store/reducer';
-import { getEncourageMessage } from '../src/sidepanel/store/selectors';
 import { renderDecisionButtonAccess } from '../src/sidepanel/render/layout';
 
 const adapter: PlatformAdapter = {
@@ -149,13 +148,4 @@ test('読み取り専用の間だけ5つの判定ボタンを無効化し、切�
             assert.equal(buttons.get(id)!.disabled, expected, id);
         }
     }
-});
-
-test('Store の進捗文も未送信件数を表示する', () => {
-    const references = [{ ref_id: 'ref', title: '文献', status: 'include', myDecision: {
-        decision: 'include', reviewer_id: 'self', client_version: 'test-human',
-    } }] as typeof initialState.data.references;
-    const state = { ...initialState, data: { ...initialState.data, references, userEmail: 'self', unsentCount: 5 } };
-    assert.equal(getEncourageMessage(state), 'screening_progressUnsent:5');
-    assert.equal(getEncourageMessage({ ...state, data: { ...state.data, unsentCount: 0 } }), 'progress_complete');
 });

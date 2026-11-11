@@ -17,7 +17,6 @@ import type { LlmTargetMode } from './llm-target-selection';
 import { RATE_LIMIT_PAID } from './types';
 import { GeminiModelConfig, AVAILABLE_MODELS } from './gemini-api';
 import { resolveProviderId, screenWithProvider } from './llm-provider';
-import { isOpenRouterJevModel } from './openrouter-model';
 import type { LlmProviderId, LlmScreenParams, LlmScreenResult } from './llm-provider';
 import { PROMPT_VERSION } from './prompt-templates';
 import { getClientVersion } from './client-version';
@@ -290,7 +289,7 @@ interface ProcessWithRetryDeps {
     maxRetries?: number;             // 429 以外の既定リトライ上限（既定2）
     maxRetriesOnRateLimit?: number;  // 429 のリトライ上限（既定5、429以外より緩める）
     // 1件あたりの累積待ち時間の上限（既定3分）。プロバイダ内部のリトライ待ちは見えない
-    // （例: providers/openrouter.ts:213-230 は内部で 5s+10s の2回リトライを持つため、
+    // （例: providers/openrouter.ts の screenViaOpenRouter は内部で 5s+10s の2回リトライを持つため、
     // 外側からは1試行あたり15秒が不可視）ので、実際の待ちはこの上限より長くなりうる
     maxCumulativeWaitMs?: number;
     maxCooldownMs?: number;          // 429以外(5xx等)のバックオフ上限（既定 DEFAULT_MAX_COOLDOWN_MS）
@@ -374,13 +373,11 @@ async function processWithRetry(
             lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
             // 同条件リトライが無意味なエラー（MAX_TOKENS 切り詰め等）は即座にフォールバックへ
             const errorCode = (error as { code?: string } | null)?.code;
-            // TypeSafe（OpenRouter 経由を含む）と Anthropic の再試行不可エラーは即座にフォールバックへ進む。
-            // どちらもプロバイダ内部で再試行しないため、ここで見ないと認証エラーや打ち切り・拒否の応答を
-            // 同じ条件で送り直すことになる（Anthropic の打ち切りは出力上限まで生成した分が毎回課金される）。
+            // 再試行不可の判定はプロバイダ名で分けない。各プロバイダのエラーが retryable: false を
+            // 付けたものだけを送り直さない（認証エラー・残高不足・打ち切り・拒否など。Anthropic の打ち切りは
+            // 出力上限まで生成した分が毎回課金される）。印の無いエラーは今までどおり再試行する。
             const nonRetryable = errorCode === 'max_tokens_truncated'
-                || ((providerId === 'typesafe' || providerId === 'anthropic' || providerId === 'local_llm'
-                    || (providerId === 'openrouter' && isOpenRouterJevModel(model)))
-                    && (error as { retryable?: boolean } | null)?.retryable === false);
+                || (error as { retryable?: boolean } | null)?.retryable === false;
             if (nonRetryable) {
                 console.warn(`[processWithRetry] Non-retryable error for ${ref.ref_id}: ${lastErrorMessage}`);
                 break;

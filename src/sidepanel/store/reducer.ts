@@ -13,63 +13,86 @@ import { DEFAULT_LLM_CONFIG } from '../../lib/sheets-api';
 import { DEFAULT_FULLTEXT_ASSIGNMENT } from '../../lib/fulltext-assignment';
 
 /**
- * 初期状態
+ * 初期状態を新しく作る（Set・配列・オブジェクトは呼ぶたびに別の実体）
  */
-export const initialState: AppState = {
-    data: {
-        references: [],
-        spreadsheetId: '',
-        userEmail: '',
-        highlightKeywords: { include: [], exclude: [] },
-        llmConfig: { ...DEFAULT_LLM_CONFIG },
-        mlState: createInitialMlState(),
-        recentSheets: [],
-        isAdmin: false,
-        sheetEditAccess: 'unknown',
-        unsentCount: 0,
-        fulltextPoolRule: null,
-        fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
-        assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
-        assignmentSets: new Set(),
-        selectedAssignmentSets: new Set(),
-        selectedFulltextSets: new Set(),
-        sourceFiles: new Set(),
-        selectedSourceFiles: new Set(),
-        availableReviewers: new Set(),
-        enabledReviewers: new Set(),
-        activeLlmExecutionIds: new Set(),
-        currentBatchDecisions: [],
-        failedRefIds: [],
-        failedSourceExecutionId: null,
-    },
-    ui: {
-        view: 'login',
-        currentTab: 'screening',
-        screening: {
-            currentIndex: 0,
-            currentFilter: 'pending',
-            searchQuery: '',
-            isKeyOpened: false,
-            activeTermFilters: [],
+export function createInitialState(): AppState {
+    return {
+        data: {
+            references: [],
+            spreadsheetId: '',
+            userEmail: '',
+            highlightKeywords: { include: [], exclude: [] },
+            llmConfig: { ...DEFAULT_LLM_CONFIG },
+            mlState: createInitialMlState(),
+            isAdmin: false,
+            sheetEditAccess: 'unknown',
+            unsentCount: 0,
+            fulltextPoolRule: null,
+            fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
+            assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
+            assignmentSets: new Set(),
+            selectedAssignmentSets: new Set(),
+            selectedFulltextSets: new Set(),
+            sourceFiles: new Set(),
+            selectedSourceFiles: new Set(),
+            availableReviewers: new Set(),
+            enabledReviewers: new Set(),
+            activeLlmExecutionIds: new Set(),
+            currentBatchDecisions: [],
+            failedRefIds: [],
+            failedSourceExecutionId: null,
         },
-        ml: {
-            currentIndex: 0,
-            searchQuery: '',
+        ui: {
+            view: 'login',
+            currentTab: 'screening',
+            screening: {
+                currentIndex: 0,
+                currentFilter: 'pending',
+                searchQuery: '',
+                isKeyOpened: false,
+                activeTermFilters: [],
+            },
+            flags: {
+                loading: false,
+                exportMenuOpen: false,
+                shareInputOpen: false,
+                settingsOpen: false,
+            },
+            settings: parseUserSettings({}),
+            toast: null,
         },
-        llm: {
-            batchRunning: false,
-            currentExecutionId: '',
-        },
-        flags: {
-            loading: false,
-            exportMenuOpen: false,
-            shareInputOpen: false,
-            settingsOpen: false,
-        },
-        settings: parseUserSettings({}),
-        toast: null,
-    },
+    };
+}
+
+/** 互換のため残す初期状態の共有インスタンス（読み取り専用の用途。reset では使わない） */
+export const initialState: AppState = createInitialState();
+
+/** 戻るで残す項目（ここに無い項目はすべて初期値に戻る。残す理由があるときだけ足す） */
+export const KEPT_ON_BACK = { data: ['userEmail'], ui: ['settings'] } as const satisfies {
+    data: readonly (keyof AppState['data'])[];
+    ui: readonly (keyof AppState['ui'])[];
 };
+
+/** ログアウトで残す項目（同上） */
+export const KEPT_ON_LOGOUT = { data: [], ui: ['settings'] } as const satisfies {
+    data: readonly (keyof AppState['data'])[];
+    ui: readonly (keyof AppState['ui'])[];
+};
+
+/** 初期状態から始め、kept の項目だけ今の state から写す */
+function resetKeeping(
+    state: AppState,
+    kept: { readonly data: readonly (keyof AppState['data'])[]; readonly ui: readonly (keyof AppState['ui'])[] },
+    view: AppState['ui']['view'],
+): AppState {
+    const next = createInitialState();
+    const data = next.data as Record<string, unknown>;
+    for (const key of kept.data) data[key] = state.data[key];
+    const ui = next.ui as Record<string, unknown>;
+    for (const key of kept.ui) ui[key] = state.ui[key];
+    next.ui.view = view;
+    return next;
+}
 
 /**
  * Reducer関数
@@ -168,18 +191,6 @@ export function reducer(state: AppState, action: Action): AppState {
                 },
             };
 
-        case 'screening/toggleKeyOpen':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    screening: {
-                        ...state.ui.screening,
-                        isKeyOpened: !state.ui.screening.isKeyOpened,
-                    },
-                },
-            };
-
         case 'screening/setKeyOpened':
             return {
                 ...state,
@@ -234,65 +245,6 @@ export function reducer(state: AppState, action: Action): AppState {
                         activeTermFilters: [],
                         currentIndex: 0,
                     },
-                },
-            };
-
-        // ========== ML UI ==========
-        case 'ml/navigate': {
-            const ranking = state.data.mlState.ranking;
-            let newIndex = state.ui.ml.currentIndex + action.direction;
-            if (newIndex < 0) {
-                newIndex = ranking.length - 1;
-            } else if (newIndex >= ranking.length) {
-                newIndex = 0;
-            }
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: { ...state.ui.ml, currentIndex: newIndex },
-                },
-            };
-        }
-
-        case 'ml/setIndex':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: { ...state.ui.ml, currentIndex: action.index },
-                },
-            };
-
-        case 'ml/setSearch':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    ml: {
-                        ...state.ui.ml,
-                        searchQuery: action.query,
-                        currentIndex: 0,
-                    },
-                },
-            };
-
-        // ========== LLM UI ==========
-        case 'llm/setBatchRunning':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    llm: { ...state.ui.llm, batchRunning: action.running },
-                },
-            };
-
-        case 'llm/setExecutionId':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    llm: { ...state.ui.llm, currentExecutionId: action.id },
                 },
             };
 
@@ -406,120 +358,12 @@ export function reducer(state: AppState, action: Action): AppState {
                 },
             };
 
-        case 'settings/setAutoNavigate':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, autoNavigateAfterDecision: action.value },
-                },
-            };
-
-        case 'settings/setShowRecordCountBelow':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, showRecordCountBelow: action.value },
-                },
-            };
-
-        case 'settings/setTermFilterUseAnd':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, termFilterUseAnd: action.value },
-                },
-            };
-
-        case 'settings/setTreatMlAsManual':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, treatMlAsManual: action.value },
-                },
-            };
-
-        case 'settings/setShowAiHighlights':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, showAiHighlights: action.value },
-                },
-            };
-
-        case 'settings/setAiDecisionFilter':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, aiDecisionFilter: action.filter },
-                },
-            };
-
-        case 'settings/setAbstractSubsectionBreakEnabled':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, abstractSubsectionBreakEnabled: action.value },
-                },
-            };
-
-        case 'settings/setAbstractSubsectionHeadings':
-            return {
-                ...state,
-                ui: {
-                    ...state.ui,
-                    settings: { ...state.ui.settings, abstractSubsectionHeadings: action.value },
-                },
-            };
-
         // ========== リセット ==========
         case 'reset/logout':
-            return {
-                ...initialState,
-                // 設定は維持
-                ui: {
-                    ...initialState.ui,
-                    settings: state.ui.settings,
-                },
-            };
+            return resetKeeping(state, KEPT_ON_LOGOUT, 'login');
 
         case 'reset/back':
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    spreadsheetId: '',
-                    sheetEditAccess: 'unknown',
-                    unsentCount: 0,
-                    references: [],
-                    fulltextPoolRule: null,
-                    fulltextAssignment: { ...DEFAULT_FULLTEXT_ASSIGNMENT },
-                    assignmentConfig: { ...DEFAULT_ASSIGNMENT_CONFIG, reviewerMap: {} },
-                    assignmentSets: new Set(),
-                    selectedAssignmentSets: new Set(),
-                    selectedFulltextSets: new Set(),
-                    sourceFiles: new Set(),
-                    selectedSourceFiles: new Set(),
-                    enabledReviewers: new Set(),
-                    availableReviewers: new Set(),
-                    mlState: createInitialMlState(),
-                },
-                ui: {
-                    ...state.ui,
-                    view: 'project',
-                    screening: {
-                        ...state.ui.screening,
-                        currentIndex: 0,
-                        activeTermFilters: [],
-                    },
-                },
-            };
+            return resetKeeping(state, KEPT_ON_BACK, 'project');
 
         default:
             return state;

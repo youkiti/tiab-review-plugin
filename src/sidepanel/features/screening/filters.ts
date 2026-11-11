@@ -157,7 +157,19 @@ export function updateFilterCounts() {
     return perfSpanSync('tiab:screening.counts', () => updateFilterCountsImpl());
 }
 
-function updateFilterCountsImpl() {
+/**
+ * ステータス選択肢とタブのバッジに表示する件数を数える（DOM には触れない）。
+ * ソースファイル → 担当セットの順に絞った配列が対象で、検索語とステータスでは絞らない。
+ */
+export function computeStatusFilterCounts(): {
+    pending: number;
+    all: number;
+    include: number;
+    exclude: number;
+    maybe: number;
+    conflict: number;
+    fulltextCandidates: number;
+} {
     // ソースファイルフィルターを適用したものでカウント
     let filtered = state.references;
     if (state.selectedSourceFiles.size > 0 && state.selectedSourceFiles.size < state.sourceFiles.size) {
@@ -171,7 +183,13 @@ function updateFilterCountsImpl() {
     const counts = getScreeningCounts(filtered);
 
     // フルテキスト候補（独立アルゴリズム・自分の担当分のみ）
-    const fulltextCount = filtered.filter(isMyFulltextCandidate).length;
+    const fulltextCandidates = filtered.filter(isMyFulltextCandidate).length;
+
+    return { ...counts, fulltextCandidates };
+}
+
+function updateFilterCountsImpl() {
+    const counts = computeStatusFilterCounts();
 
     // option の value をキーにラベルを割り当てる。
     // （optgroup で並び順を変えても壊れないよう index ではなく value で対応付ける）
@@ -182,19 +200,19 @@ function updateFilterCountsImpl() {
         exclude: t('filter_excludeCount', String(counts.exclude)),
         maybe: t('filter_maybeCount', String(counts.maybe)),
         conflict: t('filter_conflictCount', String(counts.conflict)),
-        fulltext_candidates: fulltextCandidateOptionLabel(fulltextCount),
+        fulltext_candidates: fulltextCandidateOptionLabel(counts.fulltextCandidates),
     };
     for (const opt of Array.from(dom.statusFilter.options)) {
         const label = labels[opt.value];
         if (label !== undefined) opt.textContent = label;
     }
 
-    updateFulltextTabBadge(fulltextCount);
+    updateFulltextTabBadge(counts.fulltextCandidates);
 }
 
 /**
  * 「📄 全文」タブの候補件数バッジを更新する
- * - 件数は上記の fulltextCount（isMyFulltextCandidate、ソースファイル／担当セット絞り込み込み）をそのまま流用
+ * - 件数は computeStatusFilterCounts() の fulltextCandidates（isMyFulltextCandidate、ソースファイル／担当セット絞り込み込み）をそのまま流用
  * - 0件なら非表示
  * - TiAb完了時（自分の未判定0件かつ文献1件以上。絞り込みの影響を受けない全体基準）はパルスさせて次工程への気づきを促す
  */

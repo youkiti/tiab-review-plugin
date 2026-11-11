@@ -6,7 +6,7 @@ description: バージョンを自動更新してChrome Web Store用のリリー
 
 ## バージョンバンプのみ
 
-バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。
+バージョンは `0.<major>.<minor>` 形式（先頭の 0 は固定）。通常は `npm run release` がリリース用ブランチ上で呼ぶ。`main` 上では停止する。
 
 // turbo
 ```bash
@@ -21,19 +21,19 @@ npm run bump:major    # 機能追加     (0.33.2 → 0.34.0)
 powershell -ExecutionPolicy Bypass -File ./scripts/bump-version.ps1 -SetVersion "1.0.0"
 ```
 
-## リリース（バンプ + ストア用ビルド）
+## リリース（版上げ PR からストア提出まで）
 
 リリースビルドは常に Chrome Web Store 用（`key` 削除 + `.env` の `WEBAUTH_CLIENT_ID`）。
 zip を Google Drive で配布する経路は廃止済み（最終配布は v0.24.0）。
 
 // turbo
 ```bash
-npm run release        # = release:minor（デフォルト）
-npm run release:minor  # 0.33.2 → 0.33.3 + ビルド + dist.zip
-npm run release:major  # 0.33.2 → 0.34.0 + ビルド + dist.zip
+npm run release         # 修正・小変更 0.33.2 → 0.33.3（release:minor・release:submit も同じ）
+npm run release:major   # 機能追加     0.33.2 → 0.34.0（release:submit:major も同じ）
+npm run release -- --dry-run   # 何もせず、続きの位置と新しい版だけを表示
 ```
 
-生成された **`dist.zip`** を Chrome Web Store デベロッパーダッシュボードへアップロードする。
+1回の実行で、`chore/release-v<版>` ブランチ・CHANGELOG の版の節・バンプ commit・PR・必須チェック待ち・マージ・ストア用ビルド・審査提出まで進む。途中で止まったら同じコマンドを再実行すると続きから進む。やめたいときは開いている PR を閉じてブランチを消す。zip だけ作るときは `npm run build:release`。生成された **`dist.zip`** は `npm run store:submit` か、Chrome Web Store デベロッパーダッシュボードから提出する。
 
 > **ファイル名は `dist.zip` 固定**。バージョン付きの名前（`dist-store-v0.25.0.zip` 等）ではストアへアップロードできない。
 

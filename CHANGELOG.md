@@ -7,6 +7,31 @@ This file lists changes per version. Any change that may affect AI screening res
 v0.54.0 以前の変更は [コミット履歴](https://github.com/youkiti/tiab-review-plugin/commits/main) をご覧ください。
 For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/tiab-review-plugin/commits/main).
 
+## 未リリース
+
+### AI 判定に影響する変更 / Changes that affect AI screening
+
+- AI 一括判定で、API キーの誤り・残高不足・存在しないモデルなど送り直しても通らないエラーは、どの AI でも1回で打ち切り、組み入れ確率 1.0 の判定（人の確認に必ず回る扱い）として保存するようにしました。これまでは Gemini・OpenAI では同じ文献を最大3回、OpenRouter のチャットモデルでは最大9回送り直していました。レート制限（429）と一時的なサーバーエラー・通信エラーは従来どおり再試行します。
+  In AI batch screening, errors that cannot succeed on resend (invalid API key, insufficient credit, unknown model, and similar) now stop after one attempt for every AI provider, and the reference is saved with an inclusion probability of 1.0 so that it always goes to human review. Previously, Gemini and OpenAI resent the same reference up to three times, and OpenRouter chat models up to nine times. Rate limits (429) and temporary server or network errors are still retried as before.
+- プロジェクトを切り替えた直後に、前のプロジェクトの AI 設定（基準）が全文の AI 判定の実行記録に入ることがある経路をなくしました。
+  Removed a path by which the previous project's AI settings (criteria) could be recorded in the full-text AI screening log right after switching projects.
+- プロジェクトを切り替えた直後に、全文の AI 判定のプロンプト欄に前のプロジェクトのプロンプトが残り、そのまま実行できた経路をなくしました。
+  Removed a path by which the previous project's prompt could remain in the full-text AI screening prompt box after switching projects and be used as is.
+
+### 画面 / Interface
+
+- 別のプロジェクトへ切り替えたとき、前のプロジェクトの検索語・ステータスの絞り込み・AI の設定・「新規にやり直す」の切替が残ることがあったのを直しました。AI 一括判定の実行中に「戻る」を押した場合は、一括判定を中止してから切り替えます（中止までの判定は保存され、続きから再開できます）。
+  When switching to another project, the search text, status filter, AI settings and the "start over" toggle of the previous project could carry over; this is fixed. If you press Back while AI batch screening is running, the batch is now stopped before switching (decisions saved so far are kept and the run can be resumed).
+- 別のプロジェクトへ切り替えたとき・ログアウトしたときに、全文タブの AI 判定のプロンプト・対象範囲・一覧の絞り込み・結果で選んだ判定者が前のプロジェクトのまま残ることがあったのを直しました。全文の AI 一括判定と一括 OA 検索の実行中に「戻る」を押した場合は、中止してから切り替えます（中止までの結果は元のプロジェクトに保存されます）。
+  When switching to another project or logging out, the full-text AI prompt, scope, list filter and the reviewers selected in the results could carry over from the previous project; this is fixed. If you press Back while full-text AI batch screening or bulk open-access retrieval is running, it is now stopped before switching (results so far are saved to the original project).
+- Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
+  The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
+
+### 文書 / Documentation
+
+- README に「機能の追加について」の節を足し、保守の段階で足さない機能と、新しい機能を検討する条件を書いた。AI 判定には影響しない。
+  Added an "About new features" section to the README describing what is not added in the maintenance phase and when new features are considered. AI screening is unaffected.
+
 ## v0.57.2（2026-11-09）
 
 ### 画面 / Interface

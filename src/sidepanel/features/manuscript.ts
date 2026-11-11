@@ -100,7 +100,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
 
     // Identification 集計は論理削除された行（重複、duplicate_of 非空）も含めた全件が必要
     // （Issue #145 チャンク2。除外件数を duplicatesTotal へ合算するため）。state.allReferences は
-    // getReferencesWithStatus() 経由で論理削除済みの行が既に取り除かれているため使えず、
+    // selectReferencesWithStatus() 経由で論理削除済みの行が既に取り除かれているため使えず、
     // ここで getReferences() を呼んで全件を取り直す。取得に失敗した場合は state.allReferences へ
     // フォールバックするが、その場合は論理削除件数を数えられない（黙って過少になる）ため、
     // refsMayOmitLogicallyDeleted=true を ManuscriptInput へ渡し、duplicatesTotal を
