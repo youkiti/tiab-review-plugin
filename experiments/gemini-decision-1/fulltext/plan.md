@@ -23,7 +23,7 @@ PDF の事前参考件数は PMID のキャッシュ行に `.pdf` があるか�
 - 研究対応: `CB/data/processed/<tier>/gold/task2_search_screen.jsonl`（採点コードの `GOLD_FILES["task2"]`）を `cochrane_bench.corpus.manifest.read_jsonl` と `Task2Gold` で読む。形の違うファイルを読んでも `Task2Gold` は空の対応表を返すので、`prepare.py` は対応表が空なら止める。CC BY の jev 閾値0.3の研究単位 Recall が README の 551 / 621 と一致することで、対応表が効いていることを確かめた。
 - 本文: 入力の `xml_path` にある XML を `cochrane_bench.data_io.jats_fulltext.jats_to_screening_text` に渡し、先頭120,000文字を使う。
 - PDF 対応: `CB/data/interim/<tier>/screening_fulltext_link_cache.jsonl`。PMID と `report_pmcid` が一致する報告の URL・MD5 を使う。
-- 比較確率: [cc-by](<C:/tmp/dec1ft-inputs/jev_cc-by.jsonl>) と [cc-by-nc](<C:/tmp/dec1ft-inputs/jev_cc-by-nc.jsonl>)。キーは `(pmcid, pmid)`。
+- 比較確率: [cc-by](<C:/tmp/dec1ft-inputs/jev_cc-by.jsonl>) と [cc-by-nc](<C:/tmp/dec1ft-inputs/jev_cc-by-nc.jsonl>)。キーは `(pmcid, pmid)`。出所は、Cochrane-bench で jev-1.14.0 を流したときの台帳。本人の Google ドライブの `coding-data/Cochrane-bench/fulltext-screening/` にある `round1-2026-11-04.zip` の `scratch/jev_ledger.jsonl`（1,274行）と、`round2-ccbync-2026-11-06.zip` の `jev_ledger.jsonl`（5,186行）から取り出した。同じ2本は `coding-data/tiab-review-plugin/gemini-decision-1-fulltext/round1-2026-11-12.zip` の `jev/` にもある。
 - 実装: [prepare.py](prepare.py)、[fetch_pdfs.py](fetch_pdfs.py)、[runner.ts](runner.ts)、[decisions-fulltext.ts](decisions-fulltext.ts)、[common.ts](common.ts)、[metrics.ts](metrics.ts)、[summarize.ts](summarize.ts)、[config.json](config.json)、[selftest.ts](selftest.ts)。
 
 Cochrane-bench の全文課題では PDF を使わない方針である。この実験の中だけで PDF を使い、ゴールドや公開物に入れない。本文・PDF・抄録・除外理由の原文を含む `data/` は git に入れない。レポートには論文の本文・抄録・タイトル・除外理由の文章を書かず、キーと数値だけを載せる。
