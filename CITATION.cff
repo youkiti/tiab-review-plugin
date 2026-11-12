@@ -3,31 +3,51 @@ message: "If you use this software, please cite it using the metadata from this 
 type: software
 title: "TiAb Review Plugin"
 abstract: "A Chrome extension and web app for title/abstract and full-text screening in systematic reviews, using a shared Google Sheets spreadsheet as the database."
-# 各著者の affiliation と orcid は空欄（arXiv 2604.08602v2 で確かめてから記入する）。
-# 記入するときは given-names の下に affiliation: "…" と orcid: "https://orcid.org/0000-0000-0000-0000" を足す。
 authors:
   - family-names: Kataoka
     given-names: Yuki
+    affiliation: "Center for Postgraduate Clinical Training and Career Development, Nagoya University Hospital"
+    orcid: "https://orcid.org/0000-0001-7982-5213"
   - family-names: Banno
     given-names: Masahiro
+    affiliation: "Department of Psychiatry, Seichiryo Hospital"
+    orcid: "https://orcid.org/0000-0002-2539-1031"
   - family-names: Kyo
     given-names: Michihito
+    affiliation: "Department of Radiation Disaster Medicine, Research Institute for Radiation Biology and Medicine, Hiroshima University"
+    orcid: "https://orcid.org/0000-0002-2559-6440"
   - family-names: Nakao
     given-names: Shuri
+    affiliation: "Division of Rehabilitation Medicine, Shimane University Hospital"
+    orcid: "https://orcid.org/0009-0001-2668-969X"
   - family-names: Sato
     given-names: Tomoo
+    affiliation: "Department of Nursing, Faculty of Nursing, Kindai University"
+    orcid: "https://orcid.org/0000-0003-4036-4629"
   - family-names: Taito
     given-names: Shunsuke
+    affiliation: "Division of Rehabilitation, Department of Clinical Practice and Support, Hiroshima University Hospital"
+    orcid: "https://orcid.org/0000-0003-1218-4225"
   - family-names: Takayama
     given-names: Tomohiro
+    affiliation: "Kyoto University Hospital"
+    orcid: "https://orcid.org/0009-0000-3313-0619"
   - family-names: Tsuge
     given-names: Takahiro
+    affiliation: "Department of Rehabilitation, Kurashiki Medical Center"
+    orcid: "https://orcid.org/0000-0003-0497-944X"
   - family-names: Tsujimoto
     given-names: Yasushi
+    affiliation: "Oku Medical Clinic"
+    orcid: "https://orcid.org/0000-0002-7214-5589"
   - family-names: So
     given-names: Ryuhei
+    affiliation: "Okayama Psychiatric Medical Center"
+    orcid: "https://orcid.org/0000-0002-9838-350X"
   - family-names: Furukawa
     given-names: "Toshi A."
+    affiliation: "Kyoto University Office of Institutional Advancement and Communications"
+    orcid: "https://orcid.org/0000-0003-2159-3776"
 version: 0.57.2
 date-released: "2026-11-09"
 license: MIT
