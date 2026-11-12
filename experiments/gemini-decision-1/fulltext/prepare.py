@@ -51,8 +51,12 @@ def prepare(args):
     inputs = args.inputs or cb / "data/baseline" / tier / baseline / "task2_fulltext_oa/inputs"
     jev_file = args.jev_ledger or Path(f"C:/tmp/dec1ft-inputs/jev_{tier}.jsonl")
     gold_file = cb / "data/processed" / tier / "gold/task2_screening_oa.jsonl"
-    mapping_file = cb / "data/processed" / tier / "gold/task2_screening.jsonl"
+    # 採点コードと同じく GOLD_FILES["task2"]（task2_search_screen.jsonl）から研究対応を読む。
+    mapping_file = cb / "data/processed" / tier / "gold/task2_search_screen.jsonl"
     mappings = {r.pmcid: r.pmid_to_study_id for r in read_jsonl(mapping_file, Task2Gold)}
+    # 形の違うファイルを読んでも Task2Gold は黙って空の対応表を返すため、空なら止める。
+    if not any(mappings.values()):
+        raise ValueError(f"研究対応が空です: {mapping_file}")
     tasks = [json.loads(file.read_text(encoding="utf-8")) for file in sorted(inputs.glob("*.json"))]
     gold = unique(
         [(review, record) for review in jsonl(gold_file) for record in review["records"]],

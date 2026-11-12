@@ -20,7 +20,7 @@ PDF の事前参考件数は PMID のキャッシュ行に `.pdf` があるか�
 
 - 凍結入力: `CB/data/baseline/cc-by/jev-1.14.0-t03/task2_fulltext_oa/inputs/*.json` と `CB/data/baseline/cc-by-nc/haiku-5-5-agent/task2_fulltext_oa/inputs/*.json`。
 - ゴールド: `CB/data/processed/<tier>/gold/task2_screening_oa.jsonl`。
-- 研究対応: `CB/data/processed/<tier>/gold/task2_screening.jsonl` を `cochrane_bench.corpus.manifest.read_jsonl` と `Task2Gold` で読む。
+- 研究対応: `CB/data/processed/<tier>/gold/task2_search_screen.jsonl`（採点コードの `GOLD_FILES["task2"]`）を `cochrane_bench.corpus.manifest.read_jsonl` と `Task2Gold` で読む。形の違うファイルを読んでも `Task2Gold` は空の対応表を返すので、`prepare.py` は対応表が空なら止める。CC BY の jev 閾値0.3の研究単位 Recall が README の 551 / 621 と一致することで、対応表が効いていることを確かめた。
 - 本文: 入力の `xml_path` にある XML を `cochrane_bench.data_io.jats_fulltext.jats_to_screening_text` に渡し、先頭120,000文字を使う。
 - PDF 対応: `CB/data/interim/<tier>/screening_fulltext_link_cache.jsonl`。PMID と `report_pmcid` が一致する報告の URL・MD5 を使う。
 - 比較確率: [cc-by](<C:/tmp/dec1ft-inputs/jev_cc-by.jsonl>) と [cc-by-nc](<C:/tmp/dec1ft-inputs/jev_cc-by-nc.jsonl>)。キーは `(pmcid, pmid)`。
