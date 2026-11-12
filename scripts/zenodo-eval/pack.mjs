@@ -43,10 +43,10 @@ export const EXCLUDED_ROOT_FILES = ['test_model_b_debug.txt', 'test_model_b_outp
 export const LABEL_DATASETS = {
     depression: { file: /^depression_slim_labeled\.json$/, key: 'label_included' },
     wilson: { file: /^wilson_tiab_labeled\.json$/, key: 'label_final_included' },
-    'cq1-5': { file: /^cq[1-5]_labeled\.json$/, key: 'label_included' },
+    'cq1-5': { file: /^cq[1-5]_labeled\.json$/, key: 'label' },
     'cochrane-mendeley': { file: /^mendeley_.*\.json$/, key: 'label_included' },
 };
-export const REDISTRIBUTABLE_LABEL_DATASETS = [];
+export const REDISTRIBUTABLE_LABEL_DATASETS = ['depression', 'wilson', 'cq1-5', 'cochrane-mendeley'];
 
 export const MAX_FILES = 100;
 const DATASETS_DIR = 'scripts/asreview-baseline/datasets';
@@ -124,6 +124,17 @@ export function buildDirectory(sha, dir) {
     };
 }
 
+/** ラベルの JSON（配列、または records が配列のオブジェクト）からレコードの配列を取り出す。 */
+export function labelRecords(parsed, file) {
+    if (Array.isArray(parsed)) {
+        return parsed;
+    }
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.records)) {
+        return parsed.records;
+    }
+    throw new Error(`${file}: ラベルのデータは配列または records が配列のオブジェクトである必要があります`);
+}
+
 /** 再配布できるデータセットのラベルの表を作る。 */
 export function buildLabels(sha, allowed = REDISTRIBUTABLE_LABEL_DATASETS) {
     const names = new Map();
@@ -134,7 +145,8 @@ export function buildLabels(sha, allowed = REDISTRIBUTABLE_LABEL_DATASETS) {
         for (const file of files) {
             const base = file.split('/').pop();
             if (!spec.file.test(base)) continue;
-            const records = JSON.parse(readBlob(sha, file).toString('utf8'));
+            const parsed = JSON.parse(readBlob(sha, file).toString('utf8'));
+            const records = labelRecords(parsed, file);
             const outName = name === 'depression' || name === 'wilson'
                 ? name : base.replace(/\.json$/, '').replace(/_labeled$/, '').replace(/_data_cleaned$/, '');
             names.set(`labels/${outName}.csv`, Buffer.from(buildLabelsCsv(records, spec.key), 'utf8'));

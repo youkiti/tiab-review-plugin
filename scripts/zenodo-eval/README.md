@@ -17,10 +17,10 @@ npm run zenodo:eval:pack -- --verify [--date YYYY.MM.DD]   # 出力の検査だ�
 ## 規則
 
 1. 題名・抄録・全文は、どのデータセットについても入れない。入れるのは評価結果（ID、AI の出力、確率、トークン数など）と、ライセンスで再配布が認められたデータセットの `labels/<データセット>.csv`（列 `id,label_included`）だけ。
-2. 再配布を確かめられないデータセット（CQ1〜5 を含む）のラベルは入れない。`SOURCES.md` の「再配布の可否」を確かめて、`pack.mjs` の `REDISTRIBUTABLE_LABEL_DATASETS` に名前を足したものだけが `labels/` に出る。
+2. depression・wilson・CQ1〜5・Cochrane（Mendeley）の4種は再配布を確認済みで、`pack.mjs` の `REDISTRIBUTABLE_LABEL_DATASETS` に登録してある。新しいデータセットは `SOURCES.md` で出典・ライセンス・再配布の可否を確かめてから足す。登録したものだけが `labels/` に出る。
 3. JSON・JSONL（`.bak` を含む）の結果は、`evidence[]` の要素から `field`・`start_char`・`end_char` だけを残し、`quote` などほかの項目を落とす。`note` のように JSON を文字列で持つ値は、解釈できれば中を同じ規則で処理して戻す。数値の表記（`1.0` を `1` に書く等）は JSON を書き戻すときに正規化されることがある。ソースコード（`.ts`・`.mjs`・`.py`）は結果ではないので手を入れず、`quote` の検査の対象にもしない。
 4. 入れる評価のディレクトリは `pack.mjs` の `INCLUDED_DIRS`。コミットに無いもの（結果がまだ無い `anthropic-bench`、B4 の元の結果を置く `gemini-3-flash-preview` など）は飛ばす。入れないものは `EXCLUDED_DIRS`。`experiments/` 直下の文字化けした単発の試行の出力（`test_model_b_debug.txt`・`test_model_b_output.txt`）も入れない。
-5. CQ の xlsx の復号パスワードと `scripts/asreview-baseline/` の元データ（題名・抄録つき）は入れない。
+5. CQ の xlsx の復号パスワード（著者が README で公開している値）と `scripts/asreview-baseline/` の元データ（題名・抄録つき）は入れない。
 
 ## Zenodo への上げ方（オーナーの作業）
 
