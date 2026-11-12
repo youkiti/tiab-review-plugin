@@ -1,0 +1,25 @@
+{
+    "_comment": "全文の組入確率と参考の除外理由を評価する条件を定義する。",
+    "model": "gemini-decision-1",
+    "ledgerVersion": "v1",
+    "includeQuestion": "Should this candidate study be included in the review at the full-text screening stage?",
+    "reasonQuestion": "If this candidate study is excluded at the full-text screening stage, which reason applies?",
+    "reasonCriteria": {
+        "population": "Ineligible population",
+        "intervention": "Ineligible intervention",
+        "comparator": "Ineligible comparator",
+        "outcome": "Ineligible outcome",
+        "study_design": "Ineligible study design",
+        "duplicate": "Duplicate report",
+        "other": "Other reasons"
+    },
+    "textInputTemplate": "Title: <title>\n\nFull text:\n<text>",
+    "pricing": { "inputPerMillion": 0.10, "outputPerMillion": 0 },
+    "pricingSource": "Gemini API の料金ページの Gemini Decision 有料枠、2026-11-12 取得（commander 照合前の仮値）",
+    "concurrency": 8,
+    "maxAttempts": 5,
+    "requestTimeoutMs": 120000,
+    "maxPdfBytes": 50000000,
+    "adoptionRule": "cc-by-nc の同じ成功集合で、凍結した閾値の Recall と Specificity がともに jev-1.14.0 の閾値0.3以上の場合だけ満たす。主の判定は PDF 入力。PDF が満たさずテキストだけ満たす場合は組み込まない。",
+    "thresholdsFile": "results/thresholds.json"
+}

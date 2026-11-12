@@ -68,6 +68,7 @@ experiments/results/
 experiments/local_data/
 experiments/typesafe-jev/titan-external/data/
 experiments/typesafe-jev/titan-external/results/
+experiments/gemini-decision-1/fulltext/data/
 
 # Internal planning docs
 plans/

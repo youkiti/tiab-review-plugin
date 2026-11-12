@@ -1,0 +1,9 @@
+// 全文実験の TypeScript を既存の実験と同じ設定で検査する。
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "../../..",
+        "noEmit": false
+    },
+    "include": ["./*.ts"]
+}
