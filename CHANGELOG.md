@@ -10,6 +10,18 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 判定や数値、Methods の記述に影響した不具合は、影響した版とともに [KNOWN_ISSUES.md](KNOWN_ISSUES.md) に載せています。
 Bugs that affected decisions, numbers, or what is reported in Methods are listed with the affected versions in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
+## 未リリース
+
+### 画面 / Interface
+
+- 論文用テキストの Methods に、TiAb Review Plugin の Zenodo の DOI（全版を束ねる DOI）と、AI を使ったプロジェクトでは AI 判定の評価結果のデータセットの DOI を書くようにした。AI 判定には影響しない。
+  The Methods in the manuscript text now include the TiAb Review Plugin Zenodo DOI covering all versions and, for projects using AI, the DOI of the AI screening evaluation dataset. AI screening is unaffected.
+
+### 文書 / Documentation
+
+- README とヘルプに、ソフトウェアと評価結果の Zenodo の DOI を載せ、ヘルプの資金源に AMED（課題番号 JP26rea522132）を足した。AI 判定には影響しない。
+  Added the Zenodo DOIs for the software and evaluation results to the README and help, and added AMED (Grant Number JP26rea522132) to the funding sources in the help. AI screening is unaffected.
+
 ## v0.58.0（2026-11-12）
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
