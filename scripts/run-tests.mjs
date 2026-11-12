@@ -27,8 +27,8 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const TESTS_DIR = path.join(REPO_ROOT, 'tests');
 const TESTS_TSCONFIG = path.join(TESTS_DIR, 'tsconfig.json');
 // npm.cmd 経由の spawn は Node 22 + Windows で EINVAL になるため、tsc は JS エントリを
-// 現在の node（process.execPath）で直接起動する。
-const TSC_BIN = path.join(REPO_ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
+// 現在の node（process.execPath）で TypeScript 7 の JS エントリを直接起動する。
+const TSC_BIN = path.join(REPO_ROOT, 'node_modules', 'typescript-7', 'bin', 'tsc');
 
 function printHelp() {
     console.log(`テスト実行ラッパー（Issue #162）
