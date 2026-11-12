@@ -7,6 +7,9 @@ import { sanitizeApiKey } from './providers/sanitize-api-key';
 import { parseGeminiErrorPayload } from './gemini-api';
 import { PdfTooLargeError } from './fulltext-ai-failures';
 
+// 2つの問いは評価（experiments/gemini-decision-1/fulltext/config.json）と同じ文面にする。
+// 除外理由の問いに優先順位や末尾への寄せの文を足すと、組入の確率まで変わり（6件で最大0.079）、
+// 凍結した閾値と評価の精度が当てはまらなくなるため、jev の経路と違って足さない。
 const INCLUDE_QUESTION = 'Should this candidate study be included in the review at the full-text screening stage?';
 const REASON_QUESTION = 'If this candidate study is excluded at the full-text screening stage, which reason applies?';
 const MAX_PDF_BYTES = 50_000_000;
