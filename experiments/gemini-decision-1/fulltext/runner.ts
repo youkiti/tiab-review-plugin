@@ -75,7 +75,8 @@ function failure(error: unknown, key: string, attempts: number, hash: string): F
     const http = typeof details?.httpStatus === 'number' ? details.httpStatus : null;
     const errorStatus = http === 400 && typeof details?.errorStatus === 'string'
         && /^[A-Z][A-Z0-9_]{0,63}$/.test(details.errorStatus) ? details.errorStatus : null;
-    const kind = http !== null ? 'http' : details?.kind === 'timeout' || details?.kind === 'invalid_response' ? details.kind : 'network';
+    const kind = details?.kind === 'input_too_long' ? 'input_too_long'
+        : http !== null ? 'http' : details?.kind === 'timeout' || details?.kind === 'invalid_response' ? details.kind : 'network';
     return { key, http_status: http, error_status: errorStatus, kind, attempts, config_hash: hash, completed_at: new Date().toISOString() };
 }
 export async function run(options: Options, config = loadConfig(), injectedScreen?: Screen, log = console.log) {
@@ -83,7 +84,7 @@ export async function run(options: Options, config = loadConfig(), injectedScree
     const hash = configHash(config, options.input, digest);
     const paths = outputPaths(options.tier, options.input, config, options.fake, options.outputDir);
     const existing = readSuccess(paths.ledger, hash, options.input, config).rows;
-    readFailures(paths.failures, hash);
+    const previousFailures = readFailures(paths.failures, hash).rows;
     const ids = new Set(records.map(r => r.key));
     if ([...existing.keys()].some(key => !ids.has(key))) {
         throw new ExperimentError('成功台帳に入力外のキーがあります。');
@@ -97,11 +98,16 @@ export async function run(options: Options, config = loadConfig(), injectedScree
     if (options.limit !== undefined) {
         targets = targets.slice(0, options.limit);
     }
-    const skipped = { no_pdf: 0, too_large: 0, pdf_missing: 0 };
+    const skipped = { no_pdf: 0, too_large: 0, pdf_missing: 0, too_long: 0 };
     const missing: string[] = [];
     const pending: { record: RecordRow; file: string }[] = [];
     for (const record of targets) {
         if (existing.has(record.key)) {
+            continue;
+        }
+        // 入力トークンの上限超えで拒否された記録は、送り直しても通らないので送らない。
+        if (previousFailures.get(record.key)?.kind === 'input_too_long') {
+            skipped.too_long++;
             continue;
         }
         const state = options.input === 'pdf' ? pdfState(record, options.recordsFile, config, options.fake) : { kind: 'ready', file: '' };
@@ -149,6 +155,16 @@ export async function run(options: Options, config = loadConfig(), injectedScree
                 const delay = options.fake ? 1 : Math.min(60000, 2000 * 2 ** (attempt - 1) * (1 + Math.random()));
                 if (row.http_status === 429 || row.http_status === 529) {
                     cooldown = Math.max(cooldown, performance.now() + delay);
+                }
+                if (row.kind === 'input_too_long') {
+                    try {
+                        appendLedger(paths.failures, row);
+                    } catch {
+                        stopCode = 1;
+                        return;
+                    }
+                    skipped.too_long++;
+                    return;
                 }
                 if (fatal || attempt === config.maxAttempts) {
                     try {
@@ -201,7 +217,7 @@ export async function run(options: Options, config = loadConfig(), injectedScree
     }
     await Promise.all(Array.from({ length: Math.min(options.concurrency, pending.length) }, () => worker()));
     log(`成功 ${success} 件、失敗 ${failed} 件（HTTP 400: ${http400} 件）、送らなかった記録`
-        + `（no_pdf ${skipped.no_pdf} / too_large ${skipped.too_large} / pdf_missing ${skipped.pdf_missing}）、`
+        + `（no_pdf ${skipped.no_pdf} / too_large ${skipped.too_large} / pdf_missing ${skipped.pdf_missing} / too_long ${skipped.too_long}）、`
         + `入力トークン合計 ${tokens}、推定費用 $${(tokens * config.pricing.inputPerMillion / 1e6).toFixed(6)}`);
     if (missing.length) {
         log(`取得し直す PDF の一覧: ${missing.join(', ')}（${missing.length} 件）`);

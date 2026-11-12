@@ -66,7 +66,7 @@ export interface FailureRow {
     key: string;
     http_status: number | null;
     error_status: string | null;
-    kind: 'http' | 'network' | 'timeout' | 'invalid_response';
+    kind: 'http' | 'network' | 'timeout' | 'invalid_response' | 'input_too_long';
     attempts: number;
     config_hash: string;
     completed_at: string;
@@ -160,7 +160,7 @@ export function readSuccess(file: string, hash: string, input: Input, config: Co
         && Number.isInteger(row.attempts) && row.attempts > 0 && Number.isFinite(Date.parse(row.completed_at)));
 }
 export function readFailures(file: string, hash: string) {
-    return readLedger<FailureRow>(file, hash, row => ['http', 'network', 'timeout', 'invalid_response'].includes(row.kind)
+    return readLedger<FailureRow>(file, hash, row => ['http', 'network', 'timeout', 'invalid_response', 'input_too_long'].includes(row.kind)
         && (row.http_status === null || (Number.isInteger(row.http_status) && row.http_status >= 100 && row.http_status <= 599))
         && (row.error_status === null || (row.http_status === 400 && /^[A-Z][A-Z0-9_]{0,63}$/.test(row.error_status)))
         && Number.isInteger(row.attempts) && row.attempts > 0 && Number.isFinite(Date.parse(row.completed_at)));

@@ -154,6 +154,21 @@ async function main(): Promise<void> {
         const failures = fs.readFileSync(path.join(temporary, 'exhausted/cc-by_text_v1.failures.jsonl'), 'utf8')
             .trim().split('\n').map(line => JSON.parse(line) as FailureRow);
         assert.ok(failures.every(f => f.attempts === 2 && f.error_status === 'INVALID_ARGUMENT'));
+        // 入力トークンの上限超えは1回で打ち切り、再実行では送らない。
+        let tooLongCalls = 0;
+        const tooLongScreen = async () => {
+            tooLongCalls++;
+            throw Object.assign(new Error('API error 400'), { httpStatus: 400, kind: 'input_too_long', retryable: false });
+        };
+        const tooLongDir = path.join(temporary, 'too-long');
+        const tooLongFirst = await run({ ...options, outputDir: tooLongDir }, config, tooLongScreen, () => undefined);
+        assert.equal(tooLongFirst.code, 0);
+        assert.equal(tooLongFirst.failed, 0);
+        assert.equal(tooLongFirst.skipped.too_long, 6);
+        assert.equal(tooLongCalls, 6);
+        const tooLongSecond = await run({ ...options, outputDir: tooLongDir }, config, tooLongScreen, () => undefined);
+        assert.equal(tooLongSecond.skipped.too_long, 6);
+        assert.equal(tooLongCalls, 6);
         assert.equal(pdfInput('test', Buffer.from('pdf'))[1].data, Buffer.from('pdf').toString('base64'));
         const originalFetch = globalThis.fetch;
         try {
@@ -172,6 +187,9 @@ async function main(): Promise<void> {
             await assert.rejects(createScreen(config, 'text', 'fake-key')(rows[0], 1, ''), { kind: 'invalid_response' });
             globalThis.fetch = async () => new Response(JSON.stringify({ error: { status: 'secret text' } }), { status: 400 });
             await assert.rejects(createScreen(config, 'text', 'fake-key')(rows[0], 1, ''), { message: 'API error 400', errorStatus: null });
+            globalThis.fetch = async () => new Response(JSON.stringify({ error: { code: 'invalid_request',
+                message: 'The input token count exceeds the maximum number of tokens allowed 262144.' } }), { status: 400 });
+            await assert.rejects(createScreen(config, 'text', 'fake-key')(rows[0], 1, ''), { kind: 'input_too_long', retryable: false });
         } finally {
             globalThis.fetch = originalFetch;
         }

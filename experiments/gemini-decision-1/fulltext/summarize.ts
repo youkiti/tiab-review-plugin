@@ -58,13 +58,18 @@ function collect(tier: Tier, input: Input, config: Config, options: SummaryOptio
         throw new ExperimentError('台帳に入力外のキーがあります。');
     }
     const success = records.filter(r => ledger.rows.has(r.key));
-    const failed = [...failures.rows.values()].filter(r => !ledger.rows.has(r.key));
+    // 入力トークンの上限超えは「送れない記録」として数え、失敗と未完了には入れない。
+    const failed = [...failures.rows.values()].filter(r => !ledger.rows.has(r.key) && r.kind !== 'input_too_long');
     const scores: Score[] = success.map(record => ({ record, p: ledger.rows.get(record.key)!.include_probability }));
     const jev: Score[] = success.map(record => ({ record, p: record.jev_probability }));
-    const skipped = { no_pdf: 0, too_large: 0, pdf_missing: 0 };
+    const skipped = { no_pdf: 0, too_large: 0, pdf_missing: 0, too_long: 0 };
     let incomplete = 0;
     for (const record of records) {
         if (ledger.rows.has(record.key)) {
+            continue;
+        }
+        if (failures.rows.get(record.key)?.kind === 'input_too_long') {
+            skipped.too_long++;
             continue;
         }
         const state = input === 'pdf' ? pdfState(record, file, config, options.fake) : { kind: 'ready' };
@@ -151,7 +156,8 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
             + `[成功台帳](${link(result.paths.ledger)}) / [失敗台帳](${link(result.paths.failures)})`, '',
             `成功 ${scores.length} / 全記録 ${result.records.length} 件、失敗 ${result.failed.length} 件`
             + `（HTTP 400: ${result.failed.filter(r => r.http_status === 400).length} 件）、未完了 ${result.incomplete} 件。`,
-            `送らなかった記録: no_pdf ${result.skipped.no_pdf} / too_large ${result.skipped.too_large} / pdf_missing ${result.skipped.pdf_missing}。`,
+            `送らなかった・送れなかった記録: no_pdf ${result.skipped.no_pdf} / too_large ${result.skipped.too_large}`
+            + ` / pdf_missing ${result.skipped.pdf_missing} / too_long（入力トークン上限超えで API が拒否） ${result.skipped.too_long}。`,
             `台帳の不正行: ${ledger.brokenLines}。config_hash: ${result.hash}。`);
         const modalities = new Map<string, number>();
         let tokens = 0, unknownModality = 0;

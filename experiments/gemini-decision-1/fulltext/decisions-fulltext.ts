@@ -28,6 +28,7 @@ export function createScreen(config: Config, input: Input, apiKey: string): Scre
             });
             if (!response.ok) {
                 let errorStatus: string | null = null;
+                let tooLong = false;
                 if (response.status === 400) {
                     try {
                         const body = await response.json();
@@ -35,12 +36,16 @@ export function createScreen(config: Config, input: Input, apiKey: string): Scre
                         if (typeof status === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(status)) {
                             errorStatus = status;
                         }
+                        // 入力トークンの上限超えは送り直しても通らないため、文言で判定して再試行しない（文言は記録しない）。
+                        const message = body?.error?.message;
+                        tooLong = typeof message === 'string' && /input token count exceeds the maximum/i.test(message);
                     } catch {
                         // HTTP の分類だけで再試行し、応答本文は記録しない。
                     }
                 }
                 throw Object.assign(new Error(`API error ${response.status}`), {
-                    httpStatus: response.status, errorStatus, kind: 'http', retryable: ![401, 403, 404].includes(response.status),
+                    httpStatus: response.status, errorStatus, kind: tooLong ? 'input_too_long' : 'http',
+                    retryable: !tooLong && ![401, 403, 404].includes(response.status),
                 });
             }
             let body;
