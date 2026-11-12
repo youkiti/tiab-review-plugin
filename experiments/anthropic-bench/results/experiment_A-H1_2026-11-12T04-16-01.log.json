@@ -1,0 +1,60 @@
+{
+  "experimentId": "A-H1_2026-11-12T04-16-01",
+  "startTime": "2026-11-12T04:16:01.412Z",
+  "parameters": {
+    "dataset": "cq2",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\cq2_labeled.json",
+    "totalRecords": 3400,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Target Blood Pressure (Mean Arterial Pressure targets) or vasopressor strategies for patients with sepsis or septic shock.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 3400,
+    "successCount": 3400,
+    "failCount": 0,
+    "durationMs": 757358,
+    "avgTimePerItem": 222.75235294117647,
+    "failureRate": 0,
+    "truncatedCount": 0,
+    "refusalCount": 0,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 6882771,
+      "cached": 0,
+      "completion": 692739,
+      "reasoning": 39742
+    },
+    "estimatedCostUsd": 1.0346466,
+    "cost": {
+      "totalUSD": 1.0346466,
+      "perItemUSD": 0.0003043078235294118,
+      "extrapolatedFullUSD": 1.0346466
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 17,
+    "falsePositives": 608,
+    "trueNegatives": 2775,
+    "falseNegatives": 0,
+    "sensitivity": 1,
+    "specificity": 0.8202778598876737,
+    "precision": 0.0272,
+    "fBetaScore": 0.5829903978052127
+  },
+  "endTime": "2026-11-12T04:28:38.774Z"
+}

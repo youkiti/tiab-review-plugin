@@ -40,6 +40,8 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
   Added KNOWN_ISSUES.md, a list of bugs that affected decisions, numbers, or what is reported in Methods, with the affected versions. AI screening is unaffected.
 - README に「機能の追加について」の節を足し、保守の段階で足さない機能と、新しい機能を検討する条件を書いた。AI 判定には影響しない。
   Added an "About new features" section to the README describing what is not added in the maintenance phase and when new features are considered. AI screening is unaffected.
+- Anthropic の2モデルの評価結果を README に載せました。`claude-haiku-5-5` は depression Recall 95.7% で同梱の採用基準を満たし、`claude-sonnet-5-5` は 87.5% で満たさないため、注記を付けて同梱を続けます。AI 判定には影響しません。
+  Added the benchmark results of the two Anthropic models to the README. `claude-haiku-5-5` meets the bundling criterion with a depression recall of 95.7%. `claude-sonnet-5-5` does not (87.5%) and stays bundled with a note. AI screening is unaffected.
 
 ## v0.57.2（2026-11-09）
 

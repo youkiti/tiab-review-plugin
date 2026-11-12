@@ -1,0 +1,60 @@
+{
+  "experimentId": "A-H1_2026-11-12T03-08-50",
+  "startTime": "2026-11-12T03:08:50.810Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1990,
+    "failCount": 3,
+    "durationMs": 513952,
+    "avgTimePerItem": 257.8785750125439,
+    "failureRate": 0.0015052684395383843,
+    "truncatedCount": 0,
+    "refusalCount": 3,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 3454412,
+      "cached": 0,
+      "completion": 478287,
+      "reasoning": 79810
+    },
+    "estimatedCostUsd": 0.5845847,
+    "cost": {
+      "totalUSD": 0.5845847,
+      "perItemUSD": 0.00029376115577889447,
+      "extrapolatedFullUSD": 0.5854659834673367
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 268,
+    "falsePositives": 593,
+    "trueNegatives": 1117,
+    "falseNegatives": 12,
+    "sensitivity": 0.9571428571428572,
+    "specificity": 0.6532163742690058,
+    "precision": 0.31126596980255516,
+    "fBetaScore": 0.9190041835265071
+  },
+  "endTime": "2026-11-12T03:17:24.766Z"
+}

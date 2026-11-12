@@ -1,0 +1,924 @@
+[
+  {
+    "ref_id": "rayyan-635984185",
+    "label_included": 1,
+    "include_probability": 0.98,
+    "reasons": [
+      "重症敗血症/敗血症性ショック患者を対象に早期目標指向療法(EGDT)の効果を検討したランダム化比較試験である",
+      "ScvO2を含む目標指向の輸液・血行動態管理を介入として評価しており組入基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1517,
+    "usage": {
+      "prompt": 2266,
+      "cached": 0,
+      "completion": 194,
+      "reasoning": 0,
+      "total": 2460
+    }
+  },
+  {
+    "ref_id": "rayyan-635984186",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "抄録は学会プロシーディングの目次的記述で、EGDTや敗血症性ショックの血行動態管理に関する記載は見当たらない",
+      "'goal directed monitoring in cardiothoracic and vascular intensive care'という語は含まれるが、敗血症患者を対象とするEGDTやプロトコル化された血行動態管理の研究ではない",
+      "'mortality in high risk septic patients treated with drotrecogin ALFA'は敗血症を扱うが、EGDTやプロトコル化血行動態管理ではなく薬剤研究であり対象外"
+    ],
+    "attempts": 1,
+    "durationMs": 1834,
+    "usage": {
+      "prompt": 5910,
+      "cached": 0,
+      "completion": 272,
+      "reasoning": 0,
+      "total": 6182
+    }
+  },
+  {
+    "ref_id": "rayyan-635984187",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "転移性大腸癌に対するFOLFIRI併用の抗EGFR薬と抗VEGF薬の比較試験であり、敗血症やEGDT・プロトコル化血行動態管理とは無関係のため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1218,
+    "usage": {
+      "prompt": 2452,
+      "cached": 0,
+      "completion": 109,
+      "reasoning": 0,
+      "total": 2561
+    }
+  },
+  {
+    "ref_id": "rayyan-635984188",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "抄録は学会プロシーディングの目次的記述で、EGDTや敗血症性ショックに対するプロトコル化血行動態管理への言及がない",
+      "敗血症関連では新生児敗血症のSES介入やセプシックショックに対するSLEDが含まれるが、EGDTまたはプロトコル化血行動態管理の研究ではない",
+      "ただし抄録情報が限定的で全文確認が必要なため、感度を重視して低めの確率を付与"
+    ],
+    "attempts": 1,
+    "durationMs": 1988,
+    "usage": {
+      "prompt": 1651,
+      "cached": 0,
+      "completion": 251,
+      "reasoning": 0,
+      "total": 1902
+    }
+  },
+  {
+    "ref_id": "rayyan-635984189",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "急性パラコート中毒に対する甘草酸・タンポポ併用療法の研究であり、敗血症・重症敗血症・敗色性ショックを対象としていない",
+      "EGDTやプロトコル化された血行動態管理に関する研究ではない",
+      "明らかに無関係な文献のため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1328,
+    "usage": {
+      "prompt": 1967,
+      "cached": 0,
+      "completion": 164,
+      "reasoning": 0,
+      "total": 2131
+    }
+  },
+  {
+    "ref_id": "rayyan-635984190",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "小児集中治療室における血清アミラーゼ・リパーゼ上昇と膵障害の関係を扱う研究であり、EGDTや プロトコル化された血行動態管理を対象としていない",
+      "敗血症は重症度解析の一要素として登場するのみで、敗血症患者への血行動態管理介入の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1413,
+    "usage": {
+      "prompt": 2674,
+      "cached": 0,
+      "completion": 192,
+      "reasoning": 0,
+      "total": 2866
+    }
+  },
+  {
+    "ref_id": "rayyan-635984191",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "抄録は会議録の目次のみで、EGDTや敗血症性ショックに対するプロトコル化された血行動態管理を対象とした研究の記述がない",
+      "個別の演題はショックへの低用量コルチコステロイドの治療に関するものであり、EGDTや血行動態プロトコルとは直接関係しない",
+      "情報が不十分なため完全な除外には確信が持てず、低い確率として残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1830,
+    "usage": {
+      "prompt": 1652,
+      "cached": 0,
+      "completion": 235,
+      "reasoning": 0,
+      "total": 1887
+    }
+  },
+  {
+    "ref_id": "rayyan-635984192",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "タイトルはアンジオテンシンIIによる敗血症性ショックの治療に関するもので、EGDTやプロトコル化された血行動態管理かは不明",
+      "抄録がなく判断材料が限られるため、感度優先で不確実な場合は組入とする方針に従い完全除外はしない",
+      "全文確認により血行動態プロトコルの有無を判断する必要がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1477,
+    "usage": {
+      "prompt": 1299,
+      "cached": 0,
+      "completion": 201,
+      "reasoning": 0,
+      "total": 1500
+    }
+  },
+  {
+    "ref_id": "rayyan-635984193",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "非ホジキンリンパ腫の高齢者における老年医学的評価の予後的価値に関する研究であり、敗血症や重症敗血症・敗血症性ショックのEGDTまたはプロトコル化血行動態管理を扱っていないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1278,
+    "usage": {
+      "prompt": 2077,
+      "cached": 0,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 2197
+    }
+  },
+  {
+    "ref_id": "rayyan-635984194",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "対象文献はマラリア診断用迅速診断テスト(RDT)の診断精度に関するレビューであり、敗血症や重症敗血症・敗血症性ショックに対するEGDTやプロトコル化された血行動態管理を扱っていない",
+      "組み入れ基準に明確に該当しないため除外する"
+    ],
+    "attempts": 1,
+    "durationMs": 1214,
+    "usage": {
+      "prompt": 3660,
+      "cached": 0,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 3795
+    }
+  },
+  {
+    "ref_id": "rayyan-635984195",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はサソリ刺傷の小児における血糖・遊離脂肪酸の予後予測であり、敗血症性ショックに対するEGDTやプロトコル化された血行動態管理を扱っていない",
+      "重症敗血症・敗血症性ショックの患者集団ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1576,
+    "usage": {
+      "prompt": 1903,
+      "cached": 0,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 2027
+    }
+  },
+  {
+    "ref_id": "rayyan-635984196",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "直腸癌の術前化学放射線療法における栄養不良とサルコペニアの評価であり、重症敗血症や敗血症性ショックを対象としていない",
+      "EGDTやプロトコル化された血行動態管理に関する研究ではないため、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1068,
+    "usage": {
+      "prompt": 2015,
+      "cached": 0,
+      "completion": 127,
+      "reasoning": 0,
+      "total": 2142
+    }
+  },
+  {
+    "ref_id": "rayyan-635984197",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "重症敗血症患者のICU観察研究であり、3時間バンドル遵守率や中心静脈圧・中心静脈酸素飽和度測定の実施率を評価しているため、EGDTやプロトコル化された血行動態管理に関連する可能性がある",
+      "EGDTやプロトコル化血行動態管理を直接の介入として評価する研究ではないが、蘇生バンドルの遵守状況が含まれるため、全文確認が必要と判断し含めた"
+    ],
+    "attempts": 1,
+    "durationMs": 2512,
+    "usage": {
+      "prompt": 2160,
+      "cached": 0,
+      "completion": 285,
+      "reasoning": 0,
+      "total": 2445
+    }
+  },
+  {
+    "ref_id": "rayyan-635984198",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症関連DICに伴う補体介在性TMAの症例報告で、エクリズマブ治療が主題",
+      "EGDTや敗血症に対するプロトコル化された血行動態管理の研究ではない",
+      "組み入れ基準に該当しないと判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1344,
+    "usage": {
+      "prompt": 1982,
+      "cached": 0,
+      "completion": 182,
+      "reasoning": 0,
+      "total": 2164
+    }
+  },
+  {
+    "ref_id": "rayyan-635984199",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "対象はブタの大腸菌内毒素血症モデルにおけるPAF拮抗薬の研究であり、EGDTや敗血症患者のプロトコル化血行動態管理を扱っていない",
+      "重症敗血症・敗血症性ショックの患者研究ではなく、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1255,
+    "usage": {
+      "prompt": 1900,
+      "cached": 0,
+      "completion": 138,
+      "reasoning": 0,
+      "total": 2038
+    }
+  },
+  {
+    "ref_id": "rayyan-635984200",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "ADVOSシステム（肝・肺・腎支援と血液浄化を統合する装置）の評価であり、敗血症性ショックに対するEGDTやプロトコル化された血行動態管理ではない",
+      "多臓器不全全般を対象とし、敗血症/敗血症性ショックへの言及がないため基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1387,
+    "usage": {
+      "prompt": 1963,
+      "cached": 0,
+      "completion": 197,
+      "reasoning": 0,
+      "total": 2160
+    }
+  },
+  {
+    "ref_id": "rayyan-635984201",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "ジドブジンによる乳酸アシドーシスと肝脂肪化を報告した症例報告であり、敗血症やEGDT・プロトコル化された血行動態管理を対象としていない",
+      "重症敗血症・敗血症性ショックの患者ではなく、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1368,
+    "usage": {
+      "prompt": 1711,
+      "cached": 0,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 1842
+    }
+  },
+  {
+    "ref_id": "rayyan-635984202",
+    "label_included": 1,
+    "include_probability": 0.98,
+    "reasons": [
+      "ARISE試験はEGDT(早期目標指向療法)を重症敗血症患者に対して評価したランダム化比較試験であり、組み入れ基準に合致する",
+      "抄録にEGDTのプロトコルに基づく輸液・昇圧薬等の管理が明記されている",
+      "対象は重症敗血症(Severe sepsis)である"
+    ],
+    "attempts": 1,
+    "durationMs": 1422,
+    "usage": {
+      "prompt": 1716,
+      "cached": 0,
+      "completion": 236,
+      "reasoning": 0,
+      "total": 1952
+    }
+  },
+  {
+    "ref_id": "rayyan-635984203",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "重症敗血症患者を対象とした多施設第III相試験である",
+      "標準治療としてearly goal-directed resuscitationを含む敗血症管理プロトコルが併用されており、プロトコル化された治療を対象に含む",
+      "主題は免疫調整薬IMODの効果だが、EGDTを含む標準治療が両群共通の介入として記述されているため、組み入れ判断の余地がありセンシティビティ重視で包含する"
+    ],
+    "attempts": 1,
+    "durationMs": 1677,
+    "usage": {
+      "prompt": 1788,
+      "cached": 0,
+      "completion": 223,
+      "reasoning": 0,
+      "total": 2011
+    }
+  },
+  {
+    "ref_id": "rayyan-635984204",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "対象はICU患者の早期リハビリテーションであり、EGDTや敗血症性ショックに対するプロトコル化血行動態管理ではない",
+      "抄録の組入基準に敗血症が含まれ、敗血症患者が対象の一部であるため、完全な除外は困難",
+      "プロトコル化された介入という点で広義には該当の可能性があるため、感度重視で保留とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1563,
+    "usage": {
+      "prompt": 2131,
+      "cached": 0,
+      "completion": 199,
+      "reasoning": 0,
+      "total": 2330
+    }
+  },
+  {
+    "ref_id": "rayyan-635984205",
+    "label_included": 0,
+    "include_probability": 0.45,
+    "reasons": [
+      "敗血症性ショックの救急部での蘇生に関する試験で、輸液製剤（晶質液 vs アルブミン）の比較が主題",
+      "EGDTや明示的なプロトコル化血行動態管理は抄録に記載がなく、組み入れ基準への合致は不確実",
+      "感度優先の方針に基づき、全文確認が必要として含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1812,
+    "usage": {
+      "prompt": 1864,
+      "cached": 0,
+      "completion": 219,
+      "reasoning": 0,
+      "total": 2083
+    }
+  },
+  {
+    "ref_id": "rayyan-635984206",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "腎移植手術の周術期におけるオesophageal Doppler誘導の目標指向輸液療法であり、敗血症や重症敗血症・敗血症性ショックを対象としていない",
+      "組み入れ基準（EGDTまたは敗血症患者へのプロトコル化血行動態管理）に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1732,
+    "usage": {
+      "prompt": 2160,
+      "cached": 0,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 2295
+    }
+  },
+  {
+    "ref_id": "rayyan-635984207",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症性ショックや重症敗血症を対象としたEGDT/プロトコル化血行動態管理の研究ではない",
+      "対象は挿管・人工呼吸中の重症患者に対する鎮静戦略（EGDS）とストレス指標の関連で、SPICE-III鎮静試験のサブスタディである",
+      "CONDITIONにShockが含まれるものの、敗血症や血行動態管理を介入として扱っていないため除外が妥当",
+      "ただし抄録の判断が不完全な可能性があるため、全文確認を条件に低い確率で残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1924,
+    "usage": {
+      "prompt": 2361,
+      "cached": 0,
+      "completion": 267,
+      "reasoning": 0,
+      "total": 2628
+    }
+  },
+  {
+    "ref_id": "rayyan-635984208",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象は term の妊娠における胎児コンプロマイズ予測（CUR と PlGF によるスクリーニング）と誘発分娩の介入研究であり、重症敗血症や敗血症性ショックに対する EGDT や血行動態プロトコルの研究ではない",
+      "組み入れ基準の疾患集団（重症敗血症・敗血症性ショック）に該当しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1382,
+    "usage": {
+      "prompt": 2348,
+      "cached": 0,
+      "completion": 164,
+      "reasoning": 0,
+      "total": 2512
+    }
+  },
+  {
+    "ref_id": "rayyan-635984209",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "ICU患者におけるラクテート産生・消失速度を測定する13C標識ラクテート投与研究であり、EGDTや敗血症性ショックに対するプロトコル化血行動態管理を扱っていない",
+      "対象は混合ICU患者（単一または多臓器不全）で、重症敗血症・敗血症性ショックに限定されていない",
+      "抄録に血行動態管理の介入や目標設定に関する記述がない"
+    ],
+    "attempts": 1,
+    "durationMs": 1495,
+    "usage": {
+      "prompt": 1625,
+      "cached": 0,
+      "completion": 173,
+      "reasoning": 0,
+      "total": 1798
+    }
+  },
+  {
+    "ref_id": "rayyan-635984210",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "敗血症性ショックの成人患者を対象としており、対象集団が合致する",
+      "介入はEV1000/VolumeViewによる持続的血行動態モニタリングで、輸液・昇圧管理を導くプロトコル化された血行動態管理に該当しうる",
+      "研究デザインはパイロットRCTであり、EGDTまたはプロトコル化血行動態管理の検討として包含の余地が大きい",
+      "EGDTそのものではないが、感度優先の方針に従い組み入れ候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 2134,
+    "usage": {
+      "prompt": 2169,
+      "cached": 0,
+      "completion": 309,
+      "reasoning": 0,
+      "total": 2478
+    }
+  },
+  {
+    "ref_id": "rayyan-635984211",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "敗血症患者のICU輸液療法（急速対緩徐投与）を扱う研究であり、プロトコル化された血行動態管理の一部として該当する可能性がある",
+      "EGDTそのものではなく、4%アルブミンの投与速度比較であるため、プロトコル化された血行動態管理として組み入れ基準に明確には合致しない",
+      "敗血症が条件に含まれ、輸液負荷の基準（MAP<65など）が設定されているため、全文確認が必要であり感度重視で含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1919,
+    "usage": {
+      "prompt": 2315,
+      "cached": 0,
+      "completion": 265,
+      "reasoning": 0,
+      "total": 2580
+    }
+  },
+  {
+    "ref_id": "rayyan-635984212",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "対象は小児PICUにおける輸液製剤(PlasmaLyte対Compound Sodium Lactate)の比較試験であり、敗血症・敗血症性ショックを対象としていない",
+      "EGDTやプロトコル化された血行動態管理の研究ではない",
+      "ただし抄録に敗血症への言及がなく、明確に無関係と判断するため低い確率とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1451,
+    "usage": {
+      "prompt": 3027,
+      "cached": 0,
+      "completion": 156,
+      "reasoning": 0,
+      "total": 3183
+    }
+  },
+  {
+    "ref_id": "rayyan-635984213",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "小児敗血症・敗血症性ショックに対する早期の目標指向型（goal-directed）輸液後のカテコラミン投与を検討しており、プロトコル化された循環管理に該当する",
+      "初期輸液後の早期昇圧薬投与というEGDT類似の介入を含むため、組み入れ候補として扱う",
+      "対象は小児だが、基準は成人に限定されていないため除外せず、全文確認が必要"
+    ],
+    "attempts": 1,
+    "durationMs": 1776,
+    "usage": {
+      "prompt": 2838,
+      "cached": 0,
+      "completion": 242,
+      "reasoning": 0,
+      "total": 3080
+    }
+  },
+  {
+    "ref_id": "rayyan-635984214",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "小児敗血症性ショックに対する早期代謝蘇生（ビタミンC、チアミン、ヒドロコルチゾン）の介入研究であり、プロトコル化された早期治療を扱う点で広義のプロトコル化血行動態管理に関連する可能性がある",
+      "EGDTそのものや血行動態目標（CVP、ScvO2、MAP等）を指定したプロトコルは抄録に明記されておらず、組み入れ基準への適合は全文確認が必要なため、感度優先で組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1838,
+    "usage": {
+      "prompt": 2809,
+      "cached": 0,
+      "completion": 303,
+      "reasoning": 0,
+      "total": 3112
+    }
+  },
+  {
+    "ref_id": "rayyan-635984215",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は妊娠中の閉塞性睡眠時無呼吸に対するCPAP・体位療法がGDM発症に与える影響を検討する研究であり、重症敗血症や敗血症性ショックの患者を対象としていない",
+      "EGDTや敗血症におけるプロトコル化された血行動態管理に関する内容は含まれない"
+    ],
+    "attempts": 1,
+    "durationMs": 1216,
+    "usage": {
+      "prompt": 4984,
+      "cached": 0,
+      "completion": 145,
+      "reasoning": 0,
+      "total": 5129
+    }
+  },
+  {
+    "ref_id": "rayyan-635984216",
+    "label_included": 0,
+    "include_probability": 0.2,
+    "reasons": [
+      "メガドースのビタミンCを敗血症性ショック患者に投与する研究であり、EGDTやプロトコル化された血行動態管理を対象とした研究ではない",
+      "ただし抄録には敗血症性ショックと血行動態（昇圧薬、乳酸値）に関する基準が含まれ、輸液管理の記述もあるため、全文確認が必要な可能性を排除できない"
+    ],
+    "attempts": 1,
+    "durationMs": 1510,
+    "usage": {
+      "prompt": 2917,
+      "cached": 0,
+      "completion": 201,
+      "reasoning": 0,
+      "total": 3118
+    }
+  },
+  {
+    "ref_id": "rayyan-635984217",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "対象は敗血症関連AKIに対するCRRT用膜(oXiris)の比較試験であり、EGDTや敗血症性ショックに対するプロトコル化血行動態管理を調べていない",
+      "プライマリアウトカムは血管作動薬非使用生存時間だが、血行動態管理のプロトコルとしての介入ではなくデバイス比較である",
+      "敗血症性ショック患者を含むため、完全な除外は慎重に判断すべきだが、基準には合致しにくい"
+    ],
+    "attempts": 1,
+    "durationMs": 1905,
+    "usage": {
+      "prompt": 2999,
+      "cached": 0,
+      "completion": 271,
+      "reasoning": 0,
+      "total": 3270
+    }
+  },
+  {
+    "ref_id": "rayyan-635984218",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は COVID-19 関連 ARDS に対する STC3141（抗凝固薬）の試験であり、敗血症性ショックや重症敗血症を対象としていない",
+      "EGDT や敗血症に対するプロトコル化血行動態管理に関する記述がない",
+      "組み入れ基準に該当しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1365,
+    "usage": {
+      "prompt": 2489,
+      "cached": 0,
+      "completion": 136,
+      "reasoning": 0,
+      "total": 2625
+    }
+  },
+  {
+    "ref_id": "rayyan-635984219",
+    "label_included": 0,
+    "include_probability": 0.55,
+    "reasons": [
+      "敗血症患者（severe infection/sepsis）を対象とした救急外来でのアルブミン対生理食塩水のランダム化試験であり、輸液を用いたプロトコル化された血行動態管理の一種を扱っている可能性がある",
+      "EGDTそのものではないが、プロトコル化された輸液療法と血行動態指標（収縮期血圧、血管作動薬の使用）を評価しており、全文確認が必要なため感度優先で組み入れとする"
+    ],
+    "attempts": 1,
+    "durationMs": 2012,
+    "usage": {
+      "prompt": 2551,
+      "cached": 0,
+      "completion": 344,
+      "reasoning": 0,
+      "total": 2895
+    }
+  },
+  {
+    "ref_id": "rayyan-635984220",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "ARISE FLUIDSトライアルの入れ子コホート研究で、敗血症性ショック患者に対する制限輸液・早期昇圧薬戦略と大量輸液戦略の比較を扱う",
+      "プロトコル化された血行動態管理に関連し、重症敗血症/敗血症性ショックが対象であるため、基準への適合が高い",
+      "主題はAKIのバイオマーカー評価が中心であり、EGDTそのものではないが、輸液・昇圧薬の血行動態管理戦略を含むため、感度優先で組み入れ"
+    ],
+    "attempts": 1,
+    "durationMs": 1865,
+    "usage": {
+      "prompt": 2750,
+      "cached": 0,
+      "completion": 278,
+      "reasoning": 0,
+      "total": 3028
+    }
+  },
+  {
+    "ref_id": "rayyan-635984221",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "本研究の主題はヒドロキシエチルデンプン(HES)溶液の安全性と有用性の総説であり、EGDTやプロトコル化された血行動態管理を直接の対象としていない",
+      "敗血症・敗血症性ショックの患者に関する言及はHESの腎障害・死亡リスクの文脈に限られる",
+      "ただし敗血症患者へのHES輸液は血行動態管理(輸液蘇生)に関わるため、完全な除外は困難と判断し、低い確率で残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1775,
+    "usage": {
+      "prompt": 1901,
+      "cached": 0,
+      "completion": 272,
+      "reasoning": 0,
+      "total": 2173
+    }
+  },
+  {
+    "ref_id": "rayyan-635984222",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はパルスオキシメトリー等ではなく、ペントキシフィリンによる新生児敗血症の治療研究であり、EGDTやプロトコル化された血行動態管理を扱っていない",
+      "重症敗血症・敗血症性ショックの成人患者を対象とした研究ではない",
+      "組み入れ基準に明確に該当しないため除外とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1585,
+    "usage": {
+      "prompt": 2079,
+      "cached": 0,
+      "completion": 220,
+      "reasoning": 0,
+      "total": 2299
+    }
+  },
+  {
+    "ref_id": "rayyan-635984223",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症・敗血症性ショックの患者を対象としておらず、救急部の臨床パスの記述・報告の質に関するメタ研究である",
+      "EGDTや protocolized hemodynamic management を検討した研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1110,
+    "usage": {
+      "prompt": 1912,
+      "cached": 0,
+      "completion": 105,
+      "reasoning": 0,
+      "total": 2017
+    }
+  },
+  {
+    "ref_id": "rayyan-635984224",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症性ショック・重症敗血症に対するEGDTや血行動態プロトコルの研究ではない",
+      "ラット正常血圧エンドトキシン血症モデルにおける胸部硬膜外麻酔と腸管微小循環の基礎研究である",
+      "EGDTやプロトコル化された血行動態管理を評価していないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1482,
+    "usage": {
+      "prompt": 2000,
+      "cached": 0,
+      "completion": 218,
+      "reasoning": 0,
+      "total": 2218
+    }
+  },
+  {
+    "ref_id": "rayyan-635984225",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症は脳浮腫の原因の一つとして言及されるのみで、重症敗血症・敗血症性ショックに対するEGDTや血行動態管理の研究ではない",
+      "脳浮腫の病態と治療の総説であり、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1129,
+    "usage": {
+      "prompt": 2178,
+      "cached": 0,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 2300
+    }
+  },
+  {
+    "ref_id": "rayyan-635984226",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症性ショックや重症敗血症を対象としたEGDTやプロトコル化された血行動態管理の研究ではない",
+      "ゼラチン製剤の一般的な性質と用量を述べた総説的な抄録で、組入基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1293,
+    "usage": {
+      "prompt": 1825,
+      "cached": 0,
+      "completion": 115,
+      "reasoning": 0,
+      "total": 1940
+    }
+  },
+  {
+    "ref_id": "rayyan-635984227",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "敗血症患者を対象とし、EGDT群を含む前向きランダム化比較研究であるため組み入れ対象に該当する",
+      "プロトコル化された血行動態管理（心エコーやカーディオメトリーによる輸液・昇圧薬管理）を比較しており、基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1432,
+    "usage": {
+      "prompt": 1893,
+      "cached": 0,
+      "completion": 192,
+      "reasoning": 0,
+      "total": 2085
+    }
+  },
+  {
+    "ref_id": "rayyan-635984228",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症患者を対象とするが、アジスロマイシン使用と転帰の関連を検討した研究であり、EGDTや プロトコル化された血行動態管理を扱っていないため除外",
+      "抄録にEGDTやプロトコル化血行動態管理への言及がない"
+    ],
+    "attempts": 1,
+    "durationMs": 1606,
+    "usage": {
+      "prompt": 1796,
+      "cached": 0,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 1918
+    }
+  },
+  {
+    "ref_id": "rayyan-635984229",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "重症敗血症患者を対象とし、ED内でのプロトコルに基づく蘇生戦略（EGDT関連）の実施を遠隔支援する研究である",
+      "EGDTやプロトコル化された血行動態管理そのものの評価ではなく、遠隔医療の実現可能性研究であるが、敗血症のプロトコル化治療の普及を目的としており、全文確認が必要なため包含する"
+    ],
+    "attempts": 1,
+    "durationMs": 1917,
+    "usage": {
+      "prompt": 2022,
+      "cached": 0,
+      "completion": 326,
+      "reasoning": 0,
+      "total": 2348
+    }
+  },
+  {
+    "ref_id": "rayyan-635984230",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は肛門管扁平上皮癌に対する強度変調放射線療法と化学療法の研究であり、敗血症や重症敗血症・敗血症性ショックに対するEGDTや血行動態管理を扱っていない",
+      "抄録中の septic shock は1例の死亡原因として言及されるのみで、組み入れ対象の疾患・介入に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1548,
+    "usage": {
+      "prompt": 2095,
+      "cached": 0,
+      "completion": 209,
+      "reasoning": 0,
+      "total": 2304
+    }
+  },
+  {
+    "ref_id": "rayyan-635984231",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "新生児死亡率を対象とした簡易介入の前後比較研究であり、重症敗血症や敗血症性ショックに対するEGDTまたはプロトコル化された血行動態管理の研究ではない",
+      "抄録中の'protocol-based management'は新生児ケア全般の一要素であり、重症敗血症の血行動態管理を対象としていない"
+    ],
+    "attempts": 1,
+    "durationMs": 1361,
+    "usage": {
+      "prompt": 1879,
+      "cached": 0,
+      "completion": 151,
+      "reasoning": 0,
+      "total": 2030
+    }
+  },
+  {
+    "ref_id": "rayyan-635984232",
+    "label_included": 0,
+    "include_probability": 0.4,
+    "reasons": [
+      "対象は重症敗血症・敗血症性ショック患者への輸液（NS vs RL）の酸塩基変化を比較した研究で、EGDTやプロトコル化された血行動態管理そのものを検討したものではない",
+      "ただし抄録に蘇生の終点（CVP>12, MAP>65）を用いた輸液プロトコルが含まれており、プロトコル化された血行動態管理に関連する可能性があるため、感度重視で含める余地がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1992,
+    "usage": {
+      "prompt": 2154,
+      "cached": 0,
+      "completion": 339,
+      "reasoning": 0,
+      "total": 2493
+    }
+  },
+  {
+    "ref_id": "rayyan-635984233",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "肝切除におけるERAS（術後回復強化プログラム）に関する総説であり、重症敗血症・敗血症性ショックのEGDTやプロトコル化された血行動態管理を対象としていない",
+      "敗血症や敗血症性ショックへの言及がなく、組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1182,
+    "usage": {
+      "prompt": 1604,
+      "cached": 0,
+      "completion": 133,
+      "reasoning": 0,
+      "total": 1737
+    }
+  },
+  {
+    "ref_id": "rayyan-635984234",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "COVID-19の血液学的異常に関するレビューであり、敗血症や重症敗血症・敗血症性ショックへのEGDTやプロトコル化された血行動態管理を対象としていないため除外",
+      "抄録に敗血症およびEGDT/血行動態管理に関する記述がない"
+    ],
+    "attempts": 1,
+    "durationMs": 1409,
+    "usage": {
+      "prompt": 1579,
+      "cached": 0,
+      "completion": 128,
+      "reasoning": 0,
+      "total": 1707
+    }
+  }
+]
