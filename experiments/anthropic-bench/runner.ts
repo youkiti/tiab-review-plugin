@@ -28,6 +28,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import fs from 'fs';
 import os from 'os';
+import { execFileSync } from 'child_process';
 import { screenViaAnthropic } from '../../src/lib/providers/anthropic';
 import { anthropicMaxOutputTokens, getModelGenerationSettings } from '../../src/lib/model-generation-settings';
 import type { Reference, RateLimitConfig } from '../../src/lib/types';
@@ -197,6 +198,46 @@ function computeCost(tokens: TokenTotals, pricing: Pricing | undefined): number 
     );
 }
 
+/**
+ * ANTHROPIC_API_KEY が無いとき、`ant auth login` で得た OAuth トークンを使う。
+ * screenViaAnthropic（src/ は変えない）は x-api-key を送るので、api.anthropic.com 宛ての fetch だけ
+ * x-api-key を外して Authorization: Bearer に差し替える。トークンは ant が期限前に更新するので、
+ * 5分ごとに取り直す。値は表示もログもしない。ant の場所は ANT_BIN で変えられる。
+ */
+function installAntBearerAuth(): void {
+    const antBin = process.env.ANT_BIN || 'ant';
+    let cached = '';
+    let fetchedAt = 0;
+    const getToken = (): string => {
+        if (!cached || Date.now() - fetchedAt > 5 * 60_000) {
+            try {
+                cached = execFileSync(antBin, ['auth', 'print-credentials', '--access-token'], {
+                    encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60_000,
+                }).trim();
+            } catch {
+                throw new Error('ANTHROPIC_API_KEY が未設定で、`ant auth print-credentials` も失敗しました。`ant auth login` でサインインするか、.env に ANTHROPIC_API_KEY を書いてください。');
+            }
+            if (!cached) throw new Error('`ant auth print-credentials --access-token` が空を返しました。`ant auth login` をやり直してください。');
+            fetchedAt = Date.now();
+        }
+        return cached;
+    };
+    getToken(); // 起動時に失敗を出す
+    // getEffectiveAnthropicApiKey が空でないことを確かめるための置き値。実際には送らない。
+    process.env.ANTHROPIC_API_KEY = 'ant-cli-oauth-placeholder';
+    const g = globalThis as unknown as { fetch: (url: unknown, init?: { headers?: Record<string, string> } & Record<string, unknown>) => Promise<unknown> };
+    const original = g.fetch.bind(globalThis);
+    g.fetch = async (url, init = {}) => {
+        if (String(url).startsWith('https://api.anthropic.com/')) {
+            const headers: Record<string, string> = { ...(init.headers ?? {}) };
+            delete headers['x-api-key'];
+            headers['authorization'] = `Bearer ${getToken()}`;
+            return original(url, { ...init, headers });
+        }
+        return original(url, init);
+    };
+}
+
 /** --dry-run 用の fetch の模型。実 API には通信しない。最初のリクエストだけ内容を表示する。 */
 function installFakeFetch(retryBaseOverride: () => void): { sent: () => number } {
     let calls = 0;
@@ -301,7 +342,8 @@ async function main(): Promise<void> {
         process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'dry-run-dummy-key';
         installFakeFetch(() => { retry.baseDelayMs = 5; retry.maxDelayMs = 20; });
     } else if (!process.env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY が未設定です。リポジトリ直下の .env に書いてください（値をチャットや PR に書かない）。');
+        installAntBearerAuth();
+        console.log('認証: ant CLI の OAuth トークン（Authorization: Bearer）。ANTHROPIC_API_KEY は未設定');
     }
 
     const resultsDir = args.dryRun ? path.join(os.tmpdir(), 'anthropic-bench-dry-run') : path.join(__dirname, 'results');

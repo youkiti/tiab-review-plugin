@@ -1,0 +1,922 @@
+[
+  {
+    "ref_id": "rayyan-414776261",
+    "label_included": 0,
+    "include_probability": 0.45,
+    "reasons": [
+      "抄録にショック患者に対するドーパミン・ノルエピネフリンのRCTへの言及があり、血管収縮薬による戦略に関連する可能性がある",
+      "総説的な概観論文であり、敗血症に特化した対象研究かどうかは全文確認が必要なため、感度重視で組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1709,
+    "usage": {
+      "prompt": 1519,
+      "cached": 0,
+      "completion": 189,
+      "reasoning": 0,
+      "total": 1708
+    }
+  },
+  {
+    "ref_id": "rayyan-414776262",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "心肺蘇生と脳保護に関する総説で、敗血症や敗血症性ショックを対象としていない",
+      "目標血圧や血管収縮薬(昇圧薬)戦略の研究ではなく、アドレナリンは院外心停止の二次救命処置としての記述である"
+    ],
+    "attempts": 1,
+    "durationMs": 1787,
+    "usage": {
+      "prompt": 1488,
+      "cached": 0,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 1612
+    }
+  },
+  {
+    "ref_id": "rayyan-414776263",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "敗血症性ショックに対するバソプレシンの小児使用に言及しており、血管作動薬戦略に関連する可能性がある",
+      "総説であり、タイトル・抄録は小児集中治療全般の概観で、対象が主に敗血症の血管作動薬に限定されていない",
+      "抄録の情報のみでは判断が難しいため、感度を優先して組み入れ候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1726,
+    "usage": {
+      "prompt": 1495,
+      "cached": 0,
+      "completion": 222,
+      "reasoning": 0,
+      "total": 1717
+    }
+  },
+  {
+    "ref_id": "rayyan-414776264",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "小児心臓手術の麻酔に関する総説であり、敗血症・敗血症性ショックを対象としていない",
+      "目標血圧(MAP)や血管収縮薬戦略に関する記載は抄録中に見当たらない",
+      "バソプレシンは言及されているが、敗血症患者を対象とした血管収縮薬戦略の文脈ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1358,
+    "usage": {
+      "prompt": 1529,
+      "cached": 0,
+      "completion": 148,
+      "reasoning": 0,
+      "total": 1677
+    }
+  },
+  {
+    "ref_id": "rayyan-414776265",
+    "label_included": 0,
+    "include_probability": 0.4,
+    "reasons": [
+      "抄録に敗血症性ショックと昇圧薬についての最近の研究報告の概説が含まれるため、対象トピックに触れている可能性がある",
+      "総説・概説的な内容で、目標血圧や昇圧薬戦略の具体的な研究かは抄録からは判断できないため、安全側に含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1417,
+    "usage": {
+      "prompt": 1469,
+      "cached": 0,
+      "completion": 197,
+      "reasoning": 0,
+      "total": 1666
+    }
+  },
+  {
+    "ref_id": "rayyan-414776266",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "タイトルと抄録は全身麻酔患者の術後管理の総説的紹介であり、敗血症・敗血症性ショックに関する項目は1つ（ポリミキシンB吸着カラム）のみ",
+      "対象は血圧目標（MAP目標）や血管収縮薬戦略の研究ではなく、ポリミキシンB吸着カラムの有効性であり、組入基準に直接合致しない",
+      "ただし敗血症性ショックの記載があり、抄録のみでは血管収縮薬使用の有無を判断できないため完全除外はしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1702,
+    "usage": {
+      "prompt": 1514,
+      "cached": 0,
+      "completion": 281,
+      "reasoning": 0,
+      "total": 1795
+    }
+  },
+  {
+    "ref_id": "rayyan-414776267",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "羊水塞栓症疑いの症例報告で、敗血症や敗血症性ショックの患者を対象としていない",
+      "目標血圧(MAP)や血管収縮薬戦略を検討した研究ではない",
+      "ノルアドレナリンは産科出血による低血圧への治療として用いられており、敗血症の血管収縮薬戦略研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 2084,
+    "usage": {
+      "prompt": 1751,
+      "cached": 0,
+      "completion": 230,
+      "reasoning": 0,
+      "total": 1981
+    }
+  },
+  {
+    "ref_id": "rayyan-414776268",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（巨大褐色細胞腫摘出後の循環不全）",
+      "目標血圧や血管収縮薬戦略を敗血症に対して検討した研究ではなく、症例報告である"
+    ],
+    "attempts": 1,
+    "durationMs": 1054,
+    "usage": {
+      "prompt": 1725,
+      "cached": 0,
+      "completion": 113,
+      "reasoning": 0,
+      "total": 1838
+    }
+  },
+  {
+    "ref_id": "rayyan-414776269",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象はエンドトキシンショックの成犬モデルでCoQ10の効果を検討しており、敗血症・敗血症性ショック患者を対象とした目標血圧(MAP)や血管収縮薬戦略の研究ではないため除外とした。",
+      "抄録に血管収縮薬の比較や血圧目標値の記載はなく、ノルエピネフリン濃度の測定は内分泌評価である。"
+    ],
+    "attempts": 1,
+    "durationMs": 1561,
+    "usage": {
+      "prompt": 1490,
+      "cached": 0,
+      "completion": 171,
+      "reasoning": 0,
+      "total": 1661
+    }
+  },
+  {
+    "ref_id": "rayyan-414776270",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "頸動脈内膜剥離術後の鎮静におけるデクスメデトミジンとプロポフォールの比較であり、敗血症・敗血症性ショックの患者を対象としていない",
+      "目標血圧（MAP目標）や昇圧薬戦略を検討した研究ではなく、ドパミン使用は副次的な血行動態の記載にすぎない"
+    ],
+    "attempts": 1,
+    "durationMs": 1223,
+    "usage": {
+      "prompt": 1731,
+      "cached": 0,
+      "completion": 152,
+      "reasoning": 0,
+      "total": 1883
+    }
+  },
+  {
+    "ref_id": "rayyan-414776271",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症または敗血症性ショックを対象としていない",
+      "出血性ショック（子宮内反症）の症例報告であり、目標血圧やMAP目標に関する研究ではない",
+      "フェニレフリンを用いているが、敗血症における血管収縮薬戦略の研究ではないため対象外"
+    ],
+    "attempts": 1,
+    "durationMs": 1141,
+    "usage": {
+      "prompt": 1714,
+      "cached": 0,
+      "completion": 129,
+      "reasoning": 0,
+      "total": 1843
+    }
+  },
+  {
+    "ref_id": "rayyan-414776272",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "エンドトキシンショック（犬）に対するナロキソンの循環・内分泌作用を調べた動物実験で、敗血症患者の目標血圧（MAP目標）や血管収縮薬の戦略を扱っていない",
+      "血管作動薬による昇圧戦略の比較は含まれない"
+    ],
+    "attempts": 1,
+    "durationMs": 1108,
+    "usage": {
+      "prompt": 1654,
+      "cached": 0,
+      "completion": 130,
+      "reasoning": 0,
+      "total": 1784
+    }
+  },
+  {
+    "ref_id": "rayyan-414776273",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない",
+      "目標血圧（MAP目標）や血管収縮薬の戦略を検討した研究ではない",
+      "胸腔鏡手術中の血管損傷に対する人工心肺による救命症例報告である"
+    ],
+    "attempts": 1,
+    "durationMs": 1015,
+    "usage": {
+      "prompt": 1885,
+      "cached": 0,
+      "completion": 118,
+      "reasoning": 0,
+      "total": 2003
+    }
+  },
+  {
+    "ref_id": "rayyan-414776274",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（ラットの麻酔下実験）",
+      "目標血圧や血管収縮薬による治療戦略の研究ではなく、ニトロプルシドによる人為的低血圧麻酔が交感神経活動に与える影響を検討している",
+      "対象文献は基礎生理学研究であり、敗血症のTarget Blood Pressure研究には該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1450,
+    "usage": {
+      "prompt": 1816,
+      "cached": 0,
+      "completion": 168,
+      "reasoning": 0,
+      "total": 1984
+    }
+  },
+  {
+    "ref_id": "rayyan-414776275",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "ハロセン麻酔下の家兎におけるニカルジピン低血圧麻酔の内分泌影響を調べた研究で、敗血症や敗血症性ショックを対象としていない",
+      "目標血圧や昇圧薬による敗血症管理の研究ではない",
+      "組み入れ基準に明確に該当しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1294,
+    "usage": {
+      "prompt": 1590,
+      "cached": 0,
+      "completion": 139,
+      "reasoning": 0,
+      "total": 1729
+    }
+  },
+  {
+    "ref_id": "rayyan-414776276",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "ハロセン麻酔下の家兎を対象とした、ジルチアゼムによる人為的低血圧麻酔の内分泌影響研究であり、敗血症・敗血症性ショックを対象としていない",
+      "敗血症患者のMAP目標値や血管収縮薬戦略を検討する研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1272,
+    "usage": {
+      "prompt": 1796,
+      "cached": 0,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 1931
+    }
+  },
+  {
+    "ref_id": "rayyan-414776277",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は犬を用いたケタンセリンによる低血圧麻酔の内分泌系への影響であり、敗血症・敗血症性ショックの患者を対象としていない",
+      "目標血圧や血管収縮薬による敗血症管理の研究ではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1025,
+    "usage": {
+      "prompt": 1548,
+      "cached": 0,
+      "completion": 118,
+      "reasoning": 0,
+      "total": 1666
+    }
+  },
+  {
+    "ref_id": "rayyan-414776278",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症や敗血症性ショックの目標血圧（MAP目標）や血管収縮薬戦略を扱っていない",
+      "腸腰筋血腫による出血性ショックの症例報告であり、組み入れ対象外と判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1046,
+    "usage": {
+      "prompt": 1809,
+      "cached": 0,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 1917
+    }
+  },
+  {
+    "ref_id": "rayyan-414776279",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は人工心肺下心臓手術後患者へのコルホルシンダロパート（ジルチアゼム等ではなくコルホルシン/ホルスコリン系の強心薬・血管拡張薬）の脳血流への影響であり、敗血症・敗血症性ショックを対象としていない",
+      "血圧目標（MAP）や昇圧薬戦略を検討する研究ではない",
+      "したがって組み入れ基準に該当しないと判断する"
+    ],
+    "attempts": 1,
+    "durationMs": 1368,
+    "usage": {
+      "prompt": 1773,
+      "cached": 0,
+      "completion": 181,
+      "reasoning": 0,
+      "total": 1954
+    }
+  },
+  {
+    "ref_id": "rayyan-414776280",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象はエンドトキシンショックを用いた雑種成犬の実験研究であり、sepsis/septic shockの患者対象ではない",
+      "TRH投与の内分泌・循環への影響を扱っており、目標血圧(MAP目標)や昇圧薬戦略の研究ではない",
+      "平均動脈圧は観察項目の一つであり、血圧目標や血管収縮薬の治療戦略を検討したものではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1575,
+    "usage": {
+      "prompt": 1701,
+      "cached": 0,
+      "completion": 229,
+      "reasoning": 0,
+      "total": 1930
+    }
+  },
+  {
+    "ref_id": "rayyan-414776281",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "Hassab手術既往患者の術中大量出血と長期ICU管理に関する症例報告であり、敗血症・敗血症性ショックを対象としていない",
+      "目標血圧(MAP)や血管作動薬戦略を検討する研究ではない（ドパミン・ノルアドレナリン使用は出血性ショックへの対応であり、敗血症の血管作動薬戦略研究ではない）"
+    ],
+    "attempts": 1,
+    "durationMs": 1208,
+    "usage": {
+      "prompt": 1792,
+      "cached": 0,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 1957
+    }
+  },
+  {
+    "ref_id": "rayyan-414776282",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "本研究は肺動脈カテーテル(PAC)の使用と予後に関する文献であり、敗血症・敗血症性ショックの目標血圧(MAP)や昇圧薬戦略を扱っていないため対象外と判断した。",
+      "抄録に敗血症への言及はなく、昇圧薬・血圧目標に関する内容も含まれない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1253,
+    "usage": {
+      "prompt": 1605,
+      "cached": 0,
+      "completion": 150,
+      "reasoning": 0,
+      "total": 1755
+    }
+  },
+  {
+    "ref_id": "rayyan-414776283",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は脊髄くも膜下麻酔後の血圧低下に対するヒドロキシエチルデンプン輸液の効果であり、敗血症・敗血症性ショックを対象としていない",
+      "目標血圧(MAP)や血管作動薬戦略を検討する研究ではない",
+      "昇圧薬は併用されているが、敗血症患者の血管作動薬戦略の研究ではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 2226,
+    "usage": {
+      "prompt": 1691,
+      "cached": 0,
+      "completion": 287,
+      "reasoning": 0,
+      "total": 1978
+    }
+  },
+  {
+    "ref_id": "rayyan-414776284",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "ICU譫妄に対するデクスメデトミジンの鎮静・譫妄治療研究であり、敗血症・敗血症性ショックの患者を対象としていない",
+      "血圧は副次的な有害事象の観察にとどまり、MAP目標値や昇圧薬戦略の研究ではない",
+      "低血圧時にドパミン・ノルエピネフリンを使用した記述はあるが、昇圧薬戦略の検討が目的ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1651,
+    "usage": {
+      "prompt": 1760,
+      "cached": 0,
+      "completion": 260,
+      "reasoning": 0,
+      "total": 2020
+    }
+  },
+  {
+    "ref_id": "rayyan-414776285",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "対象はカテコラミン感受性低下の循環維持に対するメチルプレドニゾロン投与であり、敗血症・敗血症性ショックの目標血圧や血管収縮薬戦略を扱っていない",
+      "ショック全般・低心拍出量症候群・慢性心不全が対象で、敗血症が明示されていない",
+      "昇圧薬（ドパミン・ドブタミン）の使用は言及されるが、血管収縮薬戦略の比較研究ではなくステロイド投与の効果観察である"
+    ],
+    "attempts": 1,
+    "durationMs": 1509,
+    "usage": {
+      "prompt": 1552,
+      "cached": 0,
+      "completion": 203,
+      "reasoning": 0,
+      "total": 1755
+    }
+  },
+  {
+    "ref_id": "rayyan-414776286",
+    "label_included": 0,
+    "include_probability": 0.12,
+    "reasons": [
+      "対象は低血圧麻酔(手術中の意図的降圧)でのニトロプルシド・ニトログリセリン・トリメタファンの内分泌系への影響であり、敗血症・敗血症性ショックを対象としていない",
+      "敗血症患者の目標血圧や昇圧薬戦略に関する研究ではないため除外が妥当だが、血管作動薬に関する研究であるため完全な確信はできない"
+    ],
+    "attempts": 1,
+    "durationMs": 1694,
+    "usage": {
+      "prompt": 1834,
+      "cached": 0,
+      "completion": 235,
+      "reasoning": 0,
+      "total": 2069
+    }
+  },
+  {
+    "ref_id": "rayyan-414776287",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症・敗血症性ショックの患者を対象としていない（イヌの出血性ショックモデル）",
+      "目標血圧や昇圧薬戦略の検討ではなく、尿中トリプシン阻害薬MR-20の効果を検討している",
+      "組み入れ基準に明確に該当しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1162,
+    "usage": {
+      "prompt": 1540,
+      "cached": 0,
+      "completion": 133,
+      "reasoning": 0,
+      "total": 1673
+    }
+  },
+  {
+    "ref_id": "rayyan-414776288",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "褐色細胞腫の麻酔管理症例報告であり、敗血症・敗血症性ショックを対象としていない",
+      "目標血圧や昇圧薬戦略の敗血症での検討ではなく、術中の血圧低下は褐色細胞腫摘出に伴うもの"
+    ],
+    "attempts": 1,
+    "durationMs": 1185,
+    "usage": {
+      "prompt": 1743,
+      "cached": 0,
+      "completion": 125,
+      "reasoning": 0,
+      "total": 1868
+    }
+  },
+  {
+    "ref_id": "rayyan-414776289",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（全身麻酔下の手術患者が対象）",
+      "目標血圧（MAP目標）や血管収縮薬戦略を検討する研究ではない",
+      "レミフェンタニルの副作用（徐脈・低血圧・術後疼痛）に対するケタミン併用の効果を扱っており、組入基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1509,
+    "usage": {
+      "prompt": 1493,
+      "cached": 0,
+      "completion": 239,
+      "reasoning": 0,
+      "total": 1732
+    }
+  },
+  {
+    "ref_id": "rayyan-414776290",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（全身性強皮症合併の急性大動脈解離手術症例）",
+      "目標血圧（MAP目標）や血管収縮薬戦略を検討した研究ではなく、術後low output syndromeの症例報告である",
+      "血圧低下はプロタミン投与後の術中・術後循環動態の問題として記述されており、敗血症の血管収縮薬戦略の文献ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1457,
+    "usage": {
+      "prompt": 1738,
+      "cached": 0,
+      "completion": 179,
+      "reasoning": 0,
+      "total": 1917
+    }
+  },
+  {
+    "ref_id": "rayyan-414776291",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（肺切除術中の分離換気患者が対象）",
+      "目標血圧や血管収縮薬戦略を検討する敗血症研究ではなく、フルルビプロフェンアキセチルの周術期低血圧抑制効果を検討している",
+      "フェニレフリンは使用されているが、敗血症の血管収縮薬戦略を比較する研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1544,
+    "usage": {
+      "prompt": 1602,
+      "cached": 0,
+      "completion": 245,
+      "reasoning": 0,
+      "total": 1847
+    }
+  },
+  {
+    "ref_id": "rayyan-414776292",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "脱血性ショック犬におけるニカルジピン投与と腎機能・レニン・アルドステロン系の研究であり、敗血症や敗血症性ショックを対象としていない",
+      "目標血圧（MAP目標）や昇圧薬戦略の検討ではないため、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1238,
+    "usage": {
+      "prompt": 1643,
+      "cached": 0,
+      "completion": 134,
+      "reasoning": 0,
+      "total": 1777
+    }
+  },
+  {
+    "ref_id": "rayyan-414776293",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "タイトルは香川県の病院前心肺蘇生プロトコルに関するもので、敗血症・敗血症性ショックの目標血圧や昇圧薬戦略を扱っていない",
+      "抄録がなく、対象疾患との関連を示す記述もない"
+    ],
+    "attempts": 1,
+    "durationMs": 1027,
+    "usage": {
+      "prompt": 1328,
+      "cached": 0,
+      "completion": 119,
+      "reasoning": 0,
+      "total": 1447
+    }
+  },
+  {
+    "ref_id": "rayyan-414776294",
+    "label_included": 0,
+    "include_probability": 0.45,
+    "reasons": [
+      "敗血症の診断と治療を2016年以降の臨床研究動向としてレビューした総説であり、血圧目標や血管作動薬戦略に関する記載が含まれる可能性がある",
+      "抄録には血管作動薬への反応や敗血症性ショックの定義が記載されており、血管作動薬戦略に触れる可能性があるため、全文確認が必要",
+      "感度重視の方針により、判断が難しいため含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1584,
+    "usage": {
+      "prompt": 1964,
+      "cached": 0,
+      "completion": 234,
+      "reasoning": 0,
+      "total": 2198
+    }
+  },
+  {
+    "ref_id": "rayyan-414776295",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "敗血症または敗血症性ショックの目標血圧（MAP）や血管収縮薬戦略を直接扱う研究かは抄録から明確でない",
+      "本文献は循環器集中治療全般のレビューで、急性冠症候群、心原性ショック、急性心不全、周術期が中心",
+      "抄録中のノルエピネフリンとエピネフリンの比較は心原性ショックに関する記載であり、敗血症を対象としていない",
+      "敗血症に関する記載が抄録に見当たらないため除外寄りだが、全文確認が必要な可能性があるため慎重に判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1982,
+    "usage": {
+      "prompt": 2004,
+      "cached": 0,
+      "completion": 317,
+      "reasoning": 0,
+      "total": 2321
+    }
+  },
+  {
+    "ref_id": "rayyan-414776296",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（心肺停止後脳症の症例報告）",
+      "目標血圧（MAP目標）や昇圧薬戦略を検討した研究ではない",
+      "ドパミンは持続鎮静に伴う血圧低下への対症的使用であり、昇圧薬戦略の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1174,
+    "usage": {
+      "prompt": 1685,
+      "cached": 0,
+      "completion": 145,
+      "reasoning": 0,
+      "total": 1830
+    }
+  },
+  {
+    "ref_id": "rayyan-414776297",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症ラットの微小腸間膜動脈におけるアドレナリンα受容体刺激への反応とEDHF関与を調べた基礎研究であり、敗血症患者の目標血圧（MAP目標）や血管収縮薬による治療戦略を検討したものではない",
+      "フェニレフリンは収縮反応を調べる実験試薬として使用されており、臨床的な血管収縮薬治療strategyの評価ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1604,
+    "usage": {
+      "prompt": 2069,
+      "cached": 0,
+      "completion": 237,
+      "reasoning": 0,
+      "total": 2306
+    }
+  },
+  {
+    "ref_id": "rayyan-414776298",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "タイトルと抄録は重症敗血症の全身管理全般の総説であり、呼吸循環管理に言及するが、目標血圧(MAP目標)や昇圧薬戦略を明示的に扱っているかは抄録からは不明",
+      "全文を確認しなければ判断できないため、感度優先で組み入れ候補として残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1465,
+    "usage": {
+      "prompt": 1512,
+      "cached": 0,
+      "completion": 197,
+      "reasoning": 0,
+      "total": 1709
+    }
+  },
+  {
+    "ref_id": "rayyan-414776299",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "敗血症の初期蘇生・輸液管理・循環管理に関する総説であり、十分な輸液後のカテコラミンとしてノルアドレナリンを推奨している点から血管収縮薬戦略に言及している",
+      "抄録に血圧・MAP目標への直接的言及はないが、循環管理の一部としてvasopressor戦略を扱うため、全文確認が必要であり感度優先で組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1548,
+    "usage": {
+      "prompt": 1503,
+      "cached": 0,
+      "completion": 229,
+      "reasoning": 0,
+      "total": 1732
+    }
+  },
+  {
+    "ref_id": "rayyan-414776300",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "透析患者のアクセストラブルとCoQ10血中濃度に関する研究で、敗血症や敗血症性ショックを対象としていない",
+      "目標血圧や血管収縮薬の戦略を検討していない"
+    ],
+    "attempts": 1,
+    "durationMs": 1051,
+    "usage": {
+      "prompt": 1671,
+      "cached": 0,
+      "completion": 101,
+      "reasoning": 0,
+      "total": 1772
+    }
+  },
+  {
+    "ref_id": "rayyan-414776301",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "透析患者の高血圧診療に関する総説で、敗血症や敗血症性ショックの目標血圧・血管収縮薬戦略を扱っていないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 961,
+    "usage": {
+      "prompt": 1752,
+      "cached": 0,
+      "completion": 86,
+      "reasoning": 0,
+      "total": 1838
+    }
+  },
+  {
+    "ref_id": "rayyan-414776302",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症・敗血症性ショックを対象としていない（急性硬膜外血腫術後の肺塞栓症症例）",
+      "目標血圧（MAP）や血管収縮薬戦略を検討した研究ではない",
+      "ショックはPTEに伴うもので、敗血症性ショックではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1164,
+    "usage": {
+      "prompt": 1799,
+      "cached": 0,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 1930
+    }
+  },
+  {
+    "ref_id": "rayyan-414776303",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はサクビトリルバルサルタン（ARNI）の心不全治療に関する薬学レビューであり、敗血症・敗血症性ショックの目標血圧や昇圧薬戦略を扱っていない",
+      "抄録に記載の低血圧は副作用としての言及にすぎず、敗血症患者の血圧目標の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1136,
+    "usage": {
+      "prompt": 1649,
+      "cached": 0,
+      "completion": 149,
+      "reasoning": 0,
+      "total": 1798
+    }
+  },
+  {
+    "ref_id": "rayyan-414776304",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "対象はミドドリン錠の起立性調節障害への使用経験であり、敗血症・敗血症性ショックの血圧目標や昇圧薬戦略の研究ではないため除外する。",
+      "抄録がなく、タイトルからも敗血症との関連は認められない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1098,
+    "usage": {
+      "prompt": 1320,
+      "cached": 0,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 1441
+    }
+  },
+  {
+    "ref_id": "rayyan-414776305",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は起立性調節障害に対するミドドリンの使用経験であり、敗血症・敗血症性ショックの血圧目標や昇圧薬戦略を扱っていないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 934,
+    "usage": {
+      "prompt": 1318,
+      "cached": 0,
+      "completion": 96,
+      "reasoning": 0,
+      "total": 1414
+    }
+  },
+  {
+    "ref_id": "rayyan-414776306",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "対象は起立性低血圧に対するミドドリンの臨床使用経験であり、敗血症・敗血症性ショックの目標血圧や昇圧薬戦略を扱っていないため除外する。",
+      "抄録がなくタイトルのみで判断したが、敗血症に関する記述は見当たらない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1096,
+    "usage": {
+      "prompt": 1321,
+      "cached": 0,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 1456
+    }
+  },
+  {
+    "ref_id": "rayyan-414776307",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "対象は低血圧の健康な女性に対するコエンザイムQ10の試験であり、敗血症や敗血症性ショックの患者を対象としていない",
+      "目標血圧(MAP)や昇圧薬戦略を検討した研究ではないため、組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1192,
+    "usage": {
+      "prompt": 1688,
+      "cached": 0,
+      "completion": 128,
+      "reasoning": 0,
+      "total": 1816
+    }
+  },
+  {
+    "ref_id": "rayyan-414776308",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "タイトルは循環器薬（心不全治療薬）の使用法に関するもので、敗血症や敗血症性ショックの目標血圧や昇圧薬戦略を対象としていない",
+      "抄録がなく、判断材料は限定的だが明らかに無関係と判断される"
+    ],
+    "attempts": 1,
+    "durationMs": 1146,
+    "usage": {
+      "prompt": 1337,
+      "cached": 0,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 1461
+    }
+  },
+  {
+    "ref_id": "rayyan-414776309",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない（前立腺神経内分泌癌に伴うSIADHの症例報告）",
+      "目標血圧（MAP目標）や血管収縮薬の戦略を扱う研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1083,
+    "usage": {
+      "prompt": 1782,
+      "cached": 0,
+      "completion": 112,
+      "reasoning": 0,
+      "total": 1894
+    }
+  },
+  {
+    "ref_id": "rayyan-414776310",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症または敗血症性ショックの患者を対象としていない",
+      "メチルドパによる薬剤性血小板減少を報告する妊婦の症例報告であり、目標血압や昇圧薬戦略を扱っていない"
+    ],
+    "attempts": 1,
+    "durationMs": 1067,
+    "usage": {
+      "prompt": 1854,
+      "cached": 0,
+      "completion": 105,
+      "reasoning": 0,
+      "total": 1959
+    }
+  }
+]

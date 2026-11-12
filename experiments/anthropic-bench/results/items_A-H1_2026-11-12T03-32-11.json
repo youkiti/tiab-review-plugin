@@ -1,0 +1,923 @@
+[
+  {
+    "ref_id": "rayyan-1178417179",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "蘇生後の犬モデルで重曹(NaHCO3)投与群を比較しており、重曹投与を検討する研究である",
+      "抄録に重曹群の血液pH・HCO3-・乳酸・浸透圧への影響が詳細に記載されている",
+      "代謝性アシドーシスに対するアルカリ化剤の研究であり、組み入れ基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1877,
+    "usage": {
+      "prompt": 1945,
+      "cached": 0,
+      "completion": 286,
+      "reasoning": 0,
+      "total": 2231
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417180",
+    "label_included": 0,
+    "include_probability": 0.45,
+    "reasons": [
+      "症例報告で乳酸アシドーシスを扱うが、重炭酸ナトリウムの使用は抄録上明記されていない",
+      "アルカリ化を図ったとの記載があり、重炭酸投与の可能性を完全には否定できないため、感度優先で含める余地がある",
+      "全文確認が必要なため、保守的に組入候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1694,
+    "usage": {
+      "prompt": 1788,
+      "cached": 0,
+      "completion": 181,
+      "reasoning": 0,
+      "total": 1969
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417181",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "抄録にICU入室後に代謝性アシドーシスの増悪が認められ、重炭酸ナトリウムの投与で補正されたと記載されている",
+      "重炭酸ナトリウムを用いた代謝性アシドーシスの治療が報告されており、組み入れ基準に合致する可能性が高い",
+      "研究の主題は肝切除・噴門形成の周術期管理だが、重炭酸ナトリウム投与が含まれるため除外せず含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1694,
+    "usage": {
+      "prompt": 1814,
+      "cached": 0,
+      "completion": 233,
+      "reasoning": 0,
+      "total": 2047
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417182",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象は糖尿病性ケトアシドーシスに対する人工膵臓による血糖管理の症例報告であり、重炭酸ナトリウムの使用に関する記載がない",
+      "抄録中に重炭酸ナトリウムへの言及は見当たらず、組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1164,
+    "usage": {
+      "prompt": 2095,
+      "cached": 0,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 2226
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417183",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "対象は酢酸を添加した10%ブドウ糖加酢酸維持輸液(GA-1082)であり、重炭酸ナトリウムを用いた研究ではない",
+      "アシドーシス防止を扱うが、介入薬剤は酢酸系輸液で重炭酸ナトリウムではないため除外が妥当",
+      "ただし重炭酸ナトリウムへの言及がなく、関連性は低いと判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1596,
+    "usage": {
+      "prompt": 1792,
+      "cached": 0,
+      "completion": 255,
+      "reasoning": 0,
+      "total": 2047
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417184",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "重炭酸ナトリウムの投与効果を検討した研究である",
+      "心停止蘇生時の代謝性アシドーシスに対する重炭酸ナトリウム投与が対象である",
+      "組み入れ基準に明確に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1623,
+    "usage": {
+      "prompt": 1622,
+      "cached": 0,
+      "completion": 204,
+      "reasoning": 0,
+      "total": 1826
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417185",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "重炭酸ナトリウムの使用に関する研究ではなく、輸血による Yersinia 敗血症の症例報告である",
+      "抄録中の代謝性アシドーシスは血清重炭酸濃度の低下として記載されているのみで、重炭酸ナトリウム投与の検討は含まれない"
+    ],
+    "attempts": 1,
+    "durationMs": 1427,
+    "usage": {
+      "prompt": 2079,
+      "cached": 0,
+      "completion": 135,
+      "reasoning": 0,
+      "total": 2214
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417186",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象研究はヒドロキシエチルデンプン(HES)による肝機能障害を扱っており、重炭酸ナトリウムの使用や代謝性アシドーシスに関する研究ではないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 968,
+    "usage": {
+      "prompt": 1872,
+      "cached": 0,
+      "completion": 103,
+      "reasoning": 0,
+      "total": 1975
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417187",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "本研究はセシウム炭酸塩の摂取による中毒症例報告であり、重炭酸ナトリウムによる代謝性アシドーシス治療を扱っていない",
+      "重炭酸ナトリウムへの言及がなく、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1426,
+    "usage": {
+      "prompt": 1873,
+      "cached": 0,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 1994
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417188",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "重炭酸ナトリウムに関する記載がなく、対象研究は静脈栄養（PN）の開始時期と胆汁うっ滞・胆汁スラッジの関係を調べたもので、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1824,
+    "usage": {
+      "prompt": 2078,
+      "cached": 0,
+      "completion": 110,
+      "reasoning": 0,
+      "total": 2188
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417189",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、イブプロフェンの敗血症への投与試験である",
+      "アシドーシスに言及はあるが乳酸アシドーシスの評価項目であり、重炭酸ナトリウム介入はない",
+      "組み入れ基準を満たさないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1221,
+    "usage": {
+      "prompt": 1974,
+      "cached": 0,
+      "completion": 134,
+      "reasoning": 0,
+      "total": 2108
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417190",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は無痛分娩・水中分娩の周産期アウトカム研究であり、重炭酸ナトリウムの使用に関する記載がない",
+      "抄録中のpH測定は臍帯動脈血pHの評価であり、代謝性アシドーシスに対する重炭酸ナトリウム治療の研究ではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1319,
+    "usage": {
+      "prompt": 1821,
+      "cached": 0,
+      "completion": 143,
+      "reasoning": 0,
+      "total": 1964
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417191",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、敗血症患者へのアルブミン投与と結晶質液の比較試験の研究計画である",
+      "重炭酸ナトリウムの介入や対象は含まれていない",
+      "アシドーシスは言及されるが、食塩水による代謝性アシドーシスの一般的記述にとどまる"
+    ],
+    "attempts": 1,
+    "durationMs": 1605,
+    "usage": {
+      "prompt": 8925,
+      "cached": 0,
+      "completion": 146,
+      "reasoning": 0,
+      "total": 9071
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417192",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、Veillonella atypicaと肺がん症例の関連を扱った報告である",
+      "代謝性アシドーシスへの言及もなく、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1284,
+    "usage": {
+      "prompt": 2061,
+      "cached": 0,
+      "completion": 107,
+      "reasoning": 0,
+      "total": 2168
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417193",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象研究はバソプレシンとエピネフリンの併用を検討しており、重炭酸ナトリウムに関する記述がタイトル・抄録に見当たらないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1203,
+    "usage": {
+      "prompt": 2178,
+      "cached": 0,
+      "completion": 93,
+      "reasoning": 0,
+      "total": 2271
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417194",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "抄録中で重炭酸ナトリウムの使用について質問したと記載されているが、主要な比較対象ではなく、結果の主要な差異にも重炭酸ナトリウムは示されていない",
+      "小児DKAの治療方針のばらつきを扱う調査研究であり、重炭酸ナトリウムは治療項目の一つにすぎないが、感度優先のため包含の可能性を残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1551,
+    "usage": {
+      "prompt": 2211,
+      "cached": 0,
+      "completion": 203,
+      "reasoning": 0,
+      "total": 2414
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417195",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象文献はフィッシャーシーラントの微小漏洩や浸透能に関する研究で、重炭酸ナトリウムや代謝性アシドーシスに関連しない",
+      "組み入れ基準に合致しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1312,
+    "usage": {
+      "prompt": 1804,
+      "cached": 0,
+      "completion": 106,
+      "reasoning": 0,
+      "total": 1910
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417196",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象研究は血清NGALによる透析適応の判定が主題であり、重炭酸ナトリウムの使用を検討していない",
+      "抄録に重炭酸ナトリウムへの言及はあるが、pHやbicarbonateの測定値としての記載にとどまる",
+      "組み入れ基準を満たさないため除外と判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1448,
+    "usage": {
+      "prompt": 1979,
+      "cached": 0,
+      "completion": 178,
+      "reasoning": 0,
+      "total": 2157
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417197",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "重炭酸ナトリウムの使用を評価する研究ではなく、血清ケトン（β-ヒドロキシ酪酸）と脱水・アシドーシスの関係を調べた研究である",
+      "重炭酸ナトリウムの治療介入は扱われていない",
+      "抄録中の重炭酸は血清重炭酸濃度の測定値としてのみ言及されている"
+    ],
+    "attempts": 1,
+    "durationMs": 1209,
+    "usage": {
+      "prompt": 1995,
+      "cached": 0,
+      "completion": 155,
+      "reasoning": 0,
+      "total": 2150
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417198",
+    "label_included": 0,
+    "include_probability": 0.55,
+    "reasons": [
+      "重炭酸ナトリウムは主要な研究対象ではなく、副次評価項目として代謝性アシドーシスの指標に用いられた（必要量の比較）",
+      "脳死ドナーの代謝性アシドーシスに関連する記述があり、感度重視で完全除外はできないため組み入れ候補とする",
+      "抄録に重炭酸ナトリウム使用量の結果が含まれるため、全文確認が必要"
+    ],
+    "attempts": 1,
+    "durationMs": 1826,
+    "usage": {
+      "prompt": 2018,
+      "cached": 0,
+      "completion": 297,
+      "reasoning": 0,
+      "total": 2315
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417199",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "対象はハイドロフィルトレーションにおける乳酸測定と乳酸置換液の影響であり、重炭酸ナトリウムを評価していない",
+      "乳酸ナトリウム置換液は言及されるが、重炭酸ナトリウムの使用を検討する研究ではないため除外が妥当",
+      "ただし代謝性アシドーシスとHFでの緩衝剤補充を扱うため、完全な除外は慎重に判断する必要がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1618,
+    "usage": {
+      "prompt": 2193,
+      "cached": 0,
+      "completion": 238,
+      "reasoning": 0,
+      "total": 2431
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417200",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "本研究の主題は小児DKAにおけるIVインスリンからSCインスリンへの移行基準（静脈血pHと血清重炭酸値の比較）であり、重炭酸ナトリウム投与の研究ではない",
+      "血清重炭酸値は指標として用いられているが、重炭酸ナトリウムの治療的使用を評価していないため除外が妥当",
+      "ただし代謝性アシドーシス（DKA）患者を対象としており、重炭酸値の評価が重炭酸ナトリウム関連研究と見なされる可能性がわずかにあるため、確率は0にしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1940,
+    "usage": {
+      "prompt": 1930,
+      "cached": 0,
+      "completion": 305,
+      "reasoning": 0,
+      "total": 2235
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417201",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "重炭酸ナトリウムの使用を検討する研究ではなく、ARDS患者の機械学習による層別化モデルに関する研究である",
+      "抄録中のpHや重炭酸イオンは予測変数としての言及に留まり、重炭酸ナトリウム療法の評価ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1017,
+    "usage": {
+      "prompt": 1875,
+      "cached": 0,
+      "completion": 128,
+      "reasoning": 0,
+      "total": 2003
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417202",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "重炭酸ナトリウムによる代謝性アシドーシスの治療を扱っている",
+      "新生児集中治療室での重炭酸ナトリウムの使用について論じたレビューである",
+      "有効性と有害性の証拠を要約しており、組み入れ基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1442,
+    "usage": {
+      "prompt": 1544,
+      "cached": 0,
+      "completion": 236,
+      "reasoning": 0,
+      "total": 1780
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417203",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "抄録は新生児集中治療室における重炭酸ナトリウム療法の使用と有効性・危険性を論じており、組み入れ基準に合致する",
+      "タイトルにSodium Bicarbonateが明示されている"
+    ],
+    "attempts": 1,
+    "durationMs": 1269,
+    "usage": {
+      "prompt": 1556,
+      "cached": 0,
+      "completion": 189,
+      "reasoning": 0,
+      "total": 1745
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417204",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "抄録に、重症患者での静脈血ガス分析と動脈血ガス分析の比較が記載されている",
+      "抄録の結論で、pH 7.05以下かつPCO2 40torr以下の患者には直ちに静脈内重炭酸ナトリウム療法を考慮すべきと述べられている",
+      "重炭酸ナトリウムの使用が主題の一部として扱われているため、感度優先で組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1459,
+    "usage": {
+      "prompt": 1656,
+      "cached": 0,
+      "completion": 241,
+      "reasoning": 0,
+      "total": 1897
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417205",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "主題は脂質乳剤療法によるコカイン心毒性であり、重炭酸ナトリウムの使用は併用治療として言及されるのみで、研究対象ではない",
+      "重炭酸ナトリウムは対照や比較介入として評価されていない",
+      "ただし抄録に重炭酸ナトリウム投与が記載されているため、完全な除外は避け低確率で残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1647,
+    "usage": {
+      "prompt": 1830,
+      "cached": 0,
+      "completion": 212,
+      "reasoning": 0,
+      "total": 2042
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417206",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "タイトルは新生児蘇生における various drugs の使用に関するもので、重炭酸ナトリウムが含まれる可能性がある",
+      "抄録がなく、タイトルのみでは重炭酸ナトリウムへの言及を確認できないため、全文確認が必要として含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1102,
+    "usage": {
+      "prompt": 1330,
+      "cached": 0,
+      "completion": 126,
+      "reasoning": 0,
+      "total": 1456
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417207",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "タイトルはTRIS（トリス-ヒドロキシメチル-アミノメタン）の蘇生時の酸塩基変化への使用に関するもので、重炭酸ナトリウムを直接の対象とはしていない",
+      "代替緩衝剤としての比較対象に重炭酸ナトリウムが含まれる可能性があり、全文確認が必要なため除外は保留",
+      "抄録がないためタイトルのみでの判断となり、不確実性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1646,
+    "usage": {
+      "prompt": 1346,
+      "cached": 0,
+      "completion": 251,
+      "reasoning": 0,
+      "total": 1597
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417208",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "タイトルにT.H.A.M.（トロメタミン、Tris-hydroxymethyl aminomethane）を糖尿病性ケトアシドーシスで使用した研究とあり、代替のアルカリ化剤として重炭酸ナトリウムとの比較が含まれる可能性が高い",
+      "抄録がなく全文確認が必要なため、不確実な場合は組み入れとする方針に従う"
+    ],
+    "attempts": 1,
+    "durationMs": 1486,
+    "usage": {
+      "prompt": 1336,
+      "cached": 0,
+      "completion": 219,
+      "reasoning": 0,
+      "total": 1555
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417209",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "タイトルに重炭酸ナトリウムの使用が明示されており、三環系抗うつ薬による不整脈への治療を扱っている",
+      "抄録がないためタイトルのみでの判断だが、関連性は明確である"
+    ],
+    "attempts": 1,
+    "durationMs": 1170,
+    "usage": {
+      "prompt": 1348,
+      "cached": 0,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 1513
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417210",
+    "label_included": 1,
+    "include_probability": 0.97,
+    "reasons": [
+      "重炭酸ナトリウムを段階的に投与する治療を検討したランダム化比較試験である",
+      "敗血症性ショックによる低灌流誘発性乳酸アシドーシス（代謝性アシドーシス）の患者が対象である",
+      "重炭酸ナトリウムの投与法（pH目標）を比較しており、組み入れ基準に明確に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1550,
+    "usage": {
+      "prompt": 2541,
+      "cached": 0,
+      "completion": 297,
+      "reasoning": 0,
+      "total": 2838
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417211",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "タイトルで新生児蘇生における重炭酸ナトリウムの使用を扱っており、組み入れ基準に合致する可能性が高い",
+      "抄録がないためタイトルのみで判断したが、疑わしい場合は含めるべきため高い確率で組み入れとする"
+    ],
+    "attempts": 1,
+    "durationMs": 1205,
+    "usage": {
+      "prompt": 1339,
+      "cached": 0,
+      "completion": 157,
+      "reasoning": 0,
+      "total": 1496
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417212",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "重炭酸ナトリウム（等張重炭酸）を維持輸液として用いる介入研究であり、代謝性アシドーシスの指標である塩基過剰（BE）を主要評価項目としているため組み入れ対象となる",
+      "対象は緊急開腹手術を受ける穿孔性腹膜炎患者で、代謝性アシドーシスに関連する状態と考えられる"
+    ],
+    "attempts": 1,
+    "durationMs": 1926,
+    "usage": {
+      "prompt": 1943,
+      "cached": 0,
+      "completion": 343,
+      "reasoning": 0,
+      "total": 2286
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417213",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、眼の洗浄液としてのDiphoterine(Previn)が主題である",
+      "抄録中に重炭酸ナトリウムへの言及がなく、代謝性アシドーシスの治療研究でもない"
+    ],
+    "attempts": 1,
+    "durationMs": 1662,
+    "usage": {
+      "prompt": 2071,
+      "cached": 0,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 2192
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417214",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "新生児集中治療室における代謝性アシドーシスに対する静脈内重炭酸ナトリウムの使用実態を調査した研究であり、組み入れ基準に合致する。",
+      "抄録で重炭酸ナトリウムの使用頻度、適応、有害事象について述べられている。"
+    ],
+    "attempts": 1,
+    "durationMs": 1285,
+    "usage": {
+      "prompt": 2138,
+      "cached": 0,
+      "completion": 195,
+      "reasoning": 0,
+      "total": 2333
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417215",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "静脈输液全般のナラティブレビューで、重炭酸ナトリウムは抄録中で「ビカーボネートの投与の基本原則」として言及されている",
+      "重炭酸ナトリウムを主題とする研究ではないが、代謝性アシドーシスとの関連も記載があるため、感度優先で組み入れ候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1530,
+    "usage": {
+      "prompt": 1814,
+      "cached": 0,
+      "completion": 203,
+      "reasoning": 0,
+      "total": 2017
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417216",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、過換気療法とトロメタミン(THAM)を用いた重症頭部外傷の研究である",
+      "抄録にも重炭酸ナトリウムへの言及がない"
+    ],
+    "attempts": 1,
+    "durationMs": 1098,
+    "usage": {
+      "prompt": 1762,
+      "cached": 0,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 1870
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417217",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "CVVH置換液として重炭酸ナトリウム系（bicarbonate-based）緩衝液を用いた群を含み、アシドーシス補正（重炭酸値・pH）を評価している",
+      "急性腎不全の重症患者が対象で、代謝性アシドーシスの補正に関連する研究である",
+      "重炭酸系緩衝液が酢酸系より優れると結論づけており、重炭酸ナトリウムの使用に関する内容を含む"
+    ],
+    "attempts": 1,
+    "durationMs": 1749,
+    "usage": {
+      "prompt": 2188,
+      "cached": 0,
+      "completion": 308,
+      "reasoning": 0,
+      "total": 2496
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417218",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "重炭酸ナトリウムに関する研究ではなく、外傷高齢者へのβ遮断薬使用に関する研究である",
+      "代謝性アシドーシスの患者を対象としていないため、組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1070,
+    "usage": {
+      "prompt": 4274,
+      "cached": 0,
+      "completion": 108,
+      "reasoning": 0,
+      "total": 4382
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417219",
+    "label_included": 0,
+    "include_probability": 0.9,
+    "reasons": [
+      "重度の代謝性アシドーシス（乳酸アシドーシス・ケトアシドーシス）に対する塩基（重炭酸ナトリウム）投与の使用について医師の意見を調査した研究である",
+      "抄録中で多くの医師が重炭酸ナトリウムを選択していると報告されており、重炭酸ナトリウムの使用に関連する",
+      "組み入れ判断には全文での確認が望ましいが、感度を優先して組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1574,
+    "usage": {
+      "prompt": 1889,
+      "cached": 0,
+      "completion": 250,
+      "reasoning": 0,
+      "total": 2139
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417220",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "本研究は急性膵炎における平衡電解質液（Plasmalyte）と生理食塩水の比較であり、重炭酸ナトリウムそのものの投与を検討していない",
+      "重炭酸は乳酸リンゲル液の緩衝成分として言及されるのみで、重炭酸ナトリウム投与の評価は含まれない",
+      "代謝性アシドーシスを対象とした重炭酸ナトリウム研究ではないため除外が妥当"
+    ],
+    "attempts": 1,
+    "durationMs": 1668,
+    "usage": {
+      "prompt": 2720,
+      "cached": 0,
+      "completion": 248,
+      "reasoning": 0,
+      "total": 2968
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417221",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象はインスリン注入アルゴリズム（Glucommander）によるDKA治療で、重炭酸ナトリウムの使用を検討した研究ではない",
+      "抄録中に重炭酸ナトリウムの投与に関する記載がなく、重炭酸は血清値の比較指標としてのみ言及されている",
+      "組み入れ基準の対象（重炭酸ナトリウム治療）に該当しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1481,
+    "usage": {
+      "prompt": 2029,
+      "cached": 0,
+      "completion": 173,
+      "reasoning": 0,
+      "total": 2202
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417222",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "対象はTHAM（トロメタミン）であり重炭酸ナトリウムを扱っていない",
+      "重炭酸ナトリウムに関する記述は抄録中に見当たらない",
+      "THAMは代替のアルカリ化剤であり、基準の対象物質に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1171,
+    "usage": {
+      "prompt": 1958,
+      "cached": 0,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 2080
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417223",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "本研究はウルソデオキシコール酸(UDCA)によるTPN関連胆汁うっ滞の治療研究であり、重炭酸ナトリウムに関する記述がない",
+      "抄録全体を確認したが重炭酸ナトリウムの使用や評価は含まれないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1142,
+    "usage": {
+      "prompt": 2099,
+      "cached": 0,
+      "completion": 130,
+      "reasoning": 0,
+      "total": 2229
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417224",
+    "label_included": 0,
+    "include_probability": 0.08,
+    "reasons": [
+      "抄録は神経因性膀胱と尿路感染症の管理が主題で、重炭酸ナトリウムへの言及は「urinary alkalinizers」（尿アルカリ化薬）の一般的記述のみで、重炭酸ナトリウムの使用を検討した研究ではない",
+      "対象患者の代謝性アシドーシスも扱われていないため、組み入れ基準に該当しない可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1599,
+    "usage": {
+      "prompt": 1841,
+      "cached": 0,
+      "completion": 227,
+      "reasoning": 0,
+      "total": 2068
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417225",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "抄録で重炭酸ナトリウム（bicarbonate）による造影剤腎症の予防効果を扱ったRCTのレビューが含まれている",
+      "造影剤腎症予防目的の重炭酸投与は本レビューの対象（代謝性アシドーシス関連の介入として扱われる）に該当しうるため、組み入れの可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1477,
+    "usage": {
+      "prompt": 1904,
+      "cached": 0,
+      "completion": 194,
+      "reasoning": 0,
+      "total": 2098
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417226",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "敗血症患者の乳酸値と予後の研究であり、重炭酸ナトリウムの投与を対象としていない",
+      "重炭酸ナトリウムへの介入は抄録に記載がなく、血清重炭酸値は予測変数として言及されるのみ"
+    ],
+    "attempts": 1,
+    "durationMs": 1427,
+    "usage": {
+      "prompt": 1799,
+      "cached": 0,
+      "completion": 191,
+      "reasoning": 0,
+      "total": 1990
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417227",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "抄録の治療欄で重炭酸ナトリウム(sodium bicarbonate)が治療薬として使用されている",
+      "対象は代謝性アシドーシス(ピログルタミン酸アシドーシス)の症例報告であり、重炭酸ナトリウム投与を含む",
+      "重炭酸ナトリウムの使用が主題ではないが、関連する治療として記載されているため感度優先で組み入れ"
+    ],
+    "attempts": 1,
+    "durationMs": 1444,
+    "usage": {
+      "prompt": 1648,
+      "cached": 0,
+      "completion": 205,
+      "reasoning": 0,
+      "total": 1853
+    }
+  },
+  {
+    "ref_id": "rayyan-1178417228",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "DKAおよびHNCの治療におけるインスリン・補液・重炭酸補充の変更を扱う研究であり、重炭酸ナトリウム投与に言及がある",
+      "重炭酸補充（より慎重な使用）が治療プロトコルの一部として記述されているが、主要な検討対象は低用量インスリン等であり、重炭酸単独の評価かは抄録からは不明",
+      "抄録が途中で切れており全文確認が必要なため、感度重視で組入とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1819,
+    "usage": {
+      "prompt": 1909,
+      "cached": 0,
+      "completion": 240,
+      "reasoning": 0,
+      "total": 2149
+    }
+  }
+]
