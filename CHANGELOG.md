@@ -33,6 +33,8 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
   When switching to another project or logging out, the full-text AI prompt, scope, list filter and the reviewers selected in the results could carry over from the previous project; this is fixed. If you press Back while full-text AI batch screening or bulk open-access retrieval is running, it is now stopped before switching (results so far are saved to the original project).
 - Web版の判定に記録する版に、ビルド元のコミット（例 web-0.57.2+abc1234）を含めるようにしました。AI 判定には影響しません。
   The version recorded with web-version decisions now includes the build commit (for example web-0.57.2+abc1234). AI screening is unaffected.
+- AI のモデル一覧とその説明で、Claude Haiku 5.5・Claude Sonnet 5.5 の「未評価」を評価結果（depression の Recall）に替え、Sonnet には同梱の採用基準を満たさないことを書き添えました。AI 判定には影響しません。
+  In the AI model list and its description, the "not benchmarked" labels for Claude Haiku 5.5 and Claude Sonnet 5.5 are replaced with their benchmark results (depression recall), and Sonnet is marked as not meeting the bundling criterion. AI screening is unaffected.
 
 ### 文書 / Documentation
 
