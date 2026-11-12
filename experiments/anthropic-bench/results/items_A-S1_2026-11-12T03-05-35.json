@@ -1,0 +1,95 @@
+[
+  {
+    "ref_id": "Depression-SLIM-1",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "本研究は5-thio-D-glucoseによる細胞輸送(腎皮質、横隔膜)阻害の生化学研究であり、うつ病モデルではない",
+      "うつ病(depression)に関する記載が一切なく、動物のうつ病in vivoモデルの基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 3441,
+    "usage": {
+      "prompt": 1956,
+      "cached": 0,
+      "completion": 181,
+      "reasoning": 0,
+      "total": 2137
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-2",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "ラットを用いた動物研究ではあるが、卵巣機能の加齢変化を扱っている",
+      "「depression」は生殖・内分泌機能の低下を指し、うつ病モデルではない",
+      "うつ病の in vivo モデルという組入基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 3047,
+    "usage": {
+      "prompt": 1560,
+      "cached": 0,
+      "completion": 164,
+      "reasoning": 0,
+      "total": 1724
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-3",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "抄録には動物モデルやin vivo実験であるとの明記がなく、種（ヒトか動物か）が不明",
+      "リチウムとマグネシウムの血漿カルシウムへの影響を扱っており、ヒト臨床研究の可能性が高い",
+      "ただし情報が少なく、全文確認が必要なため感度重視で完全には除外しない"
+    ],
+    "attempts": 1,
+    "durationMs": 3304,
+    "usage": {
+      "prompt": 1471,
+      "cached": 0,
+      "completion": 195,
+      "reasoning": 0,
+      "total": 1666
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-4",
+    "label_included": 1,
+    "include_probability": 0.93,
+    "reasons": [
+      "ラットを用いた動物実験であり、in vivoモデルに該当する",
+      "回避不能ショック(学習性無力感)をうつ病/外傷性障害の推定モデルとして用いている",
+      "強制水泳試験などうつ様行動を評価しており、うつ病モデル研究に該当する"
+    ],
+    "attempts": 1,
+    "durationMs": 3462,
+    "usage": {
+      "prompt": 1902,
+      "cached": 0,
+      "completion": 255,
+      "reasoning": 0,
+      "total": 2157
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-5",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "動物実験(ラット敗血症モデル)ではあるが、対象は肝細胞機能低下(hepatocellular depression)であり、うつ病モデルではない",
+      "'depression'は機能抑制の意味で用いられており、うつ病(精神疾患)とは無関係なため除外基準に該当する"
+    ],
+    "attempts": 1,
+    "durationMs": 3105,
+    "usage": {
+      "prompt": 2341,
+      "cached": 0,
+      "completion": 228,
+      "reasoning": 0,
+      "total": 2569
+    }
+  }
+]

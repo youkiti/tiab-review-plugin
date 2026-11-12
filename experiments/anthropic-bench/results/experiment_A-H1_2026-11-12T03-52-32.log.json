@@ -1,0 +1,60 @@
+{
+  "experimentId": "A-H1_2026-11-12T03-52-32",
+  "startTime": "2026-11-12T03:52:32.177Z",
+  "parameters": {
+    "dataset": "cq1",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\cq1_labeled.json",
+    "totalRecords": 5628,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Fluid Therapy (resuscitation fluid type, rate, bolus strategy) for patients with sepsis, septic shock, or critical illness.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 5628,
+    "successCount": 5628,
+    "failCount": 0,
+    "durationMs": 1405316,
+    "avgTimePerItem": 249.70078180525942,
+    "failureRate": 0,
+    "truncatedCount": 0,
+    "refusalCount": 0,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 11868702,
+      "cached": 0,
+      "completion": 1371146,
+      "reasoning": 91778
+    },
+    "estimatedCostUsd": 1.8724432000000002,
+    "cost": {
+      "totalUSD": 1.8724432000000002,
+      "perItemUSD": 0.0003327013503909027,
+      "extrapolatedFullUSD": 1.8724432000000002
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 90,
+    "falsePositives": 1846,
+    "trueNegatives": 3669,
+    "falseNegatives": 23,
+    "sensitivity": 0.7964601769911505,
+    "specificity": 0.6652765185856754,
+    "precision": 0.04648760330578512,
+    "fBetaScore": 0.602167804094741
+  },
+  "endTime": "2026-11-12T04:15:57.502Z"
+}

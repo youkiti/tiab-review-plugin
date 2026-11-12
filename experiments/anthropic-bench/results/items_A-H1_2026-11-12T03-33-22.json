@@ -1,0 +1,921 @@
+[
+  {
+    "ref_id": "rayyan-1178426812",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "耕耘機による下肢開放骨折の症例報告であり、制限的輸液療法の研究ではない",
+      "敗血症性ショックは合併症として一度言及されるのみで、輸液管理の介入や評価は対象ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1275,
+    "usage": {
+      "prompt": 1840,
+      "cached": 0,
+      "completion": 106,
+      "reasoning": 0,
+      "total": 1946
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426813",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象は糖質制限経腸栄養製品による術後肝機能障害の1症例報告であり、制限的輸液療法の研究ではない",
+      "敗血症性ショックの症例は含まれるが、輸液戦略（輸液制限・保守的輸液管理）を検討した内容ではない",
+      "組み入れ基準の対象である制限的輸液療法に関する記述が見当たらない"
+    ],
+    "attempts": 1,
+    "durationMs": 1660,
+    "usage": {
+      "prompt": 1936,
+      "cached": 0,
+      "completion": 237,
+      "reasoning": 0,
+      "total": 2173
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426814",
+    "label_included": 0,
+    "include_probability": 0.15,
+    "reasons": [
+      "対象はVA ECMOによる重症敗血症管理の総説・解説的文献であり、制限的輸液療法（fluid restriction）を検討する研究ではない",
+      "抄録に輸液管理への言及はあるが、輸液制限戦略の評価が主題ではない",
+      "ただし適切な輸液管理に触れており、全文確認が必要な可能性を排除できないため、低めではあるが完全除外はしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1822,
+    "usage": {
+      "prompt": 1490,
+      "cached": 0,
+      "completion": 255,
+      "reasoning": 0,
+      "total": 1745
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426815",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "タイトルは小児の心拍再開後集中治療に関する日本の蘇生ガイドラインであり、輸液制限（restrictive fluid therapy）を対象とする研究ではない",
+      "敗血症・敗血症性ショック・ARDSを対象とした制限的輸液療法の研究ではないため除外",
+      "抄録がなく、タイトルからも対象条件に合致する根拠は見いだせない"
+    ],
+    "attempts": 1,
+    "durationMs": 1281,
+    "usage": {
+      "prompt": 1330,
+      "cached": 0,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 1495
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426816",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症の全般的な診療概説であり、制限的輸液療法（restrictive fluid therapy）を対象とした研究ではない",
+      "抄録にも輸液制限や保存的輸液管理への言及がない",
+      "Rapid response systemやスコアリング、集中治療後症候群など別テーマが中心"
+    ],
+    "attempts": 1,
+    "durationMs": 1267,
+    "usage": {
+      "prompt": 1680,
+      "cached": 0,
+      "completion": 131,
+      "reasoning": 0,
+      "total": 1811
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426817",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "敗血症動物モデルの血行動態と炎症応答の整理が主題であり、制限的輸液療法（restrictive fluid therapy）を検討する研究ではない",
+      "抄録中の『十分な輸液』は動物モデル実験での注意事項にすぎず、輸液制限戦略の評価ではない",
+      "ただし抄録は簡潔で全文未確認のため、完全な除外は避け低い確率を付与"
+    ],
+    "attempts": 1,
+    "durationMs": 1480,
+    "usage": {
+      "prompt": 1575,
+      "cached": 0,
+      "completion": 222,
+      "reasoning": 0,
+      "total": 1797
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426818",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "敗血症の初期抗菌薬投与設計に関する総説・講義記事であり、輸液制限（restrictive fluid therapy）を対象とした研究ではない",
+      "抄録に輸液管理の制限戦略への言及がなく、組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1115,
+    "usage": {
+      "prompt": 1508,
+      "cached": 0,
+      "completion": 121,
+      "reasoning": 0,
+      "total": 1629
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426819",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "敗血症・敗血症性ショックの輸液管理戦略を扱っている",
+      "過剰輸液の害を指摘し、フェーズごとの輸液管理や目標を検討しており制限的輸液戦略に関連する",
+      "総説的内容だが、研究の対象集団と輸液戦略の主題が合致するため安全側に組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1684,
+    "usage": {
+      "prompt": 1982,
+      "cached": 0,
+      "completion": 269,
+      "reasoning": 0,
+      "total": 2251
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426820",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "壊死性筋膜炎のデブリードマン範囲に関する症例報告であり、輸液療法の制限(restrictive fluid therapy)を検討した研究ではない",
+      "敗血症性ショックの症例が含まれるが、制限輸液戦略の評価が目的ではなく、補液は一般的管理の一部として言及されているのみ",
+      "対象疾患は敗血症・敗血症性ショック・ARDSの制限輸液研究の基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 2282,
+    "usage": {
+      "prompt": 1986,
+      "cached": 0,
+      "completion": 249,
+      "reasoning": 0,
+      "total": 2235
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426821",
+    "label_included": 0,
+    "include_probability": 0.93,
+    "reasons": [
+      "タイトルが敗血症性ショックにおける輸液制限(CLASSIC trial)を扱っており、制限的輸液療法の研究に該当する",
+      "抄録がないため完全な判断はできないが、感度重視で組入とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1232,
+    "usage": {
+      "prompt": 1334,
+      "cached": 0,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 1499
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426822",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はACLF患者へのω3 PUFA脂質乳剤の研究であり、制限的輸液療法（fluid restriction）を扱っていない",
+      "敗血症は主要アウトカムの一つだが、敗血症患者が対象ではなく（敗血症を除外基準としている）、介入も輸液管理ではない",
+      "よって組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1574,
+    "usage": {
+      "prompt": 2429,
+      "cached": 0,
+      "completion": 217,
+      "reasoning": 0,
+      "total": 2646
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426823",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "対象はECMO中の難治性低酸素血症に対するβ遮断薬（エスモロール）投与の観察研究であり、輸液制限（restrictive fluid therapy）を扱っていない",
+      "敗血症の患者が一部含まれるが、輸液管理戦略の研究ではないため組み入れ基準に合致しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1358,
+    "usage": {
+      "prompt": 1854,
+      "cached": 0,
+      "completion": 196,
+      "reasoning": 0,
+      "total": 2050
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426824",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "骨肉腫に対するゾレドロン酸の無作為化試験であり、敗血症・敗血症性ショック・ARDSを対象としていないため、制限的輸液療法の基準に合致しない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1097,
+    "usage": {
+      "prompt": 2775,
+      "cached": 0,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 2874
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426825",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "黄熱ワクチンと免疫グロブリンの併用試験で、敗血症・敗血症性ショック・ARDSを扱っていない",
+      "制限的輸液療法の研究ではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1414,
+    "usage": {
+      "prompt": 3111,
+      "cached": 0,
+      "completion": 96,
+      "reasoning": 0,
+      "total": 3207
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426826",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDS患者を対象としていない（マスタード熱傷による創傷が対象）",
+      "輸液制限（restrictive fluid therapy）に関する研究ではなく、創傷被覆材の開発研究である",
+      "「septic」は敗血症ではなく創傷の感染を指す語であり、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1265,
+    "usage": {
+      "prompt": 1732,
+      "cached": 0,
+      "completion": 152,
+      "reasoning": 0,
+      "total": 1884
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426827",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は乳児の腹部手術後の創部カテーテル注入によるロピバカイン局所麻酔の研究であり、敗血症・敗血症性ショック・ARDSの患者や制限的輸液療法を扱っていないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1295,
+    "usage": {
+      "prompt": 4748,
+      "cached": 0,
+      "completion": 113,
+      "reasoning": 0,
+      "total": 4861
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426828",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象とした制限的輸液療法の研究ではない",
+      "小児の人工呼吸器離脱時の仕事量（work of breathing）に関する研究である",
+      "輸液管理への言及は安定した血行動態の基準（輸液負荷の有無）に限られる"
+    ],
+    "attempts": 1,
+    "durationMs": 1234,
+    "usage": {
+      "prompt": 10630,
+      "cached": 0,
+      "completion": 134,
+      "reasoning": 0,
+      "total": 10764
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426829",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象は脳転移に対する全脳照射と海馬回避の放射線治療の研究であり、輸液療法（Restrictive Fluid Therapy）や敗血症・敗血症性ショック・ARDSを対象としていないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1058,
+    "usage": {
+      "prompt": 2224,
+      "cached": 0,
+      "completion": 112,
+      "reasoning": 0,
+      "total": 2336
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426830",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としていない（卵巣癌への全腹部IMRTに関する研究）",
+      "制限的輸液療法の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1061,
+    "usage": {
+      "prompt": 2151,
+      "cached": 0,
+      "completion": 90,
+      "reasoning": 0,
+      "total": 2241
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426831",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は固形臓器移植レシピエントの肺マイクロバイオームとウイルス感染に関する研究であり、敗血症・敗血症性ショック・ARDSを対象としていない",
+      "輸液制限（restrictive fluid therapy）に関する記載がない",
+      "明らかに無関係な研究と判断される"
+    ],
+    "attempts": 1,
+    "durationMs": 1196,
+    "usage": {
+      "prompt": 1963,
+      "cached": 0,
+      "completion": 134,
+      "reasoning": 0,
+      "total": 2097
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426832",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としたrestrictive fluid therapyの研究かどうか明示されていない",
+      "主題は膠質液と晶質液の選択に関する一般的な総説で、制限的輸液戦略そのものは扱っていない",
+      "敗血症患者における膠質液（ヒドロキシエチルデンプン）の腎障害リスクに言及しており、輸液管理の論点と部分的に関連するため完全除外はしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1790,
+    "usage": {
+      "prompt": 2393,
+      "cached": 0,
+      "completion": 257,
+      "reasoning": 0,
+      "total": 2650
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426833",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "前立腺生検（経会陰生検 vs 経直腸生検）の比較研究であり、敗血症患者への制限的輸液療法を扱っていない",
+      "敗血症は生検後の合併症として言及されるのみで、敗血症患者が対象ではない",
+      "抄録に輸液管理や制限的輸液療法への言及はない"
+    ],
+    "attempts": 1,
+    "durationMs": 1338,
+    "usage": {
+      "prompt": 3067,
+      "cached": 0,
+      "completion": 140,
+      "reasoning": 0,
+      "total": 3207
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426834",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としておらず、間質性肺疾患・組織球増加症の症例報告である",
+      "制限的輸液療法に関する記述はなく、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1180,
+    "usage": {
+      "prompt": 2889,
+      "cached": 0,
+      "completion": 106,
+      "reasoning": 0,
+      "total": 2995
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426835",
+    "label_included": 0,
+    "include_probability": 0.25,
+    "reasons": [
+      "敗血症性ショックを対象としているが、主題は輸液反応性の予測（動的指標）であり、輸液制限・保存的輸液管理の介入研究ではない",
+      "抄録では過剰輸液のリスクに言及しているが、制限的輸液療法の評価は中心ではない",
+      "総説であり、組み入れ基準に直接合致するかは全文確認が必要なため、感度重視で保留とする"
+    ],
+    "attempts": 1,
+    "durationMs": 1815,
+    "usage": {
+      "prompt": 1782,
+      "cached": 0,
+      "completion": 210,
+      "reasoning": 0,
+      "total": 1992
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426836",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象文献は胎児発育不全における出産タイミング（早期娩出 対 保存的管理）の研究であり、敗血症・敗血症性ショック・ARDSを対象としていない",
+      "制限的輸液療法の研究ではないため、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1342,
+    "usage": {
+      "prompt": 4028,
+      "cached": 0,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 4150
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426837",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は婦人科悪性腫瘍の化学療法におけるインターバル血液検査や食事制限の省略であり、敗血症・敗血症性ショック・ARDSに対する制限的輸液療法ではない",
+      "敗血症という語は好中球減少性発熱の合併症として出現するのみで、輸液管理が対象ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1438,
+    "usage": {
+      "prompt": 1716,
+      "cached": 0,
+      "completion": 221,
+      "reasoning": 0,
+      "total": 1937
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426838",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "敗血症・敗血症性ショックの蘇生輸液の種類（晶質液対膠質液、バランス液、アルブミン）を扱う文献で、輸液量の制限（restrictive）を直接扱っているわけではない",
+      "制限的輸液戦略そのものの研究ではないが、輸液管理の文脈を含むため完全な除外は困難",
+      "全文確認が必要なため、感度重視で保留扱いとする"
+    ],
+    "attempts": 1,
+    "durationMs": 1786,
+    "usage": {
+      "prompt": 1848,
+      "cached": 0,
+      "completion": 253,
+      "reasoning": 0,
+      "total": 2101
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426839",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "抄録はICUにおけるRCTの限界や研究デザインについての一般的論考であり、輸液制限療法に関する記述がない",
+      "敗血症・敗血症性ショック・ARDSを対象とした制限的輸液療法の研究ではないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1262,
+    "usage": {
+      "prompt": 1535,
+      "cached": 0,
+      "completion": 116,
+      "reasoning": 0,
+      "total": 1651
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426840",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は周産期・新生児期の手指消毒（クロルヘキシジン）に関する介入研究であり、敗血症患者や敗血症・ARDSに対する制限的輸液療法を扱っていない",
+      "敗血症は新生児死亡の原因として言及されるのみで、組み入れ基準の対象集団ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1496,
+    "usage": {
+      "prompt": 4858,
+      "cached": 0,
+      "completion": 139,
+      "reasoning": 0,
+      "total": 4997
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426841",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象は急性膵炎の輸液療法の試験であり、敗血症・敗血症性ショック・ARDSを対象としていないため除外が妥当",
+      "積極的輸液と制限的輸液の比較という点は輸液戦略として類似するが、対象疾患が不適合"
+    ],
+    "attempts": 1,
+    "durationMs": 1395,
+    "usage": {
+      "prompt": 2318,
+      "cached": 0,
+      "completion": 122,
+      "reasoning": 0,
+      "total": 2440
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426842",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としたボリューム制限（restrictive fluid therapy）研究ではない",
+      "Fusarium dimerum中心ライン関連血流感染とボリコナゾール肝毒性の症例報告であり、輸液戦略に関する記載はない",
+      "患者が低血圧で輸液蘇生を受けた記載はあるが、制限的輸液管理の検討ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1454,
+    "usage": {
+      "prompt": 1905,
+      "cached": 0,
+      "completion": 171,
+      "reasoning": 0,
+      "total": 2076
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426843",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "抗真菌薬ボリコナゾールの総説であり、輸液制限（restrictive fluid therapy）や敗血症・ARDSの輸液管理を扱っていない",
+      "抄録中の敗血症は好中球減少性敗血症に対する抗真菌薬選択の文脈のみで、輸液戦略とは無関係"
+    ],
+    "attempts": 1,
+    "durationMs": 1591,
+    "usage": {
+      "prompt": 1687,
+      "cached": 0,
+      "completion": 200,
+      "reasoning": 0,
+      "total": 1887
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426844",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "抄録はボリコナゾールの抗真菌薬としての概説であり、敗血症・敗血症性ショック・ARDSに対する制限的輸液療法を扱っていないため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1150,
+    "usage": {
+      "prompt": 2606,
+      "cached": 0,
+      "completion": 95,
+      "reasoning": 0,
+      "total": 2701
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426845",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "敗血症性ショックと非敗血症性ショックの患者を対象に、経肺熱希釈法と肺動脈カテーテルによる血行動態管理（容量・圧の上限設定に基づく輸液管理）を比較している",
+      "輸液量の上限を設定する管理戦略であり制限的輸液療法に関連するが、敗血症に特化した輸液制限介入の研究ではなく、適格性は全文での確認が必要",
+      "感度重視の方針により組み入れ候補として含める"
+    ],
+    "attempts": 1,
+    "durationMs": 2153,
+    "usage": {
+      "prompt": 2232,
+      "cached": 0,
+      "completion": 324,
+      "reasoning": 0,
+      "total": 2556
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426846",
+    "label_included": 0,
+    "include_probability": 0.55,
+    "reasons": [
+      "敗血症・重症敗血症患者を対象とし、アルブミン投与による輸液管理（血管内容量補充戦略）を比較する試験である",
+      "輸液制限（restrictive）戦略そのものではなく、輸液の種類（アルブミン vs 晶質液）の比較が主題であるが、輸液管理の研究として感度を重視し包含とした",
+      "全文が必要だが、抄録の範囲では厳密な制限的輸液療法の定義に合致するか確定できないため包含する"
+    ],
+    "attempts": 1,
+    "durationMs": 1870,
+    "usage": {
+      "prompt": 8907,
+      "cached": 0,
+      "completion": 242,
+      "reasoning": 0,
+      "total": 9149
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426847",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は未熟児のRDSに対する人工呼吸器離脱期の換気モード（Volume guarantee）研究であり、体液管理（制限的輸液療法）を扱っていない",
+      "敗血症・敗血症性ショック・ARDSを対象としていない（RDSは新生児呼吸窮迫症候群でありARDSではない）",
+      "抄録中のneonatal sepsisは主要対象ではなく、転帰の一つとして言及されているのみ"
+    ],
+    "attempts": 1,
+    "durationMs": 1571,
+    "usage": {
+      "prompt": 1897,
+      "cached": 0,
+      "completion": 184,
+      "reasoning": 0,
+      "total": 2081
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426848",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はOHSS（卵巣過剰刺激症候群）の予防を目的とした体液補充（血漿増量剤）研究であり、敗血症・敗血症性ショック・ARDSを対象としていない",
+      "制限的輸液療法（fluid minimization）の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1102,
+    "usage": {
+      "prompt": 4104,
+      "cached": 0,
+      "completion": 124,
+      "reasoning": 0,
+      "total": 4228
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426849",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "本研究は病院・医師の症例数（volume）と転帰の関連に関する総説およびイタリアの病院データ分析であり、輸液制限（restrictive fluid therapy）を扱っていない",
+      "敗血症が対象疾患の一つとして言及されているが、輸液管理戦略の研究ではなく対象外と判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1628,
+    "usage": {
+      "prompt": 4353,
+      "cached": 0,
+      "completion": 140,
+      "reasoning": 0,
+      "total": 4493
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426850",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "がん手術患者への揮発性麻酔とプロポフォール麻酔の比較研究であり、輸液管理（制限的輸液療法）を扱っていない",
+      "敗血症・敗血症性ショック・ARDSの患者を対象としていない",
+      "組み入れ基準に合致しないため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1152,
+    "usage": {
+      "prompt": 3068,
+      "cached": 0,
+      "completion": 128,
+      "reasoning": 0,
+      "total": 3196
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426851",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "VM-26(テニポシド)による胃癌化学療法の第II相試験で、輸液制限や保存的輸液管理を扱っていない",
+      "敗血症・敗血症性ショック・ARDSの患者を対象としていない",
+      "抄録中の『neutropenic sepsis』は薬剤毒性による合併症の記載にすぎず、対象疾患ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1406,
+    "usage": {
+      "prompt": 1666,
+      "cached": 0,
+      "completion": 196,
+      "reasoning": 0,
+      "total": 1862
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426852",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症患者を対象とするが、介入はビタミンD3補充であり、制限的輸液療法（fluid restriction）ではないため対象外と判断",
+      "輸液管理に関する記載は病態説明（fluid loading）のみで、輸液制限の研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1413,
+    "usage": {
+      "prompt": 3059,
+      "cached": 0,
+      "completion": 187,
+      "reasoning": 0,
+      "total": 3246
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426853",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "タイトルはビタミンC・ステロイド・チアミンの敗血症性ショックへの効果と脳自己調節能を扱っており、輸液制限（restrictive fluid therapy）の研究ではないと判断される",
+      "抄録がないため詳細は確認できないが、タイトルからは輸液管理戦略の評価は読み取れない",
+      "ただし全文確認が必要な可能性を考慮し、低い確率で評価した"
+    ],
+    "attempts": 1,
+    "durationMs": 1599,
+    "usage": {
+      "prompt": 1338,
+      "cached": 0,
+      "completion": 176,
+      "reasoning": 0,
+      "total": 1514
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426854",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "対象は敗血症性ショックに対する静脈内ビタミンC・チアミン・ヒドロコルチゾンの併用療法試験であり、輸液制限（restrictive fluid therapy）を検討する研究ではない",
+      "輸液量の制限や保守的輸液管理への言及がないため、組み入れ基準に該当しない可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1281,
+    "usage": {
+      "prompt": 3313,
+      "cached": 0,
+      "completion": 209,
+      "reasoning": 0,
+      "total": 3522
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426855",
+    "label_included": 0,
+    "include_probability": 0.2,
+    "reasons": [
+      "本研究の主題はビタミンC・ヒドロコルチゾン・チアミンの併用療法であり、制限的輸液療法そのものの評価ではない",
+      "抄録中の『保存的な輸液・血管収縮薬管理』は標準化された共通管理の一部として記載されているのみで、介入対象ではない",
+      "ただし対象は敗血症性ショックであり、輸液管理の扱いについて全文確認が必要なため完全除外はしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1721,
+    "usage": {
+      "prompt": 2945,
+      "cached": 0,
+      "completion": 235,
+      "reasoning": 0,
+      "total": 3180
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426856",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "主題はビタミンC静注補充療法であり、輸液制限（restrictive fluid therapy）戦略ではない",
+      "敗血症・敗血症性ショック・ARDSに限定されていない（重症患者全般）",
+      "輸液量は副次アウトカムとして言及されるのみで、輸液制限の介入研究ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1302,
+    "usage": {
+      "prompt": 2009,
+      "cached": 0,
+      "completion": 171,
+      "reasoning": 0,
+      "total": 2180
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426857",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としていない",
+      "塩感受性高血圧に関する研究で、制限的輸液療法の検討ではない",
+      "明らかに無関係の文献のため除外"
+    ],
+    "attempts": 1,
+    "durationMs": 1054,
+    "usage": {
+      "prompt": 2087,
+      "cached": 0,
+      "completion": 99,
+      "reasoning": 0,
+      "total": 2186
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426858",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを対象としておらず、肺移植後の免疫抑制療法（TTVモニタリング）に関する研究であるため、制限的輸液療法の基準に合致しない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1014,
+    "usage": {
+      "prompt": 1999,
+      "cached": 0,
+      "completion": 106,
+      "reasoning": 0,
+      "total": 2105
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426859",
+    "label_included": 0,
+    "include_probability": 0,
+    "reasons": [
+      "対象は分娩時の動画による分娩教育と分娩第2期の努責指導であり、敗血症・敗血症性ショック・ARDSの輸液制限療法とは無関係であるため除外する。"
+    ],
+    "attempts": 1,
+    "durationMs": 1127,
+    "usage": {
+      "prompt": 2464,
+      "cached": 0,
+      "completion": 98,
+      "reasoning": 0,
+      "total": 2562
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426860",
+    "label_included": 0,
+    "include_probability": 0.01,
+    "reasons": [
+      "対象は小児・若年成人の末梢性原始神経外胚葉腫瘍(pPNET)に対する高用量化学療法であり、敗血症・敗血症性ショック・ARDSを扱っていない",
+      "抄録中の「septic death」は敗血症の治療対象ではなく、制限的輸液療法の研究でもないため、組入基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1923,
+    "usage": {
+      "prompt": 2354,
+      "cached": 0,
+      "completion": 154,
+      "reasoning": 0,
+      "total": 2508
+    }
+  },
+  {
+    "ref_id": "rayyan-1178426861",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象はカテーテル関連菌血症に対する抗菌薬ロック療法であり、敗血症・敗血症性ショック・ARDSに対する制限的輸液療法の研究ではない",
+      "制限的輸液療法に関する記述がない"
+    ],
+    "attempts": 1,
+    "durationMs": 1044,
+    "usage": {
+      "prompt": 1722,
+      "cached": 0,
+      "completion": 111,
+      "reasoning": 0,
+      "total": 1833
+    }
+  }
+]

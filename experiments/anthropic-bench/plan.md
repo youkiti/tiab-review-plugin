@@ -63,7 +63,8 @@ depression 全件（1,993件）、閾値 0.5
 ## 実装
 - `experiments/anthropic-bench/` に閉じる。`src/` は変えていない（`screenViaAnthropic()` は使用量をすでに返す）。変える必要が出たら、変えた箇所をここに書き、別の PR にする。
 - ファイル: `config.json`（条件・単価・データセット）、`common.ts`（型・指標・`results/` の読み込み。3つの script が共有）、`runner.ts`、`run_all.ts`、`summarize.ts`、`threshold_sweep.ts`、`tsconfig.json`（型検査用）。
-- `runner.ts` は `screenViaAnthropic()` を自前のループで呼ぶ（Node では `ANTHROPIC_API_KEY` を `.env` から読む）。`checkpointEvery`（50）件ごとに items / log を途中保存する。
+- `runner.ts` は `screenViaAnthropic()` を自前のループで呼ぶ（Node では `ANTHROPIC_API_KEY` を `.env` から読む）。
+- 認証は2通り。`ANTHROPIC_API_KEY` があればそれを `x-api-key` で送る（アプリと同じ）。無ければ `ant` CLI（Claude Developer Platform の公式 CLI、v2.9.0 で確認）の OAuth トークンを使う: 事前に `ant auth login` でブラウザからサインインしておくと、`runner.ts` が `ant auth print-credentials --access-token` でトークンを取り（5分ごとに取り直す）、api.anthropic.com 宛ての fetch だけ `x-api-key` を外して `Authorization: Bearer` に差し替える。リクエストの本文（model・max_tokens・effort）は変わらない。2026-11-12 の実行はこちらで行った。`ant` の場所は環境変数 `ANT_BIN` で変えられる。`checkpointEvery`（50）件ごとに items / log を途中保存する。
 - `--resume <experimentId>`: 取得済みで失敗していない件を引き継ぎ、失敗した件と未着手の件だけ回す。429 が続いて止めたときは、`config.json` の `rateLimits` の並列を半分にして `--resume` で続ける（取得済みの分は捨てない）。
 - `--dry-run`: global fetch を模型に差し替えて実 API を呼ばず、送る内容（model・max_tokens・effort・送らない項目）を表示し、結果を OS の一時ディレクトリに書く（`results/` には書かない）。模型は一部の件で 429 と `max_tokens` の打ち切りを返すので、取り直しと集計の確認に使える。`summarize.ts` と `threshold_sweep.ts` は `--include-dry-run --results-dir <dir> --out-dir <dir>` で一時ディレクトリの結果を読める。
 - smoke（`--sample` 指定）は `anthropic_smoke`（並列 3・間隔 300ms）、全件は `anthropic_default`（並列 8・間隔 200ms）。

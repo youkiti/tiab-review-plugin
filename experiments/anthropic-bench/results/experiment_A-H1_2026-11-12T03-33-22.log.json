@@ -1,0 +1,61 @@
+{
+  "experimentId": "A-H1_2026-11-12T03-33-22",
+  "startTime": "2026-11-12T03:33:22.820Z",
+  "parameters": {
+    "dataset": "cq5",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\cq5_labeled.json",
+    "totalRecords": 2253,
+    "sampleSize": 50,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_smoke",
+    "rateLimitConfig": {
+      "concurrency": 3,
+      "delayBetweenRequests": 300
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Restrictive Fluid Therapy strategies (fluid minimization, conservative fluid management) for patients with sepsis, septic shock, or ARDS.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 50,
+    "successCount": 50,
+    "failCount": 0,
+    "durationMs": 29208,
+    "avgTimePerItem": 584.16,
+    "failureRate": 0,
+    "truncatedCount": 0,
+    "refusalCount": 0,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 132427,
+      "cached": 0,
+      "completion": 8299,
+      "reasoning": 0
+    },
+    "estimatedCostUsd": 0.0173922,
+    "cost": {
+      "totalUSD": 0.0173922,
+      "perItemUSD": 0.000347844,
+      "extrapolatedFullUSD": 0.783692532
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 0,
+    "falsePositives": 4,
+    "trueNegatives": 46,
+    "falseNegatives": 0,
+    "sensitivity": 0,
+    "specificity": 0.92,
+    "precision": 0,
+    "fBetaScore": 0
+  },
+  "endTime": "2026-11-12T03:33:52.029Z"
+}

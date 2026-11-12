@@ -844,7 +844,7 @@ export interface ModelOption {
 
 /**
  * 利用可能なモデル一覧（Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe）
- * Anthropic の2モデルは depression 1,993件のベンチマーク未実施で、同梱基準（Recall ≥ 90%）は未確認。
+ * Anthropic の2モデルは depression 1,993件で評価した（experiments/anthropic-bench/）。claude-haiku-5-5 は Recall 95.7% で同梱基準（Recall ≥ 90%）を満たし、claude-sonnet-5-5 は 87.5% で満たさないが、オーナーの判断で注記を付けて同梱を続ける。
  * latest エイリアスではなく、ベンチマーク済みの固定バージョン ID を採用する。
  * (2026-05 判断: `gemini-flash-latest` が `gemini-3.5-flash` に切り替わると
  *  Recall が 96.1% → 93.2% に低下するリスクを回避するため)
@@ -919,7 +919,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         nameKey: 'llm_modelName_claude_haiku_5_5',
         provider: 'anthropic',
         // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
-        // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
+        // depression Recall 95.7%（experiments/anthropic-bench/）で同梱基準（Recall ≥ 90%）を満たす。
         config: getModelGenerationConfig('claude-haiku-5-5')
     },
     {
@@ -928,7 +928,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         nameKey: 'llm_modelName_claude_sonnet_5_5',
         provider: 'anthropic',
         // temperature は型の都合で置くだけで anthropic プロバイダでは送らない。
-        // depression 1,993件のベンチマークは未実施で、同梱基準（Recall ≥ 90%）は未確認。
+        // depression Recall 87.5%（experiments/anthropic-bench/）で同梱基準（Recall ≥ 90%）を満たさない。オーナーの判断で注記を付けて同梱を続ける。
         config: getModelGenerationConfig('claude-sonnet-5-5')
     },
     {

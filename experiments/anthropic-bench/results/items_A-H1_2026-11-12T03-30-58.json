@@ -1,0 +1,935 @@
+[
+  {
+    "ref_id": "rayyan-1178418217",
+    "label_included": 0,
+    "include_probability": 0.1,
+    "reasons": [
+      "敗血症患者へのエンドトキシン吸着療法（血液浄化）を扱い、輸液療法（蘇生液の種類・速度・ボーラス）を主題としていない",
+      "抄録中の輸液に関する記述は『適切な輸液蘇生』による利尿増加への言及のみで、輸液戦略の比較研究ではない",
+      "腎移植後敗血症という特殊集団での吸着療法研究であり、組み入れ基準には合致しにくい"
+    ],
+    "attempts": 1,
+    "durationMs": 1912,
+    "usage": {
+      "prompt": 1924,
+      "cached": 0,
+      "completion": 260,
+      "reasoning": 0,
+      "total": 2184
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418218",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "出血性ショックに対する限定的輸液蘇生（limited fluid resuscitation）の研究であり、輸液戦略（bolus strategy/量）を扱っている",
+      "対象は敗血症ではなく出血性ショックだが、重症病態（critical illness）に該当するため組み入れの可能性が高い",
+      "全文確認が必要な部分はあるが、感度優先で組み入れと判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1896,
+    "usage": {
+      "prompt": 1770,
+      "cached": 0,
+      "completion": 260,
+      "reasoning": 0,
+      "total": 2030
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418219",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "対象研究はHA-1A(エンドトキシンに対するモノクローナル抗体)の効果を検討した試験であり、輸液療法(蘇生輸液の種類・速度・ボーラス戦略)を扱っていないため組入基準に合致しない。",
+      "抄録中の輸液は「other interventions...fluids were not affected by the study protocol」と記載されるのみで、輸液療法が研究対象ではない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1746,
+    "usage": {
+      "prompt": 2157,
+      "cached": 0,
+      "completion": 230,
+      "reasoning": 0,
+      "total": 2387
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418220",
+    "label_included": 0,
+    "include_probability": 0.25,
+    "reasons": [
+      "敗血症性ショックに対する蘇生後の治療としてアルプロスタジルの効果を検討しており、輸液療法（resuscitation fluid type, rate, bolus strategy）そのものを評価する研究ではない",
+      "蘇生は前提条件として扱われており、輸液の種類・速度・ボーラス戦略の比較ではないため除外寄りだが、重症敗血症の蘇生に関する研究であるため完全には除外しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1720,
+    "usage": {
+      "prompt": 2192,
+      "cached": 0,
+      "completion": 242,
+      "reasoning": 0,
+      "total": 2434
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418221",
+    "label_included": 0,
+    "include_probability": 0.25,
+    "reasons": [
+      "敗血症性ショックの患者を対象としているが、介入は硝酸薬（ニトログリセリン）であり輸液療法（resuscitation fluid type, rate, bolus strategy）ではない",
+      "輸液は背景治療（early goal directed therapy）として共通であり、評価対象の介入ではない",
+      "ただしEGDT後の循環管理に関わるため、全文確認が必要な境界例として若干の包含可能性を残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1692,
+    "usage": {
+      "prompt": 2069,
+      "cached": 0,
+      "completion": 241,
+      "reasoning": 0,
+      "total": 2310
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418222",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "外傷性出血性ショックの患者に対する制限的輸液蘇生（sodium acetate Ringer液使用）の目標血圧を検討しており、輸液蘇生戦略に関する研究である",
+      "敗血症ではなく外傷性出血性ショックが対象だが、重症病態（critical illness）における輸液蘇生戦略の研究として含める余地が大きい",
+      "蘇生液の種類・速度・ボーラス戦略そのものではなく目標MAPの比較であるが、輸液蘇生の方針に関する研究として感度優先で組入"
+    ],
+    "attempts": 1,
+    "durationMs": 1627,
+    "usage": {
+      "prompt": 3145,
+      "cached": 0,
+      "completion": 265,
+      "reasoning": 0,
+      "total": 3410
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418223",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "敗血症性ショックを伴うARDS患者を対象とした血管収縮薬（ノルエピネフリン対テルリプレシン）の比較研究であり、輸液療法そのものの比較ではない",
+      "輸液量バランスや輸液負荷の制限、輸液反応性（volume responsiveness）に関する評価を含むため、流体療法に関連する可能性があり、全文確認が必要なため含める"
+    ],
+    "attempts": 1,
+    "durationMs": 1548,
+    "usage": {
+      "prompt": 2801,
+      "cached": 0,
+      "completion": 232,
+      "reasoning": 0,
+      "total": 3033
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418224",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "敗血症性ショックに対する輸液蘇生の目標設定（IVCVとPcv-aCO2によるガイド）を比較しており、輸液蘇生戦略の研究である",
+      "対照群はEGDT、介入群はIVCV・Pcv-aCO2に基づく蘇生で、輸液量・輸液効率の評価を含む",
+      "対象は敗血症性ショック患者でありプロトコルは明確に輸液蘇生に関するため組み入れ対象と判断"
+    ],
+    "attempts": 1,
+    "durationMs": 2194,
+    "usage": {
+      "prompt": 2979,
+      "cached": 0,
+      "completion": 369,
+      "reasoning": 0,
+      "total": 3348
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418225",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "食道静脈瘤・胃静脈瘤出血に対する内視鏡的静脈瘤結紮術（EVL）の比較研究であり、敗血症・敗血症性ショック・重症患者を対象としていない",
+      "輸液療法（resuscitation fluid type, rate, bolus strategy）を研究対象としておらず、蘇生輸液は共通治療として記載されているのみ",
+      "上部消化管出血の治療研究であり、組み入れ基準に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1687,
+    "usage": {
+      "prompt": 2408,
+      "cached": 0,
+      "completion": 253,
+      "reasoning": 0,
+      "total": 2661
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418226",
+    "label_included": 0,
+    "include_probability": 0.05,
+    "reasons": [
+      "主題は上部消化管出血によるショックに対する内視鏡治療（食道静脈瘤結紮術）であり、輸液療法（蘇生液の種類・速度・ボーラス戦略）の評価が目的ではない",
+      "敗血症や敗血症性ショックを対象としていない",
+      "抄録中の輸液は付随的な処置の記載にとどまる"
+    ],
+    "attempts": 1,
+    "durationMs": 1505,
+    "usage": {
+      "prompt": 2475,
+      "cached": 0,
+      "completion": 150,
+      "reasoning": 0,
+      "total": 2625
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418227",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "重症急性膵炎患者に対する蘇生輸液（生理食塩水、HES、グルタミン併用）の種類を比較しており、輸液療法の対象（重症患者）と介入に合致する",
+      "重症急性膵炎は重症疾患に該当し、critical illnessの範囲と解釈できる",
+      "輸液の種類・投与量（mL/kg/d）も比較されており、輸液戦略の研究として適合する"
+    ],
+    "attempts": 1,
+    "durationMs": 1637,
+    "usage": {
+      "prompt": 2394,
+      "cached": 0,
+      "completion": 227,
+      "reasoning": 0,
+      "total": 2621
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418228",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "敗血症性ショック患者を対象としている",
+      "輸液蘇生量を主要アウトカムの一つとして測定しており、輸液療法に関する記述がある",
+      "主題は漢方注射剤（Shenqi Fuzheng Injection）の効果であり、輸液の種類・速度・ボーラス戦略の比較が主目的ではないが、輸液量の減少を報告しているため感度重視で組入"
+    ],
+    "attempts": 1,
+    "durationMs": 1802,
+    "usage": {
+      "prompt": 1800,
+      "cached": 0,
+      "completion": 258,
+      "reasoning": 0,
+      "total": 2058
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418229",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は成人肺炎に対する酸素療法のシステマティックレビューであり、輸液療法（蘇生液の種類・速度・ボーラス戦略）や敗血症・敗血症性ショック・重症患者の輸液管理を扱っていないため除外。"
+    ],
+    "attempts": 1,
+    "durationMs": 1793,
+    "usage": {
+      "prompt": 3034,
+      "cached": 0,
+      "completion": 120,
+      "reasoning": 0,
+      "total": 3154
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418230",
+    "label_included": 0,
+    "include_probability": 0.9,
+    "reasons": [
+      "重症急性膵炎の患者を対象に、早期の輸液蘇生（fluid resuscitation）をScvO2およびPiCCOでガイドする研究であり、流体療法の指示法に関するものである",
+      "ICU管理下の重症患者（critical illness）を対象としており、組み入れ基準に合致する可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1448,
+    "usage": {
+      "prompt": 2150,
+      "cached": 0,
+      "completion": 215,
+      "reasoning": 0,
+      "total": 2365
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418231",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "重症熱傷によるショック期の輸液蘇生（膠質液・HES・Parkland液・同種血漿）の比較研究であり、輸液療法の種類を扱っている",
+      "対象はブタで臨床患者ではないが、重症病態（burn shock）の輸液蘇生を扱うため、critical illness領域の輸液療法研究として含める方針が妥当",
+      "敗血症・敗血症性ショックではない点は懸念だが、感度優先の方針により組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 2030,
+    "usage": {
+      "prompt": 2567,
+      "cached": 0,
+      "completion": 296,
+      "reasoning": 0,
+      "total": 2863
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418232",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "敗血症性ショックの患者を対象としたランダム化比較試験である",
+      "CCUS誘導による目標指向型治療（輸液管理を含む）とEGDTを比較している",
+      "累積輸液量と輸液バランスが主要アウトカムの一部として評価されており、輸液療法の戦略（rate/bolus）に関連する"
+    ],
+    "attempts": 1,
+    "durationMs": 1663,
+    "usage": {
+      "prompt": 2092,
+      "cached": 0,
+      "completion": 289,
+      "reasoning": 0,
+      "total": 2381
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418233",
+    "label_included": 0,
+    "include_probability": 0.2,
+    "reasons": [
+      "対象は脊柱管狭窄症の高齢者の術中GDFTで、敗血症や重症患者ではない",
+      "ただし輸液療法（GDFT、乳酸加リンゲル液、ボイビレン）を扱うため、感度重視で一定の包含可能性がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1589,
+    "usage": {
+      "prompt": 1942,
+      "cached": 0,
+      "completion": 179,
+      "reasoning": 0,
+      "total": 2121
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418234",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は急性細気管支炎の乳児に対する高張食塩水ネブライザーの研究であり、敗血症・敗血症性ショック・重症疾患に対する輸液療法ではない",
+      "組み入れ基準の輸液療法（蘇生液の種類、速度、ボーラス戦略）に該当しない"
+    ],
+    "attempts": 1,
+    "durationMs": 1458,
+    "usage": {
+      "prompt": 3571,
+      "cached": 0,
+      "completion": 138,
+      "reasoning": 0,
+      "total": 3709
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418235",
+    "label_included": 1,
+    "include_probability": 0.97,
+    "reasons": [
+      "ICU重症患者を対象に、平衡電解質液(Plasma-Lyte 148)と生理食塩水の輸液療法の効果を比較したBaSICS試験の二次解析である",
+      "輸液の種類(晶質液)が主題であり、組み入れ基準の輸液療法に該当する",
+      "敗血症を含む重症患者が対象であり、適格性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1711,
+    "usage": {
+      "prompt": 2056,
+      "cached": 0,
+      "completion": 293,
+      "reasoning": 0,
+      "total": 2349
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418236",
+    "label_included": 1,
+    "include_probability": 0.99,
+    "reasons": [
+      "敗血症・重症患者を対象に、輸液製剤（バランス電解質液 vs 生理食塩水）の比較を行うRCTであり、輸液療法の基準に明確に合致する。"
+    ],
+    "attempts": 1,
+    "durationMs": 2088,
+    "usage": {
+      "prompt": 2202,
+      "cached": 0,
+      "completion": 260,
+      "reasoning": 0,
+      "total": 2462
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418237",
+    "label_included": 1,
+    "include_probability": 1,
+    "reasons": [
+      "集中治療室の重症患者への輸液ボーラス速度（遅い vs 速い）を比較したRCTであり、輸液療法（bolus strategy）の研究に該当する",
+      "重症患者（critically ill）を対象としており、組み入れ基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1408,
+    "usage": {
+      "prompt": 2113,
+      "cached": 0,
+      "completion": 251,
+      "reasoning": 0,
+      "total": 2364
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418238",
+    "label_included": 0,
+    "include_probability": 0.98,
+    "reasons": [
+      "重症患者に対する輸液療法（晶質液の種類：バランス液対生理食塩水、および輸液速度：速い対遅い）を比較する試験のプロトコルであり、組み入れ基準に合致する",
+      "対象は集中治療室の重症患者（critically ill）で、蘇生輸液（resuscitation episodes）が含まれる"
+    ],
+    "attempts": 1,
+    "durationMs": 1790,
+    "usage": {
+      "prompt": 2077,
+      "cached": 0,
+      "completion": 276,
+      "reasoning": 0,
+      "total": 2353
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418239",
+    "label_included": 0,
+    "include_probability": 0.98,
+    "reasons": [
+      "重症患者に対するバランス晶質液と生理食塩水の比較（輸液の種類）を検討している",
+      "輸液のボーラス注入速度（rapid vs slow）を検討しており、輸液の速度に関する基準を満たす",
+      "対象は集中治療室の重症患者（critical illness）であり、対象集団の基準を満たす",
+      "プロトコル論文であるが、研究デザインとして組み入れ対象となる"
+    ],
+    "attempts": 1,
+    "durationMs": 1775,
+    "usage": {
+      "prompt": 2077,
+      "cached": 0,
+      "completion": 293,
+      "reasoning": 0,
+      "total": 2370
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418240",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "急性膵炎（高トリグリセリド血症性）を対象とし、全群で積極的輸液蘇生（aggressive fluid resuscitation）が実施される",
+      "主な介入は血漿交換・インスリン/ヘパリン療法であり、輸液自体の種類・速度・ボーラス戦略を比較する試験ではない",
+      "重症急性膵炎は重症病態に該当し、輸液蘇生の方針が研究に組み込まれているため、感度優先で組み入れ候補とする",
+      "輸液の詳細（種類・速度）は抄録からは判断できず、全文確認が必要"
+    ],
+    "attempts": 1,
+    "durationMs": 5039,
+    "usage": {
+      "prompt": 2101,
+      "cached": 0,
+      "completion": 858,
+      "reasoning": 578,
+      "total": 2959
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418241",
+    "label_included": 0,
+    "include_probability": 0.45,
+    "reasons": [
+      "敗血症患者の気管挿管時に用いる薬剤（メタラミン）による血圧低下予防の試験であり、流体療法（輸液・昇圧薬の投与戦略）そのものではないが、敗血症・ICUの血行動態管理に関わる",
+      "流体療法（晶質液投与など）は介入の一部として言及されるのみで、主要な研究対象は昇圧薬の前投与であるため境界的",
+      "感度優先のため、全文確認を要する可能性を考慮して組み入れ候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 2291,
+    "usage": {
+      "prompt": 2684,
+      "cached": 0,
+      "completion": 363,
+      "reasoning": 0,
+      "total": 3047
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418242",
+    "label_included": 0,
+    "include_probability": 0.9,
+    "reasons": [
+      "敗血症性ショックの小児に対する輸液ボーラス療法（制限的 vs 大量）を比較する内容であり、組み入れ基準に合致する",
+      "症例報告形式だが、輸液戦略（ボーラス量）に関する根拠に基づく議論を含むため含めるのが妥当"
+    ],
+    "attempts": 1,
+    "durationMs": 1586,
+    "usage": {
+      "prompt": 1585,
+      "cached": 0,
+      "completion": 256,
+      "reasoning": 0,
+      "total": 1841
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418243",
+    "label_included": 0,
+    "include_probability": 0.03,
+    "reasons": [
+      "敗血症・敗血症性ショック・重症患者への輸液療法（輸液の種類・速度・ボーラス戦略）を扱う研究ではない",
+      "内頸静脈カテーテル挿入に伴う血栓予防（TEG・POCUS誘導）が主題である",
+      "抄録中の輸液は穿刺前の処置としての記載にとどまる"
+    ],
+    "attempts": 1,
+    "durationMs": 1364,
+    "usage": {
+      "prompt": 2241,
+      "cached": 0,
+      "completion": 150,
+      "reasoning": 0,
+      "total": 2391
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418244",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "ARDS患者を対象としたバンドル治療の研究で、敗血症や重症患者(critical illness)の輸液療法そのものを評価していない",
+      "バンドルの一部に制限的輸液管理(restrictive fluid management)が含まれるため、輸液戦略に関連する可能性がある",
+      "輸液の種類・速度・ボーラス戦略の詳細が抄録に示されておらず、全文確認が必要なため、感度重視で低めながら除外はしない"
+    ],
+    "attempts": 1,
+    "durationMs": 1969,
+    "usage": {
+      "prompt": 2342,
+      "cached": 0,
+      "completion": 236,
+      "reasoning": 0,
+      "total": 2578
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418245",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "敗血症性ショックまたは敗血症患者を対象とした無作為化比較試験である",
+      "PPI誘導下の輸液蘇生（24時間輸液量の比較、goal-directed therapy）を扱っており、輸液戦略の研究に該当する",
+      "輸液量の差が主要な比較結果として報告されているため、組み入れ基準に合致する可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1599,
+    "usage": {
+      "prompt": 2644,
+      "cached": 0,
+      "completion": 279,
+      "reasoning": 0,
+      "total": 2923
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418246",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "PiCCOに基づく管理アルゴリズムの研究で、輸液管理(fluid management)に言及しており、重症患者(ARDS, critical illness)を対象としている",
+      "主眼は監視法(PiCCO vs CVP)であり、輸液の種類・速度・ボーラス戦略そのものの比較ではないが、血行動態に基づく輸液管理を含む可能性があるため、感度重視で組み入れ候補とする",
+      "全文で輸液プロトコルの詳細を確認する必要がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1665,
+    "usage": {
+      "prompt": 1857,
+      "cached": 0,
+      "completion": 254,
+      "reasoning": 0,
+      "total": 2111
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418247",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "重症外科患者（敗血症性ショック、重症敗血症を含む）の輸液管理・蘇生を対象としている",
+      "血液量測定に基づく輸液および赤血球輸血の戦略を比較しており、蘇生輸液の管理戦略に関連する",
+      "輸液の種類・速度・ボーラス戦略そのものではなく血液量モニタリングが主題だが、輸液管理の意思決定を扱うため安全側で組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1959,
+    "usage": {
+      "prompt": 1892,
+      "cached": 0,
+      "completion": 282,
+      "reasoning": 0,
+      "total": 2174
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418248",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "敗血症・敗血症性ショック・ARDSを含む重症外科患者が対象である",
+      "初期蘇生で酸素運搬(Do2)目標を段階的に設定し、輸液・輸血・血管作動薬による蘇生戦略を比較するランダム化試験である",
+      "輸液蘇生の方法(輸液・輸血・血管作動薬による目標指向蘇生)に関する研究であり、組み入れ基準に概ね合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1595,
+    "usage": {
+      "prompt": 2150,
+      "cached": 0,
+      "completion": 294,
+      "reasoning": 0,
+      "total": 2444
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418249",
+    "label_included": 0,
+    "include_probability": 0.85,
+    "reasons": [
+      "敗血症・重症患者（SIRS、敗血症、敗血症性ショック、ARDS）を対象とした無作為化試験である",
+      "早期蘇生として輸液、輸血、血管作動薬を用いてDO2目標を比較しており、輸液を含む蘇生戦略を扱っている",
+      "輸液のタイプや速度に特化した研究ではないが、蘇生の輸液戦略を含むため包含の可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1621,
+    "usage": {
+      "prompt": 2131,
+      "cached": 0,
+      "completion": 239,
+      "reasoning": 0,
+      "total": 2370
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418250",
+    "label_included": 1,
+    "include_probability": 0.97,
+    "reasons": [
+      "ICU患者への晶質液（緩衝性晶質液 vs 生理食塩水）の比較試験であり、輸液製剤の種類に関する介入研究である",
+      "敗血症に限定されていないが、重症患者（ICU患者）の輸液療法を対象としており、critical illnessの基準を満たす",
+      "輸液の種類（resuscitation fluid type）を扱うため、組み入れ基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1696,
+    "usage": {
+      "prompt": 2556,
+      "cached": 0,
+      "completion": 311,
+      "reasoning": 0,
+      "total": 2867
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418251",
+    "label_included": 0,
+    "include_probability": 0.98,
+    "reasons": [
+      "敗血症患者の初期輸液蘇生で高SID輸液とハルトマン液を比較したRCTであり、輸液の種類による介入が対象である",
+      "敗血症・高乳酸血症・代謝性アシドーシス患者が対象で、組み入れ基準に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1578,
+    "usage": {
+      "prompt": 2091,
+      "cached": 0,
+      "completion": 194,
+      "reasoning": 0,
+      "total": 2285
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418252",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "重症急性膵炎(pSAP)患者への輸液療法（生理食塩水 vs バランス晶質液）を扱うランダム化試験のプロトコルで、組み入れ基準の輸液療法の種類に合致する",
+      "重症患者（重症急性膵炎）が対象であり、critical illnessの範囲に該当すると判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1586,
+    "usage": {
+      "prompt": 2033,
+      "cached": 0,
+      "completion": 253,
+      "reasoning": 0,
+      "total": 2286
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418253",
+    "label_included": 0,
+    "include_probability": 0.8,
+    "reasons": [
+      "腹部手術患者の周術期輸液療法（ボーラス投与による目標指向型輸液 対 通常輸液）を比較しており、輸液戦略（bolus strategy）を扱う点で対象に該当する",
+      "対象は敗血症・敗血症性ショックや重症患者ではなく、待機的腹部手術患者である点が基準との乖離",
+      "ただし重症度を問わず輸液戦略の研究は感度優先で含めるべきと判断"
+    ],
+    "attempts": 1,
+    "durationMs": 1891,
+    "usage": {
+      "prompt": 2630,
+      "cached": 0,
+      "completion": 234,
+      "reasoning": 0,
+      "total": 2864
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418254",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "小児集中治療室の重症患者に対する維持輸液（等張生理食塩水）の量（60 vs 100 ml/kcal/day）を比較しており、輸液の速度・量に関する介入である",
+      "重症患者（critically ill）が対象で、Fluid Therapyの量・速度に関する研究のため組み入れ候補となる",
+      "敗血症・敗血症性ショックは明記されていないため不確実性があるが、スクリーニングの感度を優先して組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1570,
+    "usage": {
+      "prompt": 2050,
+      "cached": 0,
+      "completion": 236,
+      "reasoning": 0,
+      "total": 2286
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418255",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "肝移植の術中における輸液蘇生（トリガー基準：RVEDVとCVP、アルブミン/Voluven投与）を扱うRCTであり、輸液療法の研究である点は該当する",
+      "対象が敗血症・敗血症性ショック・重症疾患ではなく、生体肝移植患者である点が組み入れ基準から外れる",
+      "ただし『critical illness』の解釈次第では含める余地があるため、感度優先で低めの確率として残す"
+    ],
+    "attempts": 1,
+    "durationMs": 1856,
+    "usage": {
+      "prompt": 2089,
+      "cached": 0,
+      "completion": 272,
+      "reasoning": 0,
+      "total": 2361
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418256",
+    "label_included": 0,
+    "include_probability": 0.25,
+    "reasons": [
+      "対象は肝移植後（LDLT）の早期術後期間における輸液指示パラメータ（CVP対SVI/RVEDVI）に関する研究で、輸液療法の戦略を扱う。",
+      "敗血症や敗血症性ショックは対象外だが、ICUでの重症患者（術後集中治療）の輸液管理であり、critical illnessに該当する可能性がある。",
+      "輸液の量・ボーラス戦略（500mlボーラス）を比較しており、輸液療法の研究として感度重視で含める余地がある。"
+    ],
+    "attempts": 1,
+    "durationMs": 1917,
+    "usage": {
+      "prompt": 2020,
+      "cached": 0,
+      "completion": 287,
+      "reasoning": 0,
+      "total": 2307
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418257",
+    "label_included": 0,
+    "include_probability": 0.95,
+    "reasons": [
+      "敗血症性ショック患者に対する輸液蘇生（PiCCOガイド下）を扱っており、輸液療法の戦略に関する研究であるため組み入れ対象に該当する",
+      "対照群は中心静脈圧ガイド下輸液であり、輸液蘇生の方法の比較研究である"
+    ],
+    "attempts": 1,
+    "durationMs": 1623,
+    "usage": {
+      "prompt": 1876,
+      "cached": 0,
+      "completion": 295,
+      "reasoning": 0,
+      "total": 2171
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418258",
+    "label_included": 0,
+    "include_probability": 0.97,
+    "reasons": [
+      "敗血症性ショックの患者を対象に、輸液蘇生戦略（EGDT対超音波ガイド下輸液）を比較している",
+      "輸液量・輸液蘇生の指示方法が主要評価項目に含まれ、Fluid Therapyの対象に合致する"
+    ],
+    "attempts": 1,
+    "durationMs": 1482,
+    "usage": {
+      "prompt": 2582,
+      "cached": 0,
+      "completion": 174,
+      "reasoning": 0,
+      "total": 2756
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418259",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "対象は全身麻酔下の股関節全置換術を受ける高齢者の体温管理（人工鼻・加温加湿器）の研究であり、輸液療法（蘇生液の種類・速度・ボーラス）を扱っていない",
+      "敗血症・敗血症性ショック・重症患者を対象としていない",
+      "輸液は標準化された条件として記載されているのみで、介入対象ではない"
+    ],
+    "attempts": 1,
+    "durationMs": 1609,
+    "usage": {
+      "prompt": 1763,
+      "cached": 0,
+      "completion": 219,
+      "reasoning": 0,
+      "total": 1982
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418260",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "腎疝痛に対するスパスモフェン坐剤とケトロラックの鎮痛比較試験であり、輸液療法（蘇生液の種類・速度・ボーラス戦略）の研究ではないため除外する。",
+      "敗血症・敗血症性ショック・重症患者を対象としていない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1416,
+    "usage": {
+      "prompt": 2205,
+      "cached": 0,
+      "completion": 132,
+      "reasoning": 0,
+      "total": 2337
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418261",
+    "label_included": 0,
+    "include_probability": 0.55,
+    "reasons": [
+      "対象はburn shock(熱傷性ショック)の患者で、重症患者の蘇生を扱う",
+      "従来の輸液蘇生に加えて抗ショック合剤を投与する試験で、輸液蘇生の補助療法を評価している",
+      "輸液の種類・速度・ボーラス戦略そのものの比較ではないが、蘇生輸液量（補液量）の評価を含むため、感度優先で組み入れ候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 2036,
+    "usage": {
+      "prompt": 1729,
+      "cached": 0,
+      "completion": 303,
+      "reasoning": 0,
+      "total": 2032
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418262",
+    "label_included": 0,
+    "include_probability": 0.9,
+    "reasons": [
+      "敗血症性ショック患者に対する輸液蘇生(fluid resuscitation)の戦略に関する研究であり、輸液反応性評価法(SVV対PLR-ΔSV)に基づく輸液療法の効果を比較している",
+      "輸液量・輸液バランス・予後を評価しており、輸液療法のストラテジーに該当するため組入の可能性が高い"
+    ],
+    "attempts": 1,
+    "durationMs": 1724,
+    "usage": {
+      "prompt": 2449,
+      "cached": 0,
+      "completion": 295,
+      "reasoning": 0,
+      "total": 2744
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418263",
+    "label_included": 0,
+    "include_probability": 0.6,
+    "reasons": [
+      "敗血症性ショックの患者を対象としており、対象集団は合致する",
+      "介入はノルエピネフリンの開始タイミングであり、輸液療法そのものの研究ではない",
+      "抄録に輸液量（0 vs 79 mL/kg）の比較が含まれ、輸液量が副次的なアウトカムとして扱われているため、輸液療法の要素を含むと判断し、疑わしいため組み入れる"
+    ],
+    "attempts": 1,
+    "durationMs": 1670,
+    "usage": {
+      "prompt": 1956,
+      "cached": 0,
+      "completion": 248,
+      "reasoning": 0,
+      "total": 2204
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418264",
+    "label_included": 0,
+    "include_probability": 0.35,
+    "reasons": [
+      "対象は外傷性出血性ショックに対する損傷管理蘇生(DCR)であり、敗血症・敗血症性ショック・重症患者の輸液研究ではない",
+      "ただし抄録には輸液(crystalloid)の量に関する記述があり、重症患者の蘇生戦略を扱うため、基準の周辺に位置する",
+      "重症病態(出血性ショック)を対象とし、蘇生輸液の量や種類を評価しているため、感度重視で保留として含める余地がある"
+    ],
+    "attempts": 1,
+    "durationMs": 1709,
+    "usage": {
+      "prompt": 2012,
+      "cached": 0,
+      "completion": 246,
+      "reasoning": 0,
+      "total": 2258
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418265",
+    "label_included": 1,
+    "include_probability": 0.95,
+    "reasons": [
+      "急性膵炎患者に対する輸液蘇生（乳酸リンゲル液対生理食塩水、目標指向と標準的輸液速度）を比較したRCTであり、輸液の種類と速度を扱っている",
+      "対象は敗血症ではないが重症病態（急性膵炎）の患者であり、critical illnessに該当しうるため含めるのが妥当",
+      "全文確認で最終判断すべきだが、感度優先の方針から組み入れとする"
+    ],
+    "attempts": 1,
+    "durationMs": 1797,
+    "usage": {
+      "prompt": 2457,
+      "cached": 0,
+      "completion": 248,
+      "reasoning": 0,
+      "total": 2705
+    }
+  },
+  {
+    "ref_id": "rayyan-1178418266",
+    "label_included": 0,
+    "include_probability": 0.12,
+    "reasons": [
+      "対象は尿管結石による急性尿管疝痛の成人であり、敗血症・敗血症性ショック・重症患者を対象とする組み入れ基準に該当しない",
+      "輸液は尿路結石排出を目的とした高容量輸液であり、蘇生輸液（敗血症・重症患者向け）の文脈ではない",
+      "ただし輸液の種類・速度・ボーラス戦略を扱う点で形式的な関連はあるため、完全除外は避けた"
+    ],
+    "attempts": 1,
+    "durationMs": 1842,
+    "usage": {
+      "prompt": 2757,
+      "cached": 0,
+      "completion": 245,
+      "reasoning": 0,
+      "total": 3002
+    }
+  }
+]

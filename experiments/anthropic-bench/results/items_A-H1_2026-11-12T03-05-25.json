@@ -1,0 +1,96 @@
+[
+  {
+    "ref_id": "Depression-SLIM-1",
+    "label_included": 0,
+    "include_probability": 0.02,
+    "reasons": [
+      "抄録はd-グルコースの輸送過程の阻害とその糖尿病誘発作用を扱っており、うつ病に関する記述がない",
+      "使用モデルは兎腎皮質スライスやラット横隔膜などの組織標本で、うつ病のin vivoモデルではない",
+      "組み入れ基準を満たさないため除外する"
+    ],
+    "attempts": 1,
+    "durationMs": 3542,
+    "usage": {
+      "prompt": 1956,
+      "cached": 0,
+      "completion": 279,
+      "reasoning": 134,
+      "total": 2235
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-2",
+    "label_included": 0,
+    "include_probability": 0.9,
+    "reasons": [
+      "動物（ラット）を用いたin vivo研究である",
+      "「depression」は生殖・内分泌機能の低下（age-dependent depression）を指しており、精神疾患ではないが、動物モデルの研究であり除外基準には当たらない",
+      "抄録は生殖機能の加齢変化を扱っており、精神的うつ病のモデル研究ではないため、組み入れ基準の解釈に不確実性があるが、感度優先で組み入れ"
+    ],
+    "attempts": 1,
+    "durationMs": 2960,
+    "usage": {
+      "prompt": 1560,
+      "cached": 0,
+      "completion": 292,
+      "reasoning": 0,
+      "total": 1852
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-3",
+    "label_included": 0,
+    "include_probability": 0.3,
+    "reasons": [
+      "抄録は主に人間の気分障害（躁うつ病）に関する概念的議論であり、動物モデルの記述は明確でない",
+      "ただし動物実験の可能性を完全には否定できず、全文確認が必要なため慎重に組入候補とする"
+    ],
+    "attempts": 1,
+    "durationMs": 2252,
+    "usage": {
+      "prompt": 1471,
+      "cached": 0,
+      "completion": 165,
+      "reasoning": 0,
+      "total": 1636
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-4",
+    "label_included": 1,
+    "include_probability": 0.97,
+    "reasons": [
+      "ラットを用いた動物実験であり、組み入れ基準（in vivoの動物モデル）に合致する",
+      "抄録中で無力感モデル（inescapable shock）を抑うつのモデルとして用いており、うつ病研究に該当する",
+      "ヒト研究ではなく、呼吸抑制などの『抑うつ』の別用法でもない"
+    ],
+    "attempts": 1,
+    "durationMs": 1873,
+    "usage": {
+      "prompt": 1902,
+      "cached": 0,
+      "completion": 270,
+      "reasoning": 0,
+      "total": 2172
+    }
+  },
+  {
+    "ref_id": "Depression-SLIM-5",
+    "label_included": 0,
+    "include_probability": 0.2,
+    "reasons": [
+      "ラットを用いた盲検化されていない動物実験（CLPによる敗血症モデル）であり、動物研究という点では該当する可能性がある。",
+      "ただし本研究の「hepatocellular depression」は肝細胞機能低下を指しており、うつ病（depression）の動物モデルではないため、組み入れ基準の対象外と判断される。",
+      "ただし、基準の「depression」の扱いに迷う可能性があるため、感度重視で完全除外はしない。"
+    ],
+    "attempts": 1,
+    "durationMs": 1859,
+    "usage": {
+      "prompt": 2341,
+      "cached": 0,
+      "completion": 228,
+      "reasoning": 0,
+      "total": 2569
+    }
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "experimentId": "A-H1_2026-11-12T04-32-25",
+  "startTime": "2026-11-12T04:32:25.801Z",
+  "parameters": {
+    "dataset": "cq4",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\cq4_labeled.json",
+    "totalRecords": 4326,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_default",
+    "rateLimitConfig": {
+      "concurrency": 8,
+      "delayBetweenRequests": 200
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating Early Goal-Directed Therapy (EGDT) or protocolized hemodynamic management for patients with severe sepsis or septic shock.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 4326,
+    "successCount": 4326,
+    "failCount": 0,
+    "durationMs": 991267,
+    "avgTimePerItem": 229.14170134073046,
+    "failureRate": 0,
+    "truncatedCount": 0,
+    "refusalCount": 0,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 8996327,
+      "cached": 0,
+      "completion": 932296,
+      "reasoning": 59101
+    },
+    "estimatedCostUsd": 1.3657807000000002,
+    "cost": {
+      "totalUSD": 1.3657807000000002,
+      "perItemUSD": 0.0003157144475265835,
+      "extrapolatedFullUSD": 1.3657807000000002
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 70,
+    "falsePositives": 743,
+    "trueNegatives": 3511,
+    "falseNegatives": 2,
+    "sensitivity": 0.9722222222222222,
+    "specificity": 0.8253408556652563,
+    "precision": 0.08610086100861009,
+    "fBetaScore": 0.8062658373646625
+  },
+  "endTime": "2026-11-12T04:48:57.075Z"
+}

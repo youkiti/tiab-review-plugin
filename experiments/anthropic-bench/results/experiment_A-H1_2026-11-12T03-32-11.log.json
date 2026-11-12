@@ -1,0 +1,61 @@
+{
+  "experimentId": "A-H1_2026-11-12T03-32-11",
+  "startTime": "2026-11-12T03:32:11.758Z",
+  "parameters": {
+    "dataset": "cq3",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\.claude\\worktrees\\bench-anthropic-312-78504a\\scripts\\asreview-baseline\\datasets\\cq3_labeled.json",
+    "totalRecords": 1038,
+    "sampleSize": 50,
+    "condition": {
+      "id": "A-H1",
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "reasoningEffort": "low",
+      "rateLimit": "anthropic_default",
+      "smokeRateLimit": "anthropic_smoke",
+      "note": "アプリが送る設定 (MODEL_GENERATION_SETTINGS の claude-haiku-5-5)。同梱の採用の判定に使う。"
+    },
+    "sentMaxTokens": 20000,
+    "rateLimitName": "anthropic_smoke",
+    "rateLimitConfig": {
+      "concurrency": 3,
+      "delayBetweenRequests": 300
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies investigating the use of Sodium Bicarbonate (重炭酸ナトリウム) for patients with metabolic acidosis (or other relevant conditions).\nExclude studies not related to Sodium Bicarbonate.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 50,
+    "successCount": 50,
+    "failCount": 0,
+    "durationMs": 30123,
+    "avgTimePerItem": 602.46,
+    "failureRate": 0,
+    "truncatedCount": 0,
+    "refusalCount": 0,
+    "valid": true,
+    "tokensTotal": {
+      "prompt": 103734,
+      "cached": 0,
+      "completion": 9451,
+      "reasoning": 0
+    },
+    "estimatedCostUsd": 0.015098900000000002,
+    "cost": {
+      "totalUSD": 0.015098900000000002,
+      "perItemUSD": 0.00030197800000000006,
+      "extrapolatedFullUSD": 0.31345316400000006
+    }
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 1,
+    "falsePositives": 19,
+    "trueNegatives": 30,
+    "falseNegatives": 0,
+    "sensitivity": 1,
+    "specificity": 0.6122448979591837,
+    "precision": 0.05,
+    "fBetaScore": 0.7246376811594203
+  },
+  "endTime": "2026-11-12T03:32:41.882Z"
+}
