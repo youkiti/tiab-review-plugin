@@ -7,10 +7,11 @@ import { filterFulltextModels, isFulltextTypeSafeModel } from '../src/lib/fullte
 
 test('Gemini の後ろに直 API の固定版 Jev だけを加える', () => {
     const models = filterFulltextModels(AVAILABLE_MODELS);
-    assert.deepEqual(models.slice(0, -1), filterFulltextGeminiModels(AVAILABLE_MODELS));
+    assert.deepEqual(models.slice(0, -2), filterFulltextGeminiModels(AVAILABLE_MODELS));
+    assert.equal(models[models.length - 2]?.id, 'gemini-decision-1');
     assert.equal(models[models.length - 1]?.id, 'jev-1.14.0');
     assert.equal(models[models.length - 1]?.provider, 'typesafe');
-    assert.equal(models.some(model => ['gemini-decision-1', 'typesafe/jev-1.14'].includes(model.id)), false);
+    assert.equal(models.some(model => model.id === 'typesafe/jev-1.14'), false);
     assert.equal(isFulltextTypeSafeModel('jev-1.14.0'), true);
     assert.equal(isFulltextTypeSafeModel('typesafe/jev-1.14'), false);
     assert.deepEqual(filterFulltextModels([{ id: 'jev-1.14.0', provider: 'openrouter' }]), []);

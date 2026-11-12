@@ -50,7 +50,7 @@ import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
 import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
 import { getModelConfig, findModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
 import { getEffectiveApiKey, getEffectiveTypeSafeApiKey } from '../../../lib/storage';
-import { filterFulltextGeminiModels } from '../../../lib/gemini-decision-model';
+import { filterFulltextGeminiModels, isGeminiDecisionModel } from '../../../lib/gemini-decision-model';
 import { filterFulltextModels, isFulltextTypeSafeModel } from '../../../lib/fulltext-models';
 import {
     buildTypeSafeFulltextPromptRecord,
@@ -58,6 +58,9 @@ import {
     TYPESAFE_FULLTEXT_PROMPT_VERSION,
 } from '../../../lib/typesafe-fulltext';
 import { judgeTypeSafePdf } from './ai-typesafe';
+// ai.ts は全文タブの遅延チャンクに入るので、静的に読んでもサイドパネルの初期 JS は増えない。
+// 別名の動的 import にすると、起動コードのチャンク名の表が増える。
+import * as geminiDecision from './ai-gemini-decision';
 import { getClientVersion } from '../../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
 import { recordPromptTemplate } from '../../../lib/llm-prompt-record';
@@ -169,8 +172,8 @@ function populateModelSelect(): void {
     }
 }
 
-/** Jev の本文送信と判定の制約をモデル選択の下に表示する。 */
-function renderJevNote(): void {
+/** 選んだモデルの送信内容と判定の制約をモデル選択の下に表示する。 */
+function renderModelNote(): void {
     let note = document.getElementById('fulltext-ai-jev-note');
     if (!note) {
         note = document.createElement('p');
@@ -178,8 +181,9 @@ function renderJevNote(): void {
         note.className = 'model-key-note';
         dom.fulltextAiModelSelect.after(note);
     }
-    note.textContent = t('ftPage_aiJevNote');
-    note.classList.toggle('hidden', !isFulltextTypeSafeModel(dom.fulltextAiModelSelect.value));
+    const model = dom.fulltextAiModelSelect.value;
+    note.textContent = t(isGeminiDecisionModel(model) ? 'ftPage_aiDecisionNote' : 'ftPage_aiJevNote');
+    note.classList.toggle('hidden', !isFulltextTypeSafeModel(model) && !isGeminiDecisionModel(model));
 }
 
 /**
@@ -226,7 +230,7 @@ async function prefillPrompt(): Promise<void> {
 /** AI判定タブを描画する */
 export function renderFulltextAi(): void {
     populateModelSelect();
-    renderJevNote();
+    renderModelNote();
     if (!document.getElementById('fulltext-ai-copyright-notice')) {
         const notice = document.createElement('p');
         notice.id = 'fulltext-ai-copyright-notice';
@@ -565,6 +569,7 @@ async function handleStartAiBatch(): Promise<void> {
     }
 
     const isTypeSafe = isFulltextTypeSafeModel(modelId);
+    const isDecision = isGeminiDecisionModel(modelId);
     const apiKey = await (isTypeSafe ? getEffectiveTypeSafeApiKey() : getEffectiveApiKey());
     if (!apiKey) {
         showToast(t(isTypeSafe ? 'llm_typeSafeApiKeyRequired' : 'llm_apiKeyRequired'));
@@ -621,6 +626,8 @@ async function handleStartAiBatch(): Promise<void> {
     // 残るようにするのが本Issueの主眼。References/Decisions タブは一切触らない
     // （fulltext_status を書き換えると候補プールから全員分外れ、Decisions に失敗行を書くと
     //   κ算出とラウンド管理が壊れるため）。
+    const decisionModule = isDecision ? geminiDecision : undefined;
+    const decisionPrompt = decisionModule?.buildGeminiDecisionFulltextPromptRecord(screeningPrompt, state.excludeReasonItems);
     const initialExecution: LlmExecution = {
         execution_id: executionId,
         execution_type: 'fulltext_batch_screening',
@@ -629,9 +636,10 @@ async function handleStartAiBatch(): Promise<void> {
         requested_model: modelId,
         ...sentGenerationSettings(modelConfig.model, modelConfig),
         ...await recordPromptTemplate(
-            isTypeSafe ? buildTypeSafeFulltextPromptRecord(screeningPrompt, state.excludeReasonItems)
-                : buildFulltextPrompt(screeningPrompt, 'ja', state.excludeReasonItems),
-            isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION
+            decisionPrompt ?? (isTypeSafe ? buildTypeSafeFulltextPromptRecord(screeningPrompt, state.excludeReasonItems)
+                : buildFulltextPrompt(screeningPrompt, 'ja', state.excludeReasonItems)),
+            decisionModule ? decisionModule.GEMINI_DECISION_FULLTEXT_PROMPT_VERSION
+                : isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION
         ),
         // フルテキストAI判定の判定基準は TiAb の criteria_snapshot（LlmCriteria）とそのまま
         // 対応しない。buildEffectivePrompt() は llm_criteria をプロンプト生成の入力の1つとして
@@ -639,7 +647,8 @@ async function handleStartAiBatch(): Promise<void> {
         // （PICO等のテンプレートを使わずプロンプトを直接編集した場合など）意味のある値が無いので null。
         criteria_snapshot: state.llmConfig?.llm_criteria ?? null,
         screening_prompt: screeningPrompt,
-        include_threshold: isTypeSafe ? TYPESAFE_FULLTEXT_INCLUDE_THRESHOLD : 0,
+        include_threshold: decisionModule ? decisionModule.GEMINI_DECISION_FULLTEXT_INCLUDE_THRESHOLD
+            : isTypeSafe ? TYPESAFE_FULLTEXT_INCLUDE_THRESHOLD : 0,
         target_count: targets.length,
         include_count: 0,
         exclude_count: 0,
@@ -721,8 +730,9 @@ async function judgeOne(
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
     // Issue #155: チャンク読込失敗は検出失敗のcatchに入れず、AI判定の失敗として伝播する。
     const isTypeSafe = isFulltextTypeSafeModel(requestedModel);
+    const isDecision = isGeminiDecisionModel(requestedModel);
     let imageOnly: boolean | undefined;
-    if (!isTypeSafe) {
+    if (!isTypeSafe && !isDecision) {
         const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../../lib/pdf-image-only');
         try {
             imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
@@ -741,8 +751,15 @@ async function judgeOne(
     const typeSafeResult = isTypeSafe ? await judgeTypeSafePdf(bytes, {
         model: modelConfig.model, title: ref.title, screeningPrompt, reasonItems: state.excludeReasonItems,
     }) : undefined;
+    const decisionModule = isDecision ? geminiDecision : undefined;
+    const decisionResult = decisionModule ? await decisionModule.judgeGeminiDecisionPdf(bytes, {
+        model: modelConfig.model, title: ref.title, screeningPrompt, reasonItems: state.excludeReasonItems,
+    }) : undefined;
     try {
-        if (typeSafeResult) {
+        if (decisionResult) {
+            ({ output, usageMetadata, responseMetadata, evidenceTruncated } = decisionResult);
+            typeSafeNote = decisionResult.note;
+        } else if (typeSafeResult) {
             ({ output, usageMetadata, responseMetadata, evidenceTruncated } = typeSafeResult);
             typeSafeNote = typeSafeResult.note;
             imageOnly = false;
@@ -791,7 +808,7 @@ async function judgeOne(
         evidence: output.evidence,
         image_only: imageOnly,
         evidence_truncated: evidenceTruncated ? true : undefined,
-        prompt_version: isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION,
+        prompt_version: decisionModule ? decisionModule.GEMINI_DECISION_FULLTEXT_PROMPT_VERSION : isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION,
         ...typeSafeNote,
         usageMetadata,
     };
@@ -873,7 +890,7 @@ function handleScopeChange(scope: FulltextAiScope): void {
 }
 
 export function setupFulltextAiListeners(): void {
-    dom.fulltextAiModelSelect.addEventListener('change', renderJevNote);
+    dom.fulltextAiModelSelect.addEventListener('change', renderModelNote);
     dom.fulltextAiStartBtn?.addEventListener('click', () => { void handleStartAiBatch(); });
     dom.fulltextAiStopBtn?.addEventListener('click', () => {
         dom.fulltextAiStopBtn.disabled = false;
