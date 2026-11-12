@@ -2,6 +2,13 @@
 import { ExperimentError, RecordRow } from './common';
 
 export interface Score { record: RecordRow; p: number }
+export interface DifferenceCi {
+    difference: number | null;
+    lower: number | null;
+    upper: number | null;
+    replicates: number;
+    discarded: number;
+}
 const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
 const ratio = (a: number, b: number) => b ? a / b : null;
 export function metrics(items: Score[], threshold: number) {
@@ -41,6 +48,71 @@ export function chooseThreshold(items: Score[], jevRecall: number | null): numbe
         throw new ExperimentError('Recall を満たす閾値がありません。');
     }
     return selected;
+}
+function randomFromSeed(seed: number): () => number {
+    let state = seed >>> 0;
+    // mulberry32 で seed から決まる乱数列を作る。
+    return () => {
+        state = (state + 0x6D2B79F5) >>> 0;
+        let value = Math.imul(state ^ (state >>> 15), state | 1);
+        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+}
+export function pairedDifferenceCi(
+    a: Score[], b: Score[], thresholdA: number, thresholdB: number,
+    metric: 'recall' | 'specificity', replicates: number, seed: number,
+): DifferenceCi {
+    if (a.length !== b.length || a.some((item, i) => item.record.key !== b[i].record.key
+        || item.record.pmcid !== b[i].record.pmcid || item.record.label !== b[i].record.label)) {
+        throw new ExperimentError('対の指標の記録またはキーの並びが一致しません。');
+    }
+    if (!Number.isInteger(replicates) || replicates <= 0 || !Number.isInteger(seed)) {
+        throw new ExperimentError('ブートストラップの回数または seed が不正です。');
+    }
+    const valueA = metrics(a, thresholdA)[metric], valueB = metrics(b, thresholdB)[metric];
+    if (valueA === null || valueB === null) {
+        return { difference: null, lower: null, upper: null, replicates: 0, discarded: replicates };
+    }
+    // レビューごとの分母と正解数を足すことで、記録を複製する micro 指標と同じ値を得る。
+    const clusters = new Map<string, { denominator: number; correctA: number; correctB: number }>();
+    for (let i = 0; i < a.length; i++) {
+        const { record, p } = a[i];
+        const cluster = clusters.get(record.pmcid) ?? { denominator: 0, correctA: 0, correctB: 0 };
+        if ((record.label === 'included') === (metric === 'recall')) {
+            cluster.denominator++;
+            cluster.correctA += Number(metric === 'recall' ? p >= thresholdA : p < thresholdA);
+            cluster.correctB += Number(metric === 'recall' ? b[i].p >= thresholdB : b[i].p < thresholdB);
+        }
+        clusters.set(record.pmcid, cluster);
+    }
+    const reviews = [...clusters.values()], random = randomFromSeed(seed), differences: number[] = [];
+    let discarded = 0;
+    for (let r = 0; r < replicates; r++) {
+        let denominator = 0, correctA = 0, correctB = 0;
+        for (let i = 0; i < reviews.length; i++) {
+            const review = reviews[Math.floor(random() * reviews.length)];
+            denominator += review.denominator;
+            correctA += review.correctA;
+            correctB += review.correctB;
+        }
+        if (!denominator) {
+            discarded++;
+            continue;
+        }
+        differences.push(correctA / denominator - correctB / denominator);
+    }
+    differences.sort((x, y) => x - y);
+    // 分位点は R type 7: 昇順の添字 (n−1)p の両隣を線形補間する。
+    const percentile = (p: number): number | null => {
+        if (!differences.length) {
+            return null;
+        }
+        const index = (differences.length - 1) * p, lower = Math.floor(index), upper = Math.ceil(index);
+        return differences[lower] + (differences[upper] - differences[lower]) * (index - lower);
+    };
+    return { difference: valueA - valueB, lower: percentile(0.025), upper: percentile(0.975),
+        replicates: differences.length, discarded };
 }
 function covariance(a: number[], b: number[]): number | null {
     if (a.length < 2) {

@@ -20,6 +20,8 @@
     "maxAttempts": 5,
     "requestTimeoutMs": 120000,
     "maxPdfBytes": 50000000,
-    "adoptionRule": "cc-by-nc の同じ成功集合で、凍結した閾値の Recall と Specificity がともに jev-1.14.0 の閾値0.3以上の場合だけ満たす。主の判定は PDF 入力。PDF が満たさずテキストだけ満たす場合は組み込まない。",
+    "bootstrapReplicates": 2000,
+    "bootstrapSeed": 2026,
+    "adoptionRule": "「劣らない」は、Recall と Specificity のそれぞれで、decision-1（凍結した閾値 t*）− jev-1.14.0（閾値0.3）の対の差の95%信頼区間を、レビュー単位のブートストラップで出し、その上限が0以上（有意に劣っていない）であること。両方が「劣らない」なら採用の条件を満たす。主に見るのは CC BY-NC の PDF 入力。PDF が満たさずテキストだけ満たすときは組み込まない。",
     "thresholdsFile": "results/thresholds.json"
 }

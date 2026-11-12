@@ -5,7 +5,7 @@ import {
     Config, ExperimentError, Input, RecordRow, Tier, atomicWrite, configHash, directory, fail, fakeDirectory, loadConfig,
     outputPaths, pdfState, readFailures, readRecords, readSuccess, sha256,
 } from './common';
-import { Score, chooseThreshold, delong, metrics } from './metrics';
+import { DifferenceCi, Score, chooseThreshold, delong, metrics, pairedDifferenceCi } from './metrics';
 
 interface Threshold { threshold: number; jevRecall: number; n: number; computedAt: string; configHash: string }
 type Thresholds = Partial<Record<Input, Threshold>>;
@@ -87,7 +87,20 @@ const number = (value: number | null) => value === null ? '—' : value.toFixed(
 const comparison = (result: ReturnType<typeof delong>) =>
     `AUC ${number(result.aucA)} / ${number(result.aucB)}、対の差 ${number(result.difference)}、95% CI `
     + (result.ci ? `[${number(result.ci[0])}, ${number(result.ci[1])}]` : '—');
+const interval = (result: DifferenceCi) => result.lower === null || result.upper === null
+    ? '—' : `[${number(result.lower)}, ${number(result.upper)}]`;
+export function adoptionSatisfied(recall: DifferenceCi, specificity: DifferenceCi): boolean | null {
+    if (recall.upper === null || specificity.upper === null) {
+        return null;
+    }
+    return recall.upper >= 0 && specificity.upper >= 0;
+}
 export function summarize(options: SummaryOptions, config = loadConfig()): string {
+    // 集計専用の設定は台帳の設定ハッシュに加えず、凍結した閾値を維持する。
+    const { bootstrapReplicates, bootstrapSeed } = config as Config & { bootstrapReplicates: number; bootstrapSeed: number };
+    if (!Number.isInteger(bootstrapReplicates) || bootstrapReplicates <= 0 || !Number.isInteger(bootstrapSeed)) {
+        throw new ExperimentError('ブートストラップの設定が不正です。');
+    }
     const base = options.outputDir ?? (options.fake ? fakeDirectory : path.join(directory, 'results'));
     const thresholdFile = options.fake || options.outputDir ? path.join(base, 'thresholds.json') : path.join(directory, config.thresholdsFile);
     const tiers: Tier[] = options.tier ? [options.tier] : ['cc-by', 'cc-by-nc'];
@@ -140,6 +153,7 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
         'ソース: ' + ['prepare.py', 'fetch_pdfs.py', 'config.json', 'common.ts', 'decisions-fulltext.ts', 'runner.ts', 'metrics.ts', 'summarize.ts']
             .map(f => `[${f}](${link(path.join(directory, f))})`).join(' / '), '',
         `採用条件: ${config.adoptionRule}`, '',
+        `ブートストラップ: ${bootstrapReplicates} 回、seed ${bootstrapSeed}、クラスタはレビュー、パーセンタイル法（R type 7 の線形補間）で95% CIを算出する。`, '',
         '研究単位 Recall の分母も同じ成功集合のゴールド陽性から作る。DeLong の分散・共分散は標本共分散から計算する。',
         '陽性または陰性がない場合は AUC を算出しない。各クラス2件未満の場合は CI を算出しない。', '',
         '| 層 | 入力 | 成功台帳の行数 | 失敗台帳の行数 | records.jsonl SHA-256 |', '|---|---|---:|---:|---|'];
@@ -202,6 +216,17 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
         const paired = delong(scores.map(s => s.record.label === 'included'), scores.map(s => s.p), jev.map(s => s.p));
         lines.push('', `decision-1 − jev（同じ ${scores.length} 件）: ${comparison(paired)}。`, '');
         if (frozen) {
+            const a = metrics(scores, frozen.threshold), b = metrics(jev, 0.3);
+            const recallCi = pairedDifferenceCi(scores, jev, frozen.threshold, 0.3, 'recall', bootstrapReplicates, bootstrapSeed);
+            const specificityCi = pairedDifferenceCi(scores, jev, frozen.threshold, 0.3, 'specificity', bootstrapReplicates, bootstrapSeed);
+            lines.push('対の指標差（decision-1 − jev）。95% CI はレビュー単位のブートストラップ。', '',
+                '| 指標 | decision-1（t*） | jev（0.3） | 差 | 95% CI | 有効な回数 | 捨てた回数 |',
+                '|---|---:|---:|---:|---|---:|---:|');
+            for (const [name, metric, ci] of [['Recall', 'recall', recallCi], ['Specificity', 'specificity', specificityCi]] as const) {
+                lines.push(`| ${name} | ${number(a[metric])} | ${number(b[metric])} | ${number(ci.difference)}`
+                    + ` | ${interval(ci)} | ${ci.replicates} | ${ci.discarded} |`);
+            }
+            lines.push('');
             const distribution = new Map<string, number>();
             const excluded = scores.filter(s => s.p < frozen.threshold);
             for (const item of excluded) {
@@ -226,11 +251,16 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
                 lines.push('', `理由確認用の標本: ${sample.length} 件。seed 2026 とキーの SHA-256 昇順で最大50件を抽出。`);
             }
             if (tier === 'cc-by-nc') {
-                const a = metrics(scores, frozen.threshold), b = metrics(jev, 0.3);
                 const defined = a.recall !== null && b.recall !== null && a.specificity !== null && b.specificity !== null;
-                const pass = defined ? a.recall! >= b.recall! && a.specificity! >= b.specificity! : null;
+                const pointPass = defined ? a.recall! >= b.recall! && a.specificity! >= b.specificity! : null;
+                const pass = adoptionSatisfied(recallCi, specificityCi);
                 verdicts.set(input, pass);
                 lines.push('', `採用条件: ${pass === null ? '判定不能' : pass ? '満たす' : '満たさない'}。`
+                    + 'Recall の差の CI 上限 >= 0 かつ Specificity の差の CI 上限 >= 0。'
+                    + `Recall の差 ${number(recallCi.difference)}、95% CI ${interval(recallCi)}、`
+                    + `Specificity の差 ${number(specificityCi.difference)}、95% CI ${interval(specificityCi)}。`
+                    + '丸める前の値で比較。' + (result.incomplete ? '未完了があるため暫定。' : ''),
+                '', `参考（点推定）: ${pointPass === null ? '判定不能' : pointPass ? '満たす' : '満たさない'}。`
                     + `Recall ${a.recall ?? '—'} / jev ${b.recall ?? '—'}、Specificity ${a.specificity ?? '—'} / jev ${b.specificity ?? '—'}。`
                     + '丸める前の値で比較。' + (result.incomplete ? '未完了があるため暫定。' : ''));
             }
