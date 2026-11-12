@@ -128,8 +128,16 @@ Write-Host "✓ sidepanel.html を更新しました (Build: $buildDate)"
 # 3b. CITATION.cff の version と date-released を更新（BOMなしUTF-8で保存）
 # date-released は Build: と同じ $buildDate（この PC のローカル日付）。npm run release は CHANGELOG の版の見出しも同じ日付で書く。
 $citationContent = Get-Content $citationPath -Raw -Encoding UTF8
-$citationContent = $citationContent -replace '(?m)^version: [^\r\n]*$', "version: $newVersion"
-$citationContent = $citationContent -replace '(?m)^date-released: [^\r\n]*$', "date-released: `"$buildDate`""
+# .NET の (?m)$ は \n の直前にしか一致しないので、CRLF の作業ツリーでも一致するよう行末は (?=\r?$) で受ける。
+# 一致しなければ黙って何も変えずに進まないよう、置き換える前に止める。
+$citationVersionPattern = '(?m)^version: [^\r\n]*(?=\r?$)'
+$citationDatePattern = '(?m)^date-released: [^\r\n]*(?=\r?$)'
+if ($citationContent -notmatch $citationVersionPattern -or $citationContent -notmatch $citationDatePattern) {
+    Write-Host "エラー: CITATION.cff に version: または date-released: の行が見つかりません" -ForegroundColor Red
+    exit 1
+}
+$citationContent = $citationContent -replace $citationVersionPattern, "version: $newVersion"
+$citationContent = $citationContent -replace $citationDatePattern, "date-released: `"$buildDate`""
 [System.IO.File]::WriteAllText($citationPath, $citationContent, [System.Text.UTF8Encoding]::new($false))
 Write-Host "✓ CITATION.cff を更新しました (version: $newVersion, date-released: $buildDate)"
 
