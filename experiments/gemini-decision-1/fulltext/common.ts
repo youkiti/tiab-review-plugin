@@ -204,7 +204,14 @@ export function pdfState(record: RecordRow, recordsFile: string, config: Config,
     if (!fs.existsSync(file)) {
         return { kind: 'pdf_missing' as const, file };
     }
-    return { kind: fs.statSync(file).size > config.maxPdfBytes ? 'too_large' as const : 'ready' as const, file };
+    if (fs.statSync(file).size > config.maxPdfBytes) {
+        return { kind: 'too_large' as const, file };
+    }
+    // 取り直しに失敗した不正な PDF が残っている場合は、未取得として取得のやり直しに回す。
+    if (record.pdf_md5 && createHash('md5').update(fs.readFileSync(file)).digest('hex') !== record.pdf_md5.toLowerCase()) {
+        return { kind: 'pdf_missing' as const, file };
+    }
+    return { kind: 'ready' as const, file };
 }
 export function fail(error: unknown): void {
     console.error(error instanceof ExperimentError ? error.message : '処理に失敗しました。設定・入力・保存先を確認してください。');

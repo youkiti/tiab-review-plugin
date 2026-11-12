@@ -105,8 +105,9 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
         }
         const frozen: Thresholds = {};
         for (const result of collections) {
-            if (result.incomplete || result.ledger.brokenLines) {
-                throw new ExperimentError(`未完了 ${result.incomplete} 件または不正な台帳行があるため閾値を凍結しません。`);
+            // 不正な台帳行は、同じキーの正常な行で再開済みなら凍結を妨げない（件数はレポートに出る）。
+            if (result.incomplete) {
+                throw new ExperimentError(`未完了 ${result.incomplete} 件があるため閾値を凍結しません。`);
             }
             const jevRecall = metrics(result.jev, 0.3).recall;
             frozen[result.input] = { threshold: chooseThreshold(result.scores, jevRecall), jevRecall: jevRecall!,

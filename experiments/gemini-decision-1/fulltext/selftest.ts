@@ -104,6 +104,17 @@ async function main(): Promise<void> {
         assert.equal(tooLarge.code, 0);
         assert.equal(tooLarge.skipped.too_large, 5);
         assert.equal(tooLarge.success, 0);
+        const md5Rows = rows.map(r => ({ ...r, pdf_md5: r.pdf_url ? '0'.repeat(32) : null }));
+        const md5File = writeRecords(path.join(temporary, 'md5/cc-by'), md5Rows);
+        fs.mkdirSync(path.join(path.dirname(md5File), 'pdf'));
+        for (const item of md5Rows.filter(r => r.pdf_url)) {
+            fs.writeFileSync(path.join(path.dirname(md5File), 'pdf', `${item.report_pmcid}.pdf`), 'fake-pdf');
+        }
+        const badMd5 = await run({ ...options, input: 'pdf', fake: false, recordsFile: md5File, outputDir: path.join(temporary, 'md5-results') },
+            config, fakeScreen(config), () => undefined);
+        assert.equal(badMd5.code, 1);
+        assert.equal(badMd5.skipped.pdf_missing, 5);
+        assert.equal(badMd5.success, 0);
         const summary: SummaryOptions = { fake: true, freeze: true, force: false, tier: 'cc-by',
             recordsDir: path.join(temporary, 'data'), outputDir };
         summarize(summary, config);
