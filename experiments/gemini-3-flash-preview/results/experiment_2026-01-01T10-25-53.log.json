@@ -1,0 +1,58 @@
+{
+  "experimentId": "2026-01-01T10-25-53",
+  "startTime": "2026-01-01T10:25:53.937Z",
+  "parameters": {
+    "dataset": "depression",
+    "datasetPath": "C:\\Users\\youki\\codes\\tiab-review-plugin\\scripts\\asreview-baseline\\datasets\\depression_slim_labeled.json",
+    "totalRecords": 1993,
+    "condition": {
+      "id": "B7",
+      "model": "gemini-3-flash-preview",
+      "temperature": 1,
+      "topP": 0.65,
+      "thinkingLevel": "HIGH"
+    },
+    "tier": "tier_max",
+    "rateLimitConfig": {
+      "concurrency": 1000,
+      "delayBetweenRequests": 1
+    },
+    "screeningPrompt": "You are a screener for a systematic review.\nSensitivity is paramount in systematic reviews to avoid missing relevant studies.\nIf you are unsure or if the full text is required to make a definitive decision, you MUST include the study.\n\n## Inclusion Criteria\nInclude studies on in vivo models of depression (Animal studies).\nExclude human studies.\nExclude studies where 'depression' refers to respiratory depression, cardiac depression, etc.\n\nInclude studies that meet the inclusion criteria.\nExclude studies that do not meet the criteria or are clearly irrelevant."
+  },
+  "results": {
+    "processedCount": 1993,
+    "successCount": 1993,
+    "failCount": 0,
+    "durationMs": 655172,
+    "avgTimePerItem": 328.73657802308077
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "truePositives": 265,
+    "falsePositives": 255,
+    "trueNegatives": 1458,
+    "falseNegatives": 15,
+    "sensitivity": 0.9464285714285714,
+    "specificity": 0.851138353765324,
+    "precision": 0.5096153846153846,
+    "fBetaScore": 0.9304775280898876
+  },
+  "endTime": "2026-01-01T10:36:49.179Z",
+  "consoleLog": [
+    "[2026-01-01T10:25:53.937Z] === Starting Experiment 2026-01-01T10-25-53 ===",
+    "[2026-01-01T10:25:53.937Z] Dataset: depression, Condition: B7, Tier: tier_max",
+    "[2026-01-01T10:25:53.951Z] Loaded 1993 references from depression",
+    "[2026-01-01T10:25:53.956Z] Condition: {\"id\":\"B7\",\"model\":\"gemini-3-flash-preview\",\"temperature\":1,\"topP\":0.65,\"thinkingLevel\":\"HIGH\"}",
+    "[2026-01-01T10:25:53.956Z] Rate limit: concurrency=1000, delay=1ms",
+    "[2026-01-01T10:36:49.132Z] Completed: 1993/1993 succeeded in 655.2s",
+    "[2026-01-01T10:36:49.132Z] Average time per item: 329ms",
+    "[2026-01-01T10:36:49.168Z] Decisions saved to C:\\Users\\youki\\codes\\tiab-review-plugin\\experiments\\results\\decisions_2026-01-01T10-25-53.json",
+    "[2026-01-01T10:36:49.179Z] \n=== Evaluation (threshold=0.5) ===",
+    "[2026-01-01T10:36:49.179Z] TP: 265, FP: 255",
+    "[2026-01-01T10:36:49.179Z] TN: 1458, FN: 15",
+    "[2026-01-01T10:36:49.179Z] Sensitivity: 94.64%",
+    "[2026-01-01T10:36:49.179Z] Specificity: 85.11%",
+    "[2026-01-01T10:36:49.179Z] Precision: 50.96%",
+    "[2026-01-01T10:36:49.179Z] Fβ(β=7): 93.05%"
+  ]
+}
