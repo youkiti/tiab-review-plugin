@@ -11,7 +11,7 @@
  */
 
 import { state } from '../state';
-import { buildManuscriptValidationSentence } from '../../lib/manuscript-ai';
+import { buildManuscriptValidationSentence, resolveManuscriptIncludeThreshold } from '../../lib/manuscript-ai';
 import { t } from '../../lib/i18n';
 import { showModal, hideModal } from '../ui/modal';
 import { showToast } from '../ui/feedback';
@@ -22,7 +22,7 @@ import { parseClientSemver } from '../../lib/manuscript-version';
 import { getSpreadsheetInfo, getReferences, getLlmExecutions, getLlmRuns } from '../../lib/sheets-api';
 import { buildManuscriptOutput } from '../../lib/manuscript-text';
 import type { ManuscriptPhase, ManuscriptInput } from '../../lib/manuscript-text';
-import type { ReferenceWithStatus, LlmExecution } from '../../lib/types';
+import type { ReferenceWithStatus, LlmExecution, LlmRun } from '../../lib/types';
 
 export type { ManuscriptPhase };
 
@@ -76,15 +76,16 @@ function buildSectionElement(label: string, text: string): HTMLElement {
  * @param phase 'tiab' = TiAb相まで / 'fulltext' = フルテキスト相を含む全体
  */
 export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void> {
+    let runs: LlmRun[] = [];
+    try {
+        runs = await getLlmRuns(state.spreadsheetId);
+    } catch {
+        // 閾値は共通の既定値に戻し、検証記録の取得失敗を「比較なし」と断定しない。
+    }
     let validationSentence = '';
     if (phase === 'tiab') {
-        try {
-            const runs = await getLlmRuns(state.spreadsheetId);
-            validationSentence = runs.filter(run => run.is_active && run.status === 'confirmed')
-                .map(buildManuscriptValidationSentence).filter(Boolean).join('\n\n');
-        } catch {
-            // 検証記録の取得失敗を「比較なし」と断定しない。
-        }
+        validationSentence = runs.filter(run => run.is_active && run.status === 'confirmed')
+            .map(buildManuscriptValidationSentence).filter(Boolean).join('\n\n');
     }
     let executions: LlmExecution[] = [];
     try {
@@ -137,7 +138,7 @@ export async function showManuscriptModal(phase: ManuscriptPhase): Promise<void>
         assignmentConfig: state.assignmentConfig,
         treatMlAsManual: state.treatMlAsManual,
         mlStoppingRule: state.mlState.stoppingRule,
-        llmIncludeThreshold: state.llmConfig.llm_include_threshold,
+        llmIncludeThreshold: resolveManuscriptIncludeThreshold(runs, state.llmConfig.llm_include_threshold),
         llmExecutions: executions,
         validationSentence,
         excludeReasonItems: state.excludeReasonItems,

@@ -3497,7 +3497,7 @@
     "message": "Help"
   },
   "llm_tip_model": {
-    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$$1.70/1K items).\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.14.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.8%, CQ1–5 pooled 97.3%).\n\nConfigure the provider and key in \"AI connection\", then pick a model below. See the latest benchmark via the link beside the model."
+    "message": "Pick the LLM model used for screening (Gemini / OpenRouter / OpenAI / Anthropic / TypeSafe).\n■ Gemini (Google AI Studio key required)\n• Gemini 3.1 Flash-Lite: recommended. Low-cost & fast (depression Recall 93.6%, ~$$0.30/1K items).\n• Gemini 3 Flash Preview: higher accuracy (depression Recall 96.1%, ~$$1.70/1K items).\n• Gemini Decision 1: decision-only model returning probabilities directly (no written reasons; threshold 0.15: depression Recall 96.1%, CQ1–5 pooled 99.2%, ~$$0.05/1K items). Title/abstract screening only.\n\n■ OpenRouter (OpenRouter key required)\n• Qwen3 235B Instruct (2507): Recall 93.9% / Specificity 92.2% / ~$$0.135/1K items.\n• DeepSeek V4 Flash: Recall 91.1% / Specificity 90.5% / ~$$0.756/1K items.\n\n■ Anthropic (Anthropic key required)\n• Claude Haiku 5.5 / Claude Sonnet 5.5: These models have not been benchmarked in this tool.\n\n■ TypeSafe (TypeSafe key required)\n• TypeSafe Jev 1.14.0: System One model that returns probabilities, without written reasons (at threshold 0.3: depression Recall 96.8%, CQ1–5 pooled 97.3%).\n\nConfigure the provider and key in \"AI connection\", then pick a model below. See the latest benchmark via the link beside the model."
   },
   "llm_benchmarkLinkLabel": {
     "message": "📊 Compare on the benchmark"
@@ -3528,6 +3528,15 @@
   },
   "llm_modelName_jev_1_14_0": {
     "message": "TypeSafe Jev 1.14.0 — Recall 96.8% (threshold 0.3)"
+  },
+  "llmExt_modelName_gemini_decision_1": {
+    "message": "Gemini Decision 1 — Recall 96.1% (threshold 0.15)"
+  },
+  "llmExt_geminiDecisionCriteriaUnsupported": {
+    "message": "Gemini Decision 1 cannot optimize criteria. Choose another model that supports generation."
+  },
+  "llmExt_geminiDecisionThresholdNote": {
+    "message": "This model tends to return lower probabilities, so runs start at threshold 0.15. If unsure, use 0.15 instead of 0.3 (depression Recall 96.1% in the benchmark)."
   },
   "llm_modelName_jev_1_14_openrouter": {
     "message": "TypeSafe Jev 1.14 (OpenRouter) — Recall 96.8% (threshold 0.3)"

@@ -875,6 +875,15 @@ export const AVAILABLE_MODELS: ModelOption[] = [
         config: getModelGenerationConfig('gemini-3-flash-preview')
     },
     {
+        // PR #345: depression 1,993件、閾値0.15で Recall 96.1%、CQ1〜5 合算99.2%。
+        // 判定専用モデルで、文章の理由・根拠の抜粋は返さない。
+        id: 'gemini-decision-1',
+        name: 'Gemini Decision 1',
+        nameKey: 'llmExt_modelName_gemini_decision_1',
+        provider: 'gemini',
+        config: getModelGenerationConfig('gemini-decision-1')
+    },
+    {
         id: 'qwen/qwen3-235b-a22b-2507',
         name: 'Qwen3 235B Instruct (2507)',
         nameKey: 'llm_modelName_qwen3_235b_2507',

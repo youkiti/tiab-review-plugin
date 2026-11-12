@@ -1414,6 +1414,16 @@
                     <span class="en">TypeSafe (Jev) returns no written reasons. The reason field records match probabilities for each criterion (such as P/I/C/O), without evidence highlights. It cannot be used to optimize criteria. You can also use an OpenRouter key by selecting “TypeSafe Jev 1.14 (OpenRouter) — Recall 96.8% (threshold 0.3)” from the model list.</span>
                 </p>
                 <p>
+                    <span class="ja">「Gemini Decision 1 — Recall 96.1%（閾値0.15）」は Gemini のキーで使う判定専用モデルです。
+                        判定理由の文章は返らず、要素ごとの確率を記録します。根拠のハイライトはありません。
+                        基準の最適化とフルテキストAI判定には使えません。新しい Run は閾値 0.15 から始まり、
+                        確定してもプロジェクトの既定の閾値は変わりません。このモデルは確率が低めに出るため、迷ったら 0.3 ではなく 0.15 を使ってください（ベンチマークで depression Recall 96.1%）。</span>
+                    <span class="en">“Gemini Decision 1 — Recall 96.1% (threshold 0.15)” is a decision-only model using your Gemini key.
+                        It records per-criterion probabilities without written reasons or evidence highlights.
+                        It cannot optimize criteria or screen full texts. New runs start at threshold 0.15;
+                        confirming a threshold does not change the project's default threshold. This model tends to return lower probabilities; if unsure, use 0.15 instead of 0.3 (depression Recall 96.1% in the benchmark).</span>
+                </p>
+                <p>
                     <span class="ja">OpenRouter のモデルでは判定ごとのコスト（USD）が記録され、一括実行の完了時に推定コストの合計が表示されます。フォールバック・失敗・再試行で消費した分は含みません。</span>
                     <span class="en">For OpenRouter models, the cost (USD) is recorded for each decision and the estimated total is shown when a batch completes. Costs incurred by fallbacks, failures, and retries are not included.</span>
                 </p>

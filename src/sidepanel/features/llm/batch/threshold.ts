@@ -17,6 +17,7 @@
 import { dom } from '../dom';
 import { state } from '../../../state';
 import type { Decision } from '../../../../lib/types';
+import { isGeminiDecisionModel } from '../../../../lib/gemini-decision-model';
 import {
     getDecisionsByReviewerId,
     updateDecisionsBatch,
@@ -44,6 +45,11 @@ let _loadDataAndShowScreening: (() => Promise<void>) | null = null;
 
 export function setLoadDataAndShowScreening(fn: () => Promise<void>) {
     _loadDataAndShowScreening = fn;
+}
+
+export function updateDecisionThresholdNote(model: string): void {
+    const note = document.getElementById('gemini-decision-threshold-note');
+    note?.classList.toggle('hidden', !isGeminiDecisionModel(model));
 }
 
 /**
@@ -78,6 +84,7 @@ export async function prepareThresholdAdjustment(executionId: string, threshold:
     syncSetCurrentBatchDecisions(allDecisions);
 
     dom.thresholdSlider.value = threshold.toFixed(2);
+    updateDecisionThresholdNote(run?.model ?? '');
     dom.thresholdValueDisplay.textContent = threshold.toFixed(2);
     dom.thresholdCompleteMessage.textContent = t('llm_thresholdAdjustLoaded', String(targetCount));
     dom.thresholdSection.classList.remove('hidden');
@@ -237,9 +244,11 @@ export async function handleConfirmThreshold() {
         await setSingleActiveRun(spreadsheetId, run.run_id);
 
         // LLM設定を更新（次回新規 Run のデフォルト閾値）
-        await updateLlmConfig(spreadsheetId, {
-            llm_include_threshold: threshold,
-        });
+        if (!isGeminiDecisionModel(run.model)) {
+            await updateLlmConfig(spreadsheetId, {
+                llm_include_threshold: threshold,
+            });
+        }
 
         showToast(t('llm_thresholdSaved'));
 

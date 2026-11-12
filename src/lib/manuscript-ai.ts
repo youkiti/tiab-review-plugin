@@ -4,6 +4,13 @@ import type { FulltextResultsSummary } from './fulltext-results-summary';
 import { summarizeTeamDecision } from './decision-summary';
 import { getModelGenerationSettings } from './model-generation-settings';
 import { PROMPT_VERSION } from './prompt-templates';
+import { isGeminiDecisionModel } from './gemini-decision-model';
+
+/** Methods には採用中の確定済み Run の閾値を使い、無ければ共通の既定値に戻す。 */
+export function resolveManuscriptIncludeThreshold(runs: readonly LlmRun[], defaultThreshold: number): number {
+    // setSingleActiveRun で通常は一つに保たれるが、複数ある場合は最初の一つを使う。
+    return runs.find(run => run.is_active && run.status === 'confirmed')?.include_threshold ?? defaultThreshold;
+}
 
 /** 確定時の記録だけを使い、後から変えた設定で過去の検証を書き換えない。 */
 export function buildManuscriptValidationSentence(run: LlmRun): string {
@@ -60,7 +67,8 @@ function recordedSettings(model: string, row?: LlmExecution): string {
     }
     const provider = getModelGenerationSettings(model).provider;
     const modern = Boolean(row.prompt_sha256);
-    const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/');
+    const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/')
+        || isGeminiDecisionModel(model);
     const sampling = provider !== 'local_llm' && (modern || (!typeSafe && (provider === 'gemini' || provider === 'openrouter')));
     const settings: string[] = [];
     if (sampling && row.temperature !== undefined) {

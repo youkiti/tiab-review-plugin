@@ -568,6 +568,14 @@ export const BATCH_PROFILE_OVERRIDES: Record<string, Partial<Record<ManualTier, 
             saveBatchSize: 50,
         },
     },
+    // PR #346: free・tier1 は公式上限と実測遅延からの算出で未実測、tier2 も同じ算出方法。
+    // tier3 は実測。並列64でも30秒は429なしだが、1件1,000トークンなら毎分1,000万入力トークンが先に効く。
+    'gemini-decision-1': {
+        free: { rate: { concurrency: 1, delayBetweenRequests: 1500 }, saveBatchSize: 5 },
+        tier1: { rate: { concurrency: 4, delayBetweenRequests: 350 }, saveBatchSize: 4 },
+        tier2: { rate: { concurrency: 16, delayBetweenRequests: 300 }, saveBatchSize: 16 },
+        tier3: { rate: { concurrency: 40, delayBetweenRequests: 300 }, saveBatchSize: 40 },
+    },
     // TypeSafe Jev: tier の概念がないため、直 API・OpenRouter とも全 tier で同値。
     // 2026-10-15 の jev-1.14.0 実測（各段で並列数×4件）:
     // 直 API は並列4/8/16/32/64で21/52/96/171/293件/秒。

@@ -17,6 +17,7 @@
 import { dom } from '../dom';
 import { state } from '../../../state';
 import type { LlmRun } from '../../../../lib/types';
+import { isGeminiDecisionModel, newRunIncludeThreshold } from '../../../../lib/gemini-decision-model';
 import {
     getLlmExecutions,
     getLlmRuns,
@@ -235,11 +236,9 @@ function appendRunCard(
     if (adjustButton) {
         adjustButton.addEventListener('click', async () => {
             try {
-                const initialThreshold = run.status === 'confirmed'
+                const initialThreshold = run.status === 'confirmed' || isGeminiDecisionModel(run.model)
                     ? run.include_threshold
-                    : (typeof state.llmConfig?.llm_include_threshold === 'number'
-                        ? state.llmConfig.llm_include_threshold
-                        : 0.3);
+                    : newRunIncludeThreshold(run.model, state.llmConfig?.llm_include_threshold);
                 if (!_prepareThresholdAdjustment) {
                     throw new Error('prepareThresholdAdjustment が未配線（./index の setPrepareThresholdAdjustment）');
                 }

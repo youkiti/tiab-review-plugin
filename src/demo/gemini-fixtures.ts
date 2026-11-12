@@ -132,6 +132,35 @@ function judgeReference(title: string, abstract: string): ScreeningJudgement {
     };
 }
 
+/** Decisions API の問いごとに、生成モデルと同じ文献の傾向を持つ確率を返す。 */
+export function buildDemoDecisionsResponse(body: {
+    input?: string;
+    questions?: Record<string, { instructions?: string }>;
+}) {
+    const input = body.input ?? '';
+    const match = /^Title: ([\s\S]*?)\n\nAbstract: ([\s\S]*)$/.exec(input);
+    const probability = judgeReference(match?.[1].trim() ?? '', match?.[2].trim() ?? '').include_probability;
+    const questions = Object.entries(body.questions ?? {});
+    const answers: Record<string, { type: 'noul'; noul: number; confidence: number }> = {};
+    for (const [key] of questions) {
+        const offset = /^criterion_\d+$/.test(key) ? ((stableHash(key) % 7) - 3) / 100 : 0;
+        const noul = Math.max(0.01, Math.min(0.99, probability + offset));
+        answers[key] = { type: 'noul', noul, confidence: Math.max(noul, 1 - noul) };
+    }
+    const tokens = Math.ceil((input.length + questions.reduce(
+        (length, [, question]) => length + (question.instructions?.length ?? 0), 0,
+    )) / 4);
+    return {
+        answers,
+        usage: {
+            total_tokens: tokens,
+            total_input_tokens: tokens,
+            input_tokens_by_modality: [{ modality: 'text', tokens }],
+            total_output_tokens: 0,
+        },
+    };
+}
+
 /** 「基準を最適化」への固定の応答（PICO の基準とスクリーニング用プロンプト） */
 const DEMO_CRITERIA_CONVERSION = {
     criteria: {

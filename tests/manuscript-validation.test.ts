@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildManuscriptBenchmarkSentence, buildManuscriptValidationSentence } from '../src/lib/manuscript-ai';
+import { buildManuscriptBenchmarkSentence, buildManuscriptValidationSentence, resolveManuscriptIncludeThreshold } from '../src/lib/manuscript-ai';
 import type { LlmRun } from '../src/lib/types';
 
 function run(extra: Partial<LlmRun> = {}): LlmRun {
@@ -13,6 +13,27 @@ function run(extra: Partial<LlmRun> = {}): LlmRun {
         ...extra,
     };
 }
+
+test('Methods の閾値は採用中の確定済み Run から取得する', () => {
+    assert.equal(resolveManuscriptIncludeThreshold([run({ include_threshold: 0.15 })], 0.3), 0.15);
+});
+
+test('採用中の確定済み Run が無ければ共通の既定値を使う', () => {
+    assert.equal(resolveManuscriptIncludeThreshold([], 0.3), 0.3);
+    assert.equal(resolveManuscriptIncludeThreshold([
+        run({ status: 'pending', include_threshold: 0.15 }),
+        run({ is_active: false, include_threshold: 0.2 }),
+    ], 0.3), 0.3);
+});
+
+test('未確定・不採用の Run を飛ばし、採用中の確定済み Run の最初の閾値を使う', () => {
+    assert.equal(resolveManuscriptIncludeThreshold([
+        run({ status: 'pending', include_threshold: 0.1 }),
+        run({ is_active: false, include_threshold: 0.2 }),
+        run({ include_threshold: 0.15 }),
+        run({ include_threshold: 0.25 }),
+    ], 0.3), 0.15);
+});
 
 test('事前に設定した基準と確定時の検証結果を論文用の文にする', () => {
     const sentence = buildManuscriptValidationSentence(run());

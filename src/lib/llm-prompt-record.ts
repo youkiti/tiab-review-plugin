@@ -7,11 +7,16 @@ import { getModelGenerationSettings } from './model-generation-settings';
 import { PROMPT_VERSION } from './prompt-templates';
 import type { LlmCriteria } from './types';
 import { isOpenRouterJevModel } from './openrouter-model';
+import { isGeminiDecisionModel } from './gemini-decision-model';
+import { buildGeminiDecisionScreeningRequest } from './providers/gemini-decision';
 
 export function buildTiabPromptTemplate(model: string, screeningPrompt: string, outputLanguage: string, criteria?: LlmCriteria | null): string {
     const { provider } = getModelGenerationSettings(model);
     const title = '{{TITLE}}';
     const abstract = '{{ABSTRACT}}';
+    if (isGeminiDecisionModel(model)) {
+        return JSON.stringify(buildGeminiDecisionScreeningRequest({ model, title, abstract, screeningPrompt, outputLanguage, criteria }).body);
+    }
     if (provider === 'typesafe' || (provider === 'openrouter' && isOpenRouterJevModel(model))) {
         return JSON.stringify(buildTypeSafeScreeningRequest({ model, title, abstract, screeningPrompt, outputLanguage, criteria }).body);
     }
