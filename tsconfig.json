@@ -8,6 +8,7 @@
             "DOM"
         ],
         "strict": true,
+        "isolatedModules": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
@@ -17,12 +18,7 @@
         "noEmit": false,
         "outDir": "./dist",
         "rootDir": "./src",
-        "baseUrl": "./src",
-        "paths": {
-            "@/*": [
-                "./*"
-            ]
-        }
+        "types": ["chrome", "google.accounts", "node"]
     },
     "include": [
         "src/**/*"

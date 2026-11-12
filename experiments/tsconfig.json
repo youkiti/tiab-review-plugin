@@ -2,7 +2,7 @@
     "extends": "../tsconfig.json",
     "compilerOptions": {
         "module": "CommonJS",
-        "moduleResolution": "Node",
+        "moduleResolution": "Bundler",
         "noEmit": true,
         "esModuleInterop": true
     },

@@ -57,7 +57,7 @@ function compileInventory() {
     rmSync(path.join(REPO_ROOT, '.tmp', 'model-check'), { recursive: true, force: true });
     const result = spawnSync(
         process.execPath,
-        [path.join(REPO_ROOT, 'node_modules', 'typescript', 'bin', 'tsc'), '--project', TSCONFIG],
+        [path.join(REPO_ROOT, 'node_modules', 'typescript-7', 'bin', 'tsc'), '--project', TSCONFIG],
         { cwd: REPO_ROOT, stdio: 'inherit' },
     );
     if (result.error || result.status !== 0) throw new Error('inventory.ts のコンパイルに失敗しました');

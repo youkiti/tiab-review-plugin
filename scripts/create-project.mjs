@@ -33,7 +33,7 @@ export function runCli(argv = process.argv.slice(2)) {
         throw new Error('削除対象がリポジトリの .tmp 配下ではありません。');
     }
     rmSync(output, { recursive: true, force: true });
-    const compiled = run([path.join(root, 'node_modules/typescript/bin/tsc'), '--project', configPath]);
+    const compiled = run([path.join(root, 'node_modules/typescript-7/bin/tsc'), '--project', configPath]);
     if (compiled !== 0) {
         return compiled;
     }
