@@ -99,6 +99,15 @@
   "ftPage_aiJevNote": {
     "message": "TypeSafe Jev cannot read PDFs, so the text is extracted from each PDF and sent instead (without the reference list, up to about 85,000 characters from the start). The decision is include or exclude, using a threshold of 0.3 on the inclusion probability. It never returns maybe. It returns no written reasons or quotations, so no PDF highlights are shown. Scanned PDFs (PDFs whose text cannot be extracted) cannot be screened."
   },
+  "ftPage_aiDecisionNote": {
+    "message": "Gemini Decision 1 receives the PDF as it is. The decision is include or exclude, using a threshold of 0.2305 on the inclusion probability. It never returns maybe. The exclusion reason is chosen from your project's list of reasons. It returns no written reasons or quotations, so no PDF highlights are shown. PDFs over the input limit (262,144 tokens) and PDFs over 50 MB cannot be screened."
+  },
+  "ftPage_aiErrDecisionInputTooLong": {
+    "message": "The PDF exceeded the Gemini Decision 1 input limit (262,144 tokens), so it could not be screened. It will not be retried. Please use a generative Gemini model for this record."
+  },
+  "ftPage_aiErrDecisionPdfTooLarge": {
+    "message": "The PDF is larger than Gemini Decision 1 accepts (50 MB). Please use a generative Gemini model for this record."
+  },
   "ftPage_aiErrNoText": {
     "message": "No text could be extracted from the PDF (it may be a scanned PDF). TypeSafe Jev cannot screen it. Please use a Gemini model for this record."
   },

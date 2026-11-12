@@ -99,6 +99,15 @@
   "ftPage_aiJevNote": {
     "message": "TypeSafe Jev は PDF を受け取れないため、PDF から本文の文字を取り出して送ります（参考文献の節を除き、先頭から約8.5万字まで）。判定は組入の確率に閾値0.3を当てた組入・除外の2つで、保留は出しません。判定理由の文章と根拠の抜粋は返らないため、PDF のハイライトは出ません。スキャンした PDF（本文の文字を取り出せない PDF）は判定できません。"
   },
+  "ftPage_aiDecisionNote": {
+    "message": "Gemini Decision 1 には PDF をそのまま送ります。判定は組入の確率に閾値0.2305を当てた組入・除外の2つで、保留は出しません。除外理由はプロジェクトの除外理由リストから選びます。判定理由の文章と根拠の抜粋は返らないため、PDF のハイライトは出ません。入力が上限（262,144トークン）を超える PDF と、50 MB を超える PDF は判定できません。"
+  },
+  "ftPage_aiErrDecisionInputTooLong": {
+    "message": "PDF が Gemini Decision 1 の入力の上限（262,144トークン）を超えたため、判定できませんでした。再試行はしません。生成型の Gemini のモデルで判定してください。"
+  },
+  "ftPage_aiErrDecisionPdfTooLarge": {
+    "message": "PDF が Gemini Decision 1 に送れる大きさ（50 MB）を超えています。生成型の Gemini のモデルで判定してください。"
+  },
   "ftPage_aiErrNoText": {
     "message": "PDF から本文の文字を取り出せませんでした（スキャンした PDF の可能性があります）。TypeSafe Jev では判定できないため、Gemini のモデルで判定してください。"
   },

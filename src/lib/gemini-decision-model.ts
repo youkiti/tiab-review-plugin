@@ -9,7 +9,7 @@ export function newRunIncludeThreshold(modelId: string, configured?: number): nu
     return isGeminiDecisionModel(modelId) ? GEMINI_DECISION_INCLUDE_THRESHOLD : configured ?? 0.3;
 }
 
-/** フルテキスト対応は Issue #348 に委ね、生成モデルだけを選ぶ。 */
+/** 生成型の Gemini だけを返す。Decision 1 は fulltext-models.ts で別に追加する。 */
 export function filterFulltextGeminiModels<T extends { id: string; provider: string }>(models: readonly T[]): T[] {
     return models.filter(model => model.provider === 'gemini' && !isGeminiDecisionModel(model.id));
 }

@@ -2223,17 +2223,21 @@
                     <span class="en">A notice near the run button explains PDF transmission and copyright. Permission to read may not permit sending a PDF to AI under publisher terms; also see <a href="#ai-limitations">AI limitations</a>.</span>
                 </p>
                 <p>
-                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFを選んだモデルへ渡し、一括で判定します。選べるのは Gemini のモデルと TypeSafe Jev 1.14.0 で、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/Anthropicは選べません。Gemini には PDF を丸ごと渡し、Include/Exclude/Maybe で判定します。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。Geminiが引用を途中で打ち切った文献は、そこまでの出力から判定を採用し、実行ログの該当行に「根拠の一部が欠けています」と添えます。</span>
+                    <span class="ja">「AI判定」ビューでは、Drive保存済み（cached）かつ未AI判定の候補PDFを選んだモデルへ渡し、一括で判定します。選べるのは生成型の Gemini、Gemini Decision 1 と TypeSafe Jev 1.14.0 で、TiAbのAIスクリーニングと異なりOpenRouter/OpenAI/Anthropicは選べません。生成型の Gemini には PDF を丸ごと渡し、Include/Exclude/Maybe で判定します。判定基準プロンプトはTiAbの設定を初期値として利用できます。実行結果は「ラウンド」として記録されます。1件以上の判定に成功すると、そのラウンドが自動的に採用されます（中断した場合は採用されません）。複数のラウンドがある場合は、ラジオボタンで採用するラウンドを後から切り替えられます（「採用なし」も選択でき、管理者限定の操作ではありません）。採用ラウンドの判定だけが、フルテキストページのハイライトや判定後レビューの集計に使われます。生成型の Gemini が引用を途中で打ち切った文献は、そこまでの出力から判定を採用し、実行ログの該当行に「根拠の一部が欠けています」と添えます。</span>
                     <span class="en">The "AI judge" view sends each candidate that is saved to Drive (cached) and
                         not yet AI-screened to the model you choose, and screens them in a batch. You can choose a
-                        Gemini model or TypeSafe Jev 1.14.0. Unlike TiAb AI screening, OpenRouter, OpenAI, and
-                        Anthropic are not available here. Gemini receives the whole PDF and returns
+                        generative Gemini model, Gemini Decision 1, or TypeSafe Jev 1.14.0. Unlike TiAb AI screening, OpenRouter, OpenAI, and
+                        Anthropic are not available here. Generative Gemini receives the whole PDF and returns
                         Include/Exclude/Maybe. The criteria prompt can be pre-filled from your
                         TiAb settings. Each run is recorded as a "round". Once at least one decision succeeds, that
                         round is adopted automatically (a cancelled run is not adopted). When multiple rounds exist,
                         you can switch which round is adopted later using radio buttons (including "None adopted"),
                         and this is not limited to admins. Only the adopted round's decisions drive PDF highlighting
                         and the post-decision review aggregation. When Gemini stops partway through a quotation, the judgment is taken from the output up to that point, and the run log marks that line with "some evidence is missing".</span>
+                </p>
+                <p>
+                    <span class="ja"><strong>Gemini Decision 1 を選んだとき：</strong>PDF をそのまま送ります。判定は組入の確率に閾値0.2305を当てた Include か Exclude の2値で、Maybe（保留）は出しません。除外理由は、プロジェクトの除外理由リストの区分から Gemini Decision 1 が1つ選びます。評価に使った問いの文面のまま送るため、リストの並び順（優先順位）は伝えておらず、複数の理由に当たる文献で先頭の理由が選ばれるとは限りません。判定理由の文章と根拠の抜粋は返らず、PDF のハイライトは出ません。入力の上限（262,144トークン）を超える PDF は「AI呼び出しに失敗」、50 MB を超える PDF は「PDFの読み取りに失敗」に数え、再試行しません。API キーは Gemini のキーを使います。Cochrane レビューの全文での精度は README の「外部ベンチマーク」にあります。</span>
+                    <span class="en"><strong>When you choose Gemini Decision 1:</strong> The PDF is sent as it is. The decision is Include or Exclude, using a threshold of 0.2305 on the inclusion probability. It never returns Maybe. Gemini Decision 1 picks one exclusion reason from your project's list of reasons. The questions are sent with the same wording as in the evaluation, so the order of the list (its priority) is not given, and for a record that matches several reasons the first one is not always chosen. It returns no written reasons or quotations, so no PDF highlights are shown. PDFs over the input limit (262,144 tokens) are counted under "AI call failed", and PDFs over 50 MB under "Failed to read the PDF". Neither is retried. Use your Gemini API key. The accuracy on full texts from Cochrane reviews is in the README section "External benchmark".</span>
                 </p>
                 <p>
                     <span class="ja"><strong>TypeSafe Jev 1.14.0 を選んだとき：</strong>Jev は PDF を受け取れないため、拡張機能が PDF から本文の文字を取り出して送ります。参考文献の節は除き、先頭から約8.5万字までを送ります。判定は組入の確率に閾値0.3を当てた Include か Exclude の2つで、Maybe（保留）は出しません。除外理由は、プロジェクトの除外理由リストの区分から Jev が1つ選び、どれにも当たらなければリストの末尾の区分になります。判定理由の文章と根拠の抜粋は返らないため、PDF のハイライトは出ません。スキャンした PDF（本文の文字を取り出せない PDF）と、本文が Jev の入力の上限（約3.2万トークン）を超えた文献は判定できず、失敗の内訳の「PDFの読み取りに失敗」または「AI呼び出しに失敗」に数えます。これらは Gemini のモデルで判定してください。TypeSafe の API キーは「🤖 AI」タブの「AI の接続」で設定します。Cochrane レビューの全文での精度は README の「外部ベンチマーク」にあります。</span>

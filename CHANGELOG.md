@@ -14,6 +14,9 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
+- 全文の AI 一括判定で Gemini Decisions API の `gemini-decision-1` を選べるようにした。PDF をそのまま送る（プロンプトの版 `fulltext-gemini-decision-v1.0.0`）。判定は組入の確率に閾値 0.2305 を当てた組入・除外の2値で、保留は出さない。除外理由はプロジェクトの除外理由リストから選ぶ。入力の上限（262,144 トークン）と 50 MB を超える PDF は判定しない。既定のモデルと生成型 Gemini での判定は変わらない。
+  Full-text batch AI screening can now use Gemini Decisions API `gemini-decision-1`. It receives the PDF as it is (prompt version `fulltext-gemini-decision-v1.0.0`). The decision is include or exclude, using a threshold of 0.2305 on the inclusion probability. It never returns maybe. The exclusion reason is chosen from the project's list of reasons. PDFs over the input limit (262,144 tokens) or over 50 MB are not screened. The default model and screening with generative Gemini are unchanged.
+
 - 全文の AI 一括判定で TypeSafe `jev-1.14.0` を選べるようにした。Jev は PDF を受け取れないため、PDF から本文の文字を取り出し、参考文献の節を除いて先頭から 85,000 字までを送る（プロンプトの版 `fulltext-typesafe-v1.0.0`）。判定は組入の確率に閾値 0.3 を当てた組入・除外の2値で、保留は出さない。除外理由はプロジェクトの除外理由リストから Jev が選ぶ。スキャンした PDF と、入力の上限を超えた本文は判定しない。既定のモデル（Gemini）と Gemini での判定は変わらない。
   Full-text batch AI screening can now use TypeSafe `jev-1.14.0`. Jev cannot read PDFs, so the text is extracted from each PDF and sent without the reference list, up to 85,000 characters from the start (prompt version `fulltext-typesafe-v1.0.0`). The decision is include or exclude, using a threshold of 0.3 on the inclusion probability. It never returns maybe. Jev picks the exclusion reason from the project's list of reasons. Scanned PDFs and texts over the input limit are not screened. The default model (Gemini) and screening with Gemini are unchanged.
 
