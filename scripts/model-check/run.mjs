@@ -5,9 +5,13 @@
 //   npm run check:models -- [--report <Markdown の出力パス>]
 //
 // 一覧は scripts/model-check/inventory.ts を tsc で .tmp/model-check にコンパイルして読む
-// （scripts/create-project.mjs と同じ手順）。確かめるのはモデルのメタデータの取得だけで、推論は呼ばない（課金なし）。
+// （scripts/create-project.mjs と同じ手順）。Gemini・OpenAI・Anthropic・OpenRouter はモデルのメタデータの取得だけで、
+// 推論は呼ばない（課金なし）。OpenRouter は一覧（/api/v1/models）に判定専用のモデル（typesafe/jev-1.14 など）が
+// 載らないので、モデルごとの /api/v1/models/<id>/endpoints を読む（鍵は要らない）。
+// TypeSafe は /v1/models に別名（jev-latest・jev-preview）しか載らず、版を固定した ID を確かめる無料の口が無いので、
+// 最小の判定を1回投げる（1回あたり入力数十トークン。200 なら使える、"Unknown model" の 400 なら見つからない）。
 // 鍵は環境変数から読む（GEMINI_API_KEY・OPENAI_API_KEY・ANTHROPIC_API_KEY・TYPE_SAFE_API_KEY）。
-// 未設定または空の社は「飛ばした」として報告に残す。OpenRouter の公開一覧は鍵が要らない。
+// 未設定または空の社は「飛ばした」として報告に残す。
 // 鍵の値は出力にも例外メッセージにも出さない（AGENTS.md 基本ルール9）。
 //
 // 終了コード: 「見つからない」か「鍵が使えない」（401・403）が1件でもあれば 1。
@@ -77,11 +81,14 @@ function bodySnippet(text, keys) {
     return redact(text, keys).slice(0, 200).replace(/\s+/g, ' ');
 }
 
-async function request(fetchImpl, url, headers) {
+async function request(fetchImpl, url, headers, body) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-        const response = await fetchImpl(url, { method: 'GET', headers, signal: controller.signal });
+        const init = body === undefined
+            ? { method: 'GET', headers, signal: controller.signal }
+            : { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal };
+        const response = await fetchImpl(url, init);
         const text = await response.text().catch(() => '');
         return { status: response.status, text };
     } finally {
@@ -90,9 +97,9 @@ async function request(fetchImpl, url, headers) {
 }
 
 /** 通信の失敗は「確認できない」にする。例外のメッセージにも鍵を残さない。 */
-async function safeRequest(fetchImpl, url, headers, keys) {
+async function safeRequest(fetchImpl, url, headers, keys, body) {
     try {
-        return { response: await request(fetchImpl, url, headers) };
+        return { response: await request(fetchImpl, url, headers, body) };
     } catch (err) {
         const aborted = err && (err.name === 'AbortError' || err.name === 'TimeoutError');
         const reason = aborted ? `${TIMEOUT_MS / 1000}秒で時間切れ` : `通信失敗: ${bodySnippet(err?.message ?? err, keys)}`;
@@ -109,6 +116,22 @@ function statusOnly(status) {
 
 function perModelRequest(provider, id, key) {
     const encoded = encodeURIComponent(id);
+    if (provider === 'openrouter') {
+        // ID は「作者/名前」。スラッシュはパスの区切りとして残し、各部分だけをエンコードする
+        const pathPart = id.split('/').map(encodeURIComponent).join('/');
+        return { url: `https://openrouter.ai/api/v1/models/${pathPart}/endpoints`, headers: {} };
+    }
+    if (provider === 'typesafe') {
+        return {
+            url: 'https://api.typesafe.ai/v1/systemone',
+            headers: { Authorization: `Bearer ${key}` },
+            body: {
+                model: id,
+                state: { title: 'Model availability check', abstract: '(no abstract)' },
+                questions: { include: { type: 'noul', instructions: { screening_prompt: 'Weekly model availability check.', question: 'Is this a record?' } } },
+            },
+        };
+    }
     if (provider === 'gemini') {
         return { url: `https://generativelanguage.googleapis.com/v1beta/models/${encoded}`, headers: { 'x-goog-api-key': key } };
     }
@@ -121,30 +144,13 @@ function perModelRequest(provider, id, key) {
     };
 }
 
-/** 一覧を1回だけ取る社（typesafe・openrouter）の取得。全 ID をこの応答で判定する。 */
-async function fetchList(fetchImpl, provider, key, keys) {
-    const url = provider === 'typesafe' ? 'https://api.typesafe.ai/v1/models' : 'https://openrouter.ai/api/v1/models';
-    const headers = provider === 'typesafe' ? { Authorization: `Bearer ${key}` } : {};
-    const { response, error } = await safeRequest(fetchImpl, url, headers, keys);
-    if (error) return { failure: { status: 'unknown', detail: error } };
-    if (response.status === 401 || response.status === 403) {
-        return { failure: { status: 'badkey', detail: `HTTP ${response.status}（鍵を確認してください）` } };
+/** TypeSafe の判定の応答。400 は本文に "Unknown model" があるときだけ「見つからない」にする。 */
+function typeSafeStatus(response, keys) {
+    if (response.status === 400 && /unknown model/i.test(response.text)) {
+        return { status: 'missing', detail: `HTTP 400: ${bodySnippet(response.text, keys)}` };
     }
-    if (response.status !== 200) {
-        return { failure: { status: 'unknown', detail: `HTTP ${response.status}: ${bodySnippet(response.text, keys)}` } };
-    }
-    if (provider === 'typesafe') {
-        // 応答の形をコードから読まないので、JSON を文字列にしたものに "<id>" が含まれるかで判定する
-        let text = response.text;
-        try { text = JSON.stringify(JSON.parse(response.text)); } catch { /* JSON でなければ本文のまま */ }
-        return { has: (id) => text.includes(`"${id}"`) };
-    }
-    try {
-        const ids = new Set((JSON.parse(response.text).data ?? []).map((m) => m?.id).filter((v) => typeof v === 'string'));
-        return { has: (id) => ids.has(id) };
-    } catch {
-        return { failure: { status: 'unknown', detail: `一覧を JSON として読めません: ${bodySnippet(response.text, keys)}` } };
-    }
+    if (response.status === 200 || response.status === 401 || response.status === 403) return statusOnly(response.status);
+    return { status: 'unknown', detail: `HTTP ${response.status}: ${bodySnippet(response.text, keys)}` };
 }
 
 /**
@@ -153,7 +159,6 @@ async function fetchList(fetchImpl, provider, key, keys) {
  */
 export async function checkModels(models, env, fetchImpl = fetch) {
     const keys = Object.values(KEY_ENV).map((name) => (env[name] ?? '').trim()).filter(Boolean);
-    const lists = new Map();
     const results = [];
     for (const model of models) {
         const { provider, id } = model;
@@ -163,17 +168,10 @@ export async function checkModels(models, env, fetchImpl = fetch) {
             results.push({ ...model, status: 'skipped', detail: `鍵なし: ${keyName}` });
             continue;
         }
-        if (provider === 'typesafe' || provider === 'openrouter') {
-            if (!lists.has(provider)) lists.set(provider, await fetchList(fetchImpl, provider, key, keys));
-            const list = lists.get(provider);
-            if (list.failure) results.push({ ...model, ...list.failure });
-            else if (list.has(id)) results.push({ ...model, status: 'ok', detail: '一覧に載っている' });
-            else results.push({ ...model, status: 'missing', detail: '一覧に載っていない' });
-            continue;
-        }
-        const { url, headers } = perModelRequest(provider, id, key);
-        const { response, error } = await safeRequest(fetchImpl, url, headers, keys);
+        const { url, headers, body } = perModelRequest(provider, id, key);
+        const { response, error } = await safeRequest(fetchImpl, url, headers, keys, body);
         if (error) results.push({ ...model, status: 'unknown', detail: error });
+        else if (provider === 'typesafe') results.push({ ...model, ...typeSafeStatus(response, keys) });
         else results.push({ ...model, ...statusOnly(response.status) });
     }
     return results;
