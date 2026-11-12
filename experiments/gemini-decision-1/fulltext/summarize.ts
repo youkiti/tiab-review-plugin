@@ -151,9 +151,14 @@ export function summarize(options: SummaryOptions, config = loadConfig()): strin
     for (const result of collections) {
         const { tier, input, scores, jev, ledger } = result;
         const frozen = thresholds[input];
+        // records.jsonl は本文を含むので git に入れない。元データの在りかと版（SHA-256）を書き、別の環境でも作り直せるようにする。
+        const manifestFile = path.join(options.recordsDir, tier, 'manifest.json');
+        const goldSha = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')).gold_sha256 ?? '不明' : '不明';
         lines.push('', `## ${tier} / ${input}`, '',
-            `元データ: [records.jsonl](${link(path.join(options.recordsDir, tier, 'records.jsonl'))}) / `
-            + `[成功台帳](${link(result.paths.ledger)}) / [失敗台帳](${link(result.paths.failures)})`, '',
+            `元データ: Cochrane-bench の \`data/processed/${tier}/gold/task2_screening_oa.jsonl\`（SHA-256 ${goldSha}）から`
+            + ` [prepare.py](${link(path.join(directory, 'prepare.py'))}) で作る（records.jsonl の SHA-256 ${result.digest}）。`
+            + `jev の確率の出所と手順は [plan.md](${link(path.join(directory, 'plan.md'))}) の「データと出所」。`
+            + ` 台帳: [成功](${link(result.paths.ledger)}) / [失敗](${link(result.paths.failures)})`, '',
             `成功 ${scores.length} / 全記録 ${result.records.length} 件、失敗 ${result.failed.length} 件`
             + `（HTTP 400: ${result.failed.filter(r => r.http_status === 400).length} 件）、未完了 ${result.incomplete} 件。`,
             `送らなかった・送れなかった記録: no_pdf ${result.skipped.no_pdf} / too_large ${result.skipped.too_large}`

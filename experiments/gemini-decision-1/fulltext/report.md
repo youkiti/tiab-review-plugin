@@ -1,7 +1,7 @@
 <!-- 全文評価の件数・指標・採用条件の機械的な判定を記録する。 -->
 # Gemini Decisions API 全文評価
 
-生成時刻: 2026-11-12T10:10:34.297Z
+生成時刻: 2026-11-12T10:14:13.136Z
 
 成功台帳にある記録だけで比較する。未成功分の確率は補わない。
 
@@ -21,7 +21,7 @@
 
 ## cc-by / pdf
 
-元データ: [records.jsonl](data/cc-by/records.jsonl) / [成功台帳](results/cc-by_pdf_v1.jsonl) / [失敗台帳](results/cc-by_pdf_v1.failures.jsonl)
+元データ: Cochrane-bench の `data/processed/cc-by/gold/task2_screening_oa.jsonl`（SHA-256 c0b315672ace66c539f0c7c22381feeb7cb76864575bfe04bb54dcfbf29e88a4）から [prepare.py](prepare.py) で作る（records.jsonl の SHA-256 52b3aefe91635967722f71df76a2daf8b9d07c1fedd6df7604b81bca0b1950db）。jev の確率の出所と手順は [plan.md](plan.md) の「データと出所」。 台帳: [成功](results/cc-by_pdf_v1.jsonl) / [失敗](results/cc-by_pdf_v1.failures.jsonl)
 
 成功 1217 / 全記録 1274 件、失敗 0 件（HTTP 400: 0 件）、未完了 0 件。
 送らなかった・送れなかった記録: no_pdf 57 / too_large 0 / pdf_missing 0 / too_long（入力トークン上限超えで API が拒否） 0。
@@ -61,7 +61,7 @@ decision-1 − jev（同じ 1217 件）: AUC 0.835942 / 0.821773、対の差 0.0
 
 ## cc-by / text
 
-元データ: [records.jsonl](data/cc-by/records.jsonl) / [成功台帳](results/cc-by_text_v1.jsonl) / [失敗台帳](results/cc-by_text_v1.failures.jsonl)
+元データ: Cochrane-bench の `data/processed/cc-by/gold/task2_screening_oa.jsonl`（SHA-256 c0b315672ace66c539f0c7c22381feeb7cb76864575bfe04bb54dcfbf29e88a4）から [prepare.py](prepare.py) で作る（records.jsonl の SHA-256 52b3aefe91635967722f71df76a2daf8b9d07c1fedd6df7604b81bca0b1950db）。jev の確率の出所と手順は [plan.md](plan.md) の「データと出所」。 台帳: [成功](results/cc-by_text_v1.jsonl) / [失敗](results/cc-by_text_v1.failures.jsonl)
 
 成功 1274 / 全記録 1274 件、失敗 0 件（HTTP 400: 0 件）、未完了 0 件。
 送らなかった・送れなかった記録: no_pdf 0 / too_large 0 / pdf_missing 0 / too_long（入力トークン上限超えで API が拒否） 0。
@@ -100,7 +100,7 @@ decision-1 − jev（同じ 1274 件）: AUC 0.849295 / 0.822429、対の差 0.0
 
 ## cc-by-nc / pdf
 
-元データ: [records.jsonl](data/cc-by-nc/records.jsonl) / [成功台帳](results/cc-by-nc_pdf_v1.jsonl) / [失敗台帳](results/cc-by-nc_pdf_v1.failures.jsonl)
+元データ: Cochrane-bench の `data/processed/cc-by-nc/gold/task2_screening_oa.jsonl`（SHA-256 c8d4ebe485c2d9f76037669370f44aeba38c7a468e2daf9d7cdc5bb773e96f1b）から [prepare.py](prepare.py) で作る（records.jsonl の SHA-256 135cc9cc3212d1141063c2791e6ef3bdf33673e9cb790e7df48169e015622127）。jev の確率の出所と手順は [plan.md](plan.md) の「データと出所」。 台帳: [成功](results/cc-by-nc_pdf_v1.jsonl) / [失敗](results/cc-by-nc_pdf_v1.failures.jsonl)
 
 成功 5045 / 全記録 5186 件、失敗 0 件（HTTP 400: 0 件）、未完了 0 件。
 送らなかった・送れなかった記録: no_pdf 139 / too_large 0 / pdf_missing 0 / too_long（入力トークン上限超えで API が拒否） 2。
@@ -144,7 +144,7 @@ decision-1 − jev（同じ 5045 件）: AUC 0.878454 / 0.867381、対の差 0.0
 
 ## cc-by-nc / text
 
-元データ: [records.jsonl](data/cc-by-nc/records.jsonl) / [成功台帳](results/cc-by-nc_text_v1.jsonl) / [失敗台帳](results/cc-by-nc_text_v1.failures.jsonl)
+元データ: Cochrane-bench の `data/processed/cc-by-nc/gold/task2_screening_oa.jsonl`（SHA-256 c8d4ebe485c2d9f76037669370f44aeba38c7a468e2daf9d7cdc5bb773e96f1b）から [prepare.py](prepare.py) で作る（records.jsonl の SHA-256 135cc9cc3212d1141063c2791e6ef3bdf33673e9cb790e7df48169e015622127）。jev の確率の出所と手順は [plan.md](plan.md) の「データと出所」。 台帳: [成功](results/cc-by-nc_text_v1.jsonl) / [失敗](results/cc-by-nc_text_v1.failures.jsonl)
 
 成功 5186 / 全記録 5186 件、失敗 0 件（HTTP 400: 0 件）、未完了 0 件。
 送らなかった・送れなかった記録: no_pdf 0 / too_large 0 / pdf_missing 0 / too_long（入力トークン上限超えで API が拒否） 0。
