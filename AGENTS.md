@@ -424,7 +424,9 @@ WEB_OAUTH_CLIENT_ID=placeholder PICKER_API_KEY=placeholder GCP_PROJECT_NUMBER=00
 npm run check:bundle
 ```
 
-`typescript`（6.0.3）は、従来の API を使う webpack の ts-loader・@typescript-eslint・experiments の ts-node のために残している。@typescript-eslint の peerDependencies が `typescript: ">=4.8.4 <6.1.0"` のため、指定を `~6.0.3` に固定している。型の検査（`npm run typecheck`）と `npm test`・`npm run create-project`・`npm run check:models` のコンパイルは、別名 `typescript-7`（TypeScript 7）の `tsc` を `node_modules/typescript-7/bin/tsc` で直接起動する。`node_modules/.bin/tsc` と `npx tsc` は 6.0.3 を指すため、TypeScript 7 の起動には使わない。@typescript-eslint が TypeScript 7 に対応したら、`typescript` を 7 に上げて別名を外す予定。
+`typescript`（6.0.3）は、従来の API を使う @typescript-eslint・experiments の ts-node のために残している。@typescript-eslint の peerDependencies が `typescript: ">=4.8.4 <6.1.0"` のため、指定を `~6.0.3` に固定している。型の検査（`npm run typecheck`）と `npm test`・`npm run create-project`・`npm run check:models` のコンパイルは、別名 `typescript-7`（TypeScript 7）の `tsc` を `node_modules/typescript-7/bin/tsc` で直接起動する。`node_modules/.bin/tsc` と `npx tsc` は 6.0.3 を指すため、TypeScript 7 の起動には使わない。@typescript-eslint が TypeScript 7 に対応したら、`typescript` を 7 に上げて別名を外す予定。
+
+webpack は `esbuild-loader` で TypeScript を変換し、型の検査をしないため、型エラーがあってもビルドは成功する。型の関門は CI の `quality` ジョブの `npm run typecheck`（TypeScript 7）だけなので、ローカルでも PR の前に必ず実行すること。`tsconfig.json` の `isolatedModules: true` は、esbuild が1ファイルずつ変換することと矛盾する書き方（型だけの再エクスポートを `export type` にしない、など）を `typecheck` で検出するために入れている。
 
 ### 過去のレビュー指摘をコメントで参照するときの書き方
 

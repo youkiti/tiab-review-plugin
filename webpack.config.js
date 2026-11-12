@@ -188,9 +188,12 @@ function buildExtensionConfig(env, argv) {
                     resourceQuery: /[?&]help-sections(?:&|$)/,
                     use: path.resolve(__dirname, 'scripts/webpack/help-sections.cjs'),
                 },
+                // esbuild-loader は型を検査せず、型エラーでもビルドは止まらない。型の関門は npm run typecheck。
+                // target は tsconfig.json の ES2020 に合わせる（省略すると es2015 に下がる）。
                 {
                     test: /\.ts$/,
-                    use: 'ts-loader',
+                    loader: 'esbuild-loader',
+                    options: { target: 'es2020' },
                     exclude: /node_modules/,
                 },
                 {
@@ -388,9 +391,11 @@ function buildWebConfig(env, argv) {
                     resourceQuery: /[?&]help-sections(?:&|$)/,
                     use: path.resolve(__dirname, 'scripts/webpack/help-sections.cjs'),
                 },
+                // 型の検査と target の指定は拡張版と同じ。
                 {
                     test: /\.ts$/,
-                    use: 'ts-loader',
+                    loader: 'esbuild-loader',
+                    options: { target: 'es2020' },
                     exclude: /node_modules/,
                 },
                 {
