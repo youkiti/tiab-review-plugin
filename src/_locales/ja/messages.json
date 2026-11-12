@@ -96,6 +96,15 @@
   "ftPage_aiCopyrightNotice": {
     "message": "論文の PDF を AI プロバイダへ送ります。出版社の利用条件によっては、閲覧の許諾があっても AI への送信が認められていないことがあります。"
   },
+  "ftPage_aiJevNote": {
+    "message": "TypeSafe Jev は PDF を受け取れないため、PDF から本文の文字を取り出して送ります（参考文献の節を除き、先頭から約8.5万字まで）。判定は組入の確率に閾値0.3を当てた組入・除外の2つで、保留は出しません。判定理由の文章と根拠の抜粋は返らないため、PDF のハイライトは出ません。スキャンした PDF（本文の文字を取り出せない PDF）は判定できません。"
+  },
+  "ftPage_aiErrNoText": {
+    "message": "PDF から本文の文字を取り出せませんでした（スキャンした PDF の可能性があります）。TypeSafe Jev では判定できないため、Gemini のモデルで判定してください。"
+  },
+  "ftPage_aiErrInputTooLong": {
+    "message": "本文が TypeSafe Jev の入力の上限（約3.2万トークン）を超えたため、判定できませんでした。再試行はしません。Gemini のモデルで判定してください。"
+  },
   "extName": {
     "message": "TiAb Review Plugin"
   },

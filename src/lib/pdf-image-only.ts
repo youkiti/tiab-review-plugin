@@ -8,8 +8,34 @@
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { SCANNED_TEXT_THRESHOLD } from './pdf-constants';
+import { extractTextFromPdfDocument } from './pdf-text-extract';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
+
+/** 全ページの本文を抽出し、空白を除いた文字数からスキャン PDF を判定する。 */
+export async function extractPdfText(
+    data: ArrayBuffer | Uint8Array
+): Promise<{ text: string; totalTextLength: number; imageOnly: boolean }> {
+    const bytes = data instanceof Uint8Array ? data.slice() : new Uint8Array(data.slice(0));
+    const loadingTask = pdfjsLib.getDocument({
+        data: bytes,
+        cMapUrl: chrome.runtime.getURL('cmaps/'),
+        cMapPacked: true,
+        standardFontDataUrl: chrome.runtime.getURL('standard_fonts/'),
+        wasmUrl: chrome.runtime.getURL('wasm/'),
+        iccUrl: chrome.runtime.getURL('iccs/'),
+    });
+    try {
+        const { text, totalTextLength } = await extractTextFromPdfDocument(await loadingTask.promise);
+        return { text, totalTextLength, imageOnly: totalTextLength < SCANNED_TEXT_THRESHOLD };
+    } finally {
+        try {
+            await loadingTask.destroy();
+        } catch {
+            // 解放中の失敗は無視する。
+        }
+    }
+}
 
 /**
  * PDFバイト列からテキストを抽出し、スキャン(画像only)PDFかどうかを判定する。

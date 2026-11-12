@@ -21,7 +21,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 export const INCLUDED_DIRS = [
     '', 'gemini-3.1-flash-lite', 'gemini-3.1-flash-lite-ga', 'gemini-3.5-flash', 'gemini-3.5-flash-lite',
     'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gpt-5.6', 'openrouter-bench', 'qwen3.8-27b',
-    'typesafe-jev', 'asreview', 'ensemble-flash-lite-luna', 'anthropic-bench',
+    'typesafe-jev', 'typesafe-jev-fulltext-pdf', 'asreview', 'ensemble-flash-lite-luna', 'anthropic-bench',
     // 主表の B4 の元の判定結果を置く場所（git に無い間は飛ばす）。
     'gemini-3-flash-preview',
 ];

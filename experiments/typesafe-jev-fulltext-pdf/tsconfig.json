@@ -1,0 +1,9 @@
+// 評価コードと参照する拡張のコードを同じ設定でコンパイルする。
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "../..",
+        "noEmit": false
+    },
+    "include": ["./*.ts"]
+}
