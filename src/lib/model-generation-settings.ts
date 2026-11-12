@@ -1,5 +1,6 @@
 // 通信や画面に依存しない、モデルごとの送信設定の正本。
 import { isLocalModelId } from './local-llm-model';
+import { isGeminiDecisionModel } from './gemini-decision-model';
 export interface ModelGenerationSettings {
     provider: 'gemini' | 'openrouter' | 'openai' | 'anthropic' | 'typesafe' | 'local_llm';
     temperature?: number;
@@ -10,6 +11,7 @@ export interface ModelGenerationSettings {
 }
 
 export const MODEL_GENERATION_SETTINGS: Record<string, ModelGenerationSettings> = {
+    'gemini-decision-1': { provider: 'gemini' },
     'gemini-3.1-flash-lite': { provider: 'gemini', temperature: 0 },
     'gemini-3-flash-preview': { provider: 'gemini', temperature: 1, topP: 0.95, thinkingLevel: 'LOW' },
     'qwen/qwen3-235b-a22b-2507': { provider: 'openrouter', temperature: 0 },
@@ -42,12 +44,13 @@ export function anthropicMaxOutputTokens(requested?: number): number {
 /** 未送信のフィールドを履歴に残さない。 */
 export function sentGenerationSettings(model: string, config: Omit<ModelGenerationSettings, 'provider'>) {
     const { provider } = getModelGenerationSettings(model);
-    const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/');
+    const typeSafe = provider === 'typesafe' || model.startsWith('typesafe/') || model.startsWith('~typesafe/')
+        || isGeminiDecisionModel(model);
     const sampling = !typeSafe && (provider === 'gemini' || provider === 'openrouter');
     return {
         temperature: sampling ? config.temperature : undefined,
         topP: sampling ? config.topP : undefined,
-        thinkingLevel: provider === 'gemini' ? config.thinkingLevel : undefined,
+        thinkingLevel: provider === 'gemini' && !typeSafe ? config.thinkingLevel : undefined,
         reasoning_effort: provider === 'anthropic'
             ? config.reasoningEffort === 'none' ? 'low' : config.reasoningEffort ?? 'low'
             : provider === 'openai' ? config.reasoningEffort ?? 'low'

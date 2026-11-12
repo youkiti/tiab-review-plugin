@@ -7,6 +7,7 @@ import { dom } from './dom';
 import { providerNames } from './providers';
 import { initializeLocalLlmConnection, wireLocalLlmConnection } from './local-connection';
 import { toLocalModelId } from '../../../lib/local-llm-model';
+import { newRunIncludeThreshold } from '../../../lib/gemini-decision-model';
 import { populateModelSelect, refreshOpenRouterModels, setSelectedModel, wireModelCombobox } from './model-combobox';
 import { dom as sharedDom } from '../../dom';
 import { wireCollapsibleCards } from '../../ui/collapsible';
@@ -295,8 +296,9 @@ export async function initializeLlmSection(isCurrent: () => boolean = () => true
             dom.llmLanguageSelect.value = llmConfig.llm_output_language;
             dom.protocolTextInput.value = llmConfig.llm_protocol_text;
             updateImportReviewCriteriaVisibility();
-            dom.thresholdSlider.value = llmConfig.llm_include_threshold.toString();
-            dom.thresholdValueDisplay.textContent = llmConfig.llm_include_threshold.toFixed(2);
+            const initialThreshold = newRunIncludeThreshold(savedModel, llmConfig.llm_include_threshold);
+            dom.thresholdSlider.value = initialThreshold.toString();
+            dom.thresholdValueDisplay.textContent = initialThreshold.toFixed(2);
 
             // 既存の基準があれば表示
             if (llmConfig.llm_criteria) {

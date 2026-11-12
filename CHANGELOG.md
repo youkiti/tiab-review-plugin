@@ -14,6 +14,12 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
+- タイトル・抄録の AI 一括判定に `gemini-decision-1` を追加しました。既存の Gemini API キーで使えます。
+  このモデルだけ新しい Run は閾値 0.15 から始まり、閾値の確定でプロジェクト共通の既定値は変わりません。
+  判定理由は要素別の確率として記録し、基準の最適化・フルテキストAI判定には使えません。
+  Added `gemini-decision-1` for title/abstract batch screening with the existing Gemini API key.
+  Only this model starts new runs at threshold 0.15; confirming it leaves the project's default unchanged.
+  Reasons are recorded as per-criterion probabilities. Criteria optimization and full-text AI screening are unavailable.
 - AI 一括判定で、API キーの誤り・残高不足・存在しないモデルなど送り直しても通らないエラーは、どの AI でも1回で打ち切り、組み入れ確率 1.0 の判定（人の確認に必ず回る扱い）として保存するようにしました。これまでは Gemini・OpenAI では同じ文献を最大3回、OpenRouter のチャットモデルでは最大9回送り直していました。レート制限（429）と一時的なサーバーエラー・通信エラーは従来どおり再試行します。
   In AI batch screening, errors that cannot succeed on resend (invalid API key, insufficient credit, unknown model, and similar) now stop after one attempt for every AI provider, and the reference is saved with an inclusion probability of 1.0 so that it always goes to human review. Previously, Gemini and OpenAI resent the same reference up to three times, and OpenRouter chat models up to nine times. Rate limits (429) and temporary server or network errors are still retried as before.
 - プロジェクトを切り替えた直後に、前のプロジェクトの AI 設定（基準）が全文の AI 判定の実行記録に入ることがある経路をなくしました。

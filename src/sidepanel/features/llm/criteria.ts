@@ -11,6 +11,7 @@ import { getEffectiveApiKeyForProvider, missingApiKeyMessageKey } from './api-ke
 import { getStandardCriteriaFields, AVAILABLE_MODELS, findModelConfig } from '../../../lib/gemini-api';
 import { resolveProviderId, convertCriteriaWithProvider } from '../../../lib/llm-provider';
 import { isOpenRouterJevModel } from '../../../lib/openrouter-model';
+import { isGeminiDecisionModel } from '../../../lib/gemini-decision-model';
 import { showToast } from '../../ui/feedback';
 import { escapeHtml } from '../../utils/text';
 import { t } from '../../../lib/i18n';
@@ -58,6 +59,10 @@ export async function handleOptimizeCriteria() {
         return;
     }
     const selectedProvider = resolveProviderId(selectedModelId, AVAILABLE_MODELS);
+    if (isGeminiDecisionModel(selectedModelId)) {
+        showToast(t('llmExt_geminiDecisionCriteriaUnsupported'));
+        return;
+    }
     if (selectedProvider === 'typesafe' || (selectedProvider === 'openrouter' && isOpenRouterJevModel(selectedModelId))) {
         showToast(t('llm_typeSafeCriteriaUnsupported'));
         return;

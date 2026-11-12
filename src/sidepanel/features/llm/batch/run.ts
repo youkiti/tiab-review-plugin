@@ -54,7 +54,8 @@ import {
     BATCH_MAX_COUNT_ALL,
 } from '../../../../lib/llm-batch-target';
 import { collectSetIdsForRefs } from '../../../../lib/llm-target-selection';
-import { handleThresholdChange } from './threshold';
+import { handleThresholdChange, updateDecisionThresholdNote } from './threshold';
+import { newRunIncludeThreshold } from '../../../../lib/gemini-decision-model';
 import { loadExecutionHistory } from './history';
 import { getBatchBaseRefs, updateBatchTargetCount } from './target-count';
 import { buildBatchExecutionRecord, resolveBatchRetry, countExecutionReferences } from './execution-record';
@@ -247,9 +248,7 @@ export async function handleStartBatch() {
                 thinkingLevel: modelConfig.thinkingLevel,
                 criteria_snapshot: llmConfig.llm_criteria,
                 screening_prompt: screeningPrompt,
-                include_threshold: typeof llmConfig.llm_include_threshold === 'number'
-                    ? llmConfig.llm_include_threshold
-                    : 0.3,
+                include_threshold: newRunIncludeThreshold(modelConfig.model, llmConfig.llm_include_threshold),
                 status: 'pending',
                 is_active: false,
             };
@@ -349,13 +348,13 @@ export async function handleStartBatch() {
             } else {
                 // pending Run: 従来通り閾値確認 UI を出す
                 // 既存 pending Run を再利用する場合は前回の閾値をスライダー初期値として復元
-                if (matchedRun) {
-                    const initial = matchedRun.include_threshold;
-                    if (typeof initial === 'number' && Number.isFinite(initial)) {
-                        dom.thresholdSlider.value = initial.toFixed(2);
-                        dom.thresholdValueDisplay.textContent = initial.toFixed(2);
-                    }
+                const initial = matchedRun?.include_threshold
+                    ?? newRunIncludeThreshold(modelConfig.model, llmConfig.llm_include_threshold);
+                if (typeof initial === 'number' && Number.isFinite(initial)) {
+                    dom.thresholdSlider.value = initial.toFixed(2);
+                    dom.thresholdValueDisplay.textContent = initial.toFixed(2);
                 }
+                updateDecisionThresholdNote(modelConfig.model);
                 dom.thresholdCompleteMessage.textContent = (result.fallbackCount > 0
                     ? t('llm_thresholdCompleteWithFallback', [String(result.processedCount), String(result.fallbackCount)])
                     : t('llm_thresholdComplete', String(result.successCount)))

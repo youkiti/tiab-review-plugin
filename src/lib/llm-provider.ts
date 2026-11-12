@@ -5,6 +5,7 @@
 
 import type { LlmScreeningOutput, LlmCriteria, UsageMetadata, LlmModelResponseMetadata } from './types';
 import { isOpenRouterJevModel } from './openrouter-model';
+import { isGeminiDecisionModel } from './gemini-decision-model';
 import { isLocalModelId } from './local-llm-model';
 import type { AskParams } from './providers/ask-types';
 
@@ -20,7 +21,7 @@ export interface LlmScreenParams {
     title: string;
     abstract: string;
     screeningPrompt: string;
-    /** TypeSafe だけが基準の要素別の質問に使う。 */
+    /** 判定専用モデルが基準の要素別の質問に使う。 */
     criteria?: LlmCriteria | null;
     model: string;
     // Gemini 3.8 以降は公式移行ガイドで temperature / topP が非推奨のため、
@@ -111,6 +112,9 @@ export async function convertCriteriaWithProvider(
     params: ConvertCriteriaParams,
     options?: ConvertCriteriaOptions
 ): Promise<ConvertCriteriaResult> {
+    if (providerId === 'gemini' && isGeminiDecisionModel(params.model)) {
+        throw Object.assign(new Error('Gemini Decision のモデルは基準の最適化に対応していません'), { retryable: false });
+    }
     if (providerId === 'local_llm') {
         const { convertCriteriaViaLocalLlm } = await import(/* webpackChunkName: "llm-feature" */ './providers/local-llm');
         return convertCriteriaViaLocalLlm(params, options);
@@ -155,6 +159,10 @@ export async function screenWithProvider(
     providerId: LlmProviderId,
     params: LlmScreenParams
 ): Promise<LlmScreenResult> {
+    if (providerId === 'gemini' && isGeminiDecisionModel(params.model)) {
+        const { screenViaGeminiDecision } = await import(/* webpackChunkName: "llm-feature" */ './providers/gemini-decision');
+        return screenViaGeminiDecision(params);
+    }
     if (providerId === 'local_llm') {
         const { screenViaLocalLlm } = await import(/* webpackChunkName: "llm-feature" */ './providers/local-llm');
         return screenViaLocalLlm(params);

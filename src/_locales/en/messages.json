@@ -3529,6 +3529,15 @@
   "llm_modelName_jev_1_14_0": {
     "message": "TypeSafe Jev 1.14.0 — Recall 96.8% (threshold 0.3)"
   },
+  "llmExt_modelName_gemini_decision_1": {
+    "message": "Gemini Decision 1 — Recall 96.1% (threshold 0.15)"
+  },
+  "llmExt_geminiDecisionCriteriaUnsupported": {
+    "message": "Gemini Decision 1 cannot optimize criteria. Choose another model that supports generation."
+  },
+  "llmExt_geminiDecisionThresholdNote": {
+    "message": "This model tends to return lower probabilities, so runs start at threshold 0.15. If unsure, use 0.15 instead of 0.3 (depression Recall 96.1% in the benchmark)."
+  },
   "llm_modelName_jev_1_14_openrouter": {
     "message": "TypeSafe Jev 1.14 (OpenRouter) — Recall 96.8% (threshold 0.3)"
   },

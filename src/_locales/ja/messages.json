@@ -3529,6 +3529,15 @@
   "llm_modelName_jev_1_14_0": {
     "message": "TypeSafe Jev 1.14.0 — Recall 96.8%（閾値0.3）"
   },
+  "llmExt_modelName_gemini_decision_1": {
+    "message": "Gemini Decision 1 — Recall 96.1%（閾値0.15）"
+  },
+  "llmExt_geminiDecisionCriteriaUnsupported": {
+    "message": "Gemini Decision 1 は基準の最適化には使えません。生成に対応する別のモデルを選んでください。"
+  },
+  "llmExt_geminiDecisionThresholdNote": {
+    "message": "このモデルは確率が低めに出るため、閾値 0.15 から始めています。迷ったら 0.3 ではなく 0.15 を使ってください（ベンチマークで depression Recall 96.1%）。"
+  },
   "llm_modelName_jev_1_14_openrouter": {
     "message": "TypeSafe Jev 1.14（OpenRouter）— Recall 96.8%（閾値0.3）"
   },

@@ -50,6 +50,7 @@ import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
 import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
 import { getModelConfig, findModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
 import { getEffectiveApiKey } from '../../../lib/storage';
+import { filterFulltextGeminiModels } from '../../../lib/gemini-decision-model';
 import { getClientVersion } from '../../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
 import { recordPromptTemplate } from '../../../lib/llm-prompt-record';
@@ -153,7 +154,7 @@ async function fetchJudgedRefIds(spreadsheetId: string): Promise<Set<string>> {
 function populateModelSelect(): void {
     const select = dom.fulltextAiModelSelect;
     if (select.options.length > 0) return;
-    for (const m of AVAILABLE_MODELS.filter(m => m.provider === 'gemini')) {
+    for (const m of filterFulltextGeminiModels(AVAILABLE_MODELS)) {
         const opt = document.createElement('option');
         opt.value = m.id;
         opt.textContent = m.name;
@@ -535,7 +536,7 @@ async function handleStartAiBatch(): Promise<void> {
     if (session.aiAbort) return; // 二重起動防止
 
     // セレクトが未描画で空のときは、従来どおり先頭の Gemini モデルを使う
-    const modelId = dom.fulltextAiModelSelect.value || AVAILABLE_MODELS.find(m => m.provider === 'gemini')!.id;
+    const modelId = dom.fulltextAiModelSelect.value || filterFulltextGeminiModels(AVAILABLE_MODELS)[0].id;
     const modelConfig = findModelConfig(modelId);
     if (!modelConfig) {
         showToast(t('llm_unknownModel', modelId));

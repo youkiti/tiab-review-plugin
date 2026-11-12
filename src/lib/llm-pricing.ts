@@ -11,6 +11,8 @@ const BUILT_IN_PRICING: ReadonlyMap<string, ModelPricing> = new Map([
     // 出典: https://ai.google.dev/gemini-api/docs/pricing
     ['gemini-3.1-flash-lite', { inputPerMillion: 0.25, outputPerMillion: 1.50 }],
     ['gemini-3-flash-preview', { inputPerMillion: 0.50, outputPerMillion: 3.00 }],
+    // 出典: https://aistudio.google.com/docs/pricing の Gemini Decision（2026-11-12 確認）。
+    ['gemini-decision-1', { inputPerMillion: 0.10, outputPerMillion: 0 }],
     // 出典: https://platform.claude.com/docs/en/about-claude/pricing
     // Haiku は入力10万トークン以下（題名・抄録の判定）の単価。
     ['claude-sonnet-5-5', { inputPerMillion: 2, outputPerMillion: 10 }],
@@ -52,6 +54,7 @@ export function estimateInputTokens(prompt: string, ref: PricingReference): numb
 }
 
 const OUTPUT_TOKENS_BY_MODEL: ReadonlyMap<string, number> = new Map([
+    ['gemini-decision-1', 0],
     // experiments/openrouter-bench/report.md: Qwen は completion 401,739 / 1,993件（約202/件、reasoning 0）。
     // experiments/gpt-5.6/report.md: none は305,905 / 1,993件（約153/件）。両実測を上回る220を採る。
     ['gemini-3.1-flash-lite', 220],

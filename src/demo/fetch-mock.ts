@@ -491,6 +491,12 @@ async function routeGeminiApi(pathname: string, method: string, body: any): Prom
         return jsonResponse(200, buildDemoConsultResponse(body ?? {}));
     }
 
+    if (!__WEB_BUILD__ && pathname === '/v1beta/decisions') {
+        if (method !== 'POST') return null;
+        const { buildDemoDecisionsResponse } = await import(/* webpackMode: "eager" */ './gemini-fixtures');
+        return jsonResponse(200, buildDemoDecisionsResponse(body ?? {}));
+    }
+
     const streamMatch = pathname.match(/^\/v1beta\/models\/([^:]+):streamGenerateContent$/);
     if (streamMatch) {
         if (method !== 'POST') return null;
@@ -652,6 +658,7 @@ function classifyDemoRequest(url: URL, method: string): string {
 
     if (url.hostname === 'generativelanguage.googleapis.com') {
         if (url.pathname === '/v1beta/models') return `${method} gemini.models.list`;
+        if (!__WEB_BUILD__ && url.pathname === '/v1beta/decisions') return `${method} gemini.decisions`;
         if (/:streamGenerateContent$/.test(url.pathname)) return `${method} gemini.streamGenerateContent`;
         if (/:batchGenerateContent$/.test(url.pathname)) return `${method} gemini.batchGenerateContent`;
         return `${method} gemini.unknown`;
