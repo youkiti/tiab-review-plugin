@@ -10,7 +10,7 @@ For changes up to v0.54.0, see the [commit history](https://github.com/youkiti/t
 判定や数値、Methods の記述に影響した不具合は、影響した版とともに [KNOWN_ISSUES.md](KNOWN_ISSUES.md) に載せています。
 Bugs that affected decisions, numbers, or what is reported in Methods are listed with the affected versions in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
-## 未リリース
+## v0.59.0（2026-11-13）
 
 ### AI 判定に影響する変更 / Changes that affect AI screening
 
