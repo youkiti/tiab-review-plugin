@@ -5,11 +5,11 @@ import os from 'os';
 import path from 'path';
 import { rocAuc } from '../ledger';
 import {
-    FailureRow, LedgerRow, RecordRow, appendLedger, configHash, loadConfig, outputPaths, readRecords, readSuccess, sha256,
+    ExperimentError, FailureRow, LedgerRow, RecordRow, appendLedger, configHash, loadConfig, outputPaths, readRecords, readSuccess, sha256,
 } from './common';
-import { chooseThreshold, delong, metrics, structural } from './metrics';
+import { chooseThreshold, delong, metrics, pairedDifferenceCi, structural } from './metrics';
 import { Options, fakeScreen, parseArgs, run } from './runner';
-import { SummaryOptions, summarize } from './summarize';
+import { SummaryOptions, adoptionSatisfied, summarize } from './summarize';
 import { createScreen, pdfInput } from './decisions-fulltext';
 
 const close = (actual: number | null, expected: number) => assert.ok(actual !== null && Math.abs(actual - expected) < 1e-12);
@@ -38,6 +38,41 @@ async function main(): Promise<void> {
         const a = [0.9, 0.6, 0.3, 0.7, 0.4, 0.1], b = [0.9, 0.8, 0.2, 0.7, 0.6, 0.1];
         const labels = rows.map(r => r.label === 'included');
         const pairs = rows.map((record, i) => ({ record, p: a[i] }));
+        const clusterRows = rows.map((row, i) => ({ ...row, pmcid: `PMC${i % 3 + 1}`, key: `PMC${i % 3 + 1}:${i}` }));
+        const clusterA = clusterRows.map((record, i) => ({ record, p: a[i] }));
+        const clusterB = clusterRows.map((record, i) => ({ record, p: b[i] }));
+        for (const metric of ['recall', 'specificity'] as const) {
+            const ci = pairedDifferenceCi(clusterA, clusterB, 0.3, 0.3, metric, 2000, 2026);
+            assert.deepEqual(ci, pairedDifferenceCi(clusterA, clusterB, 0.3, 0.3, metric, 2000, 2026));
+            assert.ok(ci.lower! <= ci.difference! && ci.difference! <= ci.upper!);
+            close(ci.difference, metrics(clusterA, 0.3)[metric]! - metrics(clusterB, 0.3)[metric]!);
+            assert.equal(ci.replicates + ci.discarded, 2000);
+            assert.deepEqual(pairedDifferenceCi(clusterA, clusterA, 0.3, 0.3, metric, 2000, 2026),
+                { difference: 0, lower: 0, upper: 0, replicates: 2000, discarded: 0 });
+        }
+        assert.throws(() => pairedDifferenceCi(clusterA, [...clusterB].reverse(), 0.3, 0.3, 'recall', 2000, 2026), ExperimentError);
+        assert.throws(() => pairedDifferenceCi(clusterA, [], 0.3, 0.3, 'recall', 2000, 2026), ExperimentError);
+        const noPositive = clusterA.filter(item => item.record.label === 'excluded');
+        assert.deepEqual(pairedDifferenceCi(noPositive, noPositive, 0.3, 0.3, 'recall', 2000, 2026),
+            { difference: null, lower: null, upper: null, replicates: 0, discarded: 2000 });
+        const noNegative = clusterA.filter(item => item.record.label === 'included');
+        assert.equal(pairedDifferenceCi(noNegative, noNegative, 0.3, 0.3, 'specificity', 2000, 2026).upper, null);
+        const separateClasses = [clusterA[0], clusterA[4]];
+        const discarded = pairedDifferenceCi(separateClasses, separateClasses, 0.3, 0.3, 'recall', 2000, 2026);
+        assert.ok(discarded.discarded > 0 && discarded.replicates > 0);
+        assert.equal(discarded.replicates + discarded.discarded, 2000);
+        // 全記録が一つのレビューなら復元抽出しても指標は変わらない。
+        const singleReviewB = rows.map((record, i) => ({ record, p: b[i] }));
+        const singleReviewCi = pairedDifferenceCi(pairs, singleReviewB, 0.3, 0.3, 'recall', 2000, 2026);
+        close(singleReviewCi.lower, 1 / 3);
+        close(singleReviewCi.upper, 1 / 3);
+        const zeroCi = { difference: 0, lower: 0, upper: 0, replicates: 2000, discarded: 0 };
+        const negativeCi = { ...zeroCi, difference: -0.2, lower: -0.3, upper: -0.1 };
+        assert.equal(adoptionSatisfied(zeroCi, zeroCi), true);
+        assert.equal(adoptionSatisfied({ ...negativeCi, upper: 0.1 }, zeroCi), true);
+        assert.equal(adoptionSatisfied(negativeCi, zeroCi), false);
+        assert.equal(adoptionSatisfied(zeroCi, negativeCi), false);
+        assert.equal(adoptionSatisfied({ ...zeroCi, upper: null }, zeroCi), null);
         const tied = [0.9, 0.5, 0.5, 0.5, 0.5, 0.1];
         close(structural(labels, tied)!.auc, rocAuc(tied.map((p, i) => ({ include_probability: p, label_included: labels[i] ? 1 : 0 })))!);
         // A: V10=(1,2/3,1/3)、V01=(1/3,2/3,1)、標本分散は両方1/9。
@@ -132,6 +167,10 @@ async function main(): Promise<void> {
         const reportText = fs.readFileSync(report, 'utf8');
         assert.ok(reportText.includes('PDF − テキスト'));
         assert.ok(reportText.includes('採用条件:'));
+        assert.ok(reportText.includes('Recall の差の CI 上限 >= 0 かつ Specificity の差の CI 上限 >= 0'));
+        assert.ok(reportText.includes('参考（点推定）:'));
+        assert.ok(reportText.includes('| 指標 | decision-1（t*） | jev（0.3） | 差 | 95% CI | 有効な回数 | 捨てた回数 |'));
+        assert.ok(reportText.includes('ブートストラップ: 2000 回、seed 2026'));
         for (const text of ['非公開の題名', '非公開の本文', '非公開の除外理由', '非公開の基準']) {
             assert.ok(!reportText.includes(text));
         }
