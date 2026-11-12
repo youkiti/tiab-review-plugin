@@ -284,6 +284,8 @@ node scripts/create-project.mjs --title "プロジェクト名" --ris path/to/re
 `experiments/` 配下で複数モデルを 7 データセット (depression / cq1–cq5 / wilson、計約 22,000 件) で評価しています。
 threshold=0.5 固定（TypeSafe `jev-1.14.0` は0.3を主とし0.5を併記、`gemini-decision-1` は0.15を主とし0.3を併記）、主指標は Recall (Sensitivity)。
 
+評価の生の結果とレポートは Zenodo で公開しています（https://doi.org/10.5281/zenodo.24156256）。題名・抄録と、再配布を確かめられなかった元データは含みません。 / Raw evaluation results and reports are archived on Zenodo (https://doi.org/10.5281/zenodo.24156256); titles, abstracts and source data whose redistribution could not be confirmed are not included.
+
 ### depression データセットでの代表的結果 (n=1,993, 陽性 280 件)
 
 | モデル | 条件 | Recall | Precision | Fβ(7) | ms/件 | $/1K件 (推定) |
@@ -536,9 +538,9 @@ This tool is provided free of charge and not for profit. The developer receives 
 
 ## 引用 / Citation
 
-GitHub のリポジトリ画面の「Cite this repository」で、[CITATION.cff](CITATION.cff) の引用形式（BibTeX・APA）を取得できます。Zenodo の concept DOI（全版を束ねる DOI）は、決まり次第ここに載せます。論文には、使った TiAb Review Plugin の版（判定を記録した版の最小から最大）を書いてください。論文用テキスト（Methods）はその範囲を自動で書きます。
+GitHub のリポジトリ画面の「Cite this repository」で、[CITATION.cff](CITATION.cff) の引用形式（BibTeX・APA）を取得できます。Zenodo の concept DOI（全版を束ねる DOI）は [10.5281/zenodo.24155858](https://doi.org/10.5281/zenodo.24155858) です。論文には、使った TiAb Review Plugin の版（判定を記録した版の最小から最大）を書いてください。論文用テキスト（Methods）はその範囲を自動で書きます。
 
-To cite this software, use "Cite this repository" on the GitHub page, which reads [CITATION.cff](CITATION.cff) (BibTeX and APA). The Zenodo concept DOI, which covers all versions, will be listed here once issued. In your paper, give the TiAb Review Plugin version or version range you used; the generated manuscript text (Methods) writes the range automatically.
+To cite this software, use "Cite this repository" on the GitHub page, which reads [CITATION.cff](CITATION.cff) (BibTeX and APA). The Zenodo concept DOI, which covers all versions, is [10.5281/zenodo.24155858](https://doi.org/10.5281/zenodo.24155858). In your paper, give the TiAb Review Plugin version or version range you used; the generated manuscript text (Methods) writes the range automatically.
 
 ## 変更履歴 / Changelog
 
