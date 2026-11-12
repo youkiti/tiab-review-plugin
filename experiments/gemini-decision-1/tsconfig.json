@@ -1,0 +1,8 @@
+// ベンチマーク内の TypeScript ファイルだけを型検査の対象にする。
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "../.."
+    },
+    "include": ["./*.ts"]
+}
