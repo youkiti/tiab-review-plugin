@@ -5,7 +5,7 @@ import {
     buildLabelsCsv, buildManifestCsv, createZip, crc32, findLeftoverQuote, inferMeta, manifestRow,
     parseManifestCsv, readZip, sanitizeFile, sha256, stripQuotes,
 } from './core.mjs';
-import { parseArgs } from './pack.mjs';
+import { labelRecords, parseArgs } from './pack.mjs';
 
 const evidence = [
     { field: 'title', quote: '抄録の原文', start_char: 3, end_char: 8, extra: 'x' },
@@ -92,6 +92,53 @@ test('ラベルの表は id と label_included の2列だけ', () => {
     ]);
     assert.equal(csv, 'id,label_included\nD-1,1\nD-2,0\n');
     assert.equal(buildLabelsCsv([{ id: 'W-1', label_final_included: true }], 'label_final_included'), 'id,label_included\nW-1,1\n');
+});
+
+test('ラベルのキーが無いレコードは id とキー名を含むエラーにする', () => {
+    assert.throws(() => buildLabelsCsv([{ id: 'CQ1-1' }], 'label'), {
+        name: 'Error',
+        message: /id=CQ1-1: label /,
+    });
+});
+
+test('文字列や null のラベルは id とキー名を含むエラーにする', () => {
+    for (const label of ['0', null, 2]) {
+        assert.throws(() => buildLabelsCsv([{ id: 'CQ1-2', label }], 'label'), {
+            name: 'Error',
+            message: /id=CQ1-2: label /,
+        });
+    }
+});
+
+test('id が無いか空のレコードはキー名を含むエラーにする', () => {
+    for (const record of [{ label: 1 }, { id: '', label: 1 }, { id: null, label: 1 }]) {
+        assert.throws(() => buildLabelsCsv([record], 'label'), {
+            name: 'Error',
+            message: /id=.*: label /,
+        });
+    }
+});
+
+test('真偽値のラベルを整数に変換する', () => {
+    assert.equal(buildLabelsCsv([
+        { id: 'CQ1-1', label: true },
+        { id: 'CQ1-2', label: false },
+    ], 'label'), 'id,label_included\nCQ1-1,1\nCQ1-2,0\n');
+});
+
+test('ラベルの配列と records 付きオブジェクトからレコードを取り出す', () => {
+    const records = [{ id: 'CQ1-1', label: 1 }];
+    assert.equal(labelRecords(records, 'array.json'), records);
+    assert.equal(labelRecords({ dataset: 'cq1', records }, 'cq1_labeled.json'), records);
+});
+
+test('ラベルのデータ形式が不正ならファイル名を含むエラーにする', () => {
+    for (const parsed of [null, {}, { records: {} }, 'invalid']) {
+        assert.throws(() => labelRecords(parsed, 'invalid.json'), {
+            name: 'Error',
+            message: /invalid\.json:/,
+        });
+    }
 });
 
 test('zip を作って読み戻すと内容と CRC が一致する', () => {

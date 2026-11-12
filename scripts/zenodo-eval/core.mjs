@@ -171,7 +171,15 @@ export function parseManifestCsv(text) {
 export function buildLabelsCsv(records, labelKey = 'label_included') {
     const lines = ['id,label_included'];
     for (const record of records) {
-        lines.push(`${csvCell(record.id)},${record[labelKey] ? 1 : 0}`);
+        const id = record?.id;
+        if (id === undefined || id === null || id === '') {
+            throw new Error(`id=${String(id)}: ${labelKey} のレコードに空でない id が必要です`);
+        }
+        const label = record[labelKey];
+        if (label !== 1 && label !== 0 && label !== true && label !== false) {
+            throw new Error(`id=${id}: ${labelKey} は 1・0・true・false のいずれかである必要があります`);
+        }
+        lines.push(`${csvCell(id)},${label === 1 || label === true ? 1 : 0}`);
     }
     return lines.join('\n') + '\n';
 }
