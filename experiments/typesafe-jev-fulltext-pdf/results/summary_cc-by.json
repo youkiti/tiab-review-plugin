@@ -1,0 +1,162 @@
+{
+  "tier": "cc-by",
+  "records_sha256": "52b3aefe91635967722f71df76a2daf8b9d07c1fedd6df7604b81bca0b1950db",
+  "config_hash": "fef0f3c07db773814de721cda4461d09e6154c60d80b03d74d9577b63a58c3f1",
+  "records_file": "C:\\tmp\\wt-tiab-ftjev\\experiments\\gemini-decision-1\\fulltext\\data\\cc-by\\records.jsonl",
+  "states": {
+    "ok": 1216,
+    "no_pdf": 57,
+    "image_only": 0,
+    "too_long": 1,
+    "pdf_error": 0,
+    "failed": 0,
+    "unexecuted": 0
+  },
+  "comparison_count": 1216,
+  "incomplete": 0,
+  "verdict": "下がっていない",
+  "pdf": {
+    "0.3": {
+      "tp": 601,
+      "fp": 220,
+      "tn": 312,
+      "fn": 83,
+      "recall": 0.8786549707602339,
+      "specificity": 0.5864661654135338,
+      "precision": 0.7320341047503045,
+      "studyRecall": 0.8973063973063973,
+      "found": 533,
+      "includedStudies": 594
+    },
+    "0.5": {
+      "tp": 539,
+      "fp": 150,
+      "tn": 382,
+      "fn": 145,
+      "recall": 0.7880116959064327,
+      "specificity": 0.7180451127819549,
+      "precision": 0.7822931785195936,
+      "studyRecall": 0.8114478114478114,
+      "found": 482,
+      "includedStudies": 594
+    },
+    "auc": 0.8218023127995427
+  },
+  "xml": {
+    "0.3": {
+      "tp": 593,
+      "fp": 215,
+      "tn": 317,
+      "fn": 91,
+      "recall": 0.8669590643274854,
+      "specificity": 0.5958646616541353,
+      "precision": 0.7339108910891089,
+      "studyRecall": 0.8872053872053872,
+      "found": 527,
+      "includedStudies": 594
+    },
+    "0.5": {
+      "tp": 519,
+      "fp": 146,
+      "tn": 386,
+      "fn": 165,
+      "recall": 0.7587719298245614,
+      "specificity": 0.7255639097744361,
+      "precision": 0.7804511278195488,
+      "studyRecall": 0.7760942760942761,
+      "found": 461,
+      "includedStudies": 594
+    },
+    "auc": 0.8219905575341864
+  },
+  "xml_all": {
+    "tp": 627,
+    "fp": 225,
+    "tn": 326,
+    "fn": 96,
+    "recall": 0.8672199170124482,
+    "specificity": 0.5916515426497277,
+    "precision": 0.7359154929577465,
+    "studyRecall": 0.8872785829307569,
+    "found": 551,
+    "includedStudies": 621
+  },
+  "paired": {
+    "included": {
+      "xml_only": 3,
+      "pdf_only": 11,
+      "both": 590,
+      "neither": 80
+    },
+    "excluded": {
+      "xml_only": 3,
+      "pdf_only": 8,
+      "both": 212,
+      "neither": 309
+    }
+  },
+  "reasons": {
+    "single": 154,
+    "single_match": 92,
+    "single_rate": 0.5974025974025974,
+    "multiple": 0,
+    "multiple_match": 0,
+    "multiple_rate": null,
+    "unmapped": 158,
+    "table": {
+      "comparator": {
+        "population": 1,
+        "study_design": 1
+      },
+      "unmapped": {
+        "population": 16,
+        "other": 4,
+        "study_design": 60,
+        "intervention": 45,
+        "outcome": 32,
+        "comparator": 1
+      },
+      "study_design": {
+        "population": 3,
+        "study_design": 36,
+        "intervention": 6,
+        "outcome": 8
+      },
+      "population": {
+        "population": 21,
+        "intervention": 4,
+        "outcome": 1
+      },
+      "intervention": {
+        "population": 14,
+        "intervention": 24,
+        "outcome": 1,
+        "study_design": 1,
+        "comparator": 1
+      },
+      "outcome": {
+        "outcome": 11,
+        "population": 10,
+        "study_design": 9,
+        "intervention": 2
+      }
+    },
+    "choices": {
+      "population": 84,
+      "missing": 821,
+      "other": 5,
+      "study_design": 119,
+      "intervention": 109,
+      "outcome": 74,
+      "comparator": 3,
+      "duplicate": 1
+    }
+  },
+  "truncated": 7,
+  "references_removed": 1173,
+  "chars_sent_median": 34571,
+  "input_tokens": 15798024,
+  "output_tokens": 109003,
+  "cost_usd": 0,
+  "cost_unknown": 1216
+}

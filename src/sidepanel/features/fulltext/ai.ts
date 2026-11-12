@@ -2,7 +2,7 @@
  * フルテキスト AI判定タブ
  *
  * 全文を確保済み（fulltext_status='cached'）かつ未だAI判定が無い候補を対象に、
- * Gemini へ PDF を丸ごと渡して include/exclude/maybe を一括判定する（バッチ専用）。
+ * Gemini には PDF、TypeSafe には抽出した本文を渡して一括判定する（バッチ専用）。
  *
  * - AI判定は1バッチ = 1つの判定者(voter) として Decisions タブへ保存する
  *   （reviewer_id = `llm:{model}@{timestamp}`、screening_phase='fulltext'）。
@@ -49,8 +49,15 @@ import { judgeFulltext, buildFulltextPrompt, FULLTEXT_PROMPT_VERSION } from '../
 import { normalizeExcludeReasonKey } from '../../../lib/exclude-reasons';
 import { generateLlmReviewerId } from '../../../lib/llm-reviewer-id';
 import { getModelConfig, findModelConfig, AVAILABLE_MODELS } from '../../../lib/gemini-api';
-import { getEffectiveApiKey } from '../../../lib/storage';
+import { getEffectiveApiKey, getEffectiveTypeSafeApiKey } from '../../../lib/storage';
 import { filterFulltextGeminiModels } from '../../../lib/gemini-decision-model';
+import { filterFulltextModels, isFulltextTypeSafeModel } from '../../../lib/fulltext-models';
+import {
+    buildTypeSafeFulltextPromptRecord,
+    TYPESAFE_FULLTEXT_INCLUDE_THRESHOLD,
+    TYPESAFE_FULLTEXT_PROMPT_VERSION,
+} from '../../../lib/typesafe-fulltext';
+import { judgeTypeSafePdf } from './ai-typesafe';
 import { getClientVersion } from '../../../lib/client-version';
 import { DEFAULT_SCREENING_PROMPT, generateScreeningPromptFromCriteria } from '../../../lib/prompt-templates';
 import { recordPromptTemplate } from '../../../lib/llm-prompt-record';
@@ -150,16 +157,29 @@ async function fetchJudgedRefIds(spreadsheetId: string): Promise<Set<string>> {
     );
 }
 
-/** Gemini モデルのみの選択肢でセレクトを満たす */
+/** 全文対応モデルの選択肢でセレクトを満たす。 */
 function populateModelSelect(): void {
     const select = dom.fulltextAiModelSelect;
     if (select.options.length > 0) return;
-    for (const m of filterFulltextGeminiModels(AVAILABLE_MODELS)) {
+    for (const m of filterFulltextModels(AVAILABLE_MODELS)) {
         const opt = document.createElement('option');
         opt.value = m.id;
         opt.textContent = m.name;
         select.appendChild(opt);
     }
+}
+
+/** Jev の本文送信と判定の制約をモデル選択の下に表示する。 */
+function renderJevNote(): void {
+    let note = document.getElementById('fulltext-ai-jev-note');
+    if (!note) {
+        note = document.createElement('p');
+        note.id = 'fulltext-ai-jev-note';
+        note.className = 'model-key-note';
+        dom.fulltextAiModelSelect.after(note);
+    }
+    note.textContent = t('ftPage_aiJevNote');
+    note.classList.toggle('hidden', !isFulltextTypeSafeModel(dom.fulltextAiModelSelect.value));
 }
 
 /**
@@ -206,6 +226,7 @@ async function prefillPrompt(): Promise<void> {
 /** AI判定タブを描画する */
 export function renderFulltextAi(): void {
     populateModelSelect();
+    renderJevNote();
     if (!document.getElementById('fulltext-ai-copyright-notice')) {
         const notice = document.createElement('p');
         notice.id = 'fulltext-ai-copyright-notice';
@@ -543,9 +564,10 @@ async function handleStartAiBatch(): Promise<void> {
         return;
     }
 
-    const apiKey = await getEffectiveApiKey();
+    const isTypeSafe = isFulltextTypeSafeModel(modelId);
+    const apiKey = await (isTypeSafe ? getEffectiveTypeSafeApiKey() : getEffectiveApiKey());
     if (!apiKey) {
-        showToast(t('llm_apiKeyRequired'));
+        showToast(t(isTypeSafe ? 'llm_typeSafeApiKeyRequired' : 'llm_apiKeyRequired'));
         return;
     }
 
@@ -606,14 +628,18 @@ async function handleStartAiBatch(): Promise<void> {
         model: modelConfig.model,
         requested_model: modelId,
         ...sentGenerationSettings(modelConfig.model, modelConfig),
-        ...await recordPromptTemplate(buildFulltextPrompt(screeningPrompt, 'ja', state.excludeReasonItems), FULLTEXT_PROMPT_VERSION),
+        ...await recordPromptTemplate(
+            isTypeSafe ? buildTypeSafeFulltextPromptRecord(screeningPrompt, state.excludeReasonItems)
+                : buildFulltextPrompt(screeningPrompt, 'ja', state.excludeReasonItems),
+            isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION
+        ),
         // フルテキストAI判定の判定基準は TiAb の criteria_snapshot（LlmCriteria）とそのまま
         // 対応しない。buildEffectivePrompt() は llm_criteria をプロンプト生成の入力の1つとして
         // 使っているため、それが読み込み済みならスナップショットとして入れる。無ければ
         // （PICO等のテンプレートを使わずプロンプトを直接編集した場合など）意味のある値が無いので null。
         criteria_snapshot: state.llmConfig?.llm_criteria ?? null,
         screening_prompt: screeningPrompt,
-        include_threshold: 0, // フルテキストは3値(include/exclude/maybe)判定で閾値の概念が無いため未使用
+        include_threshold: isTypeSafe ? TYPESAFE_FULLTEXT_INCLUDE_THRESHOLD : 0,
         target_count: targets.length,
         include_count: 0,
         exclude_count: 0,
@@ -665,7 +691,7 @@ async function handleStartAiBatch(): Promise<void> {
     );
 }
 
-/** 1件のPDFをGeminiで判定し、Decisions タブへ確定保存する。最終判定と根拠の欠けの有無を返す */
+/** 1件の PDF を選択したモデルで判定し、最終判定と根拠の欠けの有無を返す。 */
 async function judgeOne(
     ref: ReferenceWithStatus,
     screeningPrompt: string,
@@ -694,12 +720,15 @@ async function judgeOne(
     // スキャン(画像only)PDFかを判定時に記録し、ビューアの表示経路によらず
     // 「ハイライト精度が落ちる」注意を出せるようにする。検出失敗でも判定は続行する。
     // Issue #155: チャンク読込失敗は検出失敗のcatchに入れず、AI判定の失敗として伝播する。
-    const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../../lib/pdf-image-only');
+    const isTypeSafe = isFulltextTypeSafeModel(requestedModel);
     let imageOnly: boolean | undefined;
-    try {
-        imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
-    } catch (err) {
-        console.warn('[fulltext-ai] image-only detection failed:', err);
+    if (!isTypeSafe) {
+        const { detectImageOnlyPdf } = await import(/* webpackChunkName: "pdf-image-only" */ '../../../lib/pdf-image-only');
+        try {
+            imageOnly = (await detectImageOnlyPdf(bytes)).imageOnly;
+        } catch (err) {
+            console.warn('[fulltext-ai] image-only detection failed:', err);
+        }
     }
 
     type JudgeFulltextResult = Awaited<ReturnType<typeof judgeFulltext>>;
@@ -707,10 +736,21 @@ async function judgeOne(
     let usageMetadata: JudgeFulltextResult['usageMetadata'];
     let responseMetadata: JudgeFulltextResult['responseMetadata'];
     let evidenceTruncated: boolean;
+    let typeSafeNote: Partial<FulltextLlmDecisionNote> = {};
+    // 本文抽出用チャンクの読み込み失敗は、LLM 呼び出しの失敗に包まず伝播させる。
+    const typeSafeResult = isTypeSafe ? await judgeTypeSafePdf(bytes, {
+        model: modelConfig.model, title: ref.title, screeningPrompt, reasonItems: state.excludeReasonItems,
+    }) : undefined;
     try {
-        ({ output, usageMetadata, responseMetadata, evidenceTruncated } = await judgeFulltext(
-            bytes, screeningPrompt, modelConfig, 'ja', undefined, state.excludeReasonItems
-        ));
+        if (typeSafeResult) {
+            ({ output, usageMetadata, responseMetadata, evidenceTruncated } = typeSafeResult);
+            typeSafeNote = typeSafeResult.note;
+            imageOnly = false;
+        } else {
+            ({ output, usageMetadata, responseMetadata, evidenceTruncated } = await judgeFulltext(
+                bytes, screeningPrompt, modelConfig, 'ja', undefined, state.excludeReasonItems
+            ));
+        }
     } catch (err) {
         // judgeFulltext は PDFサイズ超過（PdfTooLargeError）や Gemini API 呼び出し失敗
         // （GeminiApiError）等、既に分類可能なエラーはそのまま投げてくる。
@@ -751,7 +791,8 @@ async function judgeOne(
         evidence: output.evidence,
         image_only: imageOnly,
         evidence_truncated: evidenceTruncated ? true : undefined,
-        prompt_version: FULLTEXT_PROMPT_VERSION,
+        prompt_version: isTypeSafe ? TYPESAFE_FULLTEXT_PROMPT_VERSION : FULLTEXT_PROMPT_VERSION,
+        ...typeSafeNote,
         usageMetadata,
     };
 
@@ -832,6 +873,7 @@ function handleScopeChange(scope: FulltextAiScope): void {
 }
 
 export function setupFulltextAiListeners(): void {
+    dom.fulltextAiModelSelect.addEventListener('change', renderJevNote);
     dom.fulltextAiStartBtn?.addEventListener('click', () => { void handleStartAiBatch(); });
     dom.fulltextAiStopBtn?.addEventListener('click', () => {
         dom.fulltextAiStopBtn.disabled = false;

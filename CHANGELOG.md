@@ -12,6 +12,11 @@ Bugs that affected decisions, numbers, or what is reported in Methods are listed
 
 ## 未リリース
 
+### AI 判定に影響する変更 / Changes that affect AI screening
+
+- 全文の AI 一括判定で TypeSafe `jev-1.14.0` を選べるようにした。Jev は PDF を受け取れないため、PDF から本文の文字を取り出し、参考文献の節を除いて先頭から 85,000 字までを送る（プロンプトの版 `fulltext-typesafe-v1.0.0`）。判定は組入の確率に閾値 0.3 を当てた組入・除外の2値で、保留は出さない。除外理由はプロジェクトの除外理由リストから Jev が選ぶ。スキャンした PDF と、入力の上限を超えた本文は判定しない。既定のモデル（Gemini）と Gemini での判定は変わらない。
+  Full-text batch AI screening can now use TypeSafe `jev-1.14.0`. Jev cannot read PDFs, so the text is extracted from each PDF and sent without the reference list, up to 85,000 characters from the start (prompt version `fulltext-typesafe-v1.0.0`). The decision is include or exclude, using a threshold of 0.3 on the inclusion probability. It never returns maybe. Jev picks the exclusion reason from the project's list of reasons. Scanned PDFs and texts over the input limit are not screened. The default model (Gemini) and screening with Gemini are unchanged.
+
 ### 画面 / Interface
 
 - 論文用テキストの Methods に、TiAb Review Plugin の Zenodo の DOI（全版を束ねる DOI）と、AI を使ったプロジェクトでは AI 判定の評価結果のデータセットの DOI を書くようにした。AI 判定には影響しない。

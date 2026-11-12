@@ -7,10 +7,16 @@ import {
     parseFailureBreakdown,
     NoDriveUrlError,
     PdfReadError,
+    PdfNoTextError,
     PdfTooLargeError,
     LlmCallError,
     type FulltextAiFailureKind,
 } from '../src/lib/fulltext-ai-failures';
+
+test('文字のない PDF と TypeSafe の入力上限超過を分類する', () => {
+    assert.equal(classifyFulltextAiFailure(new PdfNoTextError('本文なし')), 'pdf');
+    assert.equal(classifyFulltextAiFailure({ name: 'TypeSafeInputTooLongError' }), 'llm');
+});
 
 // ---------------------------------------------------------------------------
 // classifyFulltextAiFailure

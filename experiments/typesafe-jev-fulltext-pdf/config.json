@@ -1,0 +1,11 @@
+{
+    "_comment": "理由リストは拡張の DEFAULT_EXCLUDE_REASON_ITEMS を使用する。",
+    "model": "jev-1.14.0",
+    "threshold": 0.3,
+    "referenceThreshold": 0.5,
+    "concurrency": 64,
+    "maxAttempts": 3,
+    "requestTimeoutMs": 60000,
+    "ledgerVersion": "v1",
+    "outputLanguage": "en"
+}

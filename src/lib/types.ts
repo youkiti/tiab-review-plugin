@@ -376,6 +376,14 @@ export interface FulltextLlmDecisionNote {
      * （デバッグ用に、正規化でフォールバックへ寄せられた・列挙外の値だった場合だけ残す）。
      */
     exclude_reason_category_raw?: string;
+    /** TypeSafe が返した除外理由ごとの確率。 */
+    exclude_reason_probabilities?: Record<string, number>;
+    /** TypeSafe に送信した整形済み本文の文字数。 */
+    fulltext_chars_sent?: number;
+    /** 本文を送信文字数の上限で切り詰めたか。 */
+    fulltext_truncated?: boolean;
+    /** 本文から参考文献の節を除いたか。 */
+    references_removed?: boolean;
     evidence: FulltextEvidence[];
     /** スキャン(画像only)PDFだったか。ハイライト精度の注意表示に使う。 */
     image_only?: boolean;

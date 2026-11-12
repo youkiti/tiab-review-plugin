@@ -45,6 +45,14 @@ export class PdfReadError extends Error {
     }
 }
 
+/** 本文の文字を取り出せず、テキストによる判定ができない PDF。 */
+export class PdfNoTextError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'FulltextPdfNoTextError';
+    }
+}
+
 /**
  * PDFがinline送信の上限サイズを超えている場合に judgeFulltext（src/lib/gemini-fulltext.ts）が
  * 投げる専用エラー。以前はここで plain `Error` を投げており、GeminiApiError（llm分類）と
@@ -97,6 +105,8 @@ function looksLikeGeminiApiError(err: unknown): boolean {
 export function classifyFulltextAiFailure(err: unknown): FulltextAiFailureKind {
     if (err instanceof NoDriveUrlError) return 'no_drive_url';
     if (err instanceof PdfReadError) return 'pdf';
+    if (err instanceof PdfNoTextError) return 'pdf';
+    if (looksLikeNamedError(err, 'TypeSafeInputTooLongError')) return 'llm';
     if (err instanceof PdfTooLargeError) return 'pdf';
     if (err instanceof LlmCallError) return 'llm';
     if (looksLikeNamedError(err, 'DriveAccessDeniedError')) {
